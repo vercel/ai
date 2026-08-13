@@ -194,8 +194,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       amazonBedrockOptions.reasoningConfig?.type === 'enabled' ||
       amazonBedrockOptions.reasoningConfig?.type === 'adaptive';
 
-    const { supportsStructuredOutput: modelSupportsStructuredOutput } =
-      getModelCapabilities(this.modelId);
+    const {
+      supportsStructuredOutput: modelSupportsStructuredOutput,
+      supportsAdaptiveThinking,
+      rejectsThinkingDisabledAboveHighEffort,
+    } = getModelCapabilities(this.modelId);
 
     const useNativeStructuredOutput =
       isAnthropicModel &&
@@ -265,6 +268,18 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         ? amazonBedrockOptions.reasoningConfig?.display
         : undefined;
     const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingEnabled;
+    /*
+     * Mirror anthropic-language-model.ts: `disabled` must still be forwarded to
+     * the API. Models with adaptive thinking (e.g. Sonnet 5) turn thinking on by
+     * default, so omitting the field leaves thinking enabled and keeps consuming
+     * the output token budget. Models without adaptive thinking default to
+     * thinking off, so omitting the field there matches the requested behavior
+     * and avoids sending `thinking` to models whose Bedrock schema predates it.
+     */
+    const sendAnthropicThinkingDisabled =
+      isAnthropicModel &&
+      supportsAdaptiveThinking &&
+      thinkingType === 'disabled';
 
     const inferenceConfig = {
       ...(maxOutputTokens != null && { maxTokens: maxOutputTokens }),
@@ -297,6 +312,13 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           },
         };
       }
+    } else if (sendAnthropicThinkingDisabled) {
+      amazonBedrockOptions.additionalModelRequestFields = {
+        ...amazonBedrockOptions.additionalModelRequestFields,
+        thinking: {
+          type: 'disabled',
+        },
+      };
     } else if (!isAnthropicModel) {
       if (amazonBedrockOptions.reasoningConfig?.budgetTokens != null) {
         warnings.push({
@@ -316,8 +338,29 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const maxReasoningEffort =
+    let maxReasoningEffort =
       amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
+
+    /*
+     * Newer models only allow disabling thinking at effort levels up to and
+     * including `high`; at `xhigh` and `max` the API returns a validation error.
+     * Lower the effort to `high` to preserve the explicit request to run without
+     * thinking.
+     */
+    if (
+      sendAnthropicThinkingDisabled &&
+      rejectsThinkingDisabledAboveHighEffort &&
+      (maxReasoningEffort === 'xhigh' || maxReasoningEffort === 'max')
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.bedrock.reasoningConfig.maxReasoningEffort',
+        details:
+          `maxReasoningEffort '${maxReasoningEffort}' is not supported by ${this.modelId} when thinking is disabled. ` +
+          `The effort has been lowered to 'high'.`,
+      });
+      maxReasoningEffort = 'high';
+    }
 
     if (maxReasoningEffort != null) {
       if (isAnthropicModel) {

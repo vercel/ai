@@ -266,6 +266,16 @@ const opus5AnthropicModel = new AmazonBedrockChatLanguageModel(
   },
 );
 
+const sonnet5AnthropicModel = new AmazonBedrockChatLanguageModel(
+  sonnet5AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
 describe('doGenerate request metadata', () => {
@@ -6680,9 +6690,9 @@ describe('doGenerate', () => {
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.thinking,
-      ).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'disabled',
+      });
       expect(
         requestBody.additionalModelRequestFields?.output_config,
       ).toBeUndefined();
@@ -6709,6 +6719,83 @@ describe('doGenerate', () => {
       expect(
         requestBody.additionalModelRequestFields?.output_config?.effort,
       ).toBe('high');
+    });
+
+    it('should forward thinking "disabled" for models that default thinking on', async () => {
+      server.urls[sonnet5AnthropicGenerateUrl].response = simpleResponse;
+
+      await sonnet5AnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: { reasoningConfig: { type: 'disabled' } },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'disabled',
+      });
+    });
+
+    it('should forward thinking "disabled" for reasoning "none" on models that default thinking on', async () => {
+      server.urls[sonnet5AnthropicGenerateUrl].response = simpleResponse;
+
+      await sonnet5AnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'disabled',
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
+
+    it('should not forward thinking "disabled" for models that default thinking off', async () => {
+      prepareJsonFixtureResponse('amazon-bedrock-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: { reasoningConfig: { type: 'disabled' } },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.thinking,
+      ).toBeUndefined();
+    });
+
+    it('should lower maxReasoningEffort to "high" when thinking is disabled for models that reject higher efforts', async () => {
+      server.urls[opus5AnthropicGenerateUrl].response = simpleResponse;
+
+      const result = await opus5AnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: { type: 'disabled', maxReasoningEffort: 'max' },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'disabled',
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('high');
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'providerOptions.bedrock.reasoningConfig.maxReasoningEffort',
+        details:
+          `maxReasoningEffort 'max' is not supported by ${opus5AnthropicModelId} when thinking is disabled. ` +
+          `The effort has been lowered to 'high'.`,
+      });
     });
 
     it('should let user-specified maxReasoningEffort win over derived for non-Anthropic models', async () => {
