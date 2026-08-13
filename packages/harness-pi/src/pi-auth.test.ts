@@ -3,7 +3,7 @@ import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   registerPiProviders,
   resolvePiEnv,
@@ -11,6 +11,19 @@ import {
 } from './pi-auth';
 
 const authPaths: string[] = [];
+
+beforeEach(() => {
+  for (const key of Object.keys(process.env)) {
+    if (
+      key.endsWith('_API_KEY') ||
+      key.endsWith('_BASE_URL') ||
+      key === 'ANTHROPIC_AUTH_TOKEN' ||
+      key === 'VERCEL_OIDC_TOKEN'
+    ) {
+      vi.stubEnv(key, undefined);
+    }
+  }
+});
 
 afterEach(async () => {
   vi.unstubAllEnvs();
