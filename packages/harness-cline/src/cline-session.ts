@@ -218,16 +218,7 @@ function createClineAgentModel({
   const model =
     settings.reasoningEffort === undefined
       ? gateway.createAgentModel(modelSelection)
-      : gateway.createAgentModel(
-          modelSelection,
-          /*
-           * Cline 0.0.66 forwards the full reasoning-effort range at runtime,
-           * but its published model-options declaration only includes low,
-           * medium, and high. Keep this assertion at the SDK boundary so the
-           * adapter can expose every effort value the runtime accepts.
-           */
-          modelOptions as Parameters<typeof gateway.createAgentModel>[1],
-        );
+      : gateway.createAgentModel(modelSelection, modelOptions);
 
   return {
     model,
