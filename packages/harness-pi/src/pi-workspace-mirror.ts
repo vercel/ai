@@ -54,49 +54,72 @@ async function readCommandOutput(
   command: string,
 ): Promise<string> {
   const result = await sandbox.run({ command });
-  const output = result.stdout || result.stderr;
   if (result.exitCode != null && result.exitCode !== 0) {
     throw new Error(
-      output || `Sandbox command failed with exit code ${result.exitCode}`,
+      result.stderr ||
+        result.stdout ||
+        `Sandbox command failed with exit code ${result.exitCode}`,
     );
   }
-  return output;
+  return result.stdout || result.stderr;
 }
 
 async function listRemoteWorkspaceEntries(
   sandbox: Experimental_SandboxSession,
   sandboxWorkDir: string,
-): Promise<{ directories: string[]; files: string[] }> {
+): Promise<{
+  directories: string[];
+  files: Array<{ relativePath: string; sandboxPath: string }>;
+}> {
   // Enumerate only the `.pi`/`.agents` config subtrees plus the root-level
   // context files — never the rest of the workspace. Use shell glob traversal
-  // instead of `find -L`, which is not supported by all sandbox shells. Testing
-  // each path with `[ -d ]`/`[ -f ]` follows symlinks, so linked config targets
-  // are still reported through the symlinked path and copied as real entries.
+  // instead of `find -L`, which is not supported by all sandbox shells.
+  // Resolve symlinks explicitly with `readlink`, retaining both the scoped
+  // mirror path and the resolved sandbox path. This avoids relying on shells
+  // that can inspect a symlinked directory but cannot traverse paths below it.
   const scopedPaths = [
     ...PI_CONFIG_DIRS.map(dir => `./${dir}`),
     ...PI_CONTEXT_FILENAMES.map(name => `./${name}`),
   ];
   const listCommand = [
     'walk_pi_config() {',
-    '  local entry=$1 depth=$2 next_depth child',
+    '  local source=$1 relative=$2 depth=$3 next_depth child child_name target resolved',
     '  if [ "$depth" -gt 100 ]; then',
-    `    printf 'Pi config traversal exceeded the maximum depth at %s\\n' "$entry" >&2`,
+    `    printf 'Pi config traversal exceeded the maximum depth at %s\\n' "$relative" >&2`,
     '    return 1',
     '  fi',
-    '  if [ -d "$entry" ]; then',
-    `    printf 'd\\t%s\\n' "\${entry#./}"`,
+    '  while [ -L "$source" ]; do',
+    '    target=$(readlink "$source") || return',
+    '    case "$target" in',
+    '      /*) resolved=$target ;;',
+    '      *) resolved=${source%/*}/$target ;;',
+    '    esac',
+    '    source=$resolved',
     '    next_depth=$((depth + 1))',
-    '    for child in "$entry"/* "$entry"/.[!.]* "$entry"/..?*; do',
-    '      if [ -d "$child" ] || [ -f "$child" ]; then',
-    '        walk_pi_config "$child" "$next_depth" || return',
+    '    depth=$next_depth',
+    '    if [ "$depth" -gt 100 ]; then',
+    `      printf 'Pi config traversal exceeded the maximum depth at %s\\n' "$relative" >&2`,
+    '      return 1',
+    '    fi',
+    '  done',
+    '  if [ -d "$source" ]; then',
+    `    printf 'd\\t%s\\n' "$relative"`,
+    '    next_depth=$((depth + 1))',
+    '    for child in "$source"/* "$source"/.[!.]* "$source"/..?*; do',
+    '      if [ -L "$child" ] || [ -d "$child" ] || [ -f "$child" ]; then',
+    '        child_name=${child##*/}',
+    '        walk_pi_config "$child" "$relative/$child_name" "$next_depth" || return',
     '      fi',
     '    done',
-    '  elif [ -f "$entry" ]; then',
-    `    printf 'f\\t%s\\n' "\${entry#./}"`,
+    '  elif [ -f "$source" ]; then',
+    `    printf 'f\\t%s\\t%s\\n' "$relative" "$source"`,
     '  fi',
     '}',
     ...scopedPaths.map(
-      scopedPath => `walk_pi_config ${shellQuote(scopedPath)} 0 || exit $?`,
+      scopedPath =>
+        `walk_pi_config ${shellQuote(
+          path.posix.join(sandboxWorkDir, scopedPath.slice(2)),
+        )} ${shellQuote(scopedPath.slice(2))} 0 || exit $?`,
     ),
   ].join('\n');
 
@@ -106,15 +129,17 @@ async function listRemoteWorkspaceEntries(
   );
 
   const directories: string[] = [];
-  const files: string[] = [];
+  const files: Array<{ relativePath: string; sandboxPath: string }> = [];
 
   for (const line of output.split('\n').filter(Boolean)) {
-    const [kind, rawPath] = line.split('\t', 2);
+    const [kind, rawPath, sandboxPath] = line.split('\t', 3);
     if (!rawPath) continue;
 
     const relativePath = normalizeRelativePath(rawPath);
     if (kind === 'd') directories.push(relativePath);
-    else if (kind === 'f') files.push(relativePath);
+    else if (kind === 'f' && sandboxPath) {
+      files.push({ relativePath, sandboxPath });
+    }
   }
 
   return { directories, files };
@@ -184,14 +209,14 @@ async function collectHostScopedEntries(
 
 function buildRequiredDirectories(
   remoteDirectories: string[],
-  remoteFiles: string[],
+  remoteFiles: Array<{ relativePath: string }>,
 ): Set<string> {
   const directories = new Set<string>();
   for (const directory of remoteDirectories) {
     directories.add(normalizeRelativePath(directory));
   }
   for (const file of remoteFiles) {
-    let current = path.dirname(normalizeRelativePath(file));
+    let current = path.dirname(normalizeRelativePath(file.relativePath));
     while (current !== '.' && current !== path.sep && current.length > 0) {
       directories.add(current);
       current = path.dirname(current);
@@ -211,7 +236,9 @@ export async function syncHostWorkspaceFromSandbox(args: {
     sandboxWorkDir,
   );
   const hostEntries = await collectHostScopedEntries(hostWorkDir);
-  const remoteFiles = new Set(remoteEntries.files);
+  const remoteFiles = new Set(
+    remoteEntries.files.map(file => file.relativePath),
+  );
   const requiredDirectories = buildRequiredDirectories(
     remoteEntries.directories,
     remoteEntries.files,
@@ -239,15 +266,11 @@ export async function syncHostWorkspaceFromSandbox(args: {
     await mkdir(path.join(hostWorkDir, relativePath), { recursive: true });
   }
 
-  for (const relativePath of remoteEntries.files) {
-    const remotePath = path.posix.join(
-      sandboxWorkDir,
-      relativePath.split(path.sep).join('/'),
-    );
-    const bytes = await sandbox.readBinaryFile({ path: remotePath });
+  for (const { relativePath, sandboxPath } of remoteEntries.files) {
+    const bytes = await sandbox.readBinaryFile({ path: sandboxPath });
     if (!bytes) {
       throw new Error(
-        `Sandbox workspace file disappeared during mirror sync: ${remotePath}`,
+        `Sandbox workspace file disappeared during mirror sync: ${sandboxPath}`,
       );
     }
     const content = Buffer.from(bytes);

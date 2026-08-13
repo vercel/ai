@@ -30,7 +30,9 @@ function makeSandbox(
 } {
   const listOutput = [
     ...remoteListing.directories.map(d => `d\t${d}`),
-    ...Object.keys(remoteListing.files).map(f => `f\t${f}`),
+    ...Object.keys(remoteListing.files).map(
+      f => `f\t${f}\t${path.posix.join(sandboxWorkDir, f)}`,
+    ),
   ]
     .sort()
     .join('\n');
@@ -181,6 +183,69 @@ describe('syncHostWorkspaceFromSandbox', () => {
         'utf8',
       ),
     ).toBe('# Linked skill');
+  });
+
+  it('mirrors nested files below symlinked config directories in just-bash', async () => {
+    const sandboxSession = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = sandboxSession.restricted();
+
+    try {
+      const setupResult = await sandbox.run({
+        command: [
+          'mkdir -p .agents project-skills/demo',
+          `printf '# Linked skill' > project-skills/demo/SKILL.md`,
+          'ln -s ../project-skills .agents/skills',
+        ].join('\n'),
+        workingDirectory: sandboxWorkDir,
+      });
+      expect(setupResult.exitCode).toBe(0);
+
+      await syncHostWorkspaceFromSandbox({
+        sandbox,
+        sandboxWorkDir,
+        hostWorkDir,
+      });
+
+      expect(
+        readFileSync(
+          path.join(hostWorkDir, '.agents/skills/demo/SKILL.md'),
+          'utf8',
+        ),
+      ).toBe('# Linked skill');
+    } finally {
+      await sandboxSession.destroy?.();
+    }
+  });
+
+  it('rejects symlink cycles in just-bash', async () => {
+    const sandboxSession = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = sandboxSession.restricted();
+
+    try {
+      const setupResult = await sandbox.run({
+        command: [
+          'mkdir -p .agents project-skills',
+          'ln -s ../project-skills .agents/skills',
+          'ln -s ../.agents/skills project-skills/loop',
+        ].join('\n'),
+        workingDirectory: sandboxWorkDir,
+      });
+      expect(setupResult.exitCode).toBe(0);
+
+      await expect(
+        syncHostWorkspaceFromSandbox({
+          sandbox,
+          sandboxWorkDir,
+          hostWorkDir,
+        }),
+      ).rejects.toThrow();
+    } finally {
+      await sandboxSession.destroy?.();
+    }
   });
 
   it('enumerates only the scoped paths, never the full workspace', async () => {
