@@ -44,7 +44,7 @@ import { z } from 'zod/v4';
 import {
   CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
   createCodexRequestTransformations,
-  resolveCodexAuthMethod,
+  resolveCodexAuthenticationMode,
   resolveCodexEnv,
   type CodexAuthOptions,
 } from './codex-auth';
@@ -236,13 +236,13 @@ export function createCodex(
         });
       }
       const sandboxSession = startOpts.sandboxSession;
-      const authMethod = resolveCodexAuthMethod(settings.auth);
+      const authenticationMode = resolveCodexAuthenticationMode(settings.auth);
       const resolvedAuthEnvironment = resolveCodexEnv(settings.auth);
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
       if (sandboxSession.addRequestTransformations != null) {
         const requestTransformations = createCodexRequestTransformations(
           resolvedAuthEnvironment,
-          authMethod,
+          authenticationMode,
         );
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

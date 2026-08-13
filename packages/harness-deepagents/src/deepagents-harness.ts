@@ -40,7 +40,7 @@ import { z } from 'zod/v4';
 import {
   createDeepAgentsRequestTransformations,
   DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
-  resolveDeepAgentsAuthMethod,
+  resolveDeepAgentsAuthenticationMode,
   resolveDeepAgentsEnv,
   type DeepAgentsAuthOptions,
 } from './deepagents-auth';
@@ -253,7 +253,9 @@ export function createDeepAgents(
     doStart: async startOpts => {
       const permissionMode = startOpts.permissionMode;
       const sandboxSession = startOpts.sandboxSession;
-      const authMethod = resolveDeepAgentsAuthMethod({ auth: settings.auth });
+      const authenticationMode = resolveDeepAgentsAuthenticationMode({
+        auth: settings.auth,
+      });
       const resolvedAuthEnvironment = resolveDeepAgentsEnv({
         auth: settings.auth,
       });
@@ -261,7 +263,7 @@ export function createDeepAgents(
       if (sandboxSession.addRequestTransformations != null) {
         const requestTransformations = createDeepAgentsRequestTransformations(
           resolvedAuthEnvironment,
-          authMethod,
+          authenticationMode,
         );
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

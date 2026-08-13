@@ -14,14 +14,14 @@ export const CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES = [
 
 export function createCodexRequestTransformations(
   env: Record<string, string>,
-  auth: CodexAuthMethod,
+  auth: CodexResolvedAuthenticationMode,
 ): HarnessV1RequestTransformation[] {
   if (!env.CODEX_API_KEY) return [];
   return [
     createCredentialRequestTransformation({
       baseUrl:
         env.OPENAI_BASE_URL ??
-        (auth === 'gateway'
+        (auth === 'ai-gateway'
           ? DEFAULT_AI_GATEWAY_BASE_URL
           : DEFAULT_OPENAI_BASE_URL),
       headers: { Authorization: `Bearer ${env.CODEX_API_KEY}` },
@@ -29,7 +29,9 @@ export function createCodexRequestTransformations(
   ];
 }
 
-export type CodexAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+export type CodexResolvedAuthenticationMode = 'direct' | 'ai-gateway';
+
+export type CodexAuthenticationMode = CodexResolvedAuthenticationMode | 'auto';
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use a `CodexAuthenticationMode` string value ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -54,8 +56,6 @@ export type LegacyCodexAuthOptions = {
 };
 
 export type CodexAuthOptions = CodexAuthenticationMode | LegacyCodexAuthOptions;
-
-export type CodexAuthMethod = keyof LegacyCodexAuthOptions;
 
 /**
  * Resolve the environment-variable blob the codex bridge needs. Precedence:
@@ -97,22 +97,22 @@ export function resolveCodexEnv(
   return pickOpenAI({ processEnv });
 }
 
-export function resolveCodexAuthMethod(
+export function resolveCodexAuthenticationMode(
   auth: CodexAuthOptions | undefined,
   processEnv: Record<string, string | undefined> = process.env,
-): CodexAuthMethod {
+): CodexResolvedAuthenticationMode {
   if (typeof auth !== 'string' && auth?.openaiCompatible) {
-    return 'openaiCompatible';
+    return 'direct';
   }
   if (auth === 'direct' || (typeof auth !== 'string' && auth?.openai)) {
-    return 'openai';
+    return 'direct';
   }
   if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
-    return 'gateway';
+    return 'ai-gateway';
   }
   return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
-    ? 'gateway'
-    : 'openai';
+    ? 'ai-gateway'
+    : 'direct';
 }
 
 function normalizeCodexAuthToLegacyAuth(

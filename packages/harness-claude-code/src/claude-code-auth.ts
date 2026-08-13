@@ -16,7 +16,7 @@ export const CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
 
 export function createClaudeCodeRequestTransformations(
   env: Record<string, string>,
-  auth: ClaudeCodeAuthMethod,
+  auth: ClaudeCodeResolvedAuthenticationMode,
 ): HarnessV1RequestTransformation[] {
   const headers: Record<string, string> = {};
   if (env.ANTHROPIC_API_KEY) {
@@ -30,7 +30,7 @@ export function createClaudeCodeRequestTransformations(
     : [
         createCredentialRequestTransformation({
           baseUrl:
-            auth === 'gateway'
+            auth === 'ai-gateway'
               ? env.ANTHROPIC_BASE_URL
               : (env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com'),
           headers,
@@ -38,7 +38,11 @@ export function createClaudeCodeRequestTransformations(
       ];
 }
 
-export type ClaudeCodeAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+export type ClaudeCodeResolvedAuthenticationMode = 'direct' | 'ai-gateway';
+
+export type ClaudeCodeAuthenticationMode =
+  | ClaudeCodeResolvedAuthenticationMode
+  | 'auto';
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use a `ClaudeCodeAuthenticationMode` string value ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -58,8 +62,6 @@ export type LegacyClaudeCodeAuthOptions = {
 export type ClaudeCodeAuthOptions =
   | ClaudeCodeAuthenticationMode
   | LegacyClaudeCodeAuthOptions;
-
-export type ClaudeCodeAuthMethod = keyof LegacyClaudeCodeAuthOptions;
 
 /**
  * Resolve the environment-variable blob the bridge needs to authenticate
@@ -115,19 +117,19 @@ export function resolveClaudeCodeEnv(
   return pickAnthropic({ processEnv, readApiKey });
 }
 
-export function resolveClaudeCodeAuthMethod(
+export function resolveClaudeCodeAuthenticationMode(
   auth: ClaudeCodeAuthOptions | undefined,
   processEnv: Record<string, string | undefined> = process.env,
-): ClaudeCodeAuthMethod {
+): ClaudeCodeResolvedAuthenticationMode {
   if (auth === 'direct' || (typeof auth !== 'string' && auth?.anthropic)) {
-    return 'anthropic';
+    return 'direct';
   }
   if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
-    return 'gateway';
+    return 'ai-gateway';
   }
   return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
-    ? 'gateway'
-    : 'anthropic';
+    ? 'ai-gateway'
+    : 'direct';
 }
 
 function normalizeClaudeCodeAuthToLegacyAuth(

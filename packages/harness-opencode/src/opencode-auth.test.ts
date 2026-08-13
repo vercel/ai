@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   createOpenCodeRequestTransformations,
-  resolveOpenCodeAuthMethod,
+  resolveOpenCodeAuthenticationMode,
   resolveOpenCodeEnv,
   resolveOpenCodeProvider,
   splitOpenCodeModel,
@@ -135,10 +135,10 @@ describe('OpenCode auth', () => {
   });
 });
 
-describe('resolveOpenCodeAuthMethod', () => {
+describe('resolveOpenCodeAuthenticationMode', () => {
   it('preserves explicit selected-provider auth despite ambient Gateway credentials', () => {
     expect(
-      resolveOpenCodeAuthMethod({
+      resolveOpenCodeAuthenticationMode({
         auth: { openai: {} },
         provider: 'openai',
         processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
@@ -146,22 +146,22 @@ describe('resolveOpenCodeAuthMethod', () => {
     ).toBe('openai');
   });
 
-  it('preserves the OpenAI-compatible identifier', () => {
+  it('resolves legacy OpenAI-compatible auth to OpenAI auth', () => {
     expect(
-      resolveOpenCodeAuthMethod({
+      resolveOpenCodeAuthenticationMode({
         auth: { openaiCompatible: {} },
         processEnv: {},
       }),
-    ).toBe('openaiCompatible');
+    ).toBe('openai');
   });
 
   it('resolves ambient Gateway credentials to Gateway auth', () => {
     expect(
-      resolveOpenCodeAuthMethod({
+      resolveOpenCodeAuthenticationMode({
         auth: undefined,
         processEnv: { VERCEL_OIDC_TOKEN: 'oidc-token' },
       }),
-    ).toBe('gateway');
+    ).toBe('ai-gateway');
   });
 });
 
@@ -199,7 +199,7 @@ describe('createOpenCodeRequestTransformations', () => {
           AI_GATEWAY_API_KEY: 'gateway-secret',
           AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
         },
-        'gateway',
+        'ai-gateway',
       ),
     ).toEqual([
       {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   createDeepAgentsRequestTransformations,
-  resolveDeepAgentsAuthMethod,
+  resolveDeepAgentsAuthenticationMode,
   resolveDeepAgentsEnv,
 } from './deepagents-auth';
 
@@ -114,10 +114,10 @@ describe('resolveDeepAgentsEnv', () => {
   });
 });
 
-describe('resolveDeepAgentsAuthMethod', () => {
+describe('resolveDeepAgentsAuthenticationMode', () => {
   it('preserves explicit Anthropic auth despite ambient Gateway credentials', () => {
     expect(
-      resolveDeepAgentsAuthMethod({
+      resolveDeepAgentsAuthenticationMode({
         auth: { anthropic: {} },
         processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
       }),
@@ -126,10 +126,10 @@ describe('resolveDeepAgentsAuthMethod', () => {
 
   it('resolves ambient Gateway credentials to Gateway auth', () => {
     expect(
-      resolveDeepAgentsAuthMethod({
+      resolveDeepAgentsAuthenticationMode({
         processEnv: { VERCEL_OIDC_TOKEN: 'oidc-token' },
       }),
-    ).toBe('gateway');
+    ).toBe('ai-gateway');
   });
 });
 
@@ -176,7 +176,7 @@ describe('createDeepAgentsRequestTransformations', () => {
           ANTHROPIC_API_KEY: 'gateway-secret',
           ANTHROPIC_BASE_URL: 'https://gateway.example',
         },
-        'gateway',
+        'ai-gateway',
       ),
     ).toEqual([
       {

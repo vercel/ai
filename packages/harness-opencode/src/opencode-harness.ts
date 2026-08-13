@@ -46,7 +46,7 @@ import { z } from 'zod/v4';
 import {
   createOpenCodeRequestTransformations,
   OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
-  resolveOpenCodeAuthMethod,
+  resolveOpenCodeAuthenticationMode,
   resolveOpenCodeEnv,
   splitOpenCodeModel,
   type OpenCodeAuthOptions,
@@ -266,7 +266,7 @@ export function createOpenCode(
     },
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
-      const authMethod = resolveOpenCodeAuthMethod({
+      const authenticationMode = resolveOpenCodeAuthenticationMode({
         auth: settings.auth,
         model: settings.model,
         provider: settings.provider,
@@ -280,7 +280,7 @@ export function createOpenCode(
       if (sandboxSession.addRequestTransformations != null) {
         const requestTransformations = createOpenCodeRequestTransformations(
           resolvedAuthEnvironment,
-          authMethod,
+          authenticationMode,
         );
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

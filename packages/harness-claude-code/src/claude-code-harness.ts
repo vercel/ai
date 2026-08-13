@@ -47,7 +47,7 @@ import { z } from 'zod/v4';
 import {
   CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
   createClaudeCodeRequestTransformations,
-  resolveClaudeCodeAuthMethod,
+  resolveClaudeCodeAuthenticationMode,
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
 } from './claude-code-auth';
@@ -852,7 +852,9 @@ export function createClaudeCode(
     },
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
-      const authMethod = resolveClaudeCodeAuthMethod(settings.auth);
+      const authenticationMode = resolveClaudeCodeAuthenticationMode(
+        settings.auth,
+      );
       const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
       let authEnv = resolvedAuthEnvironment;
       let sandboxTurnEnvironment = settings.env;
@@ -862,7 +864,7 @@ export function createClaudeCode(
             ...resolvedAuthEnvironment,
             ...settings.env,
           },
-          authMethod,
+          authenticationMode,
         );
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

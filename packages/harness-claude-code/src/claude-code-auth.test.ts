@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   createClaudeCodeRequestTransformations,
-  resolveClaudeCodeAuthMethod,
+  resolveClaudeCodeAuthenticationMode,
   resolveClaudeCodeEnv,
 } from './claude-code-auth';
 
@@ -184,22 +184,22 @@ describe('resolveClaudeCodeEnv', () => {
   });
 });
 
-describe('resolveClaudeCodeAuthMethod', () => {
+describe('resolveClaudeCodeAuthenticationMode', () => {
   it('preserves explicit Anthropic auth despite ambient Gateway credentials', () => {
     expect(
-      resolveClaudeCodeAuthMethod(
+      resolveClaudeCodeAuthenticationMode(
         { anthropic: {} },
         { AI_GATEWAY_API_KEY: 'gateway-key' },
       ),
-    ).toBe('anthropic');
+    ).toBe('direct');
   });
 
   it('resolves ambient Gateway credentials to Gateway auth', () => {
     expect(
-      resolveClaudeCodeAuthMethod(undefined, {
+      resolveClaudeCodeAuthenticationMode(undefined, {
         VERCEL_OIDC_TOKEN: 'oidc-token',
       }),
-    ).toBe('gateway');
+    ).toBe('ai-gateway');
   });
 });
 
@@ -212,7 +212,7 @@ describe('createClaudeCodeRequestTransformations', () => {
           ANTHROPIC_AUTH_TOKEN: 'token-secret',
           ANTHROPIC_BASE_URL: 'https://anthropic.example/v1',
         },
-        'anthropic',
+        'direct',
       ),
     ).toEqual([
       {
@@ -237,7 +237,7 @@ describe('createClaudeCodeRequestTransformations', () => {
           ANTHROPIC_API_KEY: 'gateway-secret',
           ANTHROPIC_BASE_URL: 'https://gateway.example',
         },
-        'gateway',
+        'ai-gateway',
       ),
     ).toEqual([
       {

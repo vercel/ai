@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   createCodexRequestTransformations,
-  resolveCodexAuthMethod,
+  resolveCodexAuthenticationMode,
   resolveCodexEnv,
 } from './codex-auth';
 
@@ -137,30 +137,30 @@ describe('resolveCodexEnv', () => {
   });
 });
 
-describe('resolveCodexAuthMethod', () => {
+describe('resolveCodexAuthenticationMode', () => {
   it('preserves direct auth despite ambient Gateway credentials', () => {
     expect(
-      resolveCodexAuthMethod('direct', {
+      resolveCodexAuthenticationMode('direct', {
         AI_GATEWAY_API_KEY: 'gateway-key',
       }),
-    ).toBe('openai');
+    ).toBe('direct');
   });
 
-  it('preserves the legacy OpenAI-compatible identifier', () => {
+  it('resolves legacy OpenAI-compatible auth to direct auth', () => {
     expect(
-      resolveCodexAuthMethod(
+      resolveCodexAuthenticationMode(
         { openaiCompatible: {} },
         { AI_GATEWAY_API_KEY: 'gateway-key' },
       ),
-    ).toBe('openaiCompatible');
+    ).toBe('direct');
   });
 
   it('resolves ambient Gateway credentials to Gateway auth', () => {
     expect(
-      resolveCodexAuthMethod(undefined, {
+      resolveCodexAuthenticationMode(undefined, {
         VERCEL_OIDC_TOKEN: 'oidc-token',
       }),
-    ).toBe('gateway');
+    ).toBe('ai-gateway');
   });
 });
 
@@ -172,7 +172,7 @@ describe('createCodexRequestTransformations', () => {
           CODEX_API_KEY: 'openai-secret',
           OPENAI_BASE_URL: 'https://openai.example/v1',
         },
-        'openai',
+        'direct',
       ),
     ).toEqual([
       {
@@ -191,7 +191,7 @@ describe('createCodexRequestTransformations', () => {
     expect(
       createCodexRequestTransformations(
         { CODEX_API_KEY: 'gateway-secret' },
-        'gateway',
+        'ai-gateway',
       ),
     ).toEqual([
       {
@@ -207,6 +207,6 @@ describe('createCodexRequestTransformations', () => {
   });
 
   it('does not create a transformation without a credential', () => {
-    expect(createCodexRequestTransformations({}, 'openai')).toEqual([]);
+    expect(createCodexRequestTransformations({}, 'direct')).toEqual([]);
   });
 });

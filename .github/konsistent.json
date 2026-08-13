@@ -373,7 +373,7 @@
                 "name": "create${harnessId.toPascalCase()}RequestTransformations",
                 "receiveParamsOfTypes": [
                   "Record<string, string>",
-                  "${harnessId.toPascalCase()}AuthMethod"
+                  "${harnessId.toPascalCase()}ResolvedAuthenticationMode"
                 ],
                 "returnValueOfType": "HarnessV1RequestTransformation[]"
               }

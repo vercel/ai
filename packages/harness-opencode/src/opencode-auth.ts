@@ -13,10 +13,10 @@ export const OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
 
 export function createOpenCodeRequestTransformations(
   env: Record<string, string>,
-  auth: OpenCodeAuthMethod,
+  auth: OpenCodeResolvedAuthenticationMode,
 ): HarnessV1RequestTransformation[] {
   switch (auth) {
-    case 'gateway':
+    case 'ai-gateway':
       return env.AI_GATEWAY_API_KEY
         ? [
             createCredentialRequestTransformation({
@@ -28,7 +28,6 @@ export function createOpenCodeRequestTransformations(
           ]
         : [];
     case 'openai':
-    case 'openaiCompatible':
       return env.OPENAI_API_KEY
         ? [
             createCredentialRequestTransformation({
@@ -57,11 +56,14 @@ export function createOpenCodeRequestTransformations(
   }
 }
 
-export type OpenCodeAuthenticationMode =
-  | 'auto'
+export type OpenCodeResolvedAuthenticationMode =
   | 'anthropic'
   | 'openai'
   | 'ai-gateway';
+
+export type OpenCodeAuthenticationMode =
+  | OpenCodeResolvedAuthenticationMode
+  | 'auto';
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use an `OpenCodeAuthenticationMode` string value ("auto" | "anthropic" | "openai" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -93,8 +95,6 @@ export type LegacyOpenCodeAuthOptions = {
 export type OpenCodeAuthOptions =
   | OpenCodeAuthenticationMode
   | LegacyOpenCodeAuthOptions;
-
-export type OpenCodeAuthMethod = keyof LegacyOpenCodeAuthOptions;
 
 export function resolveOpenCodeProvider({
   model,
@@ -174,7 +174,7 @@ export function resolveOpenCodeEnv({
     : pickAnthropic({ processEnv });
 }
 
-export function resolveOpenCodeAuthMethod({
+export function resolveOpenCodeAuthenticationMode({
   auth,
   model,
   provider,
@@ -184,9 +184,9 @@ export function resolveOpenCodeAuthMethod({
   model?: string;
   provider?: string;
   processEnv?: Record<string, string | undefined>;
-}): OpenCodeAuthMethod {
+}): OpenCodeResolvedAuthenticationMode {
   if (typeof auth !== 'string' && auth?.openaiCompatible) {
-    return 'openaiCompatible';
+    return 'openai';
   }
 
   const selectedProvider = resolveOpenCodeProvider({ model, provider });
@@ -203,9 +203,11 @@ export function resolveOpenCodeAuthMethod({
     return 'anthropic';
   }
   if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
-    return 'gateway';
+    return 'ai-gateway';
   }
-  if (getAiGatewayAuthFromEnv({ env: processEnv }).apiKey) return 'gateway';
+  if (getAiGatewayAuthFromEnv({ env: processEnv }).apiKey) {
+    return 'ai-gateway';
+  }
   return selectedProvider;
 }
 
