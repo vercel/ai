@@ -3149,6 +3149,51 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
+      it('should preserve caller metadata from dynamic-filtering server tool calls', async () => {
+        prepareJsonFixtureResponse(
+          'anthropic-web-search-dynamic-filtering-multiple.1',
+        );
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_search_20260209',
+              name: 'web_search',
+              args: { maxUses: 6 },
+            },
+          ],
+        });
+
+        const nestedWebSearchCalls = result.content.filter(
+          part =>
+            part.type === 'tool-call' &&
+            part.providerExecuted &&
+            part.toolName === 'web_search',
+        );
+
+        expect(nestedWebSearchCalls).toHaveLength(3);
+        expect(
+          nestedWebSearchCalls.map(
+            call => call.providerMetadata?.anthropic?.caller,
+          ),
+        ).toEqual([
+          {
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_code_execution_issue_18785',
+          },
+          {
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_code_execution_issue_18785',
+          },
+          {
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_code_execution_issue_18785',
+          },
+        ]);
+      });
+
       it('should handle server-side web search errors', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
@@ -9321,6 +9366,25 @@ describe('AnthropicMessagesLanguageModel', () => {
             type: 'tool-call',
             toolName: 'web_fetch',
             input: '{"url":"https://example.com"}',
+          });
+        });
+
+        it('should preserve caller metadata from streaming dynamic-filtering server tool calls', async () => {
+          const streamArray = await convertReadableStreamToArray(result.stream);
+
+          const webFetchCall = streamArray.find(
+            part => part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+
+          expect(webFetchCall).toMatchObject({
+            providerMetadata: {
+              anthropic: {
+                caller: {
+                  type: 'code_execution_20260120',
+                  toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+                },
+              },
+            },
           });
         });
 
