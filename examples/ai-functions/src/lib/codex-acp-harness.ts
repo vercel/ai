@@ -60,19 +60,23 @@ const CODEX_ACP_PERMISSION_MODE_MAPPING = {
   'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
 } as const satisfies ACPPermissionModeMapping;
 
+export type CodexACPHarnessSettings = {
+  auth?: ACPAuthOptions;
+  mcpServers?: Record<string, unknown>;
+  mintBridgeToken?: (sandboxId: string) => string;
+  reasoningEffort?: 'low' | 'medium' | 'high';
+  webSearch?: boolean;
+  source?: ACPSource;
+};
+
 export function createCodexACP({
   auth = 'auto',
   mcpServers,
   mintBridgeToken,
+  reasoningEffort,
   webSearch,
   source = CODEX_ACP_SOURCE,
-}: {
-  auth?: ACPAuthOptions;
-  mcpServers?: Record<string, unknown>;
-  mintBridgeToken?: (sandboxId: string) => string;
-  webSearch?: boolean;
-  source?: ACPSource;
-} = {}) {
+}: CodexACPHarnessSettings = {}) {
   return createACP({
     harnessId: 'codex-acp',
     auth,
@@ -82,10 +86,23 @@ export function createCodexACP({
     source,
     executable: CODEX_ACP_EXECUTABLE,
     forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-    ...(webSearch
+    instructionMapping: {
+      type: 'launch-env-json',
+      variable: 'CODEX_CONFIG',
+      path: ['developer_instructions'],
+    },
+    ...(webSearch || reasoningEffort
       ? {
           env: {
-            CODEX_CONFIG: JSON.stringify({ web_search: 'live' }),
+            CODEX_CONFIG: JSON.stringify({
+              ...(webSearch ? { web_search: 'live' } : {}),
+              ...(reasoningEffort
+                ? {
+                    model_reasoning_effort: reasoningEffort,
+                    model_reasoning_summary: 'detailed',
+                  }
+                : {}),
+            }),
           },
         }
       : {}),
@@ -100,6 +117,12 @@ export function createCodexACP({
           CODEX_API_KEY: { $source: 'gateway-api-key' },
           CODEX_CONFIG: {
             ...(webSearch ? { web_search: 'live' } : {}),
+            ...(reasoningEffort
+              ? {
+                  model_reasoning_effort: reasoningEffort,
+                  model_reasoning_summary: 'detailed',
+                }
+              : {}),
             model: 'openai/gpt-5.6-sol',
             model_provider: 'ai_gateway',
             model_providers: {

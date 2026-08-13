@@ -10,6 +10,7 @@ import {
 } from './acp-v1-bridge-protocol';
 import type { ACPTextContentBlock } from './acp-v1-prompt';
 import type {
+  ACPInstructionMapping,
   ACPPermissionModeMapping,
   ACPSerializableValue,
 } from './acp-v1-settings';
@@ -24,6 +25,7 @@ export function createACPTurnStartConfig({
   debug,
   authenticationProfile,
   sessionMeta,
+  instructionMapping,
 }: {
   prompt: ReadonlyArray<ACPTextContentBlock>;
   tools: ReadonlyArray<HarnessV1ToolSpec>;
@@ -34,6 +36,7 @@ export function createACPTurnStartConfig({
   debug: HarnessV1DebugConfig | undefined;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
+  instructionMapping: ACPInstructionMapping | undefined;
 }): ACPTurnStartConfig {
   return {
     version: 1,
@@ -42,6 +45,7 @@ export function createACPTurnStartConfig({
         stableStringify({
           authenticationProfile,
           sessionMeta: sessionMeta ?? null,
+          ...(instructionMapping == null ? {} : { instructionMapping }),
           builtinTools,
           permissionModeMapping: permissionModeMapping ?? null,
           mcpServers: mcpServers ?? null,

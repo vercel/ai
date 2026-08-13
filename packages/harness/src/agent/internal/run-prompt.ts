@@ -72,7 +72,7 @@ export function runPrompt<
   /**
    * Turn entry point. `'prompt'` (default) starts a new turn from `prompt`;
    * `'continue'` continues the in-flight turn via `doContinueTurn` and ignores
-   * `prompt`/`instructions`.
+   * `prompt`.
    */
   mode?: 'prompt' | 'continue';
   /** Required for `mode: 'prompt'`; absent for `mode: 'continue'`. */
@@ -173,6 +173,7 @@ export function runPrompt<
             ? emit =>
                 input.session.doContinueTurn({
                   tools: input.toolSpecs,
+                  instructions: input.instructions,
                   abortSignal: input.abortSignal,
                   emit,
                 })

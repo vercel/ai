@@ -1,6 +1,7 @@
 import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   loadOptionalSetting,
   postJsonToApi,
   withoutTrailingSlash,
@@ -372,7 +373,7 @@ export function createGateway(
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: options.fetch,
       });

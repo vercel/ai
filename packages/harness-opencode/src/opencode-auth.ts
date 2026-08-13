@@ -1,6 +1,15 @@
 import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 
-export type OpenCodeAuthOptions = {
+export type OpenCodeAuthenticationMode =
+  | 'auto'
+  | 'anthropic'
+  | 'openai'
+  | 'ai-gateway';
+
+/**
+ * @deprecated Passing an object to auth options is deprecated. Use an `OpenCodeAuthenticationMode` string value ("auto" | "anthropic" | "openai" | "ai-gateway") instead, and pass credentials via environment variables.
+ */
+export type LegacyOpenCodeAuthOptions = {
   readonly gateway?: {
     readonly apiKey?: string;
     readonly baseUrl?: string;
@@ -23,6 +32,10 @@ export type OpenCodeAuthOptions = {
     readonly queryParams?: Record<string, string>;
   };
 };
+
+export type OpenCodeAuthOptions =
+  | OpenCodeAuthenticationMode
+  | LegacyOpenCodeAuthOptions;
 
 export function resolveOpenCodeProvider({
   model,
@@ -74,21 +87,25 @@ export function resolveOpenCodeEnv({
   provider?: string;
   processEnv?: Record<string, string | undefined>;
 }): Record<string, string> {
+  const normalizedAuth = normalizeOpenCodeAuthToLegacyAuth(auth);
   const selectedProvider = resolveOpenCodeProvider({ model, provider });
-  if (auth?.openaiCompatible) {
-    return pickOpenAICompatible(auth.openaiCompatible, processEnv);
+  if (normalizedAuth?.openaiCompatible) {
+    return pickOpenAICompatible(normalizedAuth.openaiCompatible, processEnv);
   }
   if (selectedProvider === 'openai') {
-    if (auth?.openai) {
-      return pickOpenAI({ explicit: auth.openai, processEnv });
+    if (normalizedAuth?.openai) {
+      return pickOpenAI({ explicit: normalizedAuth.openai, processEnv });
     }
-  } else if (auth?.anthropic) {
-    return pickAnthropic({ explicit: auth.anthropic, processEnv });
+  } else if (normalizedAuth?.anthropic) {
+    return pickAnthropic({ explicit: normalizedAuth.anthropic, processEnv });
   }
 
   const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
-  if (auth?.gateway) {
-    return pickGateway({ explicit: auth.gateway, gatewayAuthFromEnv });
+  if (normalizedAuth?.gateway) {
+    return pickGateway({
+      explicit: normalizedAuth.gateway,
+      gatewayAuthFromEnv,
+    });
   }
   if (gatewayAuthFromEnv.apiKey) {
     return pickGateway({ explicit: {}, gatewayAuthFromEnv });
@@ -98,8 +115,33 @@ export function resolveOpenCodeEnv({
     : pickAnthropic({ processEnv });
 }
 
+function normalizeOpenCodeAuthToLegacyAuth(
+  auth: OpenCodeAuthOptions | undefined,
+): LegacyOpenCodeAuthOptions | undefined {
+  if (auth == null || auth === 'auto') {
+    return undefined;
+  }
+  if (typeof auth === 'string') {
+    switch (auth) {
+      case 'anthropic':
+        return { anthropic: {} };
+      case 'openai':
+        return { openai: {} };
+      case 'ai-gateway':
+        return { gateway: {} };
+      default:
+        return undefined;
+    }
+  }
+
+  console.warn(
+    '[opencode] Passing an object to auth options is deprecated. Use a string mode ("auto" | "anthropic" | "openai" | "ai-gateway") instead, and pass credentials via environment variables.',
+  );
+  return auth;
+}
+
 function pickOpenAICompatible(
-  explicit: NonNullable<OpenCodeAuthOptions['openaiCompatible']>,
+  explicit: NonNullable<LegacyOpenCodeAuthOptions['openaiCompatible']>,
   processEnv: Record<string, string | undefined>,
 ): Record<string, string> {
   const env: Record<string, string> = {};
@@ -121,7 +163,7 @@ function pickOpenAI({
   explicit,
   processEnv,
 }: {
-  explicit?: NonNullable<OpenCodeAuthOptions['openai']>;
+  explicit?: NonNullable<LegacyOpenCodeAuthOptions['openai']>;
   processEnv: Record<string, string | undefined>;
 }): Record<string, string> {
   const env: Record<string, string> = {};
@@ -140,7 +182,7 @@ function pickAnthropic({
   explicit,
   processEnv,
 }: {
-  explicit?: NonNullable<OpenCodeAuthOptions['anthropic']>;
+  explicit?: NonNullable<LegacyOpenCodeAuthOptions['anthropic']>;
   processEnv: Record<string, string | undefined>;
 }): Record<string, string> {
   const env: Record<string, string> = {};
@@ -157,7 +199,7 @@ function pickGateway({
   explicit,
   gatewayAuthFromEnv,
 }: {
-  explicit: NonNullable<OpenCodeAuthOptions['gateway']>;
+  explicit: NonNullable<LegacyOpenCodeAuthOptions['gateway']>;
   gatewayAuthFromEnv: ReturnType<typeof getAiGatewayAuthFromEnv>;
 }): Record<string, string> {
   const env: Record<string, string> = {};

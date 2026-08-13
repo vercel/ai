@@ -132,6 +132,63 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it('should omit a reasoning-only response from a follow-up request', async () => {
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'reasoning-only-response',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: null,
+                reasoning_content: 'Hidden reasoning.',
+              },
+              finish_reason: 'length',
+            },
+          ],
+        },
+      };
+
+      const firstUserMessage = {
+        role: 'user' as const,
+        content: [{ type: 'text' as const, text: 'Think before answering.' }],
+      };
+      const first = await model.doGenerate({
+        prompt: [firstUserMessage],
+      });
+      const reasoningContent = first.content.filter(
+        part => part.type === 'reasoning',
+      );
+
+      expect(reasoningContent).toEqual([
+        { type: 'reasoning', text: 'Hidden reasoning.' },
+      ]);
+
+      await model.doGenerate({
+        prompt: [
+          firstUserMessage,
+          { role: 'assistant', content: reasoningContent },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+      });
+
+      expect((await server.calls[1].requestBodyJson).messages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Think before answering.' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
   });
 
   describe('top-level reasoning', () => {

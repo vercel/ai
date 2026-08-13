@@ -37,6 +37,7 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly authentication?: ACPV1Settings['authentication'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
   readonly modelId?: ACPV1Settings['modelId'];
+  readonly instructionMapping?: ACPV1Settings['instructionMapping'];
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
   readonly mintBridgeToken?: ACPV1Settings['mintBridgeToken'];

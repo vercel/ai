@@ -116,11 +116,21 @@ export function createEmitStreamEvent({
               type?: string;
               text?: string;
               thinking?: string;
+              reasoning?: string;
             };
-            if (value.type === 'text' && value.text) {
+            if (
+              (value.type === 'text' || value.type === 'text-delta') &&
+              value.text
+            ) {
               emitText({ state, emit, delta: value.text });
             } else if (value.type === 'thinking' && value.thinking) {
               emitReasoning({ state, emit, delta: value.thinking });
+            } else if (
+              (value.type === 'reasoning' ||
+                value.type === 'reasoning-delta') &&
+              value.reasoning
+            ) {
+              emitReasoning({ state, emit, delta: value.reasoning });
             }
           }
         }
