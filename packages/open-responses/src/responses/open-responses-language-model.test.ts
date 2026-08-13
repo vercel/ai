@@ -9,6 +9,7 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { OpenResponsesLanguageModelOptions } from './open-responses-language-model-options';
 import { OpenResponsesLanguageModel } from './open-responses-language-model';
 
 describe('OpenResponsesLanguageModel', () => {
@@ -288,6 +289,42 @@ describe('OpenResponsesLanguageModel', () => {
     describe('providerOptions reasoning', () => {
       beforeEach(() => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
+      });
+
+      it('should send a provider-native reasoning effort', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: {
+              reasoningEffort: 'max',
+            } satisfies OpenResponsesLanguageModelOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'max' },
+        );
+      });
+
+      it('should prefer providerOptions reasoning effort over top-level reasoning', async () => {
+        const { warnings } = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+          providerOptions: {
+            lmstudio: {
+              reasoningEffort: 'max',
+              reasoningSummary: 'detailed',
+            } satisfies OpenResponsesLanguageModelOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          {
+            effort: 'max',
+            summary: 'detailed',
+          },
+        );
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should send reasoning.summary via providerOptions', async () => {
@@ -744,6 +781,25 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    it('should send provider-native reasoning effort when streaming', async () => {
+      prepareChunksFixtureResponse('lmstudio-basic.1');
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          lmstudio: {
+            reasoningEffort: 'max',
+          } satisfies OpenResponsesLanguageModelOptions,
+        },
+      });
+
+      await convertReadableStreamToArray(result.stream);
+
+      expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual({
+        effort: 'max',
       });
     });
 
