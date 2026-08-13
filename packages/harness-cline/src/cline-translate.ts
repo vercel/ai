@@ -119,6 +119,10 @@ export function translateClineEvent(
   switch (event.type) {
     case 'assistant-reasoning-delta': {
       const parts: HarnessV1StreamPart[] = [];
+      if (state.openTextBlockId) {
+        parts.push({ type: 'text-end', id: state.openTextBlockId });
+        state.openTextBlockId = undefined;
+      }
       if (!state.openReasoningBlockId) {
         state.openReasoningBlockId = `reasoning-${++state.blockCounter}`;
         parts.push({ type: 'reasoning-start', id: state.openReasoningBlockId });

@@ -75,6 +75,39 @@ describe('translateClineEvent', () => {
     ]);
   });
 
+  it('closes an open text block when reasoning starts', () => {
+    const state = newState();
+    translateClineEvent(
+      {
+        type: 'assistant-text-delta',
+        snapshot,
+        iteration: 1,
+        text: 'answer',
+        accumulatedText: 'answer',
+      },
+      state,
+    );
+    const parts = translateClineEvent(
+      {
+        type: 'assistant-reasoning-delta',
+        snapshot,
+        iteration: 1,
+        text: 'thinking…',
+        accumulatedText: 'thinking…',
+      },
+      state,
+    );
+
+    expect(parts).toEqual([
+      { type: 'text-end', id: 'text-1' },
+      { type: 'reasoning-start', id: 'reasoning-2' },
+      { type: 'reasoning-delta', id: 'reasoning-2', delta: 'thinking…' },
+    ]);
+    expect(finishClineTranslation(state)).toEqual([
+      { type: 'reasoning-end', id: 'reasoning-2' },
+    ]);
+  });
+
   it('closes open blocks and emits finish-step on assistant-message', () => {
     const state = newState();
     translateClineEvent(
