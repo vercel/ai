@@ -16,6 +16,6 @@ export function mapOpenResponsesFinishReason({
     case 'content_filter':
       return 'content-filter';
     default:
-      return hasToolCalls ? 'tool-calls' : 'other';
+      return 'other';
   }
 }

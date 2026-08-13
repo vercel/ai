@@ -401,7 +401,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       usage.raw = responseUsage;
     };
 
-    let isActiveReasoning = false;
+    let activeReasoningId: string | undefined;
     let hasToolCalls = false;
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -503,7 +503,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 type: 'reasoning-start',
                 id: chunk.item.id,
               });
-              isActiveReasoning = true;
+              activeReasoningId = chunk.item.id;
             } else if (
               (chunk as { type: string }).type ===
               'response.reasoning_text.delta'
@@ -522,7 +522,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               chunk.item.type === 'reasoning'
             ) {
               controller.enqueue({ type: 'reasoning-end', id: chunk.item.id });
-              isActiveReasoning = false;
+              activeReasoningId = undefined;
             }
 
             // Text events
@@ -565,8 +565,11 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
-            if (isActiveReasoning) {
-              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+            if (activeReasoningId != null) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: activeReasoningId,
+              });
             }
 
             controller.enqueue({

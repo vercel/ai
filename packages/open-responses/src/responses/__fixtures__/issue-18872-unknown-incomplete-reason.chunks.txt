@@ -1,4 +1,0 @@
-{"type":"response.output_item.added","sequence_number":0,"output_index":0,"item":{"id":"fc_weather","type":"function_call","status":"in_progress","call_id":"call_weather","name":"get_weather","arguments":""}}
-{"type":"response.function_call_arguments.done","sequence_number":1,"item_id":"fc_weather","output_index":0,"arguments":"{\"location\":\"San Francisco\"}"}
-{"type":"response.output_item.done","sequence_number":2,"output_index":0,"item":{"id":"fc_weather","type":"function_call","status":"completed","call_id":"call_weather","name":"get_weather","arguments":"{\"location\":\"San Francisco\"}"}}
-{"type":"response.incomplete","sequence_number":3,"response":{"status":"incomplete","incomplete_details":{"reason":"server_timeout"},"usage":{"input_tokens":1,"input_tokens_details":{"cached_tokens":0},"output_tokens":1,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":2}}}
