@@ -16120,6 +16120,7 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
+                "inputFormat": "json",
                 "providerExecuted": true,
                 "toolCallId": "call-1",
                 "toolName": "web_search",
@@ -16680,6 +16681,7 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
+                "inputFormat": "json",
                 "toolCallId": "call-1",
                 "toolName": "dynamicTool",
                 "type": "tool-input-start",
@@ -23497,6 +23499,7 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
+                "inputFormat": "json",
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-input-start",
