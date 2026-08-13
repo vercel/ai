@@ -44,6 +44,7 @@ import { writePiSkills } from './pi-skills';
 import {
   persistSessionFileToSandbox,
   pullSessionFileFromSandbox,
+  resolvePiPrivateSessionDirectory,
   safePiSessionFileName,
 } from './pi-resume-state';
 import {
@@ -289,16 +290,21 @@ export async function createPiSession(
   await mkdir(hostSessionDir, { recursive: true });
 
   const sandbox = input.sandboxSession.restricted();
+  const sandboxHomeDir = await resolveSandboxHomeDir({
+    sandbox,
+    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+  });
+  const privateSessionDir = resolvePiPrivateSessionDirectory({
+    sandboxHomeDir,
+    sessionWorkDir: input.sessionWorkDir,
+    sessionId: input.sessionId,
+  });
   const permissionMode = input.permissionMode ?? 'allow-all';
   let sandboxSkillRootDir: string | undefined;
   let harnessSkills: Skill[] = [];
 
   // Materialise harness-provided skills into sandbox HOME, not the workspace.
   if (input.skills.length > 0) {
-    const sandboxHomeDir = await resolveSandboxHomeDir({
-      sandbox,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
     sandboxSkillRootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
     harnessSkills = createHarnessPiSkills({
       skills: input.skills,
@@ -321,7 +327,7 @@ export async function createPiSession(
     );
     resumeSessionFilePath = await pullSessionFileFromSandbox({
       sandbox,
-      sessionWorkDir: input.sessionWorkDir,
+      privateSessionDir,
       hostSessionDir,
       sessionFileName: resumeSessionFileName,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
@@ -553,7 +559,7 @@ export async function createPiSession(
     if (!sessionFileName) return;
     await persistSessionFileToSandbox({
       sandbox,
-      sessionWorkDir: input.sessionWorkDir,
+      privateSessionDir,
       hostSessionDir,
       sessionFileName,
     });

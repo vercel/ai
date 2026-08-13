@@ -11,6 +11,35 @@ import {
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 
+function createUIMessageSnapshot<UI_MESSAGE extends UIMessage>(
+  message: UI_MESSAGE,
+): UI_MESSAGE {
+  const textByPartIndex = new Map<number, string>();
+  const messageWithoutText = {
+    ...message,
+    parts: message.parts.map((part, index) => {
+      if (part.type === 'text' || part.type === 'reasoning') {
+        textByPartIndex.set(index, part.text);
+        return { ...part, text: '' };
+      }
+
+      return part;
+    }),
+  };
+
+  const snapshot = structuredClone(messageWithoutText) as UI_MESSAGE;
+
+  for (const [index, text] of textByPartIndex) {
+    const part = snapshot.parts[index];
+
+    if (part.type === 'text' || part.type === 'reasoning') {
+      part.text = text;
+    }
+  }
+
+  return snapshot;
+}
+
 /**
  * Transforms a stream of `UIMessageChunk`s into an `AsyncIterableStream` of `UIMessage`s.
  *
@@ -68,7 +97,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
         return job({
           state,
           write: () => {
-            controller?.enqueue(structuredClone(state.message));
+            controller?.enqueue(createUIMessageSnapshot(state.message));
           },
         });
       },
