@@ -12,6 +12,7 @@ import { createClineSession, type ClineSessionSettings } from './cline-session';
 const clineMock = vi.hoisted(() => ({
   configs: [] as AgentRuntimeConfig[],
   continueInputs: [] as Array<AgentRunInput | undefined>,
+  modelOptions: [] as unknown[],
   modelSelections: [] as Array<{ providerId: string; modelId?: string }>,
   providerConfigs: [] as Array<{
     providerId: string;
@@ -91,11 +92,15 @@ vi.mock('@cline/core', async importOriginal => {
         }) => {
           clineMock.providerConfigs.push(...config.providerConfigs);
           return {
-            createAgentModel: (selection: {
-              providerId: string;
-              modelId?: string;
-            }) => {
+            createAgentModel: (
+              selection: {
+                providerId: string;
+                modelId?: string;
+              },
+              options?: unknown,
+            ) => {
               clineMock.modelSelections.push(selection);
+              clineMock.modelOptions.push(options);
               return { stream: vi.fn() };
             },
           };
@@ -109,6 +114,7 @@ describe('createClineSession instructions', () => {
   beforeEach(() => {
     clineMock.configs = [];
     clineMock.continueInputs = [];
+    clineMock.modelOptions = [];
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
@@ -241,6 +247,7 @@ describe('createClineSession model configuration', () => {
   beforeEach(() => {
     clineMock.configs = [];
     clineMock.continueInputs = [];
+    clineMock.modelOptions = [];
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
@@ -252,11 +259,48 @@ describe('createClineSession model configuration', () => {
     try {
       expect(clineMock.providerConfigs).toEqual([{ providerId: 'cline' }]);
       expect(clineMock.modelSelections).toEqual([{ providerId: 'cline' }]);
+      expect(clineMock.modelOptions).toEqual([undefined]);
       expect(session.modelId).toBeUndefined();
     } finally {
       await session.doDestroy();
     }
   });
+
+  it('disables reasoning when the effort is none', async () => {
+    const session = await createSession({
+      settings: { reasoningEffort: 'none' },
+    });
+
+    try {
+      expect(clineMock.modelOptions).toEqual([
+        { reasoning: { enabled: false } },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it.each(['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const)(
+    'enables reasoning with %s effort',
+    async reasoningEffort => {
+      const session = await createSession({
+        settings: { reasoningEffort },
+      });
+
+      try {
+        expect(clineMock.modelOptions).toEqual([
+          {
+            reasoning: {
+              enabled: true,
+              effort: reasoningEffort,
+            },
+          },
+        ]);
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
 
   it('maps official Cline environment variables to direct configuration', async () => {
     const session = await createSession({
@@ -380,6 +424,7 @@ describe('createClineSession tool results', () => {
   beforeEach(() => {
     clineMock.configs = [];
     clineMock.continueInputs = [];
+    clineMock.modelOptions = [];
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];

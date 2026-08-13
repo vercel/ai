@@ -96,6 +96,10 @@ Settings:
   the configured provider's environment variable.
 - `baseUrl`: custom provider endpoint.
 - `headers`: extra headers sent to the provider.
+- `reasoningEffort`: reasoning effort for reasoning-capable models. Supports
+  `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`. `none`
+  disables reasoning; every other value enables reasoning at that effort.
+  When omitted, the Cline SDK selects the reasoning behavior.
 - `maxIterations`: safety cap on agent-loop iterations per turn.
 
 To provide additional operating guidance, use the `instructions` setting on

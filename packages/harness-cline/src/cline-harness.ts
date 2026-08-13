@@ -7,7 +7,7 @@ import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { resolveClineEnv, type ClineAuthOptions } from './cline-auth';
 import { clineResumeStateSchema } from './cline-resume-state';
-import { createClineSession } from './cline-session';
+import { createClineSession, type ClineReasoningEffort } from './cline-session';
 import { VERSION } from './version';
 
 /**
@@ -47,6 +47,11 @@ export type ClineHarnessSettings = {
   readonly baseUrl?: string;
   /** Extra headers sent to the provider. */
   readonly headers?: Record<string, string>;
+  /**
+   * Reasoning effort for reasoning-capable models. Use `'none'` to disable
+   * reasoning. When omitted, the Cline SDK selects the reasoning behavior.
+   */
+  readonly reasoningEffort?: ClineReasoningEffort;
   /**
    * Safety cap on agent-loop iterations per turn. Unbounded when omitted.
    */
@@ -165,6 +170,9 @@ export function createCline(
           ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
           ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
           ...(settings.headers ? { headers: settings.headers } : {}),
+          ...(settings.reasoningEffort !== undefined
+            ? { reasoningEffort: settings.reasoningEffort }
+            : {}),
           ...(settings.maxIterations !== undefined
             ? { maxIterations: settings.maxIterations }
             : {}),

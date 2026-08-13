@@ -56,6 +56,15 @@ import {
 
 const HARNESS_ID = 'cline';
 
+export type ClineReasoningEffort =
+  | 'none'
+  | 'minimal'
+  | 'low'
+  | 'medium'
+  | 'high'
+  | 'xhigh'
+  | 'max';
+
 /*
  * The Cline runtime lives in this Node process, not behind an attachable
  * in-sandbox bridge. During a tool approval pause the turn is still alive and
@@ -74,6 +83,7 @@ export interface ClineSessionSettings {
   readonly apiKey?: string;
   readonly baseUrl?: string;
   readonly headers?: Record<string, string>;
+  readonly reasoningEffort?: ClineReasoningEffort;
   readonly maxIterations?: number;
 }
 
@@ -192,12 +202,35 @@ function createClineAgentModel({
       },
     ],
   });
+  const modelSelection = {
+    providerId,
+    ...(settings.modelId ? { modelId: settings.modelId } : {}),
+  };
+  const modelOptions =
+    settings.reasoningEffort === 'none'
+      ? { reasoning: { enabled: false } }
+      : {
+          reasoning: {
+            enabled: true,
+            effort: settings.reasoningEffort,
+          },
+        };
+  const model =
+    settings.reasoningEffort === undefined
+      ? gateway.createAgentModel(modelSelection)
+      : gateway.createAgentModel(
+          modelSelection,
+          /*
+           * Cline 0.0.66 forwards the full reasoning-effort range at runtime,
+           * but its published model-options declaration only includes low,
+           * medium, and high. Keep this assertion at the SDK boundary so the
+           * adapter can expose every effort value the runtime accepts.
+           */
+          modelOptions as Parameters<typeof gateway.createAgentModel>[1],
+        );
 
   return {
-    model: gateway.createAgentModel({
-      providerId,
-      ...(settings.modelId ? { modelId: settings.modelId } : {}),
-    }),
+    model,
     providerId,
   };
 }
