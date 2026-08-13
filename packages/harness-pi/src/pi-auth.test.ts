@@ -12,6 +12,19 @@ import {
 
 const authPaths: string[] = [];
 
+function clearAmbientProviderCredentials() {
+  for (const key of Object.keys(process.env)) {
+    if (
+      key.endsWith('_API_KEY') ||
+      key.endsWith('_BASE_URL') ||
+      key === 'ANTHROPIC_AUTH_TOKEN' ||
+      key === 'VERCEL_OIDC_TOKEN'
+    ) {
+      vi.stubEnv(key, undefined);
+    }
+  }
+}
+
 afterEach(async () => {
   vi.unstubAllEnvs();
   await Promise.all(
@@ -260,6 +273,8 @@ describe('registerPiProviders', () => {
   });
 
   it('does not register providers when no auth is configured', async () => {
+    clearAmbientProviderCredentials();
+
     const registries = await registerProviders({
       options: undefined,
       resolvedEnv: {},
@@ -444,6 +459,7 @@ describe('registerPiProviders', () => {
   });
 
   it('custom mode registers all provider env vars including gateway', async () => {
+    clearAmbientProviderCredentials();
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gw');
     vi.stubEnv('OPENAI_API_KEY', 'sk-oai');
     vi.stubEnv('MISTRAL_API_KEY', 'mk');

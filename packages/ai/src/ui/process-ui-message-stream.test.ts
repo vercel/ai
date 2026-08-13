@@ -5,6 +5,7 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
 import type { InferUIMessageData, UIMessage } from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -41,7 +42,7 @@ describe('processUIMessageStream', () => {
   const runUpdateMessageJob = async (
     job: (options: {
       state: StreamingUIMessageState<UIMessage>;
-      write: () => void;
+      write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => {
     await job({

@@ -2,9 +2,11 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkPolicy,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1RequestTransformation,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import type { Sandbox, NetworkPolicy } from '@vercel/sandbox';
+import type { Sandbox } from '@vercel/sandbox';
+import { VercelNetworkPolicyManager } from './vercel-network-policy-manager';
 import { VercelSandboxSession } from './vercel-sandbox-session';
 
 const VERCEL_PROVIDER_ID = 'vercel-sandbox';
@@ -24,12 +26,16 @@ export class VercelNetworkSandboxSession
   readonly id: string;
   readonly defaultWorkingDirectory: string;
   private readonly ownsLifecycle: boolean;
+  readonly #networkPolicyManager: VercelNetworkPolicyManager;
 
   constructor(input: { sandbox: Sandbox; ownsLifecycle: boolean }) {
     super(input.sandbox);
     this.ownsLifecycle = input.ownsLifecycle;
     this.id = input.sandbox.name;
     this.defaultWorkingDirectory = input.sandbox.currentSession().cwd;
+    this.#networkPolicyManager = new VercelNetworkPolicyManager({
+      sandbox: input.sandbox,
+    });
   }
 
   get ports(): ReadonlyArray<number> {
@@ -69,7 +75,19 @@ export class VercelNetworkSandboxSession
   };
 
   setNetworkPolicy = async (policy: HarnessV1NetworkPolicy): Promise<void> => {
-    await this.sandbox.update({ networkPolicy: toVercelPolicy(policy) });
+    await this.#networkPolicyManager.setNetworkPolicy(policy);
+  };
+
+  setRequestTransformations = async (
+    transformations: ReadonlyArray<HarnessV1RequestTransformation>,
+  ): Promise<void> => {
+    await this.#networkPolicyManager.setRequestTransformations(transformations);
+  };
+
+  addRequestTransformations = async (
+    transformations: ReadonlyArray<HarnessV1RequestTransformation>,
+  ): Promise<void> => {
+    await this.#networkPolicyManager.addRequestTransformations(transformations);
   };
 
   setPorts = async (
@@ -92,41 +110,4 @@ export class VercelNetworkSandboxSession
     await this.sandbox.stop().catch(() => {});
     await this.sandbox.delete();
   };
-}
-
-export function toVercelPolicy(policy: HarnessV1NetworkPolicy): NetworkPolicy {
-  switch (policy.mode) {
-    case 'allow-all':
-      return 'allow-all';
-    case 'deny-all':
-      return 'deny-all';
-    case 'custom': {
-      const result: Extract<NetworkPolicy, { allow?: unknown }> = {};
-      const { allowedHosts, allowedCIDRs, deniedCIDRs } = policy;
-      if (allowedHosts != null && allowedHosts.length > 0) {
-        result.allow = [...allowedHosts];
-      }
-      if (
-        (allowedCIDRs != null && allowedCIDRs.length > 0) ||
-        (deniedCIDRs != null && deniedCIDRs.length > 0)
-      ) {
-        result.subnets = {
-          ...(allowedCIDRs != null && allowedCIDRs.length > 0
-            ? { allow: [...allowedCIDRs] }
-            : {}),
-          ...(deniedCIDRs != null && deniedCIDRs.length > 0
-            ? { deny: [...deniedCIDRs] }
-            : {}),
-        };
-      }
-      if (result.allow == null && result.subnets == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: VERCEL_PROVIDER_ID,
-          message:
-            'Custom network policy requires at least one of allowedHosts or allowedCIDRs to be non-empty.',
-        });
-      }
-      return result;
-    }
-  }
 }
