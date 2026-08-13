@@ -1,4 +1,33 @@
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import {
+  createCredentialRequestTransformation,
+  getAiGatewayAuthFromEnv,
+} from '@ai-sdk/harness/utils';
+
+const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh/v1';
+const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
+export const CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  'AI_GATEWAY_API_KEY',
+  'CODEX_API_KEY',
+] as const;
+
+export function createCodexRequestTransformations(
+  env: Record<string, string>,
+  auth: CodexAuthMethod,
+): HarnessV1RequestTransformation[] {
+  if (!env.CODEX_API_KEY) return [];
+  return [
+    createCredentialRequestTransformation({
+      baseUrl:
+        env.OPENAI_BASE_URL ??
+        (auth === 'gateway'
+          ? DEFAULT_AI_GATEWAY_BASE_URL
+          : DEFAULT_OPENAI_BASE_URL),
+      headers: { Authorization: `Bearer ${env.CODEX_API_KEY}` },
+    }),
+  ];
+}
 
 export type CodexAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
 
@@ -25,6 +54,8 @@ export type LegacyCodexAuthOptions = {
 };
 
 export type CodexAuthOptions = CodexAuthenticationMode | LegacyCodexAuthOptions;
+
+export type CodexAuthMethod = keyof LegacyCodexAuthOptions;
 
 /**
  * Resolve the environment-variable blob the codex bridge needs. Precedence:
@@ -64,6 +95,24 @@ export function resolveCodexEnv(
     });
   }
   return pickOpenAI({ processEnv });
+}
+
+export function resolveCodexAuthMethod(
+  auth: CodexAuthOptions | undefined,
+  processEnv: Record<string, string | undefined> = process.env,
+): CodexAuthMethod {
+  if (typeof auth !== 'string' && auth?.openaiCompatible) {
+    return 'openaiCompatible';
+  }
+  if (auth === 'direct' || (typeof auth !== 'string' && auth?.openai)) {
+    return 'openai';
+  }
+  if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
+    return 'gateway';
+  }
+  return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
+    ? 'gateway'
+    : 'openai';
 }
 
 function normalizeCodexAuthToLegacyAuth(
@@ -142,6 +191,7 @@ function pickGateway({
     env.CODEX_API_KEY = apiKey;
   }
   env.AI_GATEWAY_BASE_URL = baseUrl;
+  env.OPENAI_BASE_URL = baseUrl;
   return env;
 }
 

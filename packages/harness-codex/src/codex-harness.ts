@@ -27,9 +27,11 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   markBridgeStarting,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
@@ -39,7 +41,13 @@ import {
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
-import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
+import {
+  CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  createCodexRequestTransformations,
+  resolveCodexAuthMethod,
+  resolveCodexEnv,
+  type CodexAuthOptions,
+} from './codex-auth';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -228,6 +236,27 @@ export function createCodex(
         });
       }
       const sandboxSession = startOpts.sandboxSession;
+      const authMethod = resolveCodexAuthMethod(settings.auth);
+      const resolvedAuthEnvironment = resolveCodexEnv(settings.auth);
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createCodexRequestTransformations(
+          resolvedAuthEnvironment,
+          authMethod,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        sandboxAuthEnvironment = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
       const bootstrapDir = path.posix.resolve(
@@ -361,7 +390,7 @@ export function createCodex(
             })
           : undefined;
       const env = {
-        ...resolveCodexEnv(settings.auth),
+        ...sandboxAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
