@@ -529,6 +529,61 @@ describe('createClineSession tool results', () => {
     });
   });
 
+  it('correlates concurrently pending host tool results by tool call ID', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'use the lookup tool twice',
+        tools: [
+          {
+            name: 'lookup',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      const tool = findTool({ config, name: 'lookup' });
+      const firstResultPromise = Promise.resolve(
+        tool.execute({}, createToolContext({ toolCallId: 'call-1' })),
+      );
+      const secondResultPromise = Promise.resolve(
+        tool.execute({}, createToolContext({ toolCallId: 'call-2' })),
+      );
+
+      await control.submitToolResult({
+        toolCallId: 'call-2',
+        output: { value: 'second' },
+      });
+      await control.submitToolResult({
+        toolCallId: 'call-1',
+        output: { value: 'first' },
+      });
+
+      const [firstResult, secondResult] = await Promise.all([
+        runAfterToolHook({
+          config,
+          tool,
+          output: await firstResultPromise,
+        }),
+        runAfterToolHook({
+          config,
+          tool,
+          output: await secondResultPromise,
+        }),
+      ]);
+
+      expect(firstResult?.result?.output).toEqual({ value: 'first' });
+      expect(secondResult?.result?.output).toEqual({ value: 'second' });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('leaves unmarked tool output untouched', async () => {
     const session = await createSession();
 
@@ -550,6 +605,48 @@ describe('createClineSession tool results', () => {
           output: { output: 'ordinary tool output', isError: true },
         }),
       ).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+});
+
+describe('createClineSession tool execution', () => {
+  beforeEach(() => {
+    clineMock.configs = [];
+    clineMock.continueInputs = [];
+    clineMock.modelOptions = [];
+    clineMock.modelSelections = [];
+    clineMock.providerConfigs = [];
+    clineMock.runInputs = [];
+  });
+
+  it('configures initial and rebuilt agents for parallel tool execution', async () => {
+    const session = await createSession();
+
+    try {
+      const firstControl = await session.doPromptTurn({
+        prompt: 'first turn',
+        emit: vi.fn(),
+      });
+      await firstControl.done;
+
+      const secondControl = await session.doPromptTurn({
+        prompt: 'second turn',
+        tools: [
+          {
+            name: 'lookup',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        emit: vi.fn(),
+      });
+      await secondControl.done;
+
+      expect(clineMock.configs.map(config => config.toolExecution)).toEqual([
+        'parallel',
+        'parallel',
+      ]);
     } finally {
       await session.doDestroy();
     }

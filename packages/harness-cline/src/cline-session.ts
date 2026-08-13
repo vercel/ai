@@ -390,6 +390,7 @@ export async function createClineSession(
         ? `${baseSystemPrompt}\n\n${rebuildInput.instructions}`
         : baseSystemPrompt,
       initialMessages: currentMessages,
+      toolExecution: 'parallel',
       ...(input.settings.maxIterations !== undefined
         ? { maxIterations: input.settings.maxIterations }
         : {}),

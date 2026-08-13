@@ -161,7 +161,7 @@ describe('translateClineEvent', () => {
     expect(finishStep.usage.inputTokens.total).toBe(10);
   });
 
-  it('emits finish-step after all tool results in an iteration', () => {
+  it('emits finish-step after parallel tool results finish out of order', () => {
     const state = newState();
     const parts: ReturnType<typeof translateClineEvent> = [];
     const firstToolCall = {
@@ -212,6 +212,11 @@ describe('translateClineEvent', () => {
           },
           state,
         ),
+      );
+    }
+
+    for (const toolCall of [secondToolCall, firstToolCall]) {
+      parts.push(
         ...translateClineEvent(
           {
             type: 'tool-finished',
@@ -239,10 +244,15 @@ describe('translateClineEvent', () => {
 
     expect(parts.map(part => part.type)).toEqual([
       'tool-call',
-      'tool-result',
       'tool-call',
       'tool-result',
+      'tool-result',
     ]);
+    expect(
+      parts
+        .filter(part => part.type === 'tool-result')
+        .map(part => part.toolCallId),
+    ).toEqual(['call-2', 'call-1']);
 
     parts.push(
       ...translateClineEvent(
@@ -258,8 +268,8 @@ describe('translateClineEvent', () => {
 
     expect(parts.map(part => part.type)).toEqual([
       'tool-call',
-      'tool-result',
       'tool-call',
+      'tool-result',
       'tool-result',
       'finish-step',
     ]);
