@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/harness/utils';
 
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh/v1';
-const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
+export const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
 export const CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES = [
   'AI_GATEWAY_API_KEY',

@@ -259,6 +259,44 @@ describe('createCodex adapter', () => {
     await session.doDestroy();
   });
 
+  it('configures the standard OpenAI URL for brokered direct auth', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs,
+      writes: [],
+      addRequestTransformations,
+    });
+    const harness = createCodex({
+      auth: { openai: { apiKey: 'openai-secret' } },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'api.openai.com',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(spawnEnvs.at(0)?.OPENAI_BASE_URL).toBe('https://api.openai.com/v1');
+
+    await session.doDestroy();
+  });
+
   it('sends configured MCP servers to the bridge', async () => {
     const mcpServers = {
       context7: { url: 'https://mcp.context7.com/mcp' },

@@ -44,6 +44,7 @@ import { z } from 'zod/v4';
 import {
   CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
   createCodexRequestTransformations,
+  DEFAULT_OPENAI_BASE_URL,
   resolveCodexAuthenticationMode,
   resolveCodexEnv,
   type CodexAuthOptions,
@@ -254,6 +255,19 @@ export function createCodex(
           credentialEnvironmentVariables:
             CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
+        if (
+          requestTransformations.length > 0 &&
+          authenticationMode === 'direct' &&
+          resolvedAuthEnvironment.OPENAI_BASE_URL == null
+        ) {
+          /*
+           * Vercel Sandbox request transformations apply only to HTTP traffic.
+           * Materializing Codex's standard OpenAI URL makes the bridge select
+           * its custom provider, where WebSockets are disabled, while keeping
+           * the non-brokered path on Codex's built-in OpenAI provider.
+           */
+          sandboxAuthEnvironment.OPENAI_BASE_URL = DEFAULT_OPENAI_BASE_URL;
+        }
       } else {
         warnCredentialBrokeringUnavailable();
       }
