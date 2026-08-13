@@ -1,5 +1,18 @@
 # @ai-sdk/gateway
 
+## 4.0.51
+
+### Patch Changes
+
+- ea75787: Serialize structured Gateway error responses in nested API call error messages.
+- b20de9e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.50
+
+### Patch Changes
+
+- a4d386d: feat(xai): add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
 ## 4.0.49
 
 ### Patch Changes

@@ -1,6 +1,11 @@
 import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 
-export type DeepAgentsAuthOptions = {
+export type DeepAgentsAuthenticationMode = 'auto' | 'anthropic' | 'ai-gateway';
+
+/**
+ * @deprecated Passing an object to auth options is deprecated. Use a `DeepAgentsAuthenticationMode` string value ("auto" | "anthropic" | "ai-gateway") instead, and pass credentials via environment variables.
+ */
+export type LegacyDeepAgentsAuthOptions = {
   readonly anthropic?: {
     readonly apiKey?: string;
     readonly authToken?: string;
@@ -12,6 +17,10 @@ export type DeepAgentsAuthOptions = {
   };
 };
 
+export type DeepAgentsAuthOptions =
+  | DeepAgentsAuthenticationMode
+  | LegacyDeepAgentsAuthOptions;
+
 // DeepAgents always drives the Anthropic client. Non-Anthropic models reach it
 // through AI Gateway's Anthropic-compatible endpoint, which translates to any
 // model (Gemini, OpenAI, etc.), tool calls included.
@@ -22,13 +31,18 @@ export function resolveDeepAgentsEnv({
   auth?: DeepAgentsAuthOptions;
   processEnv?: Record<string, string | undefined>;
 }): Record<string, string> {
-  if (auth?.anthropic) {
-    return pickAnthropic({ explicit: auth.anthropic, processEnv });
+  const normalizedAuth = normalizeDeepAgentsAuthToLegacyAuth(auth);
+
+  if (normalizedAuth?.anthropic) {
+    return pickAnthropic({ explicit: normalizedAuth.anthropic, processEnv });
   }
 
   const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
-  if (auth?.gateway) {
-    return pickGateway({ explicit: auth.gateway, gatewayAuthFromEnv });
+  if (normalizedAuth?.gateway) {
+    return pickGateway({
+      explicit: normalizedAuth.gateway,
+      gatewayAuthFromEnv,
+    });
   }
   if (gatewayAuthFromEnv.apiKey) {
     return pickGateway({ explicit: {}, gatewayAuthFromEnv });
@@ -37,11 +51,34 @@ export function resolveDeepAgentsEnv({
   return pickAnthropic({ processEnv });
 }
 
+function normalizeDeepAgentsAuthToLegacyAuth(
+  auth: DeepAgentsAuthOptions | undefined,
+): LegacyDeepAgentsAuthOptions | undefined {
+  if (auth == null || auth === 'auto') {
+    return undefined;
+  }
+  if (typeof auth === 'string') {
+    switch (auth) {
+      case 'anthropic':
+        return { anthropic: {} };
+      case 'ai-gateway':
+        return { gateway: {} };
+      default:
+        return undefined;
+    }
+  }
+
+  console.warn(
+    '[deepagents] Passing an object to auth options is deprecated. Use a string mode ("auto" | "anthropic" | "ai-gateway") instead, and pass credentials via environment variables.',
+  );
+  return auth;
+}
+
 function pickAnthropic({
   explicit,
   processEnv,
 }: {
-  explicit?: NonNullable<DeepAgentsAuthOptions['anthropic']>;
+  explicit?: NonNullable<LegacyDeepAgentsAuthOptions['anthropic']>;
   processEnv: Record<string, string | undefined>;
 }): Record<string, string> {
   const env: Record<string, string> = {};
@@ -58,7 +95,7 @@ function pickGateway({
   explicit,
   gatewayAuthFromEnv,
 }: {
-  explicit: NonNullable<DeepAgentsAuthOptions['gateway']>;
+  explicit: NonNullable<LegacyDeepAgentsAuthOptions['gateway']>;
   gatewayAuthFromEnv: ReturnType<typeof getAiGatewayAuthFromEnv>;
 }): Record<string, string> {
   const apiKey = explicit.apiKey ?? gatewayAuthFromEnv.apiKey;

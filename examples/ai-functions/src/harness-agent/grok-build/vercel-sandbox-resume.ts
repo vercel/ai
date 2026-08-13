@@ -7,9 +7,11 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { grokBuild } from '@ai-sdk/harness-grok-build';
+import { createGrokBuild } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
+
+const grokBuild = createGrokBuild();
 
 run(async () => {
   process.exitCode = 1;

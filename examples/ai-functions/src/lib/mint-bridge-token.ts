@@ -1,9 +1,12 @@
-import { createHmac } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
+
+let bridgeTokenSecret: string | Buffer | undefined;
 
 export function mintBridgeToken(sandboxId: string): string {
-  const secret = process.env.HARNESS_BRIDGE_TOKEN_SECRET;
-  if (secret == null || secret.length === 0) {
-    throw new Error('HARNESS_BRIDGE_TOKEN_SECRET is required.');
-  }
-  return createHmac('sha256', secret).update(sandboxId).digest('hex');
+  bridgeTokenSecret ??=
+    process.env.HARNESS_BRIDGE_TOKEN_SECRET || randomBytes(32);
+
+  return createHmac('sha256', bridgeTokenSecret)
+    .update(sandboxId)
+    .digest('hex');
 }
