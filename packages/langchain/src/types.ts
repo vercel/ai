@@ -20,6 +20,10 @@ export interface LangGraphEventState {
   emittedToolCalls: Set<string>;
   /** Tracks which tool call IDs have emitted complete tool inputs */
   emittedToolInputs: Set<string>;
+  /** Tracks tool call IDs emitted before the current UI step */
+  priorEmittedToolCalls: Set<string>;
+  /** Maps tool call keys emitted before the current UI step to their IDs */
+  priorEmittedToolCallsByKey: Map<string, string>;
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */

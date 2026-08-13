@@ -1,5 +1,6 @@
 import {
   convertArrayToReadableStream,
+  convertAsyncIterableToArray,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import {
@@ -8,7 +9,7 @@ import {
   convertModelMessages,
 } from './adapter';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { ModelMessage, UIMessage } from 'ai';
+import { readUIMessageStream, type ModelMessage, type UIMessage } from 'ai';
 import {
   AIMessage,
   AIMessageChunk,
@@ -479,6 +480,72 @@ describe('toUIMessageStream', () => {
         },
       },
     ]);
+  });
+
+  it('should keep tool deduplication when a global step boundary is suppressed', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'root-tool-step-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call_reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 5 },
+        ],
+      ],
+      [
+        ['tools:child-call'],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-message',
+            content: [{ type: 'reasoning', reasoning: 'still active' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'root-tool-step-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call_reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 6 },
+        ],
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(
+      result.filter(chunk => chunk.type === 'tool-input-start'),
+    ).toHaveLength(1);
+    expect(result.filter(chunk => chunk.type === 'start-step')).toHaveLength(1);
+    expect(result.filter(chunk => chunk.type === 'finish-step')).toHaveLength(
+      1,
+    );
   });
 
   it('should emit step boundaries for a stream filtered to one subgraph', async () => {
@@ -2881,9 +2948,90 @@ describe('toUIMessageStream HITL interrupt key matching with dual streamMode', (
     // since the tool call was already emitted via messages mode
     const toolInputStartEvents = result.filter(
       (e: { type: string; toolCallId?: string }) =>
-        e.type === 'tool-input-start' && e.toolCallId !== originalToolCallId,
+        e.type === 'tool-input-start' && e.toolCallId === originalToolCallId,
     );
-    expect(toolInputStartEvents).toHaveLength(0);
+    expect(toolInputStartEvents).toHaveLength(1);
+  });
+
+  it('should match interrupt to a tool call from a prior step', async () => {
+    const originalToolCallId = 'call_prior_step';
+    const input = { filename: 'report.pdf' };
+    const toolCall = {
+      id: originalToolCallId,
+      name: 'delete_file',
+      args: input,
+    };
+
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'prior-step-message',
+            content: '',
+            tool_call_chunks: [
+              {
+                ...toolCall,
+                args: JSON.stringify(input),
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        'values',
+        {
+          messages: [
+            new AIMessage({
+              id: 'prior-step-message',
+              content: '',
+              tool_calls: [toolCall],
+            }),
+          ],
+        },
+      ],
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'next-step-message',
+            content: 'Continuing',
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        'values',
+        {
+          __interrupt__: [
+            {
+              value: {
+                actionRequests: [{ name: 'delete_file', args: input }],
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(
+      result.filter(
+        event =>
+          event.type === 'tool-input-start' &&
+          event.toolCallId === originalToolCallId,
+      ),
+    ).toHaveLength(1);
+    expect(result).toContainEqual({
+      type: 'tool-approval-request',
+      approvalId: originalToolCallId,
+      toolCallId: originalToolCallId,
+    });
   });
 
   it('should handle interrupt for tool call only emitted via values mode', async () => {
@@ -2994,6 +3142,133 @@ describe('toUIMessageStream end-to-end with processUIMessageStream', () => {
 
   it('REACT_AGENT_TOOL_CALLING (GPT-5 multi-step reasoning + parallel tools)', async () => {
     await assertAdapterOutputIsValidForClient(REACT_AGENT_TOOL_CALLING);
+  });
+
+  it('should preserve tool calls when a provider reuses an id across steps', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'step-1-message',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call_reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      ['values', {}],
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'step-2-message',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call_reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      ['values', {}],
+    ]);
+
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({ stream: toUIMessageStream(inputStream) }),
+    );
+    const toolParts = messages
+      .at(-1)!
+      .parts.filter(
+        part => part.type.startsWith('tool-') || part.type === 'dynamic-tool',
+      );
+
+    expect(toolParts).toHaveLength(2);
+    expect(toolParts).toMatchObject([
+      {
+        type: 'dynamic-tool',
+        toolCallId: 'call_reused',
+        toolName: 'write_column',
+        state: 'input-available',
+        input: { column: 'first' },
+      },
+      {
+        type: 'dynamic-tool',
+        toolCallId: 'call_reused',
+        toolName: 'deploy_creatives',
+        state: 'input-available',
+        input: { column: 'second' },
+      },
+    ]);
+  });
+
+  it('should match delayed tool output to a call from a prior step', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'tool-call-message',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-delayed',
+                name: 'get_weather',
+                args: '{"city":"Paris"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        'messages',
+        [
+          new AIMessageChunk({ id: 'next-step-message', content: 'Working' }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-delayed',
+          name: 'get_weather',
+          output: { temperature: 22 },
+        },
+      ],
+    ]);
+
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({ stream: toUIMessageStream(inputStream) }),
+    );
+    const toolParts = messages
+      .at(-1)!
+      .parts.filter(
+        part => part.type.startsWith('tool-') || part.type === 'dynamic-tool',
+      );
+
+    expect(toolParts).toHaveLength(1);
+    expect(toolParts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-delayed',
+      toolName: 'get_weather',
+      input: { city: 'Paris' },
+      output: { temperature: 22 },
+    });
   });
 });
 
