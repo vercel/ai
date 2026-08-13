@@ -48,6 +48,7 @@ export interface DoStreamStepOptions {
   seed?: number;
   maxRetries?: number;
   abortSignal?: AbortSignal;
+  timeout?: number;
   headers?: Record<string, string | undefined>;
   reasoning?: LanguageModelV4CallOptions['reasoning'];
   providerOptions?: ProviderOptions;
@@ -148,6 +149,16 @@ export async function doStreamStep(
           },
         };
 
+  const abortSignal =
+    options?.timeout == null
+      ? options?.abortSignal
+      : options.abortSignal == null
+        ? AbortSignal.timeout(options.timeout)
+        : AbortSignal.any([
+            options.abortSignal,
+            AbortSignal.timeout(options.timeout),
+          ]);
+
   // streamModelCall handles: prompt standardization, tool preparation,
   // model.doStream(), retry logic, and stream part transformation
   // (tool call parsing, finish reason mapping, file wrapping).
@@ -162,7 +173,7 @@ export async function doStreamStep(
     toolChoice: options?.toolChoice,
     includeRawChunks: options?.includeRawChunks,
     providerOptions: options?.providerOptions,
-    abortSignal: options?.abortSignal,
+    abortSignal,
     headers: options?.headers,
     reasoning: options?.reasoning,
     output,

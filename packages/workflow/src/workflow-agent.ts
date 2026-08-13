@@ -39,7 +39,6 @@ import {
   createRestrictedTelemetryDispatcher,
   collectToolApprovals,
   convertToLanguageModelPrompt,
-  mergeAbortSignals,
   mergeCallbacks,
   standardizePrompt,
   validateApprovedToolApprovals,
@@ -1788,10 +1787,10 @@ export class WorkflowAgent<
       download,
     });
 
-    const effectiveAbortSignal = mergeAbortSignals(
-      options.abortSignal ?? effectiveGenerationSettings.abortSignal,
-      options.timeout,
-    );
+    const effectiveAbortSignal =
+      options.abortSignal ?? effectiveGenerationSettings.abortSignal;
+    const timeoutAt =
+      options.timeout == null ? undefined : Date.now() + options.timeout;
 
     // Merge generation settings: constructor defaults < prepareCall < stream options
     const mergedGenerationSettings: GenerationSettings = {
@@ -2157,6 +2156,7 @@ export class WorkflowAgent<
       toolsContext,
       telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
+      timeoutAt,
       repairToolCall: (options.repairToolCall ??
         options.experimental_repairToolCall ??
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,

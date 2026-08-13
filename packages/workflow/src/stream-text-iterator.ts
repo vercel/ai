@@ -112,6 +112,7 @@ export async function* streamTextIterator({
   toolsContext,
   telemetry,
   includeRawChunks = false,
+  timeoutAt,
   repairToolCall,
   responseFormat,
   experimental_sandbox: sandbox,
@@ -135,6 +136,7 @@ export async function* streamTextIterator({
   toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions<Context, ToolSet>;
   includeRawChunks?: boolean;
+  timeoutAt?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   experimental_sandbox?: SandboxSession;
@@ -329,6 +331,10 @@ export async function* streamTextIterator({
             ...currentGenerationSettings,
             toolChoice: currentToolChoice,
             includeRawChunks,
+            timeout:
+              timeoutAt == null
+                ? undefined
+                : Math.max(timeoutAt - Date.now(), 0),
             repairToolCall,
             responseFormat,
           },
