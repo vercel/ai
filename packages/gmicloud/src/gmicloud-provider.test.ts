@@ -72,7 +72,9 @@ describe('createGmicloud', () => {
 
   it('throws NoSuchModelError for embedding and image models', () => {
     const provider = createGmicloud();
-    expect(() => provider.embeddingModel('model')).toThrow(/embeddingModel/);
+    expect(() => provider.textEmbeddingModel('model')).toThrow(
+      /textEmbeddingModel/,
+    );
     expect(() => provider.imageModel('model')).toThrow(/imageModel/);
   });
 });

@@ -1,7 +1,7 @@
 import {
   NoSuchModelError,
-  type LanguageModelV3,
-  type ProviderV3,
+  type LanguageModelV2,
+  type ProviderV2,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -36,26 +36,21 @@ export interface GmicloudProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface GmicloudProvider extends ProviderV3 {
+export interface GmicloudProvider extends ProviderV2 {
   /**
    * Creates a GMI Cloud model for text generation.
    */
-  (modelId: GmicloudChatModelId): LanguageModelV3;
+  (modelId: GmicloudChatModelId): LanguageModelV2;
 
   /**
    * Creates a GMI Cloud model for text generation.
    */
-  languageModel(modelId: GmicloudChatModelId): LanguageModelV3;
+  languageModel(modelId: GmicloudChatModelId): LanguageModelV2;
 
   /**
    * Creates a GMI Cloud chat model for text generation.
    */
-  chat(modelId: GmicloudChatModelId): LanguageModelV3;
-
-  /**
-   * @deprecated Use `embeddingModel` instead.
-   */
-  textEmbeddingModel(modelId: string): never;
+  chat(modelId: GmicloudChatModelId): LanguageModelV2;
 }
 
 export function createGmicloud(
@@ -91,14 +86,13 @@ export function createGmicloud(
   const provider = (modelId: GmicloudChatModelId) =>
     createLanguageModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v2' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
-  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
