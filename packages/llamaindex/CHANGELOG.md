@@ -1,5 +1,11 @@
 # @ai-sdk/llamaindex
 
+## 2.0.254
+
+### Patch Changes
+
+- ai@6.0.254
+
 ## 2.0.253
 
 ### Patch Changes

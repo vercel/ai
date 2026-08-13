@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.109
+
+### Patch Changes
+
+- 71e94ad: feat(google): add `gemini-3.7-flash` model
+
 ## 3.0.108
 
 ### Patch Changes
