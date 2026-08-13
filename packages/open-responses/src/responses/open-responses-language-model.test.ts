@@ -16,6 +16,10 @@ describe('OpenResponsesLanguageModel', () => {
   const TEST_PROMPT: LanguageModelV4Prompt = [
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
+  type AssistantContent = Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'];
 
   const URL = 'https://localhost:1234/v1/responses';
 
@@ -45,6 +49,25 @@ describe('OpenResponsesLanguageModel', () => {
         ),
       };
       return;
+    }
+
+    function prepareOutputResponse(output: Array<Record<string, unknown>>) {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_1',
+          object: 'response',
+          created_at: 0,
+          model: 'test-model',
+          status: 'completed',
+          output,
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0,
+            total_tokens: 0,
+          },
+        },
+      };
     }
 
     it('should throw a descriptive error when the response has no output', async () => {
@@ -115,6 +138,245 @@ describe('OpenResponsesLanguageModel', () => {
 
       it('should extract usage correctly', async () => {
         expect(result.usage).toMatchSnapshot();
+      });
+    });
+
+    describe('manual history replay', () => {
+      it('should preserve output item order and ids', async () => {
+        prepareOutputResponse([
+          {
+            id: 'rs_1',
+            type: 'reasoning',
+            status: 'completed',
+            summary: [],
+            content: [{ type: 'reasoning_text', text: 'reasoning' }],
+          },
+          {
+            id: 'fc_1',
+            type: 'function_call',
+            status: 'completed',
+            call_id: 'call_1',
+            name: 'search',
+            arguments: '{}',
+          },
+          {
+            id: 'msg_1',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [
+              {
+                type: 'output_text',
+                text: 'answer after the call',
+                annotations: [],
+              },
+            ],
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'rs_1',
+            type: 'reasoning',
+            summary: [],
+            content: [{ type: 'reasoning_text', text: 'reasoning' }],
+          },
+          {
+            id: 'fc_1',
+            type: 'function_call',
+            call_id: 'call_1',
+            name: 'search',
+            arguments: '{}',
+          },
+          {
+            id: 'msg_1',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'answer after the call',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should preserve summary and encrypted-only reasoning items', async () => {
+        prepareOutputResponse([
+          {
+            id: 'rs_2',
+            type: 'reasoning',
+            status: 'completed',
+            summary: [{ type: 'summary_text', text: 'safe summary' }],
+            encrypted_content: 'opaque-provider-state',
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toEqual([
+          {
+            type: 'reasoning',
+            text: 'safe summary',
+            providerMetadata: {
+              lmstudio: {
+                itemId: 'rs_2',
+                reasoningContent: null,
+                reasoningSummary: [
+                  { type: 'summary_text', text: 'safe summary' },
+                ],
+                reasoningEncryptedContent: 'opaque-provider-state',
+              },
+            },
+          },
+        ]);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'rs_2',
+            type: 'reasoning',
+            summary: [{ type: 'summary_text', text: 'safe summary' }],
+            encrypted_content: 'opaque-provider-state',
+          },
+        ]);
+      });
+
+      it('should preserve output text annotations', async () => {
+        const annotation = {
+          type: 'url_citation',
+          start_index: 0,
+          end_index: 7,
+          url: 'https://example.com/source',
+          title: 'Example source',
+        };
+        prepareOutputResponse([
+          {
+            id: 'msg_annotated',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Sourced answer',
+                annotations: [annotation],
+              },
+            ],
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toEqual([
+          {
+            type: 'text',
+            text: 'Sourced answer',
+            providerMetadata: {
+              lmstudio: {
+                itemId: 'msg_annotated',
+                annotations: [annotation],
+              },
+            },
+          },
+        ]);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'msg_annotated',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Sourced answer',
+                annotations: [annotation],
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should preserve reasoning content part boundaries', async () => {
+        prepareOutputResponse([
+          {
+            id: 'rs_multiple',
+            type: 'reasoning',
+            status: 'completed',
+            summary: [],
+            content: [
+              { type: 'reasoning_text', text: 'First thought. ' },
+              { type: 'reasoning_text', text: 'Second thought.' },
+            ],
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toHaveLength(2);
+        expect(first.content.map(part => part.type)).toEqual([
+          'reasoning',
+          'reasoning',
+        ]);
+        expect(
+          first.content.map(part =>
+            part.type === 'reasoning' ? part.text : undefined,
+          ),
+        ).toEqual(['First thought. ', 'Second thought.']);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'rs_multiple',
+            type: 'reasoning',
+            summary: [],
+            content: [
+              { type: 'reasoning_text', text: 'First thought. ' },
+              { type: 'reasoning_text', text: 'Second thought.' },
+            ],
+          },
+        ]);
       });
     });
 
@@ -714,6 +976,11 @@ describe('OpenResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
+              "providerMetadata": {
+                "lmstudio": {
+                  "itemId": "msg_048edf44633e41ae0069d4fea0d1a08194af1e491c093df1d9",
+                },
+              },
               "text": "Dummy PDF file",
               "type": "text",
             },
@@ -781,6 +1048,76 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    it('should preserve output text annotations in stream metadata', async () => {
+      const annotation = {
+        type: 'url_citation',
+        start_index: 0,
+        end_index: 7,
+        url: 'https://example.com/source',
+        title: 'Example source',
+      };
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 0,
+            output_index: 0,
+            item: {
+              id: 'msg_annotated',
+              type: 'message',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_text.delta',
+            sequence_number: 1,
+            item_id: 'msg_annotated',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Sourced answer',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            sequence_number: 2,
+            output_index: 0,
+            item: {
+              id: 'msg_annotated',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Sourced answer',
+                  annotations: [annotation],
+                },
+              ],
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts).toContainEqual({
+        type: 'text-end',
+        id: 'msg_annotated',
+        providerMetadata: {
+          lmstudio: {
+            itemId: 'msg_annotated',
+            annotations: [annotation],
+          },
+        },
       });
     });
 
@@ -961,68 +1298,73 @@ describe('OpenResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(result.stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
-              "type": "text-start",
-            },
-            {
-              "delta": "Dummy",
-              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
-              "type": "text-delta",
-            },
-            {
-              "delta": " PDF",
-              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
-              "type": "text-delta",
-            },
-            {
-              "delta": " file",
-              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
-              "type": "text-delta",
-            },
-            {
-              "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
-              "type": "text-end",
-            },
-            {
-              "finishReason": {
-                "raw": undefined,
-                "unified": "stop",
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
               },
-              "providerMetadata": undefined,
-              "type": "finish",
-              "usage": {
-                "inputTokens": {
-                  "cacheRead": 0,
-                  "cacheWrite": undefined,
-                  "noCache": 44,
-                  "total": 44,
-                },
-                "outputTokens": {
-                  "reasoning": 0,
-                  "text": 4,
-                  "total": 4,
-                },
-                "raw": {
-                  "input_tokens": 44,
-                  "input_tokens_details": {
-                    "cached_tokens": 0,
+              {
+                "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+                "type": "text-start",
+              },
+              {
+                "delta": "Dummy",
+                "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+                "type": "text-delta",
+              },
+              {
+                "delta": " PDF",
+                "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+                "type": "text-delta",
+              },
+              {
+                "delta": " file",
+                "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+                "type": "text-delta",
+              },
+              {
+                "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+                "providerMetadata": {
+                  "lmstudio": {
+                    "itemId": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
                   },
-                  "output_tokens": 4,
-                  "output_tokens_details": {
-                    "reasoning_tokens": 0,
+                },
+                "type": "text-end",
+              },
+              {
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
+                "providerMetadata": undefined,
+                "type": "finish",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": undefined,
+                    "noCache": 44,
+                    "total": 44,
                   },
-                  "total_tokens": 48,
+                  "outputTokens": {
+                    "reasoning": 0,
+                    "text": 4,
+                    "total": 4,
+                  },
+                  "raw": {
+                    "input_tokens": 44,
+                    "input_tokens_details": {
+                      "cached_tokens": 0,
+                    },
+                    "output_tokens": 4,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 0,
+                    },
+                    "total_tokens": 48,
+                  },
                 },
               },
-            },
-          ]
-        `);
+            ]
+          `);
       });
     });
   });
