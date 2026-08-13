@@ -297,6 +297,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'input-streaming';
       input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      rawInput?: string;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -415,6 +416,7 @@ export type DynamicToolUIPart = {
   | {
       state: 'input-streaming';
       input?: unknown;
+      rawInput?: string;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
