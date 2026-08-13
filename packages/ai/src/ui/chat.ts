@@ -13,6 +13,7 @@ import { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-par
 import { DefaultChatTransport } from './default-chat-transport';
 import {
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
   createStreamingUIMessageState,
   processUIMessageStream,
 } from './process-ui-message-stream';
@@ -599,7 +600,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const runUpdateMessageJob = (
         job: (options: {
           state: StreamingUIMessageState<UI_MESSAGE>;
-          write: () => void;
+          write: (options?: UIMessageStreamWriteOptions) => void;
         }) => Promise<void>,
       ) =>
         // serialize the job execution to avoid race conditions:
@@ -610,13 +611,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
           return job({
             state: response.state,
-            write: () => {
+            write: ({ updateStatus = true } = {}) => {
               if (response.abortController.signal.aborted) {
                 return;
               }
 
-              // streaming is set on first write (before it should be "submitted")
-              this.setStatus({ status: 'streaming' });
+              if (updateStatus) {
+                this.setStatus({ status: 'streaming' });
+              }
 
               const replaceLastMessage =
                 response.state.message.id === this.lastMessage?.id;

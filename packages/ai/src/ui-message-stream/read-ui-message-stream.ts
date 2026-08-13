@@ -2,6 +2,7 @@ import type { UIMessage } from '../ui/ui-messages';
 import type { UIMessageChunk } from './ui-message-chunks';
 import {
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
   createStreamingUIMessageState,
   processUIMessageStream,
 } from '../ui/process-ui-message-stream';
@@ -62,7 +63,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
       runUpdateMessageJob(
         job: (options: {
           state: StreamingUIMessageState<UI_MESSAGE>;
-          write: () => void;
+          write: (options?: UIMessageStreamWriteOptions) => void;
         }) => Promise<void>,
       ) {
         return job({
