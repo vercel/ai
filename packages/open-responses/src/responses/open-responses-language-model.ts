@@ -156,21 +156,23 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       schema: openResponsesLanguageModelOptions,
     });
 
-    const resolvedReasoningEffort = isCustomReasoning(reasoning)
-      ? reasoning === 'none'
-        ? 'none'
-        : mapReasoningToProviderEffort({
-            reasoning,
-            effortMap: {
-              minimal: 'low',
-              low: 'low',
-              medium: 'medium',
-              high: 'high',
-              xhigh: 'xhigh',
-            },
-            warnings,
-          })
-      : undefined;
+    const resolvedReasoningEffort =
+      openResponsesOptions?.reasoningEffort ??
+      (isCustomReasoning(reasoning)
+        ? reasoning === 'none'
+          ? 'none'
+          : mapReasoningToProviderEffort({
+              reasoning,
+              effortMap: {
+                minimal: 'low',
+                low: 'low',
+                medium: 'medium',
+                high: 'high',
+                xhigh: 'xhigh',
+              },
+              warnings,
+            })
+        : undefined);
 
     return {
       body: {
