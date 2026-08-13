@@ -108,7 +108,7 @@ describe('translateClineEvent', () => {
     ]);
   });
 
-  it('closes open blocks and emits finish-step on assistant-message', () => {
+  it('closes open blocks at assistant-message and finishes a no-tool step at turn-finished', () => {
     const state = newState();
     translateClineEvent(
       {
@@ -125,7 +125,7 @@ describe('translateClineEvent', () => {
         type: 'assistant-message',
         snapshot,
         iteration: 1,
-        finishReason: 'tool-calls',
+        finishReason: 'stop',
         message: {
           id: 'm1',
           role: 'assistant',
@@ -141,12 +141,203 @@ describe('translateClineEvent', () => {
       },
       state,
     );
-    expect(parts.map(p => p.type)).toEqual(['text-end', 'finish-step']);
-    const finishStep = parts[1];
-    if (finishStep.type !== 'finish-step')
+    expect(parts).toEqual([{ type: 'text-end', id: 'text-1' }]);
+
+    const finished = translateClineEvent(
+      {
+        type: 'turn-finished',
+        snapshot,
+        iteration: 1,
+        toolCallCount: 0,
+      },
+      state,
+    );
+    expect(finished).toHaveLength(1);
+    const finishStep = finished[0];
+    if (finishStep.type !== 'finish-step') {
       throw new Error('expected finish-step');
-    expect(finishStep.finishReason.unified).toBe('tool-calls');
+    }
+    expect(finishStep.finishReason.unified).toBe('stop');
     expect(finishStep.usage.inputTokens.total).toBe(10);
+  });
+
+  it('emits finish-step after all tool results in an iteration', () => {
+    const state = newState();
+    const parts: ReturnType<typeof translateClineEvent> = [];
+    const firstToolCall = {
+      type: 'tool-call' as const,
+      toolCallId: 'call-1',
+      toolName: 'read',
+      input: { file_path: 'a.txt' },
+    };
+    const secondToolCall = {
+      type: 'tool-call' as const,
+      toolCallId: 'call-2',
+      toolName: 'read',
+      input: { file_path: 'b.txt' },
+    };
+
+    parts.push(
+      ...translateClineEvent(
+        {
+          type: 'assistant-message',
+          snapshot,
+          iteration: 1,
+          finishReason: 'tool-calls',
+          message: {
+            id: 'm1',
+            role: 'assistant',
+            content: [firstToolCall, secondToolCall],
+            createdAt: 0,
+            metrics: {
+              inputTokens: 12,
+              outputTokens: 6,
+              cacheReadTokens: 2,
+              cacheWriteTokens: 0,
+            },
+          },
+        },
+        state,
+      ),
+    );
+
+    for (const toolCall of [firstToolCall, secondToolCall]) {
+      parts.push(
+        ...translateClineEvent(
+          {
+            type: 'tool-started',
+            snapshot,
+            iteration: 1,
+            toolCall,
+          },
+          state,
+        ),
+        ...translateClineEvent(
+          {
+            type: 'tool-finished',
+            snapshot,
+            iteration: 1,
+            toolCall,
+            message: {
+              id: `result-${toolCall.toolCallId}`,
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  output: `${toolCall.toolCallId} result`,
+                },
+              ],
+              createdAt: 0,
+            },
+          },
+          state,
+        ),
+      );
+    }
+
+    expect(parts.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-result',
+      'tool-call',
+      'tool-result',
+    ]);
+
+    parts.push(
+      ...translateClineEvent(
+        {
+          type: 'turn-finished',
+          snapshot,
+          iteration: 1,
+          toolCallCount: 2,
+        },
+        state,
+      ),
+    );
+
+    expect(parts.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-result',
+      'tool-call',
+      'tool-result',
+      'finish-step',
+    ]);
+    const finishStep = parts.at(-1);
+    if (finishStep?.type !== 'finish-step') {
+      throw new Error('expected finish-step');
+    }
+    expect(finishStep.finishReason.unified).toBe('tool-calls');
+    expect(finishStep.usage.inputTokens).toEqual({
+      total: 12,
+      noCache: undefined,
+      cacheRead: 2,
+      cacheWrite: 0,
+    });
+  });
+
+  it('emits exactly one finish-step for each iteration', () => {
+    const state = newState();
+    const finishReasons: string[] = [];
+
+    for (const { iteration, finishReason, inputTokens } of [
+      { iteration: 1, finishReason: 'tool-calls' as const, inputTokens: 10 },
+      { iteration: 2, finishReason: 'stop' as const, inputTokens: 20 },
+    ]) {
+      expect(
+        translateClineEvent(
+          {
+            type: 'assistant-message',
+            snapshot,
+            iteration,
+            finishReason,
+            message: {
+              id: `message-${iteration}`,
+              role: 'assistant',
+              content: [],
+              createdAt: 0,
+              metrics: {
+                inputTokens,
+                outputTokens: 5,
+                cacheReadTokens: 0,
+                cacheWriteTokens: 0,
+              },
+            },
+          },
+          state,
+        ),
+      ).toEqual([]);
+
+      const finished = translateClineEvent(
+        {
+          type: 'turn-finished',
+          snapshot,
+          iteration,
+          toolCallCount: finishReason === 'tool-calls' ? 1 : 0,
+        },
+        state,
+      );
+      expect(finished).toHaveLength(1);
+      const finishStep = finished[0];
+      if (finishStep.type !== 'finish-step') {
+        throw new Error('expected finish-step');
+      }
+      finishReasons.push(finishStep.finishReason.unified);
+      expect(finishStep.usage.inputTokens.total).toBe(inputTokens);
+      expect(
+        translateClineEvent(
+          {
+            type: 'turn-finished',
+            snapshot,
+            iteration,
+            toolCallCount: 0,
+          },
+          state,
+        ),
+      ).toEqual([]);
+    }
+
+    expect(finishReasons).toEqual(['tool-calls', 'stop']);
   });
 
   it('marks built-in tool calls providerExecuted and serializes input', () => {
@@ -385,13 +576,28 @@ describe('translateClineEvent', () => {
     for (const type of [
       'run-started',
       'turn-started',
-      'turn-finished',
+      'run-finished',
     ] as const) {
       const event = { type, snapshot, iteration: 1, toolCallCount: 0 };
       expect(
         translateClineEvent(event as unknown as AgentRuntimeEvent, state),
       ).toEqual([]);
     }
+  });
+
+  it('ignores turn-finished without a buffered assistant message', () => {
+    const state = newState();
+    expect(
+      translateClineEvent(
+        {
+          type: 'turn-finished',
+          snapshot,
+          iteration: 1,
+          toolCallCount: 0,
+        },
+        state,
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -444,5 +650,37 @@ describe('finishClineTranslation', () => {
       'reasoning-end',
     ]);
     expect(finishClineTranslation(state)).toEqual([]);
+  });
+
+  it('discards a buffered step that never reached turn-finished', () => {
+    const state = newState();
+    translateClineEvent(
+      {
+        type: 'assistant-message',
+        snapshot,
+        iteration: 1,
+        finishReason: 'error',
+        message: {
+          id: 'm1',
+          role: 'assistant',
+          content: [],
+          createdAt: 0,
+        },
+      },
+      state,
+    );
+
+    expect(finishClineTranslation(state)).toEqual([]);
+    expect(
+      translateClineEvent(
+        {
+          type: 'turn-finished',
+          snapshot,
+          iteration: 1,
+          toolCallCount: 0,
+        },
+        state,
+      ),
+    ).toEqual([]);
   });
 });

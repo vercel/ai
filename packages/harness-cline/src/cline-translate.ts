@@ -6,12 +6,19 @@ import {
   usageFromMessageMetrics,
 } from './cline-utils';
 
+type FinishStepPart = Extract<
+  HarnessV1StreamPart,
+  { readonly type: 'finish-step' }
+>;
+
 /**
  * Per-turn translator state. Tracks open text/reasoning blocks (the Cline
  * runtime streams flat deltas; the harness contract wants explicit
  * start/delta/end block framing) and which tool calls have already been
  * surfaced — an approval request can emit a `tool-call` part before the
- * runtime's own `tool-started` event fires for it.
+ * runtime's own `tool-started` event fires for it. Cline emits the assistant
+ * message before executing that iteration's tools, so the step boundary is
+ * buffered until `turn-finished` confirms that those tools have settled.
  */
 export interface ClineTranslatorState {
   readonly builtinToolNames: ReadonlySet<string>;
@@ -21,6 +28,7 @@ export interface ClineTranslatorState {
   openTextBlockId?: string;
   openReasoningBlockId?: string;
   emittedToolCalls: Set<string>;
+  pendingFinishStep?: FinishStepPart;
   blockCounter: number;
 }
 
@@ -155,12 +163,21 @@ export function translateClineEvent(
 
     case 'assistant-message': {
       const parts = closeOpenBlocks(state);
-      parts.push({
+      state.pendingFinishStep = {
         type: 'finish-step',
         finishReason: mapModelFinishReason(event.finishReason),
         usage: usageFromMessageMetrics(event.message.metrics),
-      });
+      };
       return parts;
+    }
+
+    case 'turn-finished': {
+      const pendingFinishStep = state.pendingFinishStep;
+      if (!pendingFinishStep) {
+        return [];
+      }
+      state.pendingFinishStep = undefined;
+      return [pendingFinishStep];
     }
 
     case 'tool-started': {
@@ -226,10 +243,13 @@ export function translateClineEvent(
 
 /**
  * Close any blocks still open when the turn ends (e.g. an aborted turn whose
- * `assistant-message` never arrived).
+ * `assistant-message` never arrived). A buffered step that never reached
+ * Cline's `turn-finished` boundary is incomplete and must not be emitted.
  */
 export function finishClineTranslation(
   state: ClineTranslatorState,
 ): HarnessV1StreamPart[] {
-  return closeOpenBlocks(state);
+  const parts = closeOpenBlocks(state);
+  state.pendingFinishStep = undefined;
+  return parts;
 }
