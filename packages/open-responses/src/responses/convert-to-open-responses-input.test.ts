@@ -388,6 +388,74 @@ describe('convertToOpenResponsesInput', () => {
         },
       ]);
     });
+
+    it('should preserve interleaved assistant content order', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Analyzing the problem',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: '{}',
+              },
+              {
+                type: 'text',
+                text: 'Answer after the call',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(
+        Array.isArray(result.input)
+          ? result.input.map(item => item.type)
+          : undefined,
+      ).toEqual(['reasoning', 'function_call', 'message']);
+    });
+
+    it('should preserve reasoning item provider data', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'safe summary',
+                providerOptions: {
+                  'test-provider': {
+                    itemId: 'rs_123',
+                    reasoningSummary: [
+                      { type: 'summary_text', text: 'safe summary' },
+                    ],
+                    reasoningEncryptedContent: 'encrypted-state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          id: 'rs_123',
+          type: 'reasoning',
+          summary: [{ type: 'summary_text', text: 'safe summary' }],
+          content: [{ type: 'reasoning_text', text: 'safe summary' }],
+          encrypted_content: 'encrypted-state',
+        },
+      ]);
+    });
   });
 
   describe('assistant messages with tool calls', () => {
