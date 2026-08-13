@@ -4,6 +4,7 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
 } from '../ui/process-ui-message-stream';
 import {
   createAsyncIterableStream,
@@ -91,7 +92,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
       runUpdateMessageJob(
         job: (options: {
           state: StreamingUIMessageState<UI_MESSAGE>;
-          write: () => void;
+          write: (options?: UIMessageStreamWriteOptions) => void;
         }) => Promise<void>,
       ) {
         return job({

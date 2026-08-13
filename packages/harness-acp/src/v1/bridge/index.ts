@@ -326,6 +326,7 @@ async function ensureSession({
   const fingerprint = JSON.stringify({
     authentication: bridgeConfiguration.authentication,
     providerAuthentication: bridgeConfiguration.providerAuthentication,
+    providerEnvironment: bridgeConfiguration.providerEnvironment,
     sessionMeta: bridgeConfiguration.sessionMeta,
     instructionMapping: start.instructionMapping,
     permissionMode: start.permissionMode,
@@ -360,15 +361,16 @@ async function ensureSession({
   }
 
   const clientApp = resolveClientApp();
-  const gateway =
-    bridgeConfiguration.providerAuthentication?.type === 'ai-gateway'
-      ? resolveGatewayValues({ clientApp })
-      : undefined;
   const authentication = bridgeConfiguration.authentication;
-  const launchEnv = resolveACPLaunchEnvironment({
-    providerAuthentication: bridgeConfiguration.providerAuthentication,
-    gateway,
-  });
+  const launchEnv =
+    bridgeConfiguration.providerEnvironment ??
+    resolveACPLaunchEnvironment({
+      providerAuthentication: bridgeConfiguration.providerAuthentication,
+      gateway:
+        bridgeConfiguration.providerAuthentication?.type === 'ai-gateway'
+          ? resolveGatewayValues({ clientApp })
+          : undefined,
+    });
   const instructionConfiguration = await resolveACPInstructionConfiguration({
     instructions: start.instructions,
     instructionMapping: start.instructionMapping,
