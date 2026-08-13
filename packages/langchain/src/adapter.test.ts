@@ -8,7 +8,7 @@ import {
   convertModelMessages,
 } from './adapter';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { ModelMessage, UIMessage } from 'ai';
+import { readUIMessageStream, type ModelMessage, type UIMessage } from 'ai';
 import {
   AIMessage,
   AIMessageChunk,
@@ -858,6 +858,90 @@ describe('toUIMessageStream', () => {
       toolName: 'get_weather',
       dynamic: true,
     });
+  });
+
+  it('should preserve tool lifecycles when tool call ids repeat across steps', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'message-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks.filter(chunk => chunk.type === 'tool-input-start'),
+    ).toMatchObject([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
   });
 
   it('should skip tool call chunks without id and use values instead', async () => {

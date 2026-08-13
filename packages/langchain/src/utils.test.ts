@@ -989,7 +989,9 @@ describe('processLangGraphEvent', () => {
     messageNamespaces: new Map(),
     messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolCallsInCurrentStep: new Set<string>(),
     emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStep: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
@@ -2114,6 +2116,79 @@ describe('processLangGraphEvent', () => {
     expect(stepEvents).toHaveLength(0);
   });
 
+  it('should attach delayed tool output to a prior step without synthesizing a new input lifecycle', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            content: '',
+            id: 'msg-1',
+            tool_call_chunks: [
+              {
+                id: 'call-1',
+                name: 'get_weather',
+                args: '{"city":"SF"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({ content: 'Waiting', id: 'msg-2' }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-1',
+          name: 'get_weather',
+          output: 'Sunny',
+        },
+      ],
+      state,
+      controller,
+    );
+
+    expect(
+      chunks.filter(
+        chunk =>
+          (chunk as { type: string }).type === 'tool-input-start' ||
+          (chunk as { type: string }).type === 'tool-input-available',
+      ),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+    ]);
+    expect(chunks).toContainEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-1',
+      output: 'Sunny',
+    });
+  });
+
   it('should emit tool-output-error for ToolMessage with status error', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
@@ -2821,7 +2896,9 @@ describe('processLangGraphEvent - sources', () => {
     messageNamespaces: new Map(),
     messageConcat: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolCallsInCurrentStep: new Set<string>(),
     emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStep: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
