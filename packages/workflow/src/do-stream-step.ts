@@ -198,6 +198,15 @@ export async function doStreamStep(
 
   try {
     for await (const part of modelStream) {
+      if (part.type === 'error') {
+        // Preserve real-time delivery before terminating the durable step with
+        // the exact error value supplied by the model stream.
+        if (writer) {
+          await writer.write(part);
+        }
+        throw part.error;
+      }
+
       switch (part.type) {
         case 'text-delta':
           text += part.text;
