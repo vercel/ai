@@ -136,6 +136,9 @@
       "path": "../../packages/provider"
     },
     {
+      "path": "../../packages/provider-utils"
+    },
+    {
       "path": "../../packages/quiverai"
     },
     {

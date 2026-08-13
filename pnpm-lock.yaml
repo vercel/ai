@@ -322,6 +322,9 @@ importers:
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../../packages/provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../../packages/provider-utils
       '@ai-sdk/quiverai':
         specifier: workspace:*
         version: link:../../packages/quiverai

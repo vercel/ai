@@ -3,10 +3,13 @@
   "issueId": 18440,
   "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18440-streamed-tool-call-id.ts",
   "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/tsconfig.json",
+    "pnpm-lock.yaml",
     "examples/ai-functions/src/reproduction/issue-18440-streamed-tool-call-id.ts"
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "ISSUE 18440 REPRODUCED: omitted streamed tool-call IDs abort the turn and drop calls (A1/openai-compatible, A1/openai, A1/drops-earlier-call)."
+    "signal": "ISSUE 18440 REPRODUCED: the live endpoint emitted unusable or conflicting tool-call IDs and the SDK did not preserve every call."
   }
 }
