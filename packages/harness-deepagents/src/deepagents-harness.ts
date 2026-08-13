@@ -26,9 +26,11 @@ import {
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
@@ -36,6 +38,9 @@ import { tool, type Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
+  createDeepAgentsRequestTransformations,
+  DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  resolveDeepAgentsAuthenticationMode,
   resolveDeepAgentsEnv,
   type DeepAgentsAuthOptions,
 } from './deepagents-auth';
@@ -248,6 +253,31 @@ export function createDeepAgents(
     doStart: async startOpts => {
       const permissionMode = startOpts.permissionMode;
       const sandboxSession = startOpts.sandboxSession;
+      const authenticationMode = resolveDeepAgentsAuthenticationMode({
+        auth: settings.auth,
+      });
+      const resolvedAuthEnvironment = resolveDeepAgentsEnv({
+        auth: settings.auth,
+      });
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createDeepAgentsRequestTransformations(
+          resolvedAuthEnvironment,
+          authenticationMode,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        sandboxAuthEnvironment = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
       const bootstrapDir = posix.resolve(
@@ -347,7 +377,7 @@ export function createDeepAgents(
       }
 
       const env = {
-        ...resolveDeepAgentsEnv({ auth: settings.auth }),
+        ...sandboxAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: DEEPAGENTS_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),

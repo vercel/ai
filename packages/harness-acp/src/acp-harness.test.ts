@@ -194,6 +194,7 @@ function fakeSandbox({
   kills,
   files = {},
   homeDir = '/home/agent',
+  addRequestTransformations,
 }: {
   runs: string[];
   spawns: Array<{
@@ -205,6 +206,7 @@ function fakeSandbox({
   kills?: string[];
   files?: Readonly<Record<string, string>>;
   homeDir?: string;
+  addRequestTransformations?: HarnessV1NetworkSandboxSession['addRequestTransformations'];
 }): HarnessV1NetworkSandboxSession {
   const restricted = {
     readTextFile: async ({ path }: { path: string }) => files[path] ?? null,
@@ -249,6 +251,7 @@ function fakeSandbox({
     restricted: () => restricted,
     getPortUrl: async () => 'ws://127.0.0.1:4319',
     stop,
+    ...(addRequestTransformations == null ? {} : { addRequestTransformations }),
     ...restricted,
   } as unknown as HarnessV1NetworkSandboxSession;
 }
@@ -383,6 +386,246 @@ describe('createACP', () => {
         ...agentSettings,
       }).specificationVersion,
     ).toBe('harness-v1');
+  });
+
+  it('requires credential environment and brokering settings together', () => {
+    expect(() =>
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        credentialEnv: ['CODEX_API_KEY'],
+      }),
+    ).toThrow(
+      'ACP credentialEnv and credentialBrokering must be configured together.',
+    );
+    expect(() =>
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        credentialBrokering: () => [],
+      }),
+    ).toThrow(
+      'ACP credentialEnv and credentialBrokering must be configured together.',
+    );
+  });
+
+  it('brokers direct credentials before launching the sandbox bridge', async () => {
+    vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
+    vi.stubEnv('PROVIDER_BASE_URL', 'https://provider.example/v1');
+    const addRequestTransformations = vi.fn(async () => {});
+    const credentialBrokering = vi.fn(
+      ({ env }: { env: Readonly<Record<string, string>> }) => [
+        {
+          match: { host: 'provider.example', path: { startsWith: '/v1' } },
+          transform: {
+            headers: { Authorization: `Bearer ${env.PROVIDER_API_KEY}` },
+          },
+        },
+      ],
+    );
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'direct-brokered-acp',
+      ...agentSettings,
+      forwardEnv: ['PROVIDER_BASE_URL'],
+      credentialEnv: ['PROVIDER_API_KEY'],
+      credentialBrokering,
+      env: { STATIC_SETTING: 'literal-value' },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns,
+        stop: async () => {},
+        addRequestTransformations,
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(credentialBrokering).toHaveBeenCalledWith({
+      env: {
+        PROVIDER_API_KEY: 'direct-secret',
+        PROVIDER_BASE_URL: 'https://provider.example/v1',
+        STATIC_SETTING: 'literal-value',
+      },
+    });
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: { host: 'provider.example', path: { startsWith: '/v1' } },
+        transform: {
+          headers: { Authorization: 'Bearer direct-secret' },
+        },
+      },
+    ]);
+    expect(spawns[0]!.env).toMatchObject({
+      PROVIDER_API_KEY: 'PROVIDER_API_KEY',
+      PROVIDER_BASE_URL: 'https://provider.example/v1',
+      STATIC_SETTING: 'literal-value',
+    });
+    expect(JSON.stringify(spawns[0]!.env)).not.toContain('direct-secret');
+
+    await session.doDestroy();
+  });
+
+  it('uses resolved Gateway profile values for brokering without serializing the credential', async () => {
+    vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
+    vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://gateway.example');
+    const addRequestTransformations = vi.fn(async () => {});
+    const credentialBrokering = vi.fn(
+      ({ env }: { env: Readonly<Record<string, string>> }) => [
+        {
+          match: { host: 'gateway.example', path: { startsWith: '/v1' } },
+          transform: {
+            headers: { Authorization: `Bearer ${env.PROVIDER_API_KEY}` },
+          },
+        },
+      ],
+    );
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'gateway-brokered-acp',
+      auth: 'ai-gateway',
+      ...agentSettings,
+      forwardEnv: [],
+      credentialEnv: ['PROVIDER_API_KEY'],
+      credentialBrokering,
+      providerAuthentication: {
+        gateway: {
+          env: {
+            PROVIDER_API_KEY: { $source: 'gateway-api-key' },
+            PROVIDER_BASE_URL: {
+              $source: 'gateway-base-url',
+              ensureSuffix: '/v1',
+            },
+          },
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns,
+        stop: async () => {},
+        addRequestTransformations,
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(credentialBrokering).toHaveBeenCalledWith({
+      env: {
+        PROVIDER_API_KEY: 'gateway-secret',
+        PROVIDER_BASE_URL: 'https://gateway.example/v1',
+      },
+    });
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: { host: 'gateway.example', path: { startsWith: '/v1' } },
+        transform: {
+          headers: { Authorization: 'Bearer gateway-secret' },
+        },
+      },
+    ]);
+    expect(spawns[0]!.env.PROVIDER_API_KEY).toBe('PROVIDER_API_KEY');
+    expect(spawns[0]!.env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
+    expect(JSON.stringify(spawns[0]!.env)).not.toContain('gateway-secret');
+    await expect(
+      safeParseJSON({
+        text: spawns[0]!.env[ACP_BRIDGE_CONFIGURATION_ENV]!,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      value: {
+        providerAuthentication: { type: 'ai-gateway' },
+        providerEnvironment: {
+          PROVIDER_API_KEY: 'PROVIDER_API_KEY',
+          PROVIDER_BASE_URL: 'https://gateway.example/v1',
+        },
+      },
+    });
+
+    await session.doDestroy();
+  });
+
+  it('preserves real credential forwarding when additive transformations are unavailable', async () => {
+    vi.stubEnv('PROVIDER_API_KEY', 'legacy-secret');
+    const credentialBrokering = vi.fn(() => []);
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'legacy-credentials-acp',
+      ...agentSettings,
+      forwardEnv: [],
+      credentialEnv: ['PROVIDER_API_KEY'],
+      credentialBrokering,
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(credentialBrokering).not.toHaveBeenCalled();
+    expect(spawns[0]!.env.PROVIDER_API_KEY).toBe('legacy-secret');
+
+    await session.doDestroy();
+  });
+
+  it('aborts before attach or spawn when credential brokering fails', async () => {
+    vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
+    const error = new Error('request transformation installation failed');
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'failed-brokering-acp',
+      ...agentSettings,
+      forwardEnv: [],
+      credentialEnv: ['PROVIDER_API_KEY'],
+      credentialBrokering: ({ env }) => [
+        {
+          match: { host: 'provider.example' },
+          transform: {
+            headers: { Authorization: `Bearer ${env.PROVIDER_API_KEY}` },
+          },
+        },
+      ],
+    });
+
+    await expect(
+      harness.doStart({
+        sessionId: 'session-1',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns,
+          stop: async () => {},
+          addRequestTransformations: async () => {
+            throw error;
+          },
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toBe(error);
+    expect(spawns).toEqual([]);
+    expect(harnessUtilsMocks.channels).toEqual([]);
   });
 
   it('forwards MCP servers and lets the implementation classify unknown ACP tools', async () => {
