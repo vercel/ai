@@ -5,8 +5,11 @@ type CodexOptions = {
     base_instructions?: unknown;
     developer_instructions?: unknown;
     mcp_servers?: unknown;
+    model_provider?: unknown;
+    model_providers?: unknown;
     model_reasoning_summary?: unknown;
     model_supports_reasoning_summaries?: unknown;
+    preferred_auth_method?: unknown;
   };
 };
 type ThreadOptions = { model?: string };
@@ -153,6 +156,33 @@ describe('Codex bridge config', () => {
       {
         "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
         "model_reasoning_summary": "detailed",
+      }
+    `);
+  });
+
+  test('disables WebSockets for a configured direct OpenAI endpoint', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+    process.env.OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
+    await import('./index');
+
+    expect({
+      modelProvider: state.codexOptions[0]?.config?.model_provider,
+      modelProviders: state.codexOptions[0]?.config?.model_providers,
+      preferredAuthMethod: state.codexOptions[0]?.config?.preferred_auth_method,
+    }).toMatchInlineSnapshot(`
+      {
+        "modelProvider": "agent_bridge_openai",
+        "modelProviders": {
+          "agent_bridge_openai": {
+            "base_url": "https://api.openai.com/v1",
+            "env_key": "CODEX_API_KEY",
+            "name": "Agent Bridge OpenAI",
+            "supports_websockets": false,
+            "wire_api": "responses",
+          },
+        },
+        "preferredAuthMethod": "apikey",
       }
     `);
   });

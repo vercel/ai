@@ -111,6 +111,11 @@ environment:
 - `openai`: use OpenAI credentials.
 - `ai-gateway`: use AI Gateway credentials.
 
+When the sandbox supports additive request transformations, the bridge receives
+placeholders and the adapter injects credentials into matching outbound
+requests. Sandboxes without that capability retain direct credential
+forwarding.
+
 Supported environment variables:
 
 - `AI_GATEWAY_API_KEY`
