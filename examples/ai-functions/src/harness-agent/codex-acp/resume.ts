@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { createCodexACP } from './_create';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -22,14 +23,11 @@ run(async () => {
     });
     const session = await agent.createSession();
     sessionId = session.sessionId;
-    const result = await agent.generate({
+    const result = await agent.stream({
       session,
-      prompt:
-        'Remember that the cold-resume codename is COPPER-LEAF. Reply with exactly remembered.',
+      prompt: 'My name is Felix. Remember it.',
     });
-    if (!result.text.toLowerCase().includes('remembered')) {
-      throw new Error(`Unexpected first ACP response: ${result.text}`);
-    }
+    await printFullStream({ result });
     resumeState = await session.stop();
   }
 
@@ -42,15 +40,19 @@ run(async () => {
     resumeFrom: resumeState,
   });
   try {
-    const result = await agent.generate({
+    const result = await agent.stream({
       session,
-      prompt: 'What is the cold-resume codename? Reply with only the codename.',
+      prompt: 'What is my name? Answer in one word.',
     });
-    console.log(result.text);
-    if (!result.text.toUpperCase().includes('COPPER-LEAF')) {
-      throw new Error(
-        `The resumed ACP session forgot its state: ${result.text}`,
-      );
+    let secondTurnText = '';
+    await printFullStream({
+      result,
+      onText: text => {
+        secondTurnText += text.text;
+      },
+    });
+    if (!secondTurnText.includes('Felix')) {
+      throw new Error('Second turn did not retain context from previous turn');
     }
   } finally {
     await session.destroy();
