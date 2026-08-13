@@ -761,6 +761,62 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    it('should close unfinished reasoning items with their original ids', async () => {
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 0,
+            output_index: 0,
+            item: {
+              id: 'rs_reasoning_item',
+              type: 'reasoning',
+              summary: [],
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.incomplete',
+            sequence_number: 1,
+            response: {
+              status: 'incomplete',
+              incomplete_details: { reason: 'max_output_tokens' },
+              usage: {
+                input_tokens: 1,
+                input_tokens_details: { cached_tokens: 0 },
+                output_tokens: 1,
+                output_tokens_details: { reasoning_tokens: 1 },
+                total_tokens: 2,
+              },
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts).toContainEqual({
+        type: 'reasoning-start',
+        id: 'rs_reasoning_item',
+      });
+      expect(parts).toContainEqual({
+        type: 'reasoning-end',
+        id: 'rs_reasoning_item',
+      });
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'length',
+          raw: 'max_output_tokens',
+        },
+      });
+    });
+
     it('should not pollute Object.prototype from tool call item ids', async () => {
       const originalArgumentsDescriptor = Object.getOwnPropertyDescriptor(
         Object.prototype,
