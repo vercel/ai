@@ -129,12 +129,18 @@ function createCitationSource(
 }
 
 function getAnthropicCallerInfo(caller: AnthropicToolCallCaller | undefined) {
-  return caller && 'tool_id' in caller
+  if (caller == null) {
+    return undefined;
+  }
+
+  return 'tool_id' in caller
     ? {
         type: caller.type,
         toolId: caller.tool_id,
       }
-    : undefined;
+    : {
+        type: caller.type,
+      };
 }
 
 export type AnthropicLanguageModelConfig = {

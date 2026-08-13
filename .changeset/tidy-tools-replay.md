@@ -2,4 +2,4 @@
 '@ai-sdk/anthropic': patch
 ---
 
-Preserve dynamic filtering caller metadata and co-locate Anthropic server tool results with their calls during multi-turn replay.
+Preserve Anthropic server-tool caller metadata, including direct and dynamic-filtering callers, and co-locate nested server tool results with their calls within each assistant turn.

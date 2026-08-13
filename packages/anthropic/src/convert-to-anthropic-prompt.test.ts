@@ -1868,7 +1868,7 @@ describe('assistant messages', () => {
     ]);
   });
 
-  it('should convert anthropic web_search tool call and result parts', async () => {
+  it('should convert anthropic web_search tool call and result parts with direct caller metadata', async () => {
     const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -1880,6 +1880,11 @@ describe('assistant messages', () => {
                 query: 'San Francisco major news events June 22 2025',
               },
               providerExecuted: true,
+              providerOptions: {
+                anthropic: {
+                  caller: { type: 'direct' },
+                },
+              },
               toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
               toolName: 'web_search',
               type: 'tool-call',
@@ -1896,6 +1901,11 @@ describe('assistant messages', () => {
                     type: 'web_search_result',
                   },
                 ],
+              },
+              providerOptions: {
+                anthropic: {
+                  caller: { type: 'direct' },
+                },
               },
               toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
               toolName: 'web_search',
@@ -1918,6 +1928,9 @@ describe('assistant messages', () => {
               "content": [
                 {
                   "cache_control": undefined,
+                  "caller": {
+                    "type": "direct",
+                  },
                   "id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                   "input": {
                     "query": "San Francisco major news events June 22 2025",
@@ -1927,6 +1940,9 @@ describe('assistant messages', () => {
                 },
                 {
                   "cache_control": undefined,
+                  "caller": {
+                    "type": "direct",
+                  },
                   "content": [
                     {
                       "encrypted_content": "encrypted-content",
@@ -3473,7 +3489,7 @@ describe('assistant messages', () => {
       ]);
     });
 
-    it('should move deferred server tool results to the message containing their call', async () => {
+    it('should preserve mixed client and server tool continuation ordering', async () => {
       const result = await convertToAnthropicPrompt({
         prompt: [
           {
@@ -3555,18 +3571,6 @@ describe('assistant messages', () => {
               cache_control: undefined,
             },
             {
-              type: 'code_execution_tool_result',
-              tool_use_id: 'code-execution-call',
-              content: {
-                type: 'encrypted_code_execution_result',
-                encrypted_stdout: 'encrypted-output',
-                stderr: '',
-                return_code: 0,
-                content: [],
-              },
-              cache_control: undefined,
-            },
-            {
               type: 'tool_use',
               id: 'client-tool-call',
               name: 'fetch_url',
@@ -3585,6 +3589,28 @@ describe('assistant messages', () => {
               content: JSON.stringify({ status: 200 }),
               cache_control: undefined,
             },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'code_execution_tool_result',
+              tool_use_id: 'code-execution-call',
+              content: {
+                type: 'encrypted_code_execution_result',
+                encrypted_stdout: 'encrypted-output',
+                stderr: '',
+                return_code: 0,
+                content: [],
+              },
+              cache_control: undefined,
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
             {
               type: 'text',
               text: 'Summarize the result.',

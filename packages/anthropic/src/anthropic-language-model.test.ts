@@ -3192,6 +3192,57 @@ describe('AnthropicLanguageModel', () => {
     });
 
     describe('web search tool', () => {
+      it('should preserve direct caller metadata for server tool calls and results', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_01Test',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'server_tool_use',
+                id: 'srvtoolu_01Search',
+                name: 'web_search',
+                input: { query: 'AI SDK' },
+                caller: { type: 'direct' },
+              },
+              {
+                type: 'web_search_tool_result',
+                tool_use_id: 'srvtoolu_01Search',
+                content: [],
+                caller: { type: 'direct' },
+              },
+            ],
+            model: 'claude-sonnet-4-6',
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const { content } = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const toolCall = content.find(part => part.type === 'tool-call');
+        const toolResult = content.find(part => part.type === 'tool-result');
+
+        expect(toolCall?.providerMetadata?.anthropic?.caller).toEqual({
+          type: 'direct',
+        });
+        expect(toolResult?.providerMetadata?.anthropic?.caller).toEqual({
+          type: 'direct',
+        });
+      });
+
       it('should preserve caller metadata for dynamic-filtering server tool calls', async () => {
         prepareJsonFixtureResponse(
           'anthropic-web-search-dynamic-filtering-multiple.1',
@@ -10400,6 +10451,44 @@ describe('AnthropicLanguageModel', () => {
               },
             },
           ],
+        });
+      });
+
+      it('should preserve direct caller metadata for streamed server tool calls and results', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-sonnet-4-6","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"server_tool_use","id":"srvtoolu_01Search","name":"web_search","input":{},"caller":{"type":"direct"}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"query\\":\\"AI SDK\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"content_block_start","index":1,"content_block":{"type":"web_search_tool_result","tool_use_id":"srvtoolu_01Search","content":[],"caller":{"type":"direct"}}}\n\n`,
+            `data: {"type":"content_block_stop","index":1}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const streamResult = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+        const parts = await convertReadableStreamToArray(streamResult.stream);
+        const toolCall = parts.find(part => part.type === 'tool-call');
+        const toolResult = parts.find(part => part.type === 'tool-result');
+
+        expect(toolCall?.providerMetadata?.anthropic?.caller).toEqual({
+          type: 'direct',
+        });
+        expect(toolResult?.providerMetadata?.anthropic?.caller).toEqual({
+          type: 'direct',
         });
       });
 

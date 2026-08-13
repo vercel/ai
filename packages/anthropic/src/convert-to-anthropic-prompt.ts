@@ -1281,7 +1281,9 @@ export async function convertToAnthropicPrompt({
 
         messages.push({
           role: 'assistant',
-          content: moveToolUseBlocksToEnd(anthropicContent),
+          content: coLocateServerToolResults(
+            moveToolUseBlocksToEnd(anthropicContent),
+          ),
         });
 
         break;
@@ -1297,7 +1299,7 @@ export async function convertToAnthropicPrompt({
   return {
     prompt: {
       system,
-      messages: coLocateServerToolResults(messages),
+      messages,
     },
     betas,
   };
@@ -1424,19 +1426,13 @@ function getAnthropicCaller(
 }
 
 function coLocateServerToolResults(
-  messages: AnthropicPrompt['messages'],
-): AnthropicPrompt['messages'] {
+  content: AnthropicAssistantMessage['content'],
+): AnthropicAssistantMessage['content'] {
   const serverToolUseIds = new Set<string>();
 
-  for (const message of messages) {
-    if (message.role !== 'assistant') {
-      continue;
-    }
-
-    for (const part of message.content) {
-      if (part.type === 'server_tool_use' || part.type === 'mcp_tool_use') {
-        serverToolUseIds.add(part.id);
-      }
+  for (const part of content) {
+    if (part.type === 'server_tool_use') {
+      serverToolUseIds.add(part.id);
     }
   }
 
@@ -1445,65 +1441,25 @@ function coLocateServerToolResults(
     AnthropicAssistantMessage['content']
   >();
 
-  for (const message of messages) {
-    if (message.role !== 'assistant') {
-      continue;
-    }
-
-    for (const part of message.content) {
-      if ('tool_use_id' in part && serverToolUseIds.has(part.tool_use_id)) {
-        const results = resultsByToolUseId.get(part.tool_use_id) ?? [];
-        results.push(part);
-        resultsByToolUseId.set(part.tool_use_id, results);
-      }
+  for (const part of content) {
+    if ('tool_use_id' in part && serverToolUseIds.has(part.tool_use_id)) {
+      const results = resultsByToolUseId.get(part.tool_use_id) ?? [];
+      results.push(part);
+      resultsByToolUseId.set(part.tool_use_id, results);
     }
   }
 
-  const relocatedMessages = messages
-    .map(message => {
-      if (message.role !== 'assistant') {
-        return message;
-      }
+  const result: AnthropicAssistantMessage['content'] = [];
 
-      const content: AnthropicAssistantMessage['content'] = [];
+  for (const part of content) {
+    if ('tool_use_id' in part && serverToolUseIds.has(part.tool_use_id)) {
+      continue;
+    }
 
-      for (const part of message.content) {
-        if ('tool_use_id' in part && serverToolUseIds.has(part.tool_use_id)) {
-          continue;
-        }
+    result.push(part);
 
-        content.push(part);
-
-        if (part.type === 'server_tool_use' || part.type === 'mcp_tool_use') {
-          content.push(...(resultsByToolUseId.get(part.id) ?? []));
-        }
-      }
-
-      return { ...message, content };
-    })
-    .filter(
-      message => message.role !== 'assistant' || message.content.length > 0,
-    );
-
-  const result: AnthropicPrompt['messages'] = [];
-
-  for (const message of relocatedMessages) {
-    const previousMessage = result.at(-1);
-
-    if (previousMessage?.role === 'user' && message.role === 'user') {
-      previousMessage.content.push(...message.content);
-    } else if (
-      previousMessage?.role === 'assistant' &&
-      message.role === 'assistant'
-    ) {
-      previousMessage.content.push(...message.content);
-    } else if (
-      previousMessage?.role === 'system' &&
-      message.role === 'system'
-    ) {
-      previousMessage.content.push(...message.content);
-    } else {
-      result.push(message);
+    if (part.type === 'server_tool_use') {
+      result.push(...(resultsByToolUseId.get(part.id) ?? []));
     }
   }
 
