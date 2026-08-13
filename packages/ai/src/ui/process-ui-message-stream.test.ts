@@ -3,6 +3,7 @@ import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import {
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
   createStreamingUIMessageState,
   processUIMessageStream,
 } from './process-ui-message-stream';
@@ -40,7 +41,7 @@ describe('processUIMessageStream', () => {
   const runUpdateMessageJob = async (
     job: (options: {
       state: StreamingUIMessageState<UIMessage>;
-      write: () => void;
+      write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => {
     await job({
