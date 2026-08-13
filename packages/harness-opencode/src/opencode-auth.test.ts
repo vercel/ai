@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   resolveOpenCodeEnv,
   resolveOpenCodeProvider,
@@ -87,5 +87,45 @@ describe('OpenCode auth', () => {
     expect(toOpenCodeGatewayBaseUrl('https://ai-gateway.vercel.sh/v1')).toBe(
       'https://ai-gateway.vercel.sh/v1',
     );
+  });
+
+  it('supports string authentication modes', () => {
+    expect(
+      resolveOpenCodeEnv({
+        auth: 'openai',
+        provider: 'openai',
+        processEnv: {
+          OPENAI_API_KEY: 'sk-openai',
+          OPENAI_BASE_URL: 'https://compat.example/v1',
+        },
+      }),
+    ).toEqual({
+      OPENAI_API_KEY: 'sk-openai',
+      OPENAI_BASE_URL: 'https://compat.example/v1',
+    });
+
+    expect(
+      resolveOpenCodeEnv({
+        auth: 'ai-gateway',
+        processEnv: { AI_GATEWAY_API_KEY: 'gw-mode' },
+      }),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'gw-mode',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+    });
+  });
+
+  it('warns when passing a legacy object shape', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    resolveOpenCodeEnv({
+      auth: { anthropic: {} },
+      processEnv: {},
+    });
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Passing an object to auth options is deprecated',
+      ),
+    );
+    spy.mockRestore();
   });
 });

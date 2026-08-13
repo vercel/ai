@@ -1,7 +1,9 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { grokBuild } from '@ai-sdk/harness-grok-build';
+import { createGrokBuild } from './_create';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const grokBuild = createGrokBuild();
 
 /*
  * ACP v1 has no portable manual compaction API. This example deliberately

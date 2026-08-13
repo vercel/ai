@@ -1,5 +1,17 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.73
+
+### Patch Changes
+
+- 616730a: fix(harness): fix missing reasoning controls
+
+## 1.0.72
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.70
+
 ## 1.0.71
 
 ### Patch Changes

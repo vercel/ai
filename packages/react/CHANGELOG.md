@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 4.0.67
+
+### Patch Changes
+
+- 097b552: Avoid repeatedly deep-cloning accumulated message payloads during chat streaming.
+  - ai@7.0.64
+
 ## 4.0.66
 
 ### Patch Changes

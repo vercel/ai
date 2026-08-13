@@ -118,4 +118,12 @@ describe('Claude Code bridge configuration', () => {
 
     expect(state.queryArgs[0]?.options).not.toHaveProperty('env');
   });
+
+  test('passes the configured effort to the Agent SDK', async () => {
+    state.start = { ...state.start, effort: 'max' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
+  });
 });

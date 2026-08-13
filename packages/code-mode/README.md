@@ -14,7 +14,7 @@ generated code.
 pnpm add ai @ai-sdk/code-mode
 ```
 
-This package runs on the server and requires Node.js 22 or newer.
+This package runs on the server and requires Node.js 22.13 or newer.
 
 ## Usage
 
