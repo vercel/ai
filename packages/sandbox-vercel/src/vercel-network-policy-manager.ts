@@ -39,7 +39,7 @@ type ManagedPolicyState = {
 type CurrentPolicyInspection = {
   readonly accessPolicy: NetworkAccessPolicy;
   readonly forwardRules: ReadonlyArray<ForwardRule>;
-  readonly requestTransformationFingerprints: ReadonlyArray<string>;
+  readonly requestTransformationHosts: ReadonlyArray<string>;
   readonly currentPolicy: NetworkPolicy;
 };
 
@@ -63,7 +63,7 @@ export class VercelNetworkPolicyManager {
       const inspection = this.#inspectPolicy();
       if (
         this.#state == null &&
-        inspection.requestTransformationFingerprints.length > 0
+        inspection.requestTransformationHosts.length > 0
       ) {
         throw createPolicyConflictError(
           'Cannot set the network policy because the current Vercel Sandbox policy contains request transformations whose redacted values cannot be preserved safely. Replace them explicitly with setRequestTransformations() or rehydrate them with addRequestTransformations() first.',
@@ -110,20 +110,19 @@ export class VercelNetworkPolicyManager {
           requestTransformations: incomingTransformations,
           forwardRules: inspection.forwardRules,
         });
-        const incomingFingerprints =
-          getRequestTransformationFingerprints(incomingPolicy);
+        const incomingHosts = getRequestTransformationHosts(incomingPolicy);
 
         /*
          * Vercel redacts transformed header values when a policy is read back.
-         * Structural fingerprints are therefore the strongest attribution
-         * available during initialization or resume. An external rule that is
-         * structurally identical to an incoming rule is indistinguishable and
-         * is necessarily treated as managed by this call.
+         * It can also normalize rule details, so initialization and resume can
+         * only attribute existing transformations by their materialized hosts.
+         * External transformations for the same hosts are indistinguishable
+         * and are necessarily treated as managed by this call.
          */
         if (
-          !isFingerprintMultisetSubset({
-            subset: inspection.requestTransformationFingerprints,
-            superset: incomingFingerprints,
+          !isHostSetSubset({
+            subset: inspection.requestTransformationHosts,
+            superset: incomingHosts,
           })
         ) {
           throw createPolicyConflictError(
@@ -173,7 +172,7 @@ export class VercelNetworkPolicyManager {
       return {
         accessPolicy: this.#state.accessPolicy,
         forwardRules: this.#state.forwardRules,
-        requestTransformationFingerprints: [],
+        requestTransformationHosts: [],
         currentPolicy: this.#state.effectivePolicy,
       };
     }
@@ -225,7 +224,7 @@ function inspectCurrentPolicy(policy: NetworkPolicy): CurrentPolicyInspection {
     return {
       accessPolicy: { mode: policy },
       forwardRules: [],
-      requestTransformationFingerprints: [],
+      requestTransformationHosts: [],
       currentPolicy: policy,
     };
   }
@@ -234,7 +233,7 @@ function inspectCurrentPolicy(policy: NetworkPolicy): CurrentPolicyInspection {
     ? [...policy.allow]
     : Object.keys(policy.allow ?? {});
   const forwardRules: ForwardRule[] = [];
-  const requestTransformationFingerprints: string[] = [];
+  const requestTransformationHosts = new Set<string>();
 
   /*
    * Forwarding URLs and matchers survive Vercel's policy readback and can be
@@ -245,9 +244,7 @@ function inspectCurrentPolicy(policy: NetworkPolicy): CurrentPolicyInspection {
     for (const [host, rules] of Object.entries(policy.allow)) {
       for (const rule of rules) {
         if (hasRequestTransformation(rule)) {
-          requestTransformationFingerprints.push(
-            getRequestTransformationFingerprint({ host, rule }),
-          );
+          requestTransformationHosts.add(host.toLowerCase());
         }
         if (rule.forwardURL != null) {
           forwardRules.push({
@@ -268,7 +265,7 @@ function inspectCurrentPolicy(policy: NetworkPolicy): CurrentPolicyInspection {
       deniedCIDRs: [...(policy.subnets?.deny ?? [])],
     },
     forwardRules,
-    requestTransformationFingerprints,
+    requestTransformationHosts: [...requestTransformationHosts],
     currentPolicy: cloneNetworkPolicy(policy),
   };
 }
@@ -538,7 +535,7 @@ function hasRequestTransformation(rule: NetworkPolicyRule): boolean {
   );
 }
 
-function getRequestTransformationFingerprints(
+function getRequestTransformationHosts(
   policy: NetworkPolicy,
 ): ReadonlyArray<string> {
   if (
@@ -550,88 +547,26 @@ function getRequestTransformationFingerprints(
     return [];
   }
 
-  const fingerprints: string[] = [];
+  const hosts = new Set<string>();
   for (const [host, rules] of Object.entries(policy.allow)) {
     for (const rule of rules) {
       if (hasRequestTransformation(rule)) {
-        fingerprints.push(getRequestTransformationFingerprint({ host, rule }));
+        hosts.add(host.toLowerCase());
       }
     }
   }
-  return fingerprints;
+  return [...hosts];
 }
 
-function getRequestTransformationFingerprint({
-  host,
-  rule,
-}: {
-  host: string;
-  rule: NetworkPolicyRule;
-}): string {
-  const headerNames = [
-    ...new Set(
-      (rule.transform ?? []).flatMap(transformation =>
-        Object.keys(transformation.headers ?? {}).map(headerName =>
-          headerName.toLowerCase(),
-        ),
-      ),
-    ),
-  ].sort();
-
-  return stableSerialize({
-    host: host.toLowerCase(),
-    match: normalizeMatchForFingerprint(rule.match),
-    headerNames,
-  });
-}
-
-function normalizeMatchForFingerprint(
-  match: NetworkPolicyRule['match'],
-): unknown {
-  if (match == null || Object.keys(match).length === 0) {
-    return undefined;
-  }
-  return {
-    ...(match.path == null ? {} : { path: match.path }),
-    ...(match.method == null
-      ? {}
-      : { method: [...new Set(match.method)].sort() }),
-    ...(match.queryString == null
-      ? {}
-      : {
-          queryString: match.queryString
-            .map(matcher => stableSerialize(matcher))
-            .sort(),
-        }),
-    ...(match.headers == null
-      ? {}
-      : {
-          headers: match.headers
-            .map(matcher => stableSerialize(matcher))
-            .sort(),
-        }),
-  };
-}
-
-function isFingerprintMultisetSubset({
+function isHostSetSubset({
   subset,
   superset,
 }: {
   subset: ReadonlyArray<string>;
   superset: ReadonlyArray<string>;
 }): boolean {
-  const remaining = new Map<string, number>();
-  for (const fingerprint of superset) {
-    remaining.set(fingerprint, (remaining.get(fingerprint) ?? 0) + 1);
-  }
-  for (const fingerprint of subset) {
-    const count = remaining.get(fingerprint) ?? 0;
-    if (count === 0) {
-      return false;
-    }
-    remaining.set(fingerprint, count - 1);
-  }
-  return true;
+  const allowedHosts = new Set(superset.map(host => host.toLowerCase()));
+  return subset.every(host => allowedHosts.has(host.toLowerCase()));
 }
 
 function areNetworkPoliciesEqual({

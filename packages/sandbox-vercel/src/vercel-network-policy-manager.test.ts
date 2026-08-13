@@ -400,16 +400,6 @@ describe('VercelNetworkPolicyManager', () => {
 
   it.each([
     {
-      name: 'host',
-      policy: makeRedactedPolicy(),
-      transformations: [
-        {
-          ...credentialTransformation,
-          match: { ...credentialTransformation.match, host: 'other.test' },
-        },
-      ],
-    },
-    {
       name: 'matcher',
       policy: makeRedactedPolicy(),
       transformations: [
@@ -438,16 +428,32 @@ describe('VercelNetworkPolicyManager', () => {
       transformations: [credentialTransformation],
     },
   ])(
-    'rejects redacted transformations with unmatched $name',
+    'rehydrates same-host redacted transformations despite unmatched $name',
     async ({ policy, transformations }) => {
       const { manager, update } = makeManager({ networkPolicy: policy });
 
       await expect(
         manager.addRequestTransformations(transformations),
-      ).rejects.toThrow(/cannot be attributed/);
-      expect(update).not.toHaveBeenCalled();
+      ).resolves.toBeUndefined();
+      expect(update).toHaveBeenCalledOnce();
     },
   );
+
+  it('rejects redacted transformations for a host absent from the incoming transformations', async () => {
+    const { manager, update } = makeManager({
+      networkPolicy: makeRedactedPolicy(),
+    });
+
+    await expect(
+      manager.addRequestTransformations([
+        {
+          ...credentialTransformation,
+          match: { ...credentialTransformation.match, host: 'other.test' },
+        },
+      ]),
+    ).rejects.toThrow(/cannot be attributed/);
+    expect(update).not.toHaveBeenCalled();
+  });
 
   it('blocks an initial network policy change when redacted transformations exist', async () => {
     const { manager, update } = makeManager({
