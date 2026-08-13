@@ -1,8 +1,5 @@
-import type {
-  Experimental_LanguageModelStreamPart as ModelCallStreamPart,
-  ToolSet,
-  UIMessageChunk,
-} from 'ai';
+import type { ToolSet, UIMessageChunk } from 'ai';
+import type { ModelCallStreamPart } from './do-stream-step.js';
 
 /**
  * Convert a single ModelCallStreamPart to a UIMessageChunk.
@@ -12,6 +9,9 @@ export function toUIMessageChunk(
   part: ModelCallStreamPart<ToolSet>,
 ): UIMessageChunk | undefined {
   switch (part.type) {
+    case 'reset':
+      return { type: 'reset' };
+
     case 'text-start':
       return {
         type: 'text-start',

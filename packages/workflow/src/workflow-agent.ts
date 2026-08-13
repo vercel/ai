@@ -19,7 +19,6 @@ import {
   type FinishReason,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type ModelMessage,
   type StepResult,
   type StopCondition,
@@ -45,6 +44,7 @@ import {
   validateApprovedToolApprovals,
 } from 'ai/internal';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
+import type { ModelCallStreamPart } from './do-stream-step.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 
 // Re-export for consumers

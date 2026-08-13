@@ -7,7 +7,6 @@ import type {
 import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
   type LanguageModel,
@@ -22,6 +21,7 @@ import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import {
   type DoStreamStepRawResult,
   doStreamStep,
+  type ModelCallStreamPart,
   type ModelStopCondition,
   type ParsedToolCall,
   type ProviderExecutedToolResult,

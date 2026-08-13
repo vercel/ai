@@ -883,6 +883,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'reset': {
+              const currentStepParts = getCurrentStepParts();
+
+              state.activeTextParts = createIdMap();
+              state.activeReasoningParts = createIdMap();
+              state.partialToolCalls = createIdMap();
+
+              if (currentStepParts.length > 0) {
+                state.message.parts.splice(
+                  state.message.parts.length - currentStepParts.length,
+                  currentStepParts.length,
+                );
+                write();
+              }
+              break;
+            }
+
             case 'start': {
               if (chunk.messageId != null) {
                 state.message.id = chunk.messageId;

@@ -59,6 +59,10 @@ function createOrphanFilter(): OrphanFilter {
 
   function shouldDrop(chunk: UIMessageChunk): boolean {
     switch (chunk.type) {
+      case 'reset':
+        seenStartedIds.clear();
+        seenStartedToolCallIds.clear();
+        return false;
       case 'text-start':
       case 'reasoning-start':
         seenStartedIds.add(chunk.id);

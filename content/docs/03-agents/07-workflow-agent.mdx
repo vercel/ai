@@ -185,6 +185,10 @@ return createUIMessageStreamResponse({
 });
 ```
 
+The transform also forwards retry reset events emitted by `WorkflowAgent`.
+Clients remove partial parts from the failed model-call step before processing
+the retried output.
+
 ## Resumable Streaming with WorkflowChatTransport
 
 Workflow functions can time out or be interrupted by network failures. `WorkflowChatTransport` is a [`ChatTransport`](/docs/ai-sdk-ui/transport) implementation that handles these interruptions automatically — it detects when a stream ends without a `finish` event and reconnects to resume from where it left off.
