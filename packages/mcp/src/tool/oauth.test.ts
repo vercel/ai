@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import {
+  extractWWWAuthenticateParams,
   extractResourceMetadataUrl,
   type OAuthClientProvider,
   type AuthResult,
@@ -92,6 +93,26 @@ describe('extractResourceMetadataUrl', () => {
 
     expect(extractResourceMetadataUrl(mockResponse)).toBeUndefined();
   });
+});
+
+describe('extractWWWAuthenticateParams', () => {
+  it.each([' ', ', '])(
+    'returns resource metadata url and scope from a bearer challenge separated by %j',
+    separator => {
+      const resourceUrl =
+        'https://resource.example.com/.well-known/oauth-protected-resource';
+      const response = new Response(null, {
+        headers: {
+          'www-authenticate': `Bearer${separator}realm="mcp", resource_metadata="${resourceUrl}", scope="mcp.read mcp.write"`,
+        },
+      });
+
+      expect(extractWWWAuthenticateParams(response)).toEqual({
+        resourceMetadataUrl: new URL(resourceUrl),
+        scope: 'mcp.read mcp.write',
+      });
+    },
+  );
 });
 
 describe('discoverOAuthProtectedResourceMetadata', () => {
@@ -1718,6 +1739,68 @@ describe('auth function', () => {
     expect(authUrl.searchParams.get('resource')).toBe(
       'https://api.example.com/mcp-server',
     );
+  });
+
+  it.each([
+    {
+      name: 'protected resource metadata scopes',
+      scope: undefined,
+      expectedScope: 'mcp.read mcp.write',
+    },
+    {
+      name: 'provided scope before protected resource metadata scopes',
+      scope: 'mcp.challenge',
+      expectedScope: 'mcp.challenge',
+    },
+  ])('uses $name for authorization', async ({ scope, expectedScope }) => {
+    mockFetch.mockImplementation(url => {
+      const urlString = url.toString();
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://resource.example.com',
+            authorization_servers: ['https://auth.example.com'],
+            scopes_supported: ['mcp.read', 'mcp.write'],
+          }),
+        });
+      }
+
+      if (urlString.includes('/.well-known/oauth-authorization-server')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    (mockProvider.clientInformation as Mock).mockResolvedValue({
+      client_id: 'test-client',
+      client_secret: 'test-secret',
+    });
+    (mockProvider.tokens as Mock).mockResolvedValue(undefined);
+    (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
+    (mockProvider.redirectToAuthorization as Mock).mockResolvedValue(undefined);
+
+    const result = await auth(mockProvider, {
+      serverUrl: 'https://resource.example.com',
+      scope,
+    });
+
+    expect(result).toBe('REDIRECT');
+    const authorizationUrl = (mockProvider.redirectToAuthorization as Mock).mock
+      .calls[0][0] as URL;
+    expect(authorizationUrl.searchParams.get('scope')).toBe(expectedScope);
   });
 
   it('includes resource in token exchange when authorization code is provided', async () => {
