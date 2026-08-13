@@ -419,8 +419,13 @@ import { generateText, tool } from "ai";
 import { z } from "zod";
 
 const { text } = await generateText({
+<<<<<<< HEAD
   model: "xai/grok-4.5",
   prompt: "What is the weather like in San Francisco?",
+=======
+  model: 'xai/grok-4.6',
+  prompt: 'What is the weather like in San Francisco?',
+>>>>>>> 6d443b11de (docs: update xai model IDs to latest 4.6 model (#18841))
   tools: {
     getWeather: tool({
       description: "Get the current weather for a location",

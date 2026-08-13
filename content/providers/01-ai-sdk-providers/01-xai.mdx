@@ -218,7 +218,11 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
+<<<<<<< HEAD
   model: xai.responses('grok-4.5'),
+=======
+  model: xai.responses('grok-4.6'),
+>>>>>>> 6d443b11de (docs: update xai model IDs to latest 4.6 model (#18841))
   messages: [
     {
       role: 'user',
@@ -239,7 +243,11 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
+<<<<<<< HEAD
   model: xai('grok-4.5'),
+=======
+  model: xai('grok-4.6'),
+>>>>>>> 6d443b11de (docs: update xai model IDs to latest 4.6 model (#18841))
   messages: [
     {
       role: 'user',
@@ -276,7 +284,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: xai.tools.webSearch({
@@ -314,7 +322,7 @@ The X search tool enables searching X (Twitter) for posts, with filtering by han
 
 ```ts
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'What are people saying about AI on X this week?',
   tools: {
     x_search: xai.tools.xSearch({
@@ -360,7 +368,7 @@ The code execution tool enables the model to write and execute Python code for c
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt:
     'Calculate the compound interest for $10,000 at 5% annually for 10 years',
   tools: {
@@ -375,7 +383,7 @@ The view image tool enables the model to view and analyze images:
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Describe what you see in the image',
   tools: {
     view_image: xai.tools.viewImage(),
@@ -389,7 +397,7 @@ The view X video tool enables the model to view and analyze videos from X (Twitt
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Summarize the content of this X video',
   tools: {
     view_x_video: xai.tools.viewXVideo(),
@@ -397,13 +405,57 @@ const { text } = await generateText({
 });
 ```
 
+<<<<<<< HEAD
+=======
+### Image Generation Tool
+
+The image generation tool lets the model create and edit images with Grok Imagine as part of a conversation. The model decides when to call the tool, writes the image prompt, and returns the finished image alongside its text response:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: xai.responses('grok-4.6'),
+  prompt:
+    'Generate an image of a corgi surfing a big wave, in the style of a Japanese woodblock print',
+  tools: {
+    image_generation: xai.tools.imageGeneration(),
+  },
+});
+
+for (const toolResult of result.staticToolResults) {
+  if (toolResult.toolName === 'image_generation') {
+    const base64Image = toolResult.output.result;
+  }
+}
+```
+
+The tool result also contains the prompt that the model wrote for the image model, which is useful for understanding and debugging what was generated.
+
+#### Image Generation Parameters
+
+- **action** _'auto' | 'generate' | 'edit'_
+
+  Restricts what the tool can do. Defaults to `'auto'`.
+  - `'auto'`: the model can generate and edit images.
+  - `'generate'`: text-to-image generation only.
+  - `'edit'`: image editing only (edits images already in the conversation, including images the model generated earlier).
+
+<Note>
+  The tool takes no size or format parameters; the model picks an aspect ratio
+  for each call. To control it, ask in your prompt (e.g. "in a 9:16 vertical
+  aspect ratio").
+</Note>
+
+>>>>>>> 6d443b11de (docs: update xai model IDs to latest 4.6 model (#18841))
 ### MCP Server Tool
 
 The MCP server tool enables the model to connect to remote [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers and use their tools:
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.20-non-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'Use the weather tool to check conditions in San Francisco',
   tools: {
     weather_server: xai.tools.mcpServer({
@@ -451,7 +503,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: xai.responses('grok-4.20-reasoning'),
+  model: xai.responses('grok-4.6'),
   prompt: 'What documents do you have access to?',
   tools: {
     file_search: xai.tools.fileSearch({
@@ -497,8 +549,13 @@ You can combine multiple server-side tools for comprehensive research:
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
+<<<<<<< HEAD
 const { fullStream } = streamText({
   model: xai.responses('grok-4.20-non-reasoning'),
+=======
+const { stream } = streamText({
+  model: xai.responses('grok-4.6'),
+>>>>>>> 6d443b11de (docs: update xai model IDs to latest 4.6 model (#18841))
   prompt: 'Research AI safety developments and calculate risk metrics',
   tools: {
     web_search: xai.tools.webSearch(),
