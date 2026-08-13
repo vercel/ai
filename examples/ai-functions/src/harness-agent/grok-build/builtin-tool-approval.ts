@@ -1,11 +1,9 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createGrokBuild } from './_create';
+import type { ToolApprovalRequestOutput } from 'ai';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import {
-  createToolApprovalResponseMessages,
-  printFullStreamAndCaptureToolApproval,
-} from '../../lib/harness-tool-approval';
+import { createToolApprovalResponseMessages } from '../../lib/harness-tool-approval';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const grokBuild = createGrokBuild();
@@ -29,10 +27,14 @@ run(async () => {
       prompt:
         'Use Bash to create a new text file named `approval-example.txt` containing `Tool approval succeeded.`.',
     });
-    const approval = await printFullStreamAndCaptureToolApproval({
+    let approval: ToolApprovalRequestOutput<any> | undefined;
+    await printFullStream({
       result: first,
+      onToolApproval: toolApproval => {
+        approval ??= toolApproval;
+      },
     });
-    if (approval == null) {
+    if (approval?.toolCall.toolName !== 'bash') {
       throw new Error('Expected a built-in Bash tool approval request.');
     }
 

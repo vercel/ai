@@ -22,7 +22,22 @@ run(async () => {
         'Solve this step by step: if f(x) = x^3 - 6x^2 + 11x - 6, find all roots and prove they are correct.',
     });
 
-    await printFullStream({ result });
+    let reasoningEmitted = false;
+    let reasoningDisplayed = false;
+    await printFullStream({
+      result,
+      onReasoning: reasoning => {
+        reasoningEmitted = true;
+        reasoningDisplayed ||= reasoning.text.trim() !== '';
+      },
+    });
+
+    if (!reasoningEmitted) {
+      throw new Error('No reasoning emitted');
+    }
+    if (!reasoningDisplayed) {
+      throw new Error('Reasoning emitted, but not displayed');
+    }
   } finally {
     await session.destroy();
   }
