@@ -1,5 +1,13 @@
 # @ai-sdk/rsc
 
+## 1.0.239
+
+### Patch Changes
+
+- Updated dependencies [bf11412]
+- Updated dependencies [7ec6b69]
+  - ai@5.0.237
+
 ## 1.0.238
 
 ### Patch Changes
