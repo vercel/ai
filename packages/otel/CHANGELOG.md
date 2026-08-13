@@ -1,5 +1,15 @@
 # @ai-sdk/otel
 
+## 1.0.65
+
+### Patch Changes
+
+- 50ab016: fix(otel): omit non-finite numeric span attributes
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
 ## 1.0.64
 
 ### Patch Changes
