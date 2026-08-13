@@ -117,15 +117,24 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     warnings.push(...inputWarnings);
 
     // Convert function tools to the Open Responses format
-    const functionTools: FunctionToolParam[] | undefined = tools
-      ?.filter(tool => tool.type === 'function')
-      .map(tool => ({
-        type: 'function' as const,
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.inputSchema,
-        ...(tool.strict != null ? { strict: tool.strict } : {}),
-      }));
+    const functionTools: FunctionToolParam[] = [];
+
+    for (const tool of tools ?? []) {
+      if (tool.type === 'provider') {
+        warnings.push({
+          type: 'unsupported',
+          feature: `provider-defined tool ${tool.id}`,
+        });
+      } else {
+        functionTools.push({
+          type: 'function',
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.inputSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
+        });
+      }
+    }
 
     // Convert tool choice to the Open Responses format
     const convertedToolChoice: ToolChoiceParam | undefined =
@@ -194,7 +203,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 }),
               }
             : undefined,
-        tools: functionTools?.length ? functionTools : undefined,
+        tools: functionTools.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
         ...(textFormat != null && { text: { format: textFormat } }),
       },
