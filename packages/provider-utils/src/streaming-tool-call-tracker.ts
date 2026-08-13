@@ -4,6 +4,7 @@ import {
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import { generateId as defaultGenerateId } from './generate-id';
+import { isParsableJson } from './parse-json';
 
 /**
  * Minimal interface for a streaming tool call delta from an OpenAI-compatible API.
@@ -116,7 +117,12 @@ export class StreamingToolCallTracker<
     const name = this.getNonBlankString(toolCallDelta.function?.name);
     const { index } = toolCallDelta;
 
-    const existingToolCall = this.findToolCall({ wireId, index, name });
+    const existingToolCall = this.findToolCall({
+      wireId,
+      index,
+      name,
+      hasExplicitType: toolCallDelta.type != null,
+    });
 
     // `null` indicates that the available labels match multiple calls or
     // conflict without enough information to choose safely.
@@ -149,18 +155,14 @@ export class StreamingToolCallTracker<
    * flush handler to ensure all tool calls are properly completed.
    */
   flush(): void {
-    const toolCalls = [...this.toolCalls].sort((a, b) => {
-      if (a.index == null && b.index == null) {
-        return a.sequence - b.sequence;
-      }
-      if (a.index == null) {
-        return 1;
-      }
-      if (b.index == null) {
-        return -1;
-      }
-      return a.index - b.index || a.sequence - b.sequence;
-    });
+    // Index order is reliable only when every call has an index. For mixed
+    // streams, keep insertion order rather than moving all index-less calls
+    // behind indexed calls.
+    const toolCalls = this.toolCalls.every(toolCall => toolCall.index != null)
+      ? [...this.toolCalls].sort(
+          (a, b) => a.index! - b.index! || a.sequence - b.sequence,
+        )
+      : this.toolCalls;
 
     for (const toolCall of toolCalls) {
       if (!toolCall.hasFinished) {
@@ -173,10 +175,12 @@ export class StreamingToolCallTracker<
     wireId,
     index,
     name,
+    hasExplicitType,
   }: {
     wireId: string | undefined;
     index: number | null | undefined;
     name: string | undefined;
+    hasExplicitType: boolean;
   }): TrackedToolCall | null | undefined {
     const indexedToolCall =
       index != null ? this.toolCallsByIndex.get(index) : undefined;
@@ -226,11 +230,18 @@ export class StreamingToolCallTracker<
           : null;
       }
 
-      // A continuation can carry an unexpected ID. When it has no name, a
-      // matching index is the only usable evidence and should keep the call
-      // intact instead of attempting to create a nameless call.
-      if (indexedToolCall != null && name == null) {
-        return indexedToolCall;
+      if (indexedToolCall != null) {
+        // IDs can change during a call. A matching index/name continues an
+        // incomplete call even if the type is repeated, while a complete call
+        // followed by another explicit start at the same index stays distinct.
+        if (
+          name == null ||
+          (indexedToolCall.function.name === name &&
+            (!hasExplicitType ||
+              !isParsableJson(indexedToolCall.function.arguments)))
+        ) {
+          return indexedToolCall;
+        }
       }
 
       return undefined;

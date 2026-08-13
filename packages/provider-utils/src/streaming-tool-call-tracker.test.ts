@@ -802,6 +802,34 @@ describe('StreamingToolCallTracker', () => {
       ]);
     });
 
+    it('should continue a call when its id changes but its index and name match', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"pa' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'unexpected',
+        type: 'function',
+        function: { name: 'read_file', arguments: 'th":"a"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+      ]);
+    });
+
     it('should emit tool calls in index order', () => {
       const { parts, controller } = createCollector();
       const tracker = new StreamingToolCallTracker(controller);
@@ -817,6 +845,30 @@ describe('StreamingToolCallTracker', () => {
         id: 'call_0',
         type: 'function',
         function: { name: 'first', arguments: '{}' },
+      });
+      tracker.flush();
+
+      expect(
+        parts
+          .filter(part => part.type === 'tool-call')
+          .map(part => part.toolName),
+      ).toEqual(['first', 'second']);
+    });
+
+    it('should preserve insertion order when calls mix present and omitted indices', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        id: 'call_without_index',
+        type: 'function',
+        function: { name: 'first', arguments: '{}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_with_index',
+        type: 'function',
+        function: { name: 'second', arguments: '{}' },
       });
       tracker.flush();
 
