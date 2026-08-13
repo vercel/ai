@@ -681,6 +681,41 @@ describe('WorkflowChatTransport', () => {
       ]);
     });
 
+    it('forgets started parts after a reset chunk', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        initialStartIndex: -10,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ 'x-workflow-stream-tail-index': '50' }),
+        body: makeSSEStream(
+          '{"type":"tool-input-start","toolCallId":"stale","toolName":"deleteFile"}',
+          '{"type":"reset"}',
+          '{"type":"tool-output-available","toolCallId":"stale","output":{}}',
+          '{"type":"tool-input-start","toolCallId":"retried","toolName":"deleteFile"}',
+          '{"type":"tool-input-available","toolCallId":"retried","toolName":"deleteFile","input":{}}',
+          '{"type":"finish"}',
+        ),
+      });
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+      const chunks = (await collect(stream!)) as Array<{ type: string }>;
+
+      expect(chunks.map(chunk => chunk.type)).toEqual([
+        'tool-input-start',
+        'reset',
+        'tool-input-start',
+        'tool-input-available',
+        'finish',
+      ]);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+
+      warnSpy.mockRestore();
+    });
+
     it('recovers a tool call via a bare tool-input-available (no tool-input-start in the window)', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 

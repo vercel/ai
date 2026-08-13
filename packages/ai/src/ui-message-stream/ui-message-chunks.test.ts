@@ -29,6 +29,15 @@ describe('uiMessageChunkSchema', () => {
     expectTypeOf(chunk).toEqualTypeOf<UIMessageChunk>();
   });
 
+  it('accepts reset chunks', async () => {
+    await expect(
+      validateTypes({
+        schema: uiMessageChunkSchema,
+        value: { type: 'reset' },
+      }),
+    ).resolves.toEqual({ type: 'reset' });
+  });
+
   it('accepts known chunks with fields added by newer servers', async () => {
     const chunk = {
       type: 'tool-output-available',
