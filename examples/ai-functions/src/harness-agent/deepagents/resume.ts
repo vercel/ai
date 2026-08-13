@@ -1,35 +1,30 @@
 /*
- * Cross-process resume smoke test for the Pi harness.
- *
- * Within a single Node process this example simulates the REST-server
- * flow: turn 1 runs, the session is stopped, the agent reference is dropped,
- * and a fresh `HarnessAgent` instance picks the conversation back up using
- * the persisted `HarnessAgentResumeSessionState`. If resume works the second turn
- * answers from the Pi session file the adapter copies into the sandbox
- * snapshot during stop.
+ * Cross-process resume check for the Deep Agents harness. A fresh
+ * `HarnessAgent` resumes from the state produced by `session.stop()` and must
+ * retain the conversation from before the sandbox snapshot.
  */
 import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { createPi } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createDeepAgents } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
-const pi = createPi();
+const deepAgents = createDeepAgents();
 
 run(async () => {
   const sandbox = createVercelSandbox({
     runtime: 'node24',
+    ports: [4000],
     timeout: 10 * 60 * 1000,
   });
 
-  // Turn 1: introduce the name.
   let sessionId: string;
   let resumeState: HarnessAgentResumeSessionState;
   {
-    const agent = new HarnessAgent({ harness: pi, sandbox });
+    const agent = new HarnessAgent({ harness: deepAgents, sandbox });
     const session = await agent.createSession();
     sessionId = session.sessionId;
     console.log('--- turn 1 ---');
@@ -42,9 +37,8 @@ run(async () => {
     console.log('[stopped] resume state:', JSON.stringify(resumeState));
   }
 
-  // Turn 2: brand-new agent instance, only the persisted state survives.
   {
-    const agent = new HarnessAgent({ harness: pi, sandbox });
+    const agent = new HarnessAgent({ harness: deepAgents, sandbox });
     const session = await agent.createSession({
       sessionId,
       resumeFrom: resumeState,
