@@ -11,36 +11,33 @@ import {
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 
-function cloneMetadata<METADATA>(metadata: METADATA): METADATA {
-  if (Array.isArray(metadata)) {
-    return [...metadata] as METADATA;
-  }
-
-  if (
-    metadata != null &&
-    typeof metadata === 'object' &&
-    (Object.getPrototypeOf(metadata) === Object.prototype ||
-      Object.getPrototypeOf(metadata) === null)
-  ) {
-    return { ...metadata } as METADATA;
-  }
-
-  return metadata;
-}
-
 function createUIMessageSnapshot<UI_MESSAGE extends UIMessage>(
   message: UI_MESSAGE,
 ): UI_MESSAGE {
-  const snapshot = {
+  const textByPartIndex = new Map<number, string>();
+  const messageWithoutText = {
     ...message,
-    parts: message.parts.map(part => ({ ...part })),
+    parts: message.parts.map((part, index) => {
+      if (part.type === 'text' || part.type === 'reasoning') {
+        textByPartIndex.set(index, part.text);
+        return { ...part, text: '' };
+      }
+
+      return part;
+    }),
   };
 
-  if ('metadata' in message) {
-    snapshot.metadata = cloneMetadata(message.metadata);
+  const snapshot = structuredClone(messageWithoutText) as UI_MESSAGE;
+
+  for (const [index, text] of textByPartIndex) {
+    const part = snapshot.parts[index];
+
+    if (part.type === 'text' || part.type === 'reasoning') {
+      part.text = text;
+    }
   }
 
-  return snapshot as UI_MESSAGE;
+  return snapshot;
 }
 
 /**

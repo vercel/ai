@@ -2,4 +2,5 @@
 'ai': patch
 ---
 
-Avoid repeatedly deep-cloning accumulated messages in `readUIMessageStream`.
+Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+preserving independent snapshots for mutable nested values.
