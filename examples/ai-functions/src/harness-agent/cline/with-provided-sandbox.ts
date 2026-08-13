@@ -1,9 +1,11 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { cline } from '@ai-sdk/harness-cline';
+import { createCline } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const cline = createCline();
 
 run(async () => {
   const sandbox = await Sandbox.create({

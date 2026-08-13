@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createCline } from '@ai-sdk/harness-cline';
+import { createCline } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
@@ -9,8 +9,8 @@ run(async () => {
     harness: createCline({
       mcpServers: {
         context7: {
+          type: 'streamableHttp',
           url: 'https://mcp.context7.com/mcp',
-          auth: false,
         },
       },
     }),
