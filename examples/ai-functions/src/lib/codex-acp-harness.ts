@@ -60,6 +60,15 @@ const CODEX_ACP_PERMISSION_MODE_MAPPING = {
   'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
 } as const satisfies ACPPermissionModeMapping;
 
+export type CodexACPHarnessSettings = {
+  auth?: ACPAuthOptions;
+  mcpServers?: Record<string, unknown>;
+  mintBridgeToken?: (sandboxId: string) => string;
+  reasoningEffort?: 'low' | 'medium' | 'high';
+  webSearch?: boolean;
+  source?: ACPSource;
+};
+
 export function createCodexACP({
   auth = 'auto',
   mcpServers,
@@ -67,14 +76,7 @@ export function createCodexACP({
   reasoningEffort,
   webSearch,
   source = CODEX_ACP_SOURCE,
-}: {
-  auth?: ACPAuthOptions;
-  mcpServers?: Record<string, unknown>;
-  mintBridgeToken?: (sandboxId: string) => string;
-  reasoningEffort?: 'low' | 'medium' | 'high';
-  webSearch?: boolean;
-  source?: ACPSource;
-} = {}) {
+}: CodexACPHarnessSettings = {}) {
   return createACP({
     harnessId: 'codex-acp',
     auth,

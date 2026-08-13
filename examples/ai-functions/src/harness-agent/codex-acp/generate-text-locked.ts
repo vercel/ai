@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { createCodexACP } from './_create';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -34,9 +34,6 @@ run(async () => {
     console.log('text:', result.text);
     console.log('finishReason:', result.finishReason);
     console.log('usage:', result.usage);
-  } catch (error) {
-    process.exitCode = 1;
-    throw error;
   } finally {
     await session?.destroy();
   }
