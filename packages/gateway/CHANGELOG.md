@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.134
+
+### Patch Changes
+
+- df0cbe9: feat(google): add `gemini-3.7-flash` model
+
 ## 2.0.133
 
 ### Patch Changes
