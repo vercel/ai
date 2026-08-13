@@ -1,5 +1,6 @@
 import {
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
   createStreamingUIMessageState,
   processUIMessageStream,
 } from '../ui/process-ui-message-stream';
@@ -83,7 +84,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   const runUpdateMessageJob = async (
     job: (options: {
       state: StreamingUIMessageState<UI_MESSAGE>;
-      write: () => void;
+      write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => {
     await job({ state, write: () => {} });
