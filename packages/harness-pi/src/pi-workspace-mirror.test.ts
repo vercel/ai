@@ -162,6 +162,50 @@ describe('syncHostWorkspaceFromSandbox', () => {
     }
   });
 
+  it('mirrors deeply nested acyclic config trees in just-bash', async () => {
+    const sandboxSession = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = sandboxSession.restricted();
+
+    try {
+      const setupResult = await sandbox.run({
+        command: [
+          'mkdir -p .pi',
+          'deep_path=.pi',
+          'i=0',
+          'while [ "$i" -lt 101 ]; do',
+          '  deep_path=$deep_path/level-$i',
+          '  mkdir "$deep_path"',
+          '  i=$((i + 1))',
+          'done',
+          `printf 'deep prompt' > "$deep_path/SYSTEM.md"`,
+        ].join('\n'),
+        workingDirectory: sandboxWorkDir,
+      });
+      expect(setupResult.exitCode).toBe(0);
+
+      await syncHostWorkspaceFromSandbox({
+        sandbox,
+        sandboxWorkDir,
+        hostWorkDir,
+      });
+
+      const deepPath = Array.from(
+        { length: 101 },
+        (_, index) => `level-${index}`,
+      );
+      expect(
+        readFileSync(
+          path.join(hostWorkDir, '.pi', ...deepPath, 'SYSTEM.md'),
+          'utf8',
+        ),
+      ).toBe('deep prompt');
+    } finally {
+      await sandboxSession.destroy?.();
+    }
+  });
+
   it('mirrors the .agents config subtree, resolving symlinked targets', async () => {
     // `.agents/skills` is a symlink to a `skills` directory elsewhere; the
     // sandbox traversal resolves it so the listing reports the real files
@@ -242,7 +286,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
           sandboxWorkDir,
           hostWorkDir,
         }),
-      ).rejects.toThrow();
+      ).rejects.toThrow('symlink cycle');
     } finally {
       await sandboxSession.destroy?.();
     }
@@ -263,7 +307,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
     expect(command).not.toContain('CLAUDE.md');
     // Use shell traversal because some sandbox `find` implementations do not
     // support symlink-following flags.
-    expect(command).toContain('walk_pi_config');
+    expect(command).toContain('pi_config_sources');
     expect(command).not.toContain('find -L');
     // The previous full-tree walk used `-mindepth 1`; the scoped walk must not.
     expect(command).not.toContain('-mindepth 1');
