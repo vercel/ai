@@ -305,6 +305,48 @@ describe('translateClineEvent', () => {
     ]);
   });
 
+  it('preserves the error flag from the Cline tool result', () => {
+    const state = newState();
+    const parts = translateClineEvent(
+      {
+        type: 'tool-finished',
+        snapshot,
+        iteration: 1,
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'read',
+          input: { file_path: 'missing.txt' },
+        },
+        message: {
+          id: 'm2',
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'read',
+              output: { error: 'File not found: missing.txt' },
+              isError: true,
+            },
+          ],
+          createdAt: 0,
+        },
+      },
+      state,
+    );
+
+    expect(parts).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'read',
+        result: { error: 'File not found: missing.txt' },
+        isError: true,
+      },
+    ]);
+  });
+
   it('ignores lifecycle events handled by the session driver', () => {
     const state = newState();
     for (const type of [

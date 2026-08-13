@@ -4,6 +4,7 @@ import type {
   AgentRunInput,
   AgentRunResult,
   AgentRuntimeConfig,
+  AgentTool,
 } from '@cline/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClineSession, type ClineSessionSettings } from './cline-session';
@@ -375,6 +376,141 @@ describe('createClineSession model configuration', () => {
   });
 });
 
+describe('createClineSession tool results', () => {
+  beforeEach(() => {
+    clineMock.configs = [];
+    clineMock.continueInputs = [];
+    clineMock.modelSelections = [];
+    clineMock.providerConfigs = [];
+    clineMock.runInputs = [];
+  });
+
+  it.each([
+    {
+      label: 'an error object',
+      output: { error: 'host tool failed' },
+      isError: true,
+      expectedIsError: true,
+    },
+    {
+      label: 'an explicit non-error string',
+      output: 'host tool succeeded',
+      isError: false,
+      expectedIsError: undefined,
+    },
+    {
+      label: 'an object without an error flag',
+      output: { value: 42 },
+      isError: undefined,
+      expectedIsError: undefined,
+    },
+  ])(
+    'preserves $label submitted by the host',
+    async ({ output, isError, expectedIsError }) => {
+      const session = await createSession();
+
+      try {
+        const control = await session.doPromptTurn({
+          prompt: 'use the lookup tool',
+          tools: [
+            {
+              name: 'lookup',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+          emit: vi.fn(),
+        });
+        await control.done;
+
+        const config = clineMock.configs.at(-1);
+        if (config == null) throw new Error('expected agent config');
+        const tool = findTool({ config, name: 'lookup' });
+        const resultPromise = Promise.resolve(
+          tool.execute({}, createToolContext({ toolCallId: 'call-1' })),
+        );
+
+        await control.submitToolResult({
+          toolCallId: 'call-1',
+          output,
+          ...(isError !== undefined ? { isError } : {}),
+        });
+        const result = await runAfterToolHook({
+          config,
+          tool,
+          output: await resultPromise,
+        });
+
+        expect(result?.result?.output).toBe(output);
+        expect(result?.result?.isError).toBe(expectedIsError);
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
+
+  it('marks a pending host tool result as an error when the session is destroyed', async () => {
+    const session = await createSession();
+    const control = await session.doPromptTurn({
+      prompt: 'use the lookup tool',
+      tools: [
+        {
+          name: 'lookup',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      emit: vi.fn(),
+    });
+    await control.done;
+
+    const config = clineMock.configs.at(-1);
+    if (config == null) throw new Error('expected agent config');
+    const tool = findTool({ config, name: 'lookup' });
+    const resultPromise = Promise.resolve(
+      tool.execute({}, createToolContext({ toolCallId: 'call-1' })),
+    );
+
+    await session.doDestroy();
+    const result = await runAfterToolHook({
+      config,
+      tool,
+      output: await resultPromise,
+    });
+
+    expect(result).toEqual({
+      result: {
+        output: { error: 'Cline session stopped' },
+        isError: true,
+      },
+    });
+  });
+
+  it('leaves unmarked tool output untouched', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'read a file',
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      const tool = findTool({ config, name: 'read' });
+
+      expect(
+        await runAfterToolHook({
+          config,
+          tool,
+          output: { output: 'ordinary tool output', isError: true },
+        }),
+      ).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+});
+
 async function createSession(
   input: {
     isResume?: boolean;
@@ -410,4 +546,58 @@ function createSandboxSession(): HarnessV1NetworkSandboxSession {
     writeTextFile: vi.fn(async () => {}),
   };
   return sandbox as unknown as HarnessV1NetworkSandboxSession;
+}
+
+function createToolContext({
+  toolCallId,
+}: {
+  toolCallId: string;
+}): Parameters<AgentTool['execute']>[1] {
+  return {
+    agentId: 'agent-1',
+    runId: 'run-1',
+    iteration: 1,
+    toolCallId,
+  };
+}
+
+function findTool({
+  config,
+  name,
+}: {
+  config: AgentRuntimeConfig;
+  name: string;
+}): AgentTool {
+  const tool = config.tools?.find(tool => tool.name === name);
+  if (tool == null) throw new Error(`expected ${name} tool`);
+  return tool;
+}
+
+async function runAfterToolHook({
+  config,
+  tool,
+  output,
+}: {
+  config: AgentRuntimeConfig;
+  tool: AgentTool;
+  output: unknown;
+}) {
+  const hook = config.hooks?.afterTool;
+  if (hook == null) throw new Error('expected afterTool hook');
+  const now = new Date();
+  return hook({
+    snapshot: {} as never,
+    tool,
+    toolCall: {
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: tool.name,
+      input: {},
+    },
+    input: {},
+    result: { output },
+    startedAt: now,
+    endedAt: now,
+    durationMs: 0,
+  });
 }

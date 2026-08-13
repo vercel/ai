@@ -35,9 +35,11 @@ import {
   buildBuiltinAgentTools,
   buildUserAgentTools,
   CLINE_NATIVE_TOOL_KINDS,
+  createClineToolResult,
   isClineBuiltinToolName,
   resolveActiveClineBuiltinNames,
   type PendingToolResult,
+  unwrapClineToolResult,
 } from './cline-tools';
 import {
   createClineTranslatorState,
@@ -301,7 +303,12 @@ export async function createClineSession(
 
   function settlePendingToolResults(reason: string): void {
     for (const pending of pendingToolResults.values()) {
-      pending.resolve({ error: reason });
+      pending.resolve(
+        createClineToolResult({
+          output: { error: reason },
+          isError: true,
+        }),
+      );
     }
     pendingToolResults.clear();
   }
@@ -370,6 +377,12 @@ export async function createClineSession(
           pendingToolResults,
         }),
       ],
+      hooks: {
+        afterTool: ({ result }) => {
+          const toolResult = unwrapClineToolResult(result.output);
+          return toolResult == null ? undefined : { result: toolResult };
+        },
+      },
       // Built-in tools whose kind requires approval under the session's
       // permission mode are marked `autoApprove: false`; the runtime then
       // routes them through `requestToolApproval` below. User tools are
@@ -440,7 +453,12 @@ export async function createClineSession(
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) return;
         pendingToolResults.delete(args.toolCallId);
-        pending.resolve(args.output);
+        pending.resolve(
+          createClineToolResult({
+            output: args.output,
+            isError: args.isError,
+          }),
+        );
       },
       async submitToolApproval(args) {
         const pending = pendingToolApprovals.get(args.approvalId);

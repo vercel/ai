@@ -2,7 +2,11 @@ import type {
   HarnessV1BuiltinToolFiltering,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
-import { createTool, type AgentTool } from '@cline/agents';
+import {
+  createTool,
+  type AgentTool,
+  type AgentToolResult,
+} from '@cline/agents';
 import type { ClineRemoteOps } from './cline-remote-ops';
 import { getErrorText } from './cline-utils';
 
@@ -66,18 +70,59 @@ export interface PendingToolResult {
   resolve: (value: unknown) => void;
 }
 
+const clineToolResultMarker = Symbol('cline-tool-result');
+
+interface ClineToolResult {
+  readonly [clineToolResultMarker]: true;
+  readonly output: unknown;
+  readonly isError?: boolean;
+}
+
+export function createClineToolResult({
+  output,
+  isError,
+}: {
+  output: unknown;
+  isError?: boolean;
+}): ClineToolResult {
+  return {
+    [clineToolResultMarker]: true,
+    output,
+    ...(isError ? { isError: true } : {}),
+  };
+}
+
+export function unwrapClineToolResult(
+  value: unknown,
+): AgentToolResult | undefined {
+  if (
+    value == null ||
+    typeof value !== 'object' ||
+    (value as ClineToolResult)[clineToolResultMarker] !== true
+  ) {
+    return undefined;
+  }
+
+  const result = value as ClineToolResult;
+  return {
+    output: result.output,
+    ...(result.isError ? { isError: true } : {}),
+  };
+}
+
 /*
  * The Cline runtime treats a thrown tool error as a "mistake" against the
  * agent's mistake limit, so built-ins catch and return errors as structured
  * data — the model reads the error and adjusts.
  */
-async function guarded<T>(
-  run: () => Promise<T>,
-): Promise<T | { error: string }> {
+async function guarded<T>(run: () => Promise<T>): Promise<ClineToolResult> {
   try {
-    return await run();
+    return createClineToolResult({ output: await run() });
   } catch (error) {
-    return { error: getErrorText(error) };
+    return createClineToolResult({
+      output: { error: getErrorText(error) },
+      isError: true,
+    });
   }
 }
 
@@ -303,7 +348,10 @@ export function buildUserAgentTools({
       execute: async (_input: unknown, context) => {
         const toolCallId = context.toolCallId;
         if (!toolCallId) {
-          return { error: 'Tool call is missing a toolCallId.' };
+          return createClineToolResult({
+            output: { error: 'Tool call is missing a toolCallId.' },
+            isError: true,
+          });
         }
         return new Promise<unknown>(resolve => {
           pendingToolResults.set(toolCallId, { resolve });
@@ -313,9 +361,15 @@ export function buildUserAgentTools({
             'abort',
             () => {
               if (pendingToolResults.delete(toolCallId)) {
-                resolve({
-                  error: 'Turn was aborted before a tool result was submitted.',
-                });
+                resolve(
+                  createClineToolResult({
+                    output: {
+                      error:
+                        'Turn was aborted before a tool result was submitted.',
+                    },
+                    isError: true,
+                  }),
+                );
               }
             },
             { once: true },
