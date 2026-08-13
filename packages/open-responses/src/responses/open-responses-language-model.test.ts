@@ -262,6 +262,121 @@ describe('OpenResponsesLanguageModel', () => {
           },
         ]);
       });
+
+      it('should preserve output text annotations', async () => {
+        const annotation = {
+          type: 'url_citation',
+          start_index: 0,
+          end_index: 7,
+          url: 'https://example.com/source',
+          title: 'Example source',
+        };
+        prepareOutputResponse([
+          {
+            id: 'msg_annotated',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Sourced answer',
+                annotations: [annotation],
+              },
+            ],
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toEqual([
+          {
+            type: 'text',
+            text: 'Sourced answer',
+            providerMetadata: {
+              lmstudio: {
+                itemId: 'msg_annotated',
+                annotations: [annotation],
+              },
+            },
+          },
+        ]);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'msg_annotated',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Sourced answer',
+                annotations: [annotation],
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should preserve reasoning content part boundaries', async () => {
+        prepareOutputResponse([
+          {
+            id: 'rs_multiple',
+            type: 'reasoning',
+            status: 'completed',
+            summary: [],
+            content: [
+              { type: 'reasoning_text', text: 'First thought. ' },
+              { type: 'reasoning_text', text: 'Second thought.' },
+            ],
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toHaveLength(2);
+        expect(first.content.map(part => part.type)).toEqual([
+          'reasoning',
+          'reasoning',
+        ]);
+        expect(
+          first.content.map(part =>
+            part.type === 'reasoning' ? part.text : undefined,
+          ),
+        ).toEqual(['First thought. ', 'Second thought.']);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'rs_multiple',
+            type: 'reasoning',
+            summary: [],
+            content: [
+              { type: 'reasoning_text', text: 'First thought. ' },
+              { type: 'reasoning_text', text: 'Second thought.' },
+            ],
+          },
+        ]);
+      });
     });
 
     describe('request parameters', () => {
@@ -896,6 +1011,76 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    it('should preserve output text annotations in stream metadata', async () => {
+      const annotation = {
+        type: 'url_citation',
+        start_index: 0,
+        end_index: 7,
+        url: 'https://example.com/source',
+        title: 'Example source',
+      };
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 0,
+            output_index: 0,
+            item: {
+              id: 'msg_annotated',
+              type: 'message',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_text.delta',
+            sequence_number: 1,
+            item_id: 'msg_annotated',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Sourced answer',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            sequence_number: 2,
+            output_index: 0,
+            item: {
+              id: 'msg_annotated',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Sourced answer',
+                  annotations: [annotation],
+                },
+              ],
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts).toContainEqual({
+        type: 'text-end',
+        id: 'msg_annotated',
+        providerMetadata: {
+          lmstudio: {
+            itemId: 'msg_annotated',
+            annotations: [annotation],
+          },
+        },
       });
     });
 

@@ -147,7 +147,7 @@ export async function convertToOpenResponsesInput({
                   ? providerData.reasoningEncryptedContent
                   : undefined;
 
-              input.push({
+              const reasoningItem: ReasoningItemParam = {
                 type: 'reasoning',
                 summary: summary ?? [],
                 ...(itemId != null && { id: itemId }),
@@ -166,7 +166,23 @@ export async function convertToOpenResponsesInput({
                 ...(encryptedContent != null && {
                   encrypted_content: encryptedContent,
                 }),
-              });
+              };
+              const previousItem = input[input.length - 1];
+
+              if (
+                reasoningItem.id != null &&
+                previousItem?.type === 'reasoning' &&
+                previousItem.id === reasoningItem.id
+              ) {
+                if (reasoningItem.content != null) {
+                  previousItem.content = [
+                    ...(previousItem.content ?? []),
+                    ...reasoningItem.content,
+                  ];
+                }
+              } else {
+                input.push(reasoningItem);
+              }
               break;
             }
             case 'text': {
@@ -175,6 +191,9 @@ export async function convertToOpenResponsesInput({
                 typeof providerData?.itemId === 'string'
                   ? providerData.itemId
                   : undefined;
+              const annotations = parseOutputTextAnnotations(
+                providerData?.annotations,
+              );
 
               if (
                 assistantContent.length > 0 &&
@@ -184,7 +203,11 @@ export async function convertToOpenResponsesInput({
               }
 
               assistantMessageId = itemId;
-              assistantContent.push({ type: 'output_text', text: part.text });
+              assistantContent.push({
+                type: 'output_text',
+                text: part.text,
+                ...(annotations != null && { annotations }),
+              });
               break;
             }
             case 'tool-call': {
@@ -385,5 +408,34 @@ function parseReasoningContent(
   return value.map(part => ({
     type: 'reasoning_text',
     text: (part as { text: string }).text,
+  }));
+}
+
+function parseOutputTextAnnotations(
+  value: unknown,
+): OutputTextContentParam['annotations'] | undefined {
+  if (
+    !Array.isArray(value) ||
+    !value.every(
+      annotation =>
+        annotation != null &&
+        typeof annotation === 'object' &&
+        (annotation as { type?: unknown }).type === 'url_citation' &&
+        typeof (annotation as { start_index?: unknown }).start_index ===
+          'number' &&
+        typeof (annotation as { end_index?: unknown }).end_index === 'number' &&
+        typeof (annotation as { url?: unknown }).url === 'string' &&
+        typeof (annotation as { title?: unknown }).title === 'string',
+    )
+  ) {
+    return undefined;
+  }
+
+  return value.map(annotation => ({
+    type: 'url_citation',
+    start_index: (annotation as { start_index: number }).start_index,
+    end_index: (annotation as { end_index: number }).end_index,
+    url: (annotation as { url: string }).url,
+    title: (annotation as { title: string }).title,
   }));
 }

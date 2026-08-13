@@ -30,6 +30,7 @@ import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
   openResponsesErrorSchema,
+  type Annotation,
   type FunctionToolParam,
   type OpenResponsesRequestBody,
   type OpenResponsesResponseBody,
@@ -275,29 +276,43 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       switch (part.type) {
         // TODO AI SDK 7 adjust reasoning in the specification to better support the reasoning structure from open responses.
         case 'reasoning': {
-          const reasoningText =
-            (part.content?.length ?? 0) > 0
-              ? part.content!.map(contentPart => contentPart.text).join('')
-              : part.summary.map(summaryPart => summaryPart.text).join('');
-
-          content.push({
-            type: 'reasoning',
-            text: reasoningText,
-            providerMetadata: createReasoningProviderMetadata({
-              part,
-              providerOptionsName: this.config.providerOptionsName,
-            }),
-          });
+          if ((part.content?.length ?? 0) > 0) {
+            for (const contentPart of part.content!) {
+              content.push({
+                type: 'reasoning',
+                text: contentPart.text,
+                providerMetadata: createReasoningProviderMetadata({
+                  part,
+                  providerOptionsName: this.config.providerOptionsName,
+                  reasoningContent: [contentPart],
+                }),
+              });
+            }
+          } else {
+            content.push({
+              type: 'reasoning',
+              text: part.summary.map(summaryPart => summaryPart.text).join(''),
+              providerMetadata: createReasoningProviderMetadata({
+                part,
+                providerOptionsName: this.config.providerOptionsName,
+              }),
+            });
+          }
           break;
         }
 
         case 'message': {
           for (const contentPart of part.content) {
+            const annotations = getOutputTextAnnotations(contentPart);
+
             content.push({
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-                [this.config.providerOptionsName]: { itemId: part.id },
+                [this.config.providerOptionsName]: {
+                  itemId: part.id,
+                  ...(annotations.length > 0 && { annotations }),
+                },
               },
             });
           }
@@ -579,12 +594,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'message'
             ) {
+              const annotations = chunk.item.content.flatMap(
+                getOutputTextAnnotations,
+              );
+
               controller.enqueue({
                 type: 'text-end',
                 id: chunk.item.id,
                 providerMetadata: {
                   [providerOptionsName]: {
                     itemId: chunk.item.id,
+                    ...(annotations.length > 0 && { annotations }),
                   },
                 },
               });
@@ -633,9 +653,11 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 function createReasoningProviderMetadata({
   part,
   providerOptionsName,
+  reasoningContent = part.content,
 }: {
   part: ReasoningBody;
   providerOptionsName: string;
+  reasoningContent?: ReasoningBody['content'];
 }): SharedV4ProviderMetadata {
   return {
     [providerOptionsName]: {
@@ -645,9 +667,9 @@ function createReasoningProviderMetadata({
         text: summaryPart.text,
       })),
       reasoningContent:
-        part.content == null
+        reasoningContent == null
           ? null
-          : part.content.map(contentPart => ({
+          : reasoningContent.map(contentPart => ({
               type: 'reasoning_text',
               text: contentPart.text,
             })),
@@ -656,4 +678,34 @@ function createReasoningProviderMetadata({
       }),
     },
   };
+}
+
+function getOutputTextAnnotations(value: unknown): Annotation[] {
+  if (
+    value == null ||
+    typeof value !== 'object' ||
+    !('annotations' in value) ||
+    !Array.isArray(value.annotations) ||
+    !value.annotations.every(
+      annotation =>
+        annotation != null &&
+        typeof annotation === 'object' &&
+        (annotation as { type?: unknown }).type === 'url_citation' &&
+        typeof (annotation as { start_index?: unknown }).start_index ===
+          'number' &&
+        typeof (annotation as { end_index?: unknown }).end_index === 'number' &&
+        typeof (annotation as { url?: unknown }).url === 'string' &&
+        typeof (annotation as { title?: unknown }).title === 'string',
+    )
+  ) {
+    return [];
+  }
+
+  return value.annotations.map(annotation => ({
+    type: 'url_citation',
+    start_index: (annotation as { start_index: number }).start_index,
+    end_index: (annotation as { end_index: number }).end_index,
+    url: (annotation as { url: string }).url,
+    title: (annotation as { title: string }).title,
+  }));
 }

@@ -456,6 +456,60 @@ describe('convertToOpenResponsesInput', () => {
         },
       ]);
     });
+
+    it('should preserve output text annotations from provider data', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Sourced answer',
+                providerOptions: {
+                  'test-provider': {
+                    itemId: 'msg_123',
+                    annotations: [
+                      {
+                        type: 'url_citation',
+                        start_index: 0,
+                        end_index: 7,
+                        url: 'https://example.com/source',
+                        title: 'Example source',
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          id: 'msg_123',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            {
+              type: 'output_text',
+              text: 'Sourced answer',
+              annotations: [
+                {
+                  type: 'url_citation',
+                  start_index: 0,
+                  end_index: 7,
+                  url: 'https://example.com/source',
+                  title: 'Example source',
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('assistant messages with tool calls', () => {
