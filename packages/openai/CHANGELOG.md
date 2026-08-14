@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 4.0.42
+
+### Patch Changes
+
+- b6fff2e: feat(provider/openai): support explicit Responses compaction triggers
+
+## 4.0.41
+
+### Patch Changes
+
+- 59d6def: Reconstruct provider-executed shell calls when continuing OpenAI Responses with storage disabled.
+
 ## 4.0.40
 
 ### Patch Changes

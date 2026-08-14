@@ -9,7 +9,6 @@ import {
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
 import type {
-  FunctionCallItemParam,
   FunctionCallOutputItemParam,
   InputFileContentParam,
   InputImageContentParam,
@@ -22,8 +21,10 @@ import type {
 
 export async function convertToOpenResponsesInput({
   prompt,
+  providerOptionsName = 'open-responses',
 }: {
   prompt: LanguageModelV4Prompt;
+  providerOptionsName?: string;
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -103,33 +104,128 @@ export async function convertToOpenResponsesInput({
       }
 
       case 'assistant': {
-        const assistantContent: Array<
+        let assistantContent: Array<
           OutputTextContentParam | RefusalContentParam
         > = [];
-        const reasoningItems: Array<ReasoningItemParam> = [];
-        const toolCalls: Array<FunctionCallItemParam> = [];
+        let assistantMessageId: string | undefined;
+
+        const flushAssistantContent = () => {
+          if (assistantContent.length === 0) {
+            return;
+          }
+
+          input.push({
+            type: 'message',
+            role: 'assistant',
+            content: assistantContent,
+            ...(assistantMessageId != null && { id: assistantMessageId }),
+          });
+          assistantContent = [];
+          assistantMessageId = undefined;
+        };
 
         for (const part of content) {
           switch (part.type) {
             case 'reasoning': {
-              reasoningItems.push({
+              flushAssistantContent();
+
+              const providerData = getProviderData(part, providerOptionsName);
+              const itemId =
+                typeof providerData?.itemId === 'string'
+                  ? providerData.itemId
+                  : undefined;
+              const summary = parseReasoningSummary(
+                providerData?.reasoningSummary,
+              );
+              const reasoningContent = parseReasoningContent(
+                providerData?.reasoningContent,
+              );
+              const hasReasoningContent =
+                providerData != null && 'reasoningContent' in providerData;
+              const encryptedContent =
+                typeof providerData?.reasoningEncryptedContent === 'string'
+                  ? providerData.reasoningEncryptedContent
+                  : undefined;
+
+              const reasoningItem: ReasoningItemParam = {
                 type: 'reasoning',
-                summary: [],
-                content: [{ type: 'reasoning_text', text: part.text }],
-              });
+                summary: summary ?? [],
+                ...(itemId != null && { id: itemId }),
+                ...(reasoningContent != null
+                  ? { content: reasoningContent }
+                  : !hasReasoningContent && part.text.length > 0
+                    ? {
+                        content: [
+                          {
+                            type: 'reasoning_text' as const,
+                            text: part.text,
+                          },
+                        ],
+                      }
+                    : {}),
+                ...(encryptedContent != null && {
+                  encrypted_content: encryptedContent,
+                }),
+              };
+              const previousItem = input[input.length - 1];
+
+              if (
+                reasoningItem.id != null &&
+                previousItem?.type === 'reasoning' &&
+                previousItem.id === reasoningItem.id
+              ) {
+                if (reasoningItem.content != null) {
+                  previousItem.content = [
+                    ...(previousItem.content ?? []),
+                    ...reasoningItem.content,
+                  ];
+                }
+              } else {
+                input.push(reasoningItem);
+              }
               break;
             }
             case 'text': {
-              assistantContent.push({ type: 'output_text', text: part.text });
+              const providerData = getProviderData(part, providerOptionsName);
+              const itemId =
+                typeof providerData?.itemId === 'string'
+                  ? providerData.itemId
+                  : undefined;
+              const annotations = parseOutputTextAnnotations(
+                providerData?.annotations,
+              );
+
+              if (
+                assistantContent.length > 0 &&
+                assistantMessageId !== itemId
+              ) {
+                flushAssistantContent();
+              }
+
+              assistantMessageId = itemId;
+              assistantContent.push({
+                type: 'output_text',
+                text: part.text,
+                ...(annotations != null && { annotations }),
+              });
               break;
             }
             case 'tool-call': {
+              flushAssistantContent();
+
               const argumentsValue =
                 typeof part.input === 'string'
                   ? part.input
                   : JSON.stringify(part.input);
-              toolCalls.push({
+              const providerData = getProviderData(part, providerOptionsName);
+              const itemId =
+                typeof providerData?.itemId === 'string'
+                  ? providerData.itemId
+                  : undefined;
+
+              input.push({
                 type: 'function_call',
+                ...(itemId != null && { id: itemId }),
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: argumentsValue,
@@ -139,24 +235,7 @@ export async function convertToOpenResponsesInput({
           }
         }
 
-        // Push reasoning as separate items
-        for (const reasoningItem of reasoningItems) {
-          input.push(reasoningItem);
-        }
-
-        // Push assistant message with text content if any
-        if (assistantContent.length > 0) {
-          input.push({
-            type: 'message',
-            role: 'assistant',
-            content: assistantContent,
-          });
-        }
-
-        // Push function calls as separate items
-        for (const toolCall of toolCalls) {
-          input.push(toolCall);
-        }
+        flushAssistantContent();
 
         break;
       }
@@ -265,4 +344,98 @@ export async function convertToOpenResponsesInput({
       systemMessages.length > 0 ? systemMessages.join('\n') : undefined,
     warnings,
   };
+}
+
+function getProviderData(
+  part: {
+    providerOptions?: Record<string, unknown>;
+  },
+  providerOptionsName: string,
+): Record<string, unknown> | undefined {
+  const providerData =
+    part.providerOptions?.[providerOptionsName] ??
+    (
+      part as {
+        providerMetadata?: Record<string, unknown>;
+      }
+    ).providerMetadata?.[providerOptionsName];
+
+  return providerData != null &&
+    typeof providerData === 'object' &&
+    !Array.isArray(providerData)
+    ? (providerData as Record<string, unknown>)
+    : undefined;
+}
+
+function parseReasoningSummary(
+  value: unknown,
+): ReasoningItemParam['summary'] | undefined {
+  if (
+    !Array.isArray(value) ||
+    !value.every(
+      part =>
+        part != null &&
+        typeof part === 'object' &&
+        (part as { type?: unknown }).type === 'summary_text' &&
+        typeof (part as { text?: unknown }).text === 'string',
+    )
+  ) {
+    return undefined;
+  }
+
+  return value.map(part => ({
+    type: 'summary_text',
+    text: (part as { text: string }).text,
+  }));
+}
+
+function parseReasoningContent(
+  value: unknown,
+): ReasoningItemParam['content'] | undefined {
+  if (
+    !Array.isArray(value) ||
+    !value.every(
+      part =>
+        part != null &&
+        typeof part === 'object' &&
+        (part as { type?: unknown }).type === 'reasoning_text' &&
+        typeof (part as { text?: unknown }).text === 'string',
+    )
+  ) {
+    return undefined;
+  }
+
+  return value.map(part => ({
+    type: 'reasoning_text',
+    text: (part as { text: string }).text,
+  }));
+}
+
+function parseOutputTextAnnotations(
+  value: unknown,
+): OutputTextContentParam['annotations'] | undefined {
+  if (
+    !Array.isArray(value) ||
+    !value.every(
+      annotation =>
+        annotation != null &&
+        typeof annotation === 'object' &&
+        (annotation as { type?: unknown }).type === 'url_citation' &&
+        typeof (annotation as { start_index?: unknown }).start_index ===
+          'number' &&
+        typeof (annotation as { end_index?: unknown }).end_index === 'number' &&
+        typeof (annotation as { url?: unknown }).url === 'string' &&
+        typeof (annotation as { title?: unknown }).title === 'string',
+    )
+  ) {
+    return undefined;
+  }
+
+  return value.map(annotation => ({
+    type: 'url_citation',
+    start_index: (annotation as { start_index: number }).start_index,
+    end_index: (annotation as { end_index: number }).end_index,
+    url: (annotation as { url: string }).url,
+    title: (annotation as { title: string }).title,
+  }));
 }

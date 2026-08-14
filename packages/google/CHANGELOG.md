@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 4.0.44
+
+### Patch Changes
+
+- 16650e9: feat(google): add `gemini-3.7-flash` model
+
+## 4.0.43
+
+### Patch Changes
+
+- 8e90283: Preserve forced tool calls when strict function tools are configured.
+
 ## 4.0.42
 
 ### Patch Changes

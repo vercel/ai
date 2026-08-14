@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 2.0.32
+
+### Patch Changes
+
+- 0d96385: fix(alibaba): omit historical reasoning from assistant content in multi-turn requests
+
 ## 2.0.31
 
 ### Patch Changes

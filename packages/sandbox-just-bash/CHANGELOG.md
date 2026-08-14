@@ -1,5 +1,34 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.72
+
+### Patch Changes
+
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness@1.0.72
+
+## 1.0.71
+
+### Patch Changes
+
+- Updated dependencies [8d717b3]
+  - @ai-sdk/harness@1.0.71
+
+## 1.0.70
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.70
+
+## 1.0.69
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.69
+
 ## 1.0.68
 
 ### Patch Changes

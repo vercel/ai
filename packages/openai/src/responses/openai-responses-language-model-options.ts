@@ -376,6 +376,12 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
         .nullish(),
 
       /**
+       * Request explicit server-side compaction by appending a
+       * `compaction_trigger` item to the Responses input.
+       */
+      compactionTrigger: z.boolean().optional(),
+
+      /**
        * Restrict the callable tools to a subset while keeping the full tools
        * list intact, so prompt caching is preserved across requests with
        * different allowlists.

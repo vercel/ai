@@ -1,5 +1,43 @@
 # @ai-sdk/harness-pi
 
+## 1.0.74
+
+### Patch Changes
+
+- 61d2b84: Mirror Pi project configuration in sandboxes whose `find` command does not support symlink-following flags.
+- 39bd17e: fix(harness-pi): deliver tool results submitted after cross-process resume instead of silently dropping them
+
+## 1.0.73
+
+### Patch Changes
+
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness@1.0.72
+
+## 1.0.72
+
+### Patch Changes
+
+- 83fe754: chore(harness): simplify the `auth` param to be a simple string to choose the auth method
+- 0f5de2d: fix(harness-pi): ensure Pi's `.sessions` infra directory does not pollute the agent's working directory
+- Updated dependencies [8d717b3]
+  - @ai-sdk/harness@1.0.71
+
+## 1.0.71
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.70
+
+## 1.0.70
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.69
+
 ## 1.0.69
 
 ### Patch Changes

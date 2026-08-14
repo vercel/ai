@@ -23,6 +23,7 @@ export type ACPNpmImplementation = {
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;
   readonly forwardEnv?: ReadonlyArray<string>;
+  readonly credentialEnv?: ReadonlyArray<string>;
   readonly env?: Readonly<Record<string, string>>;
 };
 
@@ -36,6 +37,7 @@ export function createACPV1Implementation({
     executable: settings.executable,
     args: settings.args,
     forwardEnv: settings.forwardEnv,
+    credentialEnv: settings.credentialEnv,
     env: settings.env,
   };
 }
@@ -68,12 +70,26 @@ export function validateACPV1Implementation(
   }
 
   validateForwardEnvironment({ forwardEnv: implementation.forwardEnv });
+  validateForwardEnvironment({ forwardEnv: implementation.credentialEnv });
   validateEnvironment({ env: implementation.env });
   const forwardedKeys = new Set(implementation.forwardEnv ?? []);
+  const credentialKeys = new Set(implementation.credentialEnv ?? []);
+  for (const key of credentialKeys) {
+    if (forwardedKeys.has(key)) {
+      throw new Error(
+        `ACP runtime environment key ${JSON.stringify(key)} cannot be configured in both forwardEnv and credentialEnv.`,
+      );
+    }
+  }
   for (const key of Object.keys(implementation.env ?? {})) {
     if (forwardedKeys.has(key)) {
       throw new Error(
         `ACP runtime environment key ${JSON.stringify(key)} cannot be configured in both forwardEnv and env.`,
+      );
+    }
+    if (credentialKeys.has(key)) {
+      throw new Error(
+        `ACP runtime environment key ${JSON.stringify(key)} cannot be configured in both credentialEnv and env.`,
       );
     }
   }
@@ -165,6 +181,9 @@ export function createImplementationIdentity({
   const forwardedEnvironment = [
     ...new Set(implementation.forwardEnv ?? []),
   ].sort();
+  const credentialEnvironment = [
+    ...new Set(implementation.credentialEnv ?? []),
+  ].sort();
   const literalEnvironment = Object.fromEntries(
     Object.entries(implementation.env ?? {})
       .sort(([left], [right]) => left.localeCompare(right))
@@ -179,6 +198,7 @@ export function createImplementationIdentity({
     clientApp,
     environment: {
       forwarded: forwardedEnvironment,
+      credential: credentialEnvironment,
       literal: literalEnvironment,
     },
     providerAuthentication: providerAuthentication ?? null,
@@ -213,7 +233,10 @@ export function resolveImplementationEnvironment({
   env: Readonly<Record<string, string | undefined>>;
 }): Record<string, string> {
   const forwardedEnvironment: Record<string, string> = {};
-  for (const name of implementation.forwardEnv ?? []) {
+  for (const name of [
+    ...(implementation.forwardEnv ?? []),
+    ...(implementation.credentialEnv ?? []),
+  ]) {
     const value = env[name];
     if (value != null && value.length > 0) {
       forwardedEnvironment[name] = value;
@@ -284,6 +307,7 @@ function getImplementationEnvironmentKeys({
   return [
     ...new Set([
       ...(implementation.forwardEnv ?? []),
+      ...(implementation.credentialEnv ?? []),
       ...Object.keys(implementation.env ?? {}),
     ]),
   ].sort();

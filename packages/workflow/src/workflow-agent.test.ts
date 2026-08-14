@@ -23,7 +23,10 @@ import { FatalError } from 'workflow';
 import { z } from 'zod/v4';
 import { createTestSandbox } from './test/test-sandbox.js';
 import type { ParsedToolCall } from './do-stream-step.js';
-import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
+import type {
+  StreamTextIteratorAbortedValue,
+  StreamTextIteratorYieldValue,
+} from './stream-text-iterator.js';
 import type {
   PrepareCallOptions,
   PrepareStepCallback,
@@ -57,7 +60,7 @@ function createMockModel(): LanguageModelV4 {
  */
 type MockIterator = AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV4Prompt,
+  LanguageModelV4Prompt | StreamTextIteratorAbortedValue,
   LanguageModelV4ToolResultPart[]
 >;
 
@@ -2670,6 +2673,75 @@ describe('WorkflowAgent', () => {
       });
 
       expect(onAbort).toHaveBeenCalledWith({ steps: [] });
+    });
+
+    it('should handle an aborted model step without calling error or end callbacks', async () => {
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {},
+      });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({
+          done: true,
+          value: { aborted: true, messages: [] },
+        }),
+      } as unknown as MockIterator);
+      const onAbort = vi.fn();
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+        onAbort,
+        onError,
+        onFinish,
+      });
+
+      expect(onAbort).toHaveBeenCalledWith({ steps: [] });
+      expect(onError).not.toHaveBeenCalled();
+      expect(onFinish).not.toHaveBeenCalled();
+    });
+
+    it('should classify timeout errors as aborts', async () => {
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {},
+      });
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+      const timeoutError = new DOMException(
+        'The operation timed out.',
+        'TimeoutError',
+      );
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi.fn().mockRejectedValueOnce(timeoutError),
+      } as unknown as MockIterator);
+      const onAbort = vi.fn();
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+
+      await expect(
+        agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          writable: mockWritable,
+          onAbort,
+          onError,
+          onFinish,
+        }),
+      ).rejects.toBe(timeoutError);
+
+      expect(onAbort).toHaveBeenCalledWith({ steps: [] });
+      expect(onError).not.toHaveBeenCalled();
+      expect(onFinish).not.toHaveBeenCalled();
     });
 
     it('should pass stepNumber to onToolExecutionStart and use discriminated union in onToolExecutionEnd', async () => {
