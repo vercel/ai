@@ -29,9 +29,11 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   markBridgeStarting,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
@@ -44,6 +46,9 @@ import {
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
+  CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  createClaudeCodeRequestTransformations,
+  resolveClaudeCodeAuthenticationMode,
   resolveClaudeCodeEnv,
   type ClaudeCodeAuthOptions,
 } from './claude-code-auth';
@@ -90,6 +95,11 @@ export type ClaudeCodeHarnessSettings = {
    * omitted. Defaults to `{ type: 'adaptive', display: 'summarized' }`.
    */
   readonly thinking?: ClaudeCodeThinkingConfig;
+  /**
+   * Controls how much effort Claude applies when adaptive thinking is enabled.
+   * Unset uses the Claude Agent SDK default.
+   */
+  readonly effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
@@ -843,6 +853,38 @@ export function createClaudeCode(
     },
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
+      const authenticationMode = resolveClaudeCodeAuthenticationMode(
+        settings.auth,
+      );
+      const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
+      let authEnv = resolvedAuthEnvironment;
+      let sandboxTurnEnvironment = settings.env;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createClaudeCodeRequestTransformations(
+          {
+            ...resolvedAuthEnvironment,
+            ...settings.env,
+          },
+          authenticationMode,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        authEnv = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+        sandboxTurnEnvironment = maskSandboxCredentials({
+          environment: settings.env ?? {},
+          credentialEnvironmentVariables:
+            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
       const bootstrapDir = posix.resolve(
@@ -922,8 +964,9 @@ export function createClaudeCode(
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
-            env: settings.env,
+            env: sandboxTurnEnvironment,
             thinking,
+            effort: settings.effort,
             isResume: true,
             continueOnFirstPrompt: false,
             rerunContinue: false,
@@ -977,7 +1020,6 @@ export function createClaudeCode(
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
           : settings.mintBridgeToken(sandboxId);
-      const authEnv = resolveClaudeCodeEnv(settings.auth);
       const env = {
         ...authEnv,
         /*
@@ -1097,8 +1139,9 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
-        env: settings.env,
+        env: sandboxTurnEnvironment,
         thinking,
+        effort: settings.effort,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
         rerunContinue: respawnStrategy === 'rerun',
@@ -1371,6 +1414,7 @@ function createSession({
   maxTurns,
   env,
   thinking,
+  effort,
   isResume,
   continueOnFirstPrompt,
   rerunContinue,
@@ -1391,6 +1435,7 @@ function createSession({
   maxTurns: number | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
+  effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
   rerunContinue: boolean;
@@ -1573,6 +1618,7 @@ function createSession({
         maxTurns,
         ...(env !== undefined ? { env } : {}),
         thinking,
+        ...(effort !== undefined ? { effort } : {}),
         ...(skills.length > 0
           ? { skills: skills.map(skill => skill.name) }
           : {}),
@@ -1630,6 +1676,7 @@ function createSession({
           maxTurns,
           ...(env !== undefined ? { env } : {}),
           thinking,
+          ...(effort !== undefined ? { effort } : {}),
           ...(skills.length > 0
             ? { skills: skills.map(skill => skill.name) }
             : {}),

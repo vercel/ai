@@ -4,6 +4,7 @@ import type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
   HarnessV1PortEndpoint,
+  HarnessV1RequestTransformation,
 } from './harness-v1-network-sandbox-session';
 
 test('network sandbox session extends the bare sandbox session surface', () => {
@@ -43,6 +44,39 @@ test('setNetworkPolicy is optional on the network sandbox session', () => {
   expectTypeOf(_session.setNetworkPolicy).toEqualTypeOf<
     HarnessV1NetworkSandboxSession['setNetworkPolicy']
   >();
+});
+
+test('setRequestTransformations is optional on the network sandbox session', () => {
+  const _session = {} as HarnessV1NetworkSandboxSession;
+  expectTypeOf(_session.setRequestTransformations).toEqualTypeOf<
+    HarnessV1NetworkSandboxSession['setRequestTransformations']
+  >();
+});
+
+test('addRequestTransformations is optional on the network sandbox session', () => {
+  const _session = {} as HarnessV1NetworkSandboxSession;
+  expectTypeOf(_session.addRequestTransformations).toEqualTypeOf<
+    HarnessV1NetworkSandboxSession['addRequestTransformations']
+  >();
+});
+
+test('request transformation includes the host in its match', () => {
+  const _transformation: HarnessV1RequestTransformation = {
+    match: {
+      host: 'api.example.com',
+      method: ['POST'],
+      path: { startsWith: '/v1/' },
+      headers: [
+        {
+          key: { exact: 'authorization' },
+          value: { regex: '^Bearer ' },
+        },
+      ],
+      queryString: [{ key: { exact: 'version' }, value: { exact: '1' } }],
+    },
+    transform: { headers: { authorization: 'Bearer host-only-credential' } },
+  };
+  void _transformation;
 });
 
 test('network policy: allow-all and deny-all are valid', () => {

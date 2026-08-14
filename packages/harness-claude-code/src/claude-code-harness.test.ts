@@ -414,6 +414,46 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('brokers credentials when the sandbox supports additive request transformations', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      spawnEnvs,
+      writes: [],
+      runs: [],
+    });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const harness = createClaudeCode({
+      auth: {
+        anthropic: {
+          apiKey: 'anthropic-secret',
+          baseUrl: 'https://anthropic.example/v1',
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'anthropic.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: { headers: { 'x-api-key': 'anthropic-secret' } },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe('ANTHROPIC_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
   it('uses a caller-minted bridge token and reuses it when attaching', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const mintBridgeToken = vi.fn(
@@ -526,9 +566,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends the structured thinking configuration to the bridge', async () => {
+  it('sends the thinking configuration and effort to the bridge', async () => {
     const thinking = { type: 'enabled' as const, display: 'omitted' as const };
-    const harness = createClaudeCode({ thinking });
+    const harness = createClaudeCode({ thinking, effort: 'max' });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -544,7 +584,7 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ thinking });
+    expect(lastStart()).toMatchObject({ thinking, effort: 'max' });
 
     await session.doDestroy();
   });

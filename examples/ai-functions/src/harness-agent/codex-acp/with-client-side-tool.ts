@@ -3,7 +3,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -27,7 +27,6 @@ run(async () => {
     tools: { getUserName },
   });
 
-  let exitCode = 0;
   let session = await agent.createSession();
   try {
     const first = await agent.stream({
@@ -77,12 +76,8 @@ run(async () => {
     if (session.hasUnfinishedTurn()) {
       throw new Error('Expected the continued turn to finish.');
     }
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     terminal.close();
     await session.destroy();
-    process.exit(exitCode);
   }
 });

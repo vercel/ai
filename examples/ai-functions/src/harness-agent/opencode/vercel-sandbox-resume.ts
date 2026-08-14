@@ -7,9 +7,11 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { openCode } from '@ai-sdk/harness-opencode';
+import { createOpenCode } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
+
+const openCode = createOpenCode();
 
 run(async () => {
   process.exitCode = 1;

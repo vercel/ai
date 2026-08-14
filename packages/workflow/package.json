@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/workflow",
-  "version": "1.0.63",
+  "version": "1.0.65",
   "type": "module",
   "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
@@ -46,7 +46,7 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@workflow/vitest": "4.0.1",
+    "@workflow/vitest": "4.0.5",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "vitest": "4.1.6",

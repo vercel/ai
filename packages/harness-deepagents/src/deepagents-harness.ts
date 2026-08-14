@@ -27,9 +27,11 @@ import {
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
@@ -37,6 +39,9 @@ import { tool, type Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
+  createDeepAgentsRequestTransformations,
+  DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  resolveDeepAgentsAuthenticationMode,
   resolveDeepAgentsEnv,
   type DeepAgentsAuthOptions,
 } from './deepagents-auth';
@@ -59,6 +64,20 @@ const BOOTSTRAP_DIR = '.harness-bootstrap/deepagents';
  * Value to use in User-Agent and `x-client-app` headers.
  */
 const DEEPAGENTS_CLIENT_APP = `ai-sdk/harness-deepagents/${VERSION}`;
+
+export type DeepAgentsThinkingConfig =
+  | {
+      readonly type: 'adaptive';
+      readonly display?: 'summarized' | 'omitted';
+    }
+  | {
+      readonly type: 'enabled';
+      readonly budget_tokens: number;
+      readonly display?: 'summarized' | 'omitted';
+    }
+  | {
+      readonly type: 'disabled';
+    };
 
 // Pinned ripgrep release + per-arch tarball checksums (verified before install).
 const RIPGREP_VERSION = '14.1.1';
@@ -93,6 +112,16 @@ export type DeepAgentsHarnessSettings = {
   readonly auth?: DeepAgentsAuthOptions;
   /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
   readonly model?: string;
+  /**
+   * Controls Anthropic extended thinking for the Deep Agents model. Unset
+   * preserves the Deep Agents runtime default.
+   */
+  readonly thinking?: DeepAgentsThinkingConfig;
+  /**
+   * Controls how much effort Claude applies when adaptive thinking is enabled.
+   * Unset uses the LangChain Anthropic client default.
+   */
+  readonly effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   /** Bridge port override; defaults to the sandbox's first declared port. */
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
@@ -225,6 +254,31 @@ export function createDeepAgents(
     doStart: async startOpts => {
       const permissionMode = startOpts.permissionMode;
       const sandboxSession = startOpts.sandboxSession;
+      const authenticationMode = resolveDeepAgentsAuthenticationMode({
+        auth: settings.auth,
+      });
+      const resolvedAuthEnvironment = resolveDeepAgentsEnv({
+        auth: settings.auth,
+      });
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createDeepAgentsRequestTransformations(
+          resolvedAuthEnvironment,
+          authenticationMode,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        sandboxAuthEnvironment = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
       const bootstrapDir = posix.resolve(
@@ -284,6 +338,8 @@ export function createDeepAgents(
             channel: attachChannel,
             proc: undefined,
             model: settings.model,
+            thinking: settings.thinking,
+            effort: settings.effort,
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
@@ -325,7 +381,7 @@ export function createDeepAgents(
       }
 
       const env = {
-        ...resolveDeepAgentsEnv({ auth: settings.auth }),
+        ...sandboxAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: DEEPAGENTS_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
@@ -401,6 +457,8 @@ export function createDeepAgents(
         channel,
         proc,
         model: settings.model,
+        thinking: settings.thinking,
+        effort: settings.effort,
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -517,6 +575,8 @@ function createSession({
   channel,
   proc,
   model,
+  thinking,
+  effort,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -533,6 +593,8 @@ function createSession({
   // Undefined on attach — the live bridge was spawned by another process.
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
+  thinking: DeepAgentsThinkingConfig | undefined;
+  effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string;
@@ -699,6 +761,8 @@ function createSession({
           inputSchema: t.inputSchema,
         })),
         ...(model ? { model } : {}),
+        ...(thinking ? { thinking } : {}),
+        ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),

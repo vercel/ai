@@ -244,6 +244,38 @@ describe('createDeepAgents', () => {
     await session.doDestroy();
   });
 
+  it('brokers credentials when the sandbox supports additive request transformations', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeSandboxSession({ spawnEnvs });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const harness = createDeepAgents({
+      auth: {
+        anthropic: {
+          apiKey: 'anthropic-secret',
+          baseUrl: 'https://anthropic.example',
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession,
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: { host: 'anthropic.example' },
+        transform: { headers: { 'x-api-key': 'anthropic-secret' } },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe('ANTHROPIC_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
   it('passes configured MCP servers to the bridge', async () => {
     sentMessages.length = 0;
     const mcpServers = {
@@ -265,6 +297,41 @@ describe('createDeepAgents', () => {
       type: 'start',
       mcpServers,
     });
+    await session.doDestroy();
+  });
+
+  it('passes thinking configuration to the bridge', async () => {
+    sentMessages.length = 0;
+    const harness = createDeepAgents({
+      thinking: { type: 'adaptive', display: 'summarized' },
+      effort: 'max',
+    });
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+
+    await session.doPromptTurn({
+      prompt: 'Think carefully.',
+      emit: () => {},
+    });
+
+    expect(sentMessages[0]).toMatchInlineSnapshot(`
+      {
+        "effort": "max",
+        "prompt": "Think carefully.",
+        "skillsPaths": [
+          "/vercel/sandbox/deepagents-test-session/.agents/skills",
+        ],
+        "thinking": {
+          "display": "summarized",
+          "type": "adaptive",
+        },
+        "tools": [],
+        "type": "start",
+      }
+    `);
     await session.doDestroy();
   });
 

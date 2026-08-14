@@ -181,6 +181,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       seed,
       reasoning_effort: reasoningEffort,
 
+      // scheduling priority
+      service_tier: options.serviceTier,
+
       // parallel function calling
       parallel_function_calling: options.parallel_function_calling,
 
@@ -347,6 +350,11 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
+      ...(response.service_tier != null && {
+        providerMetadata: {
+          xai: { serviceTier: response.service_tier },
+        },
+      }),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -426,6 +434,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: LanguageModelV4Usage | undefined = undefined;
+    let serviceTier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<
       string,
@@ -483,6 +492,11 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
             // update usage if present
             if (value.usage != null) {
               usage = convertXaiChatUsage(value.usage);
+            }
+
+            // the applied tier is repeated on every chunk; keep the latest
+            if (value.service_tier != null) {
+              serviceTier = value.service_tier;
             }
 
             const choice = value.choices[0];
@@ -644,6 +658,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
+              ...(serviceTier != null && {
+                providerMetadata: { xai: { serviceTier } },
+              }),
             });
           },
         }),
@@ -711,6 +728,7 @@ const xaiChatResponseSchema = z.object({
   object: z.literal('chat.completion').nullish(),
   usage: xaiUsageSchema.nullish(),
   citations: z.array(z.string().url()).nullish(),
+  service_tier: z.string().nullish(),
   code: z.string().nullish(),
   error: z.string().nullish(),
 });
@@ -744,6 +762,7 @@ const xaiChatChunkSchema = z.object({
   ),
   usage: xaiUsageSchema.nullish(),
   citations: z.array(z.string().url()).nullish(),
+  service_tier: z.string().nullish(),
 });
 
 const xaiStreamErrorSchema = z.object({

@@ -65,7 +65,6 @@
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/tui": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",
-    "@ai-sdk/vercel": "workspace:*",
     "@ai-sdk/voyage": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
     "@basetenlabs/performance-client": "0.0.10",

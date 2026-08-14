@@ -288,6 +288,82 @@ describe('createOpenCode adapter', () => {
     await attachedSession.doDetach();
   });
 
+  it('brokers credentials when the sandbox supports additive request transformations', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvs.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      addRequestTransformations,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const harness = createOpenCode({
+      provider: 'openai',
+      auth: {
+        openai: {
+          apiKey: 'openai-secret',
+          baseUrl: 'https://openai.example/v1',
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'openai.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('OPENAI_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+
+    await session.doDetach();
+  });
+
   it('writes skills under sandbox HOME and starts OpenCode with that HOME', async () => {
     const runCommands: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];
