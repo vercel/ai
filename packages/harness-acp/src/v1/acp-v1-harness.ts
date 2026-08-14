@@ -1,12 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import { posix } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
-  type HarnessV1Bootstrap,
   type HarnessV1DebugConfig,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PromptControl,
@@ -45,14 +42,11 @@ import {
 import type { ACPToolCall } from '../acp-tool-call';
 import {
   createACPV1Implementation,
-  createImplementationDescriptor,
   createImplementationIdentity,
-  createImplementationInstallCommand,
-  createImplementationManifest,
-  getImplementationLockfile,
   resolveImplementationEnvironment,
   validateACPV1Implementation,
 } from './implementation';
+import { createACPBootstrap } from './acp-bootstrap';
 import {
   outboundMessageSchema,
   type ACPBuiltinToolMapping,
@@ -157,10 +151,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   }
   const implementation = createACPV1Implementation({ settings });
   validateACPV1Implementation(implementation);
-
-  const BOOTSTRAP_DIR = `.harness-bootstrap/${settings.harnessId}`;
-
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
+  const bootstrap = createACPBootstrap({
+    harnessId: settings.harnessId,
+    implementation,
+  });
   const permissionModeMapping = isCompletePermissionModeMapping({
     value: settings.permissionModeMapping,
   })
@@ -174,71 +168,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     supportsBuiltinToolApprovals: true,
     supportsBuiltinToolFiltering: false,
     lifecycleStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [bridgePackage, bridgeLock, bridge, hostToolMCP] =
-        await Promise.all([
-          readBridgeAsset({ name: 'package.json' }),
-          readBridgeAsset({ name: 'pnpm-lock.yaml' }),
-          readBridgeAsset({ name: 'index.mjs' }),
-          readBridgeAsset({ name: 'host-tool-mcp.mjs' }),
-        ]);
-      const implementationLock = getImplementationLockfile({
-        implementation,
-      });
-      cachedBootstrap = {
-        harnessId: settings.harnessId,
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          {
-            path: `${BOOTSTRAP_DIR}/package.json`,
-            content: bridgePackage,
-          },
-          {
-            path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`,
-            content: bridgeLock,
-          },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-          {
-            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
-            content: hostToolMCP,
-          },
-          {
-            path: `${BOOTSTRAP_DIR}/implementation/package.json`,
-            content: createImplementationManifest({
-              implementation,
-            }),
-          },
-          {
-            path: `${BOOTSTRAP_DIR}/implementation/implementation.json`,
-            content: createImplementationDescriptor({
-              implementation,
-            }),
-          },
-          ...(implementationLock == null
-            ? []
-            : [
-                {
-                  path: `${BOOTSTRAP_DIR}/implementation/pnpm-lock.yaml`,
-                  content: implementationLock,
-                },
-              ]),
-        ],
-        commands: [
-          {
-            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-          },
-          {
-            command: createImplementationInstallCommand({
-              implementationDir: 'implementation',
-              storeDir: '../.pnpm-store',
-              implementation,
-            }),
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: bootstrap.getBootstrap,
     doStart: async startOptions => {
       if (startOptions.builtinToolFiltering != null) {
         throw unsupported({
@@ -346,7 +276,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const sandbox = sandboxSession.restricted();
       const resolvedBridgeDir = posix.resolve(
         sandboxSession.defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
+        bootstrap.bootstrapDir,
       );
       const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
       const workDir = startOptions.sessionWorkDir;
@@ -799,36 +729,6 @@ function requireResolvedEnvironmentValue({
     throw new Error(`ACP resolved environment value ${name} is unavailable.`);
   }
   return value;
-}
-
-async function readBridgeAsset({ name }: { name: string }): Promise<string> {
-  const candidates = resolveBridgeAssetCandidates({
-    name,
-    moduleUrl: import.meta.url,
-  });
-  let lastError: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      lastError = error;
-    }
-  }
-  throw lastError ?? new Error(`ACP bridge asset not found: ${name}`);
-}
-
-export function resolveBridgeAssetCandidates({
-  name,
-  moduleUrl,
-}: {
-  name: string;
-  moduleUrl: string | URL;
-}): URL[] {
-  return [
-    new URL(`./bridge/${name}`, moduleUrl),
-    new URL(`../bridge/${name}`, moduleUrl),
-  ];
 }
 
 function resolveBridgePort({
