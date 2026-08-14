@@ -327,6 +327,37 @@ describe('createCodex adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends configured Codex config to the bridge', async () => {
+    const codexConfig = {
+      model_verbosity: 'low',
+      features: { multi_agent: false },
+    };
+    const session = await createCodex({ codexConfig }).doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'Be concise.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        codexConfig,
+      });
+    });
+
+    await session.doDestroy();
+  });
+
   it('uses a caller-minted bridge token and reuses it when attaching', async () => {
     const runs: string[] = [];
     const spawns: string[] = [];
