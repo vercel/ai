@@ -737,6 +737,7 @@ const openaiCompatibleTokenUsageSchema = z
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
+    prompt_cache_hit_tokens: z.number().nullish(),
     prompt_tokens_details: z
       .object({
         cached_tokens: z.number().nullish(),
