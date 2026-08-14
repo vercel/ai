@@ -1,16 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 type CodexOptions = {
-  config?: {
-    base_instructions?: unknown;
-    developer_instructions?: unknown;
-    mcp_servers?: unknown;
-    model_provider?: unknown;
-    model_providers?: unknown;
-    model_reasoning_summary?: unknown;
-    model_supports_reasoning_summaries?: unknown;
-    preferred_auth_method?: unknown;
-  };
+  config?: Record<string, unknown>;
 };
 type ThreadOptions = { model?: string };
 const CODEX_ENV_KEYS = [
@@ -25,6 +16,7 @@ const state = vi.hoisted(() => ({
   threadOptions: [] as ThreadOptions[],
   startModel: 'gpt-5.5',
   startInstructions: undefined as string | undefined,
+  startCodexConfig: undefined as Record<string, unknown> | undefined,
   startMcpServers: undefined as Record<string, unknown> | undefined,
   originalArgv: [] as string[],
   originalEnv: {} as Record<
@@ -69,6 +61,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
           ? { instructions: state.startInstructions }
           : {}),
         model: state.startModel,
+        codexConfig: state.startCodexConfig,
         mcpServers: state.startMcpServers,
         tools: [
           {
@@ -94,6 +87,7 @@ describe('Codex bridge config', () => {
     state.threadOptions = [];
     state.startModel = 'gpt-5.5';
     state.startInstructions = undefined;
+    state.startCodexConfig = undefined;
     state.startMcpServers = undefined;
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
@@ -146,6 +140,40 @@ describe('Codex bridge config', () => {
     expect(state.codexOptions[0]?.config?.mcp_servers).toEqual(
       state.startMcpServers,
     );
+  });
+
+  test('passes through native config without mutating it and preserves adapter-owned values', async () => {
+    const codexConfig = {
+      model_verbosity: 'low',
+      features: { multi_agent: false },
+      developer_instructions: 'Caller instructions.',
+      model_reasoning_summary: 'none',
+    };
+    state.startCodexConfig = codexConfig;
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.config).not.toBe(codexConfig);
+    expect(state.codexOptions[0]?.config).toMatchInlineSnapshot(`
+      {
+        "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
+        "features": {
+          "multi_agent": false,
+        },
+        "model_reasoning_summary": "detailed",
+        "model_verbosity": "low",
+      }
+    `);
+    expect(codexConfig).toMatchInlineSnapshot(`
+      {
+        "developer_instructions": "Caller instructions.",
+        "features": {
+          "multi_agent": false,
+        },
+        "model_reasoning_summary": "none",
+        "model_verbosity": "low",
+      }
+    `);
   });
 
   test('requests detailed reasoning summaries by default', async () => {

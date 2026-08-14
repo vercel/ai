@@ -85,6 +85,12 @@ const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
   /**
+   * Additional configuration passed through to Codex as-is. Codex config keys
+   * typically use snake_case and must be provided in that form. Values managed
+   * by this adapter take precedence over conflicting entries.
+   */
+  readonly codexConfig?: Record<string, unknown>;
+  /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
    */
@@ -351,6 +357,7 @@ export function createCodex(
             model: settings.model ?? DEFAULT_CODEX_MODEL,
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
+            codexConfig: settings.codexConfig,
             mcpServers: settings.mcpServers,
             resumeThreadId: resumeThreadIdString,
             isResume: true,
@@ -502,6 +509,7 @@ export function createCodex(
         model: settings.model ?? DEFAULT_CODEX_MODEL,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
+        codexConfig: settings.codexConfig,
         mcpServers: settings.mcpServers,
         resumeThreadId: resumeThreadIdString,
         isResume: respawnStrategy !== undefined,
@@ -606,6 +614,7 @@ function createSession({
   model,
   reasoningEffort,
   webSearch,
+  codexConfig,
   mcpServers,
   resumeThreadId,
   isResume,
@@ -625,6 +634,7 @@ function createSession({
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
+  codexConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   resumeThreadId: string | undefined;
   isResume: boolean;
@@ -862,6 +872,7 @@ function createSession({
         model,
         reasoningEffort,
         webSearch,
+        ...(codexConfig == null ? {} : { codexConfig }),
         ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(pendingResumeThreadId
@@ -917,6 +928,7 @@ function createSession({
             model,
             reasoningEffort,
             webSearch,
+            ...(codexConfig == null ? {} : { codexConfig }),
             ...(mcpServers == null ? {} : { mcpServers }),
             ...(permissionMode ? { permissionMode } : {}),
             ...(threadId ? { resumeThreadId: threadId } : {}),
