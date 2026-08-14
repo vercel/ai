@@ -94,6 +94,9 @@
       "path": "../../packages/gladia"
     },
     {
+      "path": "../../packages/gmicloud"
+    },
+    {
       "path": "../../packages/google"
     },
     {
@@ -106,6 +109,9 @@
       "path": "../../packages/harness"
     },
     {
+      "path": "../../packages/harness-acp"
+    },
+    {
       "path": "../../packages/harness-claude-code"
     },
     {
@@ -113,6 +119,9 @@
     },
     {
       "path": "../../packages/harness-deepagents"
+    },
+    {
+      "path": "../../packages/harness-grok-build"
     },
     {
       "path": "../../packages/harness-opencode"
@@ -194,9 +203,6 @@
     },
     {
       "path": "../../packages/valibot"
-    },
-    {
-      "path": "../../packages/vercel"
     },
     {
       "path": "../../packages/voyage"

@@ -9,7 +9,7 @@ import { throttle } from './throttle';
 
 export type { UseCompletionOptions };
 
-export type UseCompletionHelpers = {
+export type UseCompletionHelpers<BODY extends object = object> = {
   /** The current completion result */
   completion: string;
   /**
@@ -17,7 +17,7 @@ export type UseCompletionHelpers = {
    */
   complete: (
     prompt: string,
-    options?: CompletionRequestOptions,
+    options?: CompletionRequestOptions<BODY>,
   ) => Promise<string | null | undefined>;
   /** The error object of the API request */
   error: undefined | Error;
@@ -61,7 +61,7 @@ export type UseCompletionHelpers = {
   isLoading: boolean;
 };
 
-export function useCompletion({
+export function useCompletion<BODY extends object = object>({
   api = '/api/completion',
   id,
   initialCompletion = '',
@@ -75,7 +75,7 @@ export function useCompletion({
   onError,
   throttle: throttleWait,
   experimental_throttle,
-}: UseCompletionOptions & {
+}: UseCompletionOptions<NoInfer<BODY>> & {
   /**
    * Custom throttle wait in ms for the completion and data updates.
    * Default is undefined, which disables throttling.
@@ -86,7 +86,7 @@ export function useCompletion({
    * @deprecated Use `throttle` instead.
    */
   experimental_throttle?: number;
-} = {}): UseCompletionHelpers {
+} = {}): UseCompletionHelpers<BODY> {
   const throttleWaitMs = throttleWait ?? experimental_throttle;
   // Generate an unique id for the completion if not provided.
   const hookId = useId();
@@ -124,7 +124,7 @@ export function useCompletion({
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (prompt: string, options?: CompletionRequestOptions) =>
+    async (prompt: string, options?: CompletionRequestOptions<BODY>) =>
       callCompletionApi({
         api,
         prompt,
@@ -176,7 +176,7 @@ export function useCompletion({
     [mutate],
   );
 
-  const complete = useCallback<UseCompletionHelpers['complete']>(
+  const complete = useCallback<UseCompletionHelpers<BODY>['complete']>(
     async (prompt, options) => {
       return triggerRequest(prompt, options);
     },
@@ -188,9 +188,15 @@ export function useCompletion({
   const handleSubmit = useCallback(
     (event?: { preventDefault?: () => void }) => {
       event?.preventDefault?.();
-      return input ? complete(input) : undefined;
+      if (!input) {
+        return;
+      }
+
+      const result = complete(input);
+      setInput('');
+      return result;
     },
-    [input, complete],
+    [input, complete, setInput],
   );
 
   const handleInputChange = useCallback(

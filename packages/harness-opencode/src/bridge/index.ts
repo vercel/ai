@@ -24,6 +24,7 @@ import {
 import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
+import { configureOpenCodeServerAuth } from './opencode-server-auth';
 import {
   addUsage,
   defaultUsage,
@@ -51,6 +52,7 @@ type RuntimeState = {
   sessionId?: string;
   relay?: ToolRelay;
   toolNames: Set<string>;
+  mcpToolPrefixes: Set<string>;
 };
 
 type CommonBuiltinToolName =
@@ -115,7 +117,10 @@ const bridgeStateDir =
   args.bridgeStateDir ?? emitFatal('Missing --bridge-state-dir argument.');
 const bootstrapDir = args.bootstrapDir ?? workdir;
 const skillsDir = args.skillsDir;
-const runtime: RuntimeState = { toolNames: new Set() };
+const runtime: RuntimeState = {
+  toolNames: new Set(),
+  mcpToolPrefixes: new Set(),
+};
 prependOpenCodeBinToPath({ bootstrapDir, env: procEnv });
 
 mkdirSync(process.env.HOME ?? '/tmp/opencode-home', { recursive: true });
@@ -172,6 +177,7 @@ async function ensureRuntime({
     });
   }
 
+  const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
   const server = await createOpencodeServer({
     hostname: '127.0.0.1',
     port: 0,
@@ -185,7 +191,19 @@ async function ensureRuntime({
   runtime.client = createOpencodeClient({
     baseUrl: server.url,
     directory: workdir,
+    headers: serverAuthHeaders,
   });
+  const mcpStatus = await runtime.client.mcp.status();
+  const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
+  runtime.mcpToolPrefixes = new Set(
+    Object.entries(mcpServers)
+      .filter(
+        ([serverName, status]) =>
+          serverName !== 'harness-tools' &&
+          asOpenCodeObject(status)?.status === 'connected',
+      )
+      .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
+  );
 }
 
 function buildOpenCodeConfig({
@@ -227,25 +245,25 @@ function buildOpenCodeConfig({
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
+  const mcp = { ...(start.mcpServers ?? {}) };
   if (relayPort && start.tools && start.tools.length > 0) {
-    config.mcp = {
-      'harness-tools': {
-        type: 'local',
-        enabled: true,
-        command: ['node', `${bootstrapDir}/host-tool-mcp.mjs`],
-        environment: {
-          TOOL_SCHEMAS: JSON.stringify(
-            start.tools.map(t => ({
-              name: t.name,
-              description: t.description,
-              inputSchema: t.inputSchema,
-            })),
-          ),
-          TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
-        },
+    mcp['harness-tools'] = {
+      type: 'local',
+      enabled: true,
+      command: ['node', `${bootstrapDir}/host-tool-mcp.mjs`],
+      environment: {
+        TOOL_SCHEMAS: JSON.stringify(
+          start.tools.map(t => ({
+            name: t.name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+          })),
+        ),
+        TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
       },
     };
   }
+  if (Object.keys(mcp).length > 0) config.mcp = mcp;
   return config;
 }
 
@@ -776,6 +794,8 @@ async function consumeEvents({
     nativeNameField,
     getHostToolName,
     authorizeHostToolCall: input => authorizeHostToolCall({ ...input, state }),
+    isMcpToolName: toolName =>
+      [...runtime.mcpToolPrefixes].some(prefix => toolName.startsWith(prefix)),
     stripWorkDir,
     formatError,
   });
@@ -809,6 +829,10 @@ async function consumeEvents({
     }
     if (onEvent?.(event)) break;
   }
+}
+
+function sanitizeMcpToolName(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
 async function handlePermissionV2({

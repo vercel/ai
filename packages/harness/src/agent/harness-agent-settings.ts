@@ -132,9 +132,9 @@ export type HarnessAgentSettings<
   readonly skills?: ReadonlyArray<HarnessAgentSkill>;
 
   /**
-   * Instructions for the underlying agent runtime. Adapters prepend this to
-   * the first user message of a fresh session, once — it is not re-applied on
-   * later turns or when resuming a previously ended session.
+   * Instructions for the underlying agent runtime. Adapters append this to a
+   * native system or developer prompt when supported. Otherwise, they prepend
+   * it to the first user message of a fresh session.
    */
   readonly instructions?: string;
 

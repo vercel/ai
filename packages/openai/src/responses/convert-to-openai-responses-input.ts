@@ -98,6 +98,7 @@ export async function convertToOpenAIResponsesInput({
   hasApplyPatchTool = false,
   hasComputerTool = false,
   customProviderToolNames,
+  outputSchemaToolNames,
 }: {
   prompt: LanguageModelV4Prompt;
   toolNameMapping: ToolNameMapping;
@@ -114,6 +115,7 @@ export async function convertToOpenAIResponsesInput({
   hasApplyPatchTool?: boolean;
   hasComputerTool?: boolean;
   customProviderToolNames?: Set<string>;
+  outputSchemaToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV4Warning>;
@@ -438,12 +440,29 @@ export async function convertToOpenAIResponsesInput({
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
                 }
-                break;
+
+                // Without response storage, shell calls must be reconstructed
+                // together with their matching shell_call_output.
+                if (store || !hasShellTool || resolvedToolName !== 'shell') {
+                  break;
+                }
               }
+
+              const isProviderDefinedToolCall =
+                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
+                (hasShellTool && resolvedToolName === 'shell') ||
+                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
+                (hasComputerTool && resolvedToolName === 'computer') ||
+                (customProviderToolNames?.has(resolvedToolName) ?? false);
 
               // When chaining with a previous response id, items already part
               // of that response chain must not be resent.
-              if (hasPreviousResponseId && store && id != null) {
+              if (
+                hasPreviousResponseId &&
+                store &&
+                id != null &&
+                isProviderDefinedToolCall
+              ) {
                 break;
               }
 
@@ -457,13 +476,6 @@ export async function convertToOpenAIResponsesInput({
               // makes follow-up requests fail with "No tool call found for
               // function call output with call_id", most visibly with parallel
               // tool calls across multiple steps.
-              const isProviderDefinedToolCall =
-                (hasLocalShellTool && resolvedToolName === 'local_shell') ||
-                (hasShellTool && resolvedToolName === 'shell') ||
-                (hasApplyPatchTool && resolvedToolName === 'apply_patch') ||
-                (hasComputerTool && resolvedToolName === 'computer') ||
-                (customProviderToolNames?.has(resolvedToolName) ?? false);
-
               if (store && id != null && isProviderDefinedToolCall) {
                 input.push({ type: 'item_reference', id });
                 break;
@@ -891,7 +903,7 @@ export async function convertToOpenAIResponsesInput({
             }
             processedApprovalIds.add(approvalResponse.approvalId);
 
-            if (store) {
+            if (store && !hasConversation && !hasPreviousResponseId) {
               input.push({
                 type: 'item_reference',
                 id: approvalResponse.approvalId,
@@ -1141,14 +1153,22 @@ export async function convertToOpenAIResponsesInput({
           }
 
           let contentValue: OpenAIResponsesFunctionCallOutput['output'];
+          // `output` is always a string, but for functions with output_schema
+          // OpenAI parses the contents of that string as JSON. Text-like results
+          // therefore need JSON.stringify to become valid JSON string literals.
+          const hasOutputSchema = outputSchemaToolNames?.has(part.toolName);
           switch (output.type) {
             case 'text':
             case 'error-text':
-              contentValue = output.value;
+              contentValue = hasOutputSchema
+                ? JSON.stringify(output.value)
+                : output.value;
               break;
-            case 'execution-denied':
-              contentValue = output.reason ?? 'Tool call execution denied.';
+            case 'execution-denied': {
+              const reason = output.reason ?? 'Tool call execution denied.';
+              contentValue = hasOutputSchema ? JSON.stringify(reason) : reason;
               break;
+            }
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);

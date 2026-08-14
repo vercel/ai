@@ -1,5 +1,119 @@
 # @ai-sdk/workflow
 
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 1.0.64
+
+### Patch Changes
+
+- ai@7.0.64
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 1.0.62
+
+### Patch Changes
+
+- 419adc7: Honor `maxRetries` and `abortSignal` overrides returned from `prepareCall`.
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
+## 1.0.61
+
+### Patch Changes
+
+- db6e0a5: Forward structured output response formats from `WorkflowAgent.stream()` to model stream calls.
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+- Updated dependencies [7fbfc6d]
+  - ai@7.0.61
+  - @ai-sdk/provider-utils@5.0.27
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
+## 1.0.59
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - ai@7.0.59
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [72ad23f]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - ai@7.0.58
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 1.0.57
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - ai@7.0.57
+
+## 1.0.56
+
+### Patch Changes
+
+- 25c9120: Expose provider metadata on language-model-call end callbacks and telemetry spans.
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
+## 1.0.55
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - ai@7.0.55
+  - @ai-sdk/provider-utils@5.0.23
+
+## 1.0.54
+
+### Patch Changes
+
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [cd0177b]
+- Updated dependencies [2b60826]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+  - @ai-sdk/provider-utils@5.0.22
+
 ## 1.0.52
 
 ### Patch Changes

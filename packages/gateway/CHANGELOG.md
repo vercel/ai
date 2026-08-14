@@ -1,5 +1,94 @@
 # @ai-sdk/gateway
 
+## 4.0.52
+
+### Patch Changes
+
+- 16650e9: feat(google): add `gemini-3.7-flash` model
+
+## 4.0.51
+
+### Patch Changes
+
+- ea75787: Serialize structured Gateway error responses in nested API call error messages.
+- b20de9e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.50
+
+### Patch Changes
+
+- a4d386d: feat(xai): add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.48
+
+### Patch Changes
+
+- 3cc1bb6: chore(provider/gateway): update gateway model settings files
+
+## 4.0.47
+
+### Patch Changes
+
+- 7af9646: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.46
+
+### Patch Changes
+
+- c477556: chore(provider/gateway): update gateway model settings files
+- 81cd026: Reduce bundle size by making internal Zod v4 imports tree-shakeable.
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.44
+
+### Patch Changes
+
+- 89080c8: feat (provider/gateway): support the async video operation flow (doStart/doStatus) on the v4 video model
+- 89080c8: fix (ai/gateway): make retried `doStart` calls idempotent
+
+  `generateVideo` retries `doStart`, which creates a billable generation, so a
+  retry after a lost response could start a second one. It now mints one
+  idempotency token per logical start — outside the retry closure — and forwards it
+  as an `idempotency-key` header, so a provider that deduplicates (the Vercel AI
+  Gateway does) sees the same key on every attempt. `GatewayVideoModel` simply
+  forwards the caller's headers rather than inferring retry identity from an
+  options object, which would collide across unrelated calls.
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.42
+
+### Patch Changes
+
+- 7aeab10: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
 ## 4.0.41
 
 ### Patch Changes

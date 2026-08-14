@@ -307,6 +307,145 @@ describe('translatePiEvent', () => {
     expect(part.providerExecuted).toBeUndefined();
   });
 
+  it('marks MCP-prefixed tool calls and results as dynamic and parses JSON results', () => {
+    const state = createPiTranslatorState();
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+
+    const call = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'mcp-call',
+        toolName: 'mcp__memory_search',
+        args: { query: 'AI SDK' },
+      } as PiSessionEvent,
+      state,
+    );
+    const result = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'mcp-call',
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: '{"matches":["AI SDK Core","AI SDK UI"]}',
+            },
+          ],
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect([call[0], result[0]]).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{\"query\":\"AI SDK\"}",
+          "providerExecuted": true,
+          "toolCallId": "mcp-call",
+          "toolName": "mcp__memory_search",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": {
+            "matches": [
+              "AI SDK Core",
+              "AI SDK UI",
+            ],
+          },
+          "toolCallId": "mcp-call",
+          "toolName": "mcp__memory_search",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('keeps non-JSON MCP results and JSON native results as text', () => {
+    const state = createPiTranslatorState({ builtinToolNames: ['read'] });
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+
+    emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'mcp-call',
+          toolName: 'mcp__memory_search',
+          args: {},
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'native-call',
+          toolName: 'read',
+          args: {},
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const mcpResult = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'mcp-call',
+        result: { content: [{ type: 'text', text: 'not JSON' }] },
+      } as PiSessionEvent,
+      state,
+    );
+    const nativeResult = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'native-call',
+        result: { content: [{ type: 'text', text: '{"path":"README.md"}' }] },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect([mcpResult[0], nativeResult[0]]).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "result": "not JSON",
+          "toolCallId": "mcp-call",
+          "toolName": "mcp__memory_search",
+          "type": "tool-result",
+        },
+        {
+          "result": "{\"path\":\"README.md\"}",
+          "toolCallId": "native-call",
+          "toolName": "read",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('keeps explicitly typed host tools static even with an MCP prefix', () => {
+    const state = createPiTranslatorState({
+      hostToolNames: ['mcp__custom_tool'],
+    });
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+
+    const out = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'host-call',
+        toolName: 'mcp__custom_tool',
+        args: {},
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(out[0]).toMatchInlineSnapshot(`
+      {
+        "input": "{}",
+        "toolCallId": "host-call",
+        "toolName": "mcp__custom_tool",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('correlates tool-result with the prior tool-call by id', () => {
     const state = createPiTranslatorState({
       builtinToolNames: ['bash'],

@@ -2741,6 +2741,7 @@ describe('assistant messages', () => {
                   value: {
                     type: 'advisor_result',
                     text: 'Use a channel-based coordination pattern. Close the input channel first, then wait on a WaitGroup.',
+                    stopReason: 'max_tokens',
                   },
                 },
                 toolCallId: 'srvtoolu_advisor_abc123',
@@ -2772,6 +2773,7 @@ describe('assistant messages', () => {
                   {
                     "cache_control": undefined,
                     "content": {
+                      "stop_reason": "max_tokens",
                       "text": "Use a channel-based coordination pattern. Close the input channel first, then wait on a WaitGroup.",
                       "type": "advisor_result",
                     },
@@ -2809,6 +2811,7 @@ describe('assistant messages', () => {
                   value: {
                     type: 'advisor_redacted_result',
                     encryptedContent: 'opaque-encrypted-blob-xyz',
+                    stopReason: 'end_turn',
                   },
                 },
                 toolCallId: 'srvtoolu_advisor_redacted',
@@ -2830,6 +2833,7 @@ describe('assistant messages', () => {
           "cache_control": undefined,
           "content": {
             "encrypted_content": "opaque-encrypted-blob-xyz",
+            "stop_reason": "end_turn",
             "type": "advisor_redacted_result",
           },
           "tool_use_id": "srvtoolu_advisor_redacted",
@@ -3331,6 +3335,250 @@ describe('assistant messages', () => {
   });
 
   describe('code_execution 20260120', () => {
+    it('should preserve caller metadata and response order for dynamic filtering', async () => {
+      const caller = {
+        anthropic: {
+          caller: {
+            type: 'code_execution_20260120',
+            toolId: 'code-execution-call',
+          },
+        },
+      } as const;
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                input: {
+                  type: 'programmatic-tool-call',
+                  code: 'await web_search({ query: "AI SDK" })',
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  anthropic: { caller: { type: 'direct' } },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'web-search-call-1',
+                toolName: 'web_search',
+                input: { query: 'AI SDK' },
+                providerExecuted: true,
+                providerOptions: caller,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'web-search-call-1',
+                toolName: 'web_search',
+                output: { type: 'json', value: [] },
+                providerOptions: caller,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'web-search-call-2',
+                toolName: 'web_search',
+                input: { query: 'Anthropic' },
+                providerExecuted: true,
+                providerOptions: caller,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'web-search-call-2',
+                toolName: 'web_search',
+                output: { type: 'json', value: [] },
+                providerOptions: caller,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'encrypted_code_execution_result',
+                    encrypted_stdout: 'encrypted-output',
+                    stderr: '',
+                    return_code: 0,
+                    content: [],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toHaveLength(1);
+      expect(result.prompt.messages[0]).toMatchObject({
+        role: 'assistant',
+        content: [
+          {
+            type: 'server_tool_use',
+            id: 'code-execution-call',
+            caller: { type: 'direct' },
+          },
+          {
+            type: 'server_tool_use',
+            id: 'web-search-call-1',
+            caller: {
+              type: 'code_execution_20260120',
+              tool_id: 'code-execution-call',
+            },
+          },
+          {
+            type: 'web_search_tool_result',
+            tool_use_id: 'web-search-call-1',
+            caller: {
+              type: 'code_execution_20260120',
+              tool_id: 'code-execution-call',
+            },
+          },
+          {
+            type: 'server_tool_use',
+            id: 'web-search-call-2',
+            caller: {
+              type: 'code_execution_20260120',
+              tool_id: 'code-execution-call',
+            },
+          },
+          {
+            type: 'web_search_tool_result',
+            tool_use_id: 'web-search-call-2',
+            caller: {
+              type: 'code_execution_20260120',
+              tool_id: 'code-execution-call',
+            },
+          },
+          {
+            type: 'code_execution_tool_result',
+            tool_use_id: 'code-execution-call',
+          },
+        ],
+      });
+    });
+
+    it('should preserve a deferred server result across a client tool continuation', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                input: {
+                  type: 'programmatic-tool-call',
+                  code: 'await fetch_url({ url: "https://example.com" })',
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  anthropic: { caller: { type: 'direct' } },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'client-tool-call',
+                toolName: 'fetch_url',
+                input: { url: 'https://example.com' },
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20260120',
+                      toolId: 'code-execution-call',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'client-tool-call',
+                toolName: 'fetch_url',
+                output: { type: 'text', value: 'Example Domain' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'encrypted_code_execution_result',
+                    encrypted_stdout: 'encrypted-output',
+                    stderr: '',
+                    return_code: 0,
+                    content: [],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      // Anthropic pairs a deferred server result by tool_use_id across
+      // responses; the intervening client tool exchange must stay intact.
+      expect(result.prompt.messages).toHaveLength(3);
+      expect(result.prompt.messages).toMatchObject([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'code-execution-call',
+              caller: { type: 'direct' },
+            },
+            {
+              type: 'tool_use',
+              id: 'client-tool-call',
+              caller: {
+                type: 'code_execution_20260120',
+                tool_id: 'code-execution-call',
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'client-tool-call',
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'code_execution_tool_result',
+              tool_use_id: 'code-execution-call',
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should replay server_tool_use input without the internal discriminator', async () => {
       const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicPrompt({

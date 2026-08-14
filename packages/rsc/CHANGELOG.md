@@ -1,5 +1,116 @@
 # @ai-sdk/rsc
 
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 3.0.64
+
+### Patch Changes
+
+- ai@7.0.64
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 3.0.62
+
+### Patch Changes
+
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+- Updated dependencies [7fbfc6d]
+  - ai@7.0.61
+  - @ai-sdk/provider-utils@5.0.27
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - ai@7.0.59
+
+## 3.0.58
+
+### Patch Changes
+
+- Updated dependencies [72ad23f]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - ai@7.0.58
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 3.0.57
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - ai@7.0.57
+
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - ai@7.0.55
+  - @ai-sdk/provider-utils@5.0.23
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 3.0.53
+
+### Patch Changes
+
+- Updated dependencies [cd0177b]
+- Updated dependencies [2b60826]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+  - @ai-sdk/provider-utils@5.0.22
+
 ## 3.0.52
 
 ### Patch Changes

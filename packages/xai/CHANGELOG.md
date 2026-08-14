@@ -1,5 +1,84 @@
 # @ai-sdk/xai
 
+## 4.0.38
+
+### Patch Changes
+
+- 484293f: feat(xai): support the priority service tier on chat and responses
+
+## 4.0.37
+
+### Patch Changes
+
+- a4d386d: feat(xai): add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 4.0.36
+
+### Patch Changes
+
+- 8edc775: feat (provider/xai): support Grok Imagine Video 1.5. Adds the `grok-imagine-video-1.5` model id and native `1080p` for text-to-video and image-to-video (the standard `resolution: '1920x1080'` now maps to `1080p`). Reference-to-video remains capped at `720p`, so a `1080p` request in that mode is downgraded with a warning. Also fixes reference routing: previously any non-empty `inputReferences` array selected reference-to-video, so an array holding only a non-image reference sent `reference_images: []` with no usable references.
+- 3d05053: feat (provider/xai): add `referenceVoiceIds` for reference-to-video reference audio. Pass up to 3 xAI preset voice ids (e.g. `['eve']`) and reference them from the prompt with `<AUDIO_0>`–`<AUDIO_2>`; they are sent as `reference_audios: [{ voice_id }]` on `POST /v1/videos/generations`.
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.34
+
+### Patch Changes
+
+- fa2c2bb: feat: add xAI image generation server-side tool for the responses API
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.32
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.31
+
+### Patch Changes
+
+- 2b1068f: chore(xai): drop the unused `@ai-sdk/openai-compatible` dependency
+
+  This provider was originally built on the shared openai-compatible model and
+  has since been rewritten to implement its own, with its own tool preparation,
+  finish-reason mapping and response metadata helpers. Nothing in the package
+  imports `@ai-sdk/openai-compatible` any more, but the dependency and the
+  TypeScript project reference to it were both left behind. No runtime change.
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/openai-compatible@3.0.25
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.29
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/openai-compatible@3.0.24
+
 ## 4.0.28
 
 ### Patch Changes

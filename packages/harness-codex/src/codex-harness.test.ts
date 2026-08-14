@@ -4,8 +4,10 @@ import {
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCodex } from './codex-harness';
+
+const sentMessages: unknown[] = [];
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
@@ -15,10 +17,15 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       return () => {};
     }
     onClose(): void {}
-    send(): void {}
+    send(message: unknown): void {
+      sentMessages.push(message);
+    }
     beginClose(): void {}
     isClosed(): boolean {
       return false;
+    }
+    suspend(): Promise<number> {
+      return Promise.resolve(0);
     }
     close(): void {}
   }
@@ -58,12 +65,16 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   spawns,
   spawnEnvs,
   writes,
+  addRequestTransformations = async () => {},
 }: {
   bridgePortUrl: string;
   runs: string[];
   spawns: string[];
   spawnEnvs?: Array<Record<string, string | undefined>>;
   writes: Array<{ path: string; content: string }>;
+  addRequestTransformations?: NonNullable<
+    HarnessV1NetworkSandboxSession['addRequestTransformations']
+  >;
 }): HarnessV1NetworkSandboxSession {
   const session = {
     run: async ({ command }: { command: string }) => {
@@ -102,6 +113,7 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     defaultWorkingDirectory: '/vercel/sandbox',
     restricted: () => session,
     ports: [4319],
+    addRequestTransformations,
     async getPortUrl() {
       return bridgePortUrl;
     },
@@ -111,6 +123,10 @@ function fakeNetworkSandboxSessionForStartupSuccess({
 }
 
 describe('createCodex adapter', () => {
+  beforeEach(() => {
+    sentMessages.length = 0;
+  });
+
   it('declares the harness id and builtin tools', () => {
     const harness = createCodex();
     expect(harness.harnessId).toBe('codex');
@@ -195,8 +211,161 @@ describe('createCodex adapter', () => {
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-codex/0.0.0-test',
     );
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(session.modelId).toBe('gpt-5.5');
     await session.doDestroy();
+  });
+
+  it('brokers credentials when the sandbox supports additive request transformations', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs,
+      writes: [],
+      addRequestTransformations,
+    });
+    const harness = createCodex({
+      auth: {
+        openai: {
+          apiKey: 'openai-secret',
+          baseUrl: 'https://openai.example/v1',
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'openai.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+
+    await session.doDestroy();
+  });
+
+  it('configures the standard OpenAI URL for brokered direct auth', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs,
+      writes: [],
+      addRequestTransformations,
+    });
+    const harness = createCodex({
+      auth: { openai: { apiKey: 'openai-secret' } },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'api.openai.com',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(spawnEnvs.at(0)?.OPENAI_BASE_URL).toBe('https://api.openai.com/v1');
+
+    await session.doDestroy();
+  });
+
+  it('sends configured MCP servers to the bridge', async () => {
+    const mcpServers = {
+      context7: { url: 'https://mcp.context7.com/mcp' },
+    };
+    const session = await createCodex({ mcpServers }).doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'Use Context7.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        mcpServers,
+      });
+    });
+
+    await session.doDestroy();
+  });
+
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    const runs: string[] = [];
+    const spawns: string[] = [];
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const harness = createCodex({ mintBridgeToken });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs,
+      spawns,
+      spawnEnvs,
+      writes: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
+      'token-for-test-sandbox',
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-test-sandbox' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
   });
 
   describe('getBootstrap', () => {

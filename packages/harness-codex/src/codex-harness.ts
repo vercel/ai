@@ -27,9 +27,11 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   markBridgeStarting,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
@@ -39,7 +41,14 @@ import {
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
-import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
+import {
+  CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  createCodexRequestTransformations,
+  DEFAULT_OPENAI_BASE_URL,
+  resolveCodexAuthenticationMode,
+  resolveCodexEnv,
+  type CodexAuthOptions,
+} from './codex-auth';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -76,6 +85,11 @@ const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
   /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  /**
    * OpenAI model id the underlying `codex` CLI should use. Leaving this unset
    * pins the adapter default (`DEFAULT_CODEX_MODEL`).
    */
@@ -98,6 +112,11 @@ export type CodexHarnessSettings = {
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };
 
 /*
@@ -218,6 +237,40 @@ export function createCodex(
         });
       }
       const sandboxSession = startOpts.sandboxSession;
+      const authenticationMode = resolveCodexAuthenticationMode(settings.auth);
+      const resolvedAuthEnvironment = resolveCodexEnv(settings.auth);
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createCodexRequestTransformations(
+          resolvedAuthEnvironment,
+          authenticationMode,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        sandboxAuthEnvironment = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+        if (
+          requestTransformations.length > 0 &&
+          authenticationMode === 'direct' &&
+          resolvedAuthEnvironment.OPENAI_BASE_URL == null
+        ) {
+          /*
+           * Vercel Sandbox request transformations apply only to HTTP traffic.
+           * Materializing Codex's standard OpenAI URL makes the bridge select
+           * its custom provider, where WebSockets are disabled, while keeping
+           * the non-brokered path on Codex's built-in OpenAI provider.
+           */
+          sandboxAuthEnvironment.OPENAI_BASE_URL = DEFAULT_OPENAI_BASE_URL;
+        }
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
       const bootstrapDir = path.posix.resolve(
@@ -298,6 +351,7 @@ export function createCodex(
             model: settings.model ?? DEFAULT_CODEX_MODEL,
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
+            mcpServers: settings.mcpServers,
             resumeThreadId: resumeThreadIdString,
             isResume: true,
             seedResumeThreadOnFirstPrompt: false,
@@ -337,7 +391,10 @@ export function createCodex(
       }
 
       const port = resolveBridgePort(sandboxSession, settings.port);
-      const token = randomBytes(32).toString('hex');
+      const token =
+        settings.mintBridgeToken == null
+          ? randomBytes(32).toString('hex')
+          : settings.mintBridgeToken(sandboxId);
       const codexSkillSetup =
         startOpts.skills && startOpts.skills.length > 0
           ? await writeCodexSkills({
@@ -347,7 +404,7 @@ export function createCodex(
             })
           : undefined;
       const env = {
-        ...resolveCodexEnv(settings.auth),
+        ...sandboxAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
@@ -445,6 +502,7 @@ export function createCodex(
         model: settings.model ?? DEFAULT_CODEX_MODEL,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
+        mcpServers: settings.mcpServers,
         resumeThreadId: resumeThreadIdString,
         isResume: respawnStrategy !== undefined,
         seedResumeThreadOnFirstPrompt: respawnStrategy !== undefined,
@@ -548,6 +606,7 @@ function createSession({
   model,
   reasoningEffort,
   webSearch,
+  mcpServers,
   resumeThreadId,
   isResume,
   seedResumeThreadOnFirstPrompt,
@@ -566,6 +625,7 @@ function createSession({
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
+  mcpServers: Record<string, unknown> | undefined;
   resumeThreadId: string | undefined;
   isResume: boolean;
   seedResumeThreadOnFirstPrompt: boolean;
@@ -588,12 +648,12 @@ function createSession({
     ? resumeThreadId
     : undefined;
   /*
-   * Initial prompt guidance is prepended to the first user message of a fresh
-   * session only. A resumed session (attach/replay/rerun) already carried it
-   * in its original first message (preserved in the persisted thread), so it
+   * Host-tool relay guidance is prepended to the first user message of a fresh
+   * session only. A resumed session (attach/replay/rerun) already carried it in
+   * its original first message (preserved in the persisted thread), so it
    * starts "applied".
    */
-  let instructionsApplied = isResume;
+  let initialPromptGuidanceApplied = isResume;
 
   /*
    * Latest codex thread id, cached from the bridge's `bridge-thread`
@@ -778,12 +838,8 @@ function createSession({
         inputSchema: t.inputSchema,
       }));
       let promptText = extractUserText(promptOpts.prompt);
-      if (!instructionsApplied) {
-        const instructions =
-          (promptOpts.instructions ? promptOpts.instructions + '\n\n' : '') +
-          'Only respond with your `final` message once you have fully addressed the user request.';
+      if (!initialPromptGuidanceApplied) {
         promptText = frameInitialPromptGuidance({
-          instructions,
           toolUsageBlock:
             tools.length > 0
               ? composeToolUsageInstructions({
@@ -794,15 +850,19 @@ function createSession({
           userText: promptText,
         });
       }
-      instructionsApplied = true;
+      initialPromptGuidanceApplied = true;
 
       const startMessage = {
         type: 'start' as const,
         prompt: promptText,
         tools,
+        ...(promptOpts.instructions
+          ? { instructions: promptOpts.instructions }
+          : {}),
         model,
         reasoningEffort,
         webSearch,
+        ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(pendingResumeThreadId
           ? { resumeThreadId: pendingResumeThreadId }
@@ -851,9 +911,13 @@ function createSession({
               description: t.description,
               inputSchema: t.inputSchema,
             })),
+            ...(continueOpts.instructions
+              ? { instructions: continueOpts.instructions }
+              : {}),
             model,
             reasoningEffort,
             webSearch,
+            ...(mcpServers == null ? {} : { mcpServers }),
             ...(permissionMode ? { permissionMode } : {}),
             ...(threadId ? { resumeThreadId: threadId } : {}),
             ...(debug ? { debug } : {}),
@@ -1043,28 +1107,18 @@ function createSession({
 }
 
 /*
- * Frame session instructions, host-tool relay guidance, and the user's text so
- * Codex treats the prepended blocks as operating guidance rather than user
- * prose. Applied only to the first user message of a fresh session.
+ * Frame host-tool relay guidance and the user's text so Codex treats the
+ * prepended block as operating guidance rather than user prose. Applied only
+ * to the first user message of a fresh session.
  */
 function frameInitialPromptGuidance({
-  instructions,
   toolUsageBlock,
   userText,
 }: {
-  instructions: string | undefined;
   toolUsageBlock: string | undefined;
   userText: string;
 }): string {
   const blocks: string[] = [];
-  if (instructions) {
-    blocks.push(
-      '<session-instructions>\n' +
-        'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
-        `${instructions}\n` +
-        '</session-instructions>',
-    );
-  }
   if (toolUsageBlock) blocks.push(toolUsageBlock);
   if (blocks.length === 0) return userText;
   return `${blocks.join('\n\n')}\n\n<user-message>\n${userText}\n</user-message>`;
