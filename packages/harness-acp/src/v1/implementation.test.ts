@@ -225,11 +225,32 @@ describe('ACP npm implementation', () => {
     ).toThrow('cannot be configured in both forwardEnv and env');
   });
 
+  it('requires credential environment keys to be distinct from other environment settings', () => {
+    expect(() =>
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        credentialEnv: ['PROVIDER_API_KEY'],
+      }),
+    ).toThrow('cannot be configured in both forwardEnv and credentialEnv');
+    expect(() =>
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        credentialEnv: ['PROVIDER_BASE_URL'],
+      }),
+    ).toThrow('cannot be configured in both credentialEnv and env');
+  });
+
   it('rejects invalid forwarded environment-variable names', () => {
     expect(() =>
       validateACPV1Implementation({
         ...simpleImplementation,
         forwardEnv: ['not-an-environment-variable'],
+      }),
+    ).toThrow('environment variable name is invalid');
+    expect(() =>
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        credentialEnv: ['not-an-environment-variable'],
       }),
     ).toThrow('environment variable name is invalid');
   });
@@ -279,6 +300,23 @@ describe('ACP npm implementation', () => {
       SECOND_PROVIDER_API_KEY: 'second-provider-secret',
       PROVIDER_BASE_URL: 'https://provider.example',
     });
+    expect(
+      resolveImplementationEnvironment({
+        implementation: {
+          ...simpleImplementation,
+          forwardEnv: ['SECOND_PROVIDER_API_KEY'],
+          credentialEnv: ['PROVIDER_API_KEY'],
+        },
+        env: {
+          PROVIDER_API_KEY: 'provider-secret',
+          SECOND_PROVIDER_API_KEY: 'second-provider-secret',
+        },
+      }),
+    ).toEqual({
+      PROVIDER_API_KEY: 'provider-secret',
+      SECOND_PROVIDER_API_KEY: 'second-provider-secret',
+      PROVIDER_BASE_URL: 'https://provider.example',
+    });
   });
 
   it('keeps sensitive values out of immutable descriptors', () => {
@@ -305,6 +343,15 @@ describe('ACP npm implementation', () => {
         },
       }),
     ).toBe(baseIdentity);
+    expect(
+      identity({
+        implementation: {
+          ...simpleImplementation,
+          forwardEnv: ['SECOND_PROVIDER_API_KEY'],
+          credentialEnv: ['PROVIDER_API_KEY'],
+        },
+      }),
+    ).not.toBe(baseIdentity);
     expect(
       identity({
         implementation: {

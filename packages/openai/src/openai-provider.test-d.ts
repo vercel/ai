@@ -3,7 +3,7 @@ import type {
   LanguageModelV4,
 } from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
-import { openai } from './openai-provider';
+import { openai, type OpenAILanguageModelResponsesOptions } from './index';
 
 it('types only OpenAI Responses models with their batch capability', () => {
   expectTypeOf(openai('gpt-5.6')).toMatchTypeOf<BatchLanguageModelV4>();
@@ -23,4 +23,10 @@ it('types only OpenAI Responses models with their batch capability', () => {
   expectTypeOf(
     openai.completion('gpt-3.5-turbo-instruct'),
   ).not.toMatchTypeOf<BatchLanguageModelV4>();
+});
+
+it('types the explicit compaction trigger option', () => {
+  expectTypeOf<
+    OpenAILanguageModelResponsesOptions['compactionTrigger']
+  >().toEqualTypeOf<boolean | undefined>();
 });

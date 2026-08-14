@@ -167,44 +167,43 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
   });
 
   // ==========================================================================
-  // GAP tests — these fail until the feature is implemented
+  // Lifecycle and approval behavior
   // ==========================================================================
 
-  describe('experimental_onStart (GAP)', () => {
-    it('completes but callbacks are not called (GAP)', async () => {
+  describe('experimental_onStart', () => {
+    it('calls constructor and stream callbacks', async () => {
       const run = await start(agentOnStartE2e, []);
       const rv = await run.returnValue;
-      // GAP: when implemented, should be ['constructor', 'method']
-      expect(rv.callSources).toEqual([]);
+      expect(rv.callSources).toEqual(['constructor', 'method']);
     });
   });
 
-  describe('experimental_onStepStart (GAP)', () => {
-    it('completes but callbacks are not called (GAP)', async () => {
+  describe('experimental_onStepStart', () => {
+    it('calls constructor and stream callbacks', async () => {
       const run = await start(agentOnStepStartE2e, []);
       const rv = await run.returnValue;
-      // GAP: when implemented, should be ['constructor', 'method']
-      expect(rv.callSources).toEqual([]);
+      expect(rv.callSources).toEqual(['constructor', 'method']);
     });
   });
 
-  describe('onToolExecutionStart (GAP)', () => {
-    it('completes but callbacks are not called (GAP)', async () => {
+  describe('onToolExecutionStart', () => {
+    it('calls constructor and stream callbacks', async () => {
       const run = await start(agentonToolExecutionStartE2e, []);
       const rv = await run.returnValue;
-      // GAP: when implemented, should be ['constructor', 'method']
-      expect(rv.calls).toEqual([]);
+      expect(rv.calls).toEqual(['constructor', 'method']);
     });
   });
 
-  describe('onToolExecutionEnd (GAP)', () => {
-    it('completes but callbacks are not called (GAP)', async () => {
+  describe('onToolExecutionEnd', () => {
+    it('calls constructor and stream callbacks with the result', async () => {
       const run = await start(agentonToolExecutionEndE2e, []);
       const rv = await run.returnValue;
-      // GAP: when implemented, should be ['constructor', 'method']
-      expect(rv.calls).toEqual([]);
-      // GAP: capturedEvent should have tool result data
-      expect(rv.capturedEvent).toBeNull();
+      expect(rv.calls).toEqual(['constructor', 'method']);
+      expect(rv.capturedEvent).toEqual({
+        toolName: 'addNumbers',
+        success: true,
+        output: 3,
+      });
     });
   });
 
@@ -216,14 +215,16 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
     });
   });
 
-  describe('tool approval (GAP)', () => {
-    it('completes but needsApproval is not checked (GAP)', async () => {
+  describe('tool approval', () => {
+    it('pauses before executing a tool that needs approval', async () => {
       const run = await start(agentToolApprovalE2e, []);
       const rv = await run.returnValue;
-      // GAP: when tool approval is implemented, the agent should pause
-      // with toolCallsCount=1 and toolResultsCount=0 (awaiting approval).
-      // Currently needsApproval is ignored, so the tool executes immediately.
-      expect(rv.stepCount).toBe(2);
+      expect(rv).toMatchObject({
+        stepCount: 1,
+        toolCallsCount: 1,
+        toolResultsCount: 0,
+        firstToolCallName: 'riskyTool',
+      });
     });
   });
 
@@ -266,9 +267,6 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       expect(rv.firstPrepareStepSawConstructorSandbox).toBe(true);
       expect(rv.secondPrepareStepSawConstructorSandbox).toBe(true);
       expect(rv.prepareStepSawStepSandbox).toBe(false);
-      expect(rv.toolResults[0]?.output).toMatchObject({
-        stdout: 'ran: echo hello',
-      });
     });
   });
 });

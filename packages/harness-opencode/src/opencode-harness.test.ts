@@ -4,21 +4,73 @@ import {
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOpenCode } from './opencode-harness';
 
+const webSocketMocks = vi.hoisted(() => {
+  type Listener = (...args: unknown[]) => void;
+  const calls: Array<{
+    url: string;
+    headers: Record<string, string> | undefined;
+  }> = [];
+
+  class FakeWebSocket {
+    private readonly listeners = new Map<string, Set<Listener>>();
+
+    constructor(url: string, options?: { headers?: Record<string, string> }) {
+      calls.push({ url, headers: options?.headers });
+      queueMicrotask(() => this.emit('open'));
+    }
+
+    once(type: string, listener: Listener): this {
+      const onceListener: Listener = (...args) => {
+        this.off(type, onceListener);
+        listener(...args);
+      };
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(onceListener);
+      this.listeners.set(type, listeners);
+      return this;
+    }
+
+    off(type: string, listener: Listener): this {
+      this.listeners.get(type)?.delete(listener);
+      return this;
+    }
+
+    private emit(type: string, ...args: unknown[]): void {
+      for (const listener of [...(this.listeners.get(type) ?? [])]) {
+        listener(...args);
+      }
+    }
+  }
+
+  return { calls, WebSocket: FakeWebSocket };
+});
+
+vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
+
 const harnessUtilsMocks = vi.hoisted(() => {
-  const channels: Array<{ sent: unknown[]; closed: boolean }> = [];
+  const channels: Array<{
+    sent: unknown[];
+    closed: boolean;
+    connect: () => Promise<unknown>;
+  }> = [];
 
   class MockSandboxChannel {
     sent: unknown[] = [];
     closed = false;
 
-    constructor() {
+    constructor({ connect }: { connect: () => Promise<unknown> }) {
+      this.connect = connect;
       channels.push(this);
     }
 
-    async open() {}
+    readonly connect: () => Promise<unknown>;
+
+    async open() {
+      if (harnessUtilsMocks.connectOnOpen) await this.connect();
+    }
 
     send(message: unknown) {
       this.sent.push(message);
@@ -47,6 +99,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
   return {
     channels,
+    connectOnOpen: false,
     markBridgeStarting: vi.fn(),
     SandboxChannel: MockSandboxChannel,
     waitForBridgeReady: vi.fn(async (): Promise<{ port: number }> => {
@@ -91,6 +144,11 @@ function getBuiltinToolMetadata(tool: unknown): {
 }
 
 describe('createOpenCode adapter', () => {
+  beforeEach(() => {
+    harnessUtilsMocks.connectOnOpen = false;
+    webSocketMocks.calls.length = 0;
+  });
+
   it('declares the harness id and builtin tools', () => {
     const harness = createOpenCode();
     expect(harness.harnessId).toBe('opencode');
@@ -128,6 +186,9 @@ describe('createOpenCode adapter', () => {
       defaultWorkingDirectory: '/vercel/sandbox',
       restricted: () => ({}) as never,
       ports: [] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: '' };
+      },
       async getPortUrl() {
         return '';
       },
@@ -142,7 +203,8 @@ describe('createOpenCode adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
-  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+  it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
+    harnessUtilsMocks.connectOnOpen = true;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const mintBridgeToken = vi.fn(
@@ -178,6 +240,12 @@ describe('createOpenCode adapter', () => {
       defaultWorkingDirectory: '/workspace',
       restricted: () => sandbox,
       ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return {
+          url: 'wss://sandbox.example/bridge?existing=value',
+          headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        };
+      },
       async getPortUrl() {
         return 'ws://sandbox.example';
       },
@@ -207,7 +275,93 @@ describe('createOpenCode adapter', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(webSocketMocks.calls).toEqual([
+      {
+        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
+        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+      },
+      {
+        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
+        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+      },
+    ]);
     await attachedSession.doDetach();
+  });
+
+  it('brokers credentials when the sandbox supports additive request transformations', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvs.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      addRequestTransformations,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const harness = createOpenCode({
+      provider: 'openai',
+      auth: {
+        openai: {
+          apiKey: 'openai-secret',
+          baseUrl: 'https://openai.example/v1',
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'openai.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('OPENAI_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+
+    await session.doDetach();
   });
 
   it('writes skills under sandbox HOME and starts OpenCode with that HOME', async () => {
@@ -257,6 +411,9 @@ describe('createOpenCode adapter', () => {
       defaultWorkingDirectory: '/workspace',
       restricted: () => sandbox,
       ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
       async getPortUrl() {
         return 'ws://sandbox.example';
       },
@@ -354,6 +511,9 @@ describe('createOpenCode adapter', () => {
       defaultWorkingDirectory: '/workspace',
       restricted: () => sandbox,
       ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
       async getPortUrl() {
         return 'ws://sandbox.example';
       },
@@ -441,6 +601,13 @@ describe('createOpenCode adapter', () => {
         command:
           'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
       });
+    });
+
+    it('shares the getter across configured harness instances', () => {
+      const first = createOpenCode({ model: 'first-model' });
+      const second = createOpenCode({ model: 'second-model' });
+
+      expect(first.getBootstrap).toBe(second.getBootstrap);
     });
   });
 });
