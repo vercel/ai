@@ -256,7 +256,10 @@
           "for": { "files": ["${harnessId}-harness.ts"] },
           "if": { "hasFile": "bridge/index.ts" },
           "must": {
-            "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "haveFiles": [
+              "${harnessId}-bridge-protocol.ts",
+              "${harnessId}-bootstrap.ts"
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -283,7 +286,10 @@
           "for": { "files": ["${harnessId}-harness.ts"] },
           "if": { "hasFile": "*/bridge/index.ts" },
           "must": {
-            "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "haveFiles": [
+              "${harnessId}-bridge-protocol.ts",
+              "${harnessId}-bootstrap.ts"
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -406,6 +412,27 @@
               "InboundMessage",
               "bridgeReadySchema",
               "BridgeReady"
+            ]
+          }
+        },
+        {
+          "name": "harness-sandbox-bootstrap-file-must-export-relevant-symbols",
+          "description": "Every harness sandbox bootstrap file must export the relevant symbols.",
+          "for": { "files": ["${harnessId}-bootstrap.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1Bootstrap",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "exportConstants": ["${harnessId.toConstantCase()}_BOOTSTRAP_DIR"],
+            "exportFunctions": [
+              {
+                "name": "get${harnessId.toPascalCase()}Bootstrap",
+                "receiveParamsOfTypes": [],
+                "returnValueOfType": "Promise<HarnessV1Bootstrap>"
+              }
             ]
           }
         },

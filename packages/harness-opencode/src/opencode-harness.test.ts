@@ -602,5 +602,12 @@ describe('createOpenCode adapter', () => {
           'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
       });
     });
+
+    it('shares the getter across configured harness instances', () => {
+      const first = createOpenCode({ model: 'first-model' });
+      const second = createOpenCode({ model: 'second-model' });
+
+      expect(first.getBootstrap).toBe(second.getBootstrap);
+    });
   });
 });

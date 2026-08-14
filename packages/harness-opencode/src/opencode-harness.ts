@@ -1,13 +1,10 @@
 import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   commonTool,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
-  type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
@@ -44,6 +41,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
+import {
+  getOpenCodeBootstrap,
+  OPENCODE_BOOTSTRAP_DIR as BOOTSTRAP_DIR,
+} from './opencode-bootstrap';
 import {
   createOpenCodeRequestTransformations,
   OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
@@ -198,8 +199,6 @@ const OPENCODE_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
-const BOOTSTRAP_DIR = '.harness-bootstrap/opencode';
-
 const openCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
@@ -225,46 +224,13 @@ export function createOpenCode(
       'OpenCode MCP server name "harness-tools" is reserved for HarnessAgent tools.',
     );
   }
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
-
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'opencode',
     builtinTools: OPENCODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
     lifecycleStateSchema: openCodeResumeStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
-        readBridgeAsset('package.json'),
-        readBridgeAsset('pnpm-lock.yaml'),
-        readBridgeAsset('index.mjs'),
-        readBridgeAsset('host-tool-mcp.mjs'),
-      ]);
-      cachedBootstrap = {
-        harnessId: 'opencode',
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
-          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-          {
-            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
-            content: hostToolMcp,
-          },
-        ],
-        commands: [
-          {
-            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-          },
-          {
-            command:
-              'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
       const authenticationMode = resolveOpenCodeAuthenticationMode({
@@ -540,24 +506,6 @@ function resolveBridgePort(
       'The OpenCode harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createOpenCode({ port })`.',
   });
-}
-
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
 async function writeOpenCodeSkills({
