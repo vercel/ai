@@ -581,19 +581,30 @@ export class XaiVideoModel implements VideoModelV4 {
       statusResponse.status === 'done' ||
       (statusResponse.status == null && statusResponse.video?.url)
     ) {
+      // Terminal outcomes, so they are reported the same way as an upstream `failed`
       if (statusResponse.video?.respect_moderation === false) {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_MODERATION_ERROR',
-          message:
+        return {
+          status: 'error' as const,
+          error:
             'Video generation was blocked due to a content policy violation.',
-        });
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: responseHeaders,
+          },
+        };
       }
 
       if (!statusResponse.video?.url) {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_ERROR',
-          message: 'Video generation completed but no video URL was returned.',
-        });
+        return {
+          status: 'error' as const,
+          error: 'Video generation completed but no video URL was returned.',
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: responseHeaders,
+          },
+        };
       }
 
       return {
