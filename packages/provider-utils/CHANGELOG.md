@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.46
+
+### Patch Changes
+
+- 31205a4: chore(provider-utils): upgrade undici to a maintained release
+
 ## 4.0.45
 
 ### Patch Changes

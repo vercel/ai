@@ -1,5 +1,12 @@
 # @ai-sdk/moonshotai
 
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
 ## 2.0.45
 
 ### Patch Changes
