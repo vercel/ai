@@ -142,6 +142,147 @@ describe('createOpenCode adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
+  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const mintBridgeToken = vi.fn(
+      (sandboxId: string) => `token-for-${sandboxId}`,
+    );
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvs.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const harness = createOpenCode({ mintBridgeToken });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+
+    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
+    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
+      'token-for-test-sandbox',
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: { token: 'token-for-test-sandbox' },
+    });
+
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+      resumeFrom,
+    });
+    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
+  });
+
+  it('brokers credentials when the sandbox supports additive request transformations', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvs.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      addRequestTransformations,
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const harness = createOpenCode({
+      provider: 'openai',
+      auth: {
+        openai: {
+          apiKey: 'openai-secret',
+          baseUrl: 'https://openai.example/v1',
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'openai.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('OPENAI_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+
+    await session.doDetach();
+  });
+
   it('writes skills under sandbox HOME and starts OpenCode with that HOME', async () => {
     const runCommands: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];
@@ -240,12 +381,19 @@ describe('createOpenCode adapter', () => {
     expect(spawns.at(-1)?.env.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-opencode/0.0.0-test',
     );
+    expect(spawns.at(-1)?.env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
+    expect(spawns.at(-1)?.command).toContain(
+      "node '/workspace/.harness-bootstrap/opencode/bridge.mjs'",
+    );
+    expect(spawns.at(-1)?.command).toContain(
+      "--bootstrap-dir '/workspace/.harness-bootstrap/opencode'",
+    );
     expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",
     );
   });
 
-  it('passes reasoningVariant to OpenCode as the prompt variant', async () => {
+  it('passes reasoningVariant, instructions, and MCP servers to every OpenCode prompt', async () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const emptyStream = () =>
@@ -285,8 +433,15 @@ describe('createOpenCode adapter', () => {
       async stop() {},
     } as unknown as HarnessV1NetworkSandboxSession;
 
+    const mcpServers = {
+      context7: {
+        type: 'remote',
+        url: 'https://mcp.context7.com/mcp',
+      },
+    };
     const session = await createOpenCode({
       reasoningVariant: 'high',
+      mcpServers,
     }).doStart({
       sessionId: 's1',
       sandboxSession,
@@ -294,6 +449,7 @@ describe('createOpenCode adapter', () => {
     });
     await session.doPromptTurn({
       prompt: 'think',
+      instructions: 'be concise',
       emit: () => {},
     });
 
@@ -301,7 +457,24 @@ describe('createOpenCode adapter', () => {
       type: 'start',
       operation: 'prompt',
       prompt: 'think',
+      instructions: 'be concise',
       variant: 'high',
+      mcpServers,
+    });
+
+    await session.doPromptTurn({
+      prompt: 'think again',
+      instructions: 'be concise',
+      emit: () => {},
+    });
+
+    expect(harnessUtilsMocks.channels.at(-1)?.sent.at(-1)).toMatchObject({
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'think again',
+      instructions: 'be concise',
+      variant: 'high',
+      mcpServers,
     });
 
     await session.doDestroy();
@@ -313,7 +486,7 @@ describe('createOpenCode adapter', () => {
       expect(harness.getBootstrap).toBeDefined();
       const recipe = await harness.getBootstrap!();
       expect(recipe.harnessId).toBe('opencode');
-      expect(recipe.bootstrapDir).toBe('/tmp/harness/opencode');
+      expect(recipe.bootstrapDir).toBe('.harness-bootstrap/opencode');
     });
 
     it('includes bridge assets under the bootstrap dir', async () => {
@@ -321,10 +494,10 @@ describe('createOpenCode adapter', () => {
       const recipe = await harness.getBootstrap!();
       const paths = recipe.files.map(file => file.path).sort();
       expect(paths).toEqual([
-        '/tmp/harness/opencode/bridge.mjs',
-        '/tmp/harness/opencode/host-tool-mcp.mjs',
-        '/tmp/harness/opencode/package.json',
-        '/tmp/harness/opencode/pnpm-lock.yaml',
+        '.harness-bootstrap/opencode/bridge.mjs',
+        '.harness-bootstrap/opencode/host-tool-mcp.mjs',
+        '.harness-bootstrap/opencode/package.json',
+        '.harness-bootstrap/opencode/pnpm-lock.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
@@ -334,9 +507,12 @@ describe('createOpenCode adapter', () => {
     it('runs the OpenCode CLI postinstall during bootstrap', async () => {
       const harness = createOpenCode();
       const recipe = await harness.getBootstrap!();
+      expect(recipe.commands[0]).toEqual({
+        command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      });
       expect(recipe.commands).toContainEqual({
         command:
-          'cd /tmp/harness/opencode && node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
+          'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
       });
     });
   });

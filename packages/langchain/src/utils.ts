@@ -29,16 +29,107 @@ import type {
 } from './types';
 
 /**
- * Parses a LangGraph event tuple into [type, data].
+ * Parses a LangGraph event tuple into [namespace, type, data].
  * Handles both 2-element [type, data] and 3-element [namespace, type, data] formats.
  *
  * @param event - The raw LangGraph event array.
- * @returns A tuple of [type, data].
+ * @returns A tuple of [namespace, type, data].
  */
 export function parseLangGraphEvent(
   event: unknown[],
-): [type: unknown, data: unknown] {
-  return event.length === 3 ? [event[1], event[2]] : [event[0], event[1]];
+): [namespace: unknown | undefined, type: unknown, data: unknown] {
+  return event.length === 3
+    ? [event[0], event[1], event[2]]
+    : [undefined, event[0], event[1]];
+}
+
+export function getLangGraphProviderMetadata(
+  namespace: string[] | undefined,
+): ProviderMetadata | undefined {
+  return namespace === undefined
+    ? undefined
+    : {
+        langchain: {
+          namespace,
+        },
+      };
+}
+
+function addLangGraphNamespace(
+  chunk: UIMessageChunk,
+  namespace: string[] | undefined,
+): UIMessageChunk {
+  if (namespace === undefined) {
+    return chunk;
+  }
+
+  switch (chunk.type) {
+    case 'text-start':
+    case 'text-delta':
+    case 'text-end':
+    case 'reasoning-start':
+    case 'reasoning-delta':
+    case 'reasoning-end':
+    case 'custom':
+    case 'tool-input-start':
+    case 'tool-input-available':
+    case 'tool-input-error':
+    case 'tool-approval-response':
+    case 'tool-output-available':
+    case 'tool-output-error':
+    case 'source-url':
+    case 'source-document':
+    case 'file':
+    case 'reasoning-file': {
+      return {
+        ...chunk,
+        providerMetadata: {
+          ...chunk.providerMetadata,
+          langchain: {
+            ...chunk.providerMetadata?.langchain,
+            namespace,
+          },
+        },
+      };
+    }
+    default:
+      return chunk;
+  }
+}
+
+function createLangGraphNamespaceController(
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+  state: LangGraphEventState,
+  eventNamespace: string[] | undefined,
+): ReadableStreamDefaultController<UIMessageChunk> {
+  return {
+    get desiredSize() {
+      return controller.desiredSize;
+    },
+    close: () => controller.close(),
+    error: reason => controller.error(reason),
+    enqueue: chunk => {
+      if (chunk === undefined) {
+        return;
+      }
+
+      let messageNamespace: string[] | undefined;
+      switch (chunk.type) {
+        case 'text-start':
+        case 'text-delta':
+        case 'text-end':
+        case 'reasoning-start':
+        case 'reasoning-delta':
+        case 'reasoning-end':
+          messageNamespace = state.messageNamespaces.get(chunk.id);
+          break;
+      }
+
+      controller.enqueue(
+        addLangGraphNamespace(chunk, messageNamespace ?? eventNamespace),
+      );
+    },
+  };
 }
 
 /**
@@ -545,6 +636,26 @@ export function getMessageId(msg: unknown): string | undefined {
 }
 
 /**
+ * Checks if a message is an AIMessageChunk class instance, including instances
+ * created by a different LangChain module build.
+ */
+function isAIMessageChunkInstance(msg: unknown): msg is AIMessageChunk {
+  if (AIMessageChunk.isInstance(msg)) return true;
+  if (msg == null || typeof msg !== 'object') return false;
+
+  const message = msg as {
+    _getType?: () => unknown;
+    concat?: unknown;
+  };
+
+  return (
+    typeof message._getType === 'function' &&
+    typeof message.concat === 'function' &&
+    message._getType() === 'ai'
+  );
+}
+
+/**
  * Checks if a message is an AI message chunk (works for both class instances and plain objects).
  * For class instances, only AIMessageChunk is matched (not AIMessage).
  * For plain objects from RemoteGraph API, matches type === 'ai' (TypeScript langchain-core)
@@ -560,7 +671,7 @@ export function isAIMessageChunk(
   /**
    * Actual AIMessageChunk class instance
    */
-  if (AIMessageChunk.isInstance(msg)) return true;
+  if (isAIMessageChunkInstance(msg)) return true;
   /**
    * Plain object from RemoteGraph API (not a LangChain class instance)
    */
@@ -1134,6 +1245,53 @@ function getOrCreateToolCallInfoByIndex(
 }
 
 /**
+ * Normalizes legacy tuples without a namespace and explicit empty root
+ * namespaces to the same key.
+ */
+function getLangGraphNamespaceKey(namespace: string[] | undefined): string {
+  return JSON.stringify(namespace ?? []);
+}
+
+/**
+ * Ends and clears message state for the namespace that drives the global UI
+ * step lifecycle. Returns whether another namespace still has active text or
+ * reasoning that would be invalidated by a global finish-step chunk.
+ */
+function closeStepNamespaceMessages(
+  state: LangGraphEventState,
+  stepNamespace: string,
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): boolean {
+  let hasConcurrentMessageParts = false;
+
+  for (const [id, seen] of state.messageSeen) {
+    const messageNamespace = getLangGraphNamespaceKey(
+      state.messageNamespaces.get(id),
+    );
+
+    if (messageNamespace !== stepNamespace) {
+      if (seen.text || seen.reasoning) {
+        hasConcurrentMessageParts = true;
+      }
+      continue;
+    }
+
+    if (seen.text) {
+      controller.enqueue({ type: 'text-end', id });
+    }
+    if (seen.reasoning) {
+      controller.enqueue({ type: 'reasoning-end', id });
+    }
+    state.messageSeen.delete(id);
+    state.messageNamespaces.delete(id);
+    state.messageConcat.delete(id);
+    state.messageReasoningIds.delete(id);
+  }
+
+  return hasConcurrentMessageParts;
+}
+
+/**
  * Processes a LangGraph event and emits UI message chunks.
  *
  * @param event - The event to process.
@@ -1156,7 +1314,13 @@ export function processLangGraphEvent(
     emittedToolCallsByKey,
     emittedToolInputs,
   } = state;
-  const [type, data] = parseLangGraphEvent(event);
+  const [rawNamespace, type, data] = parseLangGraphEvent(event);
+  const namespace =
+    Array.isArray(rawNamespace) &&
+    rawNamespace.every(segment => typeof segment === 'string')
+      ? rawNamespace
+      : undefined;
+  controller = createLangGraphNamespaceController(controller, state, namespace);
 
   switch (type) {
     case 'custom': {
@@ -1204,32 +1368,45 @@ export function processLangGraphEvent(
 
       if (!msgId) return;
 
+      if (namespace !== undefined) {
+        state.messageNamespaces.set(msgId, namespace);
+      }
+
       /**
-       * Track LangGraph step changes and emit start-step/finish-step events.
-       * Before emitting finish-step, close any open text/reasoning parts so
-       * the client does not receive orphaned deltas after its
-       * activeReasoningParts / activeTextParts have been cleared.
+       * The first namespace with a step counter drives the global UI step
+       * lifecycle. This is the root namespace for complete subgraph streams and
+       * the selected namespace for streams filtered to one subgraph.
+       *
+       * Other namespaces have independent counters and must not change this
+       * cursor. A finish-step chunk clears every active UI text/reasoning part,
+       * so suppress the global boundary when another namespace is still active.
        */
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
           ? metadata.langgraph_step
           : null;
-      if (langgraphStep !== null && langgraphStep !== state.currentStep) {
+      const eventNamespace = getLangGraphNamespaceKey(namespace);
+      if (langgraphStep !== null && state.stepNamespace === null) {
+        state.stepNamespace = eventNamespace;
+      }
+      if (
+        langgraphStep !== null &&
+        eventNamespace === state.stepNamespace &&
+        langgraphStep !== state.currentStep
+      ) {
         if (state.currentStep !== null) {
-          for (const [id, seen] of messageSeen) {
-            if (seen.text) {
-              controller.enqueue({ type: 'text-end', id });
-            }
-            if (seen.reasoning) {
-              controller.enqueue({ type: 'reasoning-end', id });
-            }
-            messageSeen.delete(id);
-            messageConcat.delete(id);
-            messageReasoningIds.delete(id);
+          const hasConcurrentMessageParts = closeStepNamespaceMessages(
+            state,
+            state.stepNamespace,
+            controller,
+          );
+          if (!hasConcurrentMessageParts) {
+            controller.enqueue({ type: 'finish-step' });
+            controller.enqueue({ type: 'start-step' });
           }
-          controller.enqueue({ type: 'finish-step' });
+        } else {
+          controller.enqueue({ type: 'start-step' });
         }
-        controller.enqueue({ type: 'start-step' });
         state.currentStep = langgraphStep;
       }
 
@@ -1237,7 +1414,7 @@ export function processLangGraphEvent(
        * Accumulate message chunks for later reference
        * Note: Only works for actual class instances, not serialized messages
        */
-      if (AIMessageChunk.isInstance(msg)) {
+      if (isAIMessageChunkInstance(msg)) {
         const existingMessage = messageConcat.get(msgId);
         if (existingMessage) {
           messageConcat.set(
@@ -1620,6 +1797,7 @@ export function processLangGraphEvent(
         }
 
         messageSeen.delete(id);
+        state.messageNamespaces.delete(id);
         messageConcat.delete(id);
         messageReasoningIds.delete(id);
       }

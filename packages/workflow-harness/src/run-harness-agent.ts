@@ -346,7 +346,6 @@ type MutableStreamContext = {
 type ExecutionPartState = {
   openedTextParts: Set<string>;
   openedReasoningParts: Set<string>;
-  writtenToolInputs: Set<string>;
 };
 
 function createMutableStreamContext(
@@ -363,7 +362,6 @@ function createExecutionPartState(): ExecutionPartState {
   return {
     openedTextParts: new Set(),
     openedReasoningParts: new Set(),
-    writtenToolInputs: new Set(),
   };
 }
 
@@ -406,17 +404,6 @@ async function writeRequiredPrelude(options: {
     await writer.write(streamContext.activeReasoningParts[id]);
     executionPartState.openedReasoningParts.add(id);
   }
-
-  const toolCallId = stringProperty({ chunk, key: 'toolCallId' });
-  if (
-    toolCallId != null &&
-    needsToolInputPrelude(chunk) &&
-    streamContext.pendingToolInputs[toolCallId] != null &&
-    !executionPartState.writtenToolInputs.has(toolCallId)
-  ) {
-    await writer.write(streamContext.pendingToolInputs[toolCallId]);
-    executionPartState.writtenToolInputs.add(toolCallId);
-  }
 }
 
 function recordWorkflowChunk(options: {
@@ -454,13 +441,11 @@ function recordWorkflowChunk(options: {
 
   if (chunk.type === 'tool-input-available' && toolCallId != null) {
     streamContext.pendingToolInputs[toolCallId] = cloneChunk(chunk);
-    executionPartState.writtenToolInputs.add(toolCallId);
     return;
   }
 
   if (chunk.type === 'tool-input-error' && toolCallId != null) {
     delete streamContext.pendingToolInputs[toolCallId];
-    executionPartState.writtenToolInputs.add(toolCallId);
     return;
   }
 
@@ -512,15 +497,6 @@ function serializeStreamContextField(context: MutableStreamContext): {
       : {}),
   };
   return Object.keys(streamContext).length > 0 ? { streamContext } : {};
-}
-
-function needsToolInputPrelude(chunk: HarnessWorkflowChunk): boolean {
-  return (
-    chunk.type === 'tool-approval-request' ||
-    chunk.type === 'tool-output-available' ||
-    chunk.type === 'tool-output-error' ||
-    chunk.type === 'tool-output-denied'
-  );
 }
 
 function hasPendingHostInput(state: HarnessV1ContinueTurnState): boolean {
@@ -618,11 +594,13 @@ function toUsageSummary(
 ): HarnessWorkflowUsageSummary | undefined {
   if (usage == null || typeof usage !== 'object') return undefined;
   const u = usage as {
-    inputTokens?: { total?: number };
-    outputTokens?: { total?: number };
+    inputTokens?: number | { total?: number };
+    outputTokens?: number | { total?: number };
   };
-  const inputTokens = u.inputTokens?.total;
-  const outputTokens = u.outputTokens?.total;
+  const inputTokens =
+    typeof u.inputTokens === 'number' ? u.inputTokens : u.inputTokens?.total;
+  const outputTokens =
+    typeof u.outputTokens === 'number' ? u.outputTokens : u.outputTokens?.total;
   if (inputTokens == null && outputTokens == null) return undefined;
   return {
     ...(inputTokens != null ? { inputTokens } : {}),

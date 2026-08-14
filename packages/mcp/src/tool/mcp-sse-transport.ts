@@ -9,7 +9,7 @@ import { parseJSONRPCMessage, type JSONRPCMessage } from './json-rpc-message';
 import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  extractResourceMetadataUrl,
+  extractWWWAuthenticateParams,
   UnauthorizedError,
   auth,
   type OAuthClientProvider,
@@ -106,11 +106,14 @@ export class SseMCPTransport implements MCPTransport {
           });
 
           if (response.status === 401 && this.authProvider && !triedAuth) {
-            this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+            const { resourceMetadataUrl, scope } =
+              extractWWWAuthenticateParams(response);
+            this.resourceMetadataUrl = resourceMetadataUrl;
             try {
               const result = await auth(this.authProvider, {
                 serverUrl: this.url,
                 resourceMetadataUrl: this.resourceMetadataUrl,
+                scope,
                 fetchFn: this.fetchFn,
               });
               if (result !== 'AUTHORIZED') {
@@ -236,7 +239,12 @@ export class SseMCPTransport implements MCPTransport {
     this.onclose?.();
   }
 
-  async send(message: JSONRPCMessage): Promise<void> {
+  async send(
+    message: JSONRPCMessage,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
+    options?.signal?.throwIfAborted();
+
     if (!this.endpoint || !this.connected) {
       throw new MCPClientError({
         message: 'MCP SSE Transport Error: Not connected',
@@ -244,6 +252,13 @@ export class SseMCPTransport implements MCPTransport {
     }
 
     const endpoint = this.endpoint as URL;
+    const transportSignal = this.abortController?.signal;
+    const requestSignal =
+      options?.signal == null
+        ? transportSignal
+        : transportSignal == null
+          ? options.signal
+          : AbortSignal.any([transportSignal, options.signal]);
 
     const attempt = async (triedAuth: boolean = false): Promise<void> => {
       try {
@@ -254,18 +269,21 @@ export class SseMCPTransport implements MCPTransport {
           method: 'POST',
           headers,
           body: JSON.stringify(message),
-          signal: this.abortController?.signal,
+          signal: requestSignal,
           redirect: this.redirectMode,
         };
 
         const response = await this.fetchFn(endpoint.href, init);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
-          this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+          const { resourceMetadataUrl, scope } =
+            extractWWWAuthenticateParams(response);
+          this.resourceMetadataUrl = resourceMetadataUrl;
           try {
             const result = await auth(this.authProvider, {
               serverUrl: this.url,
               resourceMetadataUrl: this.resourceMetadataUrl,
+              scope,
               fetchFn: this.fetchFn,
             });
             if (result !== 'AUTHORIZED') {
@@ -289,6 +307,9 @@ export class SseMCPTransport implements MCPTransport {
           return;
         }
       } catch (error) {
+        if (options?.signal?.aborted) {
+          throw error;
+        }
         this.onerror?.(error);
         return;
       }

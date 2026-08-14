@@ -10,7 +10,12 @@ import {
 import { ChatAnthropic } from '@langchain/anthropic';
 import { tool } from '@langchain/core/tools';
 import { Command, MemorySaver } from '@langchain/langgraph';
+import {
+  MultiServerMCPClient,
+  type ClientConfig,
+} from '@langchain/mcp-adapters';
 import { createDeepAgent } from 'deepagents';
+import { createMiddleware } from 'langchain';
 import type { StartMessage } from '../deepagents-bridge-protocol';
 import { buildInterruptOn, collectActionRequests } from './approvals';
 import {
@@ -45,12 +50,22 @@ function parseArgs(rawArgs: string[]): Record<string, string> {
 
 // Always drive the Anthropic client. Through the gateway, models keep their
 // `creator/model` slug (gateway translates); direct Anthropic wants the bare id.
-function buildModel(rawModel: string | undefined) {
+function buildModel({
+  rawModel,
+  thinking,
+  effort,
+}: {
+  rawModel: string | undefined;
+  thinking: StartMessage['thinking'];
+  effort: StartMessage['effort'];
+}) {
   if (!rawModel) return undefined;
   const baseUrl = procEnv.ANTHROPIC_BASE_URL;
   const model = baseUrl ? rawModel : rawModel.replace(/^anthropic[/:]/, '');
   return new ChatAnthropic({
     model,
+    ...(thinking ? { thinking } : {}),
+    ...(effort ? { outputConfig: { effort } } : {}),
     ...(procEnv.ANTHROPIC_API_KEY ? { apiKey: procEnv.ANTHROPIC_API_KEY } : {}),
     ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}),
     ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
@@ -66,6 +81,42 @@ function buildModel(rawModel: string | undefined) {
   });
 }
 
+function createReasoningMiddleware({
+  thinking,
+  effort,
+}: {
+  thinking: StartMessage['thinking'];
+  effort: StartMessage['effort'];
+}) {
+  if (!thinking && !effort) return undefined;
+
+  return createMiddleware({
+    name: 'harnessReasoning',
+    wrapModelCall: async (request, handler) => {
+      let model = request.model;
+      if (
+        '_getModelInstance' in model &&
+        typeof model._getModelInstance === 'function'
+      ) {
+        model = await model._getModelInstance();
+      }
+
+      if (!(model instanceof ChatAnthropic)) {
+        throw new Error('Deep Agents reasoning requires ChatAnthropic');
+      }
+
+      const configuredModel = buildModel({
+        rawModel: model.model,
+        thinking,
+        effort,
+      });
+      if (!configuredModel) throw new Error('Deep Agents model is missing');
+
+      return handler({ ...request, model: configuredModel });
+    },
+  });
+}
+
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
 const bridgeStateDir = args.bridgeStateDir;
@@ -78,6 +129,8 @@ if (!workdir || !bridgeStateDir) {
 // One agent per bridge process, reused across turns; host tools read the live turn via `currentTurn`.
 let agent: ReturnType<typeof createDeepAgent> | undefined;
 let currentTurn: BridgeTurn | undefined;
+let mcpClient: MultiServerMCPClient | undefined;
+let mcpToolNames = new Set<string>();
 
 // Host tools become LangChain tools that emit a `tool-call` and block on the host's `tool-result`.
 function buildHostTools(toolSchemas: StartMessage['tools']) {
@@ -116,7 +169,17 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     start.builtinToolFiltering,
   );
   if (!agent) {
-    const model = buildModel(start.model);
+    const model = buildModel({
+      rawModel: start.model,
+      thinking: start.thinking,
+      effort: start.effort,
+    });
+    const reasoningMiddleware = model
+      ? undefined
+      : createReasoningMiddleware({
+          thinking: start.thinking,
+          effort: start.effort,
+        });
     const builtinToolFilteringMiddleware = createBuiltinToolFilteringMiddleware(
       {
         builtinToolFiltering: start.builtinToolFiltering,
@@ -127,17 +190,32 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         },
       },
     );
+    const middleware = [
+      ...(reasoningMiddleware ? [reasoningMiddleware] : []),
+      ...(builtinToolFilteringMiddleware
+        ? [builtinToolFilteringMiddleware]
+        : []),
+    ];
+    const hostTools = buildHostTools(start.tools);
+    const hostToolNames = new Set(hostTools.map(hostTool => hostTool.name));
+    const externalTools = await loadMcpTools({
+      mcpServers: start.mcpServers,
+    });
+    const mcpTools = externalTools.filter(
+      externalTool => !hostToolNames.has(externalTool.name),
+    );
+    mcpToolNames = new Set(mcpTools.map(mcpTool => mcpTool.name));
     agent = createDeepAgent({
       // Defer to Deep Agents's own default when the host configured no model.
       ...(model ? { model } : {}),
-      tools: buildHostTools(start.tools),
+      tools: [...mcpTools, ...hostTools],
       backend: createLocalShellBackend({ rootDir: workdir }),
-      systemPrompt: start.instructions || undefined,
+      systemPrompt: start.instructions
+        ? { suffix: start.instructions }
+        : undefined,
       // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
       ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
-      ...(builtinToolFilteringMiddleware
-        ? { middleware: [builtinToolFilteringMiddleware] }
-        : {}),
+      ...(middleware.length > 0 ? { middleware } : {}),
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),
       // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.
@@ -151,6 +229,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     state: streamEventState,
     configuredModel: start.model,
     hostToolNames,
+    mcpToolNames,
     emit,
   });
 
@@ -254,4 +333,37 @@ await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
   onStart: runTurn,
+  onStop: async () => {
+    await closeMcpClient();
+    return {};
+  },
+  onDestroy: closeMcpClient,
 });
+
+async function loadMcpTools({
+  mcpServers,
+}: {
+  mcpServers: Record<string, unknown> | undefined;
+}) {
+  if (mcpServers == null || Object.keys(mcpServers).length === 0) return [];
+  for (const [name, value] of Object.entries(mcpServers)) {
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(
+        `DeepAgents MCP server ${JSON.stringify(name)} must be configured with an object value.`,
+      );
+    }
+  }
+  mcpClient = new MultiServerMCPClient({
+    mcpServers: mcpServers as ClientConfig['mcpServers'],
+    prefixToolNameWithServerName: true,
+    additionalToolNamePrefix: 'mcp',
+  });
+  return mcpClient.getTools();
+}
+
+async function closeMcpClient(): Promise<void> {
+  const client = mcpClient;
+  mcpClient = undefined;
+  mcpToolNames = new Set();
+  await client?.close();
+}

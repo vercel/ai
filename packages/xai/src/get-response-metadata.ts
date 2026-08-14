@@ -1,3 +1,5 @@
+import { createLanguageModelResponseMetadata } from '@ai-sdk/provider-utils';
+
 export function getResponseMetadata({
   id,
   model,
@@ -9,11 +11,9 @@ export function getResponseMetadata({
   created_at?: number | undefined | null;
   model?: string | undefined | null;
 }) {
-  const unixTime = created ?? created_at;
-
-  return {
-    id: id ?? undefined,
-    modelId: model ?? undefined,
-    timestamp: unixTime != null ? new Date(unixTime * 1000) : undefined,
-  };
+  return createLanguageModelResponseMetadata({
+    id,
+    model,
+    created: created ?? created_at,
+  });
 }

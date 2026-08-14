@@ -113,6 +113,8 @@ classDiagram
       stop()
       destroy()
       setNetworkPolicy(policy)
+      setRequestTransformations(transformations)
+      addRequestTransformations(transformations)
       setPorts(ports, options)
       restricted()
     }

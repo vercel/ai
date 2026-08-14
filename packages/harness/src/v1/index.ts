@@ -36,6 +36,7 @@ export type {
 export type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
+  HarnessV1RequestTransformation,
 } from './harness-v1-network-sandbox-session';
 export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
@@ -61,15 +62,15 @@ export {
   harnessV1BridgeAbortInboundSchema,
   harnessV1BridgeBuiltinToolFilteringSchema,
   harnessV1BridgeDebugEventSchema,
-  harnessV1BridgeDetachInboundSchema,
-  harnessV1BridgeDetachSchema,
+  harnessV1BridgeDestroyInboundSchema,
   harnessV1BridgeHelloSchema,
   harnessV1BridgeInboundCommandSchemas,
   harnessV1BridgeOutboundMessageSchema,
   harnessV1BridgeReadySchema,
   harnessV1BridgeResumeInboundSchema,
   harnessV1BridgeSandboxLogSchema,
-  harnessV1BridgeShutdownInboundSchema,
+  harnessV1BridgeStopInboundSchema,
+  harnessV1BridgeStopSchema,
   harnessV1BridgeStartBaseSchema,
   harnessV1BridgeThreadSchema,
   harnessV1BridgeToolApprovalResponseInboundSchema,

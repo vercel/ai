@@ -13,7 +13,7 @@ import {
 import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  extractResourceMetadataUrl,
+  extractWWWAuthenticateParams,
   UnauthorizedError,
   auth,
   type AuthResult,
@@ -159,7 +159,10 @@ export class HttpMCPTransport implements MCPTransport {
   /**
    * Runs a single OAuth recovery flow for concurrent 401 responses.
    */
-  private authorizeOnce(resourceMetadataUrl?: URL): Promise<AuthResult> {
+  private authorizeOnce(
+    resourceMetadataUrl?: URL,
+    scope?: string,
+  ): Promise<AuthResult> {
     if (!this.authProvider) {
       return Promise.resolve('REDIRECT');
     }
@@ -168,6 +171,7 @@ export class HttpMCPTransport implements MCPTransport {
       this.authPromise = auth(this.authProvider, {
         serverUrl: this.url,
         resourceMetadataUrl,
+        scope,
         fetchFn: this.fetchFn,
       }).finally(() => {
         this.authPromise = undefined;
@@ -189,30 +193,45 @@ export class HttpMCPTransport implements MCPTransport {
     this.startInboundSse();
   }
 
-  async close(): Promise<void> {
+  async close(options?: { signal?: AbortSignal }): Promise<void> {
     this.inboundSseConnection?.close();
+    this.abortController?.abort();
+
     try {
       if (
         this.sessionId &&
         this.terminateSessionOnClose &&
-        this.abortController &&
-        !this.abortController.signal.aborted
+        this.abortController
       ) {
+        options?.signal?.throwIfAborted();
         const headers = await this.commonHeaders({ base: {} });
+        options?.signal?.throwIfAborted();
         await this.fetchFn(this.url.href, {
           method: 'DELETE',
           headers,
-          signal: this.abortController.signal,
+          signal: options?.signal,
           redirect: this.redirectMode,
         }).catch(() => undefined);
       }
     } catch {}
 
-    this.abortController?.abort();
     this.onclose?.();
   }
 
-  async send(message: JSONRPCMessage): Promise<void> {
+  async send(
+    message: JSONRPCMessage,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
+    options?.signal?.throwIfAborted();
+
+    const transportSignal = this.abortController?.signal;
+    const requestSignal =
+      options?.signal == null
+        ? transportSignal
+        : transportSignal == null
+          ? options.signal
+          : AbortSignal.any([transportSignal, options.signal]);
+
     const attempt = async (triedAuth: boolean = false): Promise<void> => {
       try {
         const isInitializeRequest =
@@ -232,7 +251,7 @@ export class HttpMCPTransport implements MCPTransport {
           method: 'POST',
           headers,
           body: JSON.stringify(message),
-          signal: this.abortController?.signal,
+          signal: requestSignal,
           redirect: this.redirectMode,
         } satisfies RequestInit;
 
@@ -241,9 +260,14 @@ export class HttpMCPTransport implements MCPTransport {
         this.applySessionIdFromResponse(response);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
-          this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+          const { resourceMetadataUrl, scope } =
+            extractWWWAuthenticateParams(response);
+          this.resourceMetadataUrl = resourceMetadataUrl;
           try {
-            const result = await this.authorizeOnce(this.resourceMetadataUrl);
+            const result = await this.authorizeOnce(
+              this.resourceMetadataUrl,
+              scope,
+            );
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
               throw error;
@@ -348,7 +372,10 @@ export class HttpMCPTransport implements MCPTransport {
                 }
               }
             } catch (error) {
-              if (error instanceof Error && error.name === 'AbortError') {
+              if (
+                options?.signal?.aborted ||
+                (error instanceof Error && error.name === 'AbortError')
+              ) {
                 return;
               }
               this.onerror?.(error);
@@ -356,7 +383,10 @@ export class HttpMCPTransport implements MCPTransport {
           };
 
           void processEvents().catch(error => {
-            if (error instanceof Error && error.name === 'AbortError') {
+            if (
+              options?.signal?.aborted ||
+              (error instanceof Error && error.name === 'AbortError')
+            ) {
               return;
             }
             this.onerror?.(error);
@@ -372,6 +402,9 @@ export class HttpMCPTransport implements MCPTransport {
         this.onerror?.(error);
         throw error;
       } catch (error) {
+        if (options?.signal?.aborted) {
+          throw error;
+        }
         this.onerror?.(error);
         throw error;
       }
@@ -449,9 +482,14 @@ export class HttpMCPTransport implements MCPTransport {
       this.applySessionIdFromResponse(response);
 
       if (response.status === 401 && this.authProvider && !triedAuth) {
-        this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+        const { resourceMetadataUrl, scope } =
+          extractWWWAuthenticateParams(response);
+        this.resourceMetadataUrl = resourceMetadataUrl;
         try {
-          const result = await this.authorizeOnce(this.resourceMetadataUrl);
+          const result = await this.authorizeOnce(
+            this.resourceMetadataUrl,
+            scope,
+          );
           if (result !== 'AUTHORIZED') {
             const error = new UnauthorizedError();
             this.onerror?.(error);

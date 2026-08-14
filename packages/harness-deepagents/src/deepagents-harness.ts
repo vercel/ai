@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   commonTool,
@@ -25,9 +26,11 @@ import {
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
@@ -35,6 +38,9 @@ import { tool, type Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
+  createDeepAgentsRequestTransformations,
+  DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  resolveDeepAgentsAuthenticationMode,
   resolveDeepAgentsEnv,
   type DeepAgentsAuthOptions,
 } from './deepagents-auth';
@@ -47,12 +53,30 @@ import { VERSION } from './version';
 
 type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
-// Pure derived state in /tmp; reinstalled per sandbox, persistence is the provider snapshot.
-const BOOTSTRAP_DIR = '/tmp/harness/deepagents';
+/*
+ * Bootstrap is derived state stored under the sandbox's default working
+ * directory so snapshot-capable providers preserve its installation and
+ * recipe marker without requiring root filesystem access.
+ */
+const BOOTSTRAP_DIR = '.harness-bootstrap/deepagents';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
 const DEEPAGENTS_CLIENT_APP = `ai-sdk/harness-deepagents/${VERSION}`;
+
+export type DeepAgentsThinkingConfig =
+  | {
+      readonly type: 'adaptive';
+      readonly display?: 'summarized' | 'omitted';
+    }
+  | {
+      readonly type: 'enabled';
+      readonly budget_tokens: number;
+      readonly display?: 'summarized' | 'omitted';
+    }
+  | {
+      readonly type: 'disabled';
+    };
 
 // Pinned ripgrep release + per-arch tarball checksums (verified before install).
 const RIPGREP_VERSION = '14.1.1';
@@ -87,15 +111,35 @@ export type DeepAgentsHarnessSettings = {
   readonly auth?: DeepAgentsAuthOptions;
   /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
   readonly model?: string;
+  /**
+   * Controls Anthropic extended thinking for the Deep Agents model. Unset
+   * preserves the Deep Agents runtime default.
+   */
+  readonly thinking?: DeepAgentsThinkingConfig;
+  /**
+   * Controls how much effort Claude applies when adaptive thinking is enabled.
+   * Unset uses the LangChain Anthropic client default.
+   */
+  readonly effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   /** Bridge port override; defaults to the sandbox's first declared port. */
   readonly port?: number;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
+  /**
    * Maximum LangGraph super-steps per turn before it errors.
    * When omitted, the Deep Agents default applies.
    */
   readonly recursionLimit?: number;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
 };
 
 // Every model-callable DeepAgents built-in, keyed by what the bridge emits (commonName ?? nativeName); all must be listed or AI SDK throws AI_NoSuchToolError.
@@ -198,10 +242,9 @@ export function createDeepAgents(
           { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
         ],
         commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
           { command: installRipgrepCommand() },
           {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
+            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
           },
         ],
       };
@@ -210,8 +253,37 @@ export function createDeepAgents(
     doStart: async startOpts => {
       const permissionMode = startOpts.permissionMode;
       const sandboxSession = startOpts.sandboxSession;
+      const authenticationMode = resolveDeepAgentsAuthenticationMode({
+        auth: settings.auth,
+      });
+      const resolvedAuthEnvironment = resolveDeepAgentsEnv({
+        auth: settings.auth,
+      });
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createDeepAgentsRequestTransformations(
+          resolvedAuthEnvironment,
+          authenticationMode,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        sandboxAuthEnvironment = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
+      const bootstrapDir = posix.resolve(
+        sandboxSession.defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
 
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
@@ -262,6 +334,8 @@ export function createDeepAgents(
             channel: attachChannel,
             proc: undefined,
             model: settings.model,
+            thinking: settings.thinking,
+            effort: settings.effort,
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
@@ -270,6 +344,7 @@ export function createDeepAgents(
             permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
+            mcpServers: settings.mcpServers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -277,7 +352,10 @@ export function createDeepAgents(
       }
 
       const port = resolveBridgePort(sandboxSession, settings.port);
-      const token = randomBytes(32).toString('hex');
+      const token =
+        settings.mintBridgeToken == null
+          ? randomBytes(32).toString('hex')
+          : settings.mintBridgeToken(sandboxId);
 
       // Always discover repo-provided skills under <workDir>/.agents/skills (e.g. a cloned repo); a missing dir is tolerated by deepagents.
       // Absolute paths: LocalShellBackend (non-virtual) treats a leading-slash path as a real fs path.
@@ -299,7 +377,7 @@ export function createDeepAgents(
       }
 
       const env = {
-        ...resolveDeepAgentsEnv({ auth: settings.auth }),
+        ...sandboxAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: DEEPAGENTS_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
@@ -318,7 +396,7 @@ export function createDeepAgents(
       });
 
       const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -375,6 +453,8 @@ export function createDeepAgents(
         channel,
         proc,
         model: settings.model,
+        thinking: settings.thinking,
+        effort: settings.effort,
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -385,6 +465,7 @@ export function createDeepAgents(
         permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         recursionLimit: settings.recursionLimit,
+        mcpServers: settings.mcpServers,
       });
     },
   };
@@ -473,6 +554,8 @@ function createSession({
   channel,
   proc,
   model,
+  thinking,
+  effort,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -482,12 +565,15 @@ function createSession({
   permissionMode,
   builtinToolFiltering,
   recursionLimit,
+  mcpServers,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
   // Undefined on attach — the live bridge was spawned by another process.
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
+  thinking: DeepAgentsThinkingConfig | undefined;
+  effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string;
@@ -500,6 +586,7 @@ function createSession({
   permissionMode?: HarnessV1PermissionMode;
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   recursionLimit?: number;
+  mcpServers?: Record<string, unknown>;
 }): HarnessV1Session {
   let stopped = false;
   let instructionsApplied = attached;
@@ -653,10 +740,13 @@ function createSession({
           inputSchema: t.inputSchema,
         })),
         ...(model ? { model } : {}),
+        ...(thinking ? { thinking } : {}),
+        ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),
+        ...(mcpServers == null ? {} : { mcpServers }),
       });
 
       return control;
@@ -724,7 +814,7 @@ function createSession({
         );
       }
       stopped = true;
-      await teardown(channel, proc);
+      await teardown({ channel, proc, operation: 'stop' });
       // In-memory conversation is lost on teardown; the sandbox snapshot preserves the workspace files, not the conversation.
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
@@ -737,19 +827,24 @@ function createSession({
     doDestroy: async () => {
       if (stopped) return;
       stopped = true;
-      await teardown(channel, proc);
+      await teardown({ channel, proc, operation: 'destroy' });
     },
   };
 }
 
-async function teardown(
-  channel: DeepAgentsChannel,
-  proc: Experimental_SandboxProcess | undefined,
-): Promise<void> {
+async function teardown({
+  channel,
+  proc,
+  operation,
+}: {
+  channel: DeepAgentsChannel;
+  proc: Experimental_SandboxProcess | undefined;
+  operation: 'stop' | 'destroy';
+}): Promise<void> {
   channel.beginClose();
   try {
     if (!channel.isClosed()) {
-      channel.send({ type: 'shutdown' });
+      channel.send({ type: operation });
     }
   } catch {}
   let stopTimer: ReturnType<typeof setTimeout> | undefined;
