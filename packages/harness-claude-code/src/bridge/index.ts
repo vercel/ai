@@ -44,6 +44,7 @@ import {
   emitFinishStep,
   finishApprovalStep,
   HARNESS_TOOLS_MCP_PREFIX,
+  isExternalMcpTool,
   mapUsage,
   type ClaudeMessage,
 } from './create-emit-stream-event';
@@ -192,6 +193,13 @@ function createPermissionOptions(input: {
         nativeName: toolName,
         input: JSON.stringify(toolInput ?? {}),
         providerExecuted: true,
+        /*
+         * Must match the `dynamic` the streamed `tool-input-start` carried for
+         * this same call, and the one its `tool-result` will carry. Without it
+         * an approval-gated external MCP tool opens a dynamic part that never
+         * settles plus a duplicate static one.
+         */
+        ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
       });
       input.emit({
         type: 'tool-approval-request',

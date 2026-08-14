@@ -119,7 +119,7 @@ export const HARNESS_TOOLS_MCP_PREFIX = 'mcp__harness-tools__';
  * The `tool-call` and the streamed `tool-input-start` for one tool must agree
  * on this flag, so both derive it here rather than repeating the rule.
  */
-function isExternalMcpTool(nativeName: string): boolean {
+export function isExternalMcpTool(nativeName: string): boolean {
   return (
     nativeName.startsWith('mcp__') &&
     !nativeName.startsWith(HARNESS_TOOLS_MCP_PREFIX)

@@ -4,6 +4,7 @@ import {
   type ClaudeMessage,
   createClaudeStreamEventState,
   createEmitStreamEvent,
+  isExternalMcpTool,
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
@@ -593,5 +594,25 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+});
+
+/*
+ * Three sites derive a call's `dynamic` flag from this predicate — the streamed
+ * `tool-input-start`, the `tool-call` (both the assistant-message and the
+ * approval paths), and the `tool-result`. They must agree: a call whose parts
+ * disagree opens a dynamic UI part that never settles plus a duplicate static
+ * one.
+ */
+describe('isExternalMcpTool', () => {
+  it.each([
+    ['mcp__weather__current', true],
+    ['mcp__context7__query-docs', true],
+    // The bridge's own server settles its calls under a synthetic id.
+    ['mcp__harness-tools__lookup', false],
+    ['Bash', false],
+    ['Read', false],
+  ])('%s -> %s', (nativeName, expected) => {
+    expect(isExternalMcpTool(nativeName)).toBe(expected);
   });
 });
