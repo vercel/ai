@@ -5,6 +5,16 @@ export type {
   OpenResponsesProviderSettings,
 } from './open-responses-provider';
 export type {
+  OpenResponsesExtension,
+  OpenResponsesExtensionContentPart,
+  OpenResponsesExtensionEvent,
+  OpenResponsesExtensionInputPart,
+  OpenResponsesExtensionItem,
+  OpenResponsesExtensionRecord,
+  OpenResponsesExtensionStreamPart,
+  OpenResponsesNamespacedType,
+} from './open-responses-extension';
+export type {
   OpenResponsesLanguageModelOptions,
   /** @deprecated Use `OpenResponsesLanguageModelOptions` instead. */
   OpenResponsesLanguageModelOptions as OpenResponsesOptions,
