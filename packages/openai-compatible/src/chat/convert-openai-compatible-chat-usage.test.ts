@@ -32,6 +32,45 @@ describe('convertOpenAICompatibleChatUsage', () => {
     });
   });
 
+  it('uses top-level prompt cache hit tokens when details are missing', () => {
+    const usage = {
+      prompt_tokens: 100,
+      completion_tokens: 20,
+      prompt_cache_hit_tokens: 40,
+    };
+
+    expect(convertOpenAICompatibleChatUsage(usage)).toEqual({
+      inputTokens: {
+        total: 100,
+        noCache: 60,
+        cacheRead: 40,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 20, text: 20, reasoning: 0 },
+      raw: usage,
+    });
+  });
+
+  it('prefers prompt token details over top-level cache hit tokens', () => {
+    const usage = {
+      prompt_tokens: 100,
+      completion_tokens: 20,
+      prompt_cache_hit_tokens: 40,
+      prompt_tokens_details: { cached_tokens: 25 },
+    };
+
+    expect(convertOpenAICompatibleChatUsage(usage)).toEqual({
+      inputTokens: {
+        total: 100,
+        noCache: 75,
+        cacheRead: 25,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 20, text: 20, reasoning: 0 },
+      raw: usage,
+    });
+  });
+
   it('clamps text tokens at 0 when reasoning exceeds completion', () => {
     // Provider-inconsistent usage (Baseten Kimi-K3, finish_reason 'length'):
     // completion_tokens undercounts the actual generation, so
