@@ -434,7 +434,7 @@ describe('toUIMessageStream', () => {
         chunk => chunk.type === 'reasoning-end' && chunk.id === childMessageId,
       ),
     ).toHaveLength(1);
-    expect(result.filter(chunk => chunk.type === 'start-step')).toHaveLength(1);
+    expect(result.filter(chunk => chunk.type === 'start-step')).toHaveLength(2);
     expect(result.filter(chunk => chunk.type === 'finish-step')).toHaveLength(
       1,
     );
@@ -448,6 +448,163 @@ describe('toUIMessageStream', () => {
           chunk.type === 'reasoning-end'),
     );
     expect(childReasoningChunks).toEqual([
+      {
+        type: 'reasoning-start',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: 'child before',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: ' child after',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-end',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+    ]);
+  });
+
+  it('should preserve repeated root tool lifecycles while child reasoning remains active', async () => {
+    const childMessageId = 'child-message';
+    const childNamespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'root-message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: 'child before' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'root-message-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: ' child after' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(chunk => chunk.type === 'tool-input-start')
+        .map(chunk => ({
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+
+    expect(
+      rawChunks.filter(
+        chunk =>
+          'id' in chunk &&
+          chunk.id === childMessageId &&
+          (chunk.type === 'reasoning-start' ||
+            chunk.type === 'reasoning-delta' ||
+            chunk.type === 'reasoning-end'),
+      ),
+    ).toEqual([
       {
         type: 'reasoning-start',
         id: childMessageId,

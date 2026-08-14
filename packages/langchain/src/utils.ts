@@ -1412,7 +1412,8 @@ export function processLangGraphEvent(
        *
        * Other namespaces have independent counters and must not change this
        * cursor. A finish-step chunk clears every active UI text/reasoning part,
-       * so suppress the global boundary when another namespace is still active.
+       * so omit finish-step when another namespace is still active while still
+       * starting a new reducer scope for the advancing namespace.
        */
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
@@ -1435,14 +1436,19 @@ export function processLangGraphEvent(
           );
           if (!hasConcurrentMessageParts) {
             controller.enqueue({ type: 'finish-step' });
-            controller.enqueue({ type: 'start-step' });
-            state.messageIdsInCurrentStep.clear();
-            state.emittedToolCallsInCurrentStep.clear();
-            state.emittedToolInputsInCurrentStep.clear();
           }
-        } else {
-          controller.enqueue({ type: 'start-step' });
+
+          /**
+           * A concurrent namespace prevents finish-step because it would close
+           * that namespace's active text/reasoning parts. Still emit start-step
+           * so tool calls in the new LangGraph step have a distinct reducer
+           * scope while the concurrent message lifecycle remains active.
+           */
         }
+        controller.enqueue({ type: 'start-step' });
+        state.messageIdsInCurrentStep.clear();
+        state.emittedToolCallsInCurrentStep.clear();
+        state.emittedToolInputsInCurrentStep.clear();
         state.currentStep = langgraphStep;
       }
       state.messageIdsInCurrentStep.add(msgId);
