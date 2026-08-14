@@ -315,14 +315,8 @@ function legacyTextPartFromValue(value: unknown): LegacyTextPart | undefined {
 }
 
 /**
- * Whether a context-fallback snapshot predates the turn that is asking for it.
- *
- * The fallback exists to recover a turn whose event stream ended without a
- * `finish-step`, by reading the session's newest assistant message. On a
- * RESUMED session that message may be the previous turn's answer: emitting it
- * would report stale content as the current turn's reply, with a successful
- * finish reason. Comparing against the newest assistant id observed before the
- * prompt was sent keeps the fallback to genuinely new content.
+ * Whether the context fallback's snapshot predates the turn asking for it — on
+ * a resumed session the newest assistant may be the previous turn's answer.
  */
 export function isStaleAssistantSnapshot({
   assistant,

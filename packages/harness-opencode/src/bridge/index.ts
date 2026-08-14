@@ -562,9 +562,8 @@ async function runPrompt({
     client,
     sessionId,
   }).catch(() => undefined);
-  /* The newest assistant BEFORE this prompt. On a resumed session it is the
-     previous turn's answer, and the context fallback below must never mistake
-     it for this turn's reply. */
+  // The newest assistant before this prompt; the context fallback must not
+  // mistake it for this turn's reply.
   const baselineAssistantId = (
     await latestAssistantSnapshot({ client, sessionId }).catch(() => undefined)
   )?.id;
@@ -1102,13 +1101,12 @@ async function emitContextFallback({
   state: TranslationState;
   emit: Emit;
   emitContent: boolean;
-  /* The newest assistant message id observed before this turn's prompt was
-     sent, when one existed. */
   baselineAssistantId?: string | undefined;
 }): Promise<boolean> {
   const assistant = await latestAssistantSnapshot({ client, sessionId });
   if (!assistant) return false;
-  if (isStaleAssistantSnapshot({ assistant, baselineAssistantId })) return false;
+  if (isStaleAssistantSnapshot({ assistant, baselineAssistantId }))
+    return false;
   emitOpenCodeStreamStart({ info: assistant, state, emit });
   if (emitContent && Array.isArray(assistant.contentParts)) {
     for (const part of assistant.contentParts) {
