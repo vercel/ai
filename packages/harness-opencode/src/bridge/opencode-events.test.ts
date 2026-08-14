@@ -6,6 +6,7 @@ import {
   emitMissingFinalDelta,
   emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
+  isStaleAssistantSnapshot,
   isStepSettlementEvent,
   unwrapOpenCodeEvent,
 } from './opencode-events';
@@ -261,5 +262,45 @@ describe('legacy reasoning part translation', () => {
       { type: 'text-start', id: 'p3' },
       { type: 'text-delta', id: 'p3', delta: 'hello' },
     ]);
+  });
+});
+
+describe('isStaleAssistantSnapshot', () => {
+  it('rejects the assistant that already existed before the prompt', () => {
+    // A resumed session's newest assistant is the PREVIOUS turn's answer;
+    // emitting it as this turn's reply is the bug this guards.
+    expect(
+      isStaleAssistantSnapshot({
+        assistant: { id: 'msg_prev' },
+        baselineAssistantId: 'msg_prev',
+      }),
+    ).toBe(true);
+  });
+
+  it('accepts an assistant recorded after the baseline', () => {
+    expect(
+      isStaleAssistantSnapshot({
+        assistant: { id: 'msg_new' },
+        baselineAssistantId: 'msg_prev',
+      }),
+    ).toBe(false);
+  });
+
+  it('accepts anything when there was no prior assistant (fresh session)', () => {
+    expect(
+      isStaleAssistantSnapshot({
+        assistant: { id: 'msg_first' },
+        baselineAssistantId: undefined,
+      }),
+    ).toBe(false);
+  });
+
+  it('is inert without a snapshot to judge', () => {
+    expect(
+      isStaleAssistantSnapshot({
+        assistant: undefined,
+        baselineAssistantId: 'msg_prev',
+      }),
+    ).toBe(false);
   });
 });
