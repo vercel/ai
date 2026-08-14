@@ -76,6 +76,7 @@ import {
 } from './acp-v1-prompt';
 import type {
   ACPInstructionMapping,
+  ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPSerializableValue,
@@ -388,6 +389,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               modelId: settings.modelId,
               sessionMeta: settings.session?.meta,
               instructionMapping: settings.instructionMapping,
+              outputSchemaMapping: settings.outputSchemaMapping,
               debug: startOptions.observability?.debug,
               implementationIdentity,
               authenticationProfile,
@@ -446,6 +448,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   authenticationProfile,
                   sessionMeta: settings.session?.meta,
                   instructionMapping: settings.instructionMapping,
+                  outputSchemaMapping: settings.outputSchemaMapping,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
                   mcpServers: settings.mcpServers,
@@ -477,6 +480,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             authenticationProfile,
             sessionMeta: settings.session?.meta,
             instructionMapping: settings.instructionMapping,
+            outputSchemaMapping: settings.outputSchemaMapping,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
             mcpServers: settings.mcpServers,
@@ -638,6 +642,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         modelId: settings.modelId,
         sessionMeta: settings.session?.meta,
         instructionMapping: settings.instructionMapping,
+        outputSchemaMapping: settings.outputSchemaMapping,
         debug: startOptions.observability?.debug,
         implementationIdentity,
         authenticationProfile,
@@ -879,6 +884,7 @@ function createSession({
   modelId,
   sessionMeta,
   instructionMapping,
+  outputSchemaMapping,
   debug,
   implementationIdentity,
   authenticationProfile,
@@ -910,6 +916,7 @@ function createSession({
   modelId: string | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   debug: HarnessV1DebugConfig | undefined;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
@@ -1211,6 +1218,20 @@ function createSession({
     isResume,
     ...(modelId == null ? {} : { modelId }),
     doPromptTurn: async options => {
+      if (options.responseFormat?.type === 'json') {
+        if (options.responseFormat.schema == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} requires a JSON schema for structured output.`,
+          });
+        }
+        if (outputSchemaMapping == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} does not support structured output through ACP.`,
+          });
+        }
+      }
       if (replayOnly) {
         throw new Error(
           `${harnessId} recovered this turn through disk replay only and has no restored ACP process for a subsequent prompt.`,
@@ -1237,6 +1258,8 @@ function createSession({
         authenticationProfile,
         sessionMeta,
         instructionMapping,
+        responseFormat: options.responseFormat,
+        outputSchemaMapping,
       });
       const control = wireTurn({
         emit: options.emit,
@@ -1272,6 +1295,12 @@ function createSession({
             builtinTools,
             permissionMode,
             permissionModeMapping,
+            ...(options.responseFormat == null
+              ? {}
+              : { responseFormat: options.responseFormat }),
+            ...(turnStartConfig.outputSchemaMapping == null
+              ? {}
+              : { outputSchemaMapping: turnStartConfig.outputSchemaMapping }),
             ...(mcpServers == null ? {} : { mcpServers }),
             tools: options.tools == null ? undefined : turnStartConfig.tools,
             turnStartConfig,
@@ -1283,6 +1312,20 @@ function createSession({
       return control;
     },
     doContinueTurn: async options => {
+      if (options.responseFormat?.type === 'json') {
+        if (options.responseFormat.schema == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} requires a JSON schema for structured output.`,
+          });
+        }
+        if (outputSchemaMapping == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} does not support structured output through ACP.`,
+          });
+        }
+      }
       if (!turnInFlight) {
         throw new Error(`${harnessId} has no in-flight ACP turn to continue.`);
       }
@@ -1310,6 +1353,12 @@ function createSession({
             builtinTools: turnStartConfig.builtinTools,
             permissionMode: turnStartConfig.permissionMode,
             permissionModeMapping: turnStartConfig.permissionModeMapping,
+            ...(turnStartConfig.responseFormat == null
+              ? {}
+              : { responseFormat: turnStartConfig.responseFormat }),
+            ...(turnStartConfig.outputSchemaMapping == null
+              ? {}
+              : { outputSchemaMapping: turnStartConfig.outputSchemaMapping }),
             ...(instructionMapping == null
               ? {}
               : {
@@ -1482,6 +1531,7 @@ function validateACPTurnStartConfig({
   authenticationProfile,
   sessionMeta,
   instructionMapping,
+  outputSchemaMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
@@ -1490,6 +1540,7 @@ function validateACPTurnStartConfig({
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1505,6 +1556,8 @@ function validateACPTurnStartConfig({
     authenticationProfile,
     sessionMeta,
     instructionMapping,
+    responseFormat: turnStartConfig.responseFormat,
+    outputSchemaMapping,
   });
   if (
     current.configurationFingerprint !==
@@ -1523,6 +1576,7 @@ function validateACPColdSessionConfiguration({
   authenticationProfile,
   sessionMeta,
   instructionMapping,
+  outputSchemaMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
@@ -1534,6 +1588,7 @@ function validateACPColdSessionConfiguration({
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1550,6 +1605,8 @@ function validateACPColdSessionConfiguration({
     authenticationProfile,
     sessionMeta,
     instructionMapping,
+    responseFormat: coldSession.responseFormat,
+    outputSchemaMapping,
   });
   if (
     current.configurationFingerprint !== coldSession.configurationFingerprint ||

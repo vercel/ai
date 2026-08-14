@@ -63,12 +63,14 @@ export function createEmitStreamEvent({
   configuredModel,
   hostToolNames,
   mcpToolNames,
+  structuredOutputToolNames = new Set(),
   emit,
 }: {
   state: DeepAgentsStreamEventState;
   configuredModel: string | undefined;
   hostToolNames: ReadonlySet<string>;
   mcpToolNames: ReadonlySet<string>;
+  structuredOutputToolNames?: ReadonlySet<string>;
   emit: Emit;
 }): (event: DeepAgentsStreamEvent) => void {
   return event => {
@@ -173,6 +175,7 @@ export function createEmitStreamEvent({
       }
     } else if (kind === 'on_tool_start') {
       const toolName = event.name ?? 'unknown';
+      if (structuredOutputToolNames.has(toolName)) return;
       const runId = event.run_id ?? '';
       // Host tools emit their own tool-call; surface only top-level builtin (providerExecuted) tools.
       if (!nested && !hostToolNames.has(toolName)) {
@@ -199,6 +202,7 @@ export function createEmitStreamEvent({
       }
     } else if (kind === 'on_tool_end') {
       const toolName = event.name ?? 'unknown';
+      if (structuredOutputToolNames.has(toolName)) return;
       const runId = event.run_id ?? '';
       if (!nested && !hostToolNames.has(toolName)) {
         const dynamic = state.dynamicToolRunIds.delete(runId);

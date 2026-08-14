@@ -105,6 +105,13 @@ Settings:
 To provide additional operating guidance, use the `instructions` setting on
 `HarnessAgent`. The adapter appends it to Cline's system prompt.
 
+## Structured Output
+
+Cline supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output)
+by requiring a terminal tool whose argument uses the requested JSON Schema.
+This requires a provider/model route with external tool support;
+`providerId: 'openai-codex-cli'` throws `HarnessCapabilityUnsupportedError`.
+
 ## Authentication
 
 The `auth` setting selects which credentials Cline reads from the host

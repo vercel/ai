@@ -5,6 +5,7 @@ export type {
   ACPInstructionMapping,
   ACPNpmLockedSource,
   ACPNpmSimpleSource,
+  ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPProfileValue,
