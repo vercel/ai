@@ -1,5 +1,11 @@
 # @ai-sdk/workflow
 
+## 1.0.67
+
+### Patch Changes
+
+- e3325bd: Fix `WorkflowAgent` timeout handling by enforcing absolute deadlines inside durable model-call steps and routing timeouts through abort handling.
+
 ## 1.0.66
 
 ### Patch Changes
