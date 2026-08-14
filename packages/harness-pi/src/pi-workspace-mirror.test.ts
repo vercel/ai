@@ -263,6 +263,46 @@ describe('syncHostWorkspaceFromSandbox', () => {
     }
   });
 
+  it('mirrors config when the sandbox work directory has a symlinked ancestor in just-bash', async () => {
+    const sandboxRoot = '/sandbox';
+    const linkedWorkDir = '/sandbox/workspace-link/project';
+    const sandboxSession = await createJustBashSandbox({
+      cwd: sandboxRoot,
+    }).createSession();
+    const sandbox = sandboxSession.restricted();
+
+    try {
+      const setupResult = await sandbox.run({
+        command: [
+          'mkdir -p workspace/project/.pi/skills/demo',
+          `printf '# Project prompt' > workspace/project/.pi/SYSTEM.md`,
+          `printf '# Project skill' > workspace/project/.pi/skills/demo/SKILL.md`,
+          'ln -s workspace workspace-link',
+        ].join('\n'),
+        workingDirectory: sandboxRoot,
+      });
+      expect(setupResult.exitCode).toBe(0);
+
+      await syncHostWorkspaceFromSandbox({
+        sandbox,
+        sandboxWorkDir: linkedWorkDir,
+        hostWorkDir,
+      });
+
+      expect(
+        readFileSync(path.join(hostWorkDir, '.pi/SYSTEM.md'), 'utf8'),
+      ).toBe('# Project prompt');
+      expect(
+        readFileSync(
+          path.join(hostWorkDir, '.pi/skills/demo/SKILL.md'),
+          'utf8',
+        ),
+      ).toBe('# Project skill');
+    } finally {
+      await sandboxSession.destroy?.();
+    }
+  });
+
   it('skips config symlinks that resolve to the filesystem root in just-bash', async () => {
     const sandboxSession = await createJustBashSandbox({
       cwd: sandboxWorkDir,

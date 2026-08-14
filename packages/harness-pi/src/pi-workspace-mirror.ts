@@ -74,9 +74,14 @@ async function listRemoteWorkspaceEntries(
   // Enumerate only the `.pi`/`.agents` config subtrees plus the root-level
   // context files — never the rest of the workspace. Use shell glob traversal
   // instead of `find -L`, which is not supported by all sandbox shells.
-  // Resolve symlinks explicitly with `readlink`, retaining both the scoped
-  // mirror path and the resolved sandbox path. This avoids relying on shells
-  // that can inspect a symlinked directory but cannot traverse paths below it.
+  // Resolve each scoped root path component explicitly with `readlink`,
+  // retaining both the scoped mirror path and the resolved sandbox path. Once
+  // a root is resolved, queued descendants use physical parent paths and only
+  // need resolution when the descendant itself is a symlink. This avoids
+  // relying on shells that can inspect a symlinked directory but cannot
+  // traverse paths below it, including when the symlink is an ancestor of the
+  // sandbox work directory, without repeatedly resolving every component of
+  // deep ordinary paths.
   const scopedPaths = [
     ...PI_CONFIG_DIRS.map(dir => `./${dir}`),
     ...PI_CONTEXT_FILENAMES.map(name => `./${name}`),
@@ -91,13 +96,15 @@ async function listRemoteWorkspaceEntries(
       .map(scopedPath => shellQuote(scopedPath.slice(2)))
       .join(' ')})`,
     `pi_config_ancestors=(${scopedPaths.map(() => "''").join(' ')})`,
+    `pi_config_resolve_ancestors=(${scopedPaths.map(() => '1').join(' ')})`,
     'pi_config_index=0',
     'while [ "$pi_config_index" -lt "${#pi_config_sources[@]}" ]; do',
     '  source=${pi_config_sources[$pi_config_index]}',
     '  relative=${pi_config_relatives[$pi_config_index]}',
     '  ancestors=${pi_config_ancestors[$pi_config_index]}',
+    '  resolve_ancestors=${pi_config_resolve_ancestors[$pi_config_index]}',
     '  pi_config_index=$((pi_config_index + 1))',
-    '  if [ -L "$source" ]; then',
+    '  if [ "$resolve_ancestors" = 1 ] || [ -L "$source" ]; then',
     '    pending=$source',
     '    resolved=',
     '    seen_links=',
@@ -169,6 +176,7 @@ async function listRemoteWorkspaceEntries(
     '        pi_config_sources+=("$child")',
     '        pi_config_relatives+=("$relative/$child_name")',
     '        pi_config_ancestors+=("$ancestors")',
+    '        pi_config_resolve_ancestors+=(0)',
     '      fi',
     '    done',
     '  elif [ -f "$source" ]; then',
