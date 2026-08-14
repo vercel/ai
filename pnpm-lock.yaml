@@ -597,25 +597,25 @@ importers:
         version: link:../../packages/openai
       '@angular/common':
         specifier: ^20.3.25
-        version: 20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
+        version: 20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
       '@angular/compiler':
         specifier: ^20.3.25
         version: 20.3.25
       '@angular/core':
-        specifier: ^20.3.25
-        version: 20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
+        specifier: ^20.3.27
+        version: 20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
       '@angular/forms':
         specifier: ^20.3.25
-        version: 20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
+        version: 20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
       '@angular/platform-browser':
         specifier: ^20.3.25
-        version: 20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
+        version: 20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
       '@angular/platform-browser-dynamic':
         specifier: ^20.3.25
-        version: 20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/compiler@20.3.25)(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))
+        version: 20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/compiler@20.3.25)(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))
       '@angular/router':
         specifier: ^20.3.25
-        version: 20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
+        version: 20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -634,7 +634,7 @@ importers:
     devDependencies:
       '@angular-devkit/build-angular':
         specifier: ^20.3.26
-        version: 20.3.26(@angular/compiler-cli@20.3.25(@angular/compiler@20.3.25)(typescript@5.8.3))(@angular/compiler@20.3.25)(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@22.19.19)(chokidar@4.0.3)(jest@29.7.0(@types/node@22.19.19))(jiti@2.7.0)(lightningcss@1.32.0)(tailwindcss@4.3.0)(tsx@4.19.2)(typescript@5.8.3)(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(less@4.4.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0))(yaml@2.9.0)
+        version: 20.3.26(@angular/compiler-cli@20.3.25(@angular/compiler@20.3.25)(typescript@5.8.3))(@angular/compiler@20.3.25)(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@22.19.19)(chokidar@4.0.3)(jest@29.7.0(@types/node@22.19.19))(jiti@2.7.0)(lightningcss@1.32.0)(tailwindcss@4.3.0)(tsx@4.19.2)(typescript@5.8.3)(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(less@4.4.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0))(yaml@2.9.0)
       '@angular/cli':
         specifier: ^20.3.28
         version: 20.3.28(@cfworker/json-schema@4.1.1)(@types/node@22.19.19)(chokidar@4.0.3)
@@ -4232,7 +4232,7 @@ importers:
         version: 4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))
       workflow:
         specifier: 4.2.4
-        version: 4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(typescript@5.8.3)
+        version: 4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -4257,7 +4257,7 @@ importers:
         version: 5.8.3
       workflow:
         specifier: 4.6.0
-        version: 4.6.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(typescript@5.8.3)(ws@8.21.3)
+        version: 4.6.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(typescript@5.8.3)(ws@8.21.3)
 
   packages/xai:
     dependencies:
@@ -4701,6 +4701,19 @@ packages:
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
     peerDependencies:
       '@angular/compiler': 20.3.25
+      rxjs: ^6.5.3 || ^7.4.0
+      zone.js: ~0.15.0
+    peerDependenciesMeta:
+      '@angular/compiler':
+        optional: true
+      zone.js:
+        optional: true
+
+  '@angular/core@20.3.27':
+    resolution: {integrity: sha512-8EfYIUST5CKldOF4MAYWTFFRB7EtwqUoQBZdar6US39/EEzWm/wm/iRNkH2jmKe4YuPa2GoeHS1WQ8VRuOk7Dg==}
+    engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
+    peerDependencies:
+      '@angular/compiler': 20.3.27
       rxjs: ^6.5.3 || ^7.4.0
       zone.js: ~0.15.0
     peerDependenciesMeta:
@@ -14531,9 +14544,6 @@ packages:
   '@workflow/astro@4.0.4':
     resolution: {integrity: sha512-TVx1SY4KoYSkHS/nkhXP7wz10rYBKJ0o9oQGahS+kCBkGkD5kyKdAc4QR2IpynG/u/vVg599XJj2Bsh9m2Jsrw==}
 
-  '@workflow/builders@4.0.1':
-    resolution: {integrity: sha512-IYYb6eNbZ1x+nhvHdCnYTbz0NJAYexYwoIVhm7mYqNmYddli9IkTYmD5AukXUP+ZBHMZyivwuhANYs5g+ayb7Q==}
-
   '@workflow/builders@4.0.2':
     resolution: {integrity: sha512-ptFjJgQYHbNgBMNmiE5P9gmRW0MF5K88dI4DzTPuhXIbtfPklNqXa+NEOoLjBNHdUKO+DT7BaWbMVYkuGr38KQ==}
 
@@ -14554,14 +14564,6 @@ packages:
   '@workflow/cli@4.3.0':
     resolution: {integrity: sha512-2gZRQxTuCeNYM8kkxRCy4nKG8SonRZVYuQRJ3i6CTyi3vmfS7ycn2BZ3vmY2gIlkZoFmD2/YblDJFgPrbLtahg==}
     hasBin: true
-
-  '@workflow/core@4.2.0':
-    resolution: {integrity: sha512-60B9bmA8Zog5KzppvDSdRDCh8kb4o0DHCDK4JamapxLt/ax3ubqvesnmTCFvltcjcqIF/kOwTmnaI1bMCtag9A==}
-    peerDependencies:
-      '@opentelemetry/api': '1'
-    peerDependenciesMeta:
-      '@opentelemetry/api':
-        optional: true
 
   '@workflow/core@4.2.1':
     resolution: {integrity: sha512-b7GiVsJ1EEnMP54b9ugNHsHX1aM8mgPMeAQUy8aP7HcrXspWVAgms8I2louV4JKJeuIMLf6qkvQseyW5285URw==}
@@ -14664,9 +14666,6 @@ packages:
 
   '@workflow/nuxt@4.0.5':
     resolution: {integrity: sha512-Q7fv0VqhZ8NXrgUOhd+YSc3j1ZVlDratVOcJ8Omxd0j2Mn0feC3CGeglFjaYfuvY/B2t7xG9SCcCXBV74CrEdQ==}
-
-  '@workflow/rollup@4.0.0':
-    resolution: {integrity: sha512-SF57HfxSxYs8tBS2o96pQMj33swVeznz3Wb1+hpL4RKLHvb8MDUwWGedLHU9Bw5CBCHuAqU/X1P9xBkUb7sBZA==}
 
   '@workflow/rollup@4.0.1':
     resolution: {integrity: sha512-jDOHhjdl3o1ZTVvwrsQMpVH7m9oinv8FVbt4uDmO3NzBG/KvN0TZ+kSFmcEzaAt8cWBu9ZVJxYNKDg3RKdiYBQ==}
@@ -14900,6 +14899,7 @@ packages:
   '@xmldom/xmldom@0.9.10':
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -16144,6 +16144,7 @@ packages:
 
   crypto-js@4.2.0:
     resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
+    deprecated: Active development of CryptoJS has been discontinued. This library is no longer maintained.
 
   css-declaration-sorter@7.4.0:
     resolution: {integrity: sha512-LTuzjPoyA2vMGKKcaOqKSp7Ub2eGrNfKiZH4LpezxpNrsICGCSFvsQOI29psISxNZtaXibkC2CXzrQ5enMeGGw==}
@@ -24836,13 +24837,13 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@angular-devkit/build-angular@20.3.26(@angular/compiler-cli@20.3.25(@angular/compiler@20.3.25)(typescript@5.8.3))(@angular/compiler@20.3.25)(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@22.19.19)(chokidar@4.0.3)(jest@29.7.0(@types/node@22.19.19))(jiti@2.7.0)(lightningcss@1.32.0)(tailwindcss@4.3.0)(tsx@4.19.2)(typescript@5.8.3)(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(less@4.4.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0))(yaml@2.9.0)':
+  '@angular-devkit/build-angular@20.3.26(@angular/compiler-cli@20.3.25(@angular/compiler@20.3.25)(typescript@5.8.3))(@angular/compiler@20.3.25)(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@22.19.19)(chokidar@4.0.3)(jest@29.7.0(@types/node@22.19.19))(jiti@2.7.0)(lightningcss@1.32.0)(tailwindcss@4.3.0)(tsx@4.19.2)(typescript@5.8.3)(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(less@4.4.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0))(yaml@2.9.0)':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@angular-devkit/architect': 0.2003.26(chokidar@4.0.3)
       '@angular-devkit/build-webpack': 0.2003.26(chokidar@4.0.3)(webpack-dev-server@5.2.2(tslib@2.8.1)(webpack@5.105.0(esbuild@0.28.0)(lightningcss@1.32.0)(postcss@8.5.12)))(webpack@5.105.0(esbuild@0.28.0)(lightningcss@1.32.0)(postcss@8.5.12))
       '@angular-devkit/core': 20.3.26(chokidar@4.0.3)
-      '@angular/build': 20.3.26(@angular/compiler-cli@20.3.25(@angular/compiler@20.3.25)(typescript@5.8.3))(@angular/compiler@20.3.25)(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@22.19.19)(chokidar@4.0.3)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(postcss@8.5.12)(tailwindcss@4.3.0)(terser@5.43.1)(tslib@2.8.1)(tsx@4.19.2)(typescript@5.8.3)(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(less@4.4.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0))(yaml@2.9.0)
+      '@angular/build': 20.3.26(@angular/compiler-cli@20.3.25(@angular/compiler@20.3.25)(typescript@5.8.3))(@angular/compiler@20.3.25)(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@22.19.19)(chokidar@4.0.3)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(postcss@8.5.12)(tailwindcss@4.3.0)(terser@5.43.1)(tslib@2.8.1)(tsx@4.19.2)(typescript@5.8.3)(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(less@4.4.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0))(yaml@2.9.0)
       '@angular/compiler-cli': 20.3.25(@angular/compiler@20.3.25)(typescript@5.8.3)
       '@babel/core': 7.28.3
       '@babel/generator': 7.28.3
@@ -24895,8 +24896,8 @@ snapshots:
       webpack-merge: 6.0.1
       webpack-subresource-integrity: 5.1.0(webpack@5.105.0(esbuild@0.28.0)(lightningcss@1.32.0)(postcss@8.5.12))
     optionalDependencies:
-      '@angular/core': 20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
-      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
+      '@angular/core': 20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
       esbuild: 0.28.0
       jest: 29.7.0(@types/node@22.19.19)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.21))(@types/node@22.19.19)(typescript@5.9.3))
       tailwindcss: 4.3.0
@@ -25003,7 +25004,7 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@angular/build@20.3.26(@angular/compiler-cli@20.3.25(@angular/compiler@20.3.25)(typescript@5.8.3))(@angular/compiler@20.3.25)(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@22.19.19)(chokidar@4.0.3)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(postcss@8.5.12)(tailwindcss@4.3.0)(terser@5.43.1)(tslib@2.8.1)(tsx@4.19.2)(typescript@5.8.3)(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(less@4.4.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0))(yaml@2.9.0)':
+  '@angular/build@20.3.26(@angular/compiler-cli@20.3.25(@angular/compiler@20.3.25)(typescript@5.8.3))(@angular/compiler@20.3.25)(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@22.19.19)(chokidar@4.0.3)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(postcss@8.5.12)(tailwindcss@4.3.0)(terser@5.43.1)(tslib@2.8.1)(tsx@4.19.2)(typescript@5.8.3)(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.19)(jiti@2.7.0)(jsdom@26.1.0)(less@4.4.0)(lightningcss@1.32.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0))(yaml@2.9.0)':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@angular-devkit/architect': 0.2003.26(chokidar@4.0.3)
@@ -25036,8 +25037,8 @@ snapshots:
       vite: 7.3.2(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.9.0)
       watchpack: 2.4.4
     optionalDependencies:
-      '@angular/core': 20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
-      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
+      '@angular/core': 20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
       less: 4.4.0
       lmdb: 3.4.2
       postcss: 8.5.12
@@ -25082,9 +25083,9 @@ snapshots:
       - chokidar
       - supports-color
 
-  '@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)':
+  '@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)':
     dependencies:
-      '@angular/core': 20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@angular/core': 20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
       rxjs: 7.8.2
       tslib: 2.8.1
 
@@ -25116,33 +25117,41 @@ snapshots:
       '@angular/compiler': 20.3.25
       zone.js: 0.15.1
 
-  '@angular/forms@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)':
+  '@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)':
     dependencies:
-      '@angular/common': 20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
-      '@angular/core': 20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
-      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
+      rxjs: 7.8.2
+      tslib: 2.8.1
+    optionalDependencies:
+      '@angular/compiler': 20.3.25
+      zone.js: 0.15.1
+
+  '@angular/forms@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)':
+    dependencies:
+      '@angular/common': 20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
+      '@angular/core': 20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
       rxjs: 7.8.2
       tslib: 2.8.1
 
-  '@angular/platform-browser-dynamic@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/compiler@20.3.25)(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))':
+  '@angular/platform-browser-dynamic@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/compiler@20.3.25)(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))':
     dependencies:
-      '@angular/common': 20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
+      '@angular/common': 20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
       '@angular/compiler': 20.3.25
-      '@angular/core': 20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
-      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
+      '@angular/core': 20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
       tslib: 2.8.1
 
-  '@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))':
+  '@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))':
     dependencies:
-      '@angular/common': 20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
-      '@angular/core': 20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@angular/common': 20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
+      '@angular/core': 20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
       tslib: 2.8.1
 
-  '@angular/router@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)':
+  '@angular/router@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)':
     dependencies:
-      '@angular/common': 20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
-      '@angular/core': 20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
-      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.25(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
+      '@angular/common': 20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
+      '@angular/core': 20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@angular/platform-browser': 20.3.25(@angular/common@20.3.25(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.25)(rxjs@7.8.2)(zone.js@0.15.1))
       rxjs: 7.8.2
       tslib: 2.8.1
 
@@ -37082,25 +37091,6 @@ snapshots:
       - '@swc/helpers'
       - supports-color
 
-  '@workflow/builders@4.0.1(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)':
-    dependencies:
-      '@swc/core': 1.15.3(@swc/helpers@0.5.21)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/errors': 4.1.0
-      '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3(@swc/helpers@0.5.21))
-      '@workflow/utils': 4.1.0
-      builtin-modules: 5.0.0
-      chalk: 5.6.2
-      enhanced-resolve: 5.19.0
-      esbuild: 0.27.7
-      find-up: 7.0.0
-      json5: 2.2.3
-      tinyglobby: 0.2.15
-    transitivePeerDependencies:
-      - '@opentelemetry/api'
-      - '@swc/helpers'
-      - supports-color
-
   '@workflow/builders@4.0.2(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)':
     dependencies:
       '@swc/core': 1.15.3(@swc/helpers@0.5.21)
@@ -37271,32 +37261,6 @@ snapshots:
       - supports-color
       - ws
 
-  '@workflow/core@4.2.0(@opentelemetry/api@1.9.1)':
-    dependencies:
-      '@aws-sdk/credential-provider-web-identity': 3.972.13
-      '@jridgewell/trace-mapping': 0.3.31
-      '@standard-schema/spec': 1.0.0
-      '@types/ms': 2.1.0
-      '@vercel/functions': 3.6.0(@aws-sdk/credential-provider-web-identity@3.972.13)
-      '@workflow/errors': 4.1.0
-      '@workflow/serde': 4.1.0
-      '@workflow/utils': 4.1.0
-      '@workflow/world': 4.1.0(zod@4.3.6)
-      '@workflow/world-local': 4.1.0(@opentelemetry/api@1.9.1)
-      '@workflow/world-vercel': 4.1.0(@opentelemetry/api@1.9.1)
-      debug: 4.4.3(supports-color@8.1.1)
-      devalue: 5.6.3
-      ms: 2.1.3
-      nanoid: 5.1.6
-      seedrandom: 3.0.5
-      semver: 7.7.4
-      ulid: 3.0.2
-      zod: 4.3.6
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.1
-    transitivePeerDependencies:
-      - supports-color
-
   '@workflow/core@4.2.1(@opentelemetry/api@1.9.1)':
     dependencies:
       '@aws-sdk/credential-provider-web-identity': 3.972.13
@@ -37464,7 +37428,7 @@ snapshots:
       - '@swc/helpers'
       - supports-color
 
-  '@workflow/next@4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))':
+  '@workflow/next@4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))':
     dependencies:
       '@swc/core': 1.15.3(@swc/helpers@0.5.21)
       '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
@@ -37473,13 +37437,13 @@ snapshots:
       semver: 7.7.4
       watchpack: 2.5.1
     optionalDependencies:
-      next: 16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0)
+      next: 16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
       - supports-color
 
-  '@workflow/next@4.1.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(ws@8.21.3)':
+  '@workflow/next@4.1.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(ws@8.21.3)':
     dependencies:
       '@swc/core': 1.15.3(@swc/helpers@0.5.21)
       '@workflow/builders': 4.1.1(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.3)
@@ -37488,7 +37452,7 @@ snapshots:
       semver: 7.7.4
       watchpack: 2.5.1
     optionalDependencies:
-      next: 16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0)
+      next: 16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
@@ -37571,17 +37535,6 @@ snapshots:
       - '@opentelemetry/api'
       - '@swc/helpers'
       - magicast
-      - supports-color
-
-  '@workflow/rollup@4.0.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)':
-    dependencies:
-      '@swc/core': 1.15.3(@swc/helpers@0.5.21)
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
-      '@workflow/swc-plugin': 4.1.0(@swc/core@1.15.3(@swc/helpers@0.5.21))
-      exsolve: 1.0.7
-    transitivePeerDependencies:
-      - '@opentelemetry/api'
-      - '@swc/helpers'
       - supports-color
 
   '@workflow/rollup@4.0.1(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)':
@@ -37837,11 +37790,6 @@ snapshots:
       zod: 4.3.6
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
-
-  '@workflow/world@4.1.0(zod@3.25.76)':
-    dependencies:
-      ulid: 3.0.2
-      zod: 3.25.76
 
   '@workflow/world@4.1.0(zod@4.3.6)':
     dependencies:
@@ -44618,6 +44566,34 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
+  next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0):
+    dependencies:
+      '@next/env': 16.2.12
+      '@swc/helpers': 0.5.15
+      baseline-browser-mapping: 2.10.29
+      caniuse-lite: 1.0.30001799
+      postcss: 8.4.31
+      react: 19.0.0-rc-cc1ec60d0d-20240607
+      react-dom: 19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607)
+      styled-jsx: 5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607)
+    optionalDependencies:
+      '@next/swc-darwin-arm64': 16.2.12
+      '@next/swc-darwin-x64': 16.2.12
+      '@next/swc-linux-arm64-gnu': 16.2.12
+      '@next/swc-linux-arm64-musl': 16.2.12
+      '@next/swc-linux-x64-gnu': 16.2.12
+      '@next/swc-linux-x64-musl': 16.2.12
+      '@next/swc-win32-arm64-msvc': 16.2.12
+      '@next/swc-win32-x64-msvc': 16.2.12
+      '@opentelemetry/api': 1.9.1
+      '@playwright/test': 1.61.1
+      sass: 1.90.0
+      sharp: 0.34.5
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+    optional: true
+
   next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0):
     dependencies:
       '@next/env': 16.2.12
@@ -50237,14 +50213,14 @@ snapshots:
       - supports-color
       - typescript
 
-  workflow@4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(typescript@5.8.3):
+  workflow@4.2.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(typescript@5.8.3):
     dependencies:
       '@workflow/astro': 4.0.4(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
       '@workflow/cli': 4.2.4(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
       '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
       '@workflow/errors': 4.1.1
       '@workflow/nest': 0.0.4(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)
-      '@workflow/next': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))
+      '@workflow/next': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))
       '@workflow/nitro': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
       '@workflow/nuxt': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(magicast@0.5.3)
       '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
@@ -50265,14 +50241,14 @@ snapshots:
       - supports-color
       - typescript
 
-  workflow@4.6.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(typescript@5.8.3)(ws@8.21.3):
+  workflow@4.6.0(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(magicast@0.5.3)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(typescript@5.8.3)(ws@8.21.3):
     dependencies:
       '@workflow/astro': 4.0.11(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.3)
       '@workflow/cli': 4.3.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.3)
       '@workflow/core': 4.6.0(@opentelemetry/api@1.9.1)(ws@8.21.3)
       '@workflow/errors': 4.1.4
       '@workflow/nest': 4.0.12(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(chokidar@5.0.0))(@swc/core@1.15.3(@swc/helpers@0.5.21))(@swc/helpers@0.5.21)(ws@8.21.3)
-      '@workflow/next': 4.1.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(ws@8.21.3)
+      '@workflow/next': 4.1.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(ws@8.21.3)
       '@workflow/nitro': 4.1.2(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.3)
       '@workflow/nuxt': 4.0.12(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(magicast@0.5.3)(ws@8.21.3)
       '@workflow/rollup': 4.0.11(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(ws@8.21.3)
