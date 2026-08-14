@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.237
+
+### Patch Changes
+
+- bf11412: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 7ec6b69: Fix declaration emit for exported values that infer an `Output` type.
+
 ## 5.0.236
 
 ### Patch Changes
