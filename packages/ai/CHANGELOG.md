@@ -1,5 +1,23 @@
 # ai
 
+## 7.0.66
+
+### Patch Changes
+
+- 0782259: Keep chat status submitted until response content begins streaming.
+- 2fd1214: Fix declaration emit for exported values that infer an `Output` type.
+
+## 7.0.65
+
+### Patch Changes
+
+- dc8caae: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 72ec74f: Preserve root-level JSON Schema definitions when wrapping array output schemas.
+- c5b0515: Propagate errors thrown by the Chat `onFinish` callback to the initiating request.
+- Updated dependencies [16650e9]
+  - @ai-sdk/gateway@4.0.52
+
 ## 7.0.64
 
 ### Patch Changes

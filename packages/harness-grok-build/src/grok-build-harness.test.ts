@@ -39,7 +39,7 @@ describe('createGrokBuild', () => {
       source,
       executable: settings.executable,
       args: settings.args,
-      forwardEnv: settings.forwardEnv,
+      credentialEnv: settings.credentialEnv,
       instructionMapping: settings.instructionMapping,
       providerAuthentication: settings.providerAuthentication,
       builtinToolNames: Object.keys(settings.builtinTools ?? {}),
@@ -80,10 +80,10 @@ describe('createGrokBuild', () => {
           "name": "ai-sdk/harness-grok-build",
           "version": "0.0.0-test",
         },
-        "executable": "grok",
-        "forwardEnv": [
+        "credentialEnv": [
           "XAI_API_KEY",
         ],
+        "executable": "grok",
         "harnessId": "grok-build",
         "instructionMapping": {
           "path": [
@@ -134,6 +134,25 @@ describe('createGrokBuild', () => {
         "version": "v1",
       }
     `);
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          XAI_API_KEY: 'xai-secret',
+          GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
+        },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'api.x.ai',
+          path: { startsWith: '/v1' },
+        },
+        transform: {
+          headers: { Authorization: 'Bearer xai-secret' },
+        },
+      },
+    ]);
   });
 
   it('forwards user-configurable settings', () => {

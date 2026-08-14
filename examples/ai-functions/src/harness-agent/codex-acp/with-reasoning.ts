@@ -1,6 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -20,7 +20,22 @@ run(async () => {
       prompt:
         'Solve this step by step: if f(x) = x^3 - 6x^2 + 11x - 6, find all roots and prove they are correct.',
     });
-    await printFullStream({ result });
+    let reasoningEmitted = false;
+    let reasoningDisplayed = false;
+    await printFullStream({
+      result,
+      onReasoning: reasoning => {
+        reasoningEmitted = true;
+        reasoningDisplayed ||= reasoning.text.trim() !== '';
+      },
+    });
+
+    if (!reasoningEmitted) {
+      throw new Error('No reasoning emitted');
+    }
+    if (!reasoningDisplayed) {
+      throw new Error('Reasoning emitted, but not displayed');
+    }
   } finally {
     await session.destroy();
   }

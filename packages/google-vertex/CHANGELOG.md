@@ -1,5 +1,20 @@
 # @ai-sdk/google-vertex
 
+## 5.0.54
+
+### Patch Changes
+
+- Updated dependencies [4579b08]
+  - @ai-sdk/anthropic@4.0.39
+
+## 5.0.53
+
+### Patch Changes
+
+- 16650e9: feat(google): add `gemini-3.7-flash` model
+- Updated dependencies [16650e9]
+  - @ai-sdk/google@4.0.44
+
 ## 5.0.52
 
 ### Patch Changes

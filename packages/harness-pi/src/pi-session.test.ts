@@ -617,10 +617,15 @@ function createSandboxSession(): HarnessV1NetworkSandboxSession {
   const sandbox = {
     defaultWorkingDirectory: '/sandbox',
     destroy: vi.fn(async () => {}),
+    getPortEndpoint: vi.fn(),
     getPortUrl: vi.fn(),
     readBinaryFile: vi.fn(async () => undefined),
     restricted: vi.fn(() => sandbox),
-    run: vi.fn(async () => ({ stdout: '', stderr: '', exitCode: 0 })),
+    run: vi.fn(async ({ command }: { command: string }) => ({
+      stdout: command === 'printf "%s" "$HOME"' ? '/sandbox/home' : '',
+      stderr: '',
+      exitCode: 0,
+    })),
     stop: vi.fn(async () => {}),
     writeBinaryFile: vi.fn(async () => {}),
     writeTextFile: vi.fn(async () => {}),

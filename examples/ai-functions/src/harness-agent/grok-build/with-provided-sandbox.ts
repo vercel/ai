@@ -1,9 +1,11 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { grokBuild } from '@ai-sdk/harness-grok-build';
+import { createGrokBuild } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const grokBuild = createGrokBuild();
 
 run(async () => {
   const sandbox = await Sandbox.create({
@@ -17,7 +19,6 @@ run(async () => {
     sandbox: createVercelSandbox({ sandbox }),
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const result = await agent.stream({
@@ -29,12 +30,8 @@ run(async () => {
 
     console.log('finishReason:', await result.finishReason);
     console.log('usage:', await result.usage);
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
     await sandbox.stop().catch(() => {});
-    process.exit(exitCode);
   }
 });

@@ -17,12 +17,14 @@ const wsMock = vi.hoisted(() => {
 
   class FakeWebSocket {
     readonly url: string;
+    readonly headers: Record<string, string> | undefined;
     readonly handlers = new Map<string, Set<Handler>>();
     closed = false;
     terminated = false;
 
-    constructor(url: string) {
+    constructor(url: string, options?: { headers?: Record<string, string> }) {
       this.url = url;
+      this.headers = options?.headers;
       sockets.push(this);
       scripts.shift()?.(this);
     }
@@ -157,6 +159,9 @@ function fakeNetworkSandboxSessionForStartupFailure({
     defaultWorkingDirectory: '/vercel/sandbox',
     restricted: () => session,
     ports: [port],
+    async getPortEndpoint() {
+      return { url: `ws://127.0.0.1:${port}` };
+    },
     async getPortUrl() {
       return `ws://127.0.0.1:${port}`;
     },
@@ -167,12 +172,14 @@ function fakeNetworkSandboxSessionForStartupFailure({
 
 function fakeNetworkSandboxSessionForStartupSuccess({
   bridgePortUrl,
+  bridgePortHeaders,
   spawns,
   spawnEnvs,
   writes,
   runs,
 }: {
   bridgePortUrl: string;
+  bridgePortHeaders?: Readonly<Record<string, string>>;
   spawns?: string[];
   spawnEnvs?: Array<Record<string, string | undefined>>;
   writes: Array<{ path: string; content: string }>;
@@ -218,6 +225,9 @@ function fakeNetworkSandboxSessionForStartupSuccess({
     defaultWorkingDirectory: '/vercel/sandbox',
     restricted: () => session,
     ports: [4319],
+    async getPortEndpoint() {
+      return { url: bridgePortUrl, headers: bridgePortHeaders };
+    },
     async getPortUrl() {
       return bridgePortUrl;
     },
@@ -336,6 +346,9 @@ describe('createClaudeCode adapter', () => {
       defaultWorkingDirectory: '/vercel/sandbox',
       restricted: () => ({}) as never,
       ports: [] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: '' };
+      },
       async getPortUrl() {
         return '';
       },
@@ -401,6 +414,46 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('brokers credentials when the sandbox supports additive request transformations', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      spawnEnvs,
+      writes: [],
+      runs: [],
+    });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const harness = createClaudeCode({
+      auth: {
+        anthropic: {
+          apiKey: 'anthropic-secret',
+          baseUrl: 'https://anthropic.example/v1',
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'anthropic.example',
+          path: { startsWith: '/v1' },
+        },
+        transform: { headers: { 'x-api-key': 'anthropic-secret' } },
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe('ANTHROPIC_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
   it('uses a caller-minted bridge token and reuses it when attaching', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const mintBridgeToken = vi.fn(
@@ -436,6 +489,60 @@ describe('createClaudeCode adapter', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    await attachedSession.doDetach();
+  });
+
+  it('passes port endpoint headers to fresh, retried, and attached WebSocket connections', async () => {
+    connectOnOpen = true;
+    wsMock.scripts.push(
+      socket => {
+        queueMicrotask(() => {
+          socket.emit('error', new Error('mock connection failure'));
+        });
+      },
+      socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      },
+      socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      },
+    );
+    const headers = { 'E2B-Traffic-Access-Token': 'traffic-token' };
+    const harness = createClaudeCode({
+      mintBridgeToken: () => 'bridge-token',
+    });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'wss://sandbox.example/bridge?existing=value',
+      bridgePortHeaders: headers,
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    const resumeFrom = await session.doDetach();
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+
+    expect(wsMock.sockets).toHaveLength(3);
+    for (const socket of wsMock.sockets) {
+      expect(socket.headers).toEqual(headers);
+      expect(socket.url).toContain('existing=value');
+      expect(socket.url).toContain('agent_bridge_token=bridge-token');
+    }
     await attachedSession.doDetach();
   });
 
@@ -858,6 +965,13 @@ describe('createClaudeCode adapter', () => {
       const a = await harness.getBootstrap!();
       const b = await harness.getBootstrap!();
       expect(a).toBe(b);
+    });
+
+    it('shares the getter across configured harness instances', () => {
+      const first = createClaudeCode({ model: 'first-model' });
+      const second = createClaudeCode({ model: 'second-model' });
+
+      expect(first.getBootstrap).toBe(second.getBootstrap);
     });
   });
 });

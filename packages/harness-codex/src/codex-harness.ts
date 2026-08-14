@@ -1,18 +1,16 @@
 import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   commonTool,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
-  type HarnessV1Bootstrap,
   type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
@@ -27,9 +25,11 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   markBridgeStarting,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
@@ -39,7 +39,18 @@ import {
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
-import { resolveCodexEnv, type CodexAuthOptions } from './codex-auth';
+import {
+  CODEX_BOOTSTRAP_DIR as BOOTSTRAP_DIR,
+  getCodexBootstrap,
+} from './codex-bootstrap';
+import {
+  CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  createCodexRequestTransformations,
+  DEFAULT_OPENAI_BASE_URL,
+  resolveCodexAuthenticationMode,
+  resolveCodexEnv,
+  type CodexAuthOptions,
+} from './codex-auth';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -75,6 +86,12 @@ const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
+  /**
+   * Additional configuration passed through to Codex as-is. Codex config keys
+   * typically use snake_case and must be provided in that form. Values managed
+   * by this adapter take precedence over conflicting entries.
+   */
+  readonly codexConfig?: Record<string, unknown>;
   /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
@@ -135,19 +152,6 @@ const CODEX_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
-/*
- * Bootstrap is derived state stored under the sandbox's default working
- * directory so snapshot-capable providers can preserve the installed CLI,
- * bridge, and recipe marker without requiring root filesystem access.
- *
- * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
- * default working directory — the provider's persistent mount — so any files
- * the agent edits survive both detach -> attach and stop -> snapshot -> resume
- * cycles. Harness infra derived from `sandboxSession.defaultWorkingDirectory`
- * lives under `.agent-runs`, outside the agent workdir.
- */
-const BOOTSTRAP_DIR = '.harness-bootstrap/codex';
-
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
  * future process uses them to reopen a socket to the still-running bridge
@@ -178,37 +182,13 @@ type CodexBridgeCoords = z.infer<typeof codexBridgeCoordsSchema>;
 export function createCodex(
   settings: CodexHarnessSettings = {},
 ): HarnessV1<typeof CODEX_BUILTIN_TOOLS> {
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
-
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
     builtinTools: CODEX_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: false,
     lifecycleStateSchema: codexResumeStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge] = await Promise.all([
-        readBridgeAsset('package.json'),
-        readBridgeAsset('pnpm-lock.yaml'),
-        readBridgeAsset('index.mjs'),
-      ]);
-      cachedBootstrap = {
-        harnessId: 'codex',
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
-          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-        ],
-        commands: [
-          {
-            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: getCodexBootstrap,
     doStart: async startOpts => {
       if (startOpts.builtinToolFiltering != null) {
         throw new HarnessCapabilityUnsupportedError({
@@ -228,6 +208,40 @@ export function createCodex(
         });
       }
       const sandboxSession = startOpts.sandboxSession;
+      const authenticationMode = resolveCodexAuthenticationMode(settings.auth);
+      const resolvedAuthEnvironment = resolveCodexEnv(settings.auth);
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createCodexRequestTransformations(
+          resolvedAuthEnvironment,
+          authenticationMode,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        sandboxAuthEnvironment = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+        if (
+          requestTransformations.length > 0 &&
+          authenticationMode === 'direct' &&
+          resolvedAuthEnvironment.OPENAI_BASE_URL == null
+        ) {
+          /*
+           * Vercel Sandbox request transformations apply only to HTTP traffic.
+           * Materializing Codex's standard OpenAI URL makes the bridge select
+           * its custom provider, where WebSockets are disabled, while keeping
+           * the non-brokered path on Codex's built-in OpenAI provider.
+           */
+          sandboxAuthEnvironment.OPENAI_BASE_URL = DEFAULT_OPENAI_BASE_URL;
+        }
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
       const bootstrapDir = path.posix.resolve(
@@ -286,13 +300,16 @@ export function createCodex(
        */
       if (coords) {
         try {
-          const attachUrl =
-            (await sandboxSession.getPortUrl({
-              port: coords.port,
-              protocol: 'ws',
-            })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+          const endpoint = await sandboxSession.getPortEndpoint({
+            port: coords.port,
+            protocol: 'ws',
+          });
+          const attachEndpoint = withBridgeToken({
+            endpoint,
+            token: coords.token,
+          });
           const attachChannel: CodexChannel = new SandboxChannel({
-            connect: () => openWebSocket(attachUrl),
+            connect: () => openWebSocket(attachEndpoint),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -308,6 +325,7 @@ export function createCodex(
             model: settings.model ?? DEFAULT_CODEX_MODEL,
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
+            codexConfig: settings.codexConfig,
             mcpServers: settings.mcpServers,
             resumeThreadId: resumeThreadIdString,
             isResume: true,
@@ -361,7 +379,7 @@ export function createCodex(
             })
           : undefined;
       const env = {
-        ...resolveCodexEnv(settings.auth),
+        ...sandboxAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
@@ -429,14 +447,14 @@ export function createCodex(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const wsUrl =
-        (await sandboxSession.getPortUrl({
-          port: boundPort,
-          protocol: 'ws',
-        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
+      const endpoint = await sandboxSession.getPortEndpoint({
+        port: boundPort,
+        protocol: 'ws',
+      });
+      const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: CodexChannel = new SandboxChannel({
-        connect: () => openWebSocket(wsUrl),
+        connect: () => openWebSocket(bridgeEndpoint),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -459,6 +477,7 @@ export function createCodex(
         model: settings.model ?? DEFAULT_CODEX_MODEL,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
+        codexConfig: settings.codexConfig,
         mcpServers: settings.mcpServers,
         resumeThreadId: resumeThreadIdString,
         isResume: respawnStrategy !== undefined,
@@ -486,24 +505,6 @@ function resolveBridgePort(
       'The codex harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createCodex({ port })`.',
   });
-}
-
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
 async function writeCodexSkills({
@@ -539,9 +540,14 @@ async function writeCodexSkills({
   };
 }
 
-function openWebSocket(url: string): Promise<WebSocket> {
+function openWebSocket({
+  url,
+  headers,
+}: HarnessV1PortEndpoint): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, {
+      headers: headers == null ? undefined : { ...headers },
+    });
     const onOpen = () => {
       ws.off('error', onError);
       resolve(ws);
@@ -555,6 +561,18 @@ function openWebSocket(url: string): Promise<WebSocket> {
   });
 }
 
+function withBridgeToken({
+  endpoint,
+  token,
+}: {
+  endpoint: HarnessV1PortEndpoint;
+  token: string;
+}): HarnessV1PortEndpoint {
+  const bridgeUrl = new URL(endpoint.url);
+  bridgeUrl.searchParams.set('agent_bridge_token', token);
+  return { ...endpoint, url: bridgeUrl.toString() };
+}
+
 function createSession({
   sessionId,
   channel,
@@ -563,6 +581,7 @@ function createSession({
   model,
   reasoningEffort,
   webSearch,
+  codexConfig,
   mcpServers,
   resumeThreadId,
   isResume,
@@ -582,6 +601,7 @@ function createSession({
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | undefined;
   webSearch: boolean | undefined;
+  codexConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   resumeThreadId: string | undefined;
   isResume: boolean;
@@ -819,6 +839,7 @@ function createSession({
         model,
         reasoningEffort,
         webSearch,
+        ...(codexConfig == null ? {} : { codexConfig }),
         ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(pendingResumeThreadId
@@ -874,6 +895,7 @@ function createSession({
             model,
             reasoningEffort,
             webSearch,
+            ...(codexConfig == null ? {} : { codexConfig }),
             ...(mcpServers == null ? {} : { mcpServers }),
             ...(permissionMode ? { permissionMode } : {}),
             ...(threadId ? { resumeThreadId: threadId } : {}),

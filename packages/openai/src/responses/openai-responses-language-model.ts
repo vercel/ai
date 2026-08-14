@@ -369,6 +369,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     warnings.push(...inputWarnings);
 
+    // A compaction trigger is a request control, not conversation history.
+    // OpenAI requires it to be the final input item, so append it only after
+    // the complete prompt has been converted.
+    if (openaiOptions?.compactionTrigger) {
+      input.push({ type: 'compaction_trigger' });
+    }
+
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
 
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;

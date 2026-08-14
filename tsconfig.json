@@ -97,6 +97,9 @@
       "path": "packages/harness-claude-code"
     },
     {
+      "path": "packages/harness-cline"
+    },
+    {
       "path": "packages/harness-codex"
     },
     {
@@ -209,9 +212,6 @@
     },
     {
       "path": "packages/valibot"
-    },
-    {
-      "path": "packages/vercel"
     },
     {
       "path": "packages/voyage"
