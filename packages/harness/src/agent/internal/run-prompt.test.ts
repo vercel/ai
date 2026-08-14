@@ -493,7 +493,7 @@ describe('runPrompt step accounting', () => {
     const weather = tool({
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
-      execute: async () => {
+      execute: async (): Promise<{ temperature: number }> => {
         throw new Error('weather unavailable');
       },
     });
