@@ -369,6 +369,41 @@ describe('doGenerate', () => {
       prepareJsonFixtureResponse('moonshotai-tool-call');
     });
 
+    it('should normalize tuple tool schemas to prefixItems on the wire', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'probe',
+            description: 'probe',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                a: {
+                  type: 'array',
+                  items: [{ type: 'number' }, { type: 'number' }],
+                },
+              },
+              required: ['a'],
+            },
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tools[0].function.parameters).toStrictEqual({
+        type: 'object',
+        properties: {
+          a: {
+            type: 'array',
+            prefixItems: [{ type: 'number' }, { type: 'number' }],
+          },
+        },
+        required: ['a'],
+      });
+    });
+
     it('should extract tool calls and finish reason', async () => {
       const result = await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
