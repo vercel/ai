@@ -2879,8 +2879,6 @@ describe('assistant messages', () => {
   });
 
   describe('code_execution 20260120', () => {
-<<<<<<< HEAD:packages/anthropic/src/convert-to-anthropic-messages-prompt.test.ts
-=======
     it('should preserve caller metadata and response order for dynamic filtering', async () => {
       const caller = {
         anthropic: {
@@ -2890,7 +2888,7 @@ describe('assistant messages', () => {
           },
         },
       } as const;
-      const result = await convertToAnthropicPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'assistant',
@@ -3011,7 +3009,7 @@ describe('assistant messages', () => {
     });
 
     it('should preserve a deferred server result across a client tool continuation', async () => {
-      const result = await convertToAnthropicPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'assistant',
@@ -3126,8 +3124,8 @@ describe('assistant messages', () => {
     });
 
     it('should replay server_tool_use input without the internal discriminator', async () => {
-      const warnings: SharedV4Warning[] = [];
-      const result = await convertToAnthropicPrompt({
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'assistant',
@@ -3169,7 +3167,6 @@ describe('assistant messages', () => {
       expect(warnings).toEqual([]);
     });
 
->>>>>>> 4579b08403 (fix(anthropic): replay dynamic-filtering callers without reordering (#18887)):packages/anthropic/src/convert-to-anthropic-prompt.test.ts
     it('should convert anthropic code_execution tool call and result parts', async () => {
       const warnings: SharedV3Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({

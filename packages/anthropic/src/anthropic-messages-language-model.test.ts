@@ -9359,17 +9359,17 @@ describe('AnthropicMessagesLanguageModel', () => {
         it('should preserve dynamic filtering callers', async () => {
           const streamArray = await convertReadableStreamToArray(result.stream);
           const codeExecutionCall = streamArray.find(
-            (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+            (part): part is LanguageModelV3StreamPart & { type: 'tool-call' } =>
               part.type === 'tool-call' && part.toolName === 'code_execution',
           );
           const webFetchCall = streamArray.find(
-            (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+            (part): part is LanguageModelV3StreamPart & { type: 'tool-call' } =>
               part.type === 'tool-call' && part.toolName === 'web_fetch',
           );
           const webFetchResult = streamArray.find(
             (
               part,
-            ): part is LanguageModelV4StreamPart & { type: 'tool-result' } =>
+            ): part is LanguageModelV3StreamPart & { type: 'tool-result' } =>
               part.type === 'tool-result' && part.toolName === 'web_fetch',
           );
 

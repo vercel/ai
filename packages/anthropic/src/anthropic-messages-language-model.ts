@@ -120,9 +120,6 @@ function createCitationSource(
   };
 }
 
-<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-language-model.ts
-type AnthropicMessagesConfig = {
-=======
 function getAnthropicCallerInfo(caller: AnthropicToolCallCaller | undefined) {
   return caller == null
     ? undefined
@@ -141,8 +138,7 @@ function getAnthropicCallerMetadata(
     : { providerMetadata: { anthropic: { caller: callerInfo } } };
 }
 
-export type AnthropicLanguageModelConfig = {
->>>>>>> 4579b08403 (fix(anthropic): replay dynamic-filtering callers without reordering (#18887)):packages/anthropic/src/anthropic-language-model.ts
+type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
