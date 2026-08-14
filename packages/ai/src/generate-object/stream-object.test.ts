@@ -22,7 +22,10 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import type { StreamObjectResult } from './stream-object-result';
-import { asLanguageModelUsage } from '../types/usage';
+import {
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+} from '../types/usage';
 
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {
@@ -860,6 +863,119 @@ describe('streamObject', () => {
     });
 
     describe('error handling', () => {
+      it('should reject pending result promises when doStream throws', async () => {
+        const error = new Error('test error');
+        const result = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              throw error;
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError: () => {},
+        });
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.request,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+      });
+
+      it('should reject pending result promises and report failure for an error stream part', async () => {
+        const error = new Error('test error');
+        const onError = vitest.fn();
+        const onStepFinish = vitest.fn();
+        const onFinish = vitest.fn();
+        const result = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([{ type: 'error', error }]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError,
+          onStepFinish,
+          onFinish,
+        });
+
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toStrictEqual([{ type: 'error', error }]);
+
+        expect(onError).toHaveBeenCalledWith({ error });
+        expect(onStepFinish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            finishReason: 'error',
+            usage: createNullLanguageModelUsage(),
+          }),
+        );
+        expect(onFinish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            object: undefined,
+            error,
+            finishReason: 'error',
+            usage: createNullLanguageModelUsage(),
+          }),
+        );
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+        await expect(result.request).resolves.toStrictEqual({});
+      });
+
+      it('should reject pending result promises and invoke onError when the raw stream errors', async () => {
+        const error = new Error('test error');
+        const onError = vitest.fn();
+        const result = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  controller.error(error);
+                },
+              }),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError,
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.fullStream),
+        ).rejects.toBe(error);
+        expect(onError).toHaveBeenCalledWith({ error });
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+        await expect(result.request).resolves.toStrictEqual({});
+      });
+
       it('should throw NoObjectGeneratedError when schema validation fails', async () => {
         const result = streamObject({
           model: new MockLanguageModelV4({
