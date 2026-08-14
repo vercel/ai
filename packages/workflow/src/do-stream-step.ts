@@ -105,6 +105,10 @@ export type DoStreamStepResult =
   | { aborted: true }
   | {
       aborted?: false;
+      terminalError: unknown;
+    }
+  | {
+      aborted?: false;
       toolCalls: ParsedToolCall[];
       finish: StreamFinish | undefined;
       raw: DoStreamStepRawResult;
@@ -307,7 +311,10 @@ export async function doStreamStep(
       }
 
       if (part.type === 'error') {
-        throw part.error;
+        // Return model error parts as step data. Throwing here would make the
+        // durable workflow runtime retry the model step and normalize the
+        // original value before WorkflowAgent can surface it.
+        return { terminalError: part.error };
       }
     }
   } catch (error) {

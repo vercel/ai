@@ -66,20 +66,22 @@ class SerializableMockLanguageModel extends MockLanguageModelV4 {
                   usage,
                 },
               ]
-            : [
-                ...prefix,
-                {
-                  type: 'tool-call',
-                  toolCallId: `call-${responseIndex + 1}`,
-                  toolName: response.toolName,
-                  input: response.input,
-                },
-                {
-                  type: 'finish',
-                  finishReason: { unified: 'tool-calls', raw: undefined },
-                  usage,
-                },
-              ];
+            : response.type === 'tool-call'
+              ? [
+                  ...prefix,
+                  {
+                    type: 'tool-call',
+                    toolCallId: `call-${responseIndex + 1}`,
+                    toolName: response.toolName,
+                    input: response.input,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage,
+                  },
+                ]
+              : [...prefix, { type: 'error', error: response.error }];
 
         return { stream: convertArrayToReadableStream(streamParts) };
       },

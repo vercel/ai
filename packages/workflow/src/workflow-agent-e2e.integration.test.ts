@@ -24,11 +24,29 @@ import {
   agentRepairToolCallE2e,
   agentRuntimeAndToolsContextE2e,
   agentSandboxE2e,
+  agentStreamErrorE2e,
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
   agentToolInputSchemaE2e,
 } from './test/agent-e2e-workflows.js';
+
+async function collectStream<T>(stream: ReadableStream<T>): Promise<T[]> {
+  const chunks: T[] = [];
+  const reader = stream.getReader();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        return chunks;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 
 describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
   // ==========================================================================
@@ -43,6 +61,27 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
         stepCount: 1,
         lastStepText: 'Echo: hello world',
       });
+    });
+
+    it('surfaces stream error data without retrying the model step', async () => {
+      const run = await start(agentStreamErrorE2e, []);
+      const chunksPromise = collectStream<{ type: string; error?: unknown }>(
+        run.readable,
+      );
+      const rv = await run.returnValue;
+      const chunks = await chunksPromise;
+      const terminal = {
+        type: 'credential',
+        code: 'safe-terminal-classification',
+      };
+
+      expect(rv).toEqual({
+        rejection: terminal,
+        callbackErrors: [terminal],
+      });
+      expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([
+        { type: 'error', error: terminal },
+      ]);
     });
 
     it('single tool call', async () => {

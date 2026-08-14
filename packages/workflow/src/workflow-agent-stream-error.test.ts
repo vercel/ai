@@ -1,8 +1,11 @@
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { WorkflowAgent } from './workflow-agent.js';
 
-async function runAgentWithStreamError(terminal: unknown) {
+async function runAgentWithStreamError(
+  terminal: unknown,
+  onError?: (event: { error: unknown }) => void | Promise<void>,
+) {
   const streamedParts: unknown[] = [];
   const model = new MockLanguageModelV4({
     doStream: async () => ({
@@ -42,6 +45,7 @@ async function runAgentWithStreamError(terminal: unknown) {
           streamedParts.push(part);
         },
       }),
+      onError,
     });
   } catch (error) {
     didReject = true;
@@ -70,5 +74,15 @@ describe('WorkflowAgent.stream error parts', () => {
 
     expect(result.didReject).toBe(true);
     expect(result.rejection).toBe(false);
+  });
+
+  it('calls onError once for a model stream error part', async () => {
+    const terminal = new Error('terminal model error');
+    const onError = vi.fn();
+
+    await runAgentWithStreamError(terminal, onError);
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith({ error: terminal });
   });
 });

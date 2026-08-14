@@ -1,4 +1,4 @@
-import { MockLanguageModelV4 } from 'ai/test';
+import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { describe, expect, it, vi } from 'vitest';
 import { doStreamStep } from './do-stream-step.js';
 
@@ -43,5 +43,31 @@ describe('doStreamStep', () => {
     } finally {
       timeoutSpy.mockRestore();
     }
+  });
+
+  it('returns model stream errors as terminal step data', async () => {
+    const terminal = new Error('terminal model error');
+    const streamedParts: unknown[] = [];
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'error' as const, error: terminal },
+        ]),
+      }),
+    });
+
+    await expect(
+      doStreamStep(
+        prompt,
+        model,
+        new WritableStream({
+          write(part) {
+            streamedParts.push(part);
+          },
+        }),
+      ),
+    ).resolves.toEqual({ terminalError: terminal });
+    expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
   });
 });

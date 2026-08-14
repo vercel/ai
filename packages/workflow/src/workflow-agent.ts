@@ -2146,7 +2146,6 @@ export class WorkflowAgent<
       stopConditions: effectiveStopWhenFromPrepare,
       onStepEnd: mergedOnStepEnd as any,
       onStepStart: mergedOnStepStart as any,
-      onError: options.onError,
       prepareStep: (options.prepareStep ??
         (this.prepareStep as
           | PrepareStepCallback<ToolSet, TRuntimeContext>

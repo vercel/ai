@@ -347,6 +347,10 @@ export async function* streamTextIterator({
         break;
       }
 
+      if ('terminalError' in streamStepResult) {
+        throw streamStepResult.terminalError;
+      }
+
       const { toolCalls, finish, raw, providerExecutedToolResults } =
         streamStepResult;
       // Reconstruct the full StepResult outside the step boundary so the
