@@ -677,6 +677,7 @@ describe('ReplicateVideoModel', () => {
       predictionId = 'status-pred-123',
       predictionStatus = 'succeeded',
       output = 'https://replicate.delivery/video.mp4',
+      dataRemoved,
       error,
       currentDate,
       metrics = { predict_time: 25.5 },
@@ -685,6 +686,7 @@ describe('ReplicateVideoModel', () => {
       predictionId?: string;
       predictionStatus?: string;
       output?: string | null;
+      dataRemoved?: boolean;
       error?: string;
       currentDate?: () => Date;
       metrics?: { predict_time?: number | null } | null;
@@ -705,6 +707,7 @@ describe('ReplicateVideoModel', () => {
                 id: predictionId,
                 status: predictionStatus,
                 output,
+                data_removed: dataRemoved,
                 error: error ?? null,
                 urls: {
                   get: `https://api.replicate.com/v1/predictions/${predictionId}`,
@@ -826,6 +829,27 @@ describe('ReplicateVideoModel', () => {
       expect(result.status).toBe('error');
       expect(result.status === 'error' && result.error).toBe(
         'No video URL in response',
+      );
+    });
+
+    it('should say the output was removed when data_removed is set', async () => {
+      // The documented reason a succeeded prediction has no output: Replicate
+      // clears outputs after a retention window, so re-running is the only fix.
+      const model = createStatusModel({
+        predictionStatus: 'succeeded',
+        output: null,
+        dataRemoved: true,
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toContain(
+        'output has been removed by Replicate',
       );
     });
 

@@ -108,6 +108,28 @@ function convertInputReferenceImage(
   return image != null ? { image, referenceType: 'asset' } : undefined;
 }
 
+/**
+ * A done operation with no videos is normally the Responsible AI filter case:
+ * every sample was removed, which `raiMediaFilteredCount` reports. The reasons
+ * are only present when the request set `includeRaiReason`.
+ */
+function describeMissingVideos(operation: VertexOperation): string {
+  const filteredCount = operation.response?.raiMediaFilteredCount ?? 0;
+  if (filteredCount === 0) {
+    return `No videos in response. Response: ${JSON.stringify(operation)}`;
+  }
+
+  const reasons = operation.response?.raiMediaFilteredReasons
+    ?.filter(reason => reason.length > 0)
+    .join('; ');
+
+  return (
+    `Video generation returned no videos: all ${filteredCount} generated sample(s) ` +
+    `were removed by Responsible AI filters.` +
+    (reasons ? ` Reasons: ${reasons}` : '')
+  );
+}
+
 export class GoogleVertexVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -267,7 +289,7 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
     if (!response?.videos || response.videos.length === 0) {
       return {
         status: 'error',
-        error: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
+        error: describeMissingVideos(finalOperation),
         response: {
           timestamp: currentDate,
           modelId: this.modelId,
@@ -463,6 +485,9 @@ const googleVertexOperationSchema = z.object({
         )
         .nullish(),
       raiMediaFilteredCount: z.number().nullish(),
+      /** Reason codes for samples the Responsible AI filters removed. Only
+       * populated when the request set `includeRaiReason`. */
+      raiMediaFilteredReasons: z.array(z.string()).nullish(),
     })
     .nullish(),
 });

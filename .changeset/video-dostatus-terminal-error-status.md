@@ -1,5 +1,4 @@
 ---
-'@ai-sdk/black-forest-labs': patch
 '@ai-sdk/google-vertex': patch
 '@ai-sdk/bytedance': patch
 '@ai-sdk/replicate': patch

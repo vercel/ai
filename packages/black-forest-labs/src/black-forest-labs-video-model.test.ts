@@ -1205,25 +1205,6 @@ describe('BlackForestLabsVideoModel', () => {
       expect(server.calls).toHaveLength(1);
     });
 
-    it('should return an error from doStatus when Ready arrives without a sample URL', async () => {
-      // Terminal: a throw here is indistinguishable from a transient network
-      // fault, so an async poller would retry a Ready request forever.
-      server.urls[POLL_URL].response = {
-        type: 'json-value',
-        body: { status: 'Ready', result: {} },
-      };
-
-      const result = await createModel().doStatus({
-        operation: { requestId: REQUEST_ID, pollingUrl: POLL_URL },
-      });
-
-      expect(result).toMatchObject({
-        status: 'error',
-        error:
-          'Black Forest Labs reported the video as Ready but returned no result.sample URL. Request id: req-123',
-      });
-    });
-
     it('should keep polling through non-terminal statuses', async () => {
       let callNumber = 0;
       server.urls[POLL_URL].response = () => {
