@@ -47,7 +47,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "eventsource-parser": "^3.0.8",
-    "undici": "^5.29.0"
+    "undici": "^6.28.0"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
@@ -61,7 +61,7 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18.17"
   },
   "publishConfig": {
     "access": "public"
