@@ -4176,8 +4176,8 @@ importers:
         specifier: workspace:*
         version: link:../../tools/tsconfig
       '@workflow/vitest':
-        specifier: 4.0.1
-        version: 4.0.1(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))(vitest@4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(zod@3.25.76)
+        specifier: 4.0.5
+        version: 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))(vitest@4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(zod@3.25.76)
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.25)(tsx@4.22.0)(typescript@5.8.3)(yaml@2.9.0)
@@ -14345,8 +14345,8 @@ packages:
   '@workflow/vite@4.0.4':
     resolution: {integrity: sha512-dEw5Dg6zdlsBwwEFYYqRIXApZ4kgqN/vMzZEyEbisJEofKNPDIYP1/nAh22DkYW55Nxa0YOKdqnhxQq+kdvX2A==}
 
-  '@workflow/vitest@4.0.1':
-    resolution: {integrity: sha512-6h8E6uTwPiSLkeKtOt2oABRtZGDODgqX8dgLEzWt8UMxYcSevL9JULmIaucyFpBznQ+YKQM/+NHNIjWNYIN7CQ==}
+  '@workflow/vitest@4.0.5':
+    resolution: {integrity: sha512-KWYTjyzX6s+NLhh0I8fG72McQbxVT8wvIfiD8dao686znBdQgKd3t2b1dayNaQKrzWvNwtHd3Kwzg465cxIQFg==}
     peerDependencies:
       vite: '>=6.0.0'
       vitest: '>=3.0.0'
@@ -36429,13 +36429,13 @@ snapshots:
       - '@swc/helpers'
       - supports-color
 
-  '@workflow/vitest@4.0.1(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))(vitest@4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(zod@3.25.76)':
+  '@workflow/vitest@4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))(vitest@4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(zod@3.25.76)':
     dependencies:
-      '@workflow/builders': 4.0.1(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
-      '@workflow/core': 4.2.0(@opentelemetry/api@1.9.1)
-      '@workflow/rollup': 4.0.0(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
-      '@workflow/world': 4.1.0(zod@3.25.76)
-      '@workflow/world-local': 4.1.0(@opentelemetry/api@1.9.1)
+      '@workflow/builders': 4.0.5(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
+      '@workflow/core': 4.2.4(@opentelemetry/api@1.9.1)
+      '@workflow/rollup': 4.0.4(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.21)
+      '@workflow/world': 4.1.1(zod@3.25.76)
+      '@workflow/world-local': 4.1.1(@opentelemetry/api@1.9.1)
       vitest: 4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0)(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))
     optionalDependencies:
       vite: 7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)
@@ -36547,6 +36547,11 @@ snapshots:
     dependencies:
       ulid: 3.0.2
       zod: 4.3.6
+
+  '@workflow/world@4.1.1(zod@3.25.76)':
+    dependencies:
+      ulid: 3.0.2
+      zod: 3.25.76
 
   '@workflow/world@4.1.1(zod@4.3.6)':
     dependencies:
