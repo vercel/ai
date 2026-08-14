@@ -135,6 +135,45 @@ describe('streamTextIterator', () => {
         maxOutputTokens: 256,
       });
     });
+
+    it('passes the absolute timeout deadline across the step boundary', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
+      const timeoutAt = Date.now() + 5000;
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        timeoutAt,
+      });
+
+      await iterator.next();
+
+      expect(vi.mocked(doStreamStep).mock.calls[0]?.[4]).toMatchObject({
+        timeoutAt,
+      });
+    });
+
+    it('returns an aborted result without reporting an error', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue({ aborted: true });
+      const onError = vi.fn();
+      const prompt: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const iterator = streamTextIterator({
+        prompt,
+        tools: {},
+        model: vi.fn() as any,
+        onError,
+      });
+
+      await expect(iterator.next()).resolves.toEqual({
+        done: true,
+        value: { aborted: true, messages: prompt },
+      });
+      expect(onError).not.toHaveBeenCalled();
+    });
   });
 
   describe('telemetry', () => {
