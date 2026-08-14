@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.66
+
+### Patch Changes
+
+- 0782259: Keep chat status submitted until response content begins streaming.
+- 2fd1214: Fix declaration emit for exported values that infer an `Output` type.
+
 ## 7.0.65
 
 ### Patch Changes
