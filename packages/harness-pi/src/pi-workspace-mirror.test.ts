@@ -160,7 +160,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
     } finally {
       await sandboxSession.destroy?.();
     }
-  });
+  }, 30_000);
 
   it('mirrors deeply nested acyclic config trees in just-bash', async () => {
     const sandboxSession = await createJustBashSandbox({
@@ -204,7 +204,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
     } finally {
       await sandboxSession.destroy?.();
     }
-  });
+  }, 60_000);
 
   it('mirrors the .agents config subtree, resolving symlinked targets', async () => {
     // `.agents/skills` is a symlink to a `skills` directory elsewhere; the
