@@ -2,9 +2,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { tool } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
-import { z } from 'zod/v4';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { LanguageModelUsage } from '../types/usage';
 import type { UIMessage } from '../ui/ui-messages';
@@ -79,34 +77,24 @@ describe('toUIMessageStream', () => {
     ]);
   });
 
-  it('includes the tool input format based on its schema', async () => {
-    const tools = {
-      writeText: tool({
-        inputSchema: z.string(),
-        execute: async input => input,
-      }),
-      writeObject: tool({
-        inputSchema: z.object({ value: z.string() }),
-        execute: async input => input,
-      }),
-    };
-    const parts: TextStreamPart<typeof tools>[] = [
+  it('preserves the tool input format without a tool set', async () => {
+    const parts: TextStreamPart<{}>[] = [
       {
         type: 'tool-input-start',
         id: 'text-call',
         toolName: 'writeText',
+        inputFormat: 'text',
       },
       {
         type: 'tool-input-start',
-        id: 'object-call',
-        toolName: 'writeObject',
+        id: 'json-call',
+        toolName: 'writeJson',
       },
     ];
 
     const chunks = await convertReadableStreamToArray(
       toUIMessageStream({
         stream: convertArrayToReadableStream(parts),
-        tools,
       }),
     );
 
@@ -119,8 +107,8 @@ describe('toUIMessageStream', () => {
       },
       {
         type: 'tool-input-start',
-        toolCallId: 'object-call',
-        toolName: 'writeObject',
+        toolCallId: 'json-call',
+        toolName: 'writeJson',
         inputFormat: 'json',
       },
     ]);

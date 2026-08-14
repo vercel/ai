@@ -1,4 +1,4 @@
-import { asSchema, type ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
   TextStreamPart,
   UIMessageStreamOptions,
@@ -6,7 +6,7 @@ import type {
 import type { UIMessage } from '../ui/ui-messages';
 import { getResponseUIMessageId } from './get-response-ui-message-id';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
-import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
+import type { InferUIMessageChunk } from './ui-message-chunks';
 import { toUIMessageChunk } from './to-ui-message-chunk';
 
 /**
@@ -37,27 +37,6 @@ export function toUIMessageStream<
 } & UIMessageStreamOptions<UI_MESSAGE>): ReadableStream<
   InferUIMessageChunk<UI_MESSAGE>
 > {
-  const toolInputFormatPromises = new Map<string, Promise<'json' | 'text'>>();
-
-  function getToolInputFormat(
-    toolName: string,
-  ): Promise<'json' | 'text'> | undefined {
-    const tool = tools?.[toolName];
-    if (tool == null) {
-      return undefined;
-    }
-
-    let formatPromise = toolInputFormatPromises.get(toolName);
-    if (formatPromise == null) {
-      formatPromise = Promise.resolve(
-        asSchema(tool.inputSchema).jsonSchema,
-      ).then(schema => (schema.type === 'string' ? 'text' : 'json'));
-      toolInputFormatPromises.set(toolName, formatPromise);
-    }
-
-    return formatPromise;
-  }
-
   const responseMessageId =
     generateMessageId != null
       ? getResponseUIMessageId({
@@ -82,19 +61,7 @@ export function toUIMessageStream<
           responseMessageId,
         });
 
-        if (uiMessageChunk?.type === 'tool-input-start') {
-          const toolInputStartChunk = uiMessageChunk as Extract<
-            UIMessageChunk,
-            { type: 'tool-input-start' }
-          >;
-          const inputFormat = await getToolInputFormat(
-            toolInputStartChunk.toolName,
-          );
-          controller.enqueue({
-            ...toolInputStartChunk,
-            ...(inputFormat != null ? { inputFormat } : {}),
-          });
-        } else if (uiMessageChunk != null) {
+        if (uiMessageChunk != null) {
           controller.enqueue(uiMessageChunk);
         }
 
