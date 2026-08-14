@@ -249,6 +249,7 @@ interface PendingToolApproval {
 interface ActivePiTurn {
   readonly token: object;
   readonly done: Promise<void>;
+  readonly abort: (reason?: unknown) => Promise<void>;
 }
 
 /**
@@ -540,8 +541,11 @@ export async function createPiSession(
    */
   const deliveredDanglingResults = new Map<
     string,
-    { toolName: string; output: unknown }
+    { toolName: string; output: unknown; isError: boolean }
   >();
+  let restoredSessionManager:
+    | ReturnType<typeof SessionManager.open>
+    | undefined;
   let deferredRerun: DeferredRerunBarrier | undefined;
 
   // Emit channel set at the start of every doPromptTurn and cleared on end.
@@ -599,6 +603,18 @@ export async function createPiSession(
     });
   }
 
+  function getRestoredSessionManager():
+    | ReturnType<typeof SessionManager.open>
+    | undefined {
+    if (resumeSessionFilePath == null) return undefined;
+    restoredSessionManager ??= SessionManager.open(
+      resumeSessionFilePath,
+      hostSessionDir,
+      sessionWorkDir,
+    );
+    return restoredSessionManager;
+  }
+
   /*
    * Host tool calls in the restored journal that never received a result on
    * the active branch. These are the calls that were blocked on host input
@@ -614,11 +630,8 @@ export async function createPiSession(
     if (piSession != null || resumeSessionFilePath == null) return [];
     const hostToolNames = new Set(userTools.map(tool => tool.name));
     if (hostToolNames.size === 0) return [];
-    const journal = SessionManager.open(
-      resumeSessionFilePath,
-      hostSessionDir,
-      sessionWorkDir,
-    );
+    const journal = getRestoredSessionManager();
+    if (journal == null) return [];
     const messages = journal.buildSessionContext().messages;
     /*
      * Results already delivered by a previous continuation of this session
@@ -670,6 +683,7 @@ export async function createPiSession(
   function acceptDanglingHostToolResult(args: {
     toolCallId: string;
     output: unknown;
+    isError?: boolean;
   }): void {
     const barrier = deferredRerun;
     const toolName = barrier?.awaiting.get(args.toolCallId);
@@ -678,6 +692,7 @@ export async function createPiSession(
     deliveredDanglingResults.set(args.toolCallId, {
       toolName,
       output: args.output,
+      isError: args.isError ?? false,
     });
     if (barrier.awaiting.size === 0) {
       barrier.startRerun();
@@ -693,15 +708,12 @@ export async function createPiSession(
    * (`asPiToolResult(serializeToolOutput(...))`), so the model sees the same
    * bytes either way.
    */
-  function appendDeliveredHostToolResults(): void {
+  function appendDeliveredHostToolResults(): boolean {
     if (deliveredDanglingResults.size === 0 || resumeSessionFilePath == null) {
-      return;
+      return false;
     }
-    const journal = SessionManager.open(
-      resumeSessionFilePath,
-      hostSessionDir,
-      sessionWorkDir,
-    );
+    const journal = getRestoredSessionManager();
+    if (journal == null) return false;
     for (const [toolCallId, delivered] of deliveredDanglingResults) {
       journal.appendMessage({
         role: 'toolResult',
@@ -710,7 +722,7 @@ export async function createPiSession(
         content: [
           { type: 'text', text: serializeToolOutput(delivered.output) },
         ],
-        isError: false,
+        isError: delivered.isError,
         timestamp: Date.now(),
       });
     }
@@ -726,6 +738,7 @@ export async function createPiSession(
         path.basename(resumeSessionFilePath),
       );
     }
+    return true;
   }
 
   /*
@@ -773,6 +786,7 @@ export async function createPiSession(
           const control = await runTurn({
             text: '',
             tools: continueOpts.tools ?? [],
+            instructions: continueOpts.instructions,
             emit: continueOpts.emit,
             abortSignal: continueOpts.abortSignal,
           });
@@ -803,18 +817,21 @@ export async function createPiSession(
       cancel,
     };
 
-    continueOpts.abortSignal?.addEventListener(
-      'abort',
-      () => {
-        cancel(
-          continueOpts.abortSignal?.reason ??
-            new Error(
-              'Pi turn was aborted before its host tool results were delivered.',
-            ),
-        );
-      },
-      { once: true },
-    );
+    const abortBarrier = () => {
+      cancel(
+        continueOpts.abortSignal?.reason ??
+          new Error(
+            'Pi turn was aborted before its host tool results were delivered.',
+          ),
+      );
+    };
+    if (continueOpts.abortSignal?.aborted) {
+      abortBarrier();
+    } else {
+      continueOpts.abortSignal?.addEventListener('abort', abortBarrier, {
+        once: true,
+      });
+    }
 
     return createPromptControl({
       done,
@@ -825,14 +842,19 @@ export async function createPiSession(
   function createPromptControl(input: {
     done: Promise<void>;
     abortSignal?: AbortSignal;
+    abort?: (reason?: unknown) => Promise<void>;
   }): HarnessV1PromptControl {
     const abortHandler = () => {
-      piSession?.abort().catch(() => {});
+      void input.abort?.(input.abortSignal?.reason);
     };
     if (input.abortSignal) {
-      input.abortSignal.addEventListener('abort', abortHandler, {
-        once: true,
-      });
+      if (input.abortSignal.aborted) {
+        abortHandler();
+      } else {
+        input.abortSignal.addEventListener('abort', abortHandler, {
+          once: true,
+        });
+      }
       void input.done.then(
         () => {
           input.abortSignal?.removeEventListener('abort', abortHandler);
@@ -973,11 +995,7 @@ export async function createPiSession(
     // session; create fresh otherwise.
     const sessionManager =
       isFirstBuild && resumeSessionFilePath
-        ? SessionManager.open(
-            resumeSessionFilePath,
-            hostSessionDir,
-            sessionWorkDir,
-          )
+        ? getRestoredSessionManager()!
         : SessionManager.create(sessionWorkDir, hostSessionDir);
 
     const { session } = await createAgentSession({
@@ -1041,6 +1059,7 @@ export async function createPiSession(
   async function runTurn(turnOpts: {
     text: string;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
+    instructions?: string;
     emit: (part: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
   }): Promise<HarnessV1PromptControl> {
@@ -1048,109 +1067,165 @@ export async function createPiSession(
       throw new Error('Pi session has been stopped.');
     }
 
-    /*
-     * Any host tool results delivered while no turn was live must land in the
-     * journal before the session (re)builds from it, whichever turn entry
-     * point runs next. No-op when nothing was delivered.
-     */
-    appendDeliveredHostToolResults();
-
     const userTools = turnOpts.tools;
-    const signature = JSON.stringify(userTools.map(t => t.name).sort());
-    const needsRebuild = piSession == null || signature !== lastToolsSignature;
-    let resourcesReloaded = false;
-    if (needsRebuild) {
-      resourcesReloaded = await rebuildPiSession(userTools, piSession == null);
-      lastToolsSignature = signature;
-    }
-
-    if (!resourcesReloaded) {
-      await reloadResourcesOnly();
-    }
-    await syncHostWorkspaceFromSandbox({
-      sandbox,
-      sandboxWorkDir: input.sessionWorkDir,
-      hostWorkDir,
-    });
-
     currentEmit = turnOpts.emit;
-    // Fresh translator state for the new turn — keep the tool sets the
-    // session was built with.
-    translatorState = createPiTranslatorState({
-      builtinToolNames: [...PI_NATIVE_BUILTIN_NAMES],
-      hostToolNames: userTools.map(tool => tool.name),
-      nativeToCommon: NATIVE_TO_COMMON,
-    });
-
-    turnOpts.emit({ type: 'stream-start' });
+    const turnAbortController = new AbortController();
+    const abort = async (reason?: unknown): Promise<void> => {
+      if (turnAbortController.signal.aborted) return;
+      if (reason === undefined) {
+        turnAbortController.abort();
+      } else {
+        turnAbortController.abort(reason);
+      }
+      await Promise.resolve(piSession?.abort()).catch(() => {});
+    };
 
     const turnPromise = (async () => {
-      let terminalError: string | undefined;
-      const session = piSession!;
-
-      // We subscribed in rebuild, but the translator may need to detect
-      // terminal errors too — wrap a second listener that records them.
-      const unsubErr = session.subscribe(raw => {
-        const ev = parseNativeEvent(raw);
-        if (!ev) return;
-        const err = getPiTerminalError(ev);
-        if (err && !terminalError) {
-          terminalError = err;
-        }
-      });
-
       try {
-        await session.prompt(turnOpts.text);
+        await applySessionInstructions(turnOpts.instructions);
+        turnAbortController.signal.throwIfAborted();
 
-        if (terminalError) {
-          /*
-           * A `doSuspendTurn` aborts the in-flight turn on purpose. Pi surfaces
-           * that abort as a *resolved* prompt with a recorded terminal error
-           * ("This operation was aborted") rather than a thrown exception, so the
-           * `catch` guard below never sees it. Swallow it here too — but only if
-           * it's actually the abort: the stream then closes cleanly (no spurious
-           * `error` chunk) and the next slice rerun-continues from the journal.
-           * Any other terminal error mid-suspend is unanticipated and must
-           * surface.
-           */
-          if (suspending && isAbortError(terminalError)) return;
-          currentEmit?.({ type: 'error', error: new Error(terminalError) });
-          return;
+        /*
+         * Any host tool results delivered while no turn was live must land in the
+         * journal before the session (re)builds from it, whichever turn entry
+         * point runs next. No-op when nothing was delivered.
+         */
+        const didAppendDeliveredHostToolResults =
+          appendDeliveredHostToolResults();
+
+        const signature = JSON.stringify(userTools.map(t => t.name).sort());
+        const needsRebuild =
+          piSession == null || signature !== lastToolsSignature;
+        let resourcesReloaded = false;
+        if (needsRebuild) {
+          resourcesReloaded = await rebuildPiSession(
+            userTools,
+            piSession == null,
+          );
+          turnAbortController.signal.throwIfAborted();
+          lastToolsSignature = signature;
         }
 
-        const stats = session.getSessionStats();
-        const finishReason = {
-          unified: 'stop' as const,
-          raw: undefined,
-        };
-        const usage = {
-          inputTokens: {
-            total: stats.tokens.input,
-            noCache: undefined,
-            cacheRead: stats.tokens.cacheRead,
-            cacheWrite: stats.tokens.cacheWrite,
-          },
-          outputTokens: {
-            total: stats.tokens.output,
-            text: undefined,
-            reasoning: undefined,
-          },
-        };
-        currentEmit?.({
-          type: 'finish',
-          finishReason,
-          totalUsage: usage,
+        if (!resourcesReloaded) {
+          await reloadResourcesOnly();
+          turnAbortController.signal.throwIfAborted();
+        }
+        await syncHostWorkspaceFromSandbox({
+          sandbox,
+          sandboxWorkDir: input.sessionWorkDir,
+          hostWorkDir,
         });
+        turnAbortController.signal.throwIfAborted();
+
+        // Fresh translator state for the new turn — keep the tool sets the
+        // session was built with.
+        translatorState = createPiTranslatorState({
+          builtinToolNames: [...PI_NATIVE_BUILTIN_NAMES],
+          hostToolNames: userTools.map(tool => tool.name),
+          nativeToCommon: NATIVE_TO_COMMON,
+        });
+
+        currentEmit?.({ type: 'stream-start' });
+
+        /*
+         * A live continuation reports the completed tool execution before the
+         * next assistant message, which closes the resumed tool-call step. A
+         * journal rerun starts after that result has already been persisted,
+         * so Pi has no live tool event to emit. Recreate only the missing step
+         * boundary; otherwise the continuation layer mistakes the next
+         * assistant response for the resumed step and discards it.
+         */
+        if (didAppendDeliveredHostToolResults) {
+          currentEmit?.({
+            type: 'finish-step',
+            finishReason: { unified: 'tool-calls', raw: undefined },
+            usage: {
+              inputTokens: {
+                total: 0,
+                noCache: 0,
+                cacheRead: 0,
+                cacheWrite: 0,
+              },
+              outputTokens: {
+                total: 0,
+                text: 0,
+                reasoning: 0,
+              },
+            },
+            harnessMetadata: { pi: { inferredStep: true } },
+          });
+        }
+
+        let terminalError: string | undefined;
+        const session = piSession!;
+
+        // We subscribed in rebuild, but the translator may need to detect
+        // terminal errors too — wrap a second listener that records them.
+        const unsubErr = session.subscribe(raw => {
+          const ev = parseNativeEvent(raw);
+          if (!ev) return;
+          const err = getPiTerminalError(ev);
+          if (err && !terminalError) {
+            terminalError = err;
+          }
+        });
+
+        try {
+          await session.prompt(turnOpts.text);
+
+          if (terminalError) {
+            /*
+             * A `doSuspendTurn` aborts the in-flight turn on purpose. Pi surfaces
+             * that abort as a *resolved* prompt with a recorded terminal error
+             * ("This operation was aborted") rather than a thrown exception, so the
+             * `catch` guard below never sees it. Swallow it here too — but only if
+             * it's actually the abort: the stream then closes cleanly (no spurious
+             * `error` chunk) and the next slice rerun-continues from the journal.
+             * Any other terminal error mid-suspend is unanticipated and must
+             * surface.
+             */
+            if (suspending && isAbortError(terminalError)) return;
+            currentEmit?.({ type: 'error', error: new Error(terminalError) });
+            return;
+          }
+
+          const stats = session.getSessionStats();
+          const finishReason = {
+            unified: 'stop' as const,
+            raw: undefined,
+          };
+          const usage = {
+            inputTokens: {
+              total: stats.tokens.input,
+              noCache: undefined,
+              cacheRead: stats.tokens.cacheRead,
+              cacheWrite: stats.tokens.cacheWrite,
+            },
+            outputTokens: {
+              total: stats.tokens.output,
+              text: undefined,
+              reasoning: undefined,
+            },
+          };
+          currentEmit?.({
+            type: 'finish',
+            finishReason,
+            totalUsage: usage,
+          });
+        } catch (err) {
+          // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
+          // so the stream closes cleanly without a spurious `error` chunk; the
+          // next slice rerun-continues from the persisted journal.
+          // Same rule as the resolved-with-terminalError path: only swallow the
+          // abort our own suspend caused; surface anything unanticipated.
+          if (suspending && isAbortError(err)) return;
+          currentEmit?.({ type: 'error', error: err });
+        } finally {
+          unsubErr();
+        }
       } catch (err) {
-        // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
-        // so the stream closes cleanly without a spurious `error` chunk; the
-        // next slice rerun-continues from the persisted journal.
-        // Same rule as the resolved-with-terminalError path: only swallow the
-        // abort our own suspend caused; surface anything unanticipated.
         if (suspending && isAbortError(err)) return;
-        currentEmit?.({ type: 'error', error: err });
-      } finally {
-        unsubErr();
+        throw err;
       }
     })();
 
@@ -1158,17 +1233,19 @@ export async function createPiSession(
     const done = turnPromise.finally(() => {
       if (activeTurn?.token === activeTurnToken) {
         activeTurn = undefined;
+        currentEmit = undefined;
       }
-      currentEmit = undefined;
     });
     activeTurn = {
       token: activeTurnToken,
       done,
+      abort,
     };
 
     return createPromptControl({
       done,
       abortSignal: turnOpts.abortSignal,
+      abort,
     });
   }
 
@@ -1179,8 +1256,12 @@ export async function createPiSession(
     stopped = true;
     parkedPiSessions.delete(input.sessionId);
     deferredRerun?.cancel();
+    const turnToStop = activeTurn;
+    const abortingTurn = turnToStop?.abort();
     settlePendingToolResults('Pi session stopped');
     settlePendingToolApprovals('Pi session stopped');
+    await abortingTurn;
+    await turnToStop?.done.catch(() => {});
 
     /*
      * Results the framework already delivered for journal-pending calls must
@@ -1230,11 +1311,10 @@ export async function createPiSession(
     doPromptTurn: async (
       promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
-      await applySessionInstructions(promptOpts.instructions);
-
       return runTurn({
         text: extractUserText(promptOpts.prompt),
         tools: promptOpts.tools ?? [],
+        instructions: promptOpts.instructions,
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
@@ -1248,6 +1328,7 @@ export async function createPiSession(
         return createPromptControl({
           done: activeTurn.done,
           abortSignal: continueOpts.abortSignal,
+          abort: activeTurn.abort,
         });
       }
 
@@ -1280,10 +1361,10 @@ export async function createPiSession(
        * flight at the slice boundary is recomputed because a host-resident
        * runtime cannot do a lossless attach.
        */
-      await applySessionInstructions(continueOpts.instructions);
       return runTurn({
         text: '',
         tools: continueOpts.tools ?? [],
+        instructions: continueOpts.instructions,
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
       });
@@ -1307,8 +1388,12 @@ export async function createPiSession(
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
       deferredRerun?.cancel();
+      const turnToDestroy = activeTurn;
+      const abortingTurn = turnToDestroy?.abort();
       settlePendingToolResults('Pi session stopped');
       settlePendingToolApprovals('Pi session stopped');
+      await abortingTurn;
+      await turnToDestroy?.done.catch(() => {});
       await disposePiSession();
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
@@ -1378,8 +1463,10 @@ export async function createPiSession(
        * turn the way a bridge adapter can.
        */
       suspending = true;
-      await Promise.resolve(piSession?.abort()).catch(() => {});
+      const turnToSuspend = activeTurn;
+      await turnToSuspend?.abort();
       deferredRerun?.cancel();
+      await turnToSuspend?.done.catch(() => {});
 
       /*
        * A suspend can land while the rerun is still held back waiting for
