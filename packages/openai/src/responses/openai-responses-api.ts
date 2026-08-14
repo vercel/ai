@@ -133,7 +133,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesToolSearchOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
-  | OpenAIResponsesCompactionItem;
+  | OpenAIResponsesCompactionItem
+  | OpenAIResponsesCompactionTrigger;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -429,6 +430,10 @@ export type OpenAIResponsesCompactionItem = {
   type: 'compaction';
   id: string;
   encrypted_content: string;
+};
+
+export type OpenAIResponsesCompactionTrigger = {
+  type: 'compaction_trigger';
 };
 
 /**
