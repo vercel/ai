@@ -1,5 +1,12 @@
 # @ai-sdk/harness-pi
 
+## 1.0.74
+
+### Patch Changes
+
+- 61d2b84: Mirror Pi project configuration in sandboxes whose `find` command does not support symlink-following flags.
+- 39bd17e: fix(harness-pi): deliver tool results submitted after cross-process resume instead of silently dropping them
+
 ## 1.0.73
 
 ### Patch Changes
