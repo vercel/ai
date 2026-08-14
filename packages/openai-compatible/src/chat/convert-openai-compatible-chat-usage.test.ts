@@ -55,4 +55,43 @@ describe('convertOpenAICompatibleChatUsage', () => {
       raw: usage,
     });
   });
+
+  it('uses top-level prompt cache hit tokens as cache read tokens', () => {
+    const usage = {
+      prompt_tokens: 100,
+      completion_tokens: 20,
+      prompt_cache_hit_tokens: 40,
+    };
+
+    expect(convertOpenAICompatibleChatUsage(usage)).toEqual({
+      inputTokens: {
+        total: 100,
+        noCache: 60,
+        cacheRead: 40,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 20, text: 20, reasoning: 0 },
+      raw: usage,
+    });
+  });
+
+  it('prefers prompt token details cache tokens over top-level cache hits', () => {
+    const usage = {
+      prompt_tokens: 100,
+      completion_tokens: 20,
+      prompt_cache_hit_tokens: 40,
+      prompt_tokens_details: { cached_tokens: 10 },
+    };
+
+    expect(convertOpenAICompatibleChatUsage(usage)).toEqual({
+      inputTokens: {
+        total: 100,
+        noCache: 90,
+        cacheRead: 10,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 20, text: 20, reasoning: 0 },
+      raw: usage,
+    });
+  });
 });
