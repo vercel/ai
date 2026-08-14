@@ -73,6 +73,10 @@ describe('inboundMessageSchema', () => {
         model: 'gpt-5.1',
         reasoningEffort: 'high',
         webSearch: true,
+        codexConfig: {
+          model_verbosity: 'low',
+          features: { multi_agent: false },
+        },
       }),
     ).not.toThrow();
   });
