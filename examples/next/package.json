@@ -8,9 +8,9 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/react": "3.0.258",
+    "@ai-sdk/react": "3.0.259",
     "@vercel/blob": "^0.26.0",
-    "ai": "6.0.255",
+    "ai": "6.0.256",
     "next": "^15.5.21",
     "react": "^18",
     "react-dom": "^18",
