@@ -406,5 +406,15 @@ describe('createCodex adapter', () => {
       const b = await harness.getBootstrap!();
       expect(a).toBe(b);
     });
+
+    it('shares the getter across configured harness instances', () => {
+      const first = createCodex({ model: 'first-model' });
+      const second = createCodex({
+        model: 'second-model',
+        webSearch: true,
+      });
+
+      expect(first.getBootstrap).toBe(second.getBootstrap);
+    });
   });
 });

@@ -1,13 +1,10 @@
 import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import { posix } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   commonTool,
   harnessV1DiagnosticFromBridgeFrame,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
-  type HarnessV1Bootstrap,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
@@ -44,6 +41,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
+import {
+  CLAUDE_CODE_BOOTSTRAP_DIR as BOOTSTRAP_DIR,
+  getClaudeCodeBootstrap,
+} from './claude-code-bootstrap';
 import {
   CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
   createClaudeCodeRequestTransformations,
@@ -758,20 +759,6 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
   },
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
-/*
- * Bootstrap is derived state stored under the sandbox's default working
- * directory so snapshot-capable providers can preserve the installed CLI,
- * bridge, and recipe marker without requiring root filesystem access.
- *
- * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
- * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
- * default working directory — the provider's persistent mount — so the
- * workdir's CLI state (Claude's `~/.claude/projects/<dir>/*.jsonl` thread
- * history is keyed by working directory) and the bridge state files survive
- * both detach -> attach/replay and stop -> snapshot -> resume cycles.
- */
-const BOOTSTRAP_DIR = '.harness-bootstrap/claude-code';
-
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
  * future process uses them to reopen a socket to the still-running bridge
@@ -810,7 +797,6 @@ export function createClaudeCode(
       'Claude Code MCP server name "harness-tools" is reserved for HarnessAgent tools.',
     );
   }
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
   const thinking = settings.thinking ?? {
     type: 'adaptive',
     display: 'summarized',
@@ -823,33 +809,7 @@ export function createClaudeCode(
     supportsBuiltinToolApprovals: true,
     supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: claudeCodeResumeStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge] = await Promise.all([
-        readBridgeAsset('package.json'),
-        readBridgeAsset('pnpm-lock.yaml'),
-        readBridgeAsset('index.mjs'),
-      ]);
-      cachedBootstrap = {
-        harnessId: 'claude-code',
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
-          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-        ],
-        commands: [
-          {
-            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-          },
-          {
-            command:
-              'if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: getClaudeCodeBootstrap,
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
       const authenticationMode = resolveClaudeCodeAuthenticationMode(
@@ -1196,24 +1156,6 @@ async function writeClaudeCodeSkills({
       `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
     trailingNewline: true,
   });
-}
-
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
 /**
