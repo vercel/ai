@@ -22,7 +22,6 @@ run(async () => {
       }),
     },
     stopWhen: stepCountIs(2),
-    include: { requestBody: true },
     prompt: 'What is the weather at 37.7749, -122.4194?',
   });
 
@@ -55,7 +54,6 @@ run(async () => {
       }),
     },
     stopWhen: stepCountIs(2),
-    include: { requestBody: true },
     prompt: 'What is the weather in 94103?',
   });
 
