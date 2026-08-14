@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.39
+
+### Patch Changes
+
+- 646c86e: fix(provider/xai): report video moderation blocks and missing URLs as an error status instead of throwing
+
 ## 4.0.38
 
 ### Patch Changes

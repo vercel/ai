@@ -1,5 +1,17 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.8
+
+### Patch Changes
+
+- 69bb613: feat(harness): support request transformations in network sandbox abstraction and use it to apply credential brokering when available
+- a72aca4: fix(harness-grok-build): inject bridge `package.json` and `pnpm-lock.yaml` files at build time instead of reading them at runtime to fix runtime errors in certain environments
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness-acp@1.0.9
+  - @ai-sdk/harness@1.0.72
+
 ## 1.0.7
 
 ### Patch Changes
