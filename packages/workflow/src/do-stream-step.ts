@@ -125,6 +125,24 @@ export async function doStreamStep(
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
+  const output =
+    options?.responseFormat == null
+      ? undefined
+      : {
+          name: 'workflow-response-format',
+          responseFormat: Promise.resolve(options.responseFormat),
+          async parseCompleteOutput(): Promise<never> {
+            throw new Error(
+              'Workflow step output parsing is handled outside doStreamStep.',
+            );
+          },
+          async parsePartialOutput() {
+            return undefined;
+          },
+          createElementStreamTransform() {
+            return undefined;
+          },
+        };
 
   // streamModelCall derives the model responseFormat from its output spec.
   // WorkflowAgent parses output outside the model-call helper, so this minimal
@@ -175,6 +193,7 @@ export async function doStreamStep(
     stopSequences: options?.stopSequences,
     seed: options?.seed,
     repairToolCall: options?.repairToolCall,
+    output,
   });
 
   // Consume the stream: capture data and write to writable in real-time
