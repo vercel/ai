@@ -1,5 +1,4 @@
 import {
-  AISDKError,
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
@@ -276,11 +275,18 @@ export class ReplicateVideoModel implements VideoModelV4 {
     }
 
     if (prediction.status === 'succeeded') {
+      // Terminal, so it is reported the same way as `failed` above: a succeeded
+      // prediction with no output will never gain one on a later poll.
       if (!prediction.output) {
-        throw new AISDKError({
-          name: 'REPLICATE_VIDEO_GENERATION_ERROR',
-          message: 'No video URL in response',
-        });
+        return {
+          status: 'error' as const,
+          error: 'No video URL in response',
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: responseHeaders,
+          },
+        };
       }
 
       return {

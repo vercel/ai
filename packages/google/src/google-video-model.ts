@@ -5,7 +5,6 @@ import {
   type Experimental_VideoModelV4File as VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
-  type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -269,26 +268,23 @@ export class GoogleVideoModel implements VideoModelV4 {
     responseHeaders: Record<string, string> | undefined,
     warnings: SharedV4Warning[],
     currentDate: Date,
-  ): Promise<{
-    status: 'completed';
-    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
-    warnings: SharedV4Warning[];
-    providerMetadata: SharedV4ProviderMetadata;
-    response: {
-      timestamp: Date;
-      modelId: string;
-      headers: Record<string, string> | undefined;
-    };
-  }> {
+  ): Promise<VideoModelV4OperationStatusResult> {
     const response = finalOperation.response;
+    // Terminal, so it is reported the same way as an operation-level error: a
+    // done operation with no samples never gains any on a later poll.
     if (
       !response?.generateVideoResponse?.generatedSamples ||
       response.generateVideoResponse.generatedSamples.length === 0
     ) {
-      throw new AISDKError({
-        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
-        message: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
-      });
+      return {
+        status: 'error',
+        error: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     const videos: Array<{ type: 'url'; url: string; mediaType: string }> = [];
@@ -321,10 +317,15 @@ export class GoogleVideoModel implements VideoModelV4 {
     }
 
     if (videos.length === 0) {
-      throw new AISDKError({
-        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
-        message: 'No valid videos in response',
-      });
+      return {
+        status: 'error',
+        error: 'No valid videos in response',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     return {

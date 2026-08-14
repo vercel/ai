@@ -530,7 +530,9 @@ describe('FalVideoModel', () => {
       }
     });
 
-    it('should throw error when video URL is missing in completed response', async () => {
+    it('should report an error status when video URL is missing in completed response', async () => {
+      // Terminal: a throw here is indistinguishable from a transient network
+      // fault, so an async poller would retry a request that already completed.
       server.urls[
         'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123'
       ].response = {
@@ -540,19 +542,20 @@ describe('FalVideoModel', () => {
 
       const model = createBasicModel();
 
-      await expect(
-        model.doStatus({
-          operation: {
-            responseUrl:
-              'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
-          },
-        }),
-      ).rejects.toMatchObject({
-        message: 'No video URL in response',
+      const result = await model.doStatus({
+        operation: {
+          responseUrl:
+            'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
+        },
       });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toBe('No video URL in response');
+      }
     });
 
-    it('should return error status for non-polling API errors', async () => {
+    it('should return error status for non-retryable API errors', async () => {
       const model = new FalVideoModel('luma-dream-machine', {
         provider: 'fal.video',
         url: ({ path }) => path,
@@ -560,10 +563,10 @@ describe('FalVideoModel', () => {
         fetch: async () => {
           return new Response(
             JSON.stringify({
-              error: { message: 'Internal server error', code: 500 },
+              error: { message: 'Invalid request', code: 400 },
             }),
             {
-              status: 500,
+              status: 400,
               headers: { 'Content-Type': 'application/json' },
             },
           );
@@ -582,12 +585,42 @@ describe('FalVideoModel', () => {
 
       expect(result.status).toBe('error');
       if (result.status === 'error') {
-        expect(result.error).toBe('Internal server error');
+        expect(result.error).toBe('Invalid request');
         expect(result.response.modelId).toBe('luma-dream-machine');
         expect(result.response.timestamp).toStrictEqual(
           new Date('2026-02-16T00:00:00Z'),
         );
       }
+    });
+
+    it('should rethrow retryable API errors instead of terminalizing them', async () => {
+      // A 5xx is a transient transport fault. Reporting it as `status: 'error'`
+      // would permanently fail a generation the provider is still working on.
+      const model = new FalVideoModel('luma-dream-machine', {
+        provider: 'fal.video',
+        url: ({ path }) => path,
+        headers: () => ({ 'api-key': 'test-key' }),
+        fetch: async () => {
+          return new Response(
+            JSON.stringify({
+              error: { message: 'Internal server error', code: 500 },
+            }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+        },
+      });
+
+      await expect(
+        model.doStatus({
+          operation: {
+            responseUrl:
+              'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-id',
+          },
+        }),
+      ).rejects.toMatchObject({ isRetryable: true, statusCode: 500 });
     });
   });
 });

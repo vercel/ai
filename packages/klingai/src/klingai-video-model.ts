@@ -325,16 +325,13 @@ export class KlingAIVideoModel implements VideoModelV4 {
     const taskStatus = statusResponse.data?.task_status;
 
     if (taskStatus === 'succeed') {
-      return {
-        status: 'completed',
-        ...this.buildCompletedResult(
-          statusResponse,
-          taskId,
-          responseHeaders,
-          [],
-          currentDate,
-        ),
-      };
+      return this.buildCompletedResult(
+        statusResponse,
+        taskId,
+        responseHeaders,
+        [],
+        currentDate,
+      );
     }
 
     if (taskStatus === 'failed') {
@@ -405,12 +402,19 @@ export class KlingAIVideoModel implements VideoModelV4 {
     responseHeaders: Record<string, string> | undefined,
     warnings: SharedV4Warning[],
     currentDate: Date,
-  ) {
+  ): VideoModelV4OperationStatusResult {
+    // Terminal, so it is reported the same way as an upstream `failed` task: a
+    // succeeded task with no videos never gains any on a later poll.
     if (!finalResponse?.data?.task_result?.videos?.length) {
-      throw new AISDKError({
-        name: 'KLINGAI_VIDEO_GENERATION_ERROR',
-        message: `No videos in response. Response: ${JSON.stringify(finalResponse)}`,
-      });
+      return {
+        status: 'error',
+        error: `No videos in response. Response: ${JSON.stringify(finalResponse)}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     const videos: Array<{ type: 'url'; url: string; mediaType: string }> = [];
@@ -438,13 +442,19 @@ export class KlingAIVideoModel implements VideoModelV4 {
     }
 
     if (videos.length === 0) {
-      throw new AISDKError({
-        name: 'KLINGAI_VIDEO_GENERATION_ERROR',
-        message: 'No valid video URLs in response',
-      });
+      return {
+        status: 'error',
+        error: 'No valid video URLs in response',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     return {
+      status: 'completed',
       videos,
       warnings,
       response: {

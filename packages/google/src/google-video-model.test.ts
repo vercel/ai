@@ -573,7 +573,9 @@ describe('GoogleVideoModel', () => {
       }
     });
 
-    it('should throw when no videos in response', async () => {
+    it('should report an error status when no videos in response', async () => {
+      // Terminal: a throw here is indistinguishable from a transient network
+      // fault, so an async poller would retry an operation that is already done.
       const model = new GoogleVideoModel('veo-3.1-generate-preview', {
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -597,13 +599,14 @@ describe('GoogleVideoModel', () => {
         },
       });
 
-      await expect(
-        model.doStatus({
-          operation: { operationName: 'operations/empty-op' },
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('No videos in response'),
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/empty-op' },
       });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toContain('No videos in response');
+      }
     });
 
     it('should pass headers to status request', async () => {

@@ -564,6 +564,44 @@ describe('GoogleVertexVideoModel', () => {
       expect(result.status).toBe('pending');
     });
 
+    it('should return error status when done carries no videos', async () => {
+      // Terminal: a throw here is indistinguishable from a transient network
+      // fault, so an async poller would retry an operation that is already done.
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        videos: [],
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toContain(
+        'No videos in response',
+      );
+      expect(result.response).toMatchObject({
+        modelId: 'veo-2.0-generate-001',
+      });
+    });
+
+    it('should return error status when done carries no usable video data', async () => {
+      // The samples exist but none has base64 data or a GCS URI.
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        videos: [{ video: { mimeType: 'video/mp4' } }],
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toBe(
+        'No valid videos in response',
+      );
+    });
+
     it('should return error status on operation error', async () => {
       const model = createMockModel({
         operationName: 'operations/my-op-123',

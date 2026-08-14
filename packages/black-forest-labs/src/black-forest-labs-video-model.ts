@@ -629,13 +629,16 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
 
     if (status === 'Ready') {
       const parsed = bflVideoResultSchema.safeParse(result);
+      // Terminal, so it is reported the same way as the terminal failure
+      // statuses below: a Ready request with no usable result never gains one.
       if (!parsed.success) {
-        throw new AISDKError({
-          name: 'BLACK_FOREST_LABS_VIDEO_GENERATION_ERROR',
-          message:
+        return {
+          status: 'error',
+          error:
             'Black Forest Labs reported the video as Ready but returned no result.sample URL. ' +
             `Request id: ${operation.requestId}`,
-        });
+          response,
+        };
       }
 
       return {

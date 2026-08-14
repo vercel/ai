@@ -408,11 +408,18 @@ export class ByteDanceVideoModel implements VideoModelV4 {
     if (statusResponse.status === 'succeeded') {
       const videoUrl = statusResponse.content?.video_url;
 
+      // Terminal, so it is reported the same way as an upstream `failed`: a
+      // succeeded task with no URL will never gain one on a later poll.
       if (!videoUrl) {
-        throw new AISDKError({
-          name: 'BYTEDANCE_VIDEO_GENERATION_ERROR',
-          message: `No video URL in response. Task ID: ${taskId}`,
-        });
+        return {
+          status: 'error',
+          error: `No video URL in response. Task ID: ${taskId}`,
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: responseHeaders,
+          },
+        };
       }
 
       return {

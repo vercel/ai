@@ -809,21 +809,24 @@ describe('ReplicateVideoModel', () => {
       expect(result.status === 'error' && result.error).toContain('canceled');
     });
 
-    it('should throw when no output on succeeded', async () => {
+    it('should report an error status when no output on succeeded', async () => {
+      // Terminal: a throw here is indistinguishable from a transient network
+      // fault, so an async poller would retry a prediction that already settled.
       const model = createStatusModel({
         predictionStatus: 'succeeded',
         output: null,
       });
 
-      await expect(
-        model.doStatus({
-          operation: {
-            getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
-          },
-        }),
-      ).rejects.toMatchObject({
-        message: 'No video URL in response',
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
       });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toBe(
+        'No video URL in response',
+      );
     });
 
     it('should include providerMetadata', async () => {

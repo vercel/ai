@@ -1483,7 +1483,9 @@ describe('ByteDanceVideoModel', () => {
       );
     });
 
-    it('should throw error when no video URL in response', async () => {
+    it('should report an error status when no video URL in response', async () => {
+      // Terminal: a throw here is indistinguishable from a transient network
+      // fault, so an async poller would retry a task that can never succeed.
       server.urls[
         'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
       ].response = {
@@ -1497,11 +1499,14 @@ describe('ByteDanceVideoModel', () => {
 
       const model = createBasicModel();
 
-      await expect(
-        model.doStatus({ operation: { taskId: 'test-task-id-123' } }),
-      ).rejects.toMatchObject({
-        message: 'No video URL in response. Task ID: test-task-id-123',
+      const result = await model.doStatus({
+        operation: { taskId: 'test-task-id-123' },
       });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' ? result.error : undefined).toBe(
+        'No video URL in response. Task ID: test-task-id-123',
+      );
     });
 
     it('should handle API errors from task creation', async () => {
