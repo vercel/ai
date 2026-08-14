@@ -1150,6 +1150,7 @@ async function readSessionTokens({
 }
 
 type AssistantSnapshot = {
+  id?: unknown;
   contentParts?: unknown[];
   metadata?: unknown;
   model?: unknown;
