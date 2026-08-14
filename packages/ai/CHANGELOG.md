@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.255
+
+### Patch Changes
+
+- 35a94b0: Keep chat status submitted until response content begins streaming.
+- 93d24c6: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 1bd1caf: Fix declaration emit for exported values that infer an `Output` type.
+
 ## 6.0.254
 
 ### Patch Changes
