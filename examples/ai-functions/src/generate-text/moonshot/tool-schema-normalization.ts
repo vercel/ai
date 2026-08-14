@@ -1,5 +1,5 @@
 import { moonshotai } from '@ai-sdk/moonshotai';
-import { generateText, isStepCount, jsonSchema, tool } from 'ai';
+import { generateText, jsonSchema, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
@@ -21,7 +21,7 @@ run(async () => {
         }),
       }),
     },
-    stopWhen: isStepCount(2),
+    stopWhen: stepCountIs(2),
     include: { requestBody: true },
     prompt: 'What is the weather at 37.7749, -122.4194?',
   });
@@ -54,7 +54,7 @@ run(async () => {
         }),
       }),
     },
-    stopWhen: isStepCount(2),
+    stopWhen: stepCountIs(2),
     include: { requestBody: true },
     prompt: 'What is the weather in 94103?',
   });

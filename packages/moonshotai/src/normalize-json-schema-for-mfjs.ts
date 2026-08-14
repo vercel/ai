@@ -1,5 +1,8 @@
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
-import { isRecord } from '@ai-sdk/provider-utils';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 const SCHEMA_ARRAY_KEYS = ['allOf', 'anyOf', 'oneOf', 'prefixItems'] as const;
 const SCHEMA_MAP_KEYS = [
