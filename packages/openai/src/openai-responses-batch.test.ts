@@ -220,6 +220,46 @@ describe('OpenAI batch language models', () => {
     });
   });
 
+  it('appends an explicit compaction trigger to batch request input', async () => {
+    prepareCreateResponse();
+    const model = createOpenAI({
+      apiKey: 'test-api-key',
+    }).responses('gpt-5.6');
+
+    await model.experimental_doStartBatch({
+      requests: [
+        {
+          id: 'compact',
+          options: {
+            prompt: [
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'Compact this context.' }],
+              },
+            ],
+            providerOptions: {
+              openai: {
+                compactionTrigger: true,
+              },
+            },
+          },
+        },
+      ],
+    });
+
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const file = multipart?.file as File;
+    const line = JSON.parse((await file.text()).trim());
+
+    expect(line.body.input).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'input_text', text: 'Compact this context.' }],
+      },
+      { type: 'compaction_trigger' },
+    ]);
+  });
+
   it('forwards the abort signal to file upload and batch creation', async () => {
     prepareCreateResponse();
     const mockFetch = vi.fn().mockImplementation(globalThis.fetch);

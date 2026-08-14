@@ -36,6 +36,7 @@ export type {
 export type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PortEndpoint,
   HarnessV1RequestTransformation,
 } from './harness-v1-network-sandbox-session';
 export type { HarnessV1Skill } from './harness-v1-skill';
