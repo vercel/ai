@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18933,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-opencode-cold-resume-stale-reply.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/harness-opencode-cold-resume-stale-reply.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #18933 REPRODUCED: previous-turn assistant text was emitted as the new reply with a successful fallback finish-step."
+  }
+}
