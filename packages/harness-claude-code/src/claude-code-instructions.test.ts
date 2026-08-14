@@ -79,6 +79,7 @@ function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
     id: 'sbx',
     defaultWorkingDirectory: '/wd',
     ports: [port],
+    getPortEndpoint: async () => ({ url: `ws://127.0.0.1:${port}` }),
     getPortUrl: async () => `ws://127.0.0.1:${port}`,
     stop: async () => {},
     restricted: () => session,

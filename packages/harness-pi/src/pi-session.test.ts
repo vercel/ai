@@ -912,6 +912,7 @@ function createSandboxSession(options?: {
   const sandbox = {
     defaultWorkingDirectory: '/sandbox',
     destroy: vi.fn(async () => {}),
+    getPortEndpoint: vi.fn(),
     getPortUrl: vi.fn(),
     readBinaryFile: vi.fn(async () =>
       options?.sessionFileContent != null

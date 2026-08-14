@@ -9,6 +9,7 @@ import {
   type HarnessV1Bootstrap,
   type HarnessV1DebugConfig,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PortEndpoint,
   type HarnessV1PromptControl,
   type HarnessV1Session,
   type HarnessV1StreamPart,
@@ -433,13 +434,16 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }
         if (coords != null) {
           try {
-            const attachUrl =
-              (await sandboxSession.getPortUrl({
-                port: coords.port,
-                protocol: 'ws',
-              })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+            const endpoint = await sandboxSession.getPortEndpoint({
+              port: coords.port,
+              protocol: 'ws',
+            });
+            const attachEndpoint = withBridgeToken({
+              endpoint,
+              token: coords.token,
+            });
             const attachChannel: ACPChannel = new SandboxChannel({
-              connect: () => openWebSocket({ url: attachUrl }),
+              connect: () => openWebSocket(attachEndpoint),
               outboundSchema: outboundMessageSchema,
               initialLastSeenEventId: coords.lastSeenEventId,
               onDiagnostic,
@@ -637,13 +641,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const wsUrl =
-        (await sandboxSession.getPortUrl({
-          port: boundPort,
-          protocol: 'ws',
-        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
+      const endpoint = await sandboxSession.getPortEndpoint({
+        port: boundPort,
+        protocol: 'ws',
+      });
+      const bridgeEndpoint = withBridgeToken({ endpoint, token });
       const channel: ACPChannel = new SandboxChannel({
-        connect: () => openWebSocket({ url: wsUrl }),
+        connect: () => openWebSocket(bridgeEndpoint),
         outboundSchema: outboundMessageSchema,
         ...(respawnStrategy?.mode === 'disk-replay'
           ? { initialLastSeenEventId: respawnStrategy.afterSeq }
@@ -850,9 +854,14 @@ function resolveBridgePort({
   });
 }
 
-function openWebSocket({ url }: { url: string }): Promise<WebSocket> {
+function openWebSocket({
+  url,
+  headers,
+}: HarnessV1PortEndpoint): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, {
+      headers: headers == null ? undefined : { ...headers },
+    });
     const onOpen = () => {
       ws.off('error', onError);
       resolve(ws);
@@ -864,6 +873,18 @@ function openWebSocket({ url }: { url: string }): Promise<WebSocket> {
     ws.once('open', onOpen);
     ws.once('error', onError);
   });
+}
+
+function withBridgeToken({
+  endpoint,
+  token,
+}: {
+  endpoint: HarnessV1PortEndpoint;
+  token: string;
+}): HarnessV1PortEndpoint {
+  const bridgeUrl = new URL(endpoint.url);
+  bridgeUrl.searchParams.set('agent_bridge_token', token);
+  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function restoreColdACPSession({
