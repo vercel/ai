@@ -74,10 +74,9 @@ const result = await generateSpeech({
 ```
 
 <Note>
-  Full voice model IDs (e.g. `deepgram.speech('aura-2-helena-en')`) still
-  pass through, but the family ID + `voice`/`language` form above is the
-  recommended path — it matches voice selection in the other speech
-  providers.
+  Full voice model IDs (e.g. `deepgram.speech('aura-2-helena-en')`) still pass
+  through, but the family ID + `voice`/`language` form above is the recommended
+  path — it matches voice selection in the other speech providers.
 </Note>
 
 You can also pass additional provider-specific options using the `providerOptions` argument:
@@ -161,10 +160,10 @@ languages. `instructions` is not supported and is ignored with a warning.
 
 ### Model Capabilities
 
-| Family   | Voices (selected via the `voice` option)                                                        |
-| -------- | ---------------------------------------------------------------------------------------------- |
-| `aura-2` | 41 English, 17 Spanish, 9 Dutch, 7 German, 10 Italian, 5 Japanese, 2 French                    |
-| `aura`   | 12 English (Aura-1)                                                                            |
+| Family   | Voices (selected via the `voice` option)                                    |
+| -------- | --------------------------------------------------------------------------- |
+| `aura-2` | 41 English, 17 Spanish, 9 Dutch, 7 German, 10 Italian, 5 Japanese, 2 French |
+| `aura`   | 12 English (Aura-1)                                                         |
 
 See the [full voice list](https://developers.deepgram.com/docs/tts-models)
 for all voice names and accents.
