@@ -296,15 +296,10 @@ export function toUIMessageChunk<
 
     case 'tool-error': {
       const dynamic = isDynamic(part);
-
       return {
         type: 'tool-output-error',
         toolCallId: part.toolCallId,
-        errorText: part.providerExecuted
-          ? typeof part.error === 'string'
-            ? part.error
-            : JSON.stringify(part.error)
-          : onError(part.error),
+        errorText: onError(part.error),
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),

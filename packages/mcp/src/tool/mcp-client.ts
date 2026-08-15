@@ -964,7 +964,7 @@ class DefaultMCPClient implements MCPClient {
       schemas?: TOOL_SCHEMAS;
     },
   ): McpToolSet<TOOL_SCHEMAS> {
-    const tools: Record<string, Tool & { _meta?: ToolMeta }> = {};
+    const tools: Record<string, Tool & { _meta?: ToolMeta }> = Object.create(null);
 
     for (const {
       name,
