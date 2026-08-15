@@ -55,10 +55,24 @@ You can use the following optional settings to customize the Deepgram provider i
 You can create models that call the [Deepgram text-to-speech API](https://developers.deepgram.com/docs/text-to-speech)
 using the `.speech()` factory method.
 
-The first argument is the model id, which includes the voice. Deepgram embeds the voice directly in the model ID (e.g., `aura-2-helena-en`).
+The first argument is the model id. Deepgram embeds the voice and language directly in the model ID (e.g., `aura-2-helena-en`).
 
 ```ts
 const model = deepgram.speech('aura-2-helena-en');
+```
+
+Alternatively, pass a bare voice family ID (`aura-2` or `aura`) and select the voice and language with the `generateSpeech` `voice` and `language` options. The provider composes the upstream model ID as `<family>-<voice>-<language>` (language defaults to `en`):
+
+```ts
+import { generateSpeech } from 'ai';
+import { deepgram } from '@ai-sdk/deepgram';
+
+const result = await generateSpeech({
+  model: deepgram.speech('aura-2'),
+  voice: 'thalia',
+  language: 'en',
+  text: 'Hello, world!',
+});
 ```
 
 You can use the model with the `generateSpeech` function:
@@ -142,17 +156,19 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                                                            |
-| ---------------------------------------------------------------- |
-| `aura-2-asteria-en`                                              |
-| `aura-2-thalia-en`                                               |
-| `aura-2-helena-en`                                               |
-| `aura-2-orpheus-en`                                              |
-| `aura-2-zeus-en`                                                 |
-| `aura-asteria-en`                                                |
-| `aura-luna-en`                                                   |
-| `aura-stella-en`                                                 |
-| [+ more voices](https://developers.deepgram.com/docs/tts-models) |
+| Model                                                                            |
+| -------------------------------------------------------------------------------- |
+| `aura-2` (voice family — pass `voice` and `language` to `generateSpeech`)        |
+| `aura` (voice family — pass `voice` and `language` to `generateSpeech`)          |
+| `aura-2-<voice>-en` (41 English voices, e.g. `aura-2-thalia-en`)                 |
+| `aura-2-<voice>-es` (17 Spanish voices, e.g. `aura-2-celeste-es`)                |
+| `aura-2-<voice>-nl` (9 Dutch voices, e.g. `aura-2-rhea-nl`)                      |
+| `aura-2-<voice>-de` (7 German voices, e.g. `aura-2-julius-de`)                   |
+| `aura-2-<voice>-it` (10 Italian voices, e.g. `aura-2-livia-it`)                  |
+| `aura-2-<voice>-ja` (5 Japanese voices, e.g. `aura-2-fujin-ja`)                  |
+| `aura-2-<voice>-fr` (2 French voices, e.g. `aura-2-agathe-fr`)                   |
+| `aura-<voice>-en` (12 Aura-1 English voices, e.g. `aura-asteria-en`)             |
+| [Full voice list](https://developers.deepgram.com/docs/tts-models)               |
 
 ## Transcription Models
 

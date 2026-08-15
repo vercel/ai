@@ -212,6 +212,93 @@ describe('doGenerate', () => {
     `);
   });
 
+  describe('voice family model IDs', () => {
+    const familyModel = provider.speech('aura-2');
+
+    it('should compose the upstream model ID from voice, defaulting language to en', async () => {
+      prepareAudioResponse();
+
+      await familyModel.doGenerate({
+        text: 'Hello, welcome to Deepgram!',
+        voice: 'thalia',
+      });
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.searchParams.get('model')).toBe('aura-2-thalia-en');
+    });
+
+    it('should compose the upstream model ID from voice and language', async () => {
+      prepareAudioResponse();
+
+      await provider.speech('aura-2').doGenerate({
+        text: 'Hola desde Deepgram!',
+        voice: 'celeste',
+        language: 'es',
+      });
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.searchParams.get('model')).toBe('aura-2-celeste-es');
+    });
+
+    it('should compose with the aura family', async () => {
+      prepareAudioResponse();
+
+      await provider.speech('aura').doGenerate({
+        text: 'Hello, welcome to Deepgram!',
+        voice: 'asteria',
+      });
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.searchParams.get('model')).toBe('aura-asteria-en');
+    });
+
+    it('should throw when no voice is provided', async () => {
+      prepareAudioResponse();
+
+      await expect(
+        familyModel.doGenerate({
+          text: 'Hello, welcome to Deepgram!',
+        }),
+      ).rejects.toThrow(
+        'Deepgram speech model "aura-2" requires a `voice` to be set',
+      );
+    });
+
+    it('should warn and use en when language is auto', async () => {
+      prepareAudioResponse();
+
+      const result = await familyModel.doGenerate({
+        text: 'Hello, welcome to Deepgram!',
+        voice: 'thalia',
+        language: 'auto',
+      });
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.searchParams.get('model')).toBe('aura-2-thalia-en');
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Deepgram TTS models do not support automatic language detection. Language "en" was used instead.",
+            "feature": "language",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
+    it('should not warn when voice and language are consumed by composition', async () => {
+      prepareAudioResponse();
+
+      const result = await provider.speech('aura-2').doGenerate({
+        text: 'Hola desde Deepgram!',
+        voice: 'celeste',
+        language: 'es',
+      });
+
+      expect(result.warnings).toEqual([]);
+    });
+  });
+
   it('should warn about unsupported speed parameter', async () => {
     prepareAudioResponse();
 

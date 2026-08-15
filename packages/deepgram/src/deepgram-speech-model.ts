@@ -19,6 +19,11 @@ interface DeepgramSpeechModelConfig extends DeepgramConfig {
   };
 }
 
+// Deepgram embeds voice and language in the model ID
+// (`<family>-<voice>-<language>`, e.g. `aura-2-thalia-en`). Bare family IDs
+// compose the upstream model ID from the voice and language call options.
+const VOICE_FAMILY_IDS = new Set<string>(['aura', 'aura-2']);
+
 export class DeepgramSpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -63,6 +68,25 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       schema: deepgramSpeechModelOptionsSchema,
     });
 
+    // Compose the upstream model ID from voice/language when a bare voice
+    // family ID is used; full voice IDs (e.g. `aura-2-thalia-en`) pass through.
+    let upstreamModelId: string = this.modelId;
+    if (VOICE_FAMILY_IDS.has(this.modelId)) {
+      if (!voice?.trim()) {
+        throw new Error(
+          `Deepgram speech model "${this.modelId}" requires a \`voice\` to be set (e.g. voice: 'thalia').`,
+        );
+      }
+      if (language === 'auto') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'language',
+          details: `Deepgram TTS models do not support automatic language detection. Language "en" was used instead.`,
+        });
+      }
+      upstreamModelId = `${this.modelId}-${voice}-${language && language !== 'auto' ? language : 'en'}`;
+    }
+
     // Create request body
     const requestBody = {
       text,
@@ -70,7 +94,7 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
 
     // Prepare query parameters
     const queryParams: Record<string, string> = {
-      model: this.modelId,
+      model: upstreamModelId,
     };
 
     // Map outputFormat to encoding/container/sample_rate
@@ -403,9 +427,9 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       }
     }
 
-    // Handle voice parameter - Deepgram embeds voice in model ID
-    // If voice is provided and different from model, warn user
-    if (voice && voice !== this.modelId) {
+    // Handle voice parameter - only relevant for full voice model IDs, where
+    // the voice is embedded in the model ID and a voice param cannot compose.
+    if (upstreamModelId === this.modelId && voice && voice !== this.modelId) {
       warnings.push({
         type: 'unsupported',
         feature: 'voice',
@@ -422,8 +446,9 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       });
     }
 
-    // Handle language - Deepgram models are language-specific via model ID
-    if (language) {
+    // Handle language - full voice model IDs are already language-specific;
+    // language was already consumed when composing from a voice family ID.
+    if (upstreamModelId === this.modelId && language) {
       warnings.push({
         type: 'unsupported',
         feature: 'language',
