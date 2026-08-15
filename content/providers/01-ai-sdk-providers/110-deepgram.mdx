@@ -55,13 +55,11 @@ You can use the following optional settings to customize the Deepgram provider i
 You can create models that call the [Deepgram text-to-speech API](https://developers.deepgram.com/docs/text-to-speech)
 using the `.speech()` factory method.
 
-The first argument is the model id. Deepgram embeds the voice and language directly in the model ID (e.g., `aura-2-helena-en`).
-
-```ts
-const model = deepgram.speech('aura-2-helena-en');
-```
-
-Alternatively, pass a bare voice family ID (`aura-2` or `aura`) and select the voice and language with the `generateSpeech` `voice` and `language` options. The provider composes the upstream model ID as `<family>-<voice>-<language>` (language defaults to `en`):
+The first argument is the voice family ID: `aura-2` (current generation) or
+`aura` (Aura-1). The voice and language are selected with the
+`generateSpeech` `voice` and `language` options — the provider composes the
+upstream Deepgram model ID as `<family>-<voice>-<language>` (language
+defaults to `en`):
 
 ```ts
 import { generateSpeech } from 'ai';
@@ -75,17 +73,12 @@ const result = await generateSpeech({
 });
 ```
 
-You can use the model with the `generateSpeech` function:
-
-```ts
-import { generateSpeech } from 'ai';
-import { deepgram } from '@ai-sdk/deepgram';
-
-const result = await generateSpeech({
-  model: deepgram.speech('aura-2-helena-en'),
-  text: 'Hello, world!',
-});
-```
+<Note type="warning">
+  **Breaking change in `@ai-sdk/deepgram` 3.1:** full voice model IDs (e.g.
+  `deepgram.speech('aura-2-helena-en')`) are no longer accepted. Migrate by
+  passing the family ID and selecting the voice and language via options:
+  `deepgram.speech('aura-2')` with `voice: 'helena'`, `language: 'en'`.
+</Note>
 
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
@@ -94,7 +87,8 @@ import { generateSpeech } from 'ai';
 import { deepgram, type DeepgramSpeechModelOptions } from '@ai-sdk/deepgram';
 
 const result = await generateSpeech({
-  model: deepgram.speech('aura-2-helena-en'),
+  model: deepgram.speech('aura-2'),
+  voice: 'helena',
   text: 'Hello, world!',
   providerOptions: {
     deepgram: {
@@ -167,19 +161,13 @@ languages. `instructions` is not supported and is ignored with a warning.
 
 ### Model Capabilities
 
-| Model                                                                            |
-| -------------------------------------------------------------------------------- |
-| `aura-2` (voice family — pass `voice` and `language` to `generateSpeech`)        |
-| `aura` (voice family — pass `voice` and `language` to `generateSpeech`)          |
-| `aura-2-<voice>-en` (41 English voices, e.g. `aura-2-thalia-en`)                 |
-| `aura-2-<voice>-es` (17 Spanish voices, e.g. `aura-2-celeste-es`)                |
-| `aura-2-<voice>-nl` (9 Dutch voices, e.g. `aura-2-rhea-nl`)                      |
-| `aura-2-<voice>-de` (7 German voices, e.g. `aura-2-julius-de`)                   |
-| `aura-2-<voice>-it` (10 Italian voices, e.g. `aura-2-livia-it`)                  |
-| `aura-2-<voice>-ja` (5 Japanese voices, e.g. `aura-2-fujin-ja`)                  |
-| `aura-2-<voice>-fr` (2 French voices, e.g. `aura-2-agathe-fr`)                   |
-| `aura-<voice>-en` (12 Aura-1 English voices, e.g. `aura-asteria-en`)             |
-| [Full voice list](https://developers.deepgram.com/docs/tts-models)               |
+| Family   | Voices (selected via the `voice` option)                                                        |
+| -------- | ---------------------------------------------------------------------------------------------- |
+| `aura-2` | 41 English, 17 Spanish, 9 Dutch, 7 German, 10 Italian, 5 Japanese, 2 French                    |
+| `aura`   | 12 English (Aura-1)                                                                            |
+
+See the [full voice list](https://developers.deepgram.com/docs/tts-models)
+for all voice names and accents.
 
 ## Transcription Models
 

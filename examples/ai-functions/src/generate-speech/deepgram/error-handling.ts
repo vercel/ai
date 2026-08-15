@@ -36,7 +36,8 @@ const CASES: Array<{
     expect: 'mentions the speed parameter or its range',
     run: () =>
       generateSpeech({
-        model: createDeepgram({}).speech('aura-2-helena-en'),
+        model: createDeepgram({}).speech('aura-2'),
+        voice: 'helena',
         speed: 2,
         text: 'Hello, world!',
       }),
@@ -46,9 +47,8 @@ const CASES: Array<{
     expect: 'mentions authentication',
     run: () =>
       generateSpeech({
-        model: createDeepgram({ apiKey: 'not-a-real-key' }).speech(
-          'aura-2-helena-en',
-        ),
+        model: createDeepgram({ apiKey: 'not-a-real-key' }).speech('aura-2'),
+        voice: 'helena',
         text: 'Hello, world!',
       }),
   },

@@ -8,7 +8,7 @@ vi.mock('./version', () => ({
 }));
 
 const provider = createDeepgram({ apiKey: 'test-api-key' });
-const model = provider.speech('aura-2-helena-en');
+const model = provider.speech('aura-2');
 
 const server = createTestServer({
   'https://api.deepgram.com/v1/speak': {},
@@ -37,6 +37,7 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchObject({
@@ -57,8 +58,9 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.speech('aura-2-helena-en').doGenerate({
+    await provider.speech('aura-2').doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -76,15 +78,96 @@ describe('doGenerate', () => {
     );
   });
 
-  it('should pass query parameters for model', async () => {
+  it('should compose the upstream model ID from voice, defaulting language to en', async () => {
     prepareAudioResponse();
 
     await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'thalia',
     });
 
     const url = new URL(server.calls[0].requestUrl);
-    expect(url.searchParams.get('model')).toBe('aura-2-helena-en');
+    expect(url.searchParams.get('model')).toBe('aura-2-thalia-en');
+  });
+
+  it('should compose the upstream model ID from voice and language', async () => {
+    prepareAudioResponse();
+
+    await model.doGenerate({
+      text: 'Hola desde Deepgram!',
+      voice: 'celeste',
+      language: 'es',
+    });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.searchParams.get('model')).toBe('aura-2-celeste-es');
+  });
+
+  it('should compose with the aura family', async () => {
+    prepareAudioResponse();
+
+    await provider.speech('aura').doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      voice: 'asteria',
+    });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.searchParams.get('model')).toBe('aura-asteria-en');
+  });
+
+  it('should throw when no voice is provided', async () => {
+    prepareAudioResponse();
+
+    await expect(
+      model.doGenerate({
+        text: 'Hello, welcome to Deepgram!',
+      }),
+    ).rejects.toThrow(
+      'Deepgram speech model "aura-2" requires a `voice` to be set',
+    );
+  });
+
+  it('should throw a migration error for full voice model IDs', () => {
+    expect(() =>
+      // @ts-expect-error - intentionally passing a removed full voice ID
+      provider.speech('aura-2-helena-en'),
+    ).toThrow(
+      `Deepgram speech model IDs are voice family IDs ('aura-2', 'aura')`,
+    );
+  });
+
+  it('should warn and use en when language is auto', async () => {
+    prepareAudioResponse();
+
+    const result = await model.doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      voice: 'thalia',
+      language: 'auto',
+    });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.searchParams.get('model')).toBe('aura-2-thalia-en');
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Deepgram TTS models do not support automatic language detection. Language "en" was used instead.",
+          "feature": "language",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should not warn when voice and language are consumed by composition', async () => {
+    prepareAudioResponse();
+
+    const result = await model.doGenerate({
+      text: 'Hola desde Deepgram!',
+      voice: 'celeste',
+      language: 'es',
+    });
+
+    expect(result.warnings).toEqual([]);
   });
 
   it('should map outputFormat to encoding/container', async () => {
@@ -92,6 +175,7 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       outputFormat: 'wav',
     });
 
@@ -105,6 +189,7 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       providerOptions: {
         deepgram: {
           encoding: 'mp3',
@@ -136,6 +221,7 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       providerOptions: {
         deepgram: {
           tag: ['tag1', 'tag2'],
@@ -157,6 +243,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
     });
 
     expect(result.audio).toStrictEqual(audio);
@@ -177,7 +264,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const result = await provider.speech('aura-2').doGenerate({
+    const result = await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
       voice: 'helena',
     });
@@ -204,6 +291,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
     });
 
     expect(result.providerMetadata).toStrictEqual({ deepgram: {} });
@@ -217,7 +305,7 @@ describe('doGenerate', () => {
     });
 
     const testDate = new Date(0);
-    const customModel = new DeepgramSpeechModel('aura-2-helena-en', {
+    const customModel = new DeepgramSpeechModel('aura-2', {
       provider: 'test-provider',
       url: () => 'https://api.deepgram.com/v1/speak',
       headers: () => ({}),
@@ -228,121 +316,16 @@ describe('doGenerate', () => {
 
     const result = await customModel.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
     });
 
     expect(result.response).toMatchObject({
       timestamp: testDate,
-      modelId: 'aura-2-helena-en',
+      modelId: 'aura-2',
       headers: {
         'content-type': 'audio/mp3',
         'x-request-id': 'test-request-id',
       },
-    });
-  });
-
-  it('should warn about unsupported voice parameter', async () => {
-    prepareAudioResponse();
-
-    const result = await model.doGenerate({
-      text: 'Hello, welcome to Deepgram!',
-      voice: 'different-voice',
-    });
-
-    expect(result.warnings).toMatchInlineSnapshot(`
-      [
-        {
-          "details": "Deepgram TTS models embed the voice in the model ID. The voice parameter "different-voice" was ignored. Use the model ID to select a voice (e.g., "aura-2-helena-en").",
-          "feature": "voice",
-          "type": "unsupported",
-        },
-      ]
-    `);
-  });
-
-  describe('voice family model IDs', () => {
-    const familyModel = provider.speech('aura-2');
-
-    it('should compose the upstream model ID from voice, defaulting language to en', async () => {
-      prepareAudioResponse();
-
-      await familyModel.doGenerate({
-        text: 'Hello, welcome to Deepgram!',
-        voice: 'thalia',
-      });
-
-      const url = new URL(server.calls[0].requestUrl);
-      expect(url.searchParams.get('model')).toBe('aura-2-thalia-en');
-    });
-
-    it('should compose the upstream model ID from voice and language', async () => {
-      prepareAudioResponse();
-
-      await provider.speech('aura-2').doGenerate({
-        text: 'Hola desde Deepgram!',
-        voice: 'celeste',
-        language: 'es',
-      });
-
-      const url = new URL(server.calls[0].requestUrl);
-      expect(url.searchParams.get('model')).toBe('aura-2-celeste-es');
-    });
-
-    it('should compose with the aura family', async () => {
-      prepareAudioResponse();
-
-      await provider.speech('aura').doGenerate({
-        text: 'Hello, welcome to Deepgram!',
-        voice: 'asteria',
-      });
-
-      const url = new URL(server.calls[0].requestUrl);
-      expect(url.searchParams.get('model')).toBe('aura-asteria-en');
-    });
-
-    it('should throw when no voice is provided', async () => {
-      prepareAudioResponse();
-
-      await expect(
-        familyModel.doGenerate({
-          text: 'Hello, welcome to Deepgram!',
-        }),
-      ).rejects.toThrow(
-        'Deepgram speech model "aura-2" requires a `voice` to be set',
-      );
-    });
-
-    it('should warn and use en when language is auto', async () => {
-      prepareAudioResponse();
-
-      const result = await familyModel.doGenerate({
-        text: 'Hello, welcome to Deepgram!',
-        voice: 'thalia',
-        language: 'auto',
-      });
-
-      const url = new URL(server.calls[0].requestUrl);
-      expect(url.searchParams.get('model')).toBe('aura-2-thalia-en');
-      expect(result.warnings).toMatchInlineSnapshot(`
-        [
-          {
-            "details": "Deepgram TTS models do not support automatic language detection. Language "en" was used instead.",
-            "feature": "language",
-            "type": "unsupported",
-          },
-        ]
-      `);
-    });
-
-    it('should not warn when voice and language are consumed by composition', async () => {
-      prepareAudioResponse();
-
-      const result = await provider.speech('aura-2').doGenerate({
-        text: 'Hola desde Deepgram!',
-        voice: 'celeste',
-        language: 'es',
-      });
-
-      expect(result.warnings).toEqual([]);
     });
   });
 
@@ -351,6 +334,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       speed: 1.5,
     });
 
@@ -359,30 +343,12 @@ describe('doGenerate', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it('should warn about unsupported language parameter', async () => {
-    prepareAudioResponse();
-
-    const result = await model.doGenerate({
-      text: 'Hello, welcome to Deepgram!',
-      language: 'en',
-    });
-
-    expect(result.warnings).toMatchInlineSnapshot(`
-      [
-        {
-          "details": "Deepgram TTS models are language-specific via the model ID. Language parameter "en" was ignored. Select a model with the appropriate language suffix (e.g., "-en" for English).",
-          "feature": "language",
-          "type": "unsupported",
-        },
-      ]
-    `);
-  });
-
   it('should warn about unsupported instructions parameter', async () => {
     prepareAudioResponse();
 
     const result = await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       instructions: 'Speak slowly',
     });
 
@@ -402,6 +368,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
     });
 
     expect(result.request?.body).toBe(
@@ -415,6 +382,7 @@ describe('doGenerate', () => {
     // Test case 1: outputFormat sets sample_rate, encoding changed to mp3 (fixed sample rate)
     await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       outputFormat: 'linear16_16000', // Sets: encoding=linear16, sample_rate=16000
       providerOptions: {
         deepgram: {
@@ -430,6 +398,7 @@ describe('doGenerate', () => {
     // Test case 2: outputFormat sets container for linear16, encoding changed to opus
     await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       outputFormat: 'linear16_16000', // Sets: encoding=linear16, container=wav
       providerOptions: {
         deepgram: {
@@ -446,6 +415,7 @@ describe('doGenerate', () => {
     // Test case 3: outputFormat sets bit_rate, encoding changed to linear16 (no bitrate support)
     await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       outputFormat: 'mp3', // Sets: encoding=mp3
       providerOptions: {
         deepgram: {
@@ -466,6 +436,7 @@ describe('doGenerate', () => {
     // Test case: outputFormat sets sample_rate, container changes encoding to opus
     await model.doGenerate({
       text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
       outputFormat: 'linear16_16000', // Sets: encoding=linear16, sample_rate=16000
       providerOptions: {
         deepgram: {

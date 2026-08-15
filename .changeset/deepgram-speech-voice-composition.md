@@ -1,14 +1,29 @@
 ---
-"@ai-sdk/deepgram": patch
+"@ai-sdk/deepgram": minor
 ---
 
-feat(deepgram): speech voice/language composition, usage metadata, speed passthrough, and error parsing
+feat(deepgram)!: speech model IDs are now voice family IDs (`aura-2`, `aura`)
 
-- Bare voice family IDs (`aura-2`, `aura`) compose the upstream model ID
-  from the `generateSpeech` `voice` and `language` options
-  (`<family>-<voice>-<language>`, language defaults to `en`); full voice
-  IDs pass through unchanged. The `DeepgramSpeechModelId` union now lists
-  all Aura-2 voices (en/es/nl/de/it/ja/fr) and Aura-1 voices.
+**Breaking change:** full voice model IDs (e.g.
+`deepgram.speech('aura-2-helena-en')`) are no longer accepted. Pass a bare
+voice family ID and select the voice and language via the `generateSpeech`
+`voice` and `language` options — the provider composes the upstream model ID
+as `<family>-<voice>-<language>` (language defaults to `en`):
+
+```ts
+generateSpeech({
+  model: deepgram.speech('aura-2'),
+  voice: 'helena',
+  language: 'en',
+  text: 'Hello, world!',
+});
+```
+
+Passing a full voice ID throws a migration error naming the new call shape.
+This matches how every other AI SDK speech provider selects voices.
+
+Also in this release:
+
 - `providerMetadata.deepgram` carries `modelName`, `modelUuid`,
   `additionalModelUuids`, `charCount` (the billed character count),
   `breaksApplied`, `pronunciationsApplied`, `pronunciationWarnings` (when
