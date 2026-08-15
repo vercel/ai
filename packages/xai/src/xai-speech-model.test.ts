@@ -43,6 +43,33 @@ describe('doGenerate', () => {
     return audio;
   }
 
+  // 4 bytes of audio; base64 -> 'AQIDBA=='.
+  const timestampAudioBytes = new Uint8Array([1, 2, 3, 4]);
+
+  function prepareTimestampsResponse({
+    headers,
+  }: {
+    headers?: Record<string, string>;
+  } = {}) {
+    server.urls[url].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        audio: 'AQIDBA==',
+        content_type: 'audio/mpeg',
+        duration: 1.19,
+        audio_timestamps: {
+          graph_chars: ['H', 'i'],
+          graph_times: [
+            [0.04, 0.06],
+            [0.06, 0.1],
+          ],
+        },
+      },
+    };
+    return timestampAudioBytes;
+  }
+
   it('should send text with xAI defaults', async () => {
     prepareAudioResponse();
 
@@ -118,6 +145,72 @@ describe('doGenerate', () => {
       optimize_streaming_latency: 1,
       text_normalization: true,
     });
+  });
+
+  it('should pass withTimestamps and replace provider options', async () => {
+    prepareTimestampsResponse();
+
+    await model.doGenerate({
+      text: 'Hello from the AI SDK!',
+      providerOptions: {
+        xai: {
+          withTimestamps: true,
+          replace: { nginx: '/ˈɛndʒɪn ˈɛks/' },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      with_timestamps: true,
+      replace: { nginx: '/ˈɛndʒɪn ˈɛks/' },
+    });
+  });
+
+  it('should decode the with_timestamps envelope and extract provider metadata', async () => {
+    const audio = prepareTimestampsResponse({
+      headers: { 'x-trace-id': '993675dc-8ea6-4f54-b4ad-a59ac2615026' },
+    });
+
+    const result = await model.doGenerate({
+      text: 'Hi',
+      providerOptions: { xai: { withTimestamps: true } },
+    });
+
+    expect(result.audio).toStrictEqual(audio);
+    expect(result.providerMetadata).toStrictEqual({
+      xai: {
+        traceId: '993675dc-8ea6-4f54-b4ad-a59ac2615026',
+        duration: 1.19,
+        contentType: 'audio/mpeg',
+        audioTimestamps: {
+          graphChars: ['H', 'i'],
+          graphTimes: [
+            [0.04, 0.06],
+            [0.06, 0.1],
+          ],
+        },
+      },
+    });
+  });
+
+  it('should extract the trace id from binary responses', async () => {
+    prepareAudioResponse({
+      headers: { 'x-trace-id': '06e3dab5-e3ba-4c6b-83a6-1e9ea11d78af' },
+    });
+
+    const result = await model.doGenerate({ text: 'Hello from the AI SDK!' });
+
+    expect(result.providerMetadata).toStrictEqual({
+      xai: { traceId: '06e3dab5-e3ba-4c6b-83a6-1e9ea11d78af' },
+    });
+  });
+
+  it('should return empty provider metadata when xAI headers are absent', async () => {
+    prepareAudioResponse();
+
+    const result = await model.doGenerate({ text: 'Hello from the AI SDK!' });
+
+    expect(result.providerMetadata).toStrictEqual({ xai: {} });
   });
 
   it('should warn and use mp3 for unsupported output formats', async () => {
