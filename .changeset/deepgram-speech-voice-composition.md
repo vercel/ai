@@ -17,4 +17,5 @@ feat(deepgram): speech voice/language composition, usage metadata, speed passthr
   (accepted range 0.7–1.5) instead of being ignored with a warning.
 - API errors now parse Deepgram's `{ "err_code", "err_msg", "request_id" }`
   error shape, so `APICallError.message` carries the real cause instead of
-  the HTTP reason phrase.
+  the HTTP reason phrase. The legacy `{ "error": { "message", "code" } }`
+  schema was dropped: no endpoint returns it.
