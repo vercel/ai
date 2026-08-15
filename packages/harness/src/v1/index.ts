@@ -25,6 +25,13 @@ export {
 } from './harness-v1-builtin-tool';
 export type { HarnessV1Metadata } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
+export type {
+  HarnessV1JSONSchema,
+  HarnessV1JSONArray,
+  HarnessV1JSONObject,
+  HarnessV1JSONValue,
+  HarnessV1ResponseFormat,
+} from './harness-v1-response-format';
 export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
 export type {
   HarnessV1ContinueTurnState,
@@ -68,6 +75,7 @@ export {
   harnessV1BridgeInboundCommandSchemas,
   harnessV1BridgeOutboundMessageSchema,
   harnessV1BridgeReadySchema,
+  harnessV1BridgeResponseFormatSchema,
   harnessV1BridgeResumeInboundSchema,
   harnessV1BridgeSandboxLogSchema,
   harnessV1BridgeStopInboundSchema,

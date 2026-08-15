@@ -261,7 +261,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   };
   hostToolRelay?.bindTurn({ turn: relayTurn });
   try {
-    void activeSession.prompt(start.prompt);
+    const promptMeta = createOutputSchemaPromptMeta({ start });
+    void promptActiveSession({
+      session: activeSession,
+      agent: connection!.agent,
+      prompt: start.prompt,
+      meta: promptMeta,
+    });
     if (turn.abortSignal.aborted) {
       await cancel();
     } else {
@@ -704,6 +710,81 @@ function createChildEnvironment({
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function createOutputSchemaPromptMeta({
+  start,
+}: {
+  start: StartMessage;
+}): Record<string, unknown> | undefined {
+  if (
+    start.responseFormat?.type !== 'json' ||
+    start.responseFormat.schema == null ||
+    start.outputSchemaMapping?.type !== 'session-prompt-meta'
+  ) {
+    return undefined;
+  }
+  const root: Record<string, unknown> = {};
+  let target = root;
+  const path = start.outputSchemaMapping.path;
+  for (let index = 0; index < path.length - 1; index++) {
+    const child: Record<string, unknown> = {};
+    target[path[index]!] = child;
+    target = child;
+  }
+  target[path[path.length - 1]!] = start.responseFormat.schema;
+  return root;
+}
+
+function promptActiveSession({
+  session,
+  agent,
+  prompt,
+  meta,
+}: {
+  session: ACPActiveSession;
+  agent: acp.ClientContext;
+  prompt: Array<acp.ContentBlock>;
+  meta: Record<string, unknown> | undefined;
+}): Promise<acp.PromptResponse> {
+  if (meta == null) return session.prompt(prompt);
+  if (session.promptWithMeta != null) {
+    return session.promptWithMeta({ prompt, meta });
+  }
+  const updates = (
+    session as unknown as {
+      updates?: {
+        clearErrors(): void;
+        enqueue(value: acp.ActiveSessionMessage): void;
+        reject(error: unknown): void;
+      };
+    }
+  ).updates;
+  if (updates == null) {
+    throw new Error(
+      'The installed ACP SDK cannot send session prompt metadata while preserving streamed updates.',
+    );
+  }
+  updates.clearErrors();
+  const response = agent.request<acp.PromptResponse, acp.PromptRequest>(
+    acp.methods.agent.session.prompt,
+    {
+      sessionId: session.sessionId,
+      prompt,
+      _meta: meta,
+    },
+  );
+  void response.then(
+    value => {
+      updates.enqueue({
+        kind: 'stop',
+        response: value,
+        stopReason: value.stopReason,
+      });
+    },
+    error => updates.reject(error),
+  );
+  return response;
 }
 
 async function readImplementationDescriptor({

@@ -1540,6 +1540,16 @@ function createSession({
     isResume,
     modelId: model,
     doPromptTurn: async promptOpts => {
+      if (
+        promptOpts.responseFormat?.type === 'json' &&
+        promptOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'claude-code' requires a JSON schema for structured output.",
+          harnessId: 'claude-code',
+        });
+      }
       const control = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
@@ -1553,6 +1563,9 @@ function createSession({
           description: t.description,
           inputSchema: t.inputSchema,
         })),
+        ...(promptOpts.responseFormat == null
+          ? {}
+          : { responseFormat: promptOpts.responseFormat }),
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
@@ -1576,6 +1589,16 @@ function createSession({
       return control;
     },
     doContinueTurn: async continueOpts => {
+      if (
+        continueOpts.responseFormat?.type === 'json' &&
+        continueOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'claude-code' requires a JSON schema for structured output.",
+          harnessId: 'claude-code',
+        });
+      }
       const control = wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
@@ -1611,6 +1634,9 @@ function createSession({
             description: t.description,
             inputSchema: t.inputSchema,
           })),
+          ...(continueOpts.responseFormat == null
+            ? {}
+            : { responseFormat: continueOpts.responseFormat }),
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
             : {}),
