@@ -159,8 +159,9 @@ Speech results include Deepgram response details in
 `modelUuid`, `charCount` (the billed character count), and `requestId`.
 
 The `generateSpeech` `speed` option is passed through to Deepgram's `speed`
-parameter (note that Deepgram does not support it for all languages).
-`instructions` is not supported and is ignored with a warning.
+parameter. Deepgram accepts speeds in the 0.7–1.5 range and rejects
+out-of-range values with a 400 error; speed is not supported for all
+languages. `instructions` is not supported and is ignored with a warning.
 
 ### Model Capabilities
 
