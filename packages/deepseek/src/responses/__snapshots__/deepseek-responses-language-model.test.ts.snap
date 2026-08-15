@@ -1,0 +1,2010 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DeepSeekResponsesLanguageModel > doGenerate > reasoning > should extract reasoning content with its item id 1`] = `
+{
+  "content": [
+    {
+      "providerMetadata": {
+        "deepseek": {
+          "itemId": "2cdc8ddf-43a0-4a2b-8a28-6c7e711bdb23",
+        },
+      },
+      "text": "We need answer simple. Need count r's in strawberry. Word strawberry letters: s t r a w b e r r y? Let's count: "strawberry" has r at position 3 and then "rr" near end? Actually strawberry spelling: s t r a w b e r r y. That's r after t, and double r before y? Let's parse: s(1) t(2) r(3) a(4) w(5) b(6) e(7) r(8) r(9) y(10). So 3 r's? Wait positions: r at 3, 8, 9 = 3. But "strawberry" common has "straw" + "berry": berry has two r's? b e r r y = two r's. straw has one r. Total 3. Need answer.",
+      "type": "reasoning",
+    },
+    {
+      "text": "There are **3** “r”s in **“strawberry”**.",
+      "type": "text",
+    },
+  ],
+  "finishReason": {
+    "raw": undefined,
+    "unified": "stop",
+  },
+  "providerMetadata": {
+    "deepseek": {
+      "promptCacheHitTokens": 0,
+      "promptCacheMissTokens": 18,
+    },
+  },
+  "request": {
+    "body": {
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "input_text",
+            },
+          ],
+          "role": "user",
+          "type": "message",
+        },
+      ],
+      "instructions": undefined,
+      "max_output_tokens": undefined,
+      "model": "deepseek-v4-flash",
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": undefined,
+      "top_p": undefined,
+      "user": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "background": false,
+      "completed_at": 1786786824,
+      "content_filters": null,
+      "created_at": 1786786822,
+      "error": null,
+      "frequency_penalty": 0,
+      "id": "99953ba8-53dd-4c76-8e47-f83941bfec7f",
+      "incomplete_details": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "max_tool_calls": null,
+      "metadata": {},
+      "model": "deepseek-v4-flash",
+      "moderation": null,
+      "object": "response",
+      "output": [
+        {
+          "content": [
+            {
+              "text": "We need answer simple. Need count r's in strawberry. Word strawberry letters: s t r a w b e r r y? Let's count: "strawberry" has r at position 3 and then "rr" near end? Actually strawberry spelling: s t r a w b e r r y. That's r after t, and double r before y? Let's parse: s(1) t(2) r(3) a(4) w(5) b(6) e(7) r(8) r(9) y(10). So 3 r's? Wait positions: r at 3, 8, 9 = 3. But "strawberry" common has "straw" + "berry": berry has two r's? b e r r y = two r's. straw has one r. Total 3. Need answer.",
+              "type": "reasoning_text",
+            },
+          ],
+          "id": "2cdc8ddf-43a0-4a2b-8a28-6c7e711bdb23",
+          "status": "completed",
+          "summary": [],
+          "type": "reasoning",
+        },
+        {
+          "content": [
+            {
+              "annotations": [],
+              "logprobs": [],
+              "text": "There are **3** “r”s in **“strawberry”**.",
+              "type": "output_text",
+            },
+          ],
+          "id": "e6574157-8711-40b5-98cf-aeb2ee10a15e",
+          "phase": "final_answer",
+          "role": "assistant",
+          "status": "completed",
+          "type": "message",
+        },
+      ],
+      "parallel_tool_calls": true,
+      "presence_penalty": 0,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": null,
+      "reasoning": {
+        "effort": "low",
+        "summary": null,
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "status": "completed",
+      "store": false,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text",
+        },
+        "verbosity": null,
+      },
+      "tool_choice": "auto",
+      "tools": [],
+      "top_logprobs": 0,
+      "top_p": 1,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 18,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 206,
+        "output_tokens_details": {
+          "reasoning_tokens": 188,
+        },
+        "total_tokens": 224,
+      },
+      "user": null,
+    },
+    "headers": {
+      "content-length": "1839",
+      "content-type": "application/json",
+    },
+    "id": "99953ba8-53dd-4c76-8e47-f83941bfec7f",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T09:40:22.000Z,
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 18,
+      "total": 18,
+    },
+    "outputTokens": {
+      "reasoning": 188,
+      "text": 18,
+      "total": 206,
+    },
+    "raw": {
+      "input_tokens": 18,
+      "input_tokens_details": {
+        "cached_tokens": 0,
+      },
+      "output_tokens": 206,
+      "output_tokens_details": {
+        "reasoning_tokens": 188,
+      },
+      "total_tokens": 224,
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`DeepSeekResponsesLanguageModel > doGenerate > text > should extract text content 1`] = `
+{
+  "content": [
+    {
+      "text": "Introducing "Glowmorrow," a holiday celebrated on the first day of spring, honoring the quiet anticipation of new beginnings. Its central tradition is the "Lantern Vigil," where families write their worries and hopes on paper, fold them into small boats, and set them afloat in a shared bowl of water lit by a single candle. At midnight, everyone silently steps outside to watch the rising moon, whispering one secret wish to the wind before returning indoors to share a feast of honey-drizzled bread and warm spiced milk.",
+      "type": "text",
+    },
+  ],
+  "finishReason": {
+    "raw": undefined,
+    "unified": "stop",
+  },
+  "providerMetadata": {
+    "deepseek": {
+      "promptCacheHitTokens": 0,
+      "promptCacheMissTokens": 22,
+    },
+  },
+  "request": {
+    "body": {
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "input_text",
+            },
+          ],
+          "role": "user",
+          "type": "message",
+        },
+      ],
+      "instructions": undefined,
+      "max_output_tokens": undefined,
+      "model": "deepseek-v4-flash",
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": undefined,
+      "top_p": undefined,
+      "user": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "background": false,
+      "completed_at": 1786786820,
+      "content_filters": null,
+      "created_at": 1786786818,
+      "error": null,
+      "frequency_penalty": 0,
+      "id": "9d587c35-3e50-4f3d-9791-a2cacf604aa9",
+      "incomplete_details": null,
+      "instructions": "You are a helpful assistant.",
+      "max_output_tokens": null,
+      "max_tool_calls": null,
+      "metadata": {},
+      "model": "deepseek-v4-flash",
+      "moderation": null,
+      "object": "response",
+      "output": [
+        {
+          "content": [
+            {
+              "annotations": [],
+              "logprobs": [],
+              "text": "Introducing "Glowmorrow," a holiday celebrated on the first day of spring, honoring the quiet anticipation of new beginnings. Its central tradition is the "Lantern Vigil," where families write their worries and hopes on paper, fold them into small boats, and set them afloat in a shared bowl of water lit by a single candle. At midnight, everyone silently steps outside to watch the rising moon, whispering one secret wish to the wind before returning indoors to share a feast of honey-drizzled bread and warm spiced milk.",
+              "type": "output_text",
+            },
+          ],
+          "id": "6e768879-5ff0-4767-b8c6-c0dc062ee176",
+          "phase": "final_answer",
+          "role": "assistant",
+          "status": "completed",
+          "type": "message",
+        },
+      ],
+      "parallel_tool_calls": true,
+      "presence_penalty": 0,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": null,
+      "reasoning": {
+        "effort": "none",
+        "summary": null,
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "status": "completed",
+      "store": false,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text",
+        },
+        "verbosity": null,
+      },
+      "tool_choice": "auto",
+      "tools": [],
+      "top_logprobs": 0,
+      "top_p": 1,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 22,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 109,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+        "total_tokens": 131,
+      },
+      "user": null,
+    },
+    "headers": {
+      "content-length": "1689",
+      "content-type": "application/json",
+    },
+    "id": "9d587c35-3e50-4f3d-9791-a2cacf604aa9",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T09:40:18.000Z,
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 22,
+      "total": 22,
+    },
+    "outputTokens": {
+      "reasoning": 0,
+      "text": 109,
+      "total": 109,
+    },
+    "raw": {
+      "input_tokens": 22,
+      "input_tokens_details": {
+        "cached_tokens": 0,
+      },
+      "output_tokens": 109,
+      "output_tokens_details": {
+        "reasoning_tokens": 0,
+      },
+      "total_tokens": 131,
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`DeepSeekResponsesLanguageModel > doGenerate > tool call > should extract tool call content 1`] = `
+{
+  "content": [
+    {
+      "providerMetadata": {
+        "deepseek": {
+          "itemId": "e15cb316-d537-4295-b4ff-f1da685cc912",
+        },
+      },
+      "text": "The user is asking about the weather in San Francisco. I should use the weather tool to get this information.",
+      "type": "reasoning",
+    },
+    {
+      "input": "{"location": "San Francisco"}",
+      "providerMetadata": {
+        "deepseek": {
+          "itemId": "b55a15a4-ff04-4534-97c5-97637465634f",
+        },
+      },
+      "toolCallId": "call_00_jOIPxYeE37C0EzYfZExo9482",
+      "toolName": "weather",
+      "type": "tool-call",
+    },
+  ],
+  "finishReason": {
+    "raw": undefined,
+    "unified": "tool-calls",
+  },
+  "providerMetadata": {
+    "deepseek": {
+      "promptCacheHitTokens": 0,
+      "promptCacheMissTokens": 296,
+    },
+  },
+  "request": {
+    "body": {
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "input_text",
+            },
+          ],
+          "role": "user",
+          "type": "message",
+        },
+      ],
+      "instructions": undefined,
+      "max_output_tokens": undefined,
+      "model": "deepseek-v4-flash",
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": [
+        {
+          "description": undefined,
+          "name": "weather",
+          "parameters": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "location": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "location",
+            ],
+            "type": "object",
+          },
+          "type": "function",
+        },
+      ],
+      "top_p": undefined,
+      "user": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "background": false,
+      "completed_at": 1786786827,
+      "content_filters": null,
+      "created_at": 1786786826,
+      "error": null,
+      "frequency_penalty": 0,
+      "id": "7f3acb7e-70bc-42aa-bbc3-87bc134ef292",
+      "incomplete_details": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "max_tool_calls": null,
+      "metadata": {},
+      "model": "deepseek-v4-flash",
+      "moderation": null,
+      "object": "response",
+      "output": [
+        {
+          "content": [
+            {
+              "text": "The user is asking about the weather in San Francisco. I should use the weather tool to get this information.",
+              "type": "reasoning_text",
+            },
+          ],
+          "id": "e15cb316-d537-4295-b4ff-f1da685cc912",
+          "status": "completed",
+          "summary": [],
+          "type": "reasoning",
+        },
+        {
+          "arguments": "{"location": "San Francisco"}",
+          "call_id": "call_00_jOIPxYeE37C0EzYfZExo9482",
+          "id": "b55a15a4-ff04-4534-97c5-97637465634f",
+          "name": "weather",
+          "status": "completed",
+          "type": "function_call",
+        },
+      ],
+      "parallel_tool_calls": true,
+      "presence_penalty": 0,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": null,
+      "reasoning": {
+        "effort": "low",
+        "summary": null,
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "status": "completed",
+      "store": false,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text",
+        },
+        "verbosity": null,
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "description": null,
+          "name": "weather",
+          "parameters": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "location": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "location",
+            ],
+            "type": "object",
+          },
+          "strict": null,
+          "type": "function",
+        },
+      ],
+      "top_logprobs": 0,
+      "top_p": 1,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 296,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 66,
+        "output_tokens_details": {
+          "reasoning_tokens": 22,
+        },
+        "total_tokens": 362,
+      },
+      "user": null,
+    },
+    "headers": {
+      "content-length": "1640",
+      "content-type": "application/json",
+    },
+    "id": "7f3acb7e-70bc-42aa-bbc3-87bc134ef292",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T09:40:26.000Z,
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 296,
+      "total": 296,
+    },
+    "outputTokens": {
+      "reasoning": 22,
+      "text": 44,
+      "total": 66,
+    },
+    "raw": {
+      "input_tokens": 296,
+      "input_tokens_details": {
+        "cached_tokens": 0,
+      },
+      "output_tokens": 66,
+      "output_tokens_details": {
+        "reasoning_tokens": 22,
+      },
+      "total_tokens": 362,
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`DeepSeekResponsesLanguageModel > doStream > should stream reasoning 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "a0cc8e90-2a43-4210-a6e1-ad8ca3491386",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T09:40:25.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "We",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " need",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " answer",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " simple",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Need",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " count",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " in",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "st",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "raw",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "berry",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "".",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Word",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " strawberry",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " letters",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " s",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " t",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " a",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " w",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " b",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " e",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " y",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "?",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " spell",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " strawberry",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " =",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " s",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " t",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " a",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " w",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " b",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " e",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " y",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Contains",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " at",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " position",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "3",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "?",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " count",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " s",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "(",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "1",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ")",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " t",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "2",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "3",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " a",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "4",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " w",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "5",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " b",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "6",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " e",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "7",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "8",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "9",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " y",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "10",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " So",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " position",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "3",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "8",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "9",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " =",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "3",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Need",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " answer",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+    "providerMetadata": {
+      "deepseek": {
+        "itemId": "0a82aa37-3285-46dd-ad4f-06ce230e433d",
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-start",
+  },
+  {
+    "delta": "There",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "3",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " “",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "r",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "”",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "s",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "“",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "raw",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "berry",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "”",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**.",
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-delta",
+  },
+  {
+    "id": "92265a8b-f409-4258-a317-022f70695b47",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "deepseek": {
+        "promptCacheHitTokens": 0,
+        "promptCacheMissTokens": 18,
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 18,
+        "total": 18,
+      },
+      "outputTokens": {
+        "reasoning": 101,
+        "text": 18,
+        "total": 119,
+      },
+      "raw": {
+        "input_tokens": 18,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 119,
+        "output_tokens_details": {
+          "reasoning_tokens": 101,
+        },
+        "total_tokens": 137,
+      },
+    },
+  },
+]
+`;
+
+exports[`DeepSeekResponsesLanguageModel > doStream > should stream text 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "1efe1d97-eba4-4699-847c-8a0b25c8c67e",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T09:40:20.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-start",
+  },
+  {
+    "delta": "Introdu",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cing",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Gl",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ow",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "light",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Day",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ","",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " holiday",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " celebrated",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " first",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " evening",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " autumn",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " honor",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " return",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " warm",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " light",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " after",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " long",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " summer",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " days",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Its",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " central",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tradition",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Lan",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "tern",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Process",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ion",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ","",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " where",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " families",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " walk",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " through",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " their",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " neighborhoods",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " carrying",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hand",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-p",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ainted",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " battery",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-lit",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lantern",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "s",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sharing",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " stories",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gratitude",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " season",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bounty",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " kindness",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "es",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " received",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " night",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " concludes",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " communal",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Fire",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "fly",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Toast",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ","",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " where",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " everyone",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " raises",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " glowing",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " glass",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " honey",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-inf",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "used",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cider",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " silently",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " making",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " one",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wish",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " carry",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " colder",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " months",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-delta",
+  },
+  {
+    "id": "4c421bdc-ef30-4ba6-8cf9-c4d4eb10ba8b",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "deepseek": {
+        "promptCacheHitTokens": 0,
+        "promptCacheMissTokens": 22,
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 22,
+        "total": 22,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 104,
+        "total": 104,
+      },
+      "raw": {
+        "input_tokens": 22,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 104,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+        "total_tokens": 126,
+      },
+    },
+  },
+]
+`;
+
+exports[`DeepSeekResponsesLanguageModel > doStream > should stream tool calls 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "7624faf2-e4f7-4ea5-ab42-772fe1814320",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T09:40:27.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "The",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " user",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " asks",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " about",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " weather",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " in",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " San",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Francisco",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " have",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " a",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " weather",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " me",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " call",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " it",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "2745e232-0a17-4f92-8d72-122b2683de48",
+    "providerMetadata": {
+      "deepseek": {
+        "itemId": "2745e232-0a17-4f92-8d72-122b2683de48",
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "toolName": "weather",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{",
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": """,
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "location",
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": """,
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ": ",
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": """,
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "San",
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Francisco",
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": """,
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}",
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco"}",
+    "providerMetadata": {
+      "deepseek": {
+        "itemId": "851c0122-fbf0-4c84-b938-34a1f813ba21",
+      },
+    },
+    "toolCallId": "call_00_N9BNUr3rAx4twPOHpyRN4076",
+    "toolName": "weather",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "deepseek": {
+        "promptCacheHitTokens": 256,
+        "promptCacheMissTokens": 40,
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 256,
+        "cacheWrite": undefined,
+        "noCache": 40,
+        "total": 296,
+      },
+      "outputTokens": {
+        "reasoning": 20,
+        "text": 44,
+        "total": 64,
+      },
+      "raw": {
+        "input_tokens": 296,
+        "input_tokens_details": {
+          "cached_tokens": 256,
+        },
+        "output_tokens": 64,
+        "output_tokens_details": {
+          "reasoning_tokens": 20,
+        },
+        "total_tokens": 360,
+      },
+    },
+  },
+]
+`;

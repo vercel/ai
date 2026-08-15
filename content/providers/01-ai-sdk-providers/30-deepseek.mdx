@@ -67,18 +67,29 @@ const { text } = await generateText({
 });
 ```
 
-You can also use the `.chat()` or `.languageModel()` factory methods:
+DeepSeek serves its models through two APIs, and the provider exposes both:
 
 ```ts
+// Chat Completions API (default):
 const model = deepSeek.chat('deepseek-v4-flash');
 // or
 const model = deepSeek.languageModel('deepseek-v4-flash');
+
+// Responses API:
+const model = deepSeek.responses('deepseek-v4-flash');
 ```
+
+Both APIs are stateless and support text generation, object generation and
+tool calling. The Responses API additionally supports DeepSeek's server-side
+[web search](#web-search) tool.
 
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-The following optional provider options are available for DeepSeek models:
+### Provider Options
+
+The following optional provider options are available for models created with
+`deepSeek()`, `deepSeek.chat()` or `deepSeek.languageModel()`:
 
 - `thinking` _object_
 
@@ -94,6 +105,31 @@ The following optional provider options are available for DeepSeek models:
   has three thinking strengths - `low`, `high` and `max`. `medium` and `xhigh`
   are accepted for compatibility with other providers and are mapped to `high`
   by DeepSeek.
+
+- `strictJsonSchema` _boolean_
+
+  Optional. Whether to use strict JSON schema validation for structured
+  outputs. Only applies when the serving endpoint supports JSON schema response
+  formats (e.g. Azure). Defaults to `true`.
+
+Models created with `deepSeek.responses()` accept these options instead:
+
+- `reasoningEffort` _'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+
+  Optional. Controls how much the model thinks. Same strengths as above, except
+  that the Responses API turns thinking off with `none` rather than with a
+  separate `thinking` option.
+
+- `strictJsonSchema` _boolean_
+
+  Optional. Whether to use strict JSON schema validation for structured
+  outputs. Defaults to `true`.
+
+- `user` _string_
+
+  Optional. A stable identifier for your end-user, which DeepSeek uses to
+  isolate [rate limits](https://api-docs.deepseek.com/quick_start/rate_limit)
+  between your users.
 
 <Note>
   DeepSeek ignores `temperature`, `topP`, `presencePenalty` and
