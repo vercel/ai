@@ -1,0 +1,155 @@
+---
+title: Venice AI
+description: Learn how to use the Venice AI community provider.
+---
+
+# Venice AI Provider
+
+[venice-ai-sdk-provider](https://github.com/dpuyosa/venice-ai-sdk-provider) is a community provider that gives the AI SDK access to [Venice AI](https://venice.ai/). Venice provides private, zero-data-retention access to language, image, and embedding models through its API.
+
+## Setup
+
+The Venice AI provider is available in the `venice-ai-sdk-provider` package and requires Node.js 24 or later. Install it with:
+
+<InstallPackages packages="venice-ai-sdk-provider" />
+
+Set your Venice API key as an environment variable:
+
+```bash
+VENICE_API_KEY=your-api-key
+```
+
+You can create an API key in the [Venice API Keys dashboard](https://venice.ai/settings/api).
+
+## Provider Instance
+
+You can import the default `venice` provider instance from `venice-ai-sdk-provider`. It reads the API key from the `VENICE_API_KEY` environment variable:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+```
+
+If you need a customized setup, import `createVenice` and create a provider instance:
+
+```ts
+import { createVenice } from 'venice-ai-sdk-provider';
+
+const venice = createVenice({
+  apiKey: process.env.VENICE_API_KEY,
+});
+```
+
+The `createVenice` function accepts the following optional settings:
+
+- **apiKey** _string_
+
+  API key sent in the `Authorization` header. It defaults to the `VENICE_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Base URL for API requests. It defaults to `https://api.venice.ai/api/v1`.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include in requests.
+
+- **queryParams** _Record&lt;string, string&gt;_
+
+  Custom query parameters to include in request URLs.
+
+- **fetch** _FetchFunction_
+
+  Custom fetch implementation. You can use it to intercept requests or provide a custom implementation for testing.
+
+## Language Models
+
+Call the provider with a Venice model ID to create a language model:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+
+const model = venice('venice-uncensored');
+```
+
+You can use Venice language models with functions such as `generateText` and `streamText`:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: venice('venice-uncensored'),
+  prompt: 'Write a vegetarian lasagna recipe for four people.',
+});
+```
+
+Venice changes its model catalog over time. See the [Venice Models documentation](https://docs.venice.ai/models/overview) for the current model IDs and their capabilities.
+
+## Venice-Specific Options
+
+Pass Venice-specific language model options through `providerOptions.venice`.
+
+### Web Search
+
+Enable real-time web search for a request with `veniceParameters.enableWebSearch`:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: venice('venice-uncensored'),
+  prompt: 'What are the latest developments in AI?',
+  providerOptions: {
+    venice: {
+      veniceParameters: {
+        enableWebSearch: 'auto',
+      },
+    },
+  },
+});
+```
+
+The supported values are `'off'`, `'on'`, and `'auto'`. Other Venice parameters include web scraping, web citations, X search, end-to-end encryption, and control over thinking responses. See the [Venice API documentation](https://docs.venice.ai/api-reference/endpoint/chat/completions) for details.
+
+### Reasoning
+
+Use `reasoningEffort` to control the reasoning depth of models that support it:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: venice('qwen3-235b-a22b-thinking-2507'),
+  prompt: 'Prove that there are infinitely many prime numbers.',
+  providerOptions: {
+    venice: {
+      reasoningEffort: 'high',
+    },
+  },
+});
+```
+
+Supported reasoning effort values are `'none'`, `'minimal'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`. Model support varies.
+
+## Embedding Models
+
+Use the `.embeddingModel()` factory method to create an embedding model:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: venice.embeddingModel('text-embedding-bge-m3'),
+  value: 'A sunny day at the beach',
+});
+```
+
+## Additional Resources
+
+- [Venice AI SDK provider repository](https://github.com/dpuyosa/venice-ai-sdk-provider)
+- [Venice API documentation](https://docs.venice.ai/)
+- [Venice model catalog](https://docs.venice.ai/models/overview)
+- [Venice API Keys dashboard](https://venice.ai/settings/api)
