@@ -1,5 +1,11 @@
 # @ai-sdk/harness-acp
 
+## 1.0.10
+
+### Patch Changes
+
+- 8d05a55: fix(harness-acp): fix incorrect `finish-step` emission timing
+
 ## 1.0.9
 
 ### Patch Changes
