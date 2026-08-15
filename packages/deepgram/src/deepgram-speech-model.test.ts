@@ -167,7 +167,12 @@ describe('doGenerate', () => {
       headers: {
         'dg-model-name': 'aura-2-helena-en',
         'dg-model-uuid': '4fa750e6-8ade-4394-849f-c104ced3741e',
+        'dg-additional-model-uuids':
+          '0ec06c9b-0aa0-44d0-a001-3ec57d32229e,2e5096c7-7bf1-435e-bbdd-f673f88d0ebd',
         'dg-char-count': '69',
+        'dg-breaks-applied': '0',
+        'dg-pronunciations-applied': '2',
+        'dg-pronunciation-warnings': '1 unknown word',
         'dg-request-id': '01a00436-34a3-7cb0-b491-53339eed8eb1',
       },
     });
@@ -181,7 +186,14 @@ describe('doGenerate', () => {
       deepgram: {
         modelName: 'aura-2-helena-en',
         modelUuid: '4fa750e6-8ade-4394-849f-c104ced3741e',
+        additionalModelUuids: [
+          '0ec06c9b-0aa0-44d0-a001-3ec57d32229e',
+          '2e5096c7-7bf1-435e-bbdd-f673f88d0ebd',
+        ],
         charCount: 69,
+        breaksApplied: 0,
+        pronunciationsApplied: 2,
+        pronunciationWarnings: '1 unknown word',
         requestId: '01a00436-34a3-7cb0-b491-53339eed8eb1',
       },
     });

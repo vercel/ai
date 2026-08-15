@@ -498,10 +498,23 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
 
     // Deepgram returns usage and model details in response headers:
     // dg-model-name (resolved upstream model), dg-model-uuid,
-    // dg-char-count (billed characters), dg-request-id.
-    const charCountHeader = responseHeaders?.['dg-char-count'];
-    const charCount =
-      charCountHeader != null ? Number(charCountHeader) : undefined;
+    // dg-additional-model-uuids, dg-char-count (billed characters),
+    // dg-breaks-applied, dg-pronunciations-applied,
+    // dg-pronunciation-warnings (only when present), dg-request-id.
+    // dg-project-id is deliberately excluded (account identifier).
+    const headerNumber = (name: string): number | undefined => {
+      const value = responseHeaders?.[name];
+      if (value == null) {
+        return undefined;
+      }
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    };
+    const charCount = headerNumber('dg-char-count');
+    const breaksApplied = headerNumber('dg-breaks-applied');
+    const pronunciationsApplied = headerNumber('dg-pronunciations-applied');
+    const additionalModelUuids =
+      responseHeaders?.['dg-additional-model-uuids']?.split(',');
 
     return {
       audio,
@@ -523,8 +536,15 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
           ...(responseHeaders?.['dg-model-uuid']
             ? { modelUuid: responseHeaders['dg-model-uuid'] }
             : {}),
-          ...(charCount != null && !Number.isNaN(charCount)
-            ? { charCount }
+          ...(additionalModelUuids ? { additionalModelUuids } : {}),
+          ...(charCount != null ? { charCount } : {}),
+          ...(breaksApplied != null ? { breaksApplied } : {}),
+          ...(pronunciationsApplied != null ? { pronunciationsApplied } : {}),
+          ...(responseHeaders?.['dg-pronunciation-warnings']
+            ? {
+                pronunciationWarnings:
+                  responseHeaders['dg-pronunciation-warnings'],
+              }
             : {}),
           ...(responseHeaders?.['dg-request-id']
             ? { requestId: responseHeaders['dg-request-id'] }

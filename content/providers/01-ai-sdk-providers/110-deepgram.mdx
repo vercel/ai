@@ -156,7 +156,9 @@ The following provider options are available:
 
 Speech results include Deepgram response details in
 `providerMetadata.deepgram`: `modelName` (the resolved upstream model),
-`modelUuid`, `charCount` (the billed character count), and `requestId`.
+`modelUuid`, `additionalModelUuids`, `charCount` (the billed character
+count), `breaksApplied`, `pronunciationsApplied`,
+`pronunciationWarnings` (when present), and `requestId`.
 
 The `generateSpeech` `speed` option is passed through to Deepgram's `speed`
 parameter. Deepgram accepts speeds in the 0.7–1.5 range and rejects
