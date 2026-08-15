@@ -31,11 +31,11 @@ export function translateStreamPart<TOOLS extends ToolSet>(
   options: {
     /**
      * Whether the tool call that produced this event ran inside the harness
-     * runtime. Host tools travel the same `tool-result` events — their calls
-     * are emitted with `providerExecuted: false` and their failures are
-     * echoed back with `isError` — so the flag cannot be assumed. Defaults to
-     * `true` when the originating call is unknown, which is the case only for
-     * a call that arrived in an earlier slice.
+     * runtime. Host tools travel the same `tool-result` events and their
+     * failures are echoed back with `isError`, so the event alone cannot say
+     * who ran the tool — only the originating `tool-call` can, and correlating
+     * the two is the caller's job. Omit the callback to treat every failure as
+     * provider-executed.
      */
     isProviderExecuted?: (toolCallId: string) => boolean;
   } = {},
@@ -119,14 +119,10 @@ export function translateStreamPart<TOOLS extends ToolSet>(
         (options.isProviderExecuted?.(event.toolCallId) ?? true)
       ) {
         /*
-         * A failed provider-executed tool becomes a `tool-error` part, not a
-         * `tool-result` carrying the error as its output. `providerExecuted`
-         * is load-bearing: `toUIMessageChunk` only forwards the real error
-         * text for provider-executed errors — without it the runtime's
-         * failure reason is replaced by the generic `onError` string and
-         * never reaches the consumer. Host tool failures keep the existing
-         * `tool-result` projection: their error text is the host's own, and
-         * redacting it through `onError` is the consumer's call, not ours.
+         * `providerExecuted` decides whether the message survives:
+         * `toUIMessageChunk` forwards the real error text only for
+         * provider-executed errors, and replaces every other one with the
+         * generic `onError` string.
          */
         return [
           {

@@ -492,12 +492,10 @@ describe('runPrompt step accounting', () => {
   /*
    * A host tool's failure is echoed back on the same wire event as a
    * provider-executed one; only the originating `tool-call` tells them apart.
-   * Stream a failing host tool whose call spells `providerExecuted` the given
-   * way, and return everything the consumer saw.
    */
-  const streamFailedHostTool = async (
-    providerExecuted: boolean | undefined,
-  ): Promise<TextStreamPart<ToolSet>[]> => {
+  const streamFailedHostTool = async (toolCall: {
+    providerExecuted?: boolean;
+  }): Promise<TextStreamPart<ToolSet>[]> => {
     const weather = tool({
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
@@ -513,7 +511,7 @@ describe('runPrompt step accounting', () => {
           toolCallId: 'c1',
           toolName: 'weather',
           input: JSON.stringify({ city: 'SF' }),
-          ...(providerExecuted !== undefined ? { providerExecuted } : {}),
+          ...toolCall,
         },
         {
           type: 'tool-result',
@@ -555,13 +553,13 @@ describe('runPrompt step accounting', () => {
   };
 
   test('does not mark a failed host tool result as provider-executed', async () => {
-    expectHostToolFailure(await streamFailedHostTool(false));
+    expectHostToolFailure(
+      await streamFailedHostTool({ providerExecuted: false }),
+    );
   });
 
   test('treats a failed host tool result as host-executed when providerExecuted is omitted', async () => {
-    // `LanguageModelV4ToolCall` defines an omitted flag as client-executed,
-    // and adapters rely on it, emitting it only for their built-in tools.
-    expectHostToolFailure(await streamFailedHostTool(undefined));
+    expectHostToolFailure(await streamFailedHostTool({}));
   });
 
   test('falls back to provider-executed when the originating tool call is not in this slice', async () => {
