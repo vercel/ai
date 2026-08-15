@@ -143,11 +143,6 @@ export class XaiSpeechModel implements SpeechModelV4 {
     const { requestBody, warnings, withTimestamps } =
       await this.getArgs(options);
 
-    const headers = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-    );
-
     // With `with_timestamps` the API returns a JSON envelope carrying
     // base64-encoded audio plus character-level timings instead of raw
     // audio bytes.
@@ -155,7 +150,10 @@ export class XaiSpeechModel implements SpeechModelV4 {
       Uint8Array | XaiSpeechTimestampsResponse
     >({
       url: `${this.config.baseURL}/tts`,
-      headers,
+      headers: combineHeaders(
+        this.config.headers ? await resolve(this.config.headers) : undefined,
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: withTimestamps
