@@ -163,10 +163,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       (isCustomReasoning(reasoning) && reasoning !== 'none'
         ? mapReasoningToProviderEffort({
             reasoning,
+            // DeepSeek V4 has three thinking strengths: low, high and max.
             effortMap: {
               minimal: 'low',
               low: 'low',
-              medium: 'medium',
+              medium: 'high',
               high: 'high',
               xhigh: 'max',
             },

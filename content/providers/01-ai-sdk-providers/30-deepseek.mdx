@@ -82,17 +82,23 @@ The following optional provider options are available for DeepSeek models:
 
 - `thinking` _object_
 
-  Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
-  - `type`: `'adaptive' | 'enabled' | 'disabled'` - Enable, disable, or let the model decide (`adaptive`) when to think. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
+  Optional. Controls whether the model thinks before it answers. The DeepSeek
+  V4 models think by default.
+  - `type`: `'enabled' | 'disabled' | 'adaptive'` - Always think, never think,
+    or let the model decide per request (`adaptive`). See [DeepSeek's thinking
+    mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
 
 - `reasoningEffort` _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
 
-  Optional. Controls thinking strength for DeepSeek V4 reasoning models. Per
-  DeepSeek's docs, `low` and `medium` are mapped to `high`, and `xhigh` is
-  mapped to `max` server-side for compatibility with other providers. When
-  using the top-level `reasoning` setting, `minimal` is sent as `low`, and
-  `low`, `medium`, `high`, and `xhigh` pass through to DeepSeek's native
-  effort values.
+  Optional. Controls how much the model thinks. Defaults to `high`. DeepSeek V4
+  has three thinking strengths - `low`, `high` and `max`. `medium` and `xhigh`
+  are accepted for compatibility with other providers and are mapped to `high`
+  by DeepSeek.
+
+<Note>
+  DeepSeek ignores `temperature`, `topP`, `presencePenalty` and
+  `frequencyPenalty` while thinking is active.
+</Note>
 
 ```ts highlight="7-12"
 import {
@@ -115,7 +121,8 @@ const { text, reasoning } = await generateText({
 
 ### Reasoning
 
-DeepSeek has reasoning support for the `deepseek-reasoner` model. The reasoning is exposed through streaming:
+The DeepSeek V4 models think before answering, and the chain of thought is
+exposed as reasoning content:
 
 ```ts
 import { deepSeek } from '@ai-sdk/deepseek';
@@ -135,6 +142,29 @@ for await (const part of result.stream) {
     console.log('Answer:', part.text);
   }
 }
+```
+
+Instead of the provider options you can use the portable top-level `reasoning`
+setting, which is mapped onto DeepSeek's thinking mode as follows:
+
+| `reasoning` | DeepSeek                        |
+| ----------- | ------------------------------- |
+| `none`      | thinking disabled               |
+| `minimal`   | thinking enabled, effort `low`  |
+| `low`       | thinking enabled, effort `low`  |
+| `medium`    | thinking enabled, effort `high` |
+| `high`      | thinking enabled, effort `high` |
+| `xhigh`     | thinking enabled, effort `max`  |
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-v4-pro'),
+  reasoning: 'xhigh',
+  prompt: 'How many "r"s are in the word "strawberry"?',
+});
 ```
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details

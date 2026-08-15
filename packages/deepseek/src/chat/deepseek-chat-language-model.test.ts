@@ -197,15 +197,21 @@ describe('DeepSeekChatLanguageModel', () => {
         );
       });
 
-      it('should map top-level reasoning medium to reasoning_effort medium', async () => {
-        await provider.chat('deepseek-v4-pro').doGenerate({
+      it('should map top-level reasoning medium to reasoning_effort high', async () => {
+        const result = await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'medium',
         });
 
         expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'medium',
+          'high',
         );
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "medium" is not directly supported by this model. mapped to effort "high".',
+        });
       });
 
       it('should map top-level reasoning minimal to reasoning_effort low with compatibility warning', async () => {
