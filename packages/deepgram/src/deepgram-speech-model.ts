@@ -499,6 +499,13 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       fetch: this.config.fetch,
     });
 
+    // Deepgram returns usage and model details in response headers:
+    // dg-model-name (resolved upstream model), dg-model-uuid,
+    // dg-char-count (billed characters), dg-request-id.
+    const charCountHeader = responseHeaders?.['dg-char-count'];
+    const charCount =
+      charCountHeader != null ? Number(charCountHeader) : undefined;
+
     return {
       audio,
       warnings,
@@ -510,6 +517,22 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
         modelId: this.modelId,
         headers: responseHeaders,
         body: rawResponse,
+      },
+      providerMetadata: {
+        deepgram: {
+          ...(responseHeaders?.['dg-model-name']
+            ? { modelName: responseHeaders['dg-model-name'] }
+            : {}),
+          ...(responseHeaders?.['dg-model-uuid']
+            ? { modelUuid: responseHeaders['dg-model-uuid'] }
+            : {}),
+          ...(charCount != null && !Number.isNaN(charCount)
+            ? { charCount }
+            : {}),
+          ...(responseHeaders?.['dg-request-id']
+            ? { requestId: responseHeaders['dg-request-id'] }
+            : {}),
+        },
       },
     };
   }

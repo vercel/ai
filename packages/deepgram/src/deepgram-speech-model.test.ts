@@ -162,6 +162,41 @@ describe('doGenerate', () => {
     expect(result.audio).toStrictEqual(audio);
   });
 
+  it('should extract provider metadata from Deepgram response headers', async () => {
+    prepareAudioResponse({
+      headers: {
+        'dg-model-name': 'aura-2-helena-en',
+        'dg-model-uuid': '4fa750e6-8ade-4394-849f-c104ced3741e',
+        'dg-char-count': '69',
+        'dg-request-id': '01a00436-34a3-7cb0-b491-53339eed8eb1',
+      },
+    });
+
+    const result = await provider.speech('aura-2').doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      deepgram: {
+        modelName: 'aura-2-helena-en',
+        modelUuid: '4fa750e6-8ade-4394-849f-c104ced3741e',
+        charCount: 69,
+        requestId: '01a00436-34a3-7cb0-b491-53339eed8eb1',
+      },
+    });
+  });
+
+  it('should return empty provider metadata when Deepgram headers are absent', async () => {
+    prepareAudioResponse();
+
+    const result = await model.doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+    });
+
+    expect(result.providerMetadata).toStrictEqual({ deepgram: {} });
+  });
+
   it('should include response data with timestamp, modelId and headers', async () => {
     prepareAudioResponse({
       headers: {

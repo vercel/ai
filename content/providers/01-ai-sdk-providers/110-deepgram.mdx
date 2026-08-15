@@ -154,6 +154,10 @@ The following provider options are available:
   Label your requests for identification during usage reporting.
   Optional.
 
+Speech results include Deepgram response details in
+`providerMetadata.deepgram`: `modelName` (the resolved upstream model),
+`modelUuid`, `charCount` (the billed character count), and `requestId`.
+
 ### Model Capabilities
 
 | Model                                                                            |
