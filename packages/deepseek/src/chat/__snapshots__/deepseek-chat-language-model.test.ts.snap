@@ -4,13 +4,11 @@ exports[`DeepSeekChatLanguageModel > doGenerate > reasoning > should extract tex
 {
   "content": [
     {
-      "text": "We are asked: "How many 'r's are in the word 'strawberry'?" We need to count the occurrences of the letter 'r' in the word "strawberry". Let's write the word: s-t-r-a-w-b-e-r-r-y. Let's count: positions: 1: s, 2: t, 3: r, 4: a, 5: w, 6: b, 7: e, 8: r, 9: r, 10: y. So there are three 'r's? Wait: at position 3: r, position 8: r, position 9: r. That's three. But sometimes people might think it's two because of pronunciation? But strictly counting letters, it's three. However, let's double-check spelling: "strawberry" is spelled S-T-R-A-W-B-E-R-R-Y. Yes, it has two 'r's at the end? Actually, after 'b' comes 'e', then 'r', then 'r', then 'y'. So indeed three 'r's total. But wait, the initial 'r' is the first one? The word starts with 's', then 't', then 'r'. So that's one, then later two consecutive 'r's. So total three. So answer is 3.
-
-But the question is phrased: "How many 'r's are in the word 'strawberry'?" So answer is 3.",
+      "text": "We need answer simple. Count r in strawberry. s t r a w b e r r y? Wait "strawberry" letters: s(1) t(2) r(3) a(4) w(5) b(6) e(7) r(8) r(9) y(10). So three r's? Let's verify spelling strawberry has "str" one r, and "berry" has two r? Actually berry is b e r r y, yes two. Total 3. Need respond.",
       "type": "reasoning",
     },
     {
-      "text": "The word "strawberry" contains three instances of the letter "r": one after the "t" and two before the "y".",
+      "text": "There are **3** “r”s in **“strawberry”**.",
       "type": "text",
     },
   ],
@@ -21,7 +19,7 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
   "providerMetadata": {
     "deepseek": {
       "promptCacheHitTokens": 0,
-      "promptCacheMissTokens": 18,
+      "promptCacheMissTokens": 97,
     },
   },
   "request": {
@@ -34,7 +32,7 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
           "role": "user",
         },
       ],
-      "model": "deepseek-chat",
+      "model": "deepseek-v4-flash",
       "presence_penalty": undefined,
       "response_format": undefined,
       "stop": undefined,
@@ -53,62 +51,60 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
           "index": 0,
           "logprobs": null,
           "message": {
-            "content": "The word "strawberry" contains three instances of the letter "r": one after the "t" and two before the "y".",
-            "reasoning_content": "We are asked: "How many 'r's are in the word 'strawberry'?" We need to count the occurrences of the letter 'r' in the word "strawberry". Let's write the word: s-t-r-a-w-b-e-r-r-y. Let's count: positions: 1: s, 2: t, 3: r, 4: a, 5: w, 6: b, 7: e, 8: r, 9: r, 10: y. So there are three 'r's? Wait: at position 3: r, position 8: r, position 9: r. That's three. But sometimes people might think it's two because of pronunciation? But strictly counting letters, it's three. However, let's double-check spelling: "strawberry" is spelled S-T-R-A-W-B-E-R-R-Y. Yes, it has two 'r's at the end? Actually, after 'b' comes 'e', then 'r', then 'r', then 'y'. So indeed three 'r's total. But wait, the initial 'r' is the first one? The word starts with 's', then 't', then 'r'. So that's one, then later two consecutive 'r's. So total three. So answer is 3.
-
-But the question is phrased: "How many 'r's are in the word 'strawberry'?" So answer is 3.",
+            "content": "There are **3** “r”s in **“strawberry”**.",
+            "reasoning_content": "We need answer simple. Count r in strawberry. s t r a w b e r r y? Wait "strawberry" letters: s(1) t(2) r(3) a(4) w(5) b(6) e(7) r(8) r(9) y(10). So three r's? Let's verify spelling strawberry has "str" one r, and "berry" has two r? Actually berry is b e r r y, yes two. Total 3. Need respond.",
             "role": "assistant",
           },
         },
       ],
-      "created": 1764660903,
-      "id": "945bb10c-9bf3-47ff-a2a2-43bbe9705c72",
-      "model": "deepseek-reasoner",
+      "created": 1786782774,
+      "id": "96ab47fa-9056-448e-8293-24546c4b4c2a",
+      "model": "deepseek-v4-flash",
       "object": "chat.completion",
-      "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+      "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e",
       "usage": {
-        "completion_tokens": 345,
+        "completion_tokens": 131,
         "completion_tokens_details": {
-          "reasoning_tokens": 315,
+          "reasoning_tokens": 113,
         },
         "prompt_cache_hit_tokens": 0,
-        "prompt_cache_miss_tokens": 18,
-        "prompt_tokens": 18,
+        "prompt_cache_miss_tokens": 97,
+        "prompt_tokens": 97,
         "prompt_tokens_details": {
           "cached_tokens": 0,
         },
-        "total_tokens": 363,
+        "total_tokens": 228,
       },
     },
     "headers": {
-      "content-length": "1596",
+      "content-length": "882",
       "content-type": "application/json",
     },
-    "id": "945bb10c-9bf3-47ff-a2a2-43bbe9705c72",
-    "modelId": "deepseek-reasoner",
-    "timestamp": 2025-12-02T07:35:03.000Z,
+    "id": "96ab47fa-9056-448e-8293-24546c4b4c2a",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T08:32:54.000Z,
   },
   "usage": {
     "inputTokens": {
       "cacheRead": 0,
       "cacheWrite": undefined,
-      "noCache": 18,
-      "total": 18,
+      "noCache": 97,
+      "total": 97,
     },
     "outputTokens": {
-      "reasoning": 315,
-      "text": 30,
-      "total": 345,
+      "reasoning": 113,
+      "text": 18,
+      "total": 131,
     },
     "raw": {
-      "completion_tokens": 345,
+      "completion_tokens": 131,
       "completion_tokens_details": {
-        "reasoning_tokens": 315,
+        "reasoning_tokens": 113,
       },
       "prompt_cache_hit_tokens": 0,
-      "prompt_cache_miss_tokens": 18,
-      "prompt_tokens": 18,
-      "total_tokens": 363,
+      "prompt_cache_miss_tokens": 97,
+      "prompt_tokens": 97,
+      "total_tokens": 228,
     },
   },
   "warnings": [],
@@ -119,32 +115,18 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
 {
   "content": [
     {
-      "text": "## **Holiday Name: Gratitude of Small Things Day (GST Day)**
-
-**Date:** The first Saturday after the Spring Equinox (in the Northern Hemisphere) / the first Saturday after the Autumn Equinox (in the Southern Hemisphere). It is intentionally placed at a time of seasonal transition, encouraging people to pause and appreciate the subtle, often overlooked details of life.
-
-**Core Philosophy:** In a world focused on grand achievements and major events, GST Day celebrates the tiny, mundane, yet profoundly beautiful moments, objects, and sensations that form the quiet fabric of our existence. The motto is: *"Notice the thread, and you see the tapestry."*
-
----
-
-### **Traditions & Practices:**
-
-**1. The "Quiet Hour" & Offering Bowl:**
-   The holiday begins at sunrise with a "Quiet Hour." Individuals or households sit in a comfortable space with a small, empty bowl (the "Offering Bowl"). In silence, they reflect on the past year, noting not major events, but **small, specific gratitudes**: the sound of rain on a specific afternoon, the warmth of a mug in their hands, the scent of a loved one's laundry detergent, the way light fell through a window. They write each on a tiny slip of paper and place it in the bowl. These are not shared aloud; the act is purely personal and reflective.
-
-**2. The "Micro-Gift" Exchange:**
-   Instead of lavish presents, people exchange",
+      "text": "Introducing "Lumina Tide," a holiday celebrating the ocean's bioluminescent glow, observed on the night of the first new moon in June. Traditions include families gathering on beaches to release hand-painted, floating lanterns shaped like sea creatures, each carrying a written wish for the coming season. As the lanterns drift on the dark water, participants share a communal "silent chorus," humming together in harmony to mimic the peaceful pulse of the glowing waves.",
       "type": "text",
     },
   ],
   "finishReason": {
-    "raw": "length",
-    "unified": "length",
+    "raw": "stop",
+    "unified": "stop",
   },
   "providerMetadata": {
     "deepseek": {
       "promptCacheHitTokens": 0,
-      "promptCacheMissTokens": 13,
+      "promptCacheMissTokens": 22,
     },
   },
   "request": {
@@ -157,7 +139,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
           "role": "user",
         },
       ],
-      "model": "deepseek-chat",
+      "model": "deepseek-v4-flash",
       "presence_penalty": undefined,
       "response_format": undefined,
       "stop": undefined,
@@ -172,71 +154,57 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
     "body": {
       "choices": [
         {
-          "finish_reason": "length",
+          "finish_reason": "stop",
           "index": 0,
           "logprobs": null,
           "message": {
-            "content": "## **Holiday Name: Gratitude of Small Things Day (GST Day)**
-
-**Date:** The first Saturday after the Spring Equinox (in the Northern Hemisphere) / the first Saturday after the Autumn Equinox (in the Southern Hemisphere). It is intentionally placed at a time of seasonal transition, encouraging people to pause and appreciate the subtle, often overlooked details of life.
-
-**Core Philosophy:** In a world focused on grand achievements and major events, GST Day celebrates the tiny, mundane, yet profoundly beautiful moments, objects, and sensations that form the quiet fabric of our existence. The motto is: *"Notice the thread, and you see the tapestry."*
-
----
-
-### **Traditions & Practices:**
-
-**1. The "Quiet Hour" & Offering Bowl:**
-   The holiday begins at sunrise with a "Quiet Hour." Individuals or households sit in a comfortable space with a small, empty bowl (the "Offering Bowl"). In silence, they reflect on the past year, noting not major events, but **small, specific gratitudes**: the sound of rain on a specific afternoon, the warmth of a mug in their hands, the scent of a loved one's laundry detergent, the way light fell through a window. They write each on a tiny slip of paper and place it in the bowl. These are not shared aloud; the act is purely personal and reflective.
-
-**2. The "Micro-Gift" Exchange:**
-   Instead of lavish presents, people exchange",
+            "content": "Introducing "Lumina Tide," a holiday celebrating the ocean's bioluminescent glow, observed on the night of the first new moon in June. Traditions include families gathering on beaches to release hand-painted, floating lanterns shaped like sea creatures, each carrying a written wish for the coming season. As the lanterns drift on the dark water, participants share a communal "silent chorus," humming together in harmony to mimic the peaceful pulse of the glowing waves.",
             "role": "assistant",
           },
         },
       ],
-      "created": 1764656316,
-      "id": "00f10ecd-60b3-4707-b5db-e4bcadf7aea1",
-      "model": "deepseek-chat",
+      "created": 1786782799,
+      "id": "646de991-2676-41d8-b931-0c543031f7b0",
+      "model": "deepseek-v4-flash",
       "object": "chat.completion",
-      "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+      "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e",
       "usage": {
-        "completion_tokens": 300,
+        "completion_tokens": 93,
         "prompt_cache_hit_tokens": 0,
-        "prompt_cache_miss_tokens": 13,
-        "prompt_tokens": 13,
+        "prompt_cache_miss_tokens": 22,
+        "prompt_tokens": 22,
         "prompt_tokens_details": {
           "cached_tokens": 0,
         },
-        "total_tokens": 313,
+        "total_tokens": 115,
       },
     },
     "headers": {
-      "content-length": "1857",
+      "content-length": "932",
       "content-type": "application/json",
     },
-    "id": "00f10ecd-60b3-4707-b5db-e4bcadf7aea1",
-    "modelId": "deepseek-chat",
-    "timestamp": 2025-12-02T06:18:36.000Z,
+    "id": "646de991-2676-41d8-b931-0c543031f7b0",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T08:33:19.000Z,
   },
   "usage": {
     "inputTokens": {
       "cacheRead": 0,
       "cacheWrite": undefined,
-      "noCache": 13,
-      "total": 13,
+      "noCache": 22,
+      "total": 22,
     },
     "outputTokens": {
       "reasoning": 0,
-      "text": 300,
-      "total": 300,
+      "text": 93,
+      "total": 93,
     },
     "raw": {
-      "completion_tokens": 300,
+      "completion_tokens": 93,
       "prompt_cache_hit_tokens": 0,
-      "prompt_cache_miss_tokens": 13,
-      "prompt_tokens": 13,
-      "total_tokens": 313,
+      "prompt_cache_miss_tokens": 22,
+      "prompt_tokens": 22,
+      "total_tokens": 115,
     },
   },
   "warnings": [],
@@ -247,15 +215,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
 {
   "content": [
     {
-      "text": "I have the result from the weather tool. It returned a JSON object with location, condition, and temperature. I need to reply with JSON object ONLY. The assistant's response should be the JSON output. So I should output exactly that JSON? Or perhaps wrap it in some way? The instruction says "Reply with JSON object ONLY." Probably I should output the result as is, or maybe a structured response. But the tool result is already JSON. I think I should output that JSON directly. However, I need to ensure it's a valid response. Let me output the JSON object.",
-      "type": "reasoning",
-    },
-    {
-      "text": "{
-  "location": "San Francisco",
-  "condition": "cloudy",
-  "temperature": 7
-}",
+      "text": "{"location":"San Francisco","condition":"cloudy","temperature":7}",
       "type": "text",
     },
   ],
@@ -265,8 +225,8 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
   },
   "providerMetadata": {
     "deepseek": {
-      "promptCacheHitTokens": 320,
-      "promptCacheMissTokens": 175,
+      "promptCacheHitTokens": 0,
+      "promptCacheMissTokens": 483,
     },
   },
   "request": {
@@ -283,7 +243,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
           "role": "user",
         },
       ],
-      "model": "deepseek-reasoner",
+      "model": "deepseek-v4-pro",
       "presence_penalty": undefined,
       "response_format": {
         "type": "json_object",
@@ -327,64 +287,60 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
           "index": 0,
           "logprobs": null,
           "message": {
-            "content": "{
-  "location": "San Francisco",
-  "condition": "cloudy",
-  "temperature": 7
-}",
-            "reasoning_content": "I have the result from the weather tool. It returned a JSON object with location, condition, and temperature. I need to reply with JSON object ONLY. The assistant's response should be the JSON output. So I should output exactly that JSON? Or perhaps wrap it in some way? The instruction says "Reply with JSON object ONLY." Probably I should output the result as is, or maybe a structured response. But the tool result is already JSON. I think I should output that JSON directly. However, I need to ensure it's a valid response. Let me output the JSON object.",
+            "content": "{"location":"San Francisco","condition":"cloudy","temperature":7}",
+            "reasoning_content": "",
             "role": "assistant",
           },
         },
       ],
-      "created": 1764681341,
-      "id": "f03bc170-b375-4561-9685-35182c8152c5",
-      "model": "deepseek-reasoner",
+      "created": 1786782780,
+      "id": "b45dc2c1-2cee-4152-9c14-85840077254b",
+      "model": "deepseek-v4-flash",
       "object": "chat.completion",
-      "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+      "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e",
       "usage": {
-        "completion_tokens": 144,
+        "completion_tokens": 16,
         "completion_tokens_details": {
-          "reasoning_tokens": 118,
+          "reasoning_tokens": 0,
         },
-        "prompt_cache_hit_tokens": 320,
-        "prompt_cache_miss_tokens": 175,
-        "prompt_tokens": 495,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 483,
+        "prompt_tokens": 483,
         "prompt_tokens_details": {
-          "cached_tokens": 320,
+          "cached_tokens": 0,
         },
-        "total_tokens": 639,
+        "total_tokens": 499,
       },
     },
     "headers": {
-      "content-length": "1194",
+      "content-length": "608",
       "content-type": "application/json",
     },
-    "id": "f03bc170-b375-4561-9685-35182c8152c5",
-    "modelId": "deepseek-reasoner",
-    "timestamp": 2025-12-02T13:15:41.000Z,
+    "id": "b45dc2c1-2cee-4152-9c14-85840077254b",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T08:33:00.000Z,
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": 320,
+      "cacheRead": 0,
       "cacheWrite": undefined,
-      "noCache": 175,
-      "total": 495,
+      "noCache": 483,
+      "total": 483,
     },
     "outputTokens": {
-      "reasoning": 118,
-      "text": 26,
-      "total": 144,
+      "reasoning": 0,
+      "text": 16,
+      "total": 16,
     },
     "raw": {
-      "completion_tokens": 144,
+      "completion_tokens": 16,
       "completion_tokens_details": {
-        "reasoning_tokens": 118,
+        "reasoning_tokens": 0,
       },
-      "prompt_cache_hit_tokens": 320,
-      "prompt_cache_miss_tokens": 175,
-      "prompt_tokens": 495,
-      "total_tokens": 639,
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 483,
+      "prompt_tokens": 483,
+      "total_tokens": 499,
     },
   },
   "warnings": [],
@@ -395,12 +351,12 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
 {
   "content": [
     {
-      "text": "The user is asking for the weather in San Francisco. I have a weather tool available that can get weather information for a location. I should use this tool with the location parameter set to "San Francisco". Let me call the weather function.",
+      "text": "The user asks about weather in San Francisco. I'll call the weather tool.",
       "type": "reasoning",
     },
     {
       "input": "{"location": "San Francisco"}",
-      "toolCallId": "call_00_9V0vrf86Pc9aelHCJMZqnJBo",
+      "toolCallId": "call_00_lCIkdHRa7AKmCG3TlxXz1061",
       "toolName": "weather",
       "type": "tool-call",
     },
@@ -411,8 +367,8 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
   },
   "providerMetadata": {
     "deepseek": {
-      "promptCacheHitTokens": 320,
-      "promptCacheMissTokens": 19,
+      "promptCacheHitTokens": 0,
+      "promptCacheMissTokens": 374,
     },
   },
   "request": {
@@ -425,7 +381,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
           "role": "user",
         },
       ],
-      "model": "deepseek-reasoner",
+      "model": "deepseek-v4-pro",
       "presence_penalty": undefined,
       "response_format": undefined,
       "stop": undefined,
@@ -468,7 +424,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
           "logprobs": null,
           "message": {
             "content": "",
-            "reasoning_content": "The user is asking for the weather in San Francisco. I have a weather tool available that can get weather information for a location. I should use this tool with the location parameter set to "San Francisco". Let me call the weather function.",
+            "reasoning_content": "The user asks about weather in San Francisco. I'll call the weather tool.",
             "role": "assistant",
             "tool_calls": [
               {
@@ -476,7 +432,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
                   "arguments": "{"location": "San Francisco"}",
                   "name": "weather",
                 },
-                "id": "call_00_9V0vrf86Pc9aelHCJMZqnJBo",
+                "id": "call_00_lCIkdHRa7AKmCG3TlxXz1061",
                 "index": 0,
                 "type": "function",
               },
@@ -484,54 +440,54 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
           },
         },
       ],
-      "created": 1764665845,
-      "id": "7a630f5b-b7e6-4878-82f8-d77db164d42b",
-      "model": "deepseek-reasoner",
+      "created": 1786782778,
+      "id": "21d2ddcb-4947-4e28-a783-857aedbe6ace",
+      "model": "deepseek-v4-flash",
       "object": "chat.completion",
-      "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+      "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e",
       "usage": {
-        "completion_tokens": 92,
+        "completion_tokens": 60,
         "completion_tokens_details": {
-          "reasoning_tokens": 48,
+          "reasoning_tokens": 16,
         },
-        "prompt_cache_hit_tokens": 320,
-        "prompt_cache_miss_tokens": 19,
-        "prompt_tokens": 339,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 374,
+        "prompt_tokens": 374,
         "prompt_tokens_details": {
-          "cached_tokens": 320,
+          "cached_tokens": 0,
         },
-        "total_tokens": 431,
+        "total_tokens": 434,
       },
     },
     "headers": {
-      "content-length": "952",
+      "content-length": "776",
       "content-type": "application/json",
     },
-    "id": "7a630f5b-b7e6-4878-82f8-d77db164d42b",
-    "modelId": "deepseek-reasoner",
-    "timestamp": 2025-12-02T08:57:25.000Z,
+    "id": "21d2ddcb-4947-4e28-a783-857aedbe6ace",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T08:32:58.000Z,
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": 320,
+      "cacheRead": 0,
       "cacheWrite": undefined,
-      "noCache": 19,
-      "total": 339,
+      "noCache": 374,
+      "total": 374,
     },
     "outputTokens": {
-      "reasoning": 48,
+      "reasoning": 16,
       "text": 44,
-      "total": 92,
+      "total": 60,
     },
     "raw": {
-      "completion_tokens": 92,
+      "completion_tokens": 60,
       "completion_tokens_details": {
-        "reasoning_tokens": 48,
+        "reasoning_tokens": 16,
       },
-      "prompt_cache_hit_tokens": 320,
-      "prompt_cache_miss_tokens": 19,
-      "prompt_tokens": 339,
-      "total_tokens": 431,
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 374,
+      "prompt_tokens": 374,
+      "total_tokens": 434,
     },
   },
   "warnings": [],
@@ -545,9 +501,9 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "warnings": [],
   },
   {
-    "id": "cac7192e-e619-40c6-96b0-ed4276bc03ac",
-    "modelId": "deepseek-reasoner",
-    "timestamp": 2025-12-02T07:50:32.000Z,
+    "id": "b1e23612-29d5-4f66-b185-fb61fdde0ac9",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T08:32:56.000Z,
     "type": "response-metadata",
   },
   {
@@ -565,7 +521,22 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": " to",
+    "delta": " answer",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " simple",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Need",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -575,42 +546,7 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": " the",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " number",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " of",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " the",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " letter",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " "",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "r",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": """,
+    "delta": " r",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -620,62 +556,22 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": " the",
+    "delta": " strawberry",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " word",
+    "delta": ".",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " "",
+    "delta": " strawberry",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "st",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "raw",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "berry",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "".",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " The",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " word",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " is",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " spelled",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
+    "delta": " letters",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -685,52 +581,52 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": "-t",
+    "delta": " t",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "-r",
+    "delta": " r",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "-a",
+    "delta": " a",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "-w",
+    "delta": " w",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "-b",
+    "delta": " b",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "-e",
+    "delta": " e",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "-r",
+    "delta": " r",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "-r",
+    "delta": " r",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "-y",
+    "delta": " y",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": ".",
+    "delta": "?",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -745,395 +641,7 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": " list",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " the",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " letters",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " and",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
     "delta": " count",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " the",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " "",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "r",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ""s",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":
-
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "Position",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " ",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "1",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " s",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "2",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " t",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "3",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " r",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " (",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "first",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " r",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ")
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "4",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " a",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "5",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " w",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "6",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " b",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "7",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " e",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "8",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " r",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " (",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "second",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " r",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ")
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "9",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " r",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " (",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "third",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " r",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ")
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "10",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " y",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "
-
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "So",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " there",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " are",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " three",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " "",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "r",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ""s",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " But",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " wait",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " let",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "'s",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " double",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "-check",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -1168,62 +676,37 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": " indeed",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
     "delta": " has",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " three",
+    "delta": " r",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " "",
+    "delta": " at",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "r",
+    "delta": " position",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": ""s",
+    "delta": " ",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": ":",
+    "delta": "3",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " one",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " after",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " "",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "t",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "",",
+    "delta": ",",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -1238,179 +721,17 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": " two",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " consecutive",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
     "delta": " "",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "r",
+    "delta": "berry",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": ""s",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " before",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " "",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "y",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "".",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " So",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " the",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " answer",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " is",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " ",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "3",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".
-
-",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "The",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " question",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " is",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " straightforward",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " However",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " sometimes",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " people",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " might",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " misc",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "ount",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Let",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "'s",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " ensure",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " The",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " word",
+    "delta": """,
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -1420,27 +741,52 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": " ",
+    "delta": " two",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "10",
+    "delta": " r",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " letters",
+    "delta": "?",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Actually",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " strawberry",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " =",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " straw",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " +",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " berry",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
     "delta": ".",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " The",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -1450,37 +796,32 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": "r",
+    "delta": "st",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": ""s",
+    "delta": "raw",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " are",
+    "delta": """,
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " at",
+    "delta": " has",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " positions",
+    "delta": " one",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " ",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "3",
+    "delta": " r",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -1490,42 +831,62 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": " ",
+    "delta": " "",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "8",
+    "delta": "berry",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": ",",
+    "delta": """,
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " and",
+    "delta": " has",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " ",
+    "delta": " two",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "9",
+    "delta": " r",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": ".",
+    "delta": "?",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " So",
+    "delta": " b",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " e",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " y",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -1535,7 +896,17 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": ",",
+    "delta": " two",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " total",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -1550,44 +921,27 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-delta",
   },
   {
-    "delta": ".
-
-",
+    "delta": " r",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "Thus",
+    "delta": "'s",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": ",",
+    "delta": ".",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " the",
+    "delta": " Need",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
     "delta": " answer",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " is",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " ",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "3",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -1605,17 +959,62 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "reasoning-end",
   },
   {
-    "delta": "The",
+    "delta": "There",
     "id": "txt-0",
     "type": "text-delta",
   },
   {
-    "delta": " word",
+    "delta": " are",
     "id": "txt-0",
     "type": "text-delta",
   },
   {
-    "delta": " "",
+    "delta": " **",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "3",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " “",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "r",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "”",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "s",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "“",
     "id": "txt-0",
     "type": "text-delta",
   },
@@ -1635,17 +1034,81 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "text-delta",
   },
   {
-    "delta": """,
+    "delta": "”",
     "id": "txt-0",
     "type": "text-delta",
   },
   {
-    "delta": " contains",
+    "delta": "**.",
     "id": "txt-0",
     "type": "text-delta",
   },
   {
-    "delta": " three",
+    "id": "txt-0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "stop",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "deepseek": {
+        "promptCacheHitTokens": 0,
+        "promptCacheMissTokens": 97,
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 97,
+        "total": 97,
+      },
+      "outputTokens": {
+        "reasoning": 88,
+        "text": 18,
+        "total": 106,
+      },
+      "raw": {
+        "completion_tokens": 106,
+        "completion_tokens_details": {
+          "reasoning_tokens": 88,
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 97,
+        "prompt_tokens": 97,
+        "total_tokens": 203,
+      },
+    },
+  },
+]
+`;
+
+exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "0cd1282e-a9cf-4e5f-85a1-069a1669f0ce",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T08:33:21.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "txt-0",
+    "type": "text-start",
+  },
+  {
+    "delta": "Introdu",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cing",
     "id": "txt-0",
     "type": "text-delta",
   },
@@ -1655,12 +1118,472 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "text-delta",
   },
   {
-    "delta": "r",
+    "delta": "L",
     "id": "txt-0",
     "type": "text-delta",
   },
   {
-    "delta": ""s",
+    "delta": "umina",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Eve",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ","",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " holiday",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gratitude",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " light",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " celebrated",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " winter",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sol",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "stice",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Its",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " main",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tradition",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Lan",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "tern",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Walk",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ","",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " where",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " families",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " carry",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hand",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-p",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ainted",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " biodegradable",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lantern",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "s",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hill",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "top",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " releasing",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " them",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sky",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " whispered",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wish",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " someone",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " they",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "re",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " thankful",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " evening",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ends",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shared",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " feast",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "gl",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ow",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ew",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": """,
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " star",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-shaped",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cookies",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " eaten",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " silence",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " under",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " stars",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reflect",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " interconnected",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ness",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " all",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " things",
     "id": "txt-0",
     "type": "text-delta",
   },
@@ -1681,7 +1604,7 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "providerMetadata": {
       "deepseek": {
         "promptCacheHitTokens": 0,
-        "promptCacheMissTokens": 18,
+        "promptCacheMissTokens": 22,
       },
     },
     "type": "finish",
@@ -1689,2097 +1612,20 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
       "inputTokens": {
         "cacheRead": 0,
         "cacheWrite": undefined,
-        "noCache": 18,
-        "total": 18,
-      },
-      "outputTokens": {
-        "reasoning": 205,
-        "text": 14,
-        "total": 219,
-      },
-      "raw": {
-        "completion_tokens": 219,
-        "completion_tokens_details": {
-          "reasoning_tokens": 205,
-        },
-        "prompt_cache_hit_tokens": 0,
-        "prompt_cache_miss_tokens": 18,
-        "prompt_tokens": 18,
-        "total_tokens": 237,
-      },
-    },
-  },
-]
-`;
-
-exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = `
-[
-  {
-    "type": "stream-start",
-    "warnings": [],
-  },
-  {
-    "id": "f6117a0b-129d-46fa-b239-78f01c2c5df9",
-    "modelId": "deepseek-chat",
-    "timestamp": 2025-12-02T06:46:33.000Z,
-    "type": "response-metadata",
-  },
-  {
-    "id": "txt-0",
-    "type": "text-start",
-  },
-  {
-    "delta": "##",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " **",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "H",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "olid",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ay",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Name",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":**",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " St",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "arl",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ight",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Rem",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "embrance",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "
-
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "**",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "Date",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":**",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " The",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Saturday",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " nearest",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " new",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " moon",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " in",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " October",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " when",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " night",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sky",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " is",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " at",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " its",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " darkest",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " stars",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " are",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " most",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " vivid",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".
-
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "**",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "Origin",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " &",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Meaning",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "**
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "St",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "arl",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ight",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Rem",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "embrance",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " emerged",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " from",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " modern",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " collective",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " yearning",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " to",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " honor",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " personal",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " loss",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " while",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " celebrating",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " enduring",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " connections",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " that",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " transcend",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " it",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " It",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " is",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " not",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " tied",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " to",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " any",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " one",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " religion",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " or",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " culture",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " but",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " to",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " universal",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " human",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " experience",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " The",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " core",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " philosophy",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " is",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " that",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " people",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " we",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " love",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ideas",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " that",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " inspired",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " us",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " even",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " versions",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ourselves",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " that",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " are",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " gone",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " are",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " not",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " vanished",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " but",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " have",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " become",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " part",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " universe",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "'s",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " fabric",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "—",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "like",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " st",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ard",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ust",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " The",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " holiday",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " asks",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " participants",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " to",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " look",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " up",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " at",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " vast",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " shared",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sky",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " find",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " comfort",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " in",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " both",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " darkness",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " (",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " loss",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ")",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " enduring",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " points",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " light",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " (",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " memory",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ").
-
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "---
-
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "###",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " **",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "T",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "rad",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "itions",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " &",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Rit",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "uals",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":**
-
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "**",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "1",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " The",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Dim",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ming",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Lights",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "**
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "As",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " night",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " falls",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " households",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " communities",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " turn",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " off",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " non",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "essential",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " electric",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " lights",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Streets",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " are",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " lit",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " only",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " by",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " subtle",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " blue",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-ton",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ed",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " lantern",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "s",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " (",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "symbol",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "izing",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " night",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sky",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ").",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " This",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " collective",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " act",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " reduces",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " light",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " pollution",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " literally",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " metaphor",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ically",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " making",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " space",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " for",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " stars",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "—",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "and",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " for",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " reflection",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".
-
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "**",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "2",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Craft",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ing",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Constellation",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " J",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ars",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "**
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "In",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " days",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " leading",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " up",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " to",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " holiday",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " people",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " create",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " "",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "Const",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ellation",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " J",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ars",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "."",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " They",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " take",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " clear",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " jar",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " using",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " small",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " drill",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " or",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " adhesive",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " create",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " pattern",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " holes",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " on",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " its",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " lid",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " representing",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " stars",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " specific",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " constellation",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " On",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " night",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " holiday",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " small",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " battery",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-operated",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " tea",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " light",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " is",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " placed",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " inside",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Each",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " jar",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " is",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " dedicated",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " to",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " someone",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " or",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " something",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " remembered",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " The",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " constellation",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " might",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " be",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " their",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " birth",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sign",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " shape",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " that",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " reminds",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " maker",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " them",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " or",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " simply",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " pattern",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sky",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " on",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " night",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " they",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " passed",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".
-
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "**",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "3",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " The",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Silent",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Vig",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "il",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " &",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Story",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Stars",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "**
-",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "At",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " designated",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " time",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " (",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "e",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".g",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".,",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "9",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " PM",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " local",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " time",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "),",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " people",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " step",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " outside",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " alone",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " or",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " in",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " quiet",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " groups",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " observe",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "15",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " minutes",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " silent",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " looking",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " at",
-    "id": "txt-0",
-    "type": "text-delta",
-  },
-  {
-    "id": "txt-0",
-    "type": "text-end",
-  },
-  {
-    "finishReason": {
-      "raw": "length",
-      "unified": "length",
-    },
-    "providerMetadata": {
-      "deepseek": {
-        "promptCacheHitTokens": 0,
-        "promptCacheMissTokens": 13,
-      },
-    },
-    "type": "finish",
-    "usage": {
-      "inputTokens": {
-        "cacheRead": 0,
-        "cacheWrite": undefined,
-        "noCache": 13,
-        "total": 13,
+        "noCache": 22,
+        "total": 22,
       },
       "outputTokens": {
         "reasoning": 0,
-        "text": 400,
-        "total": 400,
+        "text": 98,
+        "total": 98,
       },
       "raw": {
-        "completion_tokens": 400,
+        "completion_tokens": 98,
         "prompt_cache_hit_tokens": 0,
-        "prompt_cache_miss_tokens": 13,
-        "prompt_tokens": 13,
-        "total_tokens": 413,
+        "prompt_cache_miss_tokens": 22,
+        "prompt_tokens": 22,
+        "total_tokens": 120,
       },
     },
   },
@@ -3793,9 +1639,9 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     "warnings": [],
   },
   {
-    "id": "cca85624-4056-401f-b220-d77601d1f70d",
-    "modelId": "deepseek-reasoner",
-    "timestamp": 2025-12-02T08:36:08.000Z,
+    "id": "6e77be01-935b-42f6-8b05-d6c763528589",
+    "modelId": "deepseek-v4-flash",
+    "timestamp": 2026-08-15T08:32:59.000Z,
     "type": "response-metadata",
   },
   {
@@ -3813,17 +1659,12 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     "type": "reasoning-delta",
   },
   {
-    "delta": " is",
+    "delta": " asks",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
   {
-    "delta": " asking",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " for",
+    "delta": " about",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -3863,12 +1704,7 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     "type": "reasoning-delta",
   },
   {
-    "delta": " need",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " to",
+    "delta": " should",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -3893,107 +1729,7 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     "type": "reasoning-delta",
   },
   {
-    "delta": " to",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " get",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " this",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " information",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
     "delta": ".",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Let",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " me",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " invoke",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " the",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " weather",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " tool",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " with",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " the",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " location",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " parameter",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " set",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " to",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " "",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "San",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Francisco",
-    "id": "reasoning-0",
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "".",
     "id": "reasoning-0",
     "type": "reasoning-delta",
   },
@@ -4002,67 +1738,67 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     "type": "reasoning-end",
   },
   {
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "toolName": "weather",
     "type": "tool-input-start",
   },
   {
     "delta": "{",
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
     "delta": """,
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
     "delta": "location",
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
     "delta": """,
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
     "delta": ": ",
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
     "delta": """,
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
     "delta": "San",
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
     "delta": " Francisco",
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
     "delta": """,
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
     "delta": "}",
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-delta",
   },
   {
-    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "id": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "type": "tool-input-end",
   },
   {
     "input": "{"location": "San Francisco"}",
-    "toolCallId": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "toolCallId": "call_00_IhCAliIHtM9gKpgfqbBV9873",
     "toolName": "weather",
     "type": "tool-call",
   },
@@ -4073,32 +1809,32 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     },
     "providerMetadata": {
       "deepseek": {
-        "promptCacheHitTokens": 320,
-        "promptCacheMissTokens": 19,
+        "promptCacheHitTokens": 256,
+        "promptCacheMissTokens": 118,
       },
     },
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": 320,
+        "cacheRead": 256,
         "cacheWrite": undefined,
-        "noCache": 19,
-        "total": 339,
+        "noCache": 118,
+        "total": 374,
       },
       "outputTokens": {
-        "reasoning": 39,
+        "reasoning": 17,
         "text": 44,
-        "total": 83,
+        "total": 61,
       },
       "raw": {
-        "completion_tokens": 83,
+        "completion_tokens": 61,
         "completion_tokens_details": {
-          "reasoning_tokens": 39,
+          "reasoning_tokens": 17,
         },
-        "prompt_cache_hit_tokens": 320,
-        "prompt_cache_miss_tokens": 19,
-        "prompt_tokens": 339,
-        "total_tokens": 422,
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 118,
+        "prompt_tokens": 374,
+        "total_tokens": 435,
       },
     },
   },

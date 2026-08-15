@@ -14,13 +14,15 @@ createFeatureTestSuite({
   name: 'DeepSeek',
   models: {
     invalidModel: provider.chat('no-such-model'),
-    languageModels: [createChatModel('deepseek-chat')],
+    languageModels: [createChatModel('deepseek-v4-flash')],
   },
   timeout: 10000,
   customAssertions: {
     errorValidator: (error: APICallError) => {
       expect(
-        (error.data as DeepSeekErrorData).error.message === 'Model Not Exist',
+        (error.data as DeepSeekErrorData).error.message.includes(
+          'you passed no-such-model',
+        ),
       ).toBe(true);
     },
   },

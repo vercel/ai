@@ -2,8 +2,8 @@ import { z } from 'zod/v4';
 
 // https://api-docs.deepseek.com/quick_start/pricing
 export type DeepSeekChatModelId =
-  | 'deepseek-chat'
-  | 'deepseek-reasoner'
+  | 'deepseek-v4-flash'
+  | 'deepseek-v4-pro'
   | 'deepseek-v4-flash-vision-exp'
   | (string & {});
 
