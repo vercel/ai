@@ -103,6 +103,12 @@ Settings:
   random 32-byte token. Custom implementations must return a suitably secret
   token.
 
+## Structured Output
+
+Codex supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+The adapter passes the JSON Schema through the Codex SDK's native
+`outputSchema` turn option.
+
 ## Authentication
 
 The `auth` setting selects how credentials are resolved from the host
