@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-import { createXai } from './xai-provider';
+import { createSpaceXAI } from './xai-provider';
 import * as fs from 'node:fs';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
@@ -421,10 +421,10 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
-    it('should include provider user agent when using createXai', async () => {
+    it('should include provider user agent when using createSpaceXAI', async () => {
       prepareJsonFixtureResponse('xai-text');
 
-      const xai = createXai({
+      const xai = createSpaceXAI({
         apiKey: 'test-api-key',
         headers: { 'Custom-Provider-Header': 'provider-header-value' },
       });

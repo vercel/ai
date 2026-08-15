@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { createXai } from './xai-provider';
+import { createSpaceXAI } from './xai-provider';
 import { XaiTranscriptionModel } from './xai-transcription-model';
 
 vi.mock('./version', () => ({
@@ -12,7 +12,7 @@ vi.mock('./version', () => ({
 }));
 
 const audioData = new Uint8Array([1, 2, 3, 4]);
-const provider = createXai({ apiKey: 'test-api-key' });
+const provider = createSpaceXAI({ apiKey: 'test-api-key' });
 const model = provider.transcription();
 const url = 'https://api.x.ai/v1/stt';
 
@@ -189,7 +189,7 @@ describe('doGenerate', () => {
   it('should pass headers and the xAI user agent', async () => {
     prepareJsonResponse();
 
-    const customProvider = createXai({
+    const customProvider = createSpaceXAI({
       apiKey: 'test-api-key',
       headers: { 'Custom-Provider-Header': 'provider-header-value' },
     });

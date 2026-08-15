@@ -1,13 +1,13 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { createXai } from './xai-provider';
+import { createSpaceXAI } from './xai-provider';
 import { XaiSpeechModel } from './xai-speech-model';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const provider = createXai({ apiKey: 'test-api-key' });
+const provider = createSpaceXAI({ apiKey: 'test-api-key' });
 const model = provider.speech();
 const url = 'https://api.x.ai/v1/tts';
 
@@ -269,7 +269,7 @@ describe('doGenerate', () => {
   it('should pass headers and the xAI user agent', async () => {
     prepareAudioResponse();
 
-    const customProvider = createXai({
+    const customProvider = createSpaceXAI({
       apiKey: 'test-api-key',
       headers: { 'Custom-Provider-Header': 'provider-header-value' },
     });

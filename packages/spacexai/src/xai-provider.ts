@@ -25,7 +25,7 @@ import type { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
 import { XaiRealtimeModel } from './realtime/xai-realtime-model';
-import { xaiTools } from './tool';
+import { spacexaiTools } from './tool';
 import { VERSION } from './version';
 import { XaiFiles } from './files/xai-files';
 import { XaiVideoModel } from './xai-video-model';
@@ -33,75 +33,75 @@ import type { XaiVideoModelId } from './xai-video-settings';
 import { XaiSpeechModel } from './xai-speech-model';
 import { XaiTranscriptionModel } from './xai-transcription-model';
 
-export interface XaiProvider extends ProviderV4 {
+export interface SpaceXAIProvider extends ProviderV4 {
   (modelId: XaiResponsesModelId): LanguageModelV4;
 
   /**
-   * Creates an Xai language model for text generation.
+   * Creates a SpaceXAI language model for text generation.
    */
   languageModel(modelId: XaiResponsesModelId): LanguageModelV4;
 
   /**
-   * Creates an Xai chat model for text generation.
+   * Creates a SpaceXAI chat model for text generation.
    */
   chat: (modelId: XaiChatModelId) => LanguageModelV4;
 
   /**
-   * Creates an Xai responses model for text generation.
+   * Creates a SpaceXAI responses model for text generation.
    */
   responses: (modelId: XaiResponsesModelId) => LanguageModelV4;
 
   /**
-   * Creates an Xai image model for image generation.
+   * Creates a SpaceXAI image model for image generation.
    */
   image(modelId: XaiImageModelId): ImageModelV4;
 
   /**
-   * Creates an Xai image model for image generation.
+   * Creates a SpaceXAI image model for image generation.
    */
   imageModel(modelId: XaiImageModelId): ImageModelV4;
 
   /**
-   * Creates an Xai video model for video generation.
+   * Creates a SpaceXAI video model for video generation.
    */
   video(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
   /**
-   * Creates an Xai video model for video generation.
+   * Creates a SpaceXAI video model for video generation.
    */
   videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
   experimental_realtime: RealtimeFactoryV4;
 
   /**
-   * Creates an xAI model for speech generation (text-to-speech).
+   * Creates a SpaceXAI model for speech generation (text-to-speech).
    */
   speech(): SpeechModelV4;
 
   /**
-   * Creates an xAI model for speech generation (text-to-speech).
+   * Creates a SpaceXAI model for speech generation (text-to-speech).
    */
   speechModel(): SpeechModelV4;
 
   /**
-   * Creates an xAI model for speech-to-text transcription.
+   * Creates a SpaceXAI model for speech-to-text transcription.
    */
   transcription(): TranscriptionModelV4;
 
   /**
-   * Creates an xAI model for speech-to-text transcription.
+   * Creates a SpaceXAI model for speech-to-text transcription.
    */
   transcriptionModel(): TranscriptionModelV4;
 
   /**
-   * Returns the xAI files interface for uploading files.
+   * Returns the SpaceXAI files interface for uploading files.
    */
   files(): FilesV4;
 
   /**
    * Server-side agentic tools for use with the responses API.
    */
-  tools: typeof xaiTools;
+  tools: typeof spacexaiTools;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -109,7 +109,10 @@ export interface XaiProvider extends ProviderV4 {
   textEmbeddingModel(modelId: string): never;
 }
 
-export interface XaiProviderSettings {
+/** @deprecated Use `SpaceXAIProvider` instead. */
+export type XaiProvider = SpaceXAIProvider;
+
+export interface SpaceXAIProviderSettings {
   /**
    * Base URL for the xAI API calls.
    */
@@ -138,7 +141,12 @@ export interface XaiProviderSettings {
   webSocket?: WebSocketConstructor;
 }
 
-export function createXai(options: XaiProviderSettings = {}): XaiProvider {
+/** @deprecated Use `SpaceXAIProviderSettings` instead. */
+export type XaiProviderSettings = SpaceXAIProviderSettings;
+
+export function createSpaceXAI(
+  options: SpaceXAIProviderSettings = {},
+): SpaceXAIProvider {
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.x.ai/v1',
   );
@@ -269,9 +277,15 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.transcriptionModel = createTranscriptionModel;
   provider.transcription = createTranscriptionModel;
   provider.files = createFiles;
-  provider.tools = xaiTools;
+  provider.tools = spacexaiTools;
 
   return provider;
 }
 
-export const xai = createXai();
+/** @deprecated Use `createSpaceXAI` instead. */
+export const createXai = createSpaceXAI;
+
+export const spacexai = createSpaceXAI();
+
+/** @deprecated Use `spacexai` instead. */
+export const xai = spacexai;

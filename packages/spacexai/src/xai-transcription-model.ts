@@ -442,7 +442,7 @@ function createXaiStreamingTranscriptionStream({
                     ' Node.js, Deno, and Bun cannot send the Authorization' +
                     ' header required by xAI. Pass a header-capable WebSocket' +
                     " implementation (e.g. the 'ws' package) via" +
-                    ' createXai({ webSocket }).'
+                    ' createSpaceXAI({ webSocket }).'
                   : ''),
             ),
           );

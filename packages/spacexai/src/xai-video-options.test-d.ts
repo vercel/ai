@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type { XaiVideoModelOptions } from '.';
+import type { SpaceXAIVideoModelOptions } from '.';
 
-describe('XaiVideoModelOptions type', () => {
+describe('SpaceXAIVideoModelOptions type', () => {
   // ── Explicit modes accepted ────────────────────────────────────────
 
   it('should allow edit-video mode with videoUrl', () => {
@@ -9,9 +9,9 @@ describe('XaiVideoModelOptions type', () => {
       mode: 'edit-video',
       videoUrl: 'https://example.com/video.mp4',
       pollIntervalMs: 1000,
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow extend-video mode with videoUrl', () => {
@@ -19,9 +19,9 @@ describe('XaiVideoModelOptions type', () => {
       mode: 'extend-video',
       videoUrl: 'https://example.com/video.mp4',
       pollTimeoutMs: 1000,
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow reference-to-video mode with referenceImageUrls', () => {
@@ -29,9 +29,9 @@ describe('XaiVideoModelOptions type', () => {
       mode: 'reference-to-video',
       referenceImageUrls: ['https://example.com/ref.png'],
       resolution: '720p',
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow reference-to-video with multiple hardcoded URLs', () => {
@@ -43,9 +43,9 @@ describe('XaiVideoModelOptions type', () => {
         'https://example.com/c.png',
       ],
       pollTimeoutMs: 600000,
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow reference-to-video mode with referenceVoiceIds', () => {
@@ -53,18 +53,18 @@ describe('XaiVideoModelOptions type', () => {
       mode: 'reference-to-video',
       referenceImageUrls: ['https://example.com/ref.png'],
       referenceVoiceIds: ['eve'],
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow referenceVoiceIds without mode for backward compatibility', () => {
     const options = {
       referenceImageUrls: ['https://example.com/ref.png'],
       referenceVoiceIds: ['eve', 'leo', 'rex'],
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   // ── Plain generation + legacy no-mode compatibility ────────────────
@@ -74,60 +74,60 @@ describe('XaiVideoModelOptions type', () => {
       pollIntervalMs: 1000,
       resolution: '480p',
       user: 'user-123',
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow an explicitly undefined mode for plain generation', () => {
     const options = {
       mode: undefined,
       pollTimeoutMs: 600000,
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow videoUrl without mode for backward compatibility', () => {
     const options = {
       videoUrl: 'https://example.com/video.mp4',
       user: 'user-123',
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow referenceImageUrls without mode for backward compatibility', () => {
     const options = {
       referenceImageUrls: ['https://example.com/ref.png'],
       user: 'user-123',
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow explicitly undefined fields on plain generation shape', () => {
     const options = {
       videoUrl: undefined,
       referenceImageUrls: undefined,
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(options).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow explicitly undefined mode with legacy backward-compatible fields', () => {
     const editOptions = {
       mode: undefined,
       videoUrl: 'https://example.com/video.mp4',
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
     const referenceOptions = {
       mode: undefined,
       referenceImageUrls: ['https://example.com/ref.png'],
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(editOptions).toMatchTypeOf<XaiVideoModelOptions>();
-    expectTypeOf(referenceOptions).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(editOptions).toMatchTypeOf<SpaceXAIVideoModelOptions>();
+    expectTypeOf(referenceOptions).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should allow user for explicit generation and editing endpoint modes', () => {
@@ -135,20 +135,20 @@ describe('XaiVideoModelOptions type', () => {
       mode: 'edit-video',
       videoUrl: 'https://example.com/video.mp4',
       user: 'user-123',
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
     const referenceOptions = {
       mode: 'reference-to-video',
       referenceImageUrls: ['https://example.com/ref.png'],
       user: 'user-123',
-    } satisfies XaiVideoModelOptions;
+    } satisfies SpaceXAIVideoModelOptions;
 
-    expectTypeOf(editOptions).toMatchTypeOf<XaiVideoModelOptions>();
-    expectTypeOf(referenceOptions).toMatchTypeOf<XaiVideoModelOptions>();
+    expectTypeOf(editOptions).toMatchTypeOf<SpaceXAIVideoModelOptions>();
+    expectTypeOf(referenceOptions).toMatchTypeOf<SpaceXAIVideoModelOptions>();
   });
 
   it('should not allow user for video extension', () => {
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'extend-video',
       videoUrl: 'https://example.com/video.mp4',
       // @ts-expect-error - the xAI extension endpoint does not support user
@@ -159,7 +159,7 @@ describe('XaiVideoModelOptions type', () => {
   });
 
   it('should require user to be a string', () => {
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       // @ts-expect-error - user must be a string
       user: 123,
     };
@@ -170,7 +170,7 @@ describe('XaiVideoModelOptions type', () => {
   // ── Discriminated union: illegal combos rejected ───────────────────
 
   it('should not allow referenceImageUrls with edit-video mode', () => {
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'edit-video',
       videoUrl: 'https://example.com/video.mp4',
       // @ts-expect-error - edit-video does not accept referenceImageUrls
@@ -181,7 +181,7 @@ describe('XaiVideoModelOptions type', () => {
   });
 
   it('should not allow referenceImageUrls with extend-video mode', () => {
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'extend-video',
       videoUrl: 'https://example.com/video.mp4',
       // @ts-expect-error - extend-video does not accept referenceImageUrls
@@ -192,7 +192,7 @@ describe('XaiVideoModelOptions type', () => {
   });
 
   it('should not allow referenceVoiceIds with edit-video mode', () => {
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'edit-video',
       videoUrl: 'https://example.com/video.mp4',
       // @ts-expect-error - edit-video does not accept referenceVoiceIds
@@ -203,7 +203,7 @@ describe('XaiVideoModelOptions type', () => {
   });
 
   it('should not allow referenceVoiceIds with extend-video mode', () => {
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'extend-video',
       videoUrl: 'https://example.com/video.mp4',
       // @ts-expect-error - extend-video does not accept referenceVoiceIds
@@ -214,7 +214,7 @@ describe('XaiVideoModelOptions type', () => {
   });
 
   it('should require referenceVoiceIds to be a string array', () => {
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'reference-to-video',
       referenceImageUrls: ['https://example.com/ref.png'],
       // @ts-expect-error - referenceVoiceIds must be a string array
@@ -225,7 +225,7 @@ describe('XaiVideoModelOptions type', () => {
   });
 
   it('should not allow videoUrl with reference-to-video mode', () => {
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'reference-to-video',
       referenceImageUrls: ['https://example.com/ref.png'],
       // @ts-expect-error - reference-to-video does not accept videoUrl
@@ -239,7 +239,7 @@ describe('XaiVideoModelOptions type', () => {
 
   it('should not allow edit-video without videoUrl', () => {
     // @ts-expect-error - edit-video requires videoUrl
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'edit-video',
     };
 
@@ -248,7 +248,7 @@ describe('XaiVideoModelOptions type', () => {
 
   it('should not allow extend-video without videoUrl', () => {
     // @ts-expect-error - extend-video requires videoUrl
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'extend-video',
     };
 
@@ -257,7 +257,7 @@ describe('XaiVideoModelOptions type', () => {
 
   it('should not allow reference-to-video without referenceImageUrls', () => {
     // @ts-expect-error - reference-to-video requires referenceImageUrls
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'reference-to-video',
     };
 
@@ -266,7 +266,7 @@ describe('XaiVideoModelOptions type', () => {
 
   it('should not allow reference-to-video with only shared fields', () => {
     // @ts-expect-error - reference-to-video still requires referenceImageUrls even with shared options
-    const options: XaiVideoModelOptions = {
+    const options: SpaceXAIVideoModelOptions = {
       mode: 'reference-to-video',
       pollTimeoutMs: 600000,
     };

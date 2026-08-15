@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { createXai } from './xai-provider';
+import { createSpaceXAI, createXai, spacexai, xai } from './xai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
@@ -60,9 +60,9 @@ describe('xAIProvider', () => {
     vi.clearAllMocks();
   });
 
-  describe('createXAI', () => {
+  describe('createSpaceXAI', () => {
     it('should create an XAIProvider instance with default options', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
       const model = provider('model-id');
 
       const constructorCall = XaiResponsesLanguageModelMock.mock.calls[0];
@@ -82,7 +82,7 @@ describe('xAIProvider', () => {
         baseURL: 'https://custom.url',
         headers: { 'Custom-Header': 'value' },
       };
-      const provider = createXai(options);
+      const provider = createSpaceXAI(options);
       provider('model-id');
 
       const constructorCall = XaiResponsesLanguageModelMock.mock.calls[0];
@@ -97,7 +97,7 @@ describe('xAIProvider', () => {
     });
 
     it('should return a responses model when called as a function', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
       const modelId = 'foo-model-id';
 
       const model = provider(modelId);
@@ -107,7 +107,7 @@ describe('xAIProvider', () => {
 
   describe('chatModel', () => {
     it('should construct a chat model with correct configuration', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
       const modelId = 'xai-chat-model';
 
       const model = provider.chat(modelId);
@@ -116,7 +116,7 @@ describe('xAIProvider', () => {
     });
 
     it('should pass the includeUsage option to the chat model, to make sure usage is reported while streaming', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
       const modelId = 'xai-chat-model';
 
       const model = provider.chat(modelId);
@@ -133,7 +133,7 @@ describe('xAIProvider', () => {
 
   describe('imageModel', () => {
     it('should construct an image model with correct configuration', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
       const modelId = 'grok-imagine-image';
 
       const model = provider.imageModel(modelId);
@@ -150,7 +150,7 @@ describe('xAIProvider', () => {
 
     it('should use custom baseURL for image model', () => {
       const customBaseURL = 'https://custom.xai.api';
-      const provider = createXai({ baseURL: customBaseURL });
+      const provider = createSpaceXAI({ baseURL: customBaseURL });
       const modelId = 'grok-imagine-image';
 
       provider.imageModel(modelId);
@@ -162,7 +162,7 @@ describe('xAIProvider', () => {
 
     it('should pass custom headers to image model', () => {
       const customHeaders = { 'Custom-Header': 'test-value' };
-      const provider = createXai({ headers: customHeaders });
+      const provider = createSpaceXAI({ headers: customHeaders });
 
       provider.imageModel('grok-imagine-image');
 
@@ -180,7 +180,7 @@ describe('xAIProvider', () => {
 
   describe('videoModel', () => {
     it('should construct a video model with correct configuration', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
       const modelId = 'grok-imagine-video';
 
       provider.videoModel(modelId);
@@ -197,7 +197,7 @@ describe('xAIProvider', () => {
 
     it('should use custom baseURL for video model', () => {
       const customBaseURL = 'https://custom.xai.api';
-      const provider = createXai({ baseURL: customBaseURL });
+      const provider = createSpaceXAI({ baseURL: customBaseURL });
 
       provider.videoModel('grok-imagine-video');
 
@@ -208,7 +208,7 @@ describe('xAIProvider', () => {
 
     it('should pass custom headers to video model', () => {
       const customHeaders = { 'Custom-Header': 'test-value' };
-      const provider = createXai({ headers: customHeaders });
+      const provider = createSpaceXAI({ headers: customHeaders });
 
       provider.videoModel('grok-imagine-video');
 
@@ -224,7 +224,7 @@ describe('xAIProvider', () => {
     });
 
     it('should create a video model via .video() alias', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
       const modelId = 'grok-imagine-video';
 
       provider.video(modelId);
@@ -237,7 +237,7 @@ describe('xAIProvider', () => {
 
   describe('speechModel', () => {
     it('should construct a speech model with correct configuration', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
 
       provider.speechModel();
 
@@ -250,7 +250,7 @@ describe('xAIProvider', () => {
     });
 
     it('should use custom baseURL and headers for speech models', () => {
-      const provider = createXai({
+      const provider = createSpaceXAI({
         baseURL: 'https://custom.xai.api',
         headers: { 'Custom-Header': 'test-value' },
       });
@@ -267,7 +267,7 @@ describe('xAIProvider', () => {
     });
 
     it('should create a speech model via .speech() alias', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
 
       provider.speech();
 
@@ -277,7 +277,7 @@ describe('xAIProvider', () => {
 
   describe('transcriptionModel', () => {
     it('should construct a transcription model with correct configuration', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
 
       provider.transcriptionModel();
 
@@ -290,7 +290,7 @@ describe('xAIProvider', () => {
     });
 
     it('should use custom baseURL and headers for transcription models', () => {
-      const provider = createXai({
+      const provider = createSpaceXAI({
         baseURL: 'https://custom.xai.api',
         headers: { 'Custom-Header': 'test-value' },
       });
@@ -307,11 +307,21 @@ describe('xAIProvider', () => {
     });
 
     it('should create a transcription model via .transcription() alias', () => {
-      const provider = createXai();
+      const provider = createSpaceXAI();
 
       provider.transcription();
 
       expect(XaiTranscriptionModelMock).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('deprecated aliases', () => {
+    it('createXai is the same function as createSpaceXAI', () => {
+      expect(createXai).toBe(createSpaceXAI);
+    });
+
+    it('xai is the same instance as spacexai', () => {
+      expect(xai).toBe(spacexai);
     });
   });
 });
