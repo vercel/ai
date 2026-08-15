@@ -6,6 +6,11 @@ export {
 } from './sandbox-channel';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
+export {
+  createCredentialRequestTransformation,
+  maskSandboxCredentials,
+  warnCredentialBrokeringUnavailable,
+} from './sandbox-credential-brokering';
 export { resolveSandboxHomeDir } from './sandbox-home-dir';
 export { shellQuote } from './shell-quote';
 export {

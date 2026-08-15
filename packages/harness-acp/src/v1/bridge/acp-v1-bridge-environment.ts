@@ -57,24 +57,28 @@ export type ACPResolvedProviderAuthentication = z.infer<
 export type ACPBridgeConfiguration = {
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPResolvedProviderAuthentication;
+  readonly providerEnvironment?: Readonly<Record<string, string>>;
   readonly sessionMeta?: Readonly<Record<string, ACPSerializableValue>>;
 };
 
 const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
   authentication: authenticationSchema.optional(),
   providerAuthentication: providerAuthenticationSchema.optional(),
+  providerEnvironment: z.record(z.string(), z.string()).optional(),
   sessionMeta: serializableRecordSchema.optional(),
 });
 
 export function createACPBridgeEnvironment({
   authentication,
   providerAuthentication,
+  providerEnvironment,
   sessionMeta,
 }: ACPBridgeConfiguration): Record<string, string> {
   return {
     [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
       ...(authentication == null ? {} : { authentication }),
       ...(providerAuthentication == null ? {} : { providerAuthentication }),
+      ...(providerEnvironment == null ? {} : { providerEnvironment }),
       ...(sessionMeta == null ? {} : { sessionMeta }),
     }),
   };

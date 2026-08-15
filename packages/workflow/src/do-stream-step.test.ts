@@ -1,79 +1,42 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
-import type { Experimental_LanguageModelStreamPart, LanguageModel } from 'ai';
-import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
+import { MockLanguageModelV4 } from 'ai/test';
 import { describe, expect, it, vi } from 'vitest';
-import type * as AiModule from 'ai';
-
-const { getStepMetadata, streamModelCall } = vi.hoisted(() => ({
-  getStepMetadata: vi.fn(),
-  streamModelCall: vi.fn(),
-}));
-
-vi.mock('workflow', () => ({ getStepMetadata }));
-vi.mock('ai', async importOriginal => {
-  const actual = await importOriginal<typeof AiModule>();
-  return {
-    ...actual,
-    experimental_streamLanguageModelCall: streamModelCall,
-  };
-});
-
-const { doStreamStep } = await import('./do-stream-step.js');
-
+import { doStreamStep } from './do-stream-step.js';
+const prompt = [
+  { role: 'user' as const, content: [{ type: 'text' as const, text: 'test' }] },
+];
 describe('doStreamStep', () => {
-  it('does not emit an invalidation boundary for direct initial calls', async () => {
-    getStepMetadata.mockImplementationOnce(() => {
-      throw new Error(
-        '`getStepMetadata()` can only be called inside a step function',
-      );
-    });
-    streamModelCall.mockResolvedValueOnce({
-      stream: convertArrayToReadableStream([]),
-    });
-
-    const chunks: unknown[] = [];
-    const writable = new WritableStream({
-      write(chunk) {
-        chunks.push(chunk);
-      },
-    });
-
-    await doStreamStep(
-      [] as unknown as LanguageModelV4Prompt,
-      {} as LanguageModel,
-      writable as WritableStream<
-        Experimental_LanguageModelStreamPart<Record<string, never>>
-      >,
-    );
-
-    expect(chunks).toEqual([]);
+  it('does not call the model after the absolute deadline has elapsed', async () => {
+    const doStream = vi.fn();
+    const model = new MockLanguageModelV4({ doStream });
+    await expect(
+      doStreamStep(prompt, model, undefined, undefined, {
+        timeoutAt: Date.now(),
+      }),
+    ).resolves.toEqual({ aborted: true });
+    expect(doStream).not.toHaveBeenCalled();
   });
-
-  it('writes an invalidation boundary before a retried model stream', async () => {
-    getStepMetadata.mockReturnValue({ attempt: 2 });
-    streamModelCall.mockResolvedValueOnce({
-      stream: convertArrayToReadableStream([]),
-    });
-
-    const chunks: unknown[] = [];
-    const writable = new WritableStream({
-      write(chunk) {
-        chunks.push(chunk);
+  it('returns an aborted result when the deadline aborts the model call', async () => {
+    const timeoutController = new AbortController();
+    const timeoutSpy = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockReturnValue(timeoutController.signal);
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        timeoutController.abort(
+          new DOMException('The operation timed out.', 'TimeoutError'),
+        );
+        throw timeoutController.signal.reason;
       },
     });
-
-    await doStreamStep(
-      [] as unknown as LanguageModelV4Prompt,
-      {} as LanguageModel,
-      writable as WritableStream<
-        Experimental_LanguageModelStreamPart<Record<string, never>>
-      >,
-    );
-
-    expect(chunks).toEqual([
-      { type: 'finish-step' },
-      { type: 'reload' },
-      { type: 'start-step' },
-    ]);
+    try {
+      await expect(
+        doStreamStep(prompt, model, undefined, undefined, {
+          timeoutAt: Date.now() + 5000,
+        }),
+      ).resolves.toEqual({ aborted: true });
+      expect(model.doStreamCalls).toHaveLength(1);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
   });
 });

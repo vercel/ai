@@ -15,6 +15,7 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
 import {
   isToolUIPart,
@@ -757,7 +758,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const runUpdateMessageJob = (
         job: (options: {
           state: StreamingUIMessageState<UI_MESSAGE>;
-          write: () => void;
+          write: (options?: UIMessageStreamWriteOptions) => void;
         }) => Promise<void>,
       ) =>
         // serialize the job execution to avoid race conditions:
@@ -768,13 +769,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
           return job({
             state: response.state,
-            write: () => {
+            write: ({ updateStatus = true } = {}) => {
               if (response.abortController.signal.aborted) {
                 return;
               }
 
-              // streaming is set on first write (before it should be "submitted")
-              this.setStatus({ status: 'streaming' });
+              if (updateStatus) {
+                this.setStatus({ status: 'streaming' });
+              }
 
               const replaceLastMessage =
                 response.state.message.id === this.lastMessage?.id;
@@ -861,15 +863,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             finishReason: activeResponse.state.finishReason,
           });
         }
-      } catch (err) {
-        console.error(err);
-      }
+      } finally {
+        if (this.activeResponse === activeResponse) {
+          this.activeResponse = undefined;
+        }
 
-      if (this.activeResponse === activeResponse) {
-        this.activeResponse = undefined;
+        clearActiveResumeRequest();
       }
-
-      clearActiveResumeRequest();
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true

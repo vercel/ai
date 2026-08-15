@@ -1,13 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 type CodexOptions = {
-  config?: {
-    base_instructions?: unknown;
-    developer_instructions?: unknown;
-    mcp_servers?: unknown;
-    model_reasoning_summary?: unknown;
-    model_supports_reasoning_summaries?: unknown;
-  };
+  config?: Record<string, unknown>;
 };
 type ThreadOptions = { model?: string };
 const CODEX_ENV_KEYS = [
@@ -22,6 +16,7 @@ const state = vi.hoisted(() => ({
   threadOptions: [] as ThreadOptions[],
   startModel: 'gpt-5.5',
   startInstructions: undefined as string | undefined,
+  startCodexConfig: undefined as Record<string, unknown> | undefined,
   startMcpServers: undefined as Record<string, unknown> | undefined,
   originalArgv: [] as string[],
   originalEnv: {} as Record<
@@ -66,6 +61,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
           ? { instructions: state.startInstructions }
           : {}),
         model: state.startModel,
+        codexConfig: state.startCodexConfig,
         mcpServers: state.startMcpServers,
         tools: [
           {
@@ -91,6 +87,7 @@ describe('Codex bridge config', () => {
     state.threadOptions = [];
     state.startModel = 'gpt-5.5';
     state.startInstructions = undefined;
+    state.startCodexConfig = undefined;
     state.startMcpServers = undefined;
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
@@ -145,6 +142,40 @@ describe('Codex bridge config', () => {
     );
   });
 
+  test('passes through native config without mutating it and preserves adapter-owned values', async () => {
+    const codexConfig = {
+      model_verbosity: 'low',
+      features: { multi_agent: false },
+      developer_instructions: 'Caller instructions.',
+      model_reasoning_summary: 'none',
+    };
+    state.startCodexConfig = codexConfig;
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.config).not.toBe(codexConfig);
+    expect(state.codexOptions[0]?.config).toMatchInlineSnapshot(`
+      {
+        "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
+        "features": {
+          "multi_agent": false,
+        },
+        "model_reasoning_summary": "detailed",
+        "model_verbosity": "low",
+      }
+    `);
+    expect(codexConfig).toMatchInlineSnapshot(`
+      {
+        "developer_instructions": "Caller instructions.",
+        "features": {
+          "multi_agent": false,
+        },
+        "model_reasoning_summary": "none",
+        "model_verbosity": "low",
+      }
+    `);
+  });
+
   test('requests detailed reasoning summaries by default', async () => {
     await import('./index');
 
@@ -153,6 +184,33 @@ describe('Codex bridge config', () => {
       {
         "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
         "model_reasoning_summary": "detailed",
+      }
+    `);
+  });
+
+  test('disables WebSockets for a configured direct OpenAI endpoint', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+    process.env.OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
+    await import('./index');
+
+    expect({
+      modelProvider: state.codexOptions[0]?.config?.model_provider,
+      modelProviders: state.codexOptions[0]?.config?.model_providers,
+      preferredAuthMethod: state.codexOptions[0]?.config?.preferred_auth_method,
+    }).toMatchInlineSnapshot(`
+      {
+        "modelProvider": "agent_bridge_openai",
+        "modelProviders": {
+          "agent_bridge_openai": {
+            "base_url": "https://api.openai.com/v1",
+            "env_key": "CODEX_API_KEY",
+            "name": "Agent Bridge OpenAI",
+            "supports_websockets": false,
+            "wire_api": "responses",
+          },
+        },
+        "preferredAuthMethod": "apikey",
       }
     `);
   });
