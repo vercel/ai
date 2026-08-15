@@ -885,6 +885,267 @@ console.log('Sources:', await result.sources);
   can also pass any available provider model ID as a string if needed.
 </Note>
 
+<<<<<<< HEAD
+=======
+## Speech Models
+
+You can create models that call the [xAI Text to Speech API](https://docs.x.ai/developers/model-capabilities/audio/text-to-speech)
+using the `.speech()` factory method. xAI's text-to-speech endpoint does not
+require a model identifier.
+
+```ts
+const model = xai.speech();
+```
+
+Use xAI speech models with the `generateSpeech` function:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: xai.speech(),
+  text: 'Hello from the AI SDK!',
+  voice: 'ara',
+  language: 'en',
+  outputFormat: 'mp3',
+  speed: 1.1,
+});
+```
+
+### Supported Parameters
+
+- **text** _string_ (required)
+
+  Text to synthesize. You can include xAI speech tags such as `[pause]`,
+  `[laugh]`, or `<whisper>...</whisper>` directly in the text.
+
+- **voice** _string_
+
+  The xAI voice ID. Defaults to `'eve'`. Built-in voice IDs are `'eve'`,
+  `'ara'`, `'rex'`, `'sal'`, and `'leo'`; custom voice IDs are also accepted.
+
+- **language** _string_
+
+  A BCP-47 language code or `'auto'` for automatic detection. Defaults to
+  `'auto'` when omitted.
+
+- **speed** _number_
+
+  Speech rate multiplier from `0.7` to `1.5`.
+
+- **outputFormat** _string_
+
+  The audio codec to generate. Supported values are `'mp3'`, `'wav'`, `'pcm'`,
+  `'mulaw'`, and `'alaw'`. Defaults to `'mp3'`.
+
+<Note>
+  xAI does not expose a separate `instructions` field for text-to-speech. Use
+  speech tags in `text` to control expressive delivery.
+</Note>
+
+### Provider Options
+
+You can pass xAI-specific controls using `providerOptions.xai`:
+
+```ts
+import { xai, type XaiSpeechModelOptions } from '@ai-sdk/xai';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: xai.speech(),
+  text: 'A high fidelity narration sample.',
+  outputFormat: 'mp3',
+  providerOptions: {
+    xai: {
+      sampleRate: 44100,
+      bitRate: 192000,
+      optimizeStreamingLatency: 1,
+      textNormalization: true,
+    } satisfies XaiSpeechModelOptions,
+  },
+});
+```
+
+- **sampleRate** _8000 | 16000 | 22050 | 24000 | 44100 | 48000_
+
+  Sample rate of the output audio in Hz.
+
+- **bitRate** _32000 | 64000 | 96000 | 128000 | 192000_
+
+  MP3 bit rate in bits per second. Only applies when `outputFormat` is
+  `'mp3'`.
+
+- **optimizeStreamingLatency** _0 | 1 | 2_
+
+  Latency optimization level. Higher values reduce time to first audio with a
+  quality tradeoff at chunk boundaries.
+
+- **textNormalization** _boolean_
+
+  Whether to normalize written-form input text before synthesizing speech.
+
+- **withTimestamps** _boolean_
+
+  Return character-level timing metadata alongside the audio. The timing data
+  and total duration are exposed via `providerMetadata.xai` (see below).
+
+- **replace** _Record&lt;string, string&gt;_
+
+  Map of phrases to spoken substitutions applied before synthesis. Values may
+  be respellings (`{ 'Acme Mobile': 'Acme Mobull' }`) or IPA phonetics
+  (`{ nginx: '/ˈɛndʒɪn ˈɛks/' }`).
+
+### Provider Metadata
+
+xAI speech results include provider-specific metadata under
+`providerMetadata.xai`:
+
+- **traceId** _string_ — the xAI trace ID for the request, useful for
+  debugging with xAI support.
+- **duration** _number_ — total audio duration in seconds (only with
+  `withTimestamps`).
+- **contentType** _string_ — MIME type of the decoded audio, e.g.
+  `'audio/mpeg'` (only with `withTimestamps`).
+- **audioTimestamps** `{ graphChars: string[]; graphTimes: [number, number][] }` —
+  per-character alignment data (only with `withTimestamps`). `graphChars[i]`
+  is the character spoken during the `[start, end]` interval
+  `graphTimes[i]`, in seconds.
+
+```ts
+const result = await generateSpeech({
+  model: xai.speech(),
+  text: 'Hello world.',
+  providerOptions: {
+    xai: { withTimestamps: true } satisfies XaiSpeechModelOptions,
+  },
+});
+
+const { traceId, duration, audioTimestamps } = result.providerMetadata.xai;
+```
+
+### Model Capabilities
+
+| Model     | Language  | Speed     | Output Formats             |
+| --------- | --------- | --------- | -------------------------- |
+| `default` | <Check /> | <Check /> | mp3, wav, pcm, mulaw, alaw |
+
+## Transcription Models
+
+You can create models that call the [xAI Speech to Text API](https://docs.x.ai/developers/model-capabilities/audio/speech-to-text)
+using the `.transcription()` factory method. xAI's batch transcription endpoint
+does not require a model identifier.
+
+```ts
+const model = xai.transcription();
+```
+
+Use xAI transcription models with the `transcribe` function:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: xai.transcription(),
+  audio: await readFile('meeting.mp3'),
+});
+```
+
+### Provider Options
+
+You can pass xAI-specific controls using `providerOptions.xai`:
+
+```ts
+import { xai, type XaiTranscriptionModelOptions } from '@ai-sdk/xai';
+import { transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: xai.transcription(),
+  audio: await readFile('meeting.mp3'),
+  providerOptions: {
+    xai: {
+      language: 'en',
+      format: true,
+      keyterm: ['AI SDK', 'Grok'],
+      diarize: true,
+    } satisfies XaiTranscriptionModelOptions,
+  },
+});
+```
+
+- **audioFormat** _`pcm` | `mulaw` | `alaw`_
+
+  Audio encoding for raw, headerless input audio.
+
+- **sampleRate** _8000 | 16000 | 22050 | 24000 | 44100 | 48000_
+
+  Sample rate of the input audio in Hz.
+
+- **language** _string_
+
+  Language code used for inverse text normalization.
+
+- **format** _boolean_
+
+  Enables inverse text normalization. Requires `language`.
+
+- **multichannel** _boolean_
+
+  Enables per-channel transcription for interleaved multichannel audio.
+
+- **channels** _2 | 3 | 4 | 5 | 6 | 7 | 8_
+
+  Number of interleaved audio channels.
+
+- **diarize** _boolean_
+
+  Enables speaker diarization.
+
+- **keyterm** _string | string[]_
+
+  One or more terms to bias transcription toward.
+
+- **fillerWords** _boolean_
+
+  Includes filler words such as `uh` and `um` in the transcript.
+
+- **streaming** _object_
+
+  Options for streaming speech-to-text over WebSocket. Use with `experimental_streamTranscribe`.
+  - **interimResults** _boolean_
+
+    Emits partial transcripts while speech is being processed.
+
+  - **endpointing** _number_
+
+    Silence duration in milliseconds before an utterance-final event. Range: 0-5000.
+
+  - **smartTurn** _number_
+
+    End-of-turn detection threshold. When set, enables Smart Turn. Range: 0.0-1.0.
+
+  - **smartTurnTimeout** _number_
+
+    Maximum silence duration in milliseconds before forcing `speech_final`. Range: 1-5000.
+
+### Model Capabilities
+
+| Model     | Request/Response | Streaming | Word Timestamps | Diarization | Multichannel |
+| --------- | ---------------- | --------- | --------------- | ----------- | ------------ |
+| `default` | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
+
+<Note>
+  Word timestamps, diarization results, and segments are only returned on the
+  request/response path (`transcribe`). Streaming transcription
+  (`experimental_streamTranscribe`) emits partial and final transcript text with
+  utterance-level timing, but does not surface per-word timestamps, speaker
+  labels, or segments.
+</Note>
+
+>>>>>>> 1ffa1d2558 (feat(xai): speech timestamps, pronunciation replacements, provider metadata, and error parsing (#18944))
 ## Image Models
 
 You can create xAI image models using the `.image()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
