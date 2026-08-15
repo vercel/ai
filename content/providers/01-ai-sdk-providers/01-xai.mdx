@@ -768,7 +768,7 @@ xAI speech results include provider-specific metadata under
   `withTimestamps`).
 - **contentType** _string_ — MIME type of the decoded audio, e.g.
   `'audio/mpeg'` (only with `withTimestamps`).
-- **audioTimestamps** _{ graphChars: string[]; graphTimes: [number, number][] }_ —
+- **audioTimestamps** `{ graphChars: string[]; graphTimes: [number, number][] }` —
   per-character alignment data (only with `withTimestamps`). `graphChars[i]`
   is the character spoken during the `[start, end]` interval
   `graphTimes[i]`, in seconds.
