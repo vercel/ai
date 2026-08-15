@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/deepgram": minor
+"@ai-sdk/deepgram": patch
 ---
 
 feat(deepgram): compose speech model ID from `voice` and `language`
