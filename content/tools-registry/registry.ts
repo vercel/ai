@@ -355,7 +355,7 @@ console.log(text);`,
     slug: 'tako-search',
     name: 'Tako Search',
     description:
-      "Search Tako's knowledge base for data visualizations, insights, and well-sourced information with charts and analytics.",
+      'Ground your agent in proprietary structured data from trusted providers plus full web search. Three tools: takoSearch for knowledge cards and web results, takoAnswer for a synthesized source-attributed answer, and takoContents for the underlying rows or page text.',
     packageName: '@takoviz/ai-sdk',
     installCommand: {
       pnpm: 'pnpm install @takoviz/ai-sdk',
@@ -376,11 +376,11 @@ const { text } = await generateText({
 });
 
 console.log(text);`,
-    docsUrl: 'https://github.com/TakoData/ai-sdk#readme',
+    docsUrl: 'https://docs.tako.com/documentation/integrations/vercel-ai-sdk',
     npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
     websiteUrl: 'https://tako.com',
     apiKeyEnvName: 'TAKO_API_KEY',
-    apiKeyUrl: 'https://tako.com',
+    apiKeyUrl: 'https://tako.com/console/api-keys',
     tags: ['search', 'data', 'visualization', 'analytics'],
   },
   {
