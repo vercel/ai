@@ -355,7 +355,7 @@ console.log(text);`,
     slug: 'tako-search',
     name: 'Tako Search',
     description:
-      "Search Tako's knowledge base for data visualizations, insights, and well-sourced information with charts and analytics.",
+      'Tako grounds your agent in two kinds of knowledge at once: curated structured data from trusted providers, and live web search. Search returns typed knowledge cards, values with named sources and methodology, plus web results. Answer synthesizes one citation-backed response. Contents returns the rows behind a card or the full text of a page, so your agent never crawls one. Covers finance, macroeconomics, geopolitics, sports and weather.',
     packageName: '@takoviz/ai-sdk',
     installCommand: {
       pnpm: 'pnpm install @takoviz/ai-sdk',
@@ -363,25 +363,27 @@ console.log(text);`,
       yarn: 'yarn add @takoviz/ai-sdk',
       bun: 'bun add @takoviz/ai-sdk',
     },
-    codeExample: `import { takoSearch } from '@takoviz/ai-sdk';
+    codeExample: `import { takoAnswer, takoContents, takoSearch } from '@takoviz/ai-sdk';
 import { generateText, isStepCount } from 'ai';
 
 const { text } = await generateText({
   model: 'openai/gpt-5.2',
-  prompt: 'What is the stock price of Nvidia?',
+  prompt: "What are today's top performing stocks?",
   tools: {
     takoSearch: takoSearch(),
+    takoAnswer: takoAnswer(),
+    takoContents: takoContents({ mode: 'inline' }),
   },
   stopWhen: isStepCount(5),
 });
 
 console.log(text);`,
-    docsUrl: 'https://github.com/TakoData/ai-sdk#readme',
+    docsUrl: 'https://docs.tako.com/documentation/integrations/vercel-ai-sdk',
     npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
     websiteUrl: 'https://tako.com',
     apiKeyEnvName: 'TAKO_API_KEY',
-    apiKeyUrl: 'https://tako.com',
-    tags: ['search', 'data', 'visualization', 'analytics'],
+    apiKeyUrl: 'https://tako.com/console/api-keys',
+    tags: ['search', 'data', 'visualization', 'analytics', 'extraction'],
   },
   {
     slug: 'valyu',
