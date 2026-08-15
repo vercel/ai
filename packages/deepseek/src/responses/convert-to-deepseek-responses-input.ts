@@ -6,6 +6,7 @@ import type {
 import type {
   DeepSeekResponsesInputItem,
   DeepSeekResponsesOutputTextContent,
+  DeepSeekResponsesWebSearchCallAction,
 } from './deepseek-responses-api';
 
 /**
@@ -21,9 +22,11 @@ import type {
 export function convertToDeepSeekResponsesInput({
   prompt,
   providerOptionsName,
+  webSearchToolName,
 }: {
   prompt: LanguageModelV4Prompt;
   providerOptionsName: string;
+  webSearchToolName?: string;
 }): {
   input: Array<DeepSeekResponsesInputItem>;
   instructions: string | undefined;
@@ -102,6 +105,22 @@ export function convertToDeepSeekResponsesInput({
             case 'tool-call': {
               flushAssistantContent();
 
+              if (part.toolName === webSearchToolName) {
+                // DeepSeek restores the search results server-side from the
+                // call id, but rejects the item unless the action it was
+                // recorded with comes along. Drop searches we cannot replay.
+                const action = getWebSearchAction(part, providerOptionsName);
+
+                if (action != null) {
+                  input.push({
+                    type: 'web_search_call',
+                    id: part.toolCallId,
+                    action,
+                  });
+                }
+                break;
+              }
+
               const itemId = getItemId(part, providerOptionsName);
 
               input.push({
@@ -125,7 +144,10 @@ export function convertToDeepSeekResponsesInput({
 
       case 'tool': {
         for (const part of content) {
-          if (part.type !== 'tool-result') {
+          if (
+            part.type !== 'tool-result' ||
+            part.toolName === webSearchToolName
+          ) {
             continue;
           }
 
@@ -180,17 +202,41 @@ function stringifyToolOutput(
   }
 }
 
+function getProviderData(
+  part: { providerOptions?: Record<string, unknown> },
+  providerOptionsName: string,
+): Record<string, unknown> | undefined {
+  const providerData = part.providerOptions?.[providerOptionsName];
+
+  return providerData != null && typeof providerData === 'object'
+    ? (providerData as Record<string, unknown>)
+    : undefined;
+}
+
 function getItemId(
   part: { providerOptions?: Record<string, unknown> },
   providerOptionsName: string,
 ): string | undefined {
-  const providerData = part.providerOptions?.[providerOptionsName];
-
-  if (providerData == null || typeof providerData !== 'object') {
-    return undefined;
-  }
-
-  const itemId = (providerData as { itemId?: unknown }).itemId;
+  const itemId = getProviderData(part, providerOptionsName)?.itemId;
 
   return typeof itemId === 'string' ? itemId : undefined;
+}
+
+function getWebSearchAction(
+  part: { providerOptions?: Record<string, unknown> },
+  providerOptionsName: string,
+): DeepSeekResponsesWebSearchCallAction | undefined {
+  const action = getProviderData(part, providerOptionsName)?.action as
+    | { type?: unknown; queries?: unknown; url?: unknown }
+    | undefined;
+
+  if (action?.type === 'search' && Array.isArray(action.queries)) {
+    return { type: 'search', queries: action.queries as Array<string> };
+  }
+
+  if (action?.type === 'open_page' && typeof action.url === 'string') {
+    return { type: 'open_page', url: action.url };
+  }
+
+  return undefined;
 }

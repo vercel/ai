@@ -19,6 +19,7 @@ export type {
   DeepSeekLanguageModelChatOptions as DeepSeekChatOptions,
 } from './chat/deepseek-chat-language-model-options';
 export type { DeepSeekLanguageModelResponsesOptions } from './responses/deepseek-responses-language-model-options';
+export { deepseekTools, webSearch } from './tool';
 export type { DeepSeekErrorData } from './chat/deepseek-chat-api-types';
 export type { DeepSeekFilePartProviderOptions } from './chat/deepseek-file-part-options';
 export type { DeepSeekFilesOptions } from './files/deepseek-files-options';

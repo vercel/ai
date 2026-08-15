@@ -1,6 +1,7 @@
 import type {
   LanguageModelV4FunctionTool,
   LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -23,6 +24,13 @@ const WEATHER_TOOL: LanguageModelV4FunctionTool = {
     additionalProperties: false,
     $schema: 'http://json-schema.org/draft-07/schema#',
   },
+};
+
+const WEB_SEARCH_TOOL: LanguageModelV4ProviderTool = {
+  type: 'provider',
+  id: 'deepseek.web_search',
+  name: 'web_search',
+  args: {},
 };
 
 const provider = createDeepSeek({ apiKey: 'test-api-key' });
@@ -213,6 +221,162 @@ describe('DeepSeekResponsesLanguageModel', () => {
             feature: 'provider-defined tool deepseek.unsupported',
           },
         ]);
+      });
+    });
+
+    describe('web search', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('deepseek-web-search');
+      });
+
+      it('should send the web search tool and tool choice', async () => {
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [WEB_SEARCH_TOOL],
+          toolChoice: { type: 'tool', toolName: 'web_search' },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.tools).toStrictEqual([{ type: 'web_search' }]);
+        expect(body.tool_choice).toStrictEqual({ type: 'web_search' });
+      });
+
+      it('should emit the search as a provider-executed tool call and result', async () => {
+        const { content } = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [WEB_SEARCH_TOOL],
+        });
+
+        expect(
+          content.filter(part => part.type !== 'reasoning'),
+        ).toMatchSnapshot();
+      });
+
+      it('should use the name the tool was registered under', async () => {
+        const { content } = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [{ ...WEB_SEARCH_TOOL, name: 'search_the_web' }],
+        });
+
+        expect(
+          content
+            .filter(part => part.type === 'tool-call')
+            .map(part => part.toolName),
+        ).toStrictEqual(['search_the_web']);
+      });
+
+      it('should send prior searches back as web_search_call items', async () => {
+        await model.doGenerate({
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'Who won?' }] },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_00_abc',
+                  toolName: 'web_search',
+                  input: {},
+                  providerExecuted: true,
+                  providerOptions: {
+                    deepseek: {
+                      action: { type: 'search', queries: ['who won'] },
+                    },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_00_abc',
+                  toolName: 'web_search',
+                  output: {
+                    type: 'json',
+                    value: { action: { type: 'search', queries: ['who won'] } },
+                  },
+                },
+                { type: 'text', text: 'Spain won.' },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Who was the runner up?' }],
+            },
+          ],
+          tools: [WEB_SEARCH_TOOL],
+        });
+
+        expect((await server.calls[0].requestBodyJson).input)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Who won?",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+              "type": "message",
+            },
+            {
+              "action": {
+                "queries": [
+                  "who won",
+                ],
+                "type": "search",
+              },
+              "id": "call_00_abc",
+              "type": "web_search_call",
+            },
+            {
+              "content": [
+                {
+                  "text": "Spain won.",
+                  "type": "output_text",
+                },
+              ],
+              "role": "assistant",
+              "type": "message",
+            },
+            {
+              "content": [
+                {
+                  "text": "Who was the runner up?",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+              "type": "message",
+            },
+          ]
+        `);
+      });
+
+      it('should drop searches that carry no replayable action', async () => {
+        await model.doGenerate({
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'Who won?' }] },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_00_abc',
+                  toolName: 'web_search',
+                  input: {},
+                  providerExecuted: true,
+                },
+                { type: 'text', text: 'Spain won.' },
+              ],
+            },
+          ],
+          tools: [WEB_SEARCH_TOOL],
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).input.map(
+            (item: { type: string }) => item.type,
+          ),
+        ).toStrictEqual(['message', 'message']);
       });
     });
 
@@ -535,6 +699,27 @@ describe('DeepSeekResponsesLanguageModel', () => {
 
       expect(
         await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+
+    it('should stream web searches as provider-executed tool calls', async () => {
+      prepareChunksFixtureResponse('deepseek-web-search');
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        tools: [WEB_SEARCH_TOOL],
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.filter(
+          part =>
+            part.type === 'tool-input-start' ||
+            part.type === 'tool-input-end' ||
+            part.type === 'tool-call' ||
+            part.type === 'tool-result',
+        ),
       ).toMatchSnapshot();
     });
 

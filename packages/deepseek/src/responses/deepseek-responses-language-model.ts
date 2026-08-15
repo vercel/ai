@@ -26,18 +26,23 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { deepSeekErrorSchema } from '../chat/deepseek-chat-api-types';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { convertDeepSeekResponsesUsage } from './convert-deepseek-responses-usage';
 import { convertToDeepSeekResponsesInput } from './convert-to-deepseek-responses-input';
 import {
   deepseekResponsesChunkSchema,
   deepseekResponsesResponseSchema,
   type DeepSeekResponsesUsage,
+  type DeepSeekResponsesWebSearchAction,
 } from './deepseek-responses-api';
 import {
   deepseekLanguageModelResponsesOptions,
   type DeepSeekResponsesModelId,
 } from './deepseek-responses-language-model-options';
-import { prepareResponsesTools } from './deepseek-responses-prepare-tools';
+import {
+  prepareResponsesTools,
+  WEB_SEARCH_TOOL_ID,
+} from './deepseek-responses-prepare-tools';
 import { mapDeepSeekResponsesFinishReason } from './map-deepseek-responses-finish-reason';
 
 export type DeepSeekResponsesConfig = {
@@ -136,6 +141,12 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
         schema: deepseekLanguageModelResponsesOptions,
       })) ?? {};
 
+    // the name the user gave the web search tool, used to label the tool calls
+    // DeepSeek executes on its side:
+    const webSearchToolName = tools?.find(
+      tool => tool.type === 'provider' && tool.id === WEB_SEARCH_TOOL_ID,
+    )?.name;
+
     const {
       input,
       instructions,
@@ -143,6 +154,7 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
     } = convertToDeepSeekResponsesInput({
       prompt,
       providerOptionsName: this.providerOptionsName,
+      webSearchToolName,
     });
 
     warnings.push(...inputWarnings);
@@ -203,6 +215,7 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
           },
         }),
       },
+      webSearchToolName,
       warnings,
     };
   }
@@ -210,7 +223,7 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, webSearchToolName } = await this.getArgs(options);
     const providerOptionsName = this.providerOptionsName;
 
     const {
@@ -267,6 +280,29 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
           }
           break;
         }
+
+        case 'web_search_call': {
+          const toolName = webSearchToolName ?? 'web_search';
+
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName,
+            input: JSON.stringify({}),
+            providerExecuted: true,
+            providerMetadata: {
+              [providerOptionsName]: { action: part.action ?? null },
+            },
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: mapWebSearchOutput(part.action),
+          });
+          break;
+        }
       }
     }
 
@@ -300,7 +336,7 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, webSearchToolName } = await this.getArgs(options);
     const body = { ...args, stream: true };
     const providerOptionsName = this.providerOptionsName;
 
@@ -383,6 +419,18 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
                     });
                     break;
                   }
+                  case 'web_search_call': {
+                    // DeepSeek runs the search itself and only reports what it
+                    // searched for once the call is done, so only the start is
+                    // announced here.
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: value.item.id,
+                      toolName: webSearchToolName ?? 'web_search',
+                      providerExecuted: true,
+                    });
+                    break;
+                  }
                 }
                 break;
               }
@@ -453,6 +501,35 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
                           itemId: value.item.id ?? null,
                         },
                       },
+                    });
+                    break;
+                  }
+                  case 'web_search_call': {
+                    const toolName = webSearchToolName ?? 'web_search';
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: value.item.id,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: value.item.id,
+                      toolName,
+                      input: JSON.stringify({}),
+                      providerExecuted: true,
+                      providerMetadata: {
+                        [providerOptionsName]: {
+                          action: value.item.action ?? null,
+                        },
+                      },
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: value.item.id,
+                      toolName,
+                      result: mapWebSearchOutput(value.item.action),
                     });
                     break;
                   }
@@ -532,4 +609,27 @@ function getCacheMetadata(usage: DeepSeekResponsesUsage) {
         ? inputTokens - cacheHitTokens
         : undefined,
   };
+}
+
+/**
+ * Maps a web search call action onto the web search tool's output schema.
+ * DeepSeek reports the action in snake case, the tool exposes it in camel case
+ * to match the other providers' web search tools.
+ */
+function mapWebSearchOutput(
+  action: DeepSeekResponsesWebSearchAction | null | undefined,
+): InferSchema<typeof webSearchOutputSchema> {
+  switch (action?.type) {
+    case 'search':
+      return {
+        action: {
+          type: 'search',
+          ...(action.queries && { queries: action.queries }),
+        },
+      };
+    case 'open_page':
+      return { action: { type: 'openPage', url: action.url } };
+    default:
+      return {};
+  }
 }
