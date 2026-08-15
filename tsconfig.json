@@ -199,6 +199,9 @@
       "path": "packages/sandbox-vercel"
     },
     {
+      "path": "packages/spacexai"
+    },
+    {
       "path": "packages/svelte"
     },
     {

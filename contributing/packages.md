@@ -31,7 +31,7 @@ When adding new packages under `packages`, please ensure they are added to `/tsc
 | `perplexity`        | `@ai-sdk/perplexity`        | Perplexity                  |
 | `replicate`         | `@ai-sdk/replicate`         | Replicate                   |
 | `togetherai`        | `@ai-sdk/togetherai`        | Together AI                 |
-| `xai`               | `@ai-sdk/xai`               | xAI (Grok)                  |
+| `spacexai`          | `@ai-sdk/spacexai`          | xAI (Grok)                  |
 | `gateway`           | `@ai-sdk/gateway`           | AI Gateway                  |
 | `openai-compatible` | `@ai-sdk/openai-compatible` | OpenAI-compatible providers |
 | `elevenlabs`        | `@ai-sdk/elevenlabs`        | ElevenLabs (Audio)          |

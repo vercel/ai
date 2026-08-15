@@ -3,16 +3,14 @@
 The **[xAI Grok provider](https://ai-sdk.dev/providers/ai-sdk-providers/xai)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for the xAI chat and completion APIs.
 
-This package re-exports [`@ai-sdk/spacexai`](https://www.npmjs.com/package/@ai-sdk/spacexai).
-
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access xAI (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 
-The xAI Grok provider is available in the `@ai-sdk/xai` module. You can install it with
+The xAI Grok provider is available in the `@ai-sdk/spacexai` module. You can install it with
 
 ```bash
-npm i @ai-sdk/xai
+npm i @ai-sdk/spacexai
 ```
 
 ## Skill for Coding Agents
@@ -25,16 +23,16 @@ npx skills add vercel/ai
 
 ## Provider Instance
 
-You can import the default provider instance `xai` from `@ai-sdk/xai`:
+You can import the default provider instance `xai` from `@ai-sdk/spacexai`:
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai } from '@ai-sdk/spacexai';
 ```
 
 ## Example
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai } from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
