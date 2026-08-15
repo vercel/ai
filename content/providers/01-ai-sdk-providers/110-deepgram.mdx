@@ -158,6 +158,10 @@ Speech results include Deepgram response details in
 `providerMetadata.deepgram`: `modelName` (the resolved upstream model),
 `modelUuid`, `charCount` (the billed character count), and `requestId`.
 
+The `generateSpeech` `speed` option is passed through to Deepgram's `speed`
+parameter (note that Deepgram does not support it for all languages).
+`instructions` is not supported and is ignored with a warning.
+
 ### Model Capabilities
 
 | Model                                                                            |

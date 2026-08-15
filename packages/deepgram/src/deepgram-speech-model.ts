@@ -437,13 +437,10 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       });
     }
 
-    // Handle speed - not supported in Deepgram REST API
+    // Map speed to Deepgram's speed query parameter. Deepgram does not
+    // support it for all languages and validates the value upstream.
     if (speed != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'speed',
-        details: `Deepgram TTS REST API does not support speed adjustment. Speed parameter was ignored.`,
-      });
+      queryParams.speed = String(speed);
     }
 
     // Handle language - full voice model IDs are already language-specific;

@@ -334,7 +334,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should warn about unsupported speed parameter', async () => {
+  it('should pass speed as a query parameter', async () => {
     prepareAudioResponse();
 
     const result = await model.doGenerate({
@@ -342,15 +342,9 @@ describe('doGenerate', () => {
       speed: 1.5,
     });
 
-    expect(result.warnings).toMatchInlineSnapshot(`
-      [
-        {
-          "details": "Deepgram TTS REST API does not support speed adjustment. Speed parameter was ignored.",
-          "feature": "speed",
-          "type": "unsupported",
-        },
-      ]
-    `);
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.searchParams.get('speed')).toBe('1.5');
+    expect(result.warnings).toEqual([]);
   });
 
   it('should warn about unsupported language parameter', async () => {
