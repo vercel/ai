@@ -48,17 +48,7 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
   constructor(
     readonly modelId: DeepgramSpeechModelId,
     private readonly config: DeepgramSpeechModelConfig,
-  ) {
-    if (!VOICE_FAMILY_IDS.has(modelId)) {
-      throw new Error(
-        `Deepgram speech model IDs are voice family IDs ('aura-2', 'aura'); ` +
-          `received "${modelId}". Voice and language are passed via the ` +
-          `generateSpeech voice/language options — to migrate from a full ` +
-          `voice ID like 'aura-2-thalia-en', use speech('aura-2') with ` +
-          `voice: 'thalia', language: 'en'.`,
-      );
-    }
-  }
+  ) {}
 
   private async getArgs({
     text,
@@ -78,22 +68,24 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       schema: deepgramSpeechModelOptionsSchema,
     });
 
-    // Deepgram embeds voice and language in the upstream model ID
-    // (`<family>-<voice>-<language>`, e.g. `aura-2-thalia-en`), composed
-    // here from the voice and language call options.
-    if (!voice?.trim()) {
-      throw new Error(
-        `Deepgram speech model "${this.modelId}" requires a \`voice\` to be set (e.g. voice: 'thalia').`,
-      );
+    // Compose the upstream model ID from voice/language when a bare voice
+    // family ID is used; full voice IDs (e.g. `aura-2-thalia-en`) pass through.
+    let upstreamModelId: string = this.modelId;
+    if (VOICE_FAMILY_IDS.has(this.modelId)) {
+      if (!voice?.trim()) {
+        throw new Error(
+          `Deepgram speech model "${this.modelId}" requires a \`voice\` to be set (e.g. voice: 'thalia').`,
+        );
+      }
+      if (language === 'auto') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'language',
+          details: `Deepgram TTS models do not support automatic language detection. Language "en" was used instead.`,
+        });
+      }
+      upstreamModelId = `${this.modelId}-${voice}-${language && language !== 'auto' ? language : 'en'}`;
     }
-    if (language === 'auto') {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'language',
-        details: `Deepgram TTS models do not support automatic language detection. Language "en" was used instead.`,
-      });
-    }
-    const upstreamModelId = `${this.modelId}-${voice}-${language && language !== 'auto' ? language : 'en'}`;
 
     // Create request body
     const requestBody = {
@@ -435,10 +427,30 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       }
     }
 
+    // Handle voice parameter - only relevant for full voice model IDs, where
+    // the voice is embedded in the model ID and a voice param cannot compose.
+    if (upstreamModelId === this.modelId && voice && voice !== this.modelId) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'voice',
+        details: `Deepgram TTS models embed the voice in the model ID. The voice parameter "${voice}" was ignored. Use the model ID to select a voice (e.g., "aura-2-helena-en").`,
+      });
+    }
+
     // Map speed to Deepgram's speed query parameter. Deepgram does not
     // support it for all languages and validates the value upstream.
     if (speed != null) {
       queryParams.speed = String(speed);
+    }
+
+    // Handle language - full voice model IDs are already language-specific;
+    // language was already consumed when composing from a voice family ID.
+    if (upstreamModelId === this.modelId && language) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'language',
+        details: `Deepgram TTS models are language-specific via the model ID. Language parameter "${language}" was ignored. Select a model with the appropriate language suffix (e.g., "-en" for English).`,
+      });
     }
 
     // Handle instructions - not supported in Deepgram REST API
@@ -484,12 +496,8 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       fetch: this.config.fetch,
     });
 
-    // Deepgram returns usage and model details in response headers:
-    // dg-model-name (resolved upstream model), dg-model-uuid,
-    // dg-additional-model-uuids, dg-char-count (billed characters),
-    // dg-breaks-applied, dg-pronunciations-applied,
-    // dg-pronunciation-warnings (only when present), dg-request-id.
-    // dg-project-id is deliberately excluded (account identifier).
+    // Deepgram returns usage and model details in response headers
+    // (dg-project-id deliberately excluded: account identifier).
     const headerNumber = (name: string): number | undefined => {
       const value = responseHeaders?.[name];
       if (value == null) {

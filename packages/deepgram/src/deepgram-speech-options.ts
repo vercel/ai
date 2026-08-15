@@ -3,4 +3,4 @@
 // option (`<family>-<voice>-<language>`, e.g. 'aura-2' + 'thalia' + 'en' →
 // 'aura-2-thalia-en'). Full voice list:
 // https://developers.deepgram.com/docs/tts-models
-export type DeepgramSpeechModelId = 'aura' | 'aura-2';
+export type DeepgramSpeechModelId = 'aura' | 'aura-2' | (string & {});

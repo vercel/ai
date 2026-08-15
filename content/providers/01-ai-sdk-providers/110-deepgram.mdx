@@ -73,11 +73,11 @@ const result = await generateSpeech({
 });
 ```
 
-<Note type="warning">
-  **Breaking change in `@ai-sdk/deepgram` 3.1:** full voice model IDs (e.g.
-  `deepgram.speech('aura-2-helena-en')`) are no longer accepted. Migrate by
-  passing the family ID and selecting the voice and language via options:
-  `deepgram.speech('aura-2')` with `voice: 'helena'`, `language: 'en'`.
+<Note>
+  Full voice model IDs (e.g. `deepgram.speech('aura-2-helena-en')`) still
+  pass through, but the family ID + `voice`/`language` form above is the
+  recommended path — it matches voice selection in the other speech
+  providers.
 </Note>
 
 You can also pass additional provider-specific options using the `providerOptions` argument:

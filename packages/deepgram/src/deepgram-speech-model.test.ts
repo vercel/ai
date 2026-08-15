@@ -127,13 +127,53 @@ describe('doGenerate', () => {
     );
   });
 
-  it('should throw a migration error for full voice model IDs', () => {
-    expect(() =>
-      // @ts-expect-error - intentionally passing a removed full voice ID
-      provider.speech('aura-2-helena-en'),
-    ).toThrow(
-      `Deepgram speech model IDs are voice family IDs ('aura-2', 'aura')`,
-    );
+  it('should pass through full voice model IDs', async () => {
+    prepareAudioResponse();
+
+    await provider.speech('aura-2-helena-en').doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+    });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.searchParams.get('model')).toBe('aura-2-helena-en');
+  });
+
+  it('should warn about voice parameter with full voice model IDs', async () => {
+    prepareAudioResponse();
+
+    const result = await provider.speech('aura-2-helena-en').doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      voice: 'different-voice',
+    });
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Deepgram TTS models embed the voice in the model ID. The voice parameter "different-voice" was ignored. Use the model ID to select a voice (e.g., "aura-2-helena-en").",
+          "feature": "voice",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should warn about language parameter with full voice model IDs', async () => {
+    prepareAudioResponse();
+
+    const result = await provider.speech('aura-2-helena-en').doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      language: 'en',
+    });
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Deepgram TTS models are language-specific via the model ID. Language parameter "en" was ignored. Select a model with the appropriate language suffix (e.g., "-en" for English).",
+          "feature": "language",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should warn and use en when language is auto', async () => {
