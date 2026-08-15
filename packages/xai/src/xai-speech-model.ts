@@ -151,30 +151,22 @@ export class XaiSpeechModel implements SpeechModelV4 {
     // With `with_timestamps` the API returns a JSON envelope carrying
     // base64-encoded audio plus character-level timings instead of raw
     // audio bytes.
-    const { value, responseHeaders, rawValue } = withTimestamps
-      ? await postJsonToApi({
-          url: `${this.config.baseURL}/tts`,
-          headers,
-          body: requestBody,
-          failedResponseHandler: xaiFailedResponseHandler,
-          successfulResponseHandler: createJsonResponseHandler(
-            xaiSpeechTimestampsResponseSchema,
-          ),
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        })
-      : await postJsonToApi({
-          url: `${this.config.baseURL}/tts`,
-          headers,
-          body: requestBody,
-          failedResponseHandler: xaiFailedResponseHandler,
-          successfulResponseHandler: createBinaryResponseHandler(),
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
+    const { value, responseHeaders, rawValue } = await postJsonToApi<
+      Uint8Array | XaiSpeechTimestampsResponse
+    >({
+      url: `${this.config.baseURL}/tts`,
+      headers,
+      body: requestBody,
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: withTimestamps
+        ? createJsonResponseHandler(xaiSpeechTimestampsResponseSchema)
+        : createBinaryResponseHandler(),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
 
     let audio: Uint8Array;
-    let envelope: z.infer<typeof xaiSpeechTimestampsResponseSchema> | undefined;
+    let envelope: XaiSpeechTimestampsResponse | undefined;
     if (value instanceof Uint8Array) {
       audio = value;
     } else {
@@ -239,3 +231,7 @@ const xaiSpeechTimestampsResponseSchema = z.object({
     })
     .nullish(),
 });
+
+type XaiSpeechTimestampsResponse = z.infer<
+  typeof xaiSpeechTimestampsResponseSchema
+>;
