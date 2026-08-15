@@ -239,7 +239,8 @@ The following provider options are available:
 - **diarize** _boolean_
 
   Whether to identify different speakers in the transcription.
-  Defaults to `true`.
+  Defaults to `false`. Note that Deepgram bills speaker diarization as a
+  per-minute add-on.
   Optional.
 
 - **utterances** _boolean_
@@ -255,6 +256,31 @@ The following provider options are available:
 - **fillerWords** _boolean_
 
   Whether to include filler words (um, uh, etc.) in the transcription.
+  Optional.
+
+- **paragraphs** _boolean_
+
+  Whether to format the transcription into paragraphs.
+  Optional.
+
+- **intents** _boolean_
+
+  Whether to detect intents in the transcription.
+  Optional.
+
+- **sentiment** _boolean_
+
+  Whether to analyze sentiment in the transcription.
+  Optional.
+
+- **keyterm** _string_
+
+  Key term to improve recognition accuracy for.
+  Optional.
+
+- **replace** _string_
+
+  String to replace redacted content with.
   Optional.
 
 ### Model Capabilities
