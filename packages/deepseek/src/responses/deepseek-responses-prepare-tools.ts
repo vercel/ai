@@ -7,6 +7,8 @@ import type {
   DeepSeekResponsesToolChoice,
 } from './deepseek-responses-api';
 
+export const WEB_SEARCH_TOOL_ID = 'deepseek.web_search';
+
 export function prepareResponsesTools({
   tools,
   toolChoice,
@@ -28,22 +30,31 @@ export function prepareResponsesTools({
   }
 
   const deepseekTools: Array<DeepSeekResponsesTool> = [];
+  let webSearchToolName: string | undefined;
 
   for (const tool of tools) {
-    if (tool.type === 'provider') {
-      toolWarnings.push({
-        type: 'unsupported',
-        feature: `provider-defined tool ${tool.id}`,
+    if (tool.type !== 'provider') {
+      deepseekTools.push({
+        type: 'function',
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.inputSchema,
+        ...(tool.strict != null && { strict: tool.strict }),
       });
       continue;
     }
 
-    deepseekTools.push({
-      type: 'function',
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.inputSchema,
-      ...(tool.strict != null && { strict: tool.strict }),
+    if (tool.id === WEB_SEARCH_TOOL_ID) {
+      // DeepSeek ignores `search_context_size` and `user_location`, so the
+      // tool has no arguments to forward.
+      deepseekTools.push({ type: 'web_search' });
+      webSearchToolName = tool.name;
+      continue;
+    }
+
+    toolWarnings.push({
+      type: 'unsupported',
+      feature: `provider-defined tool ${tool.id}`,
     });
   }
 
@@ -63,7 +74,10 @@ export function prepareResponsesTools({
     case 'tool':
       return {
         tools: deepseekTools,
-        toolChoice: { type: 'function', name: toolChoice.toolName },
+        toolChoice:
+          toolChoice.toolName === webSearchToolName
+            ? { type: 'web_search' }
+            : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
       };
     default: {

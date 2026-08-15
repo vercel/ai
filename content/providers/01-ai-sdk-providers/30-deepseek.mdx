@@ -81,7 +81,8 @@ const model = deepSeek.responses('deepseek-v4-flash');
 
 Both APIs are stateless and support text generation, object generation and
 tool calling. The Responses API additionally supports DeepSeek's server-side
-[web search](#web-search) tool.
+[web search](#web-search) tool, which is why `deepSeek.tools` requires a model
+created with `deepSeek.responses()`.
 
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
@@ -205,6 +206,43 @@ const { text } = await generateText({
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
+
+### Web Search
+
+DeepSeek can search the web through the `deepSeek.tools.webSearch` tool. The
+searches run on DeepSeek's servers, so your application makes no requests of
+its own and the tool needs no configuration. It is only available on the
+Responses API, so the model has to be created with `deepSeek.responses()`:
+
+```ts highlight="5"
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: deepSeek.responses('deepseek-v4-flash'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search: deepSeek.tools.webSearch(),
+  },
+});
+
+for (const toolResult of result.toolResults) {
+  if (toolResult.toolName === 'web_search') {
+    // { type: 'search', queries: [...] } or { type: 'openPage', url: '...' }
+    console.log(toolResult.output.action);
+  }
+}
+```
+
+The model may search several times before answering. DeepSeek reports what it
+did in each call as an `action`, either a `search` with the queries it ran or
+an `openPage` with the URL it opened.
+
+<Note>
+  Web search is only available on the Responses API, so it does not work with
+  models created via `deepSeek()`, `deepSeek.chat()` or
+  `deepSeek.languageModel()`.
+</Note>
 
 ### Cache Token Usage
 

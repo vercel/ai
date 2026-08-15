@@ -531,6 +531,49 @@ exports[`DeepSeekResponsesLanguageModel > doGenerate > tool call > should extrac
 }
 `;
 
+exports[`DeepSeekResponsesLanguageModel > doGenerate > web search > should emit the search as a provider-executed tool call and result 1`] = `
+[
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "providerMetadata": {
+      "deepseek": {
+        "action": {
+          "queries": [
+            "2026 FIFA World Cup winner",
+            "who won the 2026 FIFA World Cup",
+            "ws_call_id=call_00_CImoyrAPGN4skyWlDjL45535",
+          ],
+          "type": "search",
+        },
+      },
+    },
+    "toolCallId": "call_00_CImoyrAPGN4skyWlDjL45535",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": {
+        "queries": [
+          "2026 FIFA World Cup winner",
+          "who won the 2026 FIFA World Cup",
+          "ws_call_id=call_00_CImoyrAPGN4skyWlDjL45535",
+        ],
+        "type": "search",
+      },
+    },
+    "toolCallId": "call_00_CImoyrAPGN4skyWlDjL45535",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "Spain won the 2026 FIFA World Cup, defeating defending champions Argentina 1–0 in the final at New York New Jersey (MetLife) Stadium to claim their second title.",
+    "type": "text",
+  },
+]
+`;
+
 exports[`DeepSeekResponsesLanguageModel > doStream > should stream reasoning 1`] = `
 [
   {
@@ -2005,6 +2048,53 @@ exports[`DeepSeekResponsesLanguageModel > doStream > should stream tool calls 1`
         "total_tokens": 360,
       },
     },
+  },
+]
+`;
+
+exports[`DeepSeekResponsesLanguageModel > doStream > should stream web searches as provider-executed tool calls 1`] = `
+[
+  {
+    "id": "call_00_NfkLcabyavLirVUoI05c9389",
+    "providerExecuted": true,
+    "toolName": "web_search",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "call_00_NfkLcabyavLirVUoI05c9389",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "providerMetadata": {
+      "deepseek": {
+        "action": {
+          "queries": [
+            "2026 FIFA World Cup winner",
+            "ws_call_id=call_00_NfkLcabyavLirVUoI05c9389",
+          ],
+          "type": "search",
+        },
+      },
+    },
+    "toolCallId": "call_00_NfkLcabyavLirVUoI05c9389",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": {
+        "queries": [
+          "2026 FIFA World Cup winner",
+          "ws_call_id=call_00_NfkLcabyavLirVUoI05c9389",
+        ],
+        "type": "search",
+      },
+    },
+    "toolCallId": "call_00_NfkLcabyavLirVUoI05c9389",
+    "toolName": "web_search",
+    "type": "tool-result",
   },
 ]
 `;

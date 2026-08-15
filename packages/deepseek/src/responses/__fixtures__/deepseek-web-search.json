@@ -1,0 +1,102 @@
+{
+  "id": "4b330878-b339-4b1a-8885-d805615efe53",
+  "object": "response",
+  "created_at": 1786788457,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1786788459,
+  "content_filters": null,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "deepseek-v4-flash",
+  "moderation": null,
+  "output": [
+    {
+      "type": "reasoning",
+      "id": "9739568a-7b6b-4c5d-aa5b-7ffc634b11ac",
+      "status": "completed",
+      "content": [
+        {
+          "type": "reasoning_text",
+          "text": "The user asks who won the 2026 FIFA World Cup. The 2026 FIFA World Cup is scheduled for June-July 2026, so it hasn't happened yet. Let me verify. My knowledge cutoff means I should search the web."
+        }
+      ],
+      "summary": []
+    },
+    {
+      "type": "web_search_call",
+      "id": "call_00_CImoyrAPGN4skyWlDjL45535",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "queries": [
+          "2026 FIFA World Cup winner",
+          "who won the 2026 FIFA World Cup",
+          "ws_call_id=call_00_CImoyrAPGN4skyWlDjL45535"
+        ]
+      }
+    },
+    {
+      "type": "message",
+      "id": "01b0c9db-17fb-42cf-a56f-0d1f665d19cc",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "Spain won the 2026 FIFA World Cup, defeating defending champions Argentina 1–0 in the final at New York New Jersey (MetLife) Stadium to claim their second title."
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": "low",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": null
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "web_search",
+      "search_context_size": null,
+      "user_location": null
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1.0,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 2525,
+    "input_tokens_details": {
+      "cached_tokens": 896
+    },
+    "output_tokens": 151,
+    "output_tokens_details": {
+      "reasoning_tokens": 51
+    },
+    "total_tokens": 2676
+  },
+  "user": null,
+  "metadata": {}
+}

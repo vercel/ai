@@ -15,6 +15,7 @@ import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
 import { DeepSeekFiles } from './files/deepseek-files';
 import type { DeepSeekResponsesModelId } from './responses/deepseek-responses-language-model-options';
 import { DeepSeekResponsesLanguageModel } from './responses/deepseek-responses-language-model';
+import { deepseekTools } from './tool';
 import { VERSION } from './version';
 
 export interface DeepSeekProviderSettings {
@@ -66,8 +67,16 @@ export interface DeepSeekProvider extends ProviderV4 {
 
   /**
    * Creates a DeepSeek model for text generation, using the Responses API.
+   * It is the only DeepSeek API that supports the server-side tools in
+   * `deepSeek.tools`.
    */
   responses(modelId: DeepSeekResponsesModelId): LanguageModelV4;
+
+  /**
+   * Tools that DeepSeek executes on its own servers. Only supported by the
+   * Responses API models created with `deepSeek.responses()`.
+   */
+  tools: typeof deepseekTools;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -126,6 +135,7 @@ export function createDeepSeek(
   provider.chat = createChatModel;
   provider.files = createFiles;
   provider.responses = createResponsesModel;
+  provider.tools = deepseekTools;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });

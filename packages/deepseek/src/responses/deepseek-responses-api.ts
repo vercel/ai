@@ -46,12 +46,27 @@ export interface DeepSeekResponsesFunctionCallOutputItem {
   output: string;
 }
 
+/**
+ * Sent back verbatim on later turns - DeepSeek restores the search results
+ * server-side from the call id, but rejects the item without its action.
+ */
+export interface DeepSeekResponsesWebSearchCallItem {
+  type: 'web_search_call';
+  id: string;
+  action: DeepSeekResponsesWebSearchCallAction;
+}
+
+export type DeepSeekResponsesWebSearchCallAction =
+  | { type: 'search'; queries: Array<string> }
+  | { type: 'open_page'; url: string };
+
 export type DeepSeekResponsesInputItem =
   | DeepSeekResponsesUserMessage
   | DeepSeekResponsesAssistantMessage
   | DeepSeekResponsesReasoningItem
   | DeepSeekResponsesFunctionCallItem
-  | DeepSeekResponsesFunctionCallOutputItem;
+  | DeepSeekResponsesFunctionCallOutputItem
+  | DeepSeekResponsesWebSearchCallItem;
 
 export interface DeepSeekResponsesFunctionTool {
   type: 'function';
@@ -61,13 +76,16 @@ export interface DeepSeekResponsesFunctionTool {
   strict?: boolean;
 }
 
-export type DeepSeekResponsesTool = DeepSeekResponsesFunctionTool;
+export type DeepSeekResponsesTool =
+  | DeepSeekResponsesFunctionTool
+  | { type: 'web_search' };
 
 export type DeepSeekResponsesToolChoice =
   | 'auto'
   | 'none'
   | 'required'
-  | { type: 'function'; name: string };
+  | { type: 'function'; name: string }
+  | { type: 'web_search' };
 
 // Response
 //
@@ -90,6 +108,26 @@ const usageSchema = z
   .nullish();
 
 export type DeepSeekResponsesUsage = z.infer<typeof usageSchema>;
+
+const webSearchActionSchema = z.union([
+  z.object({
+    type: z.literal('search'),
+    queries: z.array(z.string()).nullish(),
+  }),
+  z.object({
+    type: z.literal('open_page'),
+    url: z.string().nullish(),
+  }),
+  // catch-all for action types we do not map, e.g. find_in_page:
+  z
+    .object({ type: z.string() })
+    .loose()
+    .transform(() => ({ type: 'unknown_action' as const })),
+]);
+
+export type DeepSeekResponsesWebSearchAction = z.infer<
+  typeof webSearchActionSchema
+>;
 
 const outputItemSchema = z.discriminatedUnion('type', [
   z.object({
@@ -115,6 +153,11 @@ const outputItemSchema = z.discriminatedUnion('type', [
     call_id: z.string(),
     name: z.string(),
     arguments: z.string(),
+  }),
+  z.object({
+    type: z.literal('web_search_call'),
+    id: z.string(),
+    action: webSearchActionSchema.nullish(),
   }),
 ]);
 
