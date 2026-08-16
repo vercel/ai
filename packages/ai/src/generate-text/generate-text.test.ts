@@ -88,6 +88,8 @@ describe('abort signal handling', () => {
     const abortController = new AbortController();
     const abortError = new DOMException('tool execution aborted', 'AbortError');
     let modelCallCount = 0;
+    const onLanguageModelCallEnd = vi.fn();
+    const onEnd = vi.fn();
 
     const result = generateText({
       model: new MockLanguageModelV4({
@@ -97,6 +99,9 @@ describe('abort signal handling', () => {
           if (modelCallCount === 1) {
             return {
               ...dummyResponseValues,
+              providerMetadata: {
+                gateway: { generationId: 'generation-id' },
+              },
               content: [
                 {
                   type: 'tool-call',
@@ -129,12 +134,22 @@ describe('abort signal handling', () => {
       abortSignal: abortController.signal,
       stopWhen: isStepCount(10),
       maxRetries: 0,
+      onLanguageModelCallEnd,
+      onEnd,
     });
 
     await expect(result).rejects.toMatchInlineSnapshot(
       `[AbortError: tool execution aborted]`,
     );
     expect(modelCallCount).toBe(1);
+    expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerMetadata: {
+          gateway: { generationId: 'generation-id' },
+        },
+      }),
+    );
+    expect(onEnd).not.toHaveBeenCalled();
   });
 
   it('should reject before another model call when a tool completes after cancellation', async () => {
@@ -238,9 +253,9 @@ describe('experimental_toolCallers', () => {
           execute: async ({ sku }) => ({ sku, availableUnits: 42 }),
         }),
       },
-      experimental_toolCallers: ({ code_mode }) => ({
-        getInventory: [code_mode],
-      }),
+      experimental_toolCallers: {
+        getInventory: ['code_mode'],
+      },
       prompt: 'Check inventory.',
     });
 
@@ -279,9 +294,9 @@ describe('experimental_toolCallers', () => {
           execute: async ({ sku }) => ({ sku }),
         }),
       },
-      experimental_toolCallers: ({ programmatic }) => ({
-        getDemand: ['direct', programmatic],
-      }),
+      experimental_toolCallers: {
+        getDemand: ['AI_SDK_DIRECT_TOOL_CALL', 'programmatic'],
+      },
       prompt: 'Check demand.',
     });
 
@@ -290,6 +305,81 @@ describe('experimental_toolCallers', () => {
         test: { allowedCallers: ['programmatic'] },
       },
     });
+  });
+
+  it('distinguishes the direct marker from a caller named direct', async () => {
+    let modelTools: LanguageModelV4CallOptions['tools'];
+
+    const directCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async () => undefined,
+      }),
+      {
+        type: 'local',
+        bind: tools =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => Object.keys(tools),
+          }),
+      },
+    );
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async options => {
+          modelTools = options.tools;
+          return {
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'direct',
+                input: '{}',
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        direct: directCaller,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku }),
+        }),
+      },
+      experimental_toolCallers: {
+        getInventory: ['direct', 'AI_SDK_DIRECT_TOOL_CALL'],
+      },
+      prompt: 'Check inventory.',
+    });
+
+    expect(modelTools?.map(tool => tool.name)).toEqual([
+      'direct',
+      'getInventory',
+    ]);
+    expect(result.toolResults[0]?.output).toEqual(['getInventory']);
+  });
+
+  it('rejects caller names that are not caller-capable tools', async () => {
+    await expect(
+      generateText({
+        model: new MockLanguageModelV4(),
+        tools: {
+          getInventory: tool({
+            inputSchema: z.object({}),
+            execute: async () => undefined,
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['getInventory'],
+        } as never,
+        prompt: 'Check inventory.',
+      }),
+    ).rejects.toThrow('tool "getInventory" contains an invalid caller.');
   });
 });
 

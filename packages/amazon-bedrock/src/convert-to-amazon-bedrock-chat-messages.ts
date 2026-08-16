@@ -553,7 +553,9 @@ export async function convertToAmazonBedrockChatMessages(
           pushCachePoint(amazonBedrockContent, message.providerOptions);
         }
 
-        messages.push({ role: 'assistant', content: amazonBedrockContent });
+        if (amazonBedrockContent.length > 0) {
+          messages.push({ role: 'assistant', content: amazonBedrockContent });
+        }
 
         break;
       }

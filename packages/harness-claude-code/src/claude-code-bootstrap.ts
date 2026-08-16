@@ -1,0 +1,65 @@
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import type { HarnessV1Bootstrap } from '@ai-sdk/harness';
+
+/*
+ * Bootstrap is derived state stored under the sandbox's default working
+ * directory so snapshot-capable providers can preserve the installed CLI,
+ * bridge, and recipe marker without requiring root filesystem access.
+ *
+ * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
+ * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
+ * default working directory — the provider's persistent mount — so the
+ * workdir's CLI state (Claude's `~/.claude/projects/<dir>/*.jsonl` thread
+ * history is keyed by working directory) and the bridge state files survive
+ * both detach -> attach/replay and stop -> snapshot -> resume cycles.
+ */
+export const CLAUDE_CODE_BOOTSTRAP_DIR = '.harness-bootstrap/claude-code';
+
+let cachedBootstrap: HarnessV1Bootstrap | undefined;
+
+export async function getClaudeCodeBootstrap(): Promise<HarnessV1Bootstrap> {
+  if (cachedBootstrap != null) return cachedBootstrap;
+  const [pkg, lock, bridge] = await Promise.all([
+    readBridgeAsset('package.json'),
+    readBridgeAsset('pnpm-lock.yaml'),
+    readBridgeAsset('index.mjs'),
+  ]);
+  cachedBootstrap = {
+    harnessId: 'claude-code',
+    bootstrapDir: CLAUDE_CODE_BOOTSTRAP_DIR,
+    files: [
+      { path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/package.json`, content: pkg },
+      { path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
+      { path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
+    ],
+    commands: [
+      {
+        command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      },
+      {
+        command:
+          'if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
+      },
+    ],
+  };
+  return cachedBootstrap;
+}
+
+async function readBridgeAsset(name: string): Promise<string> {
+  const candidates = [
+    new URL(`./bridge/${name}`, import.meta.url),
+    new URL(`../bridge/${name}`, import.meta.url),
+  ];
+  let lastErr: unknown;
+  for (const url of candidates) {
+    try {
+      return await readFile(fileURLToPath(url), 'utf8');
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') throw err;
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
+}

@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4File as VideoModelV4File,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -39,10 +39,11 @@ interface MiniMaxVideoModelConfig {
 }
 
 type MiniMaxVideoDoGenerateOptions = Parameters<
-  Experimental_VideoModelV4['doGenerate']
+  NonNullable<VideoModelV4['doGenerate']>
 >[0];
 
 const DEFAULT_RESOLUTION = '2K';
+const DEFAULT_ASPECT_RATIO = '16:9';
 const DEFAULT_POLL_INTERVAL_MS = 10_000;
 const DEFAULT_POLL_TIMEOUT_MS = 600_000;
 const MIN_DURATION_SECONDS = 5;
@@ -85,9 +86,7 @@ function resolveTopLevelResolution(resolution: string): string | undefined {
 // the wrong kind is. A frame with no media type is left alone: the core emits
 // URL inputs without one, and unlike a reference there is no routing decision
 // riding on it.
-function nonImageFrameMediaType(
-  file: Experimental_VideoModelV4File,
-): string | undefined {
+function nonImageFrameMediaType(file: VideoModelV4File): string | undefined {
   if (file.mediaType == null) {
     return undefined;
   }
@@ -96,7 +95,7 @@ function nonImageFrameMediaType(
   return topLevelMediaType === 'image' ? undefined : topLevelMediaType;
 }
 
-export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
+export class MiniMaxVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -111,7 +110,7 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
 
   async doGenerate(
     options: MiniMaxVideoDoGenerateOptions,
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+  ): Promise<Awaited<ReturnType<NonNullable<VideoModelV4['doGenerate']>>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 
@@ -293,8 +292,8 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
         });
       }
     } else if (usesReferences) {
-      const referenceImages: Experimental_VideoModelV4File[] = [];
-      const referenceVideos: Experimental_VideoModelV4File[] = [];
+      const referenceImages: VideoModelV4File[] = [];
+      const referenceVideos: VideoModelV4File[] = [];
 
       for (const file of referenceFiles) {
         const topLevelMediaType =
@@ -396,6 +395,7 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
 
     // Aspect ratio. In frame-image mode the ratio follows the supplied image,
     // so an explicit ratio is ignored.
+    const isTextToVideo = content.length === 1;
     let ratio = minimaxOptions?.ratio as string | undefined;
     if (ratio == null && options.aspectRatio != null) {
       if (allowedRatios.has(options.aspectRatio)) {
@@ -404,11 +404,24 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
         warnings.push({
           type: 'unsupported',
           feature: 'aspectRatio',
-          details:
-            `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". ` +
-            'Using the provider default (adaptive).',
+          details: isTextToVideo
+            ? `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". Using the default (${DEFAULT_ASPECT_RATIO}).`
+            : `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". Using the provider default (adaptive).`,
         });
+        if (isTextToVideo) {
+          ratio = DEFAULT_ASPECT_RATIO;
+        }
       }
+    }
+    if (ratio === 'adaptive' && isTextToVideo) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          'MiniMax-H3 text-to-video does not support the adaptive aspect ratio. ' +
+          `Using the default (${DEFAULT_ASPECT_RATIO}).`,
+      });
+      ratio = DEFAULT_ASPECT_RATIO;
     }
     if (usesFrameImages && ratio != null) {
       warnings.push({
@@ -418,6 +431,9 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV4 {
           'MiniMax-H3 derives the aspect ratio from the frame image; the requested ratio was ignored.',
       });
       ratio = undefined;
+    }
+    if (ratio == null && isTextToVideo) {
+      ratio = DEFAULT_ASPECT_RATIO;
     }
 
     // H3 takes an integer between 5 and 15, so round before clamping: a
