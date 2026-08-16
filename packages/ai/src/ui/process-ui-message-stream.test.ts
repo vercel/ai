@@ -5,6 +5,7 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
 import type { InferUIMessageData, UIMessage } from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -41,7 +42,7 @@ describe('processUIMessageStream', () => {
   const runUpdateMessageJob = async (
     job: (options: {
       state: StreamingUIMessageState<UIMessage>;
-      write: () => void;
+      write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => {
     await job({
@@ -1726,6 +1727,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -1744,6 +1746,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1766,6 +1769,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1788,6 +1792,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1810,6 +1815,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1846,6 +1852,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1884,6 +1891,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1913,6 +1921,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -1931,6 +1940,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1960,6 +1970,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -1982,6 +1993,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -2011,6 +2023,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -2033,6 +2046,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -2062,6 +2076,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -2090,6 +2105,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -2119,6 +2135,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -2147,6 +2164,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -2176,6 +2194,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -2209,6 +2228,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "id": "reasoning-1",
               "providerMetadata": {
                 "testProvider": {
                   "signature": "1234567890",
@@ -2238,6 +2258,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "id": "reasoning-2",
               "providerMetadata": {
                 "testProvider": {
                   "signature": "abc123",
@@ -3503,6 +3524,14 @@ describe('processUIMessageStream', () => {
       });
     });
 
+    it('should preserve reasoning part ids', () => {
+      expect(
+        state!.message.parts
+          .filter(part => part.type === 'reasoning')
+          .map(part => part.id),
+      ).toEqual(['reasoning-1', 'reasoning-2', 'reasoning-3']);
+    });
+
     it('should call the update function with the correct arguments', async () => {
       expect(writeCalls).toMatchInlineSnapshot(`
         [
@@ -3523,6 +3552,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -3541,6 +3571,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "I will open the conversation",
@@ -3559,6 +3590,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3581,6 +3613,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3603,6 +3636,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3613,6 +3647,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -3631,6 +3666,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3641,6 +3677,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3663,6 +3700,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3673,6 +3711,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3695,6 +3734,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3705,6 +3745,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3715,6 +3756,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -3733,6 +3775,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3743,6 +3786,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3753,6 +3797,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Once the user has relaxed,",
@@ -3771,6 +3816,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3781,6 +3827,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3791,6 +3838,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -3813,6 +3861,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3823,6 +3872,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3833,6 +3883,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -3855,6 +3906,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3865,6 +3917,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3875,6 +3928,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -3903,6 +3957,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3913,6 +3968,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3923,6 +3979,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -3951,6 +4008,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3961,6 +4019,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3971,6 +4030,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -4004,6 +4064,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "id": "reasoning-1",
               "providerMetadata": {
                 "testProvider": {
                   "signature": "1234567890",
@@ -4014,6 +4075,7 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
+              "id": "reasoning-2",
               "providerMetadata": {
                 "testProvider": {
                   "isRedacted": true,
@@ -4024,6 +4086,7 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
+              "id": "reasoning-3",
               "providerMetadata": {
                 "testProvider": {
                   "signature": "abc123",

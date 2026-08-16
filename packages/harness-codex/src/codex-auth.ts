@@ -1,6 +1,42 @@
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import {
+  createCredentialRequestTransformation,
+  getAiGatewayAuthFromEnv,
+} from '@ai-sdk/harness/utils';
 
-export type CodexAuthOptions = {
+const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh/v1';
+export const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
+export const CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  'AI_GATEWAY_API_KEY',
+  'CODEX_API_KEY',
+] as const;
+
+export function createCodexRequestTransformations(
+  env: Record<string, string>,
+  auth: CodexResolvedAuthenticationMode,
+): HarnessV1RequestTransformation[] {
+  if (!env.CODEX_API_KEY) return [];
+  return [
+    createCredentialRequestTransformation({
+      baseUrl:
+        env.OPENAI_BASE_URL ??
+        (auth === 'ai-gateway'
+          ? DEFAULT_AI_GATEWAY_BASE_URL
+          : DEFAULT_OPENAI_BASE_URL),
+      headers: { Authorization: `Bearer ${env.CODEX_API_KEY}` },
+    }),
+  ];
+}
+
+export type CodexResolvedAuthenticationMode = 'direct' | 'ai-gateway';
+
+export type CodexAuthenticationMode = CodexResolvedAuthenticationMode | 'auto';
+
+/**
+ * @deprecated Passing an object to auth options is deprecated. Use a `CodexAuthenticationMode` string value ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.
+ */
+export type LegacyCodexAuthOptions = {
   readonly openaiCompatible?: {
     readonly apiKey?: string;
     readonly baseUrl?: string;
@@ -19,6 +55,8 @@ export type CodexAuthOptions = {
   };
 };
 
+export type CodexAuthOptions = CodexAuthenticationMode | LegacyCodexAuthOptions;
+
 /**
  * Resolve the environment-variable blob the codex bridge needs. Precedence:
  *
@@ -33,18 +71,20 @@ export function resolveCodexEnv(
   auth: CodexAuthOptions | undefined,
   processEnv: Record<string, string | undefined> = process.env,
 ): Record<string, string> {
-  if (auth?.openaiCompatible) {
-    return pickOpenAICompatible(auth.openaiCompatible, processEnv);
+  const normalizedAuth = normalizeCodexAuthToLegacyAuth(auth);
+
+  if (normalizedAuth?.openaiCompatible) {
+    return pickOpenAICompatible(normalizedAuth.openaiCompatible, processEnv);
   }
-  if (auth?.openai) {
-    return pickOpenAI({ explicit: auth.openai, processEnv });
+  if (normalizedAuth?.openai) {
+    return pickOpenAI({ explicit: normalizedAuth.openai, processEnv });
   }
   const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
     env: processEnv,
   });
-  if (auth?.gateway) {
+  if (normalizedAuth?.gateway) {
     return pickGateway({
-      explicit: auth.gateway,
+      explicit: normalizedAuth.gateway,
       gatewayAuthFromEnv,
     });
   }
@@ -57,8 +97,49 @@ export function resolveCodexEnv(
   return pickOpenAI({ processEnv });
 }
 
+export function resolveCodexAuthenticationMode(
+  auth: CodexAuthOptions | undefined,
+  processEnv: Record<string, string | undefined> = process.env,
+): CodexResolvedAuthenticationMode {
+  if (typeof auth !== 'string' && auth?.openaiCompatible) {
+    return 'direct';
+  }
+  if (auth === 'direct' || (typeof auth !== 'string' && auth?.openai)) {
+    return 'direct';
+  }
+  if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
+    return 'ai-gateway';
+  }
+  return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
+    ? 'ai-gateway'
+    : 'direct';
+}
+
+function normalizeCodexAuthToLegacyAuth(
+  auth: CodexAuthOptions | undefined,
+): LegacyCodexAuthOptions | undefined {
+  if (auth == null || auth === 'auto') {
+    return undefined;
+  }
+  if (typeof auth === 'string') {
+    switch (auth) {
+      case 'direct':
+        return { openai: {} };
+      case 'ai-gateway':
+        return { gateway: {} };
+      default:
+        return undefined;
+    }
+  }
+
+  console.warn(
+    '[codex] Passing an object to auth options is deprecated. Use a string mode ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.',
+  );
+  return auth;
+}
+
 function pickOpenAICompatible(
-  explicit: NonNullable<CodexAuthOptions['openaiCompatible']>,
+  explicit: NonNullable<LegacyCodexAuthOptions['openaiCompatible']>,
   processEnv: Record<string, string | undefined>,
 ): Record<string, string> {
   const env: Record<string, string> = {};
@@ -77,7 +158,7 @@ function pickOpenAI({
   explicit,
   processEnv,
 }: {
-  explicit?: NonNullable<CodexAuthOptions['openai']>;
+  explicit?: NonNullable<LegacyCodexAuthOptions['openai']>;
   processEnv: Record<string, string | undefined>;
 }): Record<string, string> {
   const env: Record<string, string> = {};
@@ -97,7 +178,7 @@ function pickGateway({
   explicit,
   gatewayAuthFromEnv,
 }: {
-  explicit: NonNullable<CodexAuthOptions['gateway']>;
+  explicit: NonNullable<LegacyCodexAuthOptions['gateway']>;
   gatewayAuthFromEnv: ReturnType<typeof getAiGatewayAuthFromEnv>;
 }): Record<string, string> {
   const apiKey = explicit.apiKey ?? gatewayAuthFromEnv.apiKey;
@@ -110,6 +191,7 @@ function pickGateway({
     env.CODEX_API_KEY = apiKey;
   }
   env.AI_GATEWAY_BASE_URL = baseUrl;
+  env.OPENAI_BASE_URL = baseUrl;
   return env;
 }
 

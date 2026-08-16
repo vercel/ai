@@ -195,12 +195,16 @@ describe('formatInputMessages', () => {
     `);
   });
 
-  it('should exclude system messages', () => {
+  it('should preserve system messages in prompt order', () => {
     const prompt: LanguageModelV4Prompt = [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'First' }],
+      },
       { role: 'system', content: 'Be helpful' },
       {
         role: 'user',
-        content: [{ type: 'text', text: 'Hello' }],
+        content: [{ type: 'text', text: 'Second' }],
       },
     ];
     expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
@@ -208,7 +212,25 @@ describe('formatInputMessages', () => {
         {
           "parts": [
             {
-              "content": "Hello",
+              "content": "First",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "parts": [
+            {
+              "content": "Be helpful",
+              "type": "text",
+            },
+          ],
+          "role": "system",
+        },
+        {
+          "parts": [
+            {
+              "content": "Second",
               "type": "text",
             },
           ],
@@ -635,13 +657,14 @@ describe('formatModelMessages', () => {
     `);
   });
 
-  it('should exclude system messages', () => {
+  it('should preserve system messages in message order', () => {
     expect(
       formatModelMessages({
         prompt: undefined,
         messages: [
+          { role: 'user', content: 'First' },
           { role: 'system', content: 'Be helpful' },
-          { role: 'user', content: 'Hello' },
+          { role: 'user', content: 'Second' },
         ],
       }),
     ).toMatchInlineSnapshot(`
@@ -649,7 +672,25 @@ describe('formatModelMessages', () => {
         {
           "parts": [
             {
-              "content": "Hello",
+              "content": "First",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "parts": [
+            {
+              "content": "Be helpful",
+              "type": "text",
+            },
+          ],
+          "role": "system",
+        },
+        {
+          "parts": [
+            {
+              "content": "Second",
               "type": "text",
             },
           ],

@@ -6,6 +6,8 @@
  *   - v7: ../../content/docs (this repo's working tree, i.e. `main`)
  *   - v6: content/docs from a reviewed `release-v6.0` commit (git, with
  *         a GitHub tarball fallback for environments without git access)
+ *   - v5: content/docs from a reviewed `release-v5.0` commit (using the same
+ *         git and GitHub fallback strategy)
  *
  * Transforms (content authored with `NN-` ordering prefixes -> fumadocs):
  *   1. Strips `NN-` numeric prefixes from every path segment.
@@ -35,10 +37,13 @@ const versions = [
   // Update this SHA explicitly when stable v6 documentation changes should
   // ship. Pinning keeps builds reproducible and content changes reviewable.
   { id: "v6", ref: "31e168b16f71a2abc03a1fae69176886577337f4" },
+  // Update this SHA explicitly when stable v5 documentation changes should
+  // ship. Pinning keeps builds reproducible and content changes reviewable.
+  { id: "v5", ref: "1319452c1f1a75045950817242ef3207dac1e540" },
 ];
 
-/** Content families to sync. Phase 1: docs only. */
-const families = ["docs"];
+/** Content families to sync. */
+const families = ["docs", "providers", "cookbook"];
 
 const log = (msg) => console.log(`[sync-content] ${msg}`);
 

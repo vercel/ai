@@ -146,6 +146,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
       });
     });
 
@@ -195,6 +196,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 15,
+        ratio: '16:9',
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
@@ -217,6 +219,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
@@ -241,6 +244,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 8,
+        ratio: '16:9',
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
@@ -263,6 +267,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
       });
       expect(
         warnings
@@ -319,6 +324,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
       });
       expect(
         warnings.some(
@@ -347,6 +353,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
       });
       expect(
         warnings.some(
@@ -708,6 +715,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
         aigc_watermark: true,
       });
     });
@@ -754,11 +762,12 @@ describe('MiniMaxVideoModel', () => {
       expect(warnings).toStrictEqual([]);
     });
 
-    it('should support the adaptive ratio, which has no top-level equivalent', async () => {
+    it('should support the adaptive ratio on reference-to-video, which has no top-level equivalent', async () => {
       const model = createModel();
 
       const { warnings } = await model.doGenerate({
         ...defaultOptions,
+        inputReferences: [imageUrlFile],
         providerOptions: minimaxOptions({ ratio: 'adaptive' }),
       });
 
@@ -768,11 +777,12 @@ describe('MiniMaxVideoModel', () => {
       expect(warnings).toStrictEqual([]);
     });
 
-    it('should warn and send no ratio for an unsupported aspectRatio', async () => {
+    it('should warn and omit ratio for an unsupported aspectRatio on reference-to-video', async () => {
       const model = createModel();
 
       const { warnings } = await model.doGenerate({
         ...defaultOptions,
+        inputReferences: [imageUrlFile],
         aspectRatio: '5:3',
       });
 
@@ -782,6 +792,44 @@ describe('MiniMaxVideoModel', () => {
         feature: 'aspectRatio',
         details:
           'MiniMax-H3 does not support the aspect ratio "5:3". Using the provider default (adaptive).',
+      });
+    });
+
+    it('should warn and fall back to the default ratio for an unsupported aspectRatio on text-to-video', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '5:3',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        ratio: '16:9',
+      });
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          'MiniMax-H3 does not support the aspect ratio "5:3". Using the default (16:9).',
+      });
+    });
+
+    it('should warn and fall back to the default ratio when adaptive is requested for text-to-video', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: minimaxOptions({ ratio: 'adaptive' }),
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        ratio: '16:9',
+      });
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          'MiniMax-H3 text-to-video does not support the adaptive aspect ratio. Using the default (16:9).',
       });
     });
 
@@ -1010,6 +1058,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
@@ -1207,6 +1256,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
@@ -1278,6 +1328,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
@@ -1402,6 +1453,7 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
         duration: 5,
+        ratio: '16:9',
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',

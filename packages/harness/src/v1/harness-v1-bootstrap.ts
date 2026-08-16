@@ -16,12 +16,6 @@ export interface HarnessV1BootstrapFile {
  */
 export interface HarnessV1BootstrapCommand {
   readonly command: string;
-  /**
-   * Absolute working directories are used as-is. Relative working directories
-   * are resolved against the sandbox's default working directory. When
-   * omitted, the command runs from the recipe's bootstrap directory.
-   */
-  readonly workingDirectory?: string;
 }
 
 /**

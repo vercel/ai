@@ -111,6 +111,7 @@ export function translateStreamPart<TOOLS extends ToolSet>(
           ...(event.preliminary !== undefined
             ? { preliminary: event.preliminary }
             : {}),
+          ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
           ...(event.providerMetadata !== undefined
             ? { providerMetadata: event.providerMetadata }
             : {}),

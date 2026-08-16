@@ -1,9 +1,15 @@
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import type { StopCondition, StreamTextResult, TelemetryOptions } from 'ai';
+import type {
+  OutputInterface as Output,
+  StopCondition,
+  StreamTextResult,
+  TelemetryOptions,
+} from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
 import type {
   HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
+  HarnessV1ResponseFormat,
   HarnessV1SandboxProvider,
 } from '../v1';
 import type {
@@ -25,8 +31,9 @@ import { runPrompt } from './internal/run-prompt';
 type HarnessAgentTurnResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
 > = {
-  result: StreamTextResult<TOOLS, RUNTIME_CONTEXT, never>;
+  result: StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   done: Promise<void>;
 };
 
@@ -157,7 +164,11 @@ export class HarnessAgentSession {
     return this.turnState !== 'idle';
   }
 
-  promptTurn<TOOLS extends ToolSet, RUNTIME_CONTEXT extends Context>(options: {
+  promptTurn<
+    TOOLS extends ToolSet,
+    RUNTIME_CONTEXT extends Context,
+    OUTPUT extends Output,
+  >(options: {
     prompt: HarnessAgentPrompt;
     instructions: string | undefined;
     tools: TOOLS;
@@ -166,15 +177,17 @@ export class HarnessAgentSession {
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
+    responseFormat: HarnessV1ResponseFormat | undefined;
+    output: OUTPUT | undefined;
     telemetry: TelemetryOptions | undefined;
     stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
-  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
+  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
     const session = this.requireReusableSession();
     this.requirePromptableTurn();
     const sandboxSession = this.getSandboxSession();
     const turnId = this.startTrackedTurn();
     try {
-      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT>({
+      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
         harness: this.harness,
         session,
         prompt: options.prompt,
@@ -187,6 +200,8 @@ export class HarnessAgentSession {
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
+        responseFormat: options.responseFormat,
+        output: options.output,
         telemetry: options.telemetry,
         stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
@@ -227,6 +242,7 @@ export class HarnessAgentSession {
   continueTurn<
     TOOLS extends ToolSet,
     RUNTIME_CONTEXT extends Context,
+    OUTPUT extends Output,
   >(options: {
     instructions: string | undefined;
     tools: TOOLS;
@@ -235,6 +251,8 @@ export class HarnessAgentSession {
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
+    responseFormat: HarnessV1ResponseFormat | undefined;
+    output: OUTPUT | undefined;
     telemetry: TelemetryOptions | undefined;
     stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
     toolApprovalContinuations?:
@@ -243,13 +261,13 @@ export class HarnessAgentSession {
     toolResultContinuations?:
       | readonly HarnessAgentToolResultContinuation[]
       | undefined;
-  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
+  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
     const session = this.requireReusableSession();
     this.requireContinuableTurn();
     const sandboxSession = this.getSandboxSession();
     const turnId = this.startTrackedTurn();
     try {
-      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT>({
+      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
         harness: this.harness,
         session,
         mode: 'continue',
@@ -262,6 +280,8 @@ export class HarnessAgentSession {
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
+        responseFormat: options.responseFormat,
+        output: options.output,
         telemetry: options.telemetry,
         stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,

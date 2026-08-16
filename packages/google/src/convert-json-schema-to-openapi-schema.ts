@@ -1,4 +1,8 @@
-import type { JSONSchema7Definition } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type JSONSchema7,
+  type JSONSchema7Definition,
+} from '@ai-sdk/provider';
 
 /**
  * Converts JSON Schema 7 to OpenAPI Schema 3.0
@@ -48,10 +52,6 @@ export function convertJSONSchemaToOpenAPISchema(
   if (required) result.required = required;
   if (format) result.format = format;
 
-  if (constValue !== undefined) {
-    result.enum = [constValue];
-  }
-
   // Handle type
   if (type) {
     if (Array.isArray(type)) {
@@ -73,9 +73,11 @@ export function convertJSONSchemaToOpenAPISchema(
     }
   }
 
-  // Handle enum
-  if (enumValues !== undefined) {
-    result.enum = enumValues;
+  const values =
+    enumValues ?? (constValue !== undefined ? [constValue] : undefined);
+
+  if (values !== undefined) {
+    addEnumToSchema({ values, type, result });
   }
 
   if (properties != null) {
@@ -144,6 +146,123 @@ export function convertJSONSchemaToOpenAPISchema(
   }
 
   return result;
+}
+
+type EnumValues = NonNullable<JSONSchema7['enum']>;
+type EnumType = 'string' | 'number' | 'integer' | 'boolean';
+type GoogleEnumSchema = {
+  type?: JSONSchema7['type'];
+  enum?: JSONSchema7['enum'];
+  format?: JSONSchema7['format'];
+  anyOf?: JSONSchema7['anyOf'];
+  nullable?: boolean;
+};
+
+function addEnumToSchema({
+  values,
+  type,
+  result,
+}: {
+  values: EnumValues;
+  type: JSONSchema7['type'];
+  result: GoogleEnumSchema;
+}) {
+  const nullable =
+    (Array.isArray(type) && type.includes('null')) ||
+    (type === undefined && values.includes(null));
+
+  // Gemini uses nullable instead of a null enum member.
+  const enumValues = nullable ? values.filter(value => value !== null) : values;
+
+  if (values.length > 0 && values.every(value => value === null)) {
+    const typeAllowsNull =
+      type === undefined ||
+      type === 'null' ||
+      (Array.isArray(type) && type.includes('null'));
+
+    if (typeAllowsNull) {
+      result.type = 'null';
+      if (Array.isArray(type)) {
+        delete result.anyOf;
+      }
+      return;
+    }
+  }
+
+  const enumType = getEnumType({ values: enumValues, type });
+
+  if (enumType === undefined) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'JSON Schema enum with mixed or unsupported values',
+      message:
+        'Google does not support this JSON Schema enum. Enum values must share one supported primitive type and match the schema type.',
+    });
+  }
+
+  result.type = enumType;
+
+  // The earlier type-array conversion created anyOf. The enum gives us one
+  // concrete value type, so store that type directly.
+  if (Array.isArray(type)) {
+    delete result.anyOf;
+  }
+
+  if (nullable) {
+    result.nullable = true;
+  }
+
+  if (enumType === 'string') {
+    result.enum = enumValues;
+  } else {
+    result.format = 'enum';
+    result.enum = enumValues.map(String);
+  }
+}
+
+function getEnumType({
+  values,
+  type,
+}: {
+  values: EnumValues;
+  type: JSONSchema7['type'];
+}): EnumType | undefined {
+  if (values.length === 0) {
+    return undefined;
+  }
+
+  const typeAllows = (enumType: EnumType) =>
+    type === undefined ||
+    type === enumType ||
+    (Array.isArray(type) && type.includes(enumType));
+
+  if (
+    typeAllows('string') &&
+    values.every(value => typeof value === 'string')
+  ) {
+    return 'string';
+  }
+
+  if (
+    (typeAllows('number') || typeAllows('integer')) &&
+    values.every(value => typeof value === 'number' && Number.isFinite(value))
+  ) {
+    if (typeAllows('number')) {
+      return 'number';
+    }
+
+    if (values.every(value => Number.isInteger(value))) {
+      return 'integer';
+    }
+  }
+
+  if (
+    typeAllows('boolean') &&
+    values.every(value => typeof value === 'boolean')
+  ) {
+    return 'boolean';
+  }
+
+  return undefined;
 }
 
 function isEmptyObjectSchema(jsonSchema: JSONSchema7Definition): boolean {
