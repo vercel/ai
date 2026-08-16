@@ -24,6 +24,7 @@ import {
 import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
+import { configureOpenCodeServerAuth } from './opencode-server-auth';
 import {
   addUsage,
   defaultUsage,
@@ -51,6 +52,7 @@ type RuntimeState = {
   sessionId?: string;
   relay?: ToolRelay;
   toolNames: Set<string>;
+  mcpToolPrefixes: Set<string>;
 };
 
 type CommonBuiltinToolName =
@@ -115,7 +117,10 @@ const bridgeStateDir =
   args.bridgeStateDir ?? emitFatal('Missing --bridge-state-dir argument.');
 const bootstrapDir = args.bootstrapDir ?? workdir;
 const skillsDir = args.skillsDir;
-const runtime: RuntimeState = { toolNames: new Set() };
+const runtime: RuntimeState = {
+  toolNames: new Set(),
+  mcpToolPrefixes: new Set(),
+};
 prependOpenCodeBinToPath({ bootstrapDir, env: procEnv });
 
 mkdirSync(process.env.HOME ?? '/tmp/opencode-home', { recursive: true });
@@ -124,7 +129,7 @@ await runBridge<StartMessage>({
   bridgeType: 'opencode',
   bridgeStateDir,
   onStart: runTurn,
-  onDetach: () =>
+  onStop: () =>
     runtime.sessionId ? { openCodeSessionId: runtime.sessionId } : {},
 });
 
@@ -172,6 +177,7 @@ async function ensureRuntime({
     });
   }
 
+  const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
   const server = await createOpencodeServer({
     hostname: '127.0.0.1',
     port: 0,
@@ -185,7 +191,19 @@ async function ensureRuntime({
   runtime.client = createOpencodeClient({
     baseUrl: server.url,
     directory: workdir,
+    headers: serverAuthHeaders,
   });
+  const mcpStatus = await runtime.client.mcp.status();
+  const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
+  runtime.mcpToolPrefixes = new Set(
+    Object.entries(mcpServers)
+      .filter(
+        ([serverName, status]) =>
+          serverName !== 'harness-tools' &&
+          asOpenCodeObject(status)?.status === 'connected',
+      )
+      .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
+  );
 }
 
 function buildOpenCodeConfig({
@@ -227,25 +245,25 @@ function buildOpenCodeConfig({
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
+  const mcp = { ...(start.mcpServers ?? {}) };
   if (relayPort && start.tools && start.tools.length > 0) {
-    config.mcp = {
-      'harness-tools': {
-        type: 'local',
-        enabled: true,
-        command: ['node', `${bootstrapDir}/host-tool-mcp.mjs`],
-        environment: {
-          TOOL_SCHEMAS: JSON.stringify(
-            start.tools.map(t => ({
-              name: t.name,
-              description: t.description,
-              inputSchema: t.inputSchema,
-            })),
-          ),
-          TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
-        },
+    mcp['harness-tools'] = {
+      type: 'local',
+      enabled: true,
+      command: ['node', `${bootstrapDir}/host-tool-mcp.mjs`],
+      environment: {
+        TOOL_SCHEMAS: JSON.stringify(
+          start.tools.map(t => ({
+            name: t.name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+          })),
+        ),
+        TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
       },
     };
   }
+  if (Object.keys(mcp).length > 0) config.mcp = mcp;
   return config;
 }
 
@@ -404,6 +422,15 @@ async function legacySessionPrompt({
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
     ...(start.variant ? { variant: start.variant } : {}),
+    ...(start.responseFormat?.type === 'json' &&
+    start.responseFormat.schema != null
+      ? {
+          format: {
+            type: 'json_schema' as const,
+            schema: start.responseFormat.schema,
+          },
+        }
+      : {}),
     parts: [{ type: 'text', text: start.prompt }],
   });
 }
@@ -575,12 +602,43 @@ async function runPrompt({
           state,
           emit,
         });
+        const info = asOpenCodeObject(event.properties?.info);
+        if (
+          start.responseFormat?.type === 'json' &&
+          info?.structured !== undefined
+        ) {
+          const id = String(info.id ?? randomUUID());
+          emit({ type: 'text-start', id });
+          emit({
+            type: 'text-delta',
+            id,
+            delta: JSON.stringify(info.structured),
+          });
+          emit({ type: 'text-end', id });
+          emit({
+            type: 'finish-step',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: defaultUsage(),
+          });
+          sawFinishStep = true;
+          turnSettled.resolve();
+          return true;
+        }
       }
       if (event.type === 'session.updated') {
         latestSessionTokens =
           extractSessionTokens(event.properties) ?? latestSessionTokens;
       }
       if (isStepSettlementEvent(event)) {
+        if (event.type === 'session.error') {
+          terminalError = formatError(event.properties?.error ?? event);
+        }
+        if (
+          start.responseFormat?.type === 'json' &&
+          event.type === 'session.next.step.ended'
+        ) {
+          return;
+        }
         turnSettled.resolve();
         return true;
       }
@@ -591,13 +649,10 @@ async function runPrompt({
         sawBusy = true;
         turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
-        turnSettled.resolve();
-        return true;
-      }
-      if (event.type === 'session.error') {
-        terminalError = formatError(event.properties?.error ?? event);
-        turnSettled.resolve();
-        return true;
+        if (start.responseFormat?.type !== 'json') {
+          turnSettled.resolve();
+          return true;
+        }
       }
     },
   }).finally(() => {
@@ -776,6 +831,8 @@ async function consumeEvents({
     nativeNameField,
     getHostToolName,
     authorizeHostToolCall: input => authorizeHostToolCall({ ...input, state }),
+    isMcpToolName: toolName =>
+      [...runtime.mcpToolPrefixes].some(prefix => toolName.startsWith(prefix)),
     stripWorkDir,
     formatError,
   });
@@ -809,6 +866,10 @@ async function consumeEvents({
     }
     if (onEvent?.(event)) break;
   }
+}
+
+function sanitizeMcpToolName(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
 async function handlePermissionV2({

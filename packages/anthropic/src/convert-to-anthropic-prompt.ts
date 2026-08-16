@@ -26,6 +26,7 @@ import {
   type AnthropicSystemMessage,
   type AnthropicTextContent,
   type AnthropicToolChangeContent,
+  type AnthropicToolCallCaller,
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
@@ -723,6 +724,8 @@ export async function convertToAnthropicPrompt({
               }
 
               case 'tool-call': {
+                const caller = getAnthropicCaller(part.providerOptions);
+
                 if (part.providerExecuted) {
                   const providerToolName = toolNameMapping.toProviderToolName(
                     part.toolName,
@@ -754,7 +757,7 @@ export async function convertToAnthropicPrompt({
                       cache_control: cacheControl,
                     });
                   } else if (
-                    // code execution 20250825:
+                    // code execution subtools:
                     providerToolName === 'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
@@ -763,11 +766,15 @@ export async function convertToAnthropicPrompt({
                     (part.input.type === 'bash_code_execution' ||
                       part.input.type === 'text_editor_code_execution')
                   ) {
+                    const { type: codeExecutionType, ...inputWithoutType } =
+                      part.input;
+
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: part.input.type, // map back to subtool name
-                      input: part.input,
+                      name: codeExecutionType, // map back to subtool name
+                      input: inputWithoutType,
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
                   } else if (
@@ -788,6 +795,7 @@ export async function convertToAnthropicPrompt({
                       id: part.toolCallId,
                       name: 'code_execution',
                       input: inputWithoutType,
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
                   } else {
@@ -801,6 +809,7 @@ export async function convertToAnthropicPrompt({
                         id: part.toolCallId,
                         name: providerToolName,
                         input: part.input,
+                        ...(caller && { caller }),
                         cache_control: cacheControl,
                       });
                     } else if (
@@ -812,6 +821,7 @@ export async function convertToAnthropicPrompt({
                         id: part.toolCallId,
                         name: providerToolName,
                         input: part.input,
+                        ...(caller && { caller }),
                         cache_control: cacheControl,
                       });
                     } else if (providerToolName === 'advisor') {
@@ -821,6 +831,7 @@ export async function convertToAnthropicPrompt({
                         id: part.toolCallId,
                         name: 'advisor',
                         input: {},
+                        ...(caller && { caller }),
                         cache_control: cacheControl,
                       });
                     } else {
@@ -833,26 +844,6 @@ export async function convertToAnthropicPrompt({
 
                   break;
                 }
-
-                // Extract caller info from provider options for programmatic tool calling
-                const callerOptions = part.providerOptions?.anthropic as
-                  | { caller?: { type: string; toolId?: string } }
-                  | undefined;
-                const caller = callerOptions?.caller
-                  ? (callerOptions.caller.type === 'code_execution_20250825' ||
-                      callerOptions.caller.type ===
-                        'code_execution_20260120') &&
-                    callerOptions.caller.toolId
-                    ? {
-                        type: callerOptions.caller.type as
-                          | 'code_execution_20250825'
-                          | 'code_execution_20260120',
-                        tool_id: callerOptions.caller.toolId,
-                      }
-                    : callerOptions.caller.type === 'direct'
-                      ? { type: 'direct' as const }
-                      : undefined
-                  : undefined;
 
                 anthropicContent.push({
                   type: 'tool_use',
@@ -869,6 +860,7 @@ export async function convertToAnthropicPrompt({
                 const providerToolName = toolNameMapping.toProviderToolName(
                   part.toolName,
                 );
+                const caller = getAnthropicCaller(part.providerOptions);
 
                 if (mcpToolUseIds.has(part.toolCallId)) {
                   const output = part.output;
@@ -1036,7 +1028,19 @@ export async function convertToAnthropicPrompt({
                         type: 'bash_code_execution_tool_result',
                         tool_use_id: part.toolCallId,
                         cache_control: cacheControl,
-                        content: codeExecutionOutput,
+                        // Prompt caching requires stable key ordering:
+                        // https://platform.claude.com/docs/en/build-with-claude/prompt-caching#troubleshooting-common-issues
+                        content:
+                          codeExecutionOutput.type ===
+                          'bash_code_execution_result'
+                            ? {
+                                type: codeExecutionOutput.type,
+                                stdout: codeExecutionOutput.stdout,
+                                stderr: codeExecutionOutput.stderr,
+                                return_code: codeExecutionOutput.return_code,
+                                content: codeExecutionOutput.content,
+                              }
+                            : codeExecutionOutput,
                       });
                     } else {
                       anthropicContent.push({
@@ -1063,6 +1067,7 @@ export async function convertToAnthropicPrompt({
                           extractErrorValue(output.value).errorCode ??
                           'unavailable',
                       },
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
 
@@ -1107,6 +1112,7 @@ export async function convertToAnthropicPrompt({
                         >['content']['source'],
                       },
                     },
+                    ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
 
@@ -1126,6 +1132,7 @@ export async function convertToAnthropicPrompt({
                           extractErrorValue(output.value).errorCode ??
                           'unavailable',
                       },
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
 
@@ -1159,6 +1166,7 @@ export async function convertToAnthropicPrompt({
                       encrypted_content: result.encryptedContent,
                       type: result.type,
                     })),
+                    ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
 
@@ -1228,6 +1236,9 @@ export async function convertToAnthropicPrompt({
                       content: {
                         type: 'advisor_result',
                         text: advisorOutput.text,
+                        ...(advisorOutput.stopReason !== undefined && {
+                          stop_reason: advisorOutput.stopReason,
+                        }),
                       },
                       cache_control: cacheControl,
                     });
@@ -1238,6 +1249,9 @@ export async function convertToAnthropicPrompt({
                       content: {
                         type: 'advisor_redacted_result',
                         encrypted_content: advisorOutput.encryptedContent,
+                        ...(advisorOutput.stopReason !== undefined && {
+                          stop_reason: advisorOutput.stopReason,
+                        }),
                       },
                       cache_control: cacheControl,
                     });
@@ -1383,6 +1397,29 @@ function moveToolUseBlocksToEnd(
   flushSegment();
 
   return result;
+}
+
+function getAnthropicCaller(
+  providerOptions: SharedV4ProviderMetadata | undefined,
+): AnthropicToolCallCaller | undefined {
+  const caller = (
+    providerOptions?.anthropic as
+      | { caller?: { type: string; toolId?: string } }
+      | undefined
+  )?.caller;
+
+  if (
+    (caller?.type === 'code_execution_20250825' ||
+      caller?.type === 'code_execution_20260120') &&
+    caller.toolId
+  ) {
+    return {
+      type: caller.type,
+      tool_id: caller.toolId,
+    };
+  }
+
+  return caller?.type === 'direct' ? { type: 'direct' } : undefined;
 }
 
 // wrap invalid tool call input because Anthropic requires it to be an object

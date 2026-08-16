@@ -131,7 +131,7 @@ So, my response will be: Grok",
     },
     "outputTokens": {
       "reasoning": 320,
-      "text": -318,
+      "text": 0,
       "total": 2,
     },
     "raw": {
@@ -275,7 +275,7 @@ Finally, structure it as: <function_call>{"action": "weather", "action_input": {
     },
     "outputTokens": {
       "reasoning": 255,
-      "text": -229,
+      "text": 0,
       "total": 26,
     },
     "raw": {
@@ -2087,7 +2087,7 @@ exports[`doStream > text (fixture) > should stream text content 1`] = `
       },
       "outputTokens": {
         "reasoning": 340,
-        "text": -338,
+        "text": 0,
         "total": 2,
       },
       "raw": {
@@ -3316,7 +3316,7 @@ exports[`doStream > tool call (fixture) > should stream tool call content 1`] = 
       },
       "outputTokens": {
         "reasoning": 227,
-        "text": -201,
+        "text": 0,
         "total": 26,
       },
       "raw": {

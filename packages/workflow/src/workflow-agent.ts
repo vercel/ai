@@ -7,6 +7,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   getErrorMessage,
+  isAbortError,
   validateTypes,
   withUserAgentSuffix,
   type Context,
@@ -39,7 +40,6 @@ import {
   createRestrictedTelemetryDispatcher,
   collectToolApprovals,
   convertToLanguageModelPrompt,
-  mergeAbortSignals,
   mergeCallbacks,
   standardizePrompt,
   validateApprovedToolApprovals,
@@ -1434,6 +1434,10 @@ export class WorkflowAgent<
         effectiveGenerationSettings.stopSequences = prepared.stopSequences;
       if (prepared.seed !== undefined)
         effectiveGenerationSettings.seed = prepared.seed;
+      if (prepared.maxRetries !== undefined)
+        effectiveGenerationSettings.maxRetries = prepared.maxRetries;
+      if (prepared.abortSignal !== undefined)
+        effectiveGenerationSettings.abortSignal = prepared.abortSignal;
       if (prepared.headers !== undefined)
         effectiveGenerationSettings.headers = prepared.headers;
       if (prepared.reasoning !== undefined)
@@ -1784,10 +1788,10 @@ export class WorkflowAgent<
       download,
     });
 
-    const effectiveAbortSignal = mergeAbortSignals(
-      options.abortSignal ?? effectiveGenerationSettings.abortSignal,
-      options.timeout,
-    );
+    const effectiveAbortSignal =
+      options.abortSignal ?? effectiveGenerationSettings.abortSignal;
+    const timeoutAt =
+      options.timeout == null ? undefined : Date.now() + options.timeout;
 
     // Merge generation settings: constructor defaults < prepareCall < stream options
     const mergedGenerationSettings: GenerationSettings = {
@@ -2153,6 +2157,7 @@ export class WorkflowAgent<
       toolsContext,
       telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
+      timeoutAt,
       repairToolCall: (options.repairToolCall ??
         options.experimental_repairToolCall ??
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
@@ -2363,6 +2368,10 @@ export class WorkflowAgent<
             // Emit tool-approval-request chunks for tools that need approval
             // so useChat can show the approval UI
             if (options.writable) {
+              if (allToolResults.length > 0) {
+                await writeToolResults(options.writable, allToolResults);
+              }
+
               const approvalToolCalls = pausedToolCalls.filter((_, i) => {
                 const tcIndex = nonProviderToolCalls.indexOf(
                   pausedToolCalls[i],
@@ -2471,7 +2480,7 @@ export class WorkflowAgent<
           // UI can transition tool parts to output-available state and
           // properly separate multi-step model calls in the message history.
           if (options.writable) {
-            await writeToolResultsWithStepBoundary(
+            await writeToolResults(
               options.writable,
               executedToolResults.map(r => ({
                 toolCallId: r.modelResult.toolCallId,
@@ -2481,6 +2490,7 @@ export class WorkflowAgent<
                 )?.input,
                 output: r.rawOutput,
               })),
+              true,
             );
           }
 
@@ -2510,14 +2520,24 @@ export class WorkflowAgent<
         }
       }
 
-      // When the iterator completes normally, result.value contains the final conversation prompt
+      // When the iterator completes normally, result.value contains the final
+      // conversation prompt. Aborts inside the retryable model step are
+      // returned as data so the workflow runtime does not retry them.
       if (result.done) {
-        finalMessages = result.value;
+        if (Array.isArray(result.value)) {
+          finalMessages = result.value;
+        } else {
+          finalMessages = result.value.messages;
+          wasAborted = true;
+          if (options.onAbort) {
+            await options.onAbort({ steps });
+          }
+        }
       }
     } catch (error) {
       encounteredError = error;
       // Check if this is an abort error
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (isAbortError(error)) {
         wasAborted = true;
         if (options.onAbort) {
           await options.onAbort({ steps });
@@ -2695,7 +2715,7 @@ async function writeApprovalRequests(
   }
 }
 
-async function writeToolResultsWithStepBoundary(
+async function writeToolResults(
   writable: WritableStream<any>,
   results: Array<{
     toolCallId: string;
@@ -2703,6 +2723,7 @@ async function writeToolResultsWithStepBoundary(
     input: unknown;
     output: unknown;
   }>,
+  writeStepBoundary = false,
 ) {
   'use step';
   const writer = writable.getWriter();
@@ -2716,12 +2737,14 @@ async function writeToolResultsWithStepBoundary(
         output: r.output,
       });
     }
-    // Emit step boundaries so the UI message history properly separates
-    // the tool call step from the subsequent text step. This ensures
-    // convertToModelMessages creates separate assistant messages for
-    // tool calls and text responses.
-    await writer.write({ type: 'finish-step' });
-    await writer.write({ type: 'start-step' });
+    if (writeStepBoundary) {
+      // Emit step boundaries so the UI message history properly separates
+      // the tool call step from the subsequent text step. This ensures
+      // convertToModelMessages creates separate assistant messages for
+      // tool calls and text responses.
+      await writer.write({ type: 'finish-step' });
+      await writer.write({ type: 'start-step' });
+    }
   } finally {
     writer.releaseLock();
   }

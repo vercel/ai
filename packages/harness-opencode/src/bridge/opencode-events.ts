@@ -22,6 +22,7 @@ export type TranslationState = {
   legacyTextPartIds: Set<string>;
   legacyReasoningPartIds: Set<string>;
   legacyStepFinishPartIds: Set<string>;
+  dynamicToolCallIds: Set<string>;
 };
 
 export function createTranslationState(): TranslationState {
@@ -40,6 +41,7 @@ export function createTranslationState(): TranslationState {
     legacyTextPartIds: new Set(),
     legacyReasoningPartIds: new Set(),
     legacyStepFinishPartIds: new Set(),
+    dynamicToolCallIds: new Set(),
   };
 }
 

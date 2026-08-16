@@ -81,6 +81,23 @@ try {
 }
 ```
 
+Set `output` on `HarnessAgent` to require the same typed, schema-backed output
+on every turn. `generate()` exposes the validated value as `result.output`, and
+`stream()` additionally exposes `partialOutputStream`; the JSON also remains on
+the normal text and stream surfaces.
+
+```ts
+import { Output } from 'ai';
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox,
+  output: Output.object({
+    schema: z.object({ answer: z.string() }),
+  }),
+});
+```
+
 Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters such as Claude Code, Codex, OpenCode, and DeepAgents require a sandbox provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for host-runtime or otherwise non-bridge flows, such as Pi.
 
 `sandbox` is a required `HarnessV1SandboxProvider` — the agent calls `provider.createSession()` when a session starts. Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
@@ -111,12 +128,16 @@ See the [harness adapters documentation](https://ai-sdk.dev/v7/docs/ai-sdk-harne
 
 Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. Read `startOpts.sandboxSession` for the network sandbox session the agent created and will stop on cleanup. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
 
+Each prompt and continuation receives an optional `responseFormat`. JSON
+formats carry a caller-provided JSON Schema plus optional name and description;
+the adapter must enforce the schema and emit the resulting JSON through normal
+text parts. If the runtime cannot honor the format, throw
+`HarnessCapabilityUnsupportedError` before starting the turn.
+
 Bootstrap recipe paths may be absolute or relative. Relative `bootstrapDir` and
 file paths are resolved against `sandboxSession.defaultWorkingDirectory`.
 The framework creates `bootstrapDir` before writing files, and bootstrap
-commands run from that directory by default. A relative command
-`workingDirectory` override is resolved against the sandbox's default working
-directory. Prefer a relative directory such as
+commands always run from that directory. Prefer a relative directory such as
 `.harness-bootstrap/my-harness` so bootstrap assets are kept with the sandbox's
 snapshot-persistent working tree.
 
