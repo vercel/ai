@@ -94,6 +94,106 @@ describe('streamObject', () => {
   afterEach(() => {
     logWarningsSpy.mockRestore();
   });
+
+  describe('error handling', () => {
+    it('should reject result promises when doStream throws', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw new Error('transient provider failure');
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        maxRetries: 0,
+      });
+
+      await expect(result.object).rejects.toThrow('transient provider failure');
+      await expect(result.usage).rejects.toThrow('transient provider failure');
+      await expect(result.finishReason).rejects.toThrow(
+        'transient provider failure',
+      );
+    });
+
+    it('should reject result promises and report the error through onFinish when the provider emits an error part mid-stream', async () => {
+      const onFinishCalls: Array<{
+        error: unknown;
+        finishReason: unknown;
+      }> = [];
+
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream<LanguageModelV4StreamPart>([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ "content": "hi" }' },
+              { type: 'error', error: new Error('mid-stream failure') },
+            ]),
+            warnings: [],
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        onFinish: ({ error, finishReason }) => {
+          onFinishCalls.push({ error, finishReason });
+        },
+      });
+
+      // consume the stream so the error part is processed
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      expect(parts.some(part => part.type === 'error')).toBe(true);
+
+      await expect(result.object).rejects.toThrow('mid-stream failure');
+      await expect(result.usage).rejects.toThrow('mid-stream failure');
+      await expect(result.finishReason).rejects.toThrow('mid-stream failure');
+
+      expect(onFinishCalls).toHaveLength(1);
+      expect(onFinishCalls[0].error).toStrictEqual(
+        new Error('mid-stream failure'),
+      );
+      expect(onFinishCalls[0].finishReason).toBe('error');
+    });
+
+    it('should reject result promises and call onError when the raw stream errors', async () => {
+      const onErrorCalls: Array<{ error: unknown }> = [];
+
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream<LanguageModelV4StreamPart>({
+              start(controller) {
+                controller.error(new Error('stream failure'));
+              },
+            }),
+            warnings: [],
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        onError(event) {
+          onErrorCalls.push(event);
+        },
+      });
+
+      await expect(
+        convertAsyncIterableToArray(result.fullStream),
+      ).rejects.toThrow('stream failure');
+      await expect(result.object).rejects.toThrow('stream failure');
+      await expect(result.usage).rejects.toThrow('stream failure');
+
+      expect(onErrorCalls).toStrictEqual([
+        { error: new Error('stream failure') },
+      ]);
+    });
+  });
+
   describe('output = "object"', () => {
     describe('result.objectStream', () => {
       it('should send object deltas', async () => {

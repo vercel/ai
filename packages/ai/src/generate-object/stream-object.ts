@@ -69,6 +69,16 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
 /**
+ * Awaits a promise and swallows the rejection, preventing unhandled promise
+ * rejections for result promises that were rejected without being accessed.
+ */
+async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
+  try {
+    await promise;
+  } catch {}
+}
+
+/**
  * Callback that is set using the `onError` option.
  *
  * @param event - The event that is passed to the callback.
@@ -529,6 +539,12 @@ class DefaultStreamObjectResult<
 
     const self = this;
 
+    // Error state shared between the event processor and the setup closure
+    // so that an error stream part rejects the result promises and is
+    // reported through onFinish even when the provider closes the stream
+    // normally afterwards.
+    let streamError: unknown | undefined;
+
     const stitchableStream =
       createStitchableStream<ObjectStreamPart<PARTIAL>>();
 
@@ -540,7 +556,9 @@ class DefaultStreamObjectResult<
         controller.enqueue(chunk);
 
         if (chunk.type === 'error') {
-          onError({ error: wrapGatewayError(chunk.error) });
+          streamError = wrapGatewayError(chunk.error);
+          self.rejectResultPromises(streamError);
+          onError({ error: streamError });
         }
       },
     });
@@ -817,13 +835,23 @@ class DefaultStreamObjectResult<
                   totalTokens: NaN,
                 };
 
+                // An error stream part rejects the result promises; report it
+                // through the finish callbacks too instead of reporting a
+                // successful call with NaN usage. A validation error
+                // (TypeValidationError) keeps the model's finish reason.
+                const combinedError = error ?? streamError;
+                const combinedFinishReason =
+                  streamError !== undefined
+                    ? ('error' as const)
+                    : (finishReason ?? 'other');
+
                 await notify({
                   event: {
                     callId,
                     stepNumber: 0 as const,
                     provider: model.provider,
                     modelId: model.modelId,
-                    finishReason: finishReason ?? 'other',
+                    finishReason: combinedFinishReason,
                     usage: finalUsage,
                     objectText: accumulatedText,
                     msToFirstChunk,
@@ -846,9 +874,9 @@ class DefaultStreamObjectResult<
                   event: {
                     callId,
                     object,
-                    error,
+                    error: combinedError,
                     reasoning: undefined,
-                    finishReason: finishReason ?? 'other',
+                    finishReason: combinedFinishReason,
                     usage: finalUsage,
                     warnings,
                     request: request ?? {},
@@ -867,10 +895,22 @@ class DefaultStreamObjectResult<
           }),
         );
 
-      stitchableStream.addStream(transformedStream);
+      stitchableStream.addStream(transformedStream, {
+        onError: error => {
+          // The raw stream rejected without producing an error stream part:
+          // reject the result promises and notify the user callback
+          // consistently with the error-part path.
+          self.rejectResultPromises(error);
+          onError({ error: wrapGatewayError(error) });
+        },
+      });
     })()
       .catch(async error => {
         await telemetryDispatcher.onError?.({ callId, error });
+
+        // doStream failed before any stream was produced: reject the result
+        // promises so awaiting them surfaces the error instead of hanging.
+        self.rejectResultPromises(error);
 
         stitchableStream.addStream(
           new ReadableStream({
@@ -886,6 +926,32 @@ class DefaultStreamObjectResult<
       });
 
     this.outputStrategy = outputStrategy;
+  }
+
+  private rejectResultPromises(error: unknown) {
+    this.rejectResultPromise({ delayedPromise: this._object, error });
+    this.rejectResultPromise({ delayedPromise: this._usage, error });
+    this.rejectResultPromise({
+      delayedPromise: this._providerMetadata,
+      error,
+    });
+    this.rejectResultPromise({ delayedPromise: this._warnings, error });
+    this.rejectResultPromise({ delayedPromise: this._request, error });
+    this.rejectResultPromise({ delayedPromise: this._response, error });
+    this.rejectResultPromise({ delayedPromise: this._finishReason, error });
+  }
+
+  private rejectResultPromise<T>({
+    delayedPromise,
+    error,
+  }: {
+    delayedPromise: DelayedPromise<T>;
+    error: unknown;
+  }) {
+    if (delayedPromise.isPending()) {
+      delayedPromise.reject(error);
+      markPromiseAsHandled(delayedPromise.promise);
+    }
   }
 
   get object() {
