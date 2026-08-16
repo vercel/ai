@@ -21,17 +21,15 @@ describe('stripWorkDir', () => {
     });
   });
 
-  it('strips the prefix from a streamed tool-input delta', () => {
+  it('leaves streamed tool-input deltas alone (the stateful stripper owns them)', () => {
     const part: HarnessV1StreamPart = {
       type: 'tool-input-delta',
       toolCallId: 'c1',
       delta: `{"path":"${WORK_DIR}/src/foo.ts"`,
     };
-    const out = stripWorkDir(part, WORK_DIR) as Extract<
-      HarnessV1StreamPart,
-      { type: 'tool-input-delta' }
-    >;
-    expect(out.delta).toBe('{"path":"src/foo.ts"');
+    // Stripping a fragment here would be wrong, not merely incomplete: a
+    // reference split across two deltas needs state this function cannot hold.
+    expect(stripWorkDir(part, WORK_DIR)).toBe(part);
   });
 
   it('strips every occurrence in free-form tool-result string output', () => {

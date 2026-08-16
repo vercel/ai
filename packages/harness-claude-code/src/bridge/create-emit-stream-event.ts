@@ -53,12 +53,9 @@ type MessageBlock = {
 };
 
 /**
- * A content block the CLI is still streaming, keyed by its block index.
- *
- * `text` and `thinking` blocks carry a generated id (the partial-message
- * events have none); a `tool` block carries the tool-use id the settled
- * `tool_use` block will repeat, so the streamed input and the eventual
- * `tool-call` correlate.
+ * A content block the CLI is still streaming, keyed by block index. `text` and
+ * `thinking` carry a generated id; `tool` carries the tool-use id, so the
+ * streamed input and the eventual `tool-call` correlate.
  */
 type PartialBlock = { id: string; kind: 'text' | 'thinking' | 'tool' };
 
@@ -111,13 +108,9 @@ const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
 export const HARNESS_TOOLS_MCP_PREFIX = 'mcp__harness-tools__';
 
 /**
- * Whether a native name belongs to a user-configured MCP server, which makes
- * its calls `dynamic` on the wire — they are not in the agent's typed tool set.
- * The bridge's own server is excluded: it emits its calls under a synthetic id
- * with the user-facing tool name.
- *
- * The `tool-call` and the streamed `tool-input-start` for one tool must agree
- * on this flag, so both derive it here rather than repeating the rule.
+ * Whether a call is `dynamic` on the wire — a user-configured MCP tool, not in
+ * the agent's typed tool set. A tool's `tool-call`, `tool-input-start` and
+ * `tool-result` must agree on the flag, so all three derive it here.
  */
 export function isExternalMcpTool(nativeName: string): boolean {
   return (
@@ -126,14 +119,10 @@ export function isExternalMcpTool(nativeName: string): boolean {
   );
 }
 
-/** Native tool the CLI uses to return structured output; carried in `finish`. */
-const STRUCTURED_OUTPUT_TOOL_NAME = 'StructuredOutput';
-
 /**
- * Whether a tool call is settled on this wire by a `tool-call` of its own.
- * The bridge swallows the rest — tools on its own MCP server report under a
- * synthetic id, and `StructuredOutput` is folded into the turn result — so a
- * streamed input for one would leave a tool part with nothing to settle it.
+ * Whether a tool call settles on this wire with a `tool-call` of its own. The
+ * ones that do not are swallowed below, so streaming an input for one would
+ * leave a tool part with nothing to settle it.
  */
 function emitsToolCall(nativeName: string): boolean {
   return (
@@ -141,6 +130,8 @@ function emitsToolCall(nativeName: string): boolean {
     nativeName !== STRUCTURED_OUTPUT_TOOL_NAME
   );
 }
+
+const STRUCTURED_OUTPUT_TOOL_NAME = 'StructuredOutput';
 
 export function createEmitStreamEvent({
   state,

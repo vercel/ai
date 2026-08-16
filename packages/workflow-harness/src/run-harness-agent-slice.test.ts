@@ -1,3 +1,4 @@
+import { readUIMessageStream, type UIMessage } from 'ai';
 import { describe, expect, test, vi } from 'vitest';
 import type {
   HarnessV1ContinueTurnState,
@@ -124,6 +125,39 @@ function streamResult(opts: {
     ),
   };
   return { result, closeForSuspend: () => close?.() };
+}
+
+/**
+ * Replay a slice's chunks through the UI reducer, continuing a prior message —
+ * what a `useChat`-style client would end up rendering.
+ */
+async function toUIMessage(
+  chunks: HarnessWorkflowChunk[],
+  previous?: UIMessage,
+): Promise<UIMessage | undefined> {
+  const stream = new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+      controller.close();
+    },
+  });
+
+  let latest = previous;
+  for await (const message of readUIMessageStream({
+    stream: stream as never,
+    ...(previous != null ? { message: previous } : {}),
+  })) {
+    latest = message;
+  }
+  return latest;
+}
+
+function toolParts(
+  message: UIMessage | undefined,
+): Array<{ state?: string; input?: unknown }> {
+  return (message?.parts ?? []).filter(part =>
+    part.type.startsWith('tool-'),
+  ) as Array<{ state?: string; input?: unknown }>;
 }
 
 function collectingWritable(): {
@@ -559,6 +593,7 @@ describe('runHarnessAgentTimeSlice', () => {
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
+        { type: 'start-step' },
         {
           type: 'tool-input-start',
           toolCallId: 'call_1',
@@ -583,19 +618,23 @@ describe('runHarnessAgentTimeSlice', () => {
       }),
     };
 
+    const firstWritable = collectingWritable();
     const readyForNextStep = await runHarnessAgentTimeSlice({
       agent: firstAgent,
       state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
       timeSliceSeconds: 0.05,
-      writable: collectingWritable().writable,
+      writable: firstWritable.writable,
     });
 
-    expect(readyForNextStep.streamContext?.activeToolInputStreams).toEqual({
+    expect(readyForNextStep.streamContext?.activeToolInputs).toEqual({
       call_1: {
-        type: 'tool-input-start',
-        toolCallId: 'call_1',
-        toolName: 'write',
-        providerExecuted: true,
+        start: {
+          type: 'tool-input-start',
+          toolCallId: 'call_1',
+          toolName: 'write',
+          providerExecuted: true,
+        },
+        text: '{"path":',
       },
     });
 
@@ -605,6 +644,7 @@ describe('runHarnessAgentTimeSlice', () => {
       streamResult({
         chunks: [
           { type: 'start' },
+          { type: 'start-step' },
           {
             type: 'tool-input-delta',
             toolCallId: 'call_1',
@@ -638,14 +678,19 @@ describe('runHarnessAgentTimeSlice', () => {
     });
 
     expect(afterSecondSlice.status).toBe('ready_for_next_step');
-    // The replayed start comes first: without it the client rejects a delta
-    // for a tool call it never saw begin.
+    // The replayed start, then the input received so far, then this slice's
+    // own chunks. The re-announced `start-step` is dropped.
     expect(secondWritable.chunks).toEqual([
       {
         type: 'tool-input-start',
         toolCallId: 'call_1',
         toolName: 'write',
         providerExecuted: true,
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'call_1',
+        inputTextDelta: '{"path":',
       },
       {
         type: 'tool-input-delta',
@@ -662,12 +707,37 @@ describe('runHarnessAgentTimeSlice', () => {
     ]);
     // The settled input clears the replay entry, so a later slice does not
     // re-open a tool part that already resolved.
-    expect(
-      afterSecondSlice.streamContext?.activeToolInputStreams,
-    ).toBeUndefined();
+    expect(afterSecondSlice.streamContext?.activeToolInputs).toBeUndefined();
     expect(
       Object.keys(afterSecondSlice.streamContext?.pendingToolInputs ?? {}),
     ).toEqual(['call_1']);
+
+    /*
+     * What the client makes of those chunks, which the assertions above
+     * cannot show. Two things regress silently at the chunk level:
+     *
+     *  - ONE part. `tool-input-*` resolves its part within the current step,
+     *    so a step boundary in the continued slice would open a second part
+     *    and strand the first (#18348, reached from the streaming side).
+     *  - The object CONTINUES. Re-opening resets the incremental parser, so
+     *    without the replayed prefix the second slice parses
+     *    `"app/page.tsx"}` alone and the input collapses to a bare string.
+     */
+    const afterFirstRender = await toUIMessage(firstWritable.chunks);
+    expect(toolParts(afterFirstRender)).toEqual([
+      expect.objectContaining({ state: 'input-streaming' }),
+    ]);
+
+    const afterSecondRender = await toUIMessage(
+      secondWritable.chunks,
+      afterFirstRender,
+    );
+    expect(toolParts(afterSecondRender)).toEqual([
+      expect.objectContaining({
+        state: 'input-available',
+        input: { path: 'app/page.tsx' },
+      }),
+    ]);
   });
 
   test('approval response messages resume through stream messages', async () => {

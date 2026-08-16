@@ -181,9 +181,9 @@ describe('createEmitStreamEvent', () => {
   });
 
   /*
-   * An external MCP tool is `dynamic`, matching its own `tool-call`. A tool on
-   * the bridge's own server never produces a `tool-call` here at all, so
-   * streaming its input would leave a tool part with nothing to settle it.
+   * An external MCP tool is `dynamic`, matching its own `tool-call`. Tools on
+   * the bridge's own server and `StructuredOutput` never produce one here at
+   * all, so streaming their input would leave a part with nothing to settle it.
    */
   it.each([
     {
@@ -201,6 +201,7 @@ describe('createEmitStreamEvent', () => {
       ],
     },
     { name: 'mcp__harness-tools__lookup', expected: [] },
+    { name: 'StructuredOutput', expected: [] },
   ])('streams tool input for $name as expected', ({ name, expected }) => {
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
