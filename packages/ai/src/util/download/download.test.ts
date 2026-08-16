@@ -231,6 +231,36 @@ describe('download', () => {
     );
   });
 
+  it('should forward caller headers to fetch', async () => {
+    const expectedBytes = new Uint8Array([1, 2, 3, 4]);
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        'content-type': 'video/mp4',
+      }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(expectedBytes);
+          controller.close();
+        },
+      }),
+    } as unknown as Response);
+
+    const result = await download({
+      url: new URL('http://example.com/video'),
+      headers: { Authorization: 'Bearer test-token' },
+    });
+
+    expect(result.data).toEqual(expectedBytes);
+
+    const calledInit = (fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0][1] as RequestInit;
+    const calledHeaders = new Headers(calledInit.headers);
+    expect(calledHeaders.get('Authorization')).toBe('Bearer test-token');
+  });
+
   it('should allow inline data URLs', async () => {
     const result = await download({
       url: new URL('data:text/plain;base64,aGVsbG8='),
