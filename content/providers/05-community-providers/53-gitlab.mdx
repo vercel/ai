@@ -1,0 +1,204 @@
+---
+title: GitLab Duo
+description: Learn how to use the GitLab Duo provider for the AI SDK.
+---
+
+# GitLab Duo Provider
+
+[`@gitlab/gitlab-ai-provider`](https://www.npmjs.com/package/@gitlab/gitlab-ai-provider) contains language model support for [GitLab Duo](https://docs.gitlab.com/user/gitlab_duo/). It works with [GitLab.com](https://gitlab.com) and self-hosted GitLab instances, and routes chat through GitLab's AI Gateway.
+
+The package is maintained by GitLab and published under the MIT license.
+
+## Setup
+
+The GitLab Duo provider is available in the `@gitlab/gitlab-ai-provider` module. You can install it with:
+
+<InstallPackages packages="@gitlab/gitlab-ai-provider" />
+
+### Environment variables
+
+Create a `.env` file with a `GITLAB_TOKEN` variable. Use a GitLab [personal access token](https://docs.gitlab.com/user/profile/personal_access_tokens/) or OAuth token. For a self-hosted instance, also set `GITLAB_INSTANCE_URL`.
+
+```bash
+GITLAB_TOKEN=glpat-xxxxxxxxxxxxxxxxxxxx
+GITLAB_INSTANCE_URL=https://gitlab.com
+```
+
+## Provider Instance
+
+You can import the default provider instance `gitlab` from `@gitlab/gitlab-ai-provider`:
+
+```ts
+import { gitlab } from '@gitlab/gitlab-ai-provider';
+```
+
+If you need a customized setup, you can import `createGitLab` from `@gitlab/gitlab-ai-provider` and create a provider instance with your settings:
+
+```ts
+import { createGitLab } from '@gitlab/gitlab-ai-provider';
+
+const gitlab = createGitLab({
+  apiKey: process.env.GITLAB_TOKEN,
+  instanceUrl: 'https://gitlab.com',
+});
+```
+
+You can use the following optional settings to customize the GitLab provider instance:
+
+- **instanceUrl** _string_
+
+  GitLab instance URL. Defaults to the `GITLAB_INSTANCE_URL` environment variable, or `https://gitlab.com`.
+
+- **apiKey** _string_
+
+  Personal access token or OAuth access token sent as the GitLab API credential.
+  It defaults to the `GITLAB_TOKEN` environment variable.
+
+- **refreshToken** _string_
+
+  OAuth refresh token, when using the OAuth flow.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in GitLab API requests.
+
+- **aiGatewayUrl** _string_
+
+  AI Gateway URL used by the Anthropic and OpenAI proxies.
+  Defaults to the `GITLAB_AI_GATEWAY_URL` environment variable, or `https://cloud.gitlab.com`.
+
+- **aiGatewayHeaders** _Record&lt;string,string&gt;_
+
+  Custom headers to include in AI Gateway proxy requests.
+
+- **featureFlags** _Record&lt;string,boolean&gt;_
+
+  Default GitLab feature flags for agentic chat models.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+
+## Language Models
+
+You can create a chat model with a registered model ID such as `duo-chat-sonnet-4-5`:
+
+```ts
+import { gitlab } from '@gitlab/gitlab-ai-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: gitlab.chat('duo-chat-sonnet-4-5'),
+  prompt: 'Explain how to create a merge request in GitLab',
+});
+```
+
+`gitlab('duo-chat-sonnet-4-5')`, `gitlab.chat('duo-chat-sonnet-4-5')`, and `gitlab.languageModel('duo-chat-sonnet-4-5')` are equivalent.
+
+### Agentic chat
+
+Use `gitlab.agenticChat()` for native tool calling. Requests go through GitLab's Anthropic or OpenAI proxy depending on the model ID:
+
+```ts
+import { createGitLab } from '@gitlab/gitlab-ai-provider';
+import { generateText } from 'ai';
+
+const gitlab = createGitLab({
+  apiKey: process.env.GITLAB_TOKEN,
+});
+
+const { text } = await generateText({
+  model: gitlab.agenticChat('duo-chat-sonnet-4-5'),
+  prompt: 'List open merge requests in this project',
+});
+```
+
+Some model IDs map to a backend model automatically:
+
+| Model ID                 | Provider  | Backend Model                |
+| ------------------------ | --------- | ---------------------------- |
+| `duo-chat-opus-4-5`      | Anthropic | `claude-opus-4-5-20251101`   |
+| `duo-chat-sonnet-4-5`    | Anthropic | `claude-sonnet-4-5-20250929` |
+| `duo-chat-haiku-4-5`     | Anthropic | `claude-haiku-4-5-20251001`  |
+| `duo-chat-gpt-5-1`       | OpenAI    | `gpt-5.1-2025-11-13`         |
+| `duo-chat-gpt-5-mini`    | OpenAI    | `gpt-5-mini-2025-08-07`      |
+| `duo-chat-gpt-5-codex`   | OpenAI    | `gpt-5-codex`                |
+| `duo-chat-gpt-5-2-codex` | OpenAI    | `gpt-5.2-codex`              |
+
+You can override the mapped backend model with `providerModel` when the override belongs to the same provider as the model ID.
+
+```ts
+const model = gitlab.agenticChat('duo-chat-opus-4-5', {
+  providerModel: 'claude-sonnet-4-5-20250929',
+  maxTokens: 8192,
+});
+```
+
+GitLab updates available Duo models over time. See the [package README](https://gitlab.com/gitlab-org/editor-extensions/gitlab-ai-provider) for the current mappings.
+
+## Examples
+
+### `generateText`
+
+```ts
+import { createGitLab } from '@gitlab/gitlab-ai-provider';
+import { generateText } from 'ai';
+
+const gitlab = createGitLab({
+  apiKey: process.env.GITLAB_TOKEN,
+});
+
+const { text } = await generateText({
+  model: gitlab.chat('duo-chat-sonnet-4-5'),
+  prompt: 'What is a GitLab CI job?',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```ts
+import { createGitLab } from '@gitlab/gitlab-ai-provider';
+import { streamText } from 'ai';
+
+const gitlab = createGitLab({
+  apiKey: process.env.GITLAB_TOKEN,
+});
+
+const result = streamText({
+  model: gitlab.agenticChat('duo-chat-sonnet-4-5'),
+  prompt: 'Write a short GitLab CI job that runs tests.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Self-Hosted GitLab
+
+Point `instanceUrl` at your GitLab instance. Duo features depend on what that instance has enabled.
+
+```ts
+import { createGitLab } from '@gitlab/gitlab-ai-provider';
+
+const gitlab = createGitLab({
+  apiKey: process.env.GITLAB_TOKEN,
+  instanceUrl: 'https://gitlab.example.com',
+});
+```
+
+## Duo Workflow Service
+
+`gitlab.workflowChat()` starts a server-side agentic loop through GitLab Duo Workflow Service. GitLab drives the model and streams tool requests to the client over a WebSocket.
+
+This path requires GitLab Ultimate with the Duo Enterprise add-on, and GitLab 18.4 or later (18.5 or later for pinned models). See the [package README](https://gitlab.com/gitlab-org/editor-extensions/gitlab-ai-provider) for workflow options, MCP tools, and model discovery.
+
+## Additional Resources
+
+- [GitLab Duo documentation](https://docs.gitlab.com/user/gitlab_duo/)
+- [GitLab AI provider repository](https://gitlab.com/gitlab-org/editor-extensions/gitlab-ai-provider)
+- [GitLab AI provider on npm](https://www.npmjs.com/package/@gitlab/gitlab-ai-provider)
+- [Personal access tokens](https://docs.gitlab.com/user/profile/personal_access_tokens/)
