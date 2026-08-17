@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18970,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18970.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18970.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18970_REPRODUCED: programmatic approval threw AI_MissingToolResultsError instead of returning a tool-approval-request"
+  }
+}

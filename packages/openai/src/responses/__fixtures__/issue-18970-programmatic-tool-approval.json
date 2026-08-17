@@ -1,0 +1,46 @@
+{
+  "id": "resp_008696447366afe0016a8328df782c81a1acefaaa702c3b367",
+  "created_at": 1786980575,
+  "model": "gpt-5.6-terra",
+  "output": [
+    {
+      "id": "rs_008696447366afe0016a8328e00d8c81a18213decb8f03a3b1",
+      "type": "reasoning",
+      "encrypted_content": null,
+      "summary": []
+    },
+    {
+      "id": "cm_008696447366afe0016a8328e0826c81a1a3c87a234d27766b",
+      "type": "program",
+      "call_id": "call_aPoalHYjaYLVzLZd2qaHPSW5",
+      "code": "const { totalHours } = await tools.getTotalHours({ teamId: \"alpha\" });\ntext(totalHours);",
+      "fingerprint": "gAAAAABqgyjgCbslePcEj_n7_JMYtzo0sWjbmpvD0LXGX47L5ZfaIzSum_X-JFv6ez1VbnwQ1Aj9pgkKbwvCPZzE6QJYNAed3tOrxYxQG6EaaNpNnxO4U-YuQe-3xfJYGzd4GNXvVa3Vw6A_eo59qRvEN7d5oce3kAD3CYVyKzefY7PEKPSpmRwe_WYW9IySql7u-yNc_mlwHx4TPaOIzhH4KcbRW-glvJHcDoDTdm4v5PEcnqOuudZvYvbVrd7s4m-tQkIH9CvosGTc63HH7nsdVPE8ykwVT7W_haNdbc7bJULuqcUJmrMi_74pwuN00ALgnlpmqOZFMKX6yfMpcuogsPrvX_bzAw=="
+    },
+    {
+      "id": "fc_008696447366afe0016a8328e0898c81a18d6387da554a02d1",
+      "type": "function_call",
+      "call_id": "call_Ue01MjMqzUsiiMq9qBjonoJQ",
+      "name": "getTotalHours",
+      "arguments": "{\"teamId\":\"alpha\"}",
+      "caller": {
+        "type": "program",
+        "caller_id": "call_aPoalHYjaYLVzLZd2qaHPSW5"
+      }
+    }
+  ],
+  "reasoning": {
+    "context": "all_turns"
+  },
+  "service_tier": "default",
+  "usage": {
+    "input_tokens": 583,
+    "input_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0
+    },
+    "output_tokens": 57,
+    "output_tokens_details": {
+      "reasoning_tokens": 22
+    }
+  }
+}

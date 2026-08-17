@@ -10141,6 +10141,57 @@ describe('OpenAIResponsesLanguageModel', () => {
       },
     ];
 
+    it('should map the live pending program and client tool call from issue #18970', async () => {
+      prepareJsonFixtureResponse('issue-18970-programmatic-tool-approval');
+
+      const result = await createModel('gpt-5.6-terra').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'getTotalHours',
+            inputSchema: {
+              type: 'object',
+              properties: { teamId: { type: 'string' } },
+              required: ['teamId'],
+            },
+          },
+        ],
+      });
+
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_aPoalHYjaYLVzLZd2qaHPSW5',
+            toolName: 'program',
+            providerExecuted: true,
+          }),
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_Ue01MjMqzUsiiMq9qBjonoJQ',
+            toolName: 'getTotalHours',
+            input: '{"teamId":"alpha"}',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_008696447366afe0016a8328e0898c81a18d6387da554a02d1',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_aPoalHYjaYLVzLZd2qaHPSW5',
+                },
+              },
+            },
+          }),
+        ]),
+      );
+    });
+
     it('should map programmatic tool calling across generate steps from real fixtures', async () => {
       const content: LanguageModelV4Content[] = [];
 
