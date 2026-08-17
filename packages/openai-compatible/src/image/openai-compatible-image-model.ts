@@ -203,16 +203,11 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
 }
 
 // minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency.
-// Loose so provider-specific fields reach providerMetadata instead of being stripped.
+// this approach limits breakages when the API changes and increases efficiency
 const openaiCompatibleImageResponseSchema = z.looseObject({
   data: z.array(z.looseObject({ b64_json: z.string() })),
 });
 
-/**
- * Fields alongside `data` become siblings of `images`, and fields alongside
- * `b64_json` become per-image entries in `images`.
- */
 function getProviderMetadata(
   providerOptionsKey: string,
   response: z.infer<typeof openaiCompatibleImageResponseSchema>,
