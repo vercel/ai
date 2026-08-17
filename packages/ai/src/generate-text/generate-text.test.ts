@@ -10374,6 +10374,75 @@ describe('generateText', () => {
     });
   });
 
+  describe('deferred provider tools with unresolved client approvals', () => {
+    it('should not continue to another model call while client approval is pending', async () => {
+      let modelCallCount = 0;
+      const executeClientTool = vi.fn(async () => 'result');
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            modelCallCount++;
+
+            if (modelCallCount > 1) {
+              throw new Error('unexpected second model call');
+            }
+
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'deferred-call-1',
+                  toolName: 'deferred_tool',
+                  input: '{}',
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'client-call-1',
+                  toolName: 'client_tool',
+                  input: '{"value":"test"}',
+                },
+              ],
+              finishReason: { unified: 'tool-calls', raw: undefined },
+            };
+          },
+        }),
+        tools: {
+          deferred_tool: {
+            type: 'provider',
+            isProviderExecuted: true,
+            id: 'test.deferred_tool',
+            inputSchema: z.object({}),
+            outputSchema: z.object({ value: z.string() }),
+            args: {},
+            supportsDeferredResults: true,
+          },
+          client_tool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            needsApproval: true,
+            execute: executeClientTool,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+      });
+
+      expect(modelCallCount).toBe(1);
+      expect(result.steps).toHaveLength(1);
+      expect(
+        result.content.some(
+          part =>
+            part.type === 'tool-approval-request' &&
+            part.toolCall.toolName === 'client_tool',
+        ),
+      ).toBe(true);
+      expect(executeClientTool).not.toHaveBeenCalled();
+    });
+  });
+
   describe('logWarnings', () => {
     it('should call logWarnings with warnings from a single step', async () => {
       const expectedWarnings = [

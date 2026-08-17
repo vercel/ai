@@ -2421,10 +2421,17 @@ class DefaultStreamTextResult<
                   // Clear this step's timeouts before the next step is started.
                   cleanupStepTimeouts();
 
+                  const hasUnresolvedClientToolCalls =
+                    clientToolCalls.length > 0 &&
+                    clientToolOutputs.length +
+                      deniedToolApprovalResponses.length !==
+                      clientToolCalls.length;
+
                   if (
-                    // Continue if:
-                    // 1. There are client tool calls that have all been executed or denied, OR
-                    // 2. There are pending deferred results from provider-executed tools, OR
+                    // Continue only when there are no unresolved client tool calls and:
+                    // 1. client tool calls have all been executed or denied, OR
+                    // 2. there are pending deferred results from provider-executed tools
+                    !hasUnresolvedClientToolCalls &&
                     ((clientToolCalls.length > 0 &&
                       clientToolCalls.length ===
                         clientToolOutputs.length +

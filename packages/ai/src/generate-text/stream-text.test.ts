@@ -26120,6 +26120,88 @@ describe('streamText', () => {
     });
   });
 
+  describe('deferred provider tools with unresolved client approvals', () => {
+    it('should not continue to another model call while client approval is pending', async () => {
+      let modelCallCount = 0;
+      const executeClientTool = vi.fn(async () => 'result');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            modelCallCount++;
+
+            if (modelCallCount > 1) {
+              throw new Error('unexpected second model call');
+            }
+
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata',
+                  id: 'msg-1',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'deferred-call-1',
+                  toolName: 'deferred_tool',
+                  input: '{}',
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'client-call-1',
+                  toolName: 'client_tool',
+                  input: '{"value":"test"}',
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                  usage: testUsage,
+                },
+              ]),
+              response: {},
+            };
+          },
+        }),
+        tools: {
+          deferred_tool: {
+            type: 'provider',
+            isProviderExecuted: true,
+            id: 'test.deferred_tool',
+            inputSchema: z.object({}),
+            outputSchema: z.object({ value: z.string() }),
+            args: {},
+            supportsDeferredResults: true,
+          },
+          client_tool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            needsApproval: true,
+            execute: executeClientTool,
+          }),
+        },
+        ...defaultSettings(),
+        stopWhen: isStepCount(3),
+      });
+
+      const fullStream = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(modelCallCount).toBe(1);
+      expect(await result.steps).toHaveLength(1);
+      expect(
+        fullStream.some(
+          part =>
+            part.type === 'tool-approval-request' &&
+            part.toolCall.toolName === 'client_tool',
+        ),
+      ).toBe(true);
+      expect(fullStream.some(part => part.type === 'error')).toBe(false);
+      expect(executeClientTool).not.toHaveBeenCalled();
+    });
+  });
+
   describe('logWarnings', () => {
     it('should call logWarnings with warnings from a single step', async () => {
       const expectedWarnings = [

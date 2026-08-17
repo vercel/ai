@@ -834,6 +834,7 @@ export async function generateText<
         ...initialMessages,
         ...initialResponseMessages,
       ];
+      let hasUnresolvedClientToolCalls = false;
 
       // Track provider-executed tool calls that support deferred results
       // (e.g., code_execution in programmatic tool calling scenarios).
@@ -1431,10 +1432,15 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
+        hasUnresolvedClientToolCalls =
+          clientToolCalls.length > 0 &&
+          clientToolOutputs.length + deniedToolApprovalResponses.length !==
+            clientToolCalls.length;
       } while (
-        // Continue if:
-        // 1. There are client tool calls that have all been executed or denied, OR
-        // 2. There are pending deferred results from provider-executed tools
+        // Continue only when there are no unresolved client tool calls and:
+        // 1. client tool calls have all been executed or denied, OR
+        // 2. there are pending deferred results from provider-executed tools
+        !hasUnresolvedClientToolCalls &&
         ((clientToolCalls.length > 0 &&
           clientToolOutputs.length + deniedToolApprovalResponses.length ===
             clientToolCalls.length) ||
