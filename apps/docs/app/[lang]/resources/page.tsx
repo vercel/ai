@@ -1,5 +1,6 @@
 import { ArrowUpRight, Box, Code, Sparkles, Star } from 'lucide-react';
 import type { Metadata } from 'next';
+import { socialCard } from '@/lib/og';
 import Link from 'next/link';
 import { getRecipes } from '@/lib/recipes';
 import { showcaseProjects } from '@/lib/showcase';
@@ -9,6 +10,10 @@ export const metadata: Metadata = {
   title: 'AI SDK Resources',
   description:
     'Explore AI SDK recipes, tools, templates, and products from Vercel and the community.',
+  ...socialCard(
+    'AI SDK Resources',
+    'Explore AI SDK recipes, tools, templates, and products from Vercel and the community.',
+  ),
 };
 
 const templateGroups = [

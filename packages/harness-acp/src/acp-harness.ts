@@ -33,10 +33,14 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly executable: ACPV1Settings['executable'];
   readonly args?: ACPV1Settings['args'];
   readonly forwardEnv?: ACPV1Settings['forwardEnv'];
+  readonly credentialEnv?: ACPV1Settings['credentialEnv'];
+  readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
   readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
   readonly modelId?: ACPV1Settings['modelId'];
+  readonly instructionMapping?: ACPV1Settings['instructionMapping'];
+  readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
   readonly mintBridgeToken?: ACPV1Settings['mintBridgeToken'];
@@ -93,6 +97,14 @@ const acpResumeStateSchema = z.object({
 export function createACP<TBuiltinTools extends ToolSet = {}>(
   settings: ACPHarnessSettings<TBuiltinTools>,
 ): HarnessV1<TBuiltinTools> {
+  if (
+    (settings.credentialEnv == null) !==
+    (settings.credentialBrokering == null)
+  ) {
+    throw new Error(
+      'ACP credentialEnv and credentialBrokering must be configured together.',
+    );
+  }
   if (
     settings.mcpServers != null &&
     Object.prototype.hasOwnProperty.call(

@@ -65,7 +65,13 @@ try {
 - `source`: where the ACP package comes from, as a simple or locked NPM source.
 - `executable`: the package bin name to launch.
 - `args`: optional arguments passed to the executable.
-- `forwardEnv`: host environment variable names to forward into the sandbox.
+- `forwardEnv`: non-credential host environment variable names to forward into
+  the sandbox.
+- `credentialEnv`: host credential environment variable names. Configure this
+  together with `credentialBrokering`.
+- `credentialBrokering`: function that receives the effective runtime
+  environment and returns additive outbound request transformations containing
+  the real credential values.
 - `env`: persistent environment values written at bootstrap.
 - `builtinTools`: optional native tool definitions for static typing and exact
   name matching.
@@ -82,6 +88,15 @@ try {
     unavailable. This requires `providerAuthentication` configuration.
 - `providerAuthentication`: declarative runtime-specific Gateway environment.
 - `modelId`: a known implementation model identifier for Harness metadata.
+- `instructionMapping`: optional mapping from `HarnessAgent` instructions to
+  an implementation's native system or developer prompt. Use `session-meta`
+  for a path below the ACP session request's `_meta` field, or
+  `launch-env-json` for a path within a JSON launch environment variable. When
+  omitted, instructions are prepended to the first user prompt.
+- `outputSchemaMapping`: optional implementation-specific mapping from a
+  structured output JSON Schema to a path below the ACP `session/prompt`
+  request's `_meta` field. ACP does not standardize structured output, so omit
+  this unless the selected implementation documents that private extension.
 - `permissionModeMapping`: mappings from all three Harness permission modes to
   advertised ACP session modes or configuration options. Set an entry to
   `null` when the ACP implementation does not support that mode. When omitted,
@@ -100,6 +115,32 @@ try {
 
 Runtime-specific package names, environment variables, modes, and session
 metadata belong in the inline profile, not in the generic adapter.
+
+## Structured Output
+
+ACP version 1 does not define a structured output capability. Profiles for
+implementations with a private prompt metadata extension can opt in explicitly:
+
+```ts
+const harness = createACP({
+  harnessId: 'example-acp',
+  source: {
+    type: 'npm-simple',
+    packageName: '@example/acp-agent',
+  },
+  executable: 'example-acp',
+  outputSchemaMapping: {
+    type: 'session-prompt-meta',
+    path: ['outputSchema'],
+  },
+});
+```
+
+For a `HarnessAgent` configured with `output`, this writes the generated JSON
+Schema to `session/prompt.params._meta.outputSchema`. A profile without this
+mapping throws `HarnessCapabilityUnsupportedError` instead of assuming that an
+arbitrary ACP implementation understands the schema; Codex ACP is unsupported,
+while the Grok Build harness includes its verified mapping.
 
 ### Package source
 
@@ -148,11 +189,14 @@ With the default `auth: 'auto'`, the adapter uses AI Gateway when
 `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` is available and otherwise uses
 direct authentication.
 
-For direct authentication, configure `forwardEnv` with the host
-environment variable names that the underlying ACP implementation reads. These
-variables are allowlisted and forwarded unchanged to the ACP process. Their
-names depend on the ACP implementation. Credential values are resolved at
-runtime and are not stored in the profile.
+For direct authentication, configure `credentialEnv` with the host environment
+variable names that the underlying ACP implementation reads, and use
+`credentialBrokering` to map their values to outbound request headers. When the
+network sandbox supports additive request transformations, the ACP process sees
+only same-name placeholders and the real values are injected after requests
+leave the sandbox. Sandboxes without that capability retain the legacy behavior
+of forwarding the real values. Use `forwardEnv` only for non-credential runtime
+configuration.
 
 ### Gateway environment
 
@@ -164,7 +208,9 @@ attribution. Profile values such as `gateway-api-key`, `gateway-base-url`,
 Gateway authentication has been selected. The three client-app placeholders
 resolve to the combined `name/version` identifier, its name, and its version,
 respectively. Structured launch environment values are serialized as JSON after
-their placeholders are resolved.
+their placeholders are resolved. The resolved Gateway environment overrides
+same-name direct values in the environment passed to `credentialBrokering`, so
+one callback works for both authentication modes.
 
 ## Sandbox
 
@@ -220,6 +266,7 @@ This profile uses the runtime's supported launch environment:
 
 ```ts
 import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 
 export const claudeCodeACPHarness = createACP({
   harnessId: 'acp-claude-code',
@@ -232,9 +279,32 @@ export const claudeCodeACPHarness = createACP({
     packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
-  forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
+  credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
+  credentialBrokering: ({ env }) => {
+    const apiKey = env.ANTHROPIC_API_KEY;
+    const authToken = env.ANTHROPIC_AUTH_TOKEN;
+    if (!apiKey && !authToken) return [];
+
+    const headers: Record<string, string> = {};
+    if (apiKey) {
+      headers['x-api-key'] = apiKey;
+    }
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+    return [
+      createCredentialRequestTransformation({
+        baseUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+        headers,
+      }),
+    ];
+  },
   env: {
     IS_SANDBOX: '1',
+  },
+  instructionMapping: {
+    type: 'session-meta',
+    path: ['systemPrompt', 'append'],
   },
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'default' },
@@ -267,6 +337,8 @@ environment. Its OpenAI-compatible endpoint must end in `/v1`:
 
 ```ts
 import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 export const codexACPHarness = createACP({
   harnessId: 'acp-codex',
@@ -279,7 +351,33 @@ export const codexACPHarness = createACP({
     packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
-  forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  forwardEnv: ['CODEX_CONFIG'],
+  credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  credentialBrokering: ({ env }) => {
+    const credential = env.CODEX_API_KEY ?? env.OPENAI_API_KEY;
+    if (!credential) return [];
+    const config =
+      env.CODEX_CONFIG == null
+        ? undefined
+        : (secureJsonParse(env.CODEX_CONFIG) as {
+            model_provider?: string;
+            model_providers?: Record<string, { base_url?: string }>;
+          });
+    const baseUrl =
+      config?.model_providers?.[config.model_provider ?? '']?.base_url ??
+      'https://api.openai.com/v1';
+    return [
+      createCredentialRequestTransformation({
+        baseUrl,
+        headers: { Authorization: `Bearer ${credential}` },
+      }),
+    ];
+  },
+  instructionMapping: {
+    type: 'launch-env-json',
+    variable: 'CODEX_CONFIG',
+    path: ['developer_instructions'],
+  },
   permissionModeMapping: {
     'allow-reads': null,
     'allow-edits': null,
@@ -340,6 +438,7 @@ advertise ACP session modes for its permission behavior, so this profile omits
 
 ```ts
 import { createACP } from '@ai-sdk/harness-acp';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 
 export const grokBuildACPHarness = createACP({
   harnessId: 'acp-grok-build',
@@ -353,7 +452,20 @@ export const grokBuildACPHarness = createACP({
   },
   executable: 'grok',
   args: ['agent', 'stdio'],
-  forwardEnv: ['XAI_API_KEY'],
+  credentialEnv: ['XAI_API_KEY'],
+  credentialBrokering: ({ env }) => {
+    if (!env.XAI_API_KEY) return [];
+    return [
+      createCredentialRequestTransformation({
+        baseUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
+        headers: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+      }),
+    ];
+  },
+  instructionMapping: {
+    type: 'session-meta',
+    path: ['rules'],
+  },
   providerAuthentication: {
     gateway: {
       env: {

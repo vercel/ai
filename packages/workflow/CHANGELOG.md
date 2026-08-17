@@ -1,5 +1,69 @@
 # @ai-sdk/workflow
 
+## 1.0.67
+
+### Patch Changes
+
+- e3325bd: Fix `WorkflowAgent` timeout handling by enforcing absolute deadlines inside durable model-call steps and routing timeouts through abort handling.
+
+## 1.0.66
+
+### Patch Changes
+
+- c661693: Fix the Workflow integration test harness by aligning `@workflow/vitest` with the installed Workflow runtime.
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 1.0.64
+
+### Patch Changes
+
+- ai@7.0.64
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 1.0.62
+
+### Patch Changes
+
+- 419adc7: Honor `maxRetries` and `abortSignal` overrides returned from `prepareCall`.
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
+## 1.0.61
+
+### Patch Changes
+
+- db6e0a5: Forward structured output response formats from `WorkflowAgent.stream()` to model stream calls.
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+- Updated dependencies [7fbfc6d]
+  - ai@7.0.61
+  - @ai-sdk/provider-utils@5.0.27
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
 ## 1.0.59
 
 ### Patch Changes

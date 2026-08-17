@@ -1,7 +1,7 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 

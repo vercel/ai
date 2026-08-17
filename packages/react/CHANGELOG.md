@@ -1,5 +1,67 @@
 # @ai-sdk/react
 
+## 4.0.69
+
+### Patch Changes
+
+- d427e3a: Preserve the generated `useObject` value when the API URL changes.
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+- Updated dependencies [1011e33]
+  - ai@7.0.66
+  - @ai-sdk/mcp@2.0.32
+
+## 4.0.68
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 4.0.67
+
+### Patch Changes
+
+- 097b552: Avoid repeatedly deep-cloning accumulated message payloads during chat streaming.
+  - ai@7.0.64
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 4.0.65
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
+## 4.0.64
+
+### Patch Changes
+
+- 8b30ab5: Reset the useCompletion input after submitting a prompt.
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+- Updated dependencies [7fbfc6d]
+  - ai@7.0.61
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/mcp@2.0.31
+
+## 4.0.63
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
 ## 4.0.62
 
 ### Patch Changes

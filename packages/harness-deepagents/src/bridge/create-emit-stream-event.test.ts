@@ -139,6 +139,63 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('emits reasoning from Anthropic and normalized LangChain blocks', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(),
+      mcpToolNames: new Set(),
+      emit: event => emitted.push(event),
+    });
+
+    emitStreamEvent({ event: 'on_chat_model_start' });
+    emitStreamEvent({
+      event: 'on_chat_model_stream',
+      data: {
+        chunk: {
+          content: [{ type: 'thinking', thinking: 'First' }],
+        },
+      },
+    });
+    emitStreamEvent({
+      event: 'on_chat_model_stream',
+      data: {
+        chunk: {
+          content: [{ type: 'reasoning-delta', reasoning: ' second' }],
+        },
+      },
+    });
+    emitStreamEvent({ event: 'on_chat_model_end' });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+        },
+        {
+          "id": "reasoning-uuid",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "First",
+          "id": "reasoning-uuid",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " second",
+          "id": "reasoning-uuid",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "reasoning-uuid",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+  });
+
   it('marks only external MCP tools as dynamic', () => {
     const state = createDeepAgentsStreamEventState();
     const emitted: Record<string, unknown>[] = [];
@@ -189,5 +246,33 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it('does not expose the internal structured output tool', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(),
+      mcpToolNames: new Set(),
+      structuredOutputToolNames: new Set(['StructuredOutput']),
+      emit: event => emitted.push(event),
+    });
+
+    emitStreamEvent({
+      event: 'on_tool_start',
+      name: 'StructuredOutput',
+      run_id: 'structured-output',
+      data: { input: { answer: 'yes' } },
+    });
+    emitStreamEvent({
+      event: 'on_tool_end',
+      name: 'StructuredOutput',
+      run_id: 'structured-output',
+      data: { output: { answer: 'yes' } },
+    });
+
+    expect(emitted).toEqual([]);
   });
 });

@@ -12,7 +12,10 @@ import {
 } from '@ai-sdk/harness';
 import { z } from 'zod/v4';
 import type { ACPToolCall } from '../acp-tool-call';
-import type { ACPPermissionModeMapping } from './acp-v1-settings';
+import type {
+  ACPInstructionMapping,
+  ACPPermissionModeMapping,
+} from './acp-v1-settings';
 import { acpTextContentBlockSchema } from './acp-v1-prompt';
 
 export type ACPBuiltinToolMapping = {
@@ -82,6 +85,32 @@ const permissionModeMappingSchema: z.ZodType<ACPPermissionModeMapping> =
     'allow-all': permissionModeTargetSchema.nullable(),
   });
 
+const instructionMappingPathSchema = z.array(z.string().min(1)).min(1);
+
+const instructionMappingSchema: z.ZodType<ACPInstructionMapping> =
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('session-meta'),
+      path: instructionMappingPathSchema,
+    }),
+    z.object({
+      type: z.literal('launch-env-json'),
+      variable: z.string().min(1),
+      path: instructionMappingPathSchema,
+    }),
+  ]);
+
+type ACPSerializableOutputSchemaMapping = {
+  readonly type: 'session-prompt-meta';
+  readonly path: string[];
+};
+
+const outputSchemaMappingSchema: z.ZodType<ACPSerializableOutputSchemaMapping> =
+  z.object({
+    type: z.literal('session-prompt-meta'),
+    path: z.array(z.string().min(1)).min(1),
+  });
+
 export type ACPTurnStartConfig = {
   readonly version: 1;
   readonly configurationFingerprint: string;
@@ -91,6 +120,10 @@ export type ACPTurnStartConfig = {
   readonly permissionMode: HarnessV1PermissionMode;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
   readonly debug?: HarnessV1DebugConfig;
+  readonly responseFormat?: z.infer<
+    typeof harnessV1BridgeStartBaseSchema
+  >['responseFormat'];
+  readonly outputSchemaMapping?: ACPSerializableOutputSchemaMapping;
 };
 
 export const acpTurnStartConfigSchema = z.object({
@@ -102,6 +135,9 @@ export const acpTurnStartConfigSchema = z.object({
   permissionMode: harnessV1BridgeStartBaseSchema.shape.permissionMode.unwrap(),
   permissionModeMapping: permissionModeMappingSchema.optional(),
   debug: harnessV1BridgeStartBaseSchema.shape.debug.optional(),
+  responseFormat:
+    harnessV1BridgeStartBaseSchema.shape.responseFormat.optional(),
+  outputSchemaMapping: outputSchemaMappingSchema.optional(),
 }) satisfies z.ZodType<ACPTurnStartConfig>;
 
 export type ACPColdSessionState = Omit<
@@ -146,6 +182,9 @@ export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: z.array(acpTextContentBlockSchema),
+  instructions: z.string().optional(),
+  instructionMapping: instructionMappingSchema.optional(),
+  outputSchemaMapping: outputSchemaMappingSchema.optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
   tools: z.array(acpSerializableToolSpecSchema).optional(),
   builtinTools: z.array(builtinToolSchema).readonly().default([]),

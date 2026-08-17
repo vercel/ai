@@ -15,6 +15,7 @@ import {
   type ClientConfig,
 } from '@langchain/mcp-adapters';
 import { createDeepAgent } from 'deepagents';
+import { createMiddleware, toolStrategy } from 'langchain';
 import type { StartMessage } from '../deepagents-bridge-protocol';
 import { buildInterruptOn, collectActionRequests } from './approvals';
 import {
@@ -49,12 +50,22 @@ function parseArgs(rawArgs: string[]): Record<string, string> {
 
 // Always drive the Anthropic client. Through the gateway, models keep their
 // `creator/model` slug (gateway translates); direct Anthropic wants the bare id.
-function buildModel(rawModel: string | undefined) {
+function buildModel({
+  rawModel,
+  thinking,
+  effort,
+}: {
+  rawModel: string | undefined;
+  thinking: StartMessage['thinking'];
+  effort: StartMessage['effort'];
+}) {
   if (!rawModel) return undefined;
   const baseUrl = procEnv.ANTHROPIC_BASE_URL;
   const model = baseUrl ? rawModel : rawModel.replace(/^anthropic[/:]/, '');
   return new ChatAnthropic({
     model,
+    ...(thinking ? { thinking } : {}),
+    ...(effort ? { outputConfig: { effort } } : {}),
     ...(procEnv.ANTHROPIC_API_KEY ? { apiKey: procEnv.ANTHROPIC_API_KEY } : {}),
     ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}),
     ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
@@ -67,6 +78,42 @@ function buildModel(rawModel: string | undefined) {
           },
         }
       : {}),
+  });
+}
+
+function createReasoningMiddleware({
+  thinking,
+  effort,
+}: {
+  thinking: StartMessage['thinking'];
+  effort: StartMessage['effort'];
+}) {
+  if (!thinking && !effort) return undefined;
+
+  return createMiddleware({
+    name: 'harnessReasoning',
+    wrapModelCall: async (request, handler) => {
+      let model = request.model;
+      if (
+        '_getModelInstance' in model &&
+        typeof model._getModelInstance === 'function'
+      ) {
+        model = await model._getModelInstance();
+      }
+
+      if (!(model instanceof ChatAnthropic)) {
+        throw new Error('Deep Agents reasoning requires ChatAnthropic');
+      }
+
+      const configuredModel = buildModel({
+        rawModel: model.model,
+        thinking,
+        effort,
+      });
+      if (!configuredModel) throw new Error('Deep Agents model is missing');
+
+      return handler({ ...request, model: configuredModel });
+    },
   });
 }
 
@@ -84,6 +131,30 @@ let agent: ReturnType<typeof createDeepAgent> | undefined;
 let currentTurn: BridgeTurn | undefined;
 let mcpClient: MultiServerMCPClient | undefined;
 let mcpToolNames = new Set<string>();
+let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
+
+type DeepAgentsJsonSchema = Record<string, unknown> & {
+  type:
+    | 'null'
+    | 'boolean'
+    | 'object'
+    | 'array'
+    | 'number'
+    | 'string'
+    | 'integer';
+};
+
+const responseFormatMiddleware = createMiddleware({
+  name: 'HarnessResponseFormat',
+  wrapModelCall(request, handler) {
+    return handler({
+      ...request,
+      ...(currentResponseFormat == null
+        ? {}
+        : { responseFormat: currentResponseFormat }),
+    });
+  },
+});
 
 // Host tools become LangChain tools that emit a `tool-call` and block on the host's `tool-result`.
 function buildHostTools(toolSchemas: StartMessage['tools']) {
@@ -114,6 +185,10 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   currentTurn = turn;
+  currentResponseFormat =
+    start.responseFormat?.type === 'json' && start.responseFormat.schema != null
+      ? toolStrategy(start.responseFormat.schema as DeepAgentsJsonSchema)
+      : undefined;
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
@@ -122,7 +197,17 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     start.builtinToolFiltering,
   );
   if (!agent) {
-    const model = buildModel(start.model);
+    const model = buildModel({
+      rawModel: start.model,
+      thinking: start.thinking,
+      effort: start.effort,
+    });
+    const reasoningMiddleware = model
+      ? undefined
+      : createReasoningMiddleware({
+          thinking: start.thinking,
+          effort: start.effort,
+        });
     const builtinToolFilteringMiddleware = createBuiltinToolFilteringMiddleware(
       {
         builtinToolFiltering: start.builtinToolFiltering,
@@ -133,6 +218,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         },
       },
     );
+    const middleware = [
+      responseFormatMiddleware,
+      ...(reasoningMiddleware ? [reasoningMiddleware] : []),
+      ...(builtinToolFilteringMiddleware
+        ? [builtinToolFilteringMiddleware]
+        : []),
+    ];
     const hostTools = buildHostTools(start.tools);
     const hostToolNames = new Set(hostTools.map(hostTool => hostTool.name));
     const externalTools = await loadMcpTools({
@@ -147,12 +239,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(model ? { model } : {}),
       tools: [...mcpTools, ...hostTools],
       backend: createLocalShellBackend({ rootDir: workdir }),
-      systemPrompt: start.instructions || undefined,
+      systemPrompt: start.instructions
+        ? { suffix: start.instructions }
+        : undefined,
       // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
       ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
-      ...(builtinToolFilteringMiddleware
-        ? { middleware: [builtinToolFilteringMiddleware] }
-        : {}),
+      ...(middleware.length > 0 ? { middleware } : {}),
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),
       // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.
@@ -167,6 +259,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     configuredModel: start.model,
     hostToolNames,
     mcpToolNames,
+    structuredOutputToolNames: new Set(
+      currentResponseFormat?.map(format => format.name) ?? [],
+    ),
     emit,
   });
 
@@ -196,12 +291,33 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let resumeInput: unknown = {
     messages: [{ role: 'user', content: start.prompt }],
   };
+  let emittedStructuredOutput = false;
 
   while (true) {
     const stream = await agent.streamEvents(resumeInput as never, config);
 
     for await (const event of stream) {
       emitStreamEvent(event as DeepAgentsStreamEvent);
+      const streamEvent = event as DeepAgentsStreamEvent;
+      const namespace = streamEvent.metadata?.langgraph_checkpoint_ns ?? '';
+      const output = (streamEvent.data as { output?: unknown } | undefined)
+        ?.output as { structuredResponse?: unknown } | undefined;
+      if (
+        !emittedStructuredOutput &&
+        streamEvent.event === 'on_chain_end' &&
+        !namespace.includes('|') &&
+        output?.structuredResponse !== undefined
+      ) {
+        const id = `structured-output-${randomUUID()}`;
+        emit({ type: 'text-start', id });
+        emit({
+          type: 'text-delta',
+          id,
+          delta: JSON.stringify(output.structuredResponse),
+        });
+        emit({ type: 'text-end', id });
+        emittedStructuredOutput = true;
+      }
     }
 
     const actionRequests = await readPendingApprovals();

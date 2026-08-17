@@ -23,6 +23,7 @@ authentication:
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createACP } from '@ai-sdk/harness-acp';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const codexACP = createACP({
@@ -33,7 +34,22 @@ const codexACP = createACP({
     packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
-  forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+  credentialBrokering: ({ env }) => {
+    const credential = env.CODEX_API_KEY ?? env.OPENAI_API_KEY;
+    if (!credential) return [];
+    return [
+      createCredentialRequestTransformation({
+        baseUrl: 'https://api.openai.com/v1',
+        headers: { Authorization: `Bearer ${credential}` },
+      }),
+    ];
+  },
+  instructionMapping: {
+    type: 'launch-env-json',
+    variable: 'CODEX_CONFIG',
+    path: ['developer_instructions'],
+  },
   permissionModeMapping: {
     'allow-reads': null,
     'allow-edits': null,
@@ -64,8 +80,18 @@ try {
 }
 ```
 
-Set `CODEX_API_KEY` or `OPENAI_API_KEY` in the host environment. The adapter
-resolves the value when the ACP process starts and does not store it in the
-profile. Codex ACP supports only `permissionMode: 'allow-all'` because its
+Set `CODEX_API_KEY` or `OPENAI_API_KEY` in the host environment. Sandboxes that
+support additive request transformations receive only credential placeholders;
+the real value is injected into matching outbound requests. Other sandboxes
+retain the legacy behavior of forwarding the value to the ACP process. Codex
+ACP supports only `permissionMode: 'allow-all'` because its
 restrictive modes enable Codex's internal sandbox. A bridge-backed ACP harness
 requires a sandbox with at least one exposed port.
+
+Use `instructionMapping` when the ACP implementation exposes a native system
+or developer prompt. A `session-meta` mapping writes `HarnessAgent`
+instructions below the ACP session request's `_meta` field. A
+`launch-env-json` mapping merges them into a JSON environment variable before
+the implementation starts. Without a mapping, the adapter preserves its
+backward-compatible behavior and prepends instructions to the first user
+prompt.

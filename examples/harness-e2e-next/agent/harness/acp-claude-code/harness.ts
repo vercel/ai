@@ -1,4 +1,5 @@
 import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { claudeCodeACPBuiltinTools } from './builtin-tools';
 
 const harnessId = 'acp-claude-code';
@@ -20,9 +21,32 @@ export const claudeCodeACPHarness = createACP({
     packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
-  forwardEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
+  credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
+  credentialBrokering: ({ env }) => {
+    const apiKey = env.ANTHROPIC_API_KEY;
+    const authToken = env.ANTHROPIC_AUTH_TOKEN;
+    if (!apiKey && !authToken) return [];
+
+    const headers: Record<string, string> = {};
+    if (apiKey) {
+      headers['x-api-key'] = apiKey;
+    }
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+    return [
+      createCredentialRequestTransformation({
+        baseUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+        headers,
+      }),
+    ];
+  },
   env: {
     IS_SANDBOX: '1',
+  },
+  instructionMapping: {
+    type: 'session-meta',
+    path: ['systemPrompt', 'append'],
   },
   permissionModeMapping: {
     'allow-reads': { type: 'session-mode', modeId: 'default' },

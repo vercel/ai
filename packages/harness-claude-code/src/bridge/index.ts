@@ -33,6 +33,7 @@ import { argv, env as procEnv, stdout } from 'node:process';
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
 import * as mcpServerModule from '@modelcontextprotocol/sdk/server/mcp.js';
+import { createClaudeCodeSystemPrompt } from './claude-code-system-prompt';
 import { toClaudeSkillsOption } from './claude-skills-option';
 import {
   createClaudeStreamEventState,
@@ -344,7 +345,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(inactiveNativeTools.length > 0
         ? { disallowedTools: inactiveNativeTools }
         : {}),
+      systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
       thinking: start.thinking,
+      ...(start.effort !== undefined ? { effort: start.effort } : {}),
+      ...(start.responseFormat?.type === 'json' &&
+      start.responseFormat.schema != null
+        ? {
+            outputFormat: {
+              type: 'json_schema' as const,
+              schema: start.responseFormat.schema,
+            },
+          }
+        : {}),
       includePartialMessages: true,
       // The `PostCompact` hook carries the compaction summary, which the
       // `compact_boundary` system message does not. Latch it for the unified
@@ -421,6 +433,20 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           if (harnessUsage) turnUsage = harnessUsage;
           if (typeof msg.total_cost_usd === 'number') {
             totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
+          }
+          if (
+            start.responseFormat?.type === 'json' &&
+            msg.structured_output !== undefined
+          ) {
+            const id = randomUUID();
+            emit({ type: 'text-start', id });
+            emit({
+              type: 'text-delta',
+              id,
+              delta: JSON.stringify(msg.structured_output),
+            });
+            emit({ type: 'text-end', id });
+            streamEventState.stepOpen = true;
           }
           if (streamEventState.stepOpen) {
             emitFinishStep({

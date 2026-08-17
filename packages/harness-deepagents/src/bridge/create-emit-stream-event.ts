@@ -63,12 +63,14 @@ export function createEmitStreamEvent({
   configuredModel,
   hostToolNames,
   mcpToolNames,
+  structuredOutputToolNames = new Set(),
   emit,
 }: {
   state: DeepAgentsStreamEventState;
   configuredModel: string | undefined;
   hostToolNames: ReadonlySet<string>;
   mcpToolNames: ReadonlySet<string>;
+  structuredOutputToolNames?: ReadonlySet<string>;
   emit: Emit;
 }): (event: DeepAgentsStreamEvent) => void {
   return event => {
@@ -116,11 +118,21 @@ export function createEmitStreamEvent({
               type?: string;
               text?: string;
               thinking?: string;
+              reasoning?: string;
             };
-            if (value.type === 'text' && value.text) {
+            if (
+              (value.type === 'text' || value.type === 'text-delta') &&
+              value.text
+            ) {
               emitText({ state, emit, delta: value.text });
             } else if (value.type === 'thinking' && value.thinking) {
               emitReasoning({ state, emit, delta: value.thinking });
+            } else if (
+              (value.type === 'reasoning' ||
+                value.type === 'reasoning-delta') &&
+              value.reasoning
+            ) {
+              emitReasoning({ state, emit, delta: value.reasoning });
             }
           }
         }
@@ -163,6 +175,7 @@ export function createEmitStreamEvent({
       }
     } else if (kind === 'on_tool_start') {
       const toolName = event.name ?? 'unknown';
+      if (structuredOutputToolNames.has(toolName)) return;
       const runId = event.run_id ?? '';
       // Host tools emit their own tool-call; surface only top-level builtin (providerExecuted) tools.
       if (!nested && !hostToolNames.has(toolName)) {
@@ -189,6 +202,7 @@ export function createEmitStreamEvent({
       }
     } else if (kind === 'on_tool_end') {
       const toolName = event.name ?? 'unknown';
+      if (structuredOutputToolNames.has(toolName)) return;
       const runId = event.run_id ?? '';
       if (!nested && !hostToolNames.has(toolName)) {
         const dynamic = state.dynamicToolRunIds.delete(runId);

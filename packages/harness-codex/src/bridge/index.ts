@@ -121,6 +121,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   }
 
   const codexConfig: Record<string, unknown> = {
+    ...start.codexConfig,
+    developer_instructions: [
+      start.instructions,
+      'Only respond with your `final` message once you have fully addressed the user request.',
+    ]
+      .filter((instruction): instruction is string => Boolean(instruction))
+      .join('\n\n'),
     model_reasoning_summary: 'detailed',
   };
 
@@ -217,6 +224,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   try {
     const { events } = await thread.runStreamed(userMessage, {
       signal: turn.abortSignal,
+      ...(start.responseFormat?.type === 'json' &&
+      start.responseFormat.schema != null
+        ? { outputSchema: start.responseFormat.schema }
+        : {}),
     });
     for await (const event of events as AsyncIterable<CodexEvent>) {
       if (turn.abortSignal.aborted) break;
