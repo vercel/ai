@@ -1,6 +1,7 @@
 import type {
   ImageModelV4,
   ImageModelV4File,
+  ImageModelV4ProviderMetadata,
   SharedV4ProviderOptions,
   SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -157,6 +158,10 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
           modelId: this.modelId,
           headers: responseHeaders,
         },
+        providerMetadata: getProviderMetadata(
+          this.providerOptionsKey,
+          response,
+        ),
       };
     }
 
@@ -192,15 +197,39 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
+      providerMetadata: getProviderMetadata(this.providerOptionsKey, response),
     };
   }
 }
 
 // minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiCompatibleImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
+// this approach limits breakages when the API changes and increases efficiency.
+// Loose objects so provider-specific fields survive into providerMetadata
+// instead of being stripped.
+const openaiCompatibleImageResponseSchema = z.looseObject({
+  data: z.array(z.looseObject({ b64_json: z.string() })),
 });
+
+/**
+ * Exposes provider-specific response fields, which vary per provider and so
+ * cannot be modelled in the shared schema. Fields alongside `data` become
+ * siblings of `images`, and fields alongside `b64_json` become per-image
+ * entries in `images`.
+ */
+function getProviderMetadata(
+  providerOptionsKey: string,
+  response: z.infer<typeof openaiCompatibleImageResponseSchema>,
+): ImageModelV4ProviderMetadata {
+  const { data, ...responseMetadata } = response;
+  return {
+    [providerOptionsKey]: {
+      images: data.map(
+        ({ b64_json: _b64_json, ...imageMetadata }) => imageMetadata,
+      ),
+      ...responseMetadata,
+    },
+  } as ImageModelV4ProviderMetadata;
+}
 
 type OpenAICompatibleFormDataInput = {
   model: string;
