@@ -258,6 +258,17 @@ export interface AmazonBedrockRedactedReasoningContentBlock {
   };
 }
 
+/**
+ * Encrypted reasoning content block as documented by the Converse API
+ * (`ReasoningContentBlock.redactedContent`). Returned e.g. by OpenAI models
+ * served on Bedrock. Base64-encoded opaque state.
+ */
+export interface AmazonBedrockRedactedContentReasoningContentBlock {
+  reasoningContent: {
+    redactedContent: string;
+  };
+}
+
 export type AmazonBedrockContentBlock =
   | AmazonBedrockDocumentBlock
   | AmazonBedrockGuardrailConverseContentBlock
@@ -267,5 +278,6 @@ export type AmazonBedrockContentBlock =
   | AmazonBedrockToolResultBlock
   | AmazonBedrockToolUseBlock
   | AmazonBedrockReasoningContentBlock
+  | AmazonBedrockRedactedContentReasoningContentBlock
   | AmazonBedrockRedactedReasoningContentBlock
   | AmazonBedrockCachePoint;

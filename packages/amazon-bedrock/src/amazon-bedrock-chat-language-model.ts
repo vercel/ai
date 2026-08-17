@@ -573,6 +573,18 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
               bedrock: redactedPayload,
             },
           });
+        } else if ('redactedContent' in part.reasoningContent) {
+          const redactedContentPayload: AmazonBedrockReasoningMetadata = {
+            redactedContent: part.reasoningContent.redactedContent ?? '',
+          };
+          content.push({
+            type: 'reasoning',
+            text: '',
+            providerMetadata: {
+              amazonBedrock: redactedContentPayload,
+              bedrock: redactedContentPayload,
+            },
+          });
         }
       }
 
@@ -1008,6 +1020,32 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
                     },
                   });
                 }
+              } else if (
+                'redactedContent' in reasoningContent &&
+                reasoningContent.redactedContent
+              ) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
+                {
+                  const redactedContentPayload: AmazonBedrockReasoningMetadata =
+                    {
+                      redactedContent: reasoningContent.redactedContent,
+                    };
+                  controller.enqueue({
+                    type: 'reasoning-delta',
+                    id: String(blockIndex),
+                    delta: '',
+                    providerMetadata: {
+                      amazonBedrock: redactedContentPayload,
+                      bedrock: redactedContentPayload,
+                    },
+                  });
+                }
               }
             }
 
@@ -1216,6 +1254,9 @@ const AmazonBedrockResponseSchema = z.object({
               z.object({
                 redactedReasoning: AmazonBedrockRedactedReasoningSchema,
               }),
+              z.object({
+                redactedContent: z.string(),
+              }),
             ])
             .nullish(),
         }),
@@ -1261,6 +1302,9 @@ const AmazonBedrockStreamSchema = z.object({
           }),
           z.object({
             reasoningContent: z.object({ data: z.string() }),
+          }),
+          z.object({
+            reasoningContent: z.object({ redactedContent: z.string() }),
           }),
         ])
         .nullish(),
