@@ -15,6 +15,7 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
   type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
 import {
   isToolUIPart,
@@ -257,6 +258,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onData?: ChatInit<UI_MESSAGE>['onData'];
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
+  private pendingMessagePreparations = new Set<AbortController>();
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -370,9 +372,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let uiMessage: CreateUIMessage<UI_MESSAGE>;
 
     if ('text' in message || 'files' in message) {
-      const fileParts = Array.isArray(message.files)
-        ? message.files
-        : await convertFileListToFileUIParts(message.files);
+      const abortController = new AbortController();
+      this.pendingMessagePreparations.add(abortController);
+
+      let fileParts: FileUIPart[];
+      try {
+        fileParts = Array.isArray(message.files)
+          ? message.files
+          : await convertFileListToFileUIParts(message.files);
+      } finally {
+        this.pendingMessagePreparations.delete(abortController);
+      }
+
+      if (abortController.signal.aborted) {
+        return;
+      }
 
       uiMessage = {
         parts: [
@@ -589,6 +603,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop = async () => {
+    for (const controller of this.pendingMessagePreparations) {
+      controller.abort();
+    }
     this.activeResumeRequest?.abortController.abort();
     this.activeResponse?.abortController.abort();
   };
@@ -705,7 +722,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const response = {
         state: createStreamingUIMessageState({
           lastMessage:
-            trigger === 'regenerate-message'
+            trigger === 'resume-stream' || trigger === 'regenerate-message'
               ? undefined
               : this.state.snapshot(lastMessage),
           messageId: this.generateId(),
@@ -741,7 +758,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const runUpdateMessageJob = (
         job: (options: {
           state: StreamingUIMessageState<UI_MESSAGE>;
-          write: () => void;
+          write: (options?: UIMessageStreamWriteOptions) => void;
         }) => Promise<void>,
       ) =>
         // serialize the job execution to avoid race conditions:
@@ -752,13 +769,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
           return job({
             state: response.state,
-            write: () => {
+            write: ({ updateStatus = true } = {}) => {
               if (response.abortController.signal.aborted) {
                 return;
               }
 
-              // streaming is set on first write (before it should be "submitted")
-              this.setStatus({ status: 'streaming' });
+              if (updateStatus) {
+                this.setStatus({ status: 'streaming' });
+              }
 
               const replaceLastMessage =
                 response.state.message.id === this.lastMessage?.id;
@@ -845,15 +863,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             finishReason: activeResponse.state.finishReason,
           });
         }
-      } catch (err) {
-        console.error(err);
-      }
+      } finally {
+        if (this.activeResponse === activeResponse) {
+          this.activeResponse = undefined;
+        }
 
-      if (this.activeResponse === activeResponse) {
-        this.activeResponse = undefined;
+        clearActiveResumeRequest();
       }
-
-      clearActiveResumeRequest();
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true

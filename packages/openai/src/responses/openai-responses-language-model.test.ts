@@ -990,7 +990,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should not send item references for function calls when previousResponseId is set', async () => {
+      it('should send client-executed function calls in full when previousResponseId is set', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: [
             {
@@ -1037,6 +1037,12 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               role: 'user',
               content: [{ type: 'input_text', text: 'What is the weather?' }],
+            },
+            {
+              type: 'function_call',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"San Francisco"}',
             },
             {
               type: 'function_call_output',
@@ -1682,6 +1688,51 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send serviceTier fast provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'fast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          service_tier: 'fast',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn and drop serviceTier fast for a model without priority processing', async () => {
+        const { warnings } = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'fast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).service_tier,
+        ).toBeUndefined();
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'serviceTier',
+            details:
+              'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
+          },
+        ]);
       });
 
       it('should send truncation auto provider option', async () => {
@@ -2883,6 +2934,75 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
+      });
+
+      it('should JSON-encode error outputs for tools with an output schema', async () => {
+        const outputSchema = {
+          type: 'object' as const,
+          properties: {
+            temperature: { type: 'number' as const },
+          },
+          required: ['temperature'],
+          additionalProperties: false,
+        };
+
+        await createModel('gpt-4o').doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'weather',
+                  input: { location: 'San Francisco' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'weather',
+                  output: { type: 'error-text', value: 'Error: boom' },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              ...TEST_TOOLS[0],
+              providerOptions: {
+                openai: { outputSchema },
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              type: 'function_call',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"San Francisco"}',
+            },
+            {
+              type: 'function_call_output',
+              call_id: 'call_123',
+              output: '"Error: boom"',
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              output_schema: outputSchema,
+            },
+          ],
+        });
       });
 
       it('should have tool-calls finish reason', async () => {
@@ -5684,6 +5804,83 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('compaction', () => {
+      it('should append an explicit compaction trigger as the final input item', async () => {
+        prepareJsonFixtureResponse('openai-compaction.1');
+
+        await createModel('gpt-5.2').doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'custom',
+                  kind: 'openai.compaction',
+                  providerOptions: {
+                    openai: {
+                      type: 'compaction',
+                      itemId: 'cmp_123',
+                      encryptedContent: 'encrypted_compaction_state',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Continue from this context.' }],
+            },
+          ],
+          providerOptions: {
+            openai: {
+              store: false,
+              compactionTrigger: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              type: 'compaction',
+              id: 'cmp_123',
+              encrypted_content: 'encrypted_compaction_state',
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: 'Continue from this context.',
+                },
+              ],
+            },
+            { type: 'compaction_trigger' },
+          ],
+        });
+      });
+
+      it('should not append a compaction trigger when disabled', async () => {
+        prepareJsonFixtureResponse('openai-compaction.1');
+
+        await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              compactionTrigger: false,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+      });
+
       it('should parse compaction output item from real fixture', async () => {
         prepareJsonFixtureResponse('openai-compaction.1');
 
@@ -9794,6 +9991,30 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('compaction', () => {
+      it('should append an explicit compaction trigger to streaming input', async () => {
+        prepareChunksFixtureResponse('openai-compaction.1');
+
+        await createModel('gpt-5.2').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              compactionTrigger: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          stream: true,
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+            { type: 'compaction_trigger' },
+          ],
+        });
+      });
+
       it('should stream compaction output item from real fixture', async () => {
         prepareChunksFixtureResponse('openai-compaction.1');
 

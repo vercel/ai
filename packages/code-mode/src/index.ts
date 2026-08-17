@@ -31,7 +31,7 @@ export {
 } from './interrupt-continuation.js';
 export { runCodeMode as experimental_runCodeMode } from './run-code-mode.js';
 export { setCodeModeContinuationSigningKey as experimental_setCodeModeContinuationSigningKey } from './continuation-capability.js';
-export { setMaxWorkers as experimental_setMaxWorkers } from './runtime/max-workers.js';
+export { setMaxWorkers as experimental_setMaxWorkers } from 'run';
 export type {
   ApprovalDecision,
   CodeModeApprovalInterrupt,

@@ -322,6 +322,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     });
 
     const customProviderToolNames = new Set<string>();
+    // OpenAI requires function_call_output.output to contain valid JSON when the
+    // function declares output_schema. Preserve the affected SDK tool names so
+    // prompt conversion can apply that encoding only to their results.
+    const outputSchemaToolNames = new Set<string>();
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
@@ -332,6 +336,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       allowedTools: openaiOptions?.allowedTools ?? undefined,
       toolNameMapping,
       customProviderToolNames,
+      outputSchemaToolNames,
     });
 
     const { input, warnings: inputWarnings } =
@@ -358,9 +363,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           customProviderToolNames.size > 0
             ? customProviderToolNames
             : undefined,
+        outputSchemaToolNames:
+          outputSchemaToolNames.size > 0 ? outputSchemaToolNames : undefined,
       });
 
     warnings.push(...inputWarnings);
+
+    // A compaction trigger is a request control, not conversation history.
+    // OpenAI requires it to be the final input item, so append it only after
+    // the complete prompt has been converted.
+    if (openaiOptions?.compactionTrigger) {
+      input.push({ type: 'compaction_trigger' });
+    }
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
 
@@ -574,7 +588,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     // Validate priority processing support
     if (
-      openaiOptions?.serviceTier === 'priority' &&
+      (openaiOptions?.serviceTier === 'priority' ||
+        openaiOptions?.serviceTier === 'fast') &&
       !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({

@@ -11,6 +11,7 @@ import type {
 import {
   convertBase64ToUint8Array,
   delay as defaultDelay,
+  generateId,
   withUserAgentSuffix,
   type DataContent,
   detectMediaType,
@@ -92,7 +93,7 @@ export type GenerateVideoWebhookFactory = () => PromiseLike<{
  * @param model - The video model to use.
  * @param prompt - The prompt that should be used to generate the video.
  * @param n - Number of videos to generate. Default: 1.
- * @param aspectRatio - Aspect ratio of the videos to generate. Must have the format `{width}:{height}`.
+ * @param aspectRatio - Aspect ratio of the videos to generate. Must have the format `{width}:{height}`, or `'adaptive'`.
  * @param resolution - Resolution of the videos to generate. Must have the format `{width}x{height}`.
  * @param duration - Duration of the video in seconds.
  * @param fps - Frames per second for the video.
@@ -154,9 +155,10 @@ export async function experimental_generateVideo({
   maxVideosPerCall?: number;
 
   /**
-   * Aspect ratio of the videos to generate. Must have the format `{width}:{height}`.
+   * Aspect ratio of the videos to generate. Must have the format
+   * `{width}:{height}`, or `'adaptive'` to inherit the ratio from the input media.
    */
-  aspectRatio?: `${number}:${number}`;
+  aspectRatio?: `${number}:${number}` | 'adaptive';
 
   /**
    * Resolution of the videos to generate. Must have the format `{width}x${height}`.
@@ -553,13 +555,23 @@ async function executeStartStatusFlow({
     }
   }
 
-  // 2. Start the generation
-  const startResult = await retry(() =>
-    model.doStart!({
-      ...callOptions,
-      webhookUrl,
-    }),
+  // 2. Start the generation. `doStart` is billable: mint one idempotency token
+  // per logical start, outside the retry closure; a caller-supplied key wins.
+  const callerIdempotencyKey = Object.entries(callOptions.headers ?? {}).find(
+    ([key, value]) =>
+      key.toLowerCase() === 'idempotency-key' && value !== undefined,
   );
+  const startCallOptions = {
+    ...callOptions,
+    headers: {
+      ...callOptions.headers,
+      ...(callerIdempotencyKey
+        ? {}
+        : { 'idempotency-key': `aisdk_vid_${generateId()}` }),
+    },
+    webhookUrl,
+  };
+  const startResult = await retry(() => model.doStart!(startCallOptions));
 
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
   let operationProviderMetadata =

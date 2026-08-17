@@ -532,6 +532,69 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('prepareCall', () => {
+      it('should match the runtime input and override settings', () => {
+        const tools = {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        };
+
+        type Settings = ToolLoopAgentSettings<never, typeof tools>;
+        type PrepareCall = NonNullable<Settings['prepareCall']>;
+        type PrepareCallOptions = Parameters<PrepareCall>[0];
+        type PrepareCallResult = Awaited<ReturnType<PrepareCall>>;
+
+        expectTypeOf<PrepareCallOptions['toolChoice']>().toEqualTypeOf<
+          Settings['toolChoice']
+        >();
+        expectTypeOf<PrepareCallOptions['maxRetries']>().toEqualTypeOf<
+          Settings['maxRetries']
+        >();
+        expectTypeOf<PrepareCallOptions['prepareStep']>().toEqualTypeOf<
+          Settings['prepareStep']
+        >();
+        expectTypeOf<PrepareCallOptions['repairToolCall']>().toEqualTypeOf<
+          Settings['repairToolCall']
+        >();
+        expectTypeOf<
+          PrepareCallOptions['experimental_repairToolCall']
+        >().toEqualTypeOf<Settings['experimental_repairToolCall']>();
+
+        expectTypeOf<PrepareCallResult['toolChoice']>().toEqualTypeOf<
+          Settings['toolChoice']
+        >();
+        expectTypeOf<PrepareCallResult['maxRetries']>().toEqualTypeOf<
+          Settings['maxRetries']
+        >();
+        expectTypeOf<PrepareCallResult['prepareStep']>().toEqualTypeOf<
+          Settings['prepareStep']
+        >();
+        expectTypeOf<PrepareCallResult['repairToolCall']>().toEqualTypeOf<
+          Settings['repairToolCall']
+        >();
+        expectTypeOf<
+          PrepareCallResult['experimental_repairToolCall']
+        >().toEqualTypeOf<Settings['experimental_repairToolCall']>();
+
+        type RemovedCallField =
+          | 'abortSignal'
+          | 'timeout'
+          | 'onStart'
+          | 'experimental_onStart'
+          | 'onStepStart'
+          | 'experimental_onStepStart'
+          | 'onToolExecutionStart'
+          | 'onToolExecutionEnd'
+          | 'onStepEnd'
+          | 'onStepFinish'
+          | 'onEnd'
+          | 'onFinish';
+
+        expectTypeOf<
+          Extract<RemovedCallField, keyof PrepareCallOptions>
+        >().toEqualTypeOf<never>();
+      });
+
       it('should type reasoning in input and return values', () => {
         type PrepareCallResult = Awaited<
           ReturnType<NonNullable<ToolLoopAgentSettings['prepareCall']>>

@@ -1,5 +1,88 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.72
+
+### Patch Changes
+
+- 69bb613: feat(harness): support request transformations in network sandbox abstraction and use it to apply credential brokering when available
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness@1.0.72
+
+## 1.0.71
+
+### Patch Changes
+
+- Updated dependencies [8d717b3]
+  - @ai-sdk/harness@1.0.71
+
+## 1.0.70
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.70
+
+## 1.0.69
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.69
+
+## 1.0.68
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.68
+
+## 1.0.67
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/harness@1.0.67
+
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [9ee30bf]
+  - @ai-sdk/harness@1.0.66
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/harness@1.0.65
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/harness@1.0.64
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/harness@1.0.63
+
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+  - @ai-sdk/harness@1.0.62
+
 ## 1.0.61
 
 ### Patch Changes

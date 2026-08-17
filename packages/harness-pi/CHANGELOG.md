@@ -1,5 +1,105 @@
 # @ai-sdk/harness-pi
 
+## 1.0.74
+
+### Patch Changes
+
+- 61d2b84: Mirror Pi project configuration in sandboxes whose `find` command does not support symlink-following flags.
+- 39bd17e: fix(harness-pi): deliver tool results submitted after cross-process resume instead of silently dropping them
+
+## 1.0.73
+
+### Patch Changes
+
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness@1.0.72
+
+## 1.0.72
+
+### Patch Changes
+
+- 83fe754: chore(harness): simplify the `auth` param to be a simple string to choose the auth method
+- 0f5de2d: fix(harness-pi): ensure Pi's `.sessions` infra directory does not pollute the agent's working directory
+- Updated dependencies [8d717b3]
+  - @ai-sdk/harness@1.0.71
+
+## 1.0.71
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.70
+
+## 1.0.70
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.69
+
+## 1.0.69
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.68
+
+## 1.0.68
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/harness@1.0.67
+
+## 1.0.67
+
+### Patch Changes
+
+- 9ee30bf: fix(harness): pass instructions appended to system / developer prompt instead of using the workaround of first user prompt
+- Updated dependencies [9ee30bf]
+  - @ai-sdk/harness@1.0.66
+
+## 1.0.66
+
+### Patch Changes
+
+- b6642fa: fix(harness-pi): resolve compound provider/id model ids under their scoped provider
+
+## 1.0.65
+
+### Patch Changes
+
+- c20a315: feat(harness-pi): support caller-supplied inline Pi extension factories
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- Updated dependencies [401a4ba]
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/harness@1.0.65
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/harness@1.0.64
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/harness@1.0.63
+
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+  - @ai-sdk/harness@1.0.62
+
 ## 1.0.61
 
 ### Patch Changes

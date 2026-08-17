@@ -15,6 +15,25 @@ describe('translateStreamPart', () => {
     expect(out).toHaveLength(0);
   });
 
+  it('preserves dynamic on a tool-result event', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'mcp__weather__current',
+      result: { temperature: 72 },
+      dynamic: true,
+    });
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'mcp__weather__current',
+        dynamic: true,
+      }),
+    ]);
+  });
+
   it('fans file-change out into a dynamic provider-executed tool-call + tool-result pair', () => {
     const out = translateStreamPart<ToolSet>({
       type: 'file-change',

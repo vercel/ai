@@ -1,5 +1,41 @@
 # @ai-sdk/mcp
 
+## 2.0.32
+
+### Patch Changes
+
+- 1011e33: Select MCP OAuth authorization scopes from `WWW-Authenticate` challenges or Protected Resource Metadata.
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
 ## 2.0.27
 
 ### Patch Changes

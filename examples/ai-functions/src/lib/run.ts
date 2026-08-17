@@ -18,5 +18,9 @@ export function run(fn: () => Promise<unknown>) {
         print('Request body:', error.requestBodyValues);
         print('Response body:', error.responseBody);
       }
+
+      if (process.env.FAIL_ON_ERROR === '1') {
+        process.exit(1);
+      }
     });
 }

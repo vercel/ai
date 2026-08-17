@@ -1,5 +1,68 @@
 # @ai-sdk/openai
 
+## 4.0.42
+
+### Patch Changes
+
+- b6fff2e: feat(provider/openai): support explicit Responses compaction triggers
+
+## 4.0.41
+
+### Patch Changes
+
+- 59d6def: Reconstruct provider-executed shell calls when continuing OpenAI Responses with storage disabled.
+
+## 4.0.40
+
+### Patch Changes
+
+- e19a4a6: Avoid duplicate MCP approval request references when continuing stored OpenAI Responses.
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.38
+
+### Patch Changes
+
+- d302134: Keep client-executed function calls paired with their outputs when chaining OpenAI Responses with a previous response ID.
+
+## 4.0.37
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.36
+
+### Patch Changes
+
+- 6157098: fix(openai): serialize tool text outputs when an output schema is configured
+- 4cd4548: Accept `serviceTier: 'fast'` on OpenAI chat and responses models. OpenAI renamed priority processing to Fast mode and accepts `service_tier: 'fast'` and `'priority'` interchangeably, so `'fast'` is now passed through verbatim and gated on the same model capability as `'priority'`.
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.34
+
+### Patch Changes
+
+- 73d48d0: fix(provider/openai): correlate rotating Responses API item IDs by output index
+- bbd9b31: chore: rename `*TranslationModel` and its related types to `*SpeechTranslationModel` for consistency
+
 ## 4.0.33
 
 ### Patch Changes

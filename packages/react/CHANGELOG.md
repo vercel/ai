@@ -1,5 +1,107 @@
 # @ai-sdk/react
 
+## 4.0.69
+
+### Patch Changes
+
+- d427e3a: Preserve the generated `useObject` value when the API URL changes.
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+- Updated dependencies [1011e33]
+  - ai@7.0.66
+  - @ai-sdk/mcp@2.0.32
+
+## 4.0.68
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 4.0.67
+
+### Patch Changes
+
+- 097b552: Avoid repeatedly deep-cloning accumulated message payloads during chat streaming.
+  - ai@7.0.64
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 4.0.65
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
+## 4.0.64
+
+### Patch Changes
+
+- 8b30ab5: Reset the useCompletion input after submitting a prompt.
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+- Updated dependencies [7fbfc6d]
+  - ai@7.0.61
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/mcp@2.0.31
+
+## 4.0.63
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
+## 4.0.62
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - ai@7.0.59
+  - @ai-sdk/mcp@2.0.30
+
+## 4.0.61
+
+### Patch Changes
+
+- Updated dependencies [72ad23f]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - ai@7.0.58
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/mcp@2.0.29
+
+## 4.0.60
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - ai@7.0.57
+  - @ai-sdk/mcp@2.0.28
+
+## 4.0.59
+
+### Patch Changes
+
+- 10e8db0: Fix `useChat` throttling so unrelated React renders cannot publish message snapshots ahead of the configured throttle cadence.
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
 ## 4.0.58
 
 ### Patch Changes

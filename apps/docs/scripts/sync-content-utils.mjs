@@ -137,6 +137,11 @@ const frontmatterOf = mdx => {
   return match ? match[1] : "";
 };
 
+const bodyOf = mdx => {
+  const match = mdx.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/);
+  return mdx.slice(match ? match[0].length : 0);
+};
+
 const titleOf = mdx => {
   const raw = frontmatterOf(mdx).match(/^title:\s*(.+)$/m)?.[1]?.trim();
   return raw?.replace(/^(['"])(.*)\1$/, "$2");
@@ -152,6 +157,11 @@ const titleOf = mdx => {
  * duplicate the real Overview page. `next.config.ts` redirects the folder
  * URL to the overview page. Frontmatter signals on the dropped index (such
  * as `collapsed: true`) still apply to the folder's meta.json.
+ *
+ * Frontmatter-only index pages (cookbook sections) are dropped the same
+ * way: the legacy app never rendered them (it redirected the section URL to
+ * its first recipe, which `next.config.ts` mirrors), so keeping them would
+ * add empty "Overview" pages to the sidebar, sitemap, and llms surfaces.
  */
 export const transformDir = (srcDir, outDir, relPath = "") => {
   mkdirSync(outDir, { recursive: true });
@@ -199,7 +209,7 @@ export const transformDir = (srcDir, outDir, relPath = "") => {
       if (clean === "index" && /^collapsed:\s*true/m.test(frontmatterOf(mdx))) {
         defaultOpen = false;
       }
-      if (clean === "index" && hasOverviewPage) {
+      if (clean === "index" && (hasOverviewPage || bodyOf(mdx).trim() === "")) {
         // Without an index page the folder would fall back to a
         // slug-derived display name; keep the index title on the folder.
         folderTitle = titleOf(mdx);
