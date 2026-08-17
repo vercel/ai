@@ -593,6 +593,76 @@ describe('resolveToolApproval', () => {
     expect(notApplicableToolResult).toEqual({ type: 'not-applicable' });
   });
 
+  it('maps a tool-defined approval object with context to user-approval', async () => {
+    const result = await resolveToolApproval({
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          needsApproval: async () => ({
+            approvalRequired: true,
+            context: { recordCount: 47, recentlyModified: 12 },
+          }),
+        }),
+      },
+      toolApproval: undefined,
+      toolCall: createToolCall(),
+      messages: [...messages],
+      toolsContext: {},
+      runtimeContext: {},
+    });
+
+    expect(result).toEqual({
+      type: 'user-approval',
+      context: { recordCount: 47, recentlyModified: 12 },
+    });
+  });
+
+  it('maps a tool-defined approval object with approvalRequired false to not-applicable', async () => {
+    const result = await resolveToolApproval({
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          needsApproval: async () => ({
+            approvalRequired: false,
+            context: { ignored: true },
+          }),
+        }),
+      },
+      toolApproval: undefined,
+      toolCall: createToolCall(),
+      messages: [...messages],
+      toolsContext: {},
+      runtimeContext: {},
+    });
+
+    expect(result).toEqual({ type: 'not-applicable' });
+  });
+
+  it('preserves context returned by a user-defined toolApproval function', async () => {
+    const result = await resolveToolApproval({
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+        }),
+      },
+      toolApproval: {
+        weather: async () => ({
+          type: 'user-approval' as const,
+          context: { blastRadius: 'city-wide' },
+        }),
+      },
+      toolCall: createToolCall(),
+      messages: [...messages],
+      toolsContext: {},
+      runtimeContext: {},
+    });
+
+    expect(result).toEqual({
+      type: 'user-approval',
+      context: { blastRadius: 'city-wide' },
+    });
+  });
+
   it('passes tool input and validated context to a tool-defined approval callback', async () => {
     const toolDefinedNeedsApproval = vi.fn(() => true);
 

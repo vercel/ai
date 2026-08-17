@@ -256,6 +256,8 @@ export function toUIMessageChunk<
         toolCallId: part.toolCall.toolCallId,
         ...(part.isAutomatic != null ? { isAutomatic: part.isAutomatic } : {}),
         ...(part.signature != null ? { signature: part.signature } : {}),
+        ...(part.context !== undefined ? { context: part.context } : {}),
+        ...(part.inputDigest != null ? { inputDigest: part.inputDigest } : {}),
       };
     }
 

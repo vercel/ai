@@ -1,3 +1,4 @@
+import type { JSONValue } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import { hashCanonical, toBase64url } from '../util/canonical-hash';
 
@@ -21,7 +22,7 @@ async function importKey(secret: string | Uint8Array): Promise<CryptoKey> {
 // Serialize with JSON so the encoding is injective: fields may contain any
 // character (including newlines), and escaping + array structure keeps field
 // boundaries unambiguous. The version prefix provides domain separation.
-function buildPayload(
+function buildPayloadV1(
   approvalId: string,
   toolCallId: string,
   toolName: string,
@@ -34,6 +35,25 @@ function buildPayload(
       toolCallId,
       toolName,
       inputDigest,
+    ]),
+  );
+}
+
+function buildPayloadV2(
+  approvalId: string,
+  toolCallId: string,
+  toolName: string,
+  inputDigest: string,
+  contextDigest: string,
+): Uint8Array {
+  return encoder.encode(
+    JSON.stringify([
+      'ai-sdk-tool-approval-v2',
+      approvalId,
+      toolCallId,
+      toolName,
+      inputDigest,
+      contextDigest,
     ]),
   );
 }
@@ -61,16 +81,27 @@ export async function signToolApproval({
   toolCallId,
   toolName,
   input,
+  context,
 }: {
   secret: string | Uint8Array;
   approvalId: string;
   toolCallId: string;
   toolName: string;
   input: unknown;
+  context?: JSONValue;
 }): Promise<string> {
   const key = await importKey(secret);
   const inputDigest = await hashCanonical(input);
-  const payload = buildPayload(approvalId, toolCallId, toolName, inputDigest);
+  const payload =
+    context !== undefined
+      ? buildPayloadV2(
+          approvalId,
+          toolCallId,
+          toolName,
+          inputDigest,
+          await hashCanonical(context),
+        )
+      : buildPayloadV1(approvalId, toolCallId, toolName, inputDigest);
   const sig = await crypto.subtle.sign('HMAC', key, payload);
   return toBase64url(new Uint8Array(sig));
 }
@@ -82,6 +113,7 @@ export async function verifyToolApprovalSignature({
   toolCallId,
   toolName,
   input,
+  context,
 }: {
   secret: string | Uint8Array;
   signature: string;
@@ -89,12 +121,27 @@ export async function verifyToolApprovalSignature({
   toolCallId: string;
   toolName: string;
   input: unknown;
+  context?: JSONValue;
 }): Promise<boolean> {
   const key = await importKey(secret);
   const inputDigest = await hashCanonical(input);
   const sigBytes = fromBase64url(signature);
 
-  const payload = buildPayload(approvalId, toolCallId, toolName, inputDigest);
+  // Context is bound into HMAC v2. Never accept a v1 or legacy signature
+  // for a request that carries context — that would allow swapping unsigned
+  // consequence text onto a previously signed call.
+  if (context !== undefined) {
+    const payload = buildPayloadV2(
+      approvalId,
+      toolCallId,
+      toolName,
+      inputDigest,
+      await hashCanonical(context),
+    );
+    return crypto.subtle.verify('HMAC', key, sigBytes, payload);
+  }
+
+  const payload = buildPayloadV1(approvalId, toolCallId, toolName, inputDigest);
   if (await crypto.subtle.verify('HMAC', key, sigBytes, payload)) {
     return true;
   }
@@ -129,13 +176,64 @@ export async function maybeSignApproval({
   toolCallId,
   toolName,
   input,
+  context,
 }: {
   secret: string | Uint8Array | undefined;
   approvalId: string;
   toolCallId: string;
   toolName: string;
   input: unknown;
+  context?: JSONValue;
 }): Promise<string | undefined> {
   if (secret == null) return undefined;
-  return signToolApproval({ secret, approvalId, toolCallId, toolName, input });
+  return signToolApproval({
+    secret,
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+    context,
+  });
+}
+
+/**
+ * Extra fields attached to an issued approval request.
+ *
+ * `inputDigest` and `context` are only present when per-call context was
+ * computed, so existing HMAC-v1 requests stay wire-compatible.
+ */
+export async function createToolApprovalRequestFields({
+  secret,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+  context,
+}: {
+  secret: string | Uint8Array | undefined;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  context?: JSONValue;
+}): Promise<{
+  signature?: string;
+  inputDigest?: string;
+  context?: JSONValue;
+}> {
+  const signature = await maybeSignApproval({
+    secret,
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+    context,
+  });
+
+  return {
+    ...(signature != null ? { signature } : {}),
+    ...(context !== undefined
+      ? { context, inputDigest: await hashCanonical(input) }
+      : {}),
+  };
 }

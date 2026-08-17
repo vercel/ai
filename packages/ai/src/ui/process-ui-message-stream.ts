@@ -752,6 +752,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 ...(chunk.signature != null
                   ? { signature: chunk.signature }
                   : {}),
+                ...(chunk.context !== undefined
+                  ? { context: chunk.context }
+                  : {}),
+                ...(chunk.inputDigest != null
+                  ? { inputDigest: chunk.inputDigest }
+                  : {}),
               };
               write();
               break;
@@ -774,6 +780,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 ...(approval.isAutomatic === true ? { isAutomatic: true } : {}),
                 ...(approval.signature != null
                   ? { signature: approval.signature }
+                  : {}),
+                ...('context' in approval && approval.context !== undefined
+                  ? { context: approval.context }
+                  : {}),
+                ...('inputDigest' in approval && approval.inputDigest != null
+                  ? { inputDigest: approval.inputDigest }
                   : {}),
               };
               if (chunk.providerExecuted != null) {

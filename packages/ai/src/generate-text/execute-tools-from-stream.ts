@@ -13,7 +13,7 @@ import { getOwn } from '../util/get-own';
 import { executeToolCall } from './execute-tool-call';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
-import { maybeSignApproval } from './tool-approval-signature';
+import { createToolApprovalRequestFields } from './tool-approval-signature';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { TypedToolCall } from './tool-call';
 import type {
@@ -126,12 +126,16 @@ export function executeToolsFromStream<
             }
 
             const approvalId = generateId();
-            const signature = await maybeSignApproval({
+            const approvalRequestFields = await createToolApprovalRequestFields({
               secret: toolApprovalSecret,
               approvalId,
               toolCallId: chunk.toolCallId,
               toolName: chunk.toolName,
               input: chunk.input,
+              context:
+                toolApprovalStatus.type === 'user-approval'
+                  ? toolApprovalStatus.context
+                  : undefined,
             });
 
             switch (toolApprovalStatus.type) {
@@ -140,7 +144,7 @@ export function executeToolsFromStream<
                   type: 'tool-approval-request',
                   approvalId,
                   toolCall: chunk,
-                  ...(signature != null ? { signature } : {}),
+                  ...approvalRequestFields,
                 });
 
                 return; // don't execute tool
@@ -152,7 +156,7 @@ export function executeToolsFromStream<
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
-                  ...(signature != null ? { signature } : {}),
+                  ...approvalRequestFields,
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',
@@ -172,7 +176,7 @@ export function executeToolsFromStream<
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
-                  ...(signature != null ? { signature } : {}),
+                  ...approvalRequestFields,
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',

@@ -1,5 +1,6 @@
-import type { TypedToolCall } from './tool-call';
+import type { JSONValue } from '@ai-sdk/provider';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { TypedToolCall } from './tool-call';
 
 /**
  * Output part that indicates that a tool approval request has been made.
@@ -30,4 +31,14 @@ export type ToolApprovalRequestOutput<TOOLS extends ToolSet> = {
    * HMAC-SHA256 signature binding this approval request to its tool call.
    */
   signature?: string;
+
+  /**
+   * Dynamic, per-call context for the approval card.
+   */
+  context?: JSONValue;
+
+  /**
+   * Canonical digest of the tool input at the time this context was issued.
+   */
+  inputDigest?: string;
 };

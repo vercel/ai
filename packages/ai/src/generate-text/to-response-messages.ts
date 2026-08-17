@@ -135,6 +135,8 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCall.toolCallId,
           isAutomatic: part.isAutomatic,
           ...(part.signature != null ? { signature: part.signature } : {}),
+          ...(part.context !== undefined ? { context: part.context } : {}),
+          ...(part.inputDigest != null ? { inputDigest: part.inputDigest } : {}),
         });
         break;
     }

@@ -236,6 +236,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }
                         : {}),
+                      ...(part.approval.context !== undefined
+                        ? { context: part.approval.context }
+                        : {}),
+                      ...(part.approval.inputDigest != null
+                        ? { inputDigest: part.approval.inputDigest }
+                        : {}),
                     });
                   }
 

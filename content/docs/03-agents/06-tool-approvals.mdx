@@ -61,6 +61,32 @@ const agent = new ToolLoopAgent({
 
 When `runCommand` is called, the agent returns a `tool-approval-request` instead of executing the tool.
 
+## Attach Per-Call Context to Approval Requests
+
+Return `{ type: 'user-approval', context }` from a `toolApproval` function when the card needs a consequence summary computed at approval time. The context is attached to the same approval request (and the `approval-requested` UI part) as the tool call.
+
+```ts
+toolApproval: {
+  deleteRecords: async ({ ids }) => {
+    const impact = await summarizeDeleteImpact(ids);
+    return {
+      type: 'user-approval',
+      context: {
+        recordCount: impact.total,
+        recentlyModified: impact.recentlyModified,
+        referencedByOthers: impact.referencedByOthers,
+      },
+    };
+  },
+},
+```
+
+In the UI, read `part.approval.context` when `part.state === 'approval-requested'`. Reloading the message history keeps the same context on that approval.
+
+The deprecated `needsApproval` function on a tool can return the same information as `{ approvalRequired: true, context }`.
+
+Approving a request whose tool input changed after the context was computed is rejected as stale. When `experimental_toolApprovalSecret` is set, the HMAC also binds the context so it cannot be swapped onto a different tool call.
+
 ## Decide Based on Tool Input
 
 Use a per-tool approval function when the decision depends on the parsed tool input. The function receives the typed input plus `toolCallId`, `messages`, `toolContext`, and `runtimeContext`.
@@ -291,6 +317,10 @@ const result = await streamText({
 ```
 
 The signature binds the approval to the exact tool name, tool call ID, and input arguments. Changing any of these after signing invalidates the approval.
+
+When per-call context is present, the signature also binds a digest of that context (HMAC v2). Requests without context keep the existing HMAC v1 payload so pending approvals still verify across an upgrade.
+
+Approving a card whose tool input no longer matches the digest issued with the context fails closed.
 
 **Setting up the secret:**
 
