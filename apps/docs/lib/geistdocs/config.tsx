@@ -1,5 +1,13 @@
 import { defineConfig } from '@vercel/geistdocs/config';
-import { content, Logo, nav, title, translations, versions } from '@/geistdocs';
+import {
+  content,
+  Logo,
+  nav,
+  siteId,
+  title,
+  translations,
+  versions,
+} from '@/geistdocs';
 
 export const config = defineConfig({
   title,
@@ -9,6 +17,7 @@ export const config = defineConfig({
   content,
   versions,
   translations,
+  siteId,
   github: { owner: 'vercel', repo: 'ai' },
   agent: {
     product: {
@@ -43,5 +52,6 @@ export const config = defineConfig({
   pageActions: {
     editSource: false,
   },
-  feedback: { enabled: false },
+  // Feedback uses the package default (enabled): the widget posts to the
+  // Geistdocs platform, which files GitHub issues labeled with `siteId`.
 });

@@ -1,5 +1,16 @@
 # @ai-sdk/react
 
+## 4.0.69
+
+### Patch Changes
+
+- d427e3a: Preserve the generated `useObject` value when the API URL changes.
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+- Updated dependencies [1011e33]
+  - ai@7.0.66
+  - @ai-sdk/mcp@2.0.32
+
 ## 4.0.68
 
 ### Patch Changes

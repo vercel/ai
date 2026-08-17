@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.42
+
+### Patch Changes
+
+- b6fff2e: feat(provider/openai): support explicit Responses compaction triggers
+
 ## 4.0.41
 
 ### Patch Changes

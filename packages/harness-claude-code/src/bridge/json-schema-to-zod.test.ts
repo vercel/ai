@@ -160,6 +160,68 @@ describe('jsonSchemaToZodShape', () => {
     ).toBe(false);
   });
 
+  it('supports recursive anyOf and oneOf unions', () => {
+    const schema = toObjectSchema({
+      type: 'object',
+      properties: {
+        primitive: {
+          anyOf: [{ type: 'string' }, { type: 'number' }],
+        },
+        nested: {
+          oneOf: [
+            { type: 'boolean' },
+            {
+              type: 'object',
+              properties: { id: { type: 'integer' } },
+              required: ['id'],
+            },
+          ],
+        },
+        values: {
+          type: 'array',
+          items: {
+            anyOf: [{ type: 'string' }, { type: 'number' }],
+          },
+        },
+      },
+      required: ['primitive', 'nested', 'values'],
+    });
+
+    expect(
+      schema.safeParse({
+        primitive: 'text',
+        nested: { id: 1 },
+        values: ['text', 1],
+      }).success,
+    ).toBe(true);
+    expect(
+      schema.safeParse({ primitive: 1, nested: false, values: [] }).success,
+    ).toBe(true);
+    expect(
+      schema.safeParse({ primitive: true, nested: false, values: [] }).success,
+    ).toBe(false);
+    expect(
+      schema.safeParse({ primitive: 1, nested: 'text', values: [] }).success,
+    ).toBe(false);
+    expect(
+      schema.safeParse({ primitive: 1, nested: false, values: [true] }).success,
+    ).toBe(false);
+  });
+
+  it('keeps the safe fallback for unsupported union branches', () => {
+    const schema = toObjectSchema({
+      type: 'object',
+      properties: {
+        value: {
+          anyOf: [{ type: 'string' }, { allOf: [{ type: 'number' }] }],
+        },
+      },
+      required: ['value'],
+    });
+
+    expect(schema.safeParse({ value: true }).success).toBe(true);
+  });
+
   it('supports enum and const values when they are representable literals', () => {
     const schema = toObjectSchema({
       type: 'object',

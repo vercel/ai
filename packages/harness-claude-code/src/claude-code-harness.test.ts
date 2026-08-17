@@ -966,5 +966,12 @@ describe('createClaudeCode adapter', () => {
       const b = await harness.getBootstrap!();
       expect(a).toBe(b);
     });
+
+    it('shares the getter across configured harness instances', () => {
+      const first = createClaudeCode({ model: 'first-model' });
+      const second = createClaudeCode({ model: 'second-model' });
+
+      expect(first.getBootstrap).toBe(second.getBootstrap);
+    });
   });
 });

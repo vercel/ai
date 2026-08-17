@@ -215,6 +215,13 @@ describe('createDeepAgents', () => {
     expect(a).toBe(b);
   });
 
+  it('shares the getter across configured harness instances', () => {
+    const first = createDeepAgents({ model: 'first-model' });
+    const second = createDeepAgents({ model: 'second-model' });
+
+    expect(first.getBootstrap).toBe(second.getBootstrap);
+  });
+
   it('exposes a lifecycle state schema for resume payloads', () => {
     const harness = createDeepAgents();
     expect(harness.lifecycleStateSchema).toBeDefined();

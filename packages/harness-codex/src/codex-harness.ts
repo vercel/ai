@@ -1,13 +1,10 @@
 import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   commonTool,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
-  type HarnessV1Bootstrap,
   type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
@@ -42,6 +39,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
+import {
+  CODEX_BOOTSTRAP_DIR as BOOTSTRAP_DIR,
+  getCodexBootstrap,
+} from './codex-bootstrap';
 import {
   CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
   createCodexRequestTransformations,
@@ -151,19 +152,6 @@ const CODEX_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
-/*
- * Bootstrap is derived state stored under the sandbox's default working
- * directory so snapshot-capable providers can preserve the installed CLI,
- * bridge, and recipe marker without requiring root filesystem access.
- *
- * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
- * default working directory — the provider's persistent mount — so any files
- * the agent edits survive both detach -> attach and stop -> snapshot -> resume
- * cycles. Harness infra derived from `sandboxSession.defaultWorkingDirectory`
- * lives under `.agent-runs`, outside the agent workdir.
- */
-const BOOTSTRAP_DIR = '.harness-bootstrap/codex';
-
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
  * future process uses them to reopen a socket to the still-running bridge
@@ -194,37 +182,13 @@ type CodexBridgeCoords = z.infer<typeof codexBridgeCoordsSchema>;
 export function createCodex(
   settings: CodexHarnessSettings = {},
 ): HarnessV1<typeof CODEX_BUILTIN_TOOLS> {
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
-
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
     builtinTools: CODEX_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: false,
     lifecycleStateSchema: codexResumeStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge] = await Promise.all([
-        readBridgeAsset('package.json'),
-        readBridgeAsset('pnpm-lock.yaml'),
-        readBridgeAsset('index.mjs'),
-      ]);
-      cachedBootstrap = {
-        harnessId: 'codex',
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
-          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-        ],
-        commands: [
-          {
-            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: getCodexBootstrap,
     doStart: async startOpts => {
       if (startOpts.builtinToolFiltering != null) {
         throw new HarnessCapabilityUnsupportedError({
@@ -543,24 +507,6 @@ function resolveBridgePort(
   });
 }
 
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
-}
-
 async function writeCodexSkills({
   sandbox,
   skills,
@@ -858,6 +804,16 @@ function createSession({
     isResume,
     modelId: model,
     doPromptTurn: async promptOpts => {
+      if (
+        promptOpts.responseFormat?.type === 'json' &&
+        promptOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'codex' requires a JSON schema for structured output.",
+          harnessId: 'codex',
+        });
+      }
       const turn = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
@@ -887,6 +843,9 @@ function createSession({
         type: 'start' as const,
         prompt: promptText,
         tools,
+        ...(promptOpts.responseFormat == null
+          ? {}
+          : { responseFormat: promptOpts.responseFormat }),
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
@@ -907,6 +866,16 @@ function createSession({
       return turn.control;
     },
     doContinueTurn: async continueOpts => {
+      if (
+        continueOpts.responseFormat?.type === 'json' &&
+        continueOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'codex' requires a JSON schema for structured output.",
+          harnessId: 'codex',
+        });
+      }
       const turn = wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
@@ -943,6 +912,9 @@ function createSession({
               description: t.description,
               inputSchema: t.inputSchema,
             })),
+            ...(continueOpts.responseFormat == null
+              ? {}
+              : { responseFormat: continueOpts.responseFormat }),
             ...(continueOpts.instructions
               ? { instructions: continueOpts.instructions }
               : {}),

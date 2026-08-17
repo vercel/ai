@@ -1,5 +1,20 @@
 # @ai-sdk/workflow
 
+## 1.0.67
+
+### Patch Changes
+
+- e3325bd: Fix `WorkflowAgent` timeout handling by enforcing absolute deadlines inside durable model-call steps and routing timeouts through abort handling.
+
+## 1.0.66
+
+### Patch Changes
+
+- c661693: Fix the Workflow integration test harness by aligning `@workflow/vitest` with the installed Workflow runtime.
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
 ## 1.0.65
 
 ### Patch Changes

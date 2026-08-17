@@ -12,10 +12,8 @@ import * as fsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { createACP } from './acp-harness';
-import {
-  resolveBridgeAssetCandidates,
-  serializeBuiltinTools,
-} from './v1/acp-v1-harness';
+import { resolveBridgeAssetCandidates } from './v1/acp-bootstrap';
+import { serializeBuiltinTools } from './v1/acp-v1-harness';
 import { ACP_BRIDGE_CONFIGURATION_ENV } from './v1/bridge/acp-v1-bridge-environment';
 import type { ACPPermissionModeMapping } from './v1/acp-v1-settings';
 
@@ -1288,6 +1286,86 @@ describe('createACP', () => {
     ).rejects.toBe(abortError);
     expect(harnessUtilsMocks.channels[0]!.sent).toEqual([]);
 
+    await session.doDestroy();
+  });
+
+  it('rejects structured output when the ACP profile has no schema mapping', async () => {
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    await expect(
+      session.doPromptTurn({
+        prompt: 'Answer.',
+        responseFormat: {
+          type: 'json',
+          schema: { type: 'object' },
+        },
+        emit: () => {},
+      }),
+    ).rejects.toSatisfy(error =>
+      HarnessCapabilityUnsupportedError.isInstance(error),
+    );
+    expect(harnessUtilsMocks.channels[0]!.sent).toEqual([]);
+
+    await session.doDestroy();
+  });
+
+  it('passes structured output configuration to a mapped ACP profile', async () => {
+    const outputSchemaMapping = {
+      type: 'session-prompt-meta',
+      path: ['outputSchema'],
+    } as const;
+    const harness = createACP({
+      harnessId: 'grok-build-acp',
+      ...agentSettings,
+      outputSchemaMapping,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const responseFormat = {
+      type: 'json' as const,
+      schema: {
+        type: 'object',
+        properties: { answer: { type: 'string' } },
+        required: ['answer'],
+      },
+    };
+
+    const control = await session.doPromptTurn({
+      prompt: 'Answer.',
+      responseFormat,
+      emit: () => {},
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      responseFormat,
+      outputSchemaMapping,
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
     await session.doDestroy();
   });
 

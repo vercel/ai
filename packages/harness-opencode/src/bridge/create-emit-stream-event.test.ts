@@ -270,6 +270,44 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('does not expose the internal structured output tool', () => {
+    const { emitted, emitStreamEvent } = createEmitter();
+
+    emitStreamEvent({
+      type: 'session.next.tool.called',
+      properties: {
+        callID: 'structured-next',
+        tool: 'StructuredOutput',
+        input: { answer: 'yes' },
+      },
+    });
+    emitStreamEvent({
+      type: 'session.next.tool.success',
+      properties: {
+        callID: 'structured-next',
+        tool: 'StructuredOutput',
+        result: { answer: 'yes' },
+      },
+    });
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          type: 'tool',
+          callID: 'structured-legacy',
+          tool: 'StructuredOutput',
+          state: {
+            status: 'completed',
+            input: { answer: 'yes' },
+            output: { answer: 'yes' },
+          },
+        },
+      },
+    });
+
+    expect(emitted).toEqual([]);
+  });
+
   it('authorizes legacy host tool calls using only the tool input', async () => {
     const authorizer = new ToolRelayAuthorizer({
       ttlMs: 10,
