@@ -215,10 +215,10 @@ function getProviderMetadata(
   const { data, ...responseMetadata } = response;
   return {
     [providerOptionsKey]: {
+      ...responseMetadata,
       images: data.map(
         ({ b64_json: _b64_json, ...imageMetadata }) => imageMetadata,
       ),
-      ...responseMetadata,
     },
   } as ImageModelV4ProviderMetadata;
 }

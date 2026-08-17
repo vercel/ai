@@ -418,6 +418,27 @@ describe('OpenAICompatibleImageModel', () => {
         );
       });
 
+      it('should not let a provider-returned images field overwrite per-image metadata', async () => {
+        server.urls[
+          'https://api.example.com/dall-e-3/images/generations'
+        ].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234', index: 0 }],
+            images: 'not-an-array',
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.providerMetadata).toStrictEqual({
+          'openai-compatible': {
+            images: [{ index: 0 }],
+          },
+        });
+      });
+
       it('should key provider metadata by the provider options key', async () => {
         const model = new OpenAICompatibleImageModel('dall-e-3', {
           provider: 'example.image',
