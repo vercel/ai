@@ -1,6 +1,7 @@
 import { exaSearch } from './tool/exa-search';
 import { parallelSearch } from './tool/parallel-search';
 import { perplexitySearch } from './tool/perplexity-search';
+import { takoSearch } from './tool/tako-search';
 
 /**
  * Gateway-specific provider-defined tools.
@@ -33,4 +34,13 @@ export const gatewayTools = {
    * domain, language, date range, and recency filters.
    */
   perplexitySearch,
+
+  /**
+   * Search curated Tako knowledge cards and live web results for source-grounded
+   * data, visualizations, and citations.
+   *
+   * Supports effort, per-source data and web controls, localization, and inline
+   * contents for agents that need to reason over underlying data.
+   */
+  takoSearch,
 };
