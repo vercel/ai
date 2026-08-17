@@ -227,6 +227,7 @@ describe('doGenerate', () => {
           "completion_tokens": 2,
           "completion_tokens_details": {
             "accepted_prediction_tokens": 0,
+            "audio_tokens": 0,
             "reasoning_tokens": 320,
             "rejected_prediction_tokens": 0,
           },
@@ -234,7 +235,10 @@ describe('doGenerate', () => {
           "num_sources_used": 0,
           "prompt_tokens": 12,
           "prompt_tokens_details": {
+            "audio_tokens": 0,
             "cached_tokens": 2,
+            "image_tokens": 0,
+            "text_tokens": 12,
           },
           "total_tokens": 334,
         },
@@ -1624,6 +1628,63 @@ describe('doGenerate', () => {
           "queue_time": 0.061348671,
           "total_time": 0.798393387,
           "total_tokens": 457,
+        }
+      `);
+    });
+
+    it('should preserve extra usage fields nested inside token details', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-test',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'grok-3',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello!',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 100,
+            completion_tokens: 50,
+            total_tokens: 150,
+            prompt_tokens_details: {
+              cached_tokens: 80,
+              // Provider-specific detail, e.g. Alibaba's caching-mode
+              // discriminator, which decides the rate a cache read bills at.
+              cache_type: 'ephemeral',
+            },
+            completion_tokens_details: {
+              reasoning_tokens: 10,
+              provider_specific_detail: 7,
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.raw).toMatchInlineSnapshot(`
+        {
+          "completion_tokens": 50,
+          "completion_tokens_details": {
+            "provider_specific_detail": 7,
+            "reasoning_tokens": 10,
+          },
+          "prompt_tokens": 100,
+          "prompt_tokens_details": {
+            "cache_type": "ephemeral",
+            "cached_tokens": 80,
+          },
+          "total_tokens": 150,
         }
       `);
     });
