@@ -1,5 +1,12 @@
 # @ai-sdk/harness
 
+## 1.0.73
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- d25cae2: fix(harness): claim the bridge event stream on start/resume instead of on connect
+
 ## 1.0.72
 
 ### Patch Changes
