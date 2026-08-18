@@ -1,11 +1,14 @@
 ---
 title: Perplexity
-description: Learn how to use Perplexity's Sonar API with the AI SDK.
+description: Learn how to use Perplexity's Agent, Sonar, and Embeddings APIs with the AI SDK.
 ---
 
 # Perplexity Provider
 
-The [Perplexity](https://sonar.perplexity.ai) provider offers access to Sonar API - a language model that uniquely combines real-time web search with natural language processing. Each response is grounded in current web data and includes detailed citations, making it ideal for research, fact-checking, and obtaining up-to-date information.
+The [Perplexity](https://perplexity.ai) provider offers access to the Agent API,
+Sonar API, and Embeddings API. The Agent API provides multi-provider models,
+research presets, built-in tools, structured outputs, streaming, sources, and
+request cost information.
 
 API keys can be obtained from the [Perplexity Platform](https://docs.perplexity.ai).
 
@@ -53,7 +56,134 @@ You can use the following optional settings to customize the Perplexity provider
 
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
 
-## Language Models
+## Agent API
+
+Use the `.responses()` factory to call Perplexity's Agent API. Pass a model ID
+in `provider/model` format:
+
+```ts
+import { perplexity } from '@ai-sdk/perplexity';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: perplexity.responses('openai/gpt-5-mini'),
+  prompt: 'Explain the difference between REST and GraphQL.',
+});
+```
+
+You can also pass one of Perplexity's dynamic preset names: `fast`, `low`,
+`medium`, `high`, or `xhigh`.
+
+```ts
+const { text, sources } = await generateText({
+  model: perplexity.responses('low'),
+  prompt: 'Compare recent developments in open-source language models.',
+});
+```
+
+Preset configurations can change as Perplexity improves them. Use a model ID
+instead when you need to pin the underlying model.
+
+### Built-in Tools
+
+The Agent API supports Perplexity-hosted tools through `perplexity.tools`:
+
+```ts
+const result = await generateText({
+  model: perplexity.responses('openai/gpt-5-mini'),
+  prompt: 'What are the latest developments in small language models?',
+  tools: {
+    web_search: perplexity.tools.webSearch({
+      searchContextSize: 'low',
+      maxResults: 5,
+      filters: {
+        searchRecencyFilter: 'month',
+      },
+    }),
+  },
+});
+```
+
+The following built-in tools are available:
+
+- `perplexity.tools.webSearch()`
+- `perplexity.tools.fetchUrl()`
+- `perplexity.tools.financeSearch()`
+- `perplexity.tools.peopleSearch()`
+- `perplexity.tools.sandbox()`
+- `perplexity.tools.mcp()`
+
+Web search, fetched URL, people search, and finance source URLs are exposed in
+the standard `sources` result property. Agent output items are also retained in
+`providerMetadata.perplexity.output`.
+
+<Note>
+  Built-in tools run on Perplexity's servers and may have separate invocation
+  charges. Treat MCP credentials as secrets and only configure trusted MCP
+  servers.
+</Note>
+
+### Provider Options
+
+Agent API options can be passed through `providerOptions.perplexity`:
+
+```ts
+import type { PerplexityAgentOptions } from '@ai-sdk/perplexity';
+
+const result = await generateText({
+  model: perplexity.responses('openai/gpt-5-mini'),
+  prompt: 'Research current approaches to AI agent evaluation.',
+  providerOptions: {
+    perplexity: {
+      max_steps: 5,
+      language_preference: 'en',
+      store: false,
+    } satisfies PerplexityAgentOptions,
+  },
+});
+```
+
+The typed options are:
+
+- **max_steps** _number_ — Maximum number of agent research steps, from 1 to 100.
+- **models** _string[]_ — Model fallback chain containing one to five model
+  IDs. This takes precedence over the model passed to `.responses()`.
+- **language_preference** _string_ — Preferred response language as an ISO
+  639-1 code.
+- **previous_response_id** _string_ — Continue from a completed stored Agent
+  API response.
+- **store** _boolean_ — Control whether the response is available through
+  Perplexity's retrieval API.
+
+Standard AI SDK settings such as `maxOutputTokens`, `temperature`, `topP`,
+`reasoning`, structured output, function tools, and streaming are mapped to the
+Agent API.
+
+### Agent Usage and Cost
+
+Agent token usage is returned through the standard `usage` property. The
+provider-reported cost breakdown and tool invocation counts are available in
+provider metadata:
+
+```ts
+console.log(result.providerMetadata?.perplexity?.cost);
+// {
+//   currency: 'USD',
+//   inputCost: 0.001,
+//   outputCost: 0.002,
+//   totalCost: 0.008,
+//   cacheCreationCost: null,
+//   cacheReadCost: null,
+//   toolCallsCost: 0.005
+// }
+
+console.log(result.providerMetadata?.perplexity?.toolCalls);
+```
+
+## Sonar Language Models
+
+The callable provider and `.languageModel()` factory continue to use
+Perplexity's Sonar Chat Completions API for backwards compatibility.
 
 You can create Perplexity models using a provider instance:
 

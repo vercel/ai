@@ -13,8 +13,14 @@ import {
 } from '@ai-sdk/provider-utils';
 import { PerplexityEmbeddingModel } from './perplexity-embedding-model';
 import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-options';
+import { PerplexityAgentLanguageModel } from './perplexity-agent-language-model';
+import type {
+  PerplexityAgentModelId,
+  PerplexityAgentPreset,
+} from './perplexity-agent-language-model-options';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import type { PerplexityLanguageModelId } from './perplexity-options';
+import { perplexityTools } from './perplexity-tools';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV4 {
@@ -27,6 +33,15 @@ export interface PerplexityProvider extends ProviderV4 {
    * Creates an Perplexity language model for text generation.
    */
   languageModel(modelId: PerplexityLanguageModelId): LanguageModelV4;
+
+  /**
+   * Creates a model that uses Perplexity's Agent API (Open Responses format).
+   * Tier names (`fast`, `low`, `medium`, `high`, and `xhigh`) select Agent API
+   * presets; all other values are sent as model IDs.
+   */
+  responses(
+    modelId: PerplexityAgentModelId | PerplexityAgentPreset,
+  ): LanguageModelV4;
 
   /**
    * Creates a Perplexity model for text embeddings.
@@ -42,6 +57,11 @@ export interface PerplexityProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Perplexity Agent API built-in tools.
+   */
+  tools: typeof perplexityTools;
 }
 
 export interface PerplexityProviderSettings {
@@ -104,15 +124,27 @@ export function createPerplexity(
       fetch: options.fetch,
     });
 
+  const createResponsesModel = (
+    modelId: PerplexityAgentModelId | PerplexityAgentPreset,
+  ) =>
+    new PerplexityAgentLanguageModel(modelId, {
+      baseURL,
+      headers: getHeaders,
+      generateId,
+      fetch: options.fetch,
+    });
+
   const provider = (modelId: PerplexityLanguageModelId) =>
     createLanguageModel(modelId);
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
+  provider.responses = createResponsesModel;
 
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.tools = perplexityTools;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
