@@ -3117,6 +3117,47 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should identify built-in tools by type in allowed_tools', async () => {
+        await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            TEST_TOOLS[0],
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'search',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            openai: {
+              allowedTools: {
+                toolNames: ['weather', 'search'],
+                mode: 'auto',
+              },
+            },
+          },
+        });
+
+        const body = (await server.calls[0].requestBodyJson) as {
+          tools: Array<{ type: string; name?: string }>;
+          tool_choice: unknown;
+        };
+
+        expect(body.tools).toMatchObject([
+          { type: 'function', name: 'weather' },
+          { type: 'web_search' },
+        ]);
+        expect(body.tool_choice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [
+            { type: 'function', name: 'weather' },
+            { type: 'web_search' },
+          ],
+        });
+      });
+
       it('should send allowed_tools with required mode when allowedTools.mode is required', async () => {
         await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
