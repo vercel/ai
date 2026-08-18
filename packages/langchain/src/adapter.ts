@@ -435,13 +435,19 @@ export function toUIMessageStream<TState = unknown>(
     messageSeen: new Map(),
     messageNamespaces: new Map(),
     messageConcat: new Map(),
+    messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+<<<<<<< HEAD
+=======
+    emittedToolCallsInCurrentStepByNamespace: new Map(),
+    emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStepByNamespace: new Map(),
+>>>>>>> 404a9d9b6b (fix: preserve LangGraph tool lifecycles when provider tool call IDs repeat across steps (#18837))
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
-    currentStep: null as number | null,
-    stepNamespace: null,
+    currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   };
@@ -608,7 +614,7 @@ export function toUIMessageStream<TState = unknown>(
           /**
            * Emit finish-step if a step was started
            */
-          if (langGraphState.currentStep !== null) {
+          if (langGraphState.currentStepsByNamespace.size > 0) {
             controller.enqueue({ type: 'finish-step' });
           }
           controller.enqueue({ type: 'finish' });
