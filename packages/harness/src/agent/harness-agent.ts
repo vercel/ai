@@ -267,22 +267,11 @@ export class HarnessAgent<
     const isResumedSession =
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
-    let recipe: HarnessV1Bootstrap | undefined;
-    if (harness.getBootstrap != null) {
-      recipe = await harness.getBootstrap({ abortSignal });
-    }
-
-    // Defines the hashes based on both harness bootstrap recipe and
-    // consumer-defined onBootstrap callback.
-    const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
-      recipe,
-      settings: this.sandboxConfig,
-    });
-
     // Acquires the concrete sandbox session, either by starting fresh and then
     // creating a post-bootstrap snapshot, or by reusing a previously created
     // snapshot based on the bootstrap-based hashes.
     let sandboxSession: HarnessV1NetworkSandboxSession;
+    let sessionWorkDir: string;
     if (isResumedSession) {
       if (sandboxProvider.resumeSession == null) {
         throw new HarnessCapabilityUnsupportedError({
@@ -294,39 +283,68 @@ export class HarnessAgent<
         sessionId,
         abortSignal,
       });
+      sessionWorkDir = resolveSessionWorkDir({
+        defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+        harnessId: harness.harnessId,
+        sessionId,
+        workDir: this.sandboxConfig.workDir,
+      });
     } else {
+      // The logic in this clause applies the bootstrap plan, including both the harness
+      // bootstrap recipe and agent specific sandbox configuration.
+      // The logic matches largely what `prepareHarnessSandboxTemplate()` and
+      // `prepareSandboxForHarness()` do, so they will have to remain aligned.
+      let recipe: HarnessV1Bootstrap | undefined;
+      if (harness.getBootstrap != null) {
+        recipe = await harness.getBootstrap({ abortSignal });
+      }
+
+      // Defines the hashes based on both harness bootstrap recipe and
+      // consumer-defined onBootstrap callback.
+      const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
+        recipe,
+        settings: this.sandboxConfig,
+      });
+
       sandboxSession = await sandboxProvider.createSession({
         sessionId,
         abortSignal,
         identity: sandboxBootstrapPlan.identity,
         onFirstCreate: sandboxBootstrapPlan.onFirstCreate,
       });
-    }
-    const sessionWorkDir = resolveSessionWorkDir({
-      defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
-      harnessId: harness.harnessId,
-      sessionId,
-      workDir: sandboxBootstrapPlan.workDir,
-    });
+      sessionWorkDir = resolveSessionWorkDir({
+        defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+        harnessId: harness.harnessId,
+        sessionId,
+        workDir: sandboxBootstrapPlan.workDir,
+      });
 
-    try {
       // In case the sandbox session was created with a custom sandbox, or in
       // case the sandbox provider doesn't respect `onFirstCreate`, we still
       // have to ensure the harness bootstrap recipe has run. In the common
       // scenario, this will be a cheap no-op based on just a marker check.
       if (
-        !isResumedSession &&
         sandboxBootstrapPlan.recipe != null &&
         sandboxBootstrapPlan.recipeIdentity != null
       ) {
-        await applyBootstrapRecipe({
-          session: sandboxSession.restricted(),
-          recipe: sandboxBootstrapPlan.recipe,
-          identity: sandboxBootstrapPlan.recipeIdentity,
-          defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
-          abortSignal,
-        });
+        try {
+          await applyBootstrapRecipe({
+            session: sandboxSession.restricted(),
+            recipe: sandboxBootstrapPlan.recipe,
+            identity: sandboxBootstrapPlan.recipeIdentity,
+            defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+            abortSignal,
+          });
+        } catch (err) {
+          await cleanupAfterStartFailure({
+            sandboxSession,
+          });
+          throw err;
+        }
       }
+    }
+
+    try {
       await ensureSandboxDirectory({
         session: sandboxSession,
         workDir: sessionWorkDir,
