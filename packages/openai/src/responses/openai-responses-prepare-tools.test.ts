@@ -1957,5 +1957,245 @@ describe('prepareResponsesTools', () => {
         tools: [{ type: 'function', name: 'get_weather' }],
       });
     });
+
+    it('should derive entries for function, built-in, custom, and MCP tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          {
+            type: 'provider',
+            id: 'openai.web_search',
+            name: 'search',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'openai.web_search_preview',
+            name: 'previewSearch',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'openai.file_search',
+            name: 'files',
+            args: { vectorStoreIds: ['vs-1'] },
+          },
+          {
+            type: 'provider',
+            id: 'openai.image_generation',
+            name: 'image',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'python',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'openai.apply_patch',
+            name: 'patch',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'openai.local_shell',
+            name: 'localShell',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'sql',
+            args: {
+              name: 'write_sql',
+              description: 'Write a SQL SELECT query.',
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'deepwiki',
+            args: {
+              serverLabel: 'deepwiki',
+              serverUrl: 'https://mcp.deepwiki.com/mcp',
+            },
+          },
+        ],
+        toolChoice: undefined,
+        allowedTools: {
+          toolNames: [
+            'get_weather',
+            'search',
+            'previewSearch',
+            'files',
+            'image',
+            'python',
+            'patch',
+            'shell',
+            'localShell',
+            'sql',
+            'deepwiki',
+          ],
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [
+          { type: 'function', name: 'get_weather' },
+          { type: 'web_search' },
+          { type: 'web_search_preview' },
+          { type: 'file_search' },
+          { type: 'image_generation' },
+          { type: 'code_interpreter' },
+          { type: 'apply_patch' },
+          { type: 'shell' },
+          { type: 'local_shell' },
+          { type: 'custom', name: 'write_sql' },
+          { type: 'mcp', server_label: 'deepwiki' },
+        ],
+      });
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should resolve a built-in tool by its canonical provider name', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search',
+            name: 'search',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['web_search'] },
+        toolNameMapping: {
+          toProviderToolName: name => (name === 'search' ? 'web_search' : name),
+          toCustomToolName: name => (name === 'web_search' ? 'search' : name),
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'web_search' }],
+      });
+    });
+
+    it('should drop tools OpenAI cannot allow-list and warn', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          {
+            type: 'function',
+            name: 'deferred_tool',
+            description: 'Deferred',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: { openai: { deferLoading: true } },
+          },
+          {
+            type: 'function',
+            name: 'namespaced_tool',
+            description: 'Namespaced',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openai: {
+                namespace: {
+                  name: 'crm',
+                  description: 'CRM tools',
+                },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+        allowedTools: {
+          toolNames: [
+            'get_weather',
+            'deferred_tool',
+            'namespaced_tool',
+            'toolSearch',
+          ],
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'get_weather' }],
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'allowedTools entry "deferred_tool"',
+          details:
+            'deferred tools are not visible to tool_choice.allowed_tools; the tool is removed from the allowed tools',
+        },
+        {
+          type: 'unsupported',
+          feature: 'allowedTools entry "namespaced_tool"',
+          details:
+            'tools inside an OpenAI tool namespace are not visible to tool_choice.allowed_tools; the tool is removed from the allowed tools',
+        },
+        {
+          type: 'unsupported',
+          feature: 'allowedTools entry "toolSearch"',
+          details:
+            'OpenAI does not support tool_search tools in tool_choice.allowed_tools; the tool is removed from the allowed tools',
+        },
+      ]);
+    });
+
+    it('should throw when no allowed tool can be expressed', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.tool_search',
+              name: 'toolSearch',
+              args: {},
+            },
+            {
+              type: 'function',
+              name: 'deferred_tool',
+              description: 'Deferred',
+              inputSchema: { type: 'object', properties: {} },
+              providerOptions: { openai: { deferLoading: true } },
+            },
+          ],
+          toolChoice: undefined,
+          allowedTools: { toolNames: ['toolSearch', 'deferred_tool'] },
+        }),
+      ).rejects.toThrow(
+        'allowedTools with only tools that cannot be allow-listed (toolSearch, deferred_tool)',
+      );
+    });
   });
 });
