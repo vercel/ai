@@ -1,0 +1,43 @@
+{
+  "id": "resp_0e49c6b8c9a16264016a84cd74fe1487d29ee0706d7b80968c",
+  "created_at": 1787088245,
+  "error": null,
+  "model": "gpt-5.6-terra",
+  "output": [
+    {
+      "id": "cm_0e49c6b8c9a16264016a84cd761df087d2971b7c2de458efa8",
+      "type": "program",
+      "call_id": "call_YbiaUwdtG9jg12dor5Tw9gEY",
+      "code": "const r = await tools.getHours({member:\"Ada\"}); text(r.hours);",
+      "fingerprint": "gAAAAABqhM12tA5NXK7KKKMkD5hFnwYoTsLNWj5c__A-RvSQKYHqxcQcQvEwZt2yXw9M7WqhItXXxDPgjIUwPvQybLClmV6p0K9YJowv1JchUIpzI8VdhUEjfwoGz3-NXlm8L9LcDk-WGlTZorUirr_JgNMvB2AAyi7r89REJqM-Y2RHgSSMq57SZDxQnOCNOV2eF4sVEGUOw3rZbFb2KjhWf4weW7ZE-6CyAmGGo7cZjuUypAo8_eHoAv7Zi-6tcWWI9rY0xsdgUWiaM4EZ_KQ5wM4om6sj0A7mtZn2B-EZRi1DU-5yOAs="
+    },
+    {
+      "id": "fc_0e49c6b8c9a16264016a84cd76243887d295644761ab09a39b",
+      "type": "function_call",
+      "status": "in_progress",
+      "arguments": "{\"member\":\"Ada\"}",
+      "call_id": "call_QVArMuTpSoYmTdG9RoDQJEdi",
+      "caller": {
+        "type": "program",
+        "caller_id": "call_YbiaUwdtG9jg12dor5Tw9gEY"
+      },
+      "name": "getHours"
+    }
+  ],
+  "service_tier": "default",
+  "reasoning": {
+    "context": "all_turns"
+  },
+  "incomplete_details": null,
+  "usage": {
+    "input_tokens": 571,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 52,
+    "output_tokens_details": {
+      "reasoning_tokens": 23
+    }
+  }
+}
