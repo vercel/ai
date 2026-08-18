@@ -76,4 +76,33 @@ describe('createAmazonBedrockEventStreamDecoder', () => {
 
     expect(result).toEqual(['data']);
   });
+
+  it('rejects when EOF leaves an incomplete frame', async () => {
+    const frame = createEvent('data');
+    const incompleteFrame = frame.subarray(0, -1);
+
+    const result = convertReadableStreamToArray(
+      createAmazonBedrockEventStreamDecoder(
+        createStream([incompleteFrame]),
+        vi.fn(),
+      ),
+    );
+
+    await expect(result).rejects.toThrow(
+      `Incomplete Amazon Bedrock event-stream frame: ${incompleteFrame.length} buffered bytes remain at end of stream.`,
+    );
+  });
+
+  it('allows EOF at a complete frame boundary', async () => {
+    const result = await convertReadableStreamToArray(
+      createAmazonBedrockEventStreamDecoder(
+        createStream([createEvent('data')]),
+        (event, controller) => {
+          controller.enqueue(event.data);
+        },
+      ),
+    );
+
+    expect(result).toEqual(['data']);
+  });
 });
