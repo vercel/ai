@@ -1,5 +1,30 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.74
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+
+## 1.0.73
+
+### Patch Changes
+
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness@1.0.73
+
+## 1.0.72
+
+### Patch Changes
+
+- 69bb613: feat(harness): support request transformations in network sandbox abstraction and use it to apply credential brokering when available
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness@1.0.72
+
 ## 1.0.71
 
 ### Patch Changes

@@ -133,7 +133,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesToolSearchOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
-  | OpenAIResponsesCompactionItem;
+  | OpenAIResponsesCompactionItem
+  | OpenAIResponsesCompactionTrigger;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -431,6 +432,10 @@ export type OpenAIResponsesCompactionItem = {
   encrypted_content: string;
 };
 
+export type OpenAIResponsesCompactionTrigger = {
+  type: 'compaction_trigger';
+};
+
 /**
  * A filter used to compare a specified attribute key to a given value using a defined comparison operation.
  */
@@ -479,6 +484,21 @@ export type OpenAIResponsesFunctionTool = {
   allowed_callers?: Array<'direct' | 'programmatic'>;
   output_schema?: JSONSchema7;
 };
+
+/**
+ * Entry in `tool_choice.allowed_tools.tools`. OpenAI identifies most built-in
+ * tools by type alone; only `function`, `custom` and `mcp` carry an identifier.
+ */
+export type OpenAIResponsesAllowedTool =
+  | { type: 'function'; name: string }
+  | { type: 'custom'; name: string }
+  | { type: 'mcp'; server_label: string }
+  | {
+      type: Exclude<
+        OpenAIResponsesTool['type'],
+        'function' | 'custom' | 'mcp' | 'namespace' | 'tool_search'
+      >;
+    };
 
 export type OpenAIResponsesTool =
   | OpenAIResponsesFunctionTool

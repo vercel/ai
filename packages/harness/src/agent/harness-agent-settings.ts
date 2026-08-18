@@ -16,6 +16,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type {
   ActiveTools,
+  OutputInterface as Output,
   StopCondition,
   TelemetryOptions,
   ToolApprovalStatus,
@@ -99,6 +100,7 @@ export type HarnessAgentSettings<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = never,
 > = {
   /**
    * The harness adapter driving the underlying agent runtime. Its
@@ -137,6 +139,12 @@ export type HarnessAgentSettings<
    * it to the first user message of a fresh session.
    */
   readonly instructions?: string;
+
+  /**
+   * Optional specification for generating typed output. The same output
+   * requirement is active for every turn run by this agent.
+   */
+  readonly output?: OUTPUT;
 
   /**
    * Conditions that stop the current result after a completed harness tool

@@ -2,6 +2,7 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
@@ -15,6 +16,7 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
+import { prepareRetries } from 'ai/internal';
 import type { ProviderOptions } from './workflow-agent.js';
 import {
   resolveSerializableTools,
@@ -48,6 +50,7 @@ export interface DoStreamStepOptions {
   seed?: number;
   maxRetries?: number;
   abortSignal?: AbortSignal;
+  timeoutAt?: number;
   headers?: Record<string, string | undefined>;
   reasoning?: LanguageModelV4CallOptions['reasoning'];
   providerOptions?: ProviderOptions;
@@ -99,19 +102,43 @@ export interface DoStreamStepRawResult {
   warnings?: unknown[];
 }
 
+export type DoStreamStepResult =
+  | { aborted: true }
+  | {
+      aborted?: false;
+      toolCalls: ParsedToolCall[];
+      finish: StreamFinish | undefined;
+      raw: DoStreamStepRawResult;
+      providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
+      /** Present when the model stream emitted an error part. */
+      terminalError?: unknown;
+    };
+
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
   modelInit: LanguageModel,
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>,
   serializedTools?: Record<string, SerializableToolDef>,
   options?: DoStreamStepOptions,
-): Promise<{
-  toolCalls: ParsedToolCall[];
-  finish: StreamFinish | undefined;
-  raw: DoStreamStepRawResult;
-  providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
-}> {
+): Promise<DoStreamStepResult> {
   'use step';
+
+  const timeout =
+    options?.timeoutAt == null ? undefined : options.timeoutAt - Date.now();
+
+  // AbortSignal.timeout(0) does not abort synchronously. Check the deadline
+  // explicitly so an expired call never reaches the model, including when a
+  // durable step is retried after the original timeout has elapsed.
+  if (options?.abortSignal?.aborted || (timeout != null && timeout <= 0)) {
+    return { aborted: true };
+  }
+
+  const abortSignal =
+    timeout == null
+      ? options?.abortSignal
+      : options?.abortSignal == null
+        ? AbortSignal.timeout(timeout)
+        : AbortSignal.any([options.abortSignal, AbortSignal.timeout(timeout)]);
 
   // Resolve model inside step (must happen here for serialization boundary)
   const model: LanguageModel =
@@ -148,34 +175,56 @@ export async function doStreamStep(
           },
         };
 
-  // streamModelCall handles: prompt standardization, tool preparation,
-  // model.doStream(), retry logic, and stream part transformation
-  // (tool call parsing, finish reason mapping, file wrapping).
-  const { stream: modelStream } = await streamModelCall({
-    model,
-    // streamModelCall expects Prompt (ModelMessage[]) but we pass the
-    // pre-converted LanguageModelV4Prompt. standardizePrompt inside
-    // streamModelCall handles both formats.
-    messages: conversationPrompt as unknown as ModelMessage[],
-    allowSystemInMessages: true,
-    tools,
-    toolChoice: options?.toolChoice,
-    includeRawChunks: options?.includeRawChunks,
-    providerOptions: options?.providerOptions,
-    abortSignal: options?.abortSignal,
-    headers: options?.headers,
-    reasoning: options?.reasoning,
-    output,
-    maxOutputTokens: options?.maxOutputTokens,
-    temperature: options?.temperature,
-    topP: options?.topP,
-    topK: options?.topK,
-    presencePenalty: options?.presencePenalty,
-    frequencyPenalty: options?.frequencyPenalty,
-    stopSequences: options?.stopSequences,
-    seed: options?.seed,
-    repairToolCall: options?.repairToolCall,
+  // streamModelCall handles prompt standardization, tool preparation,
+  // model.doStream(), and stream part transformation. Retries are applied
+  // around the model dispatch because streamModelCall itself does not retry.
+  const { retry } = prepareRetries({
+    maxRetries: options?.maxRetries,
+    abortSignal,
   });
+  const modelStream = await (async () => {
+    try {
+      const { stream } = await retry(() =>
+        streamModelCall({
+          model,
+          // streamModelCall expects Prompt (ModelMessage[]) but we pass the
+          // pre-converted LanguageModelV4Prompt. standardizePrompt inside
+          // streamModelCall handles both formats.
+          messages: conversationPrompt as unknown as ModelMessage[],
+          allowSystemInMessages: true,
+          tools,
+          toolChoice: options?.toolChoice,
+          includeRawChunks: options?.includeRawChunks,
+          providerOptions: options?.providerOptions,
+          abortSignal,
+          headers: options?.headers,
+          reasoning: options?.reasoning,
+          output,
+          maxOutputTokens: options?.maxOutputTokens,
+          temperature: options?.temperature,
+          topP: options?.topP,
+          topK: options?.topK,
+          presencePenalty: options?.presencePenalty,
+          frequencyPenalty: options?.frequencyPenalty,
+          stopSequences: options?.stopSequences,
+          seed: options?.seed,
+          repairToolCall: options?.repairToolCall,
+        }),
+      );
+
+      return stream;
+    } catch (error) {
+      if (abortSignal?.aborted && isAbortError(error)) {
+        return undefined;
+      }
+
+      throw error;
+    }
+  })();
+
+  if (modelStream == null) {
+    return { aborted: true };
+  }
 
   // Consume the stream: capture data and write to writable in real-time
   const toolCalls: ParsedToolCall[] = [];
@@ -192,6 +241,8 @@ export async function doStreamStep(
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
   let warnings: unknown[] | undefined;
+  let terminalError: unknown;
+  let hasTerminalError = false;
 
   // Acquire writer once before the loop to avoid per-chunk lock overhead
   const writer = writable?.getWriter();
@@ -269,9 +320,31 @@ export async function doStreamStep(
       if (writer) {
         await writer.write(part);
       }
+
+      if (part.type === 'error' && !hasTerminalError) {
+        // Retain the first model error as step data. Throwing here would make
+        // the durable workflow runtime retry the model step and normalize the
+        // original value before WorkflowAgent can surface it. Continue
+        // consuming so the existing finish reason and usage are preserved.
+        terminalError = part.error;
+        hasTerminalError = true;
+      }
     }
+  } catch (error) {
+    if (abortSignal?.aborted && isAbortError(error)) {
+      return { aborted: true };
+    }
+
+    throw error;
   } finally {
     writer?.releaseLock();
+  }
+
+  if (
+    abortSignal?.aborted ||
+    (options?.timeoutAt != null && options.timeoutAt <= Date.now())
+  ) {
+    return { aborted: true };
   }
 
   return {
@@ -284,5 +357,10 @@ export async function doStreamStep(
       warnings,
     },
     providerExecutedToolResults,
+    ...(hasTerminalError ? { terminalError } : {}),
   };
 }
+
+// Model-call retries are handled above so the workflow runtime must not add
+// another retry layer around the durable step.
+doStreamStep.maxRetries = 0;

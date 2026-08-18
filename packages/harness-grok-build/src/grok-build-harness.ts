@@ -321,6 +321,10 @@ export function createGrokBuild(
       type: 'session-meta',
       path: ['rules'],
     },
+    outputSchemaMapping: {
+      type: 'session-prompt-meta',
+      path: ['outputSchema'],
+    },
     providerAuthentication: {
       gateway: {
         env: {
