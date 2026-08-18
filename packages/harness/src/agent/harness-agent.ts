@@ -107,11 +107,10 @@ export interface HarnessAgentCallExtensions {
  *    the result is fed back to the harness via `submitToolResult`.
  *    Adapter builtin tools (e.g. Claude Code's `Bash`) pass through
  *    untouched.
- *  - **Sandbox propagation.** `settings.sandbox` is a sandbox provider.
- *    On `createSession`, the agent uses a caller-provided network sandbox
- *    session when present; otherwise it calls `provider.createSession()` (or
- *    `resumeSession()`). It passes the selected session into `doStart`. Its
- *    `restricted()` view (a tool-safe
+ *  - **Sandbox propagation.** On `createSession`, the agent uses a
+ *    caller-provided network sandbox session when present; otherwise it calls
+ *    the configured provider's `createSession()` (or `resumeSession()`). It
+ *    passes the selected session into `doStart`. Its `restricted()` view (a tool-safe
  *    `Experimental_SandboxSession`) is handed to user-tool `execute()` calls
  *    via `experimental_sandbox`. Caller-provided sandboxes remain owned by the
  *    caller and are not stopped or destroyed by the harness layer.
@@ -312,75 +311,83 @@ export class HarnessAgent<
           throw err;
         }
       }
-    } else if (isResumedSession) {
-      if (sandboxProvider.resumeSession == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
-          harnessId: harness.harnessId,
-        });
-      }
-      sandboxSession = await sandboxProvider.resumeSession({
-        sessionId,
-        abortSignal,
-      });
-      sessionWorkDir = resolveSessionWorkDir({
-        defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
-        harnessId: harness.harnessId,
-        sessionId,
-        workDir: this.sandboxConfig.workDir,
-      });
     } else {
-      // The logic in this clause applies the bootstrap plan, including both the harness
-      // bootstrap recipe and agent specific sandbox configuration.
-      // The logic matches largely what `prepareHarnessSandboxTemplate()` and
-      // `prepareSandboxForHarness()` do, so they will have to remain aligned.
-      let recipe: HarnessV1Bootstrap | undefined;
-      if (harness.getBootstrap != null) {
-        recipe = await harness.getBootstrap({ abortSignal });
+      if (sandboxProvider == null) {
+        throw new Error(
+          'HarnessAgent.createSession: configure `sandbox` on HarnessAgent or pass `sandboxSession` to createSession().',
+        );
       }
 
-      // Defines the hashes based on both harness bootstrap recipe and
-      // consumer-defined onBootstrap callback.
-      const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
-        recipe,
-        settings: this.sandboxConfig,
-      });
-
-      sandboxSession = await sandboxProvider.createSession({
-        sessionId,
-        abortSignal,
-        identity: sandboxBootstrapPlan.identity,
-        onFirstCreate: sandboxBootstrapPlan.onFirstCreate,
-      });
-      sessionWorkDir = resolveSessionWorkDir({
-        defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
-        harnessId: harness.harnessId,
-        sessionId,
-        workDir: sandboxBootstrapPlan.workDir,
-      });
-
-      // In case the sandbox session was created with a custom sandbox, or in
-      // case the sandbox provider doesn't respect `onFirstCreate`, we still
-      // have to ensure the harness bootstrap recipe has run. In the common
-      // scenario, this will be a cheap no-op based on just a marker check.
-      if (
-        sandboxBootstrapPlan.recipe != null &&
-        sandboxBootstrapPlan.recipeIdentity != null
-      ) {
-        try {
-          await applyBootstrapRecipe({
-            session: sandboxSession.restricted(),
-            recipe: sandboxBootstrapPlan.recipe,
-            identity: sandboxBootstrapPlan.recipeIdentity,
-            defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
-            abortSignal,
+      if (isResumedSession) {
+        if (sandboxProvider.resumeSession == null) {
+          throw new HarnessCapabilityUnsupportedError({
+            message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
+            harnessId: harness.harnessId,
           });
-        } catch (err) {
-          await cleanupAfterStartFailure({
-            sandboxSession,
-            ownsSandboxLifecycle,
-          });
-          throw err;
+        }
+        sandboxSession = await sandboxProvider.resumeSession({
+          sessionId,
+          abortSignal,
+        });
+        sessionWorkDir = resolveSessionWorkDir({
+          defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+          harnessId: harness.harnessId,
+          sessionId,
+          workDir: this.sandboxConfig.workDir,
+        });
+      } else {
+        // The logic in this clause applies the bootstrap plan, including both the harness
+        // bootstrap recipe and agent specific sandbox configuration.
+        // The logic matches largely what `prepareHarnessSandboxTemplate()` and
+        // `prepareSandboxForHarness()` do, so they will have to remain aligned.
+        let recipe: HarnessV1Bootstrap | undefined;
+        if (harness.getBootstrap != null) {
+          recipe = await harness.getBootstrap({ abortSignal });
+        }
+
+        // Defines the hashes based on both harness bootstrap recipe and
+        // consumer-defined onBootstrap callback.
+        const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
+          recipe,
+          settings: this.sandboxConfig,
+        });
+
+        sandboxSession = await sandboxProvider.createSession({
+          sessionId,
+          abortSignal,
+          identity: sandboxBootstrapPlan.identity,
+          onFirstCreate: sandboxBootstrapPlan.onFirstCreate,
+        });
+        sessionWorkDir = resolveSessionWorkDir({
+          defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+          harnessId: harness.harnessId,
+          sessionId,
+          workDir: sandboxBootstrapPlan.workDir,
+        });
+
+        // In case the sandbox session was created with a custom sandbox, or in
+        // case the sandbox provider doesn't respect `onFirstCreate`, we still
+        // have to ensure the harness bootstrap recipe has run. In the common
+        // scenario, this will be a cheap no-op based on just a marker check.
+        if (
+          sandboxBootstrapPlan.recipe != null &&
+          sandboxBootstrapPlan.recipeIdentity != null
+        ) {
+          try {
+            await applyBootstrapRecipe({
+              session: sandboxSession.restricted(),
+              recipe: sandboxBootstrapPlan.recipe,
+              identity: sandboxBootstrapPlan.recipeIdentity,
+              defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+              abortSignal,
+            });
+          } catch (err) {
+            await cleanupAfterStartFailure({
+              sandboxSession,
+              ownsSandboxLifecycle,
+            });
+            throw err;
+          }
         }
       }
     }

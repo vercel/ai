@@ -1444,7 +1444,16 @@ describe('HarnessAgent', () => {
     ).toThrow(/workDir/);
   });
 
-  test('uses a provided sandbox session without acquiring one and applies the harness bootstrap recipe', async () => {
+  test('requires a configured provider or a provided sandbox session', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness });
+
+    await expect(agent.createSession()).rejects.toThrow(
+      'HarnessAgent.createSession: configure `sandbox` on HarnessAgent or pass `sandboxSession` to createSession().',
+    );
+  });
+
+  test('uses a provided sandbox session without a configured provider and applies the harness bootstrap recipe', async () => {
     const base = mockHarness({ script: () => [] });
     const recipe: HarnessV1Bootstrap = {
       harnessId: 'mock',
@@ -1468,6 +1477,34 @@ describe('HarnessAgent', () => {
       destroy: sandboxDestroy,
       restricted: () => restrictedSession as never,
     });
+    const agent = new HarnessAgent({ harness });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      sandboxSession,
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    expect(writeTextFile).toHaveBeenCalledWith({
+      path: expect.stringMatching(
+        /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+      ),
+      content: expect.any(String),
+      abortSignal: undefined,
+    });
+
+    await session.destroy();
+    expect(sandboxStop).not.toHaveBeenCalled();
+    expect(sandboxDestroy).not.toHaveBeenCalled();
+  });
+
+  test('prefers a provided sandbox session over a configured provider', async () => {
+    const { harness } = mockHarness({ script: () => [] });
     const createSession = vi.fn(async () => makeSandboxSession());
     const resumeSession = vi.fn(async () => makeSandboxSession());
     const agent = new HarnessAgent({
@@ -1481,29 +1518,12 @@ describe('HarnessAgent', () => {
     });
 
     const session = await agent.createSession({
-      sessionId: 's1',
-      sandboxSession,
-      resumeFrom: {
-        type: 'resume-session',
-        harnessId: 'mock',
-        specificationVersion: 'harness-v1',
-        data: {},
-      },
+      sandboxSession: makeSandboxSession(),
     });
 
     expect(createSession).not.toHaveBeenCalled();
     expect(resumeSession).not.toHaveBeenCalled();
-    expect(writeTextFile).toHaveBeenCalledWith({
-      path: expect.stringMatching(
-        /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
-      ),
-      content: expect.any(String),
-      abortSignal: undefined,
-    });
-
     await session.destroy();
-    expect(sandboxStop).not.toHaveBeenCalled();
-    expect(sandboxDestroy).not.toHaveBeenCalled();
   });
 
   test('does not stop a provided sandbox session when harness startup fails', async () => {
@@ -1520,20 +1540,11 @@ describe('HarnessAgent', () => {
       stop: sandboxStop,
       destroy: sandboxDestroy,
     });
-    const createSession = vi.fn(async () => makeSandboxSession());
-    const agent = new HarnessAgent({
-      harness,
-      sandbox: {
-        specificationVersion: 'harness-sandbox-v1',
-        providerId: 'mock-sandbox',
-        createSession,
-      },
-    });
+    const agent = new HarnessAgent({ harness });
 
     await expect(agent.createSession({ sandboxSession })).rejects.toThrow(
       'start failed',
     );
-    expect(createSession).not.toHaveBeenCalled();
     expect(sandboxStop).not.toHaveBeenCalled();
     expect(sandboxDestroy).not.toHaveBeenCalled();
   });

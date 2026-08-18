@@ -183,6 +183,7 @@ HTTP routes that need multi-turn continuity.
 When you pass `sandboxSession` to `agent.createSession()`, the caller retains
 ownership of that sandbox. `session.stop()` and `session.destroy()` still end
 the harness runtime but do not stop or destroy the supplied sandbox session.
+In this case, the agent does not need a `sandbox` provider in its constructor.
 
 ```ts
 const session = await agent.createSession({ sessionId: chatId });
@@ -437,6 +438,51 @@ console.log(preparation.identity);
 
 Adapter-specific settings belong on the adapter factory, for example
 `createCodex({ reasoningEffort: 'high' })`.
+
+## Custom Sandbox Orchestration
+
+When your application creates and manages sandboxes itself, prepare the network
+sandbox session first and then pass that same session to `agent.createSession()`.
+The agent does not need a sandbox provider and does not stop or destroy the
+caller-owned sandbox.
+
+```ts
+import { HarnessAgent, prepareSandboxForHarness } from '@ai-sdk/harness/agent';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { Sandbox } from '@vercel/sandbox';
+
+const sandbox = await Sandbox.create({
+  runtime: 'node24',
+  ports: [4000],
+});
+const sandboxProvider = createVercelSandbox({ sandbox });
+const sandboxSession = await sandboxProvider.createSession();
+
+await prepareSandboxForHarness({
+  session: sandboxSession.restricted(),
+  harnesses: [claudeCode],
+});
+
+const agent = new HarnessAgent({ harness: claudeCode });
+const session = await agent.createSession({ sandboxSession });
+
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Create a short TODO.md for this repository.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} finally {
+  await session.destroy();
+  await sandbox.stop();
+}
+```
 
 ## Next Steps
 

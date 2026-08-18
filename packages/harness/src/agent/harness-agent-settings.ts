@@ -179,12 +179,11 @@ export type HarnessAgentSettings<
   readonly toolApproval?: HarnessAgentToolApprovalConfiguration;
 
   /**
-   * Sandbox provider whose `create()` produces the network sandbox session the
-   * harness runs against. Its `restricted()` view is also propagated to user
-   * tool `execute()` calls (as the `experimental_sandbox` field), typed as
-   * `Experimental_SandboxSession` so tools cannot reach the infra surface.
+   * Optional sandbox provider used to create or resume network sandbox
+   * sessions. When omitted, every `createSession()` call must provide an
+   * existing network sandbox session.
    */
-  readonly sandbox: HarnessV1SandboxProvider;
+  readonly sandbox?: HarnessV1SandboxProvider;
 
   /**
    * Sandbox working-directory and lifecycle hook configuration.

@@ -18,7 +18,6 @@ run(async () => {
 
   const agent = new HarnessAgent({
     harness: claudeCode,
-    sandbox: sandboxProvider,
   });
 
   const session = await agent.createSession({ sandboxSession });
