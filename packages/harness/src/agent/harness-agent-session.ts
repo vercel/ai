@@ -66,6 +66,7 @@ export class HarnessAgentSession {
 
   private readonly harness: HarnessAgentAdapter;
   private readonly sessionWorkDir: string;
+  private readonly ownsSandboxLifecycle: boolean;
   private underlyingSession: HarnessAgentAdapterSession | undefined;
   private sandboxSession: HarnessV1NetworkSandboxSession | undefined;
   private readonly toolApproval:
@@ -98,6 +99,7 @@ export class HarnessAgentSession {
     harness: HarnessAgentAdapter;
     underlyingSession: HarnessAgentAdapterSession;
     sandboxSession: HarnessV1NetworkSandboxSession;
+    ownsSandboxLifecycle?: boolean;
     sessionWorkDir: string;
     toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
     pendingToolApprovals?: readonly HarnessAgentPendingToolApproval[];
@@ -108,6 +110,7 @@ export class HarnessAgentSession {
     this.harness = options.harness;
     this.underlyingSession = options.underlyingSession;
     this.sandboxSession = options.sandboxSession;
+    this.ownsSandboxLifecycle = options.ownsSandboxLifecycle ?? true;
     this.sessionWorkDir = options.sessionWorkDir;
     this.toolApproval = options.toolApproval;
     for (const approval of options.pendingToolApprovals ?? []) {
@@ -357,7 +360,8 @@ export class HarnessAgentSession {
   }
 
   /**
-   * Persist enough state to resume later, then stop the runtime and sandbox.
+   * Persist enough state to resume later, then stop the runtime and any
+   * harness-owned sandbox.
    * Returns the resume state for a future
    * `agent.createSession({ sessionId, resumeFrom })` call.
    */
@@ -384,13 +388,15 @@ export class HarnessAgentSession {
       return validated;
     } finally {
       this.endLocalHandle({ sessionState: 'stopped' });
-      await Promise.resolve(sandboxSession.stop()).catch(() => {});
+      if (this.ownsSandboxLifecycle) {
+        await Promise.resolve(sandboxSession.stop()).catch(() => {});
+      }
     }
   }
 
   /**
-   * Stop the runtime and discard resumability. The sandbox is destroyed when
-   * the provider supports destruction; otherwise it is stopped.
+   * Stop the runtime and discard resumability. A harness-owned sandbox is
+   * destroyed when supported; otherwise it is stopped.
    */
   async destroy(): Promise<void> {
     if (this.sessionState !== 'active') return;
@@ -400,6 +406,7 @@ export class HarnessAgentSession {
     if (session != null) {
       await Promise.resolve(session.doDestroy()).catch(() => {});
     }
+    if (!this.ownsSandboxLifecycle) return;
     await Promise.resolve(
       sandboxSession.destroy?.() ?? sandboxSession.stop(),
     ).catch(() => {});

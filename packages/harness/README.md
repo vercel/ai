@@ -126,7 +126,7 @@ See the [harness adapters documentation](https://ai-sdk.dev/v7/docs/ai-sdk-harne
 
 ## Implementing a harness
 
-Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. Read `startOpts.sandboxSession` for the network sandbox session the agent created and will stop on cleanup. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
+Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. Read `startOpts.sandboxSession` for the selected network sandbox session. The harness layer stops or destroys sessions it acquires from the provider, while a session passed to `agent.createSession({ sandboxSession })` remains caller-owned. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
 
 Each prompt and continuation receives an optional `responseFormat`. JSON
 formats carry a caller-provided JSON Schema plus optional name and description;

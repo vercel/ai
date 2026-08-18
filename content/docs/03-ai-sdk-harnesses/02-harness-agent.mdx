@@ -180,6 +180,10 @@ End every session explicitly:
 Use `destroy()` for one-off scripts and tests. Use `detach()` or `stop()` for
 HTTP routes that need multi-turn continuity.
 
+When you pass `sandboxSession` to `agent.createSession()`, the caller retains
+ownership of that sandbox. `session.stop()` and `session.destroy()` still end
+the harness runtime but do not stop or destroy the supplied sandbox session.
+
 ```ts
 const session = await agent.createSession({ sessionId: chatId });
 

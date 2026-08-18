@@ -47,7 +47,10 @@ import {
   collectHarnessAgentToolResultContinuations,
   type HarnessAgentToolResultContinuation,
 } from './harness-agent-tool-result-continuation';
-import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
+import {
+  applyBootstrapRecipe,
+  hashHarnessBootstrap,
+} from './internal/bootstrap-recipe';
 import {
   createSandboxBootstrapPlan,
   ensureSandboxDirectory,
@@ -105,11 +108,13 @@ export interface HarnessAgentCallExtensions {
  *    Adapter builtin tools (e.g. Claude Code's `Bash`) pass through
  *    untouched.
  *  - **Sandbox propagation.** `settings.sandbox` is a sandbox provider.
- *    On `createSession`, the agent calls `provider.createSession()` (or
- *    `resumeSession()`) and passes the resulting network sandbox session into
- *    `doStart`. Its `restricted()` view (a tool-safe
+ *    On `createSession`, the agent uses a caller-provided network sandbox
+ *    session when present; otherwise it calls `provider.createSession()` (or
+ *    `resumeSession()`). It passes the selected session into `doStart`. Its
+ *    `restricted()` view (a tool-safe
  *    `Experimental_SandboxSession`) is handed to user-tool `execute()` calls
- *    via `experimental_sandbox`.
+ *    via `experimental_sandbox`. Caller-provided sandboxes remain owned by the
+ *    caller and are not stopped or destroyed by the harness layer.
  */
 export class HarnessAgent<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
@@ -229,14 +234,21 @@ export class HarnessAgent<
      * handing it to the adapter.
      */
     continueFrom?: HarnessAgentContinueTurnState;
+    /**
+     * Existing network sandbox session to run the harness in. When provided,
+     * the caller retains ownership of the sandbox lifecycle.
+     */
+    sandboxSession?: HarnessV1NetworkSandboxSession;
     abortSignal?: AbortSignal;
   }): Promise<HarnessAgentSession> {
     const sessionId = options?.sessionId ?? generateId();
     const resumeFrom = options?.resumeFrom;
     const continueFrom = options?.continueFrom;
+    const providedSandboxSession = options?.sandboxSession;
     const abortSignal = options?.abortSignal;
     const harness = this.settings.harness;
     const sandboxProvider = this.settings.sandbox;
+    const ownsSandboxLifecycle = providedSandboxSession == null;
 
     if (resumeFrom != null && continueFrom != null) {
       throw new Error(
@@ -272,7 +284,35 @@ export class HarnessAgent<
     // snapshot based on the bootstrap-based hashes.
     let sandboxSession: HarnessV1NetworkSandboxSession;
     let sessionWorkDir: string;
-    if (isResumedSession) {
+    if (providedSandboxSession != null) {
+      sandboxSession = providedSandboxSession;
+      sessionWorkDir = resolveSessionWorkDir({
+        defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+        harnessId: harness.harnessId,
+        sessionId,
+        workDir: this.sandboxConfig.workDir,
+      });
+
+      const recipe = await harness.getBootstrap?.({ abortSignal });
+      if (recipe != null) {
+        const recipeIdentity = await hashHarnessBootstrap(recipe);
+        try {
+          await applyBootstrapRecipe({
+            session: sandboxSession.restricted(),
+            recipe,
+            identity: recipeIdentity,
+            defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+            abortSignal,
+          });
+        } catch (err) {
+          await cleanupAfterStartFailure({
+            sandboxSession,
+            ownsSandboxLifecycle,
+          });
+          throw err;
+        }
+      }
+    } else if (isResumedSession) {
       if (sandboxProvider.resumeSession == null) {
         throw new HarnessCapabilityUnsupportedError({
           message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
@@ -338,6 +378,7 @@ export class HarnessAgent<
         } catch (err) {
           await cleanupAfterStartFailure({
             sandboxSession,
+            ownsSandboxLifecycle,
           });
           throw err;
         }
@@ -360,6 +401,7 @@ export class HarnessAgent<
     } catch (err) {
       await cleanupAfterStartFailure({
         sandboxSession,
+        ownsSandboxLifecycle,
       });
       throw err;
     }
@@ -385,6 +427,7 @@ export class HarnessAgent<
         harness,
         underlyingSession,
         sandboxSession,
+        ownsSandboxLifecycle,
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
@@ -403,6 +446,7 @@ export class HarnessAgent<
     } catch (error) {
       await cleanupAfterStartFailure({
         sandboxSession,
+        ownsSandboxLifecycle,
       });
       throw error;
     }
@@ -873,6 +917,8 @@ function resolveSandboxConfig(
 
 async function cleanupAfterStartFailure(input: {
   sandboxSession: HarnessV1NetworkSandboxSession;
+  ownsSandboxLifecycle: boolean;
 }): Promise<void> {
+  if (!input.ownsSandboxLifecycle) return;
   await Promise.resolve(input.sandboxSession.stop()).catch(() => {});
 }
