@@ -49,9 +49,9 @@ const { text } = await generateText({
 });
 ```
 
-Legacy Sonar model IDs remain available as deprecated aliases for Agent API
-presets. Because presets can select different models and tools, review the
-[migration notes](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity#migrating-from-sonar)
+Version 5 is a breaking migration from Sonar Chat Completions to the Agent API.
+Legacy Sonar model IDs and provider options are not mapped. Review the
+[migration notes](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity#migrating-from-v4-sonar-to-v5-agent-api)
 before upgrading an existing application.
 
 ## Documentation

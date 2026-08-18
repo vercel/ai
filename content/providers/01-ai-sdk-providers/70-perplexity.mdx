@@ -73,17 +73,9 @@ The Agent API provides the `fast`, `low`, `medium`, `high`, and `xhigh`
 presets. You can also pass an Agent API model ID directly, such as
 `perplexity/sonar`.
 
-The legacy Sonar model IDs remain available as deprecated aliases:
-
-| Legacy model ID       | Agent API preset |
-| --------------------- | ---------------- |
-| `sonar`               | `fast`           |
-| `sonar-pro`           | `low`            |
-| `sonar-reasoning`     | `medium`         |
-| `sonar-reasoning-pro` | `medium`         |
-| `sonar-deep-research` | `high`           |
-
-Using a legacy model ID emits a deprecation warning.
+Version 5 uses the Agent API exclusively. Legacy Sonar model IDs and provider
+options are not mapped; see [Migrating from v4 Sonar to v5 Agent
+API](#migrating-from-v4-sonar-to-v5-agent-api) before upgrading.
 
 ### Sources
 
@@ -271,22 +263,64 @@ Image URL and data inputs are converted to Agent API `input_image` parts.
 The Agent API does not provide a Sonar-equivalent PDF input field, so PDF file
 parts are not supported.
 
-### Migrating from Sonar
+### Migrating from v4 Sonar to v5 Agent API
 
-The provider maps common Sonar options to the Agent API and emits deprecation
-warnings. `maxOutputTokens` is sent as `max_output_tokens`, search filters are
-moved into the `web_search` tool, and `reasoning_effort` is mapped to
-`reasoning.effort`.
+<Note>
+  Version 5 is a breaking migration from Sonar Chat Completions to the Agent
+  API. It does not provide legacy model aliases, translate Sonar provider
+  options, or emit migration warnings at runtime.
+</Note>
 
-Legacy Sonar model IDs select Agent API presets rather than the original Sonar
-models. A preset can choose a different underlying model and set of tools, so
-its cost, latency, and output can differ from the legacy model with the same
-alias.
+Replace each Sonar model ID with an Agent API preset or direct Agent API model
+ID. These presets are suggested starting points, not equivalent aliases: a
+preset can select different models and tools, so cost, latency, and output can
+change.
 
-Options with no Agent API equivalent emit unsupported warnings, including
-`search_language_filter`, `return_images`, image filters, related questions,
-media responses, and `stream_mode`. See Perplexity's
-[migration guide](https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar/overview)
+| v4 Sonar model        | Suggested v5 starting point |
+| --------------------- | --------------------------- |
+| `sonar`               | `fast`                      |
+| `sonar-pro`           | `low`                       |
+| `sonar-reasoning`     | `medium`                    |
+| `sonar-reasoning-pro` | `medium`                    |
+| `sonar-deep-research` | `high`                      |
+
+For example:
+
+```ts
+// v4
+perplexity('sonar-pro');
+
+// v5
+perplexity('low');
+```
+
+Move Sonar search and reasoning options to their Agent API locations:
+
+| v4 provider option                       | v5 Agent API option                    |
+| ---------------------------------------- | -------------------------------------- |
+| Domain, recency, and date filters        | `tools[].filters` on `web_search`      |
+| `num_search_results`                     | `tools[].max_results`                  |
+| `web_search_options.search_context_size` | `tools[].search_context_size`          |
+| `web_search_options.user_location`       | `tools[].user_location`                |
+| `reasoning_effort`                       | `reasoning.effort`                     |
+| `disable_search`                         | Omit `web_search` for direct model IDs |
+
+Preset tools cannot be removed individually. Use a direct model ID without a
+`web_search` tool when search must be disabled, or set `max_tool_calls: 0` to
+disable all preset tool calls.
+
+The Agent API has no equivalent for Sonar PDF or video inputs, image or video
+results, `search_language_filter`, or `stream_mode`. Related questions require
+prompting or structured output. Remove these options during migration.
+
+Language requests now use `/v1/agent`. Custom `baseURL` proxies must route that
+path. Raw responses and streams use the Agent API's typed output and SSE event
+formats, and Perplexity provider metadata, usage, cost, and source identifiers
+can differ. The embeddings API is unchanged.
+
+Applications that require Sonar-only behavior should remain on version 4. See
+Perplexity's [migration
+guide](https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar/how-to)
 for the full API-level comparison.
 
 ## Embedding Models

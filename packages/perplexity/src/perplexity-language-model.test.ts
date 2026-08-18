@@ -229,26 +229,6 @@ describe('doGenerate', () => {
     });
   });
 
-  it('maps legacy Sonar IDs to presets with a deprecation warning', async () => {
-    prepareJsonResponse();
-    const legacyModel = new PerplexityLanguageModel('sonar-deep-research', {
-      baseURL: 'https://api.perplexity.ai',
-      generateId: mockId(),
-    });
-
-    const result = await legacyModel.doGenerate({ prompt: TEST_PROMPT });
-
-    expect(await server.calls[0].requestBodyJson).toEqual({
-      preset: 'high',
-      input: [{ type: 'message', role: 'user', content: 'Hello' }],
-    });
-    expect(result.warnings).toContainEqual({
-      type: 'deprecated',
-      setting: 'model ID "sonar-deep-research"',
-      message: 'Use the Perplexity Agent API preset "high" instead.',
-    });
-  });
-
   it('sends direct model IDs as Agent API models', async () => {
     prepareJsonResponse();
     const directModel = new PerplexityLanguageModel('openai/gpt-5.1', {
@@ -262,6 +242,24 @@ describe('doGenerate', () => {
       model: 'openai/gpt-5.1',
       input: [{ type: 'message', role: 'user', content: 'Hello' }],
     });
+  });
+
+  it('does not map legacy Sonar model IDs to Agent API presets', async () => {
+    prepareJsonResponse();
+    const directModel = new PerplexityLanguageModel('sonar-pro', {
+      baseURL: 'https://api.perplexity.ai',
+      generateId: mockId(),
+    });
+
+    const result = await directModel.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      model: 'sonar-pro',
+      input: [{ type: 'message', role: 'user', content: 'Hello' }],
+    });
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({ type: 'deprecated' }),
+    );
   });
 
   it('passes Agent API provider options and AI SDK function tools', async () => {
@@ -348,109 +346,12 @@ describe('doGenerate', () => {
     });
   });
 
-  it('relocates legacy Sonar search filters to the web_search tool', async () => {
-    prepareJsonResponse();
-
-    const result = await model.doGenerate({
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        perplexity: {
-          search_recency_filter: 'month',
-          search_domain_filter: ['example.com'],
-          num_search_results: 5,
-          web_search_options: {
-            search_context_size: 'medium',
-            user_location: { country: 'US' },
-          },
-        },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toEqual({
-      preset: 'low',
-      input: [{ type: 'message', role: 'user', content: 'Hello' }],
-      tools: [
-        {
-          type: 'web_search',
-          filters: {
-            search_recency_filter: 'month',
-            search_domain_filter: ['example.com'],
-          },
-          max_results: 5,
-          search_context_size: 'medium',
-          user_location: { country: 'US' },
-        },
-      ],
-    });
-    expect(result.warnings).toContainEqual(
-      expect.objectContaining({
-        type: 'deprecated',
-        setting: 'Sonar search options',
-      }),
-    );
-  });
-
-  it('warns and drops Sonar options without Agent API equivalents', async () => {
-    prepareJsonResponse();
-
-    const result = await model.doGenerate({
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        perplexity: {
-          return_images: true,
-          search_language_filter: ['en'],
-          stream_mode: 'full',
-        },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toEqual({
-      preset: 'low',
-      input: [{ type: 'message', role: 'user', content: 'Hello' }],
-    });
-    expect(result.warnings).toEqual(
-      expect.arrayContaining([
-        { type: 'unsupported', feature: 'return_images' },
-        { type: 'unsupported', feature: 'search_language_filter' },
-        { type: 'unsupported', feature: 'stream_mode' },
-      ]),
-    );
-  });
-
-  it('maps disable_search to the Agent API preset workaround', async () => {
-    prepareJsonResponse();
-
-    const result = await model.doGenerate({
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        perplexity: {
-          disable_search: true,
-          tools: [{ type: 'web_search' }],
-        },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toEqual({
-      preset: 'low',
-      input: [{ type: 'message', role: 'user', content: 'Hello' }],
-      max_tool_calls: 0,
-    });
-    expect(result.warnings).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'compatibility',
-          feature: 'disable_search with a preset',
-        }),
-      ]),
-    );
-  });
-
   it('rejects invalid provider options', async () => {
     await expect(
       model.doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
-          perplexity: { search_recency_filter: 'decade' },
+          perplexity: { max_steps: 0 },
         },
       }),
     ).rejects.toThrow(InvalidArgumentError);

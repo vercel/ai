@@ -114,39 +114,6 @@ export const perplexityLanguageModelOptions = z.looseObject({
       ]),
     )
     .optional(),
-
-  // Legacy Sonar options. These are mapped or warned about by the provider so
-  // existing applications get an actionable migration path.
-  search_recency_filter: z
-    .enum(['hour', 'day', 'week', 'month', 'year'])
-    .optional(),
-  search_domain_filter: z.array(z.string()).optional(),
-  search_language_filter: z.array(z.string()).optional(),
-  search_after_date_filter: z.string().optional(),
-  search_before_date_filter: z.string().optional(),
-  last_updated_after_filter: z.string().optional(),
-  last_updated_before_filter: z.string().optional(),
-  num_search_results: z.number().int().positive().optional(),
-  search_mode: z.enum(['web', 'academic', 'sec']).optional(),
-  enable_search_classifier: z.boolean().optional(),
-  disable_search: z.boolean().optional(),
-  return_related_questions: z.boolean().optional(),
-  return_images: z.boolean().optional(),
-  image_domain_filter: z.array(z.string()).optional(),
-  image_format_filter: z.array(z.string()).optional(),
-  media_response: z.looseObject({}).optional(),
-  stream_mode: z.enum(['full', 'concise']).optional(),
-  reasoning_effort: z
-    .enum(['minimal', 'low', 'medium', 'high', 'xhigh'])
-    .optional(),
-  web_search_options: z
-    .looseObject({
-      search_context_size: z.enum(['low', 'medium', 'high']).optional(),
-      search_type: z.enum(['fast', 'pro', 'auto']).optional(),
-      user_location: userLocationSchema.optional(),
-      image_results_enhanced_relevance: z.boolean().optional(),
-    })
-    .optional(),
 });
 
 export type PerplexityLanguageModelOptions = z.infer<

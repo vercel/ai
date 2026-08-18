@@ -69,28 +69,10 @@ const presetIds = new Set<PerplexityAgentPreset>([
   'xhigh',
 ]);
 
-const legacyPresetMap: Record<string, PerplexityAgentPreset> = {
-  sonar: 'fast',
-  'sonar-pro': 'low',
-  'sonar-reasoning': 'medium',
-  'sonar-reasoning-pro': 'medium',
-  'sonar-deep-research': 'high',
-};
-
-function getModelSelection(
-  modelId: PerplexityLanguageModelId,
-  warnings: SharedV4Warning[],
-): { model?: string; preset?: PerplexityAgentPreset } {
-  const legacyPreset = legacyPresetMap[modelId];
-  if (legacyPreset != null) {
-    warnings.push({
-      type: 'deprecated',
-      setting: `model ID "${modelId}"`,
-      message: `Use the Perplexity Agent API preset "${legacyPreset}" instead.`,
-    });
-    return { preset: legacyPreset };
-  }
-
+function getModelSelection(modelId: PerplexityLanguageModelId): {
+  model?: string;
+  preset?: PerplexityAgentPreset;
+} {
   if (presetIds.has(modelId as PerplexityAgentPreset)) {
     return { preset: modelId as PerplexityAgentPreset };
   }
@@ -189,47 +171,6 @@ function getFetchedSources(item: PerplexityOutputItem) {
   return item.type === 'fetch_url_results' ? (item.contents ?? []) : [];
 }
 
-function addLegacySearchTool({
-  tools,
-  filters,
-  maxResults,
-  searchContextSize,
-  userLocation,
-}: {
-  tools: PerplexityAgentTool[];
-  filters: Record<string, unknown>;
-  maxResults?: number;
-  searchContextSize?: 'low' | 'medium' | 'high';
-  userLocation?: Record<string, unknown>;
-}) {
-  const existingIndex = tools.findIndex(tool => tool.type === 'web_search');
-  const existing =
-    existingIndex === -1
-      ? undefined
-      : (tools[existingIndex] as Record<string, unknown>);
-  const existingFilters =
-    existing?.filters != null && typeof existing.filters === 'object'
-      ? (existing.filters as Record<string, unknown>)
-      : {};
-  const webSearchTool = {
-    ...existing,
-    type: 'web_search',
-    filters: {
-      ...existingFilters,
-      ...filters,
-    },
-    max_results: maxResults ?? existing?.max_results,
-    search_context_size: searchContextSize ?? existing?.search_context_size,
-    user_location: userLocation ?? existing?.user_location,
-  } as PerplexityAgentTool;
-
-  if (existingIndex === -1) {
-    tools.push(webSearchTool);
-  } else {
-    tools[existingIndex] = webSearchTool;
-  }
-}
-
 export class PerplexityLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly provider = 'perplexity';
@@ -305,49 +246,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
-    const {
-      tools: nativeTools,
-      search_recency_filter,
-      search_domain_filter,
-      search_language_filter,
-      search_after_date_filter,
-      search_before_date_filter,
-      last_updated_after_filter,
-      last_updated_before_filter,
-      num_search_results,
-      search_mode,
-      enable_search_classifier,
-      disable_search,
-      return_related_questions,
-      return_images,
-      image_domain_filter,
-      image_format_filter,
-      media_response,
-      stream_mode,
-      reasoning_effort,
-      web_search_options,
-      ...agentOptions
-    } = perplexityOptions;
+    const { tools: nativeTools, ...agentOptions } = perplexityOptions;
 
-    let modelSelection = getModelSelection(this.modelId, warnings);
-
-    if (web_search_options?.search_type != null) {
-      warnings.push({
-        type: 'deprecated',
-        setting: 'web_search_options.search_type',
-        message: 'Select an Agent API preset as the model ID instead.',
-      });
-      if (web_search_options.search_type === 'fast') {
-        modelSelection = { preset: 'fast' };
-      } else if (web_search_options.search_type === 'pro') {
-        modelSelection = { preset: 'low' };
-      } else {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'web_search_options.search_type "auto"',
-        });
-      }
-    }
+    const modelSelection = getModelSelection(this.modelId);
 
     const { input, warnings: inputWarnings } = convertToPerplexityInput(prompt);
     warnings.push(...inputWarnings);
@@ -361,106 +262,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       ...functionTools,
     ];
 
-    const legacyFilters = {
-      search_domain_filter,
-      search_recency_filter,
-      search_after_date_filter,
-      search_before_date_filter,
-      last_updated_after_filter,
-      last_updated_before_filter,
-    };
-    const hasLegacyFilters = Object.values(legacyFilters).some(
-      value => value != null,
-    );
-    const hasLegacySearchOptions =
-      hasLegacyFilters ||
-      num_search_results != null ||
-      web_search_options?.search_context_size != null ||
-      web_search_options?.user_location != null ||
-      enable_search_classifier === true ||
-      search_mode != null;
-
-    if (hasLegacySearchOptions) {
-      warnings.push({
-        type: 'deprecated',
-        setting: 'Sonar search options',
-        message:
-          'Configure the Agent API web_search tool with providerOptions.perplexity.tools instead.',
-      });
-    }
-
-    if (search_mode === 'academic' || search_mode === 'sec') {
-      warnings.push({
-        type: 'unsupported',
-        feature: `search_mode "${search_mode}"`,
-        details:
-          'Use web_search domain filters or the Agent API finance_search tool.',
-      });
-    }
-
-    if (disable_search !== true && hasLegacySearchOptions) {
-      addLegacySearchTool({
-        tools: agentTools,
-        filters: Object.fromEntries(
-          Object.entries(legacyFilters).filter(([, value]) => value != null),
-        ),
-        maxResults: num_search_results,
-        searchContextSize: web_search_options?.search_context_size,
-        userLocation: web_search_options?.user_location,
-      });
-    }
-
-    if (disable_search === true) {
-      warnings.push({
-        type: 'deprecated',
-        setting: 'disable_search',
-        message:
-          'Omit the web_search tool when using a direct Agent API model.',
-      });
-      for (let index = agentTools.length - 1; index >= 0; index--) {
-        if (agentTools[index].type === 'web_search') {
-          agentTools.splice(index, 1);
-        }
-      }
-      if (modelSelection.preset != null) {
-        (agentOptions as Record<string, unknown>).max_tool_calls = 0;
-        warnings.push({
-          type: 'compatibility',
-          feature: 'disable_search with a preset',
-          details:
-            'Agent API presets keep their built-in tools, so max_tool_calls is set to 0.',
-        });
-      }
-    }
-
-    const unsupportedLegacyOptions = [
-      ['search_language_filter', search_language_filter],
-      ['return_related_questions', return_related_questions],
-      ['return_images', return_images],
-      ['image_domain_filter', image_domain_filter],
-      ['image_format_filter', image_format_filter],
-      ['media_response', media_response],
-      ['stream_mode', stream_mode],
-      [
-        'web_search_options.image_results_enhanced_relevance',
-        web_search_options?.image_results_enhanced_relevance,
-      ],
-    ] as const;
-    for (const [feature, value] of unsupportedLegacyOptions) {
-      if (value != null) {
-        warnings.push({ type: 'unsupported', feature });
-      }
-    }
-
     let reasoningConfig = agentOptions.reasoning;
-    if (reasoningConfig == null && reasoning_effort != null) {
-      warnings.push({
-        type: 'deprecated',
-        setting: 'reasoning_effort',
-        message: 'Use providerOptions.perplexity.reasoning.effort instead.',
-      });
-      reasoningConfig = { effort: reasoning_effort };
-    }
     if (reasoningConfig == null && isCustomReasoning(reasoning)) {
       if (reasoning === 'none') {
         warnings.push({
