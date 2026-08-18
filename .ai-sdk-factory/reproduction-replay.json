@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19031,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19031-google-flash-thinking-level.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19031-google-flash-thinking-level.ts",
+    "packages/google/src/__fixtures__/google-thinking-level-minimal-unsupported.json",
+    "packages/google/src/__fixtures__/google-thinking-level-low-success.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19031_PRIMARY: @ai-sdk/google sends unsupported thinkingLevel \"minimal\" for Gemini Flash models that require \"low\"."
+  }
+}
