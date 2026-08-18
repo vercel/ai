@@ -47,6 +47,33 @@ export async function agentBasicE2e(prompt: string) {
   };
 }
 
+export async function agentStreamErrorE2e() {
+  'use workflow';
+  const terminal = {
+    type: 'credential',
+    code: 'safe-terminal-classification',
+  };
+  const callbackErrors: unknown[] = [];
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([{ type: 'error', error: terminal }]),
+  });
+
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'trigger the terminal error' }],
+    writable: getWritable(),
+    onError: async ({ error }) => {
+      callbackErrors.push(error);
+    },
+  });
+
+  return {
+    error: result.error,
+    finishReason: result.finishReason,
+    stepCount: result.steps.length,
+    callbackErrors,
+  };
+}
+
 export async function agentToolCallE2e(a: number, b: number) {
   'use workflow';
   const agent = new WorkflowAgent({

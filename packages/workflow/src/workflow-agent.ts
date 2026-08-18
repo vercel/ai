@@ -1192,6 +1192,15 @@ export interface WorkflowAgentStreamResult<
   finishReason: FinishReason;
 
   /**
+   * The original value from a model stream error part.
+   *
+   * This property is present when the model emitted an error part, including
+   * when the supplied value is `undefined`. Check with `'error' in result` to
+   * distinguish that case from a result without a model stream error.
+   */
+  error?: unknown;
+
+  /**
    * The total token usage across all steps.
    */
   totalUsage: LanguageModelUsage;
@@ -2146,7 +2155,6 @@ export class WorkflowAgent<
       stopConditions: effectiveStopWhenFromPrepare,
       onStepEnd: mergedOnStepEnd as any,
       onStepStart: mergedOnStepStart as any,
-      onError: options.onError,
       prepareStep: (options.prepareStep ??
         (this.prepareStep as
           | PrepareStepCallback<ToolSet, TRuntimeContext>
@@ -2168,7 +2176,10 @@ export class WorkflowAgent<
     // Track the final conversation messages from the iterator
     let finalMessages: LanguageModelV4Prompt | undefined;
     let encounteredError: unknown;
+    let hasEncounteredError = false;
     let wasAborted = false;
+    let terminalError: unknown;
+    let hasTerminalError = false;
 
     try {
       let result = await iterator.next();
@@ -2526,6 +2537,10 @@ export class WorkflowAgent<
       if (result.done) {
         if (Array.isArray(result.value)) {
           finalMessages = result.value;
+        } else if ('error' in result.value) {
+          finalMessages = result.value.messages;
+          terminalError = result.value.error;
+          hasTerminalError = true;
         } else {
           finalMessages = result.value.messages;
           wasAborted = true;
@@ -2536,6 +2551,7 @@ export class WorkflowAgent<
       }
     } catch (error) {
       encounteredError = error;
+      hasEncounteredError = true;
       // Check if this is an abort error
       if (isAbortError(error)) {
         wasAborted = true;
@@ -2548,6 +2564,13 @@ export class WorkflowAgent<
       }
       await telemetryDispatcher.onError?.(error);
       // Don't throw yet - we want to call onEnd first
+    }
+
+    if (hasTerminalError) {
+      if (options.onError) {
+        await options.onError({ error: terminalError });
+      }
+      await telemetryDispatcher.onError?.(terminalError);
     }
 
     // Use the final messages from the iterator, or fall back to standardized messages
@@ -2573,8 +2596,9 @@ export class WorkflowAgent<
         } catch (parseError) {
           // If there's already an error, don't override it
           // If not, set this as the error
-          if (!encounteredError) {
+          if (!hasEncounteredError) {
             encounteredError = parseError;
+            hasEncounteredError = true;
           }
         }
       }
@@ -2610,7 +2634,7 @@ export class WorkflowAgent<
     }
 
     // Re-throw any error that occurred
-    if (encounteredError) {
+    if (hasEncounteredError) {
       // Close the stream before throwing
       if (options.writable) {
         const sendFinish = options.sendFinish ?? true;
@@ -2639,6 +2663,7 @@ export class WorkflowAgent<
       finishReason,
       totalUsage,
       output: experimentalOutput,
+      ...(hasTerminalError ? { error: terminalError } : {}),
     };
   }
 }
