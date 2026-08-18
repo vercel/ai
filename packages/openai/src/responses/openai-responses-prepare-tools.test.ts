@@ -2240,6 +2240,14 @@ describe('prepareResponsesTools', () => {
         mode: 'auto',
         tools: [{ type: 'function', name: 'web_search' }],
       });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'allowedTools entry "web_search"',
+          details:
+            'this name is both a tool name and the provider tool name of another tool in this request; the tool with this name is allowed',
+        },
+      ]);
     });
 
     it('should not resolve a function tool by the literal name "function"', async () => {

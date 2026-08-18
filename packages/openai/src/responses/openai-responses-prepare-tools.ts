@@ -432,8 +432,17 @@ export async function prepareResponsesTools({
     const droppedToolNames: string[] = [];
 
     for (const name of allowedTools.toolNames) {
-      const resolution =
-        allowedToolResolutions.get(name) ?? allowedToolAliases.get(name);
+      const directResolution = allowedToolResolutions.get(name);
+      const resolution = directResolution ?? allowedToolAliases.get(name);
+
+      if (directResolution != null && allowedToolAliases.has(name)) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `allowedTools entry "${name}"`,
+          details:
+            'this name is both a tool name and the provider tool name of another tool in this request; the tool with this name is allowed',
+        });
+      }
 
       if (resolution === 'ambiguous') {
         toolWarnings.push({
