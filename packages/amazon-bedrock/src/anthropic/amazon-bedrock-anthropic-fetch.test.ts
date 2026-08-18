@@ -148,7 +148,70 @@ describe('createAmazonBedrockAnthropicFetch', () => {
     const text = new TextDecoder().decode(value);
 
     expect(text).toBe(
-      `data: ${JSON.stringify({ type: 'error', error: errorData })}\n\n`,
+      `data: ${JSON.stringify({ type: 'error', error: { type: 'ThrottlingException', message: 'Rate limit exceeded' } })}\n\n`,
+    );
+  });
+
+  it('should fall back to a generic error type when :exception-type header is missing', async () => {
+    const codec = new EventStreamCodec(toUtf8, fromUtf8);
+    const errorData = JSON.stringify({ message: 'Something went wrong' });
+    const amazonBedrockEvent = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+      },
+      body: fromUtf8(errorData),
+    });
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(amazonBedrockEvent);
+        controller.close();
+      },
+    });
+    const mockResponse = createMockResponse(
+      stream,
+      'application/vnd.amazon.eventstream',
+    );
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createAmazonBedrockAnthropicFetch(baseFetch);
+    const response = await wrappedFetch('https://example.com', {});
+    const reader = response.body!.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value);
+
+    expect(text).toBe(
+      `data: ${JSON.stringify({ type: 'error', error: { type: 'error', message: 'Something went wrong' } })}\n\n`,
+    );
+  });
+
+  it('should fall back to the raw exception body when it is not valid JSON', async () => {
+    const codec = new EventStreamCodec(toUtf8, fromUtf8);
+    const errorData = 'not valid json';
+    const amazonBedrockEvent = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+        ':exception-type': { type: 'string', value: 'ThrottlingException' },
+      },
+      body: fromUtf8(errorData),
+    });
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(amazonBedrockEvent);
+        controller.close();
+      },
+    });
+    const mockResponse = createMockResponse(
+      stream,
+      'application/vnd.amazon.eventstream',
+    );
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createAmazonBedrockAnthropicFetch(baseFetch);
+    const response = await wrappedFetch('https://example.com', {});
+    const reader = response.body!.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value);
+
+    expect(text).toBe(
+      `data: ${JSON.stringify({ type: 'error', error: { type: 'ThrottlingException', message: errorData } })}\n\n`,
     );
   });
 

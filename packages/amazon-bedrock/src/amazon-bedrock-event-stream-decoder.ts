@@ -4,6 +4,7 @@ import { toUtf8, fromUtf8 } from '@smithy/util-utf8';
 export interface DecodedEvent {
   messageType: string;
   eventType: string;
+  exceptionType?: string;
   data: string;
 }
 
@@ -46,9 +47,14 @@ export function createAmazonBedrockEventStreamDecoder<T>(
             const messageType = decoded.headers[':message-type']
               ?.value as string;
             const eventType = decoded.headers[':event-type']?.value as string;
+            const exceptionType = decoded.headers[':exception-type']
+              ?.value as string;
             const data = textDecoder.decode(decoded.body);
 
-            await processEvent({ messageType, eventType, data }, controller);
+            await processEvent(
+              { messageType, eventType, exceptionType, data },
+              controller,
+            );
           } catch {
             break;
           }
