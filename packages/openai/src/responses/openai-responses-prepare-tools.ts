@@ -20,16 +20,11 @@ import type {
   OpenAIResponsesTool,
 } from './openai-responses-api';
 
-<<<<<<< HEAD
-type OpenAIToolOptions = {
-=======
 type AllowedToolResolution =
   | { supported: true; entry: OpenAIResponsesAllowedTool }
   | { supported: false; reason: string };
 
-export type OpenAIToolOptions = {
-  allowedCallers?: Array<'direct' | 'programmatic'>;
->>>>>>> a062795bbe (fix(openai): support built-in and provider-defined tools in Responses allowedTools (#18998))
+type OpenAIToolOptions = {
   deferLoading?: boolean;
   namespace?: {
     name: string;
@@ -563,11 +558,9 @@ function toAllowedToolResolution(
     case 'web_search_preview':
     case 'image_generation':
     case 'code_interpreter':
-    case 'computer':
     case 'apply_patch':
     case 'shell':
     case 'local_shell':
-    case 'programmatic_tool_calling':
       return { supported: true, entry: { type: tool.type } };
     default:
       return {

@@ -1312,8 +1312,7 @@ const result = await generateText({
   tools or answer with a message; `'required'` forces it to call at least one of them.
 
 Both function tools and provider-defined tools can be allow-listed, including web search, file search,
-image generation, code interpreter, computer, apply patch, shell, programmatic tool calling, custom
-tools, and MCP servers.
+image generation, code interpreter, apply patch, shell, custom tools, and MCP servers.
 
 If a name matches both a tool you declared and the canonical OpenAI name of a different tool, the tool
 you declared under that name wins, and a warning reports the ambiguity. If several tools share the same
