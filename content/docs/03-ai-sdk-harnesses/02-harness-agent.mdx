@@ -93,6 +93,60 @@ try {
 }
 ```
 
+## Generate Structured Output
+
+Set `output` when constructing `HarnessAgent` to require the same typed output
+on every turn. The agent converts the output specification to JSON Schema for
+the harness adapter, validates the completed response, and returns the parsed
+value through `result.output`.
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { Output } from 'ai';
+import { z } from 'zod';
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox,
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.number(),
+            unit: z.enum(['oz', 'fl oz', 'cup', 'gallon']),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
+    }),
+  }),
+});
+
+const session = await agent.createSession();
+try {
+  const result = await agent.generate({
+    session,
+    prompt: 'Generate a lasagna recipe.',
+  });
+  console.dir(result.output, { depth: Infinity });
+} finally {
+  await session.destroy();
+}
+```
+
+With `stream()`, read `partialOutputStream` for incrementally parsed values and
+await `result.output` for the validated final value. Structured data also remains
+available as JSON in the normal text and stream surfaces; adapters do not add it
+to the `finish` part.
+
+Harness structured output requires a schema. Schema-less `Output.json()` and
+adapters or runtime configurations that cannot enforce the schema throw
+`HarnessCapabilityUnsupportedError`; see the
+[adapter capability table](/docs/ai-sdk-harnesses/harness-adapters#adapter-capabilities).
+
 ## Messages and History
 
 A harness session owns its native conversation history. When you pass `messages`
@@ -366,6 +420,7 @@ console.log(preparation.identity);
 - `id`: optional stable agent identifier.
 - `instructions`: instructions appended to the runtime's system or developer
   prompt when supported, or prepended to the first user prompt otherwise.
+- `output`: typed output specification applied to every turn.
 - `stopWhen`: condition(s) for finishing a result slice after a completed
   harness tool step that can continue into another model step.
 - `tools`: AI SDK tools executed by the host when the harness calls them.

@@ -1,5 +1,14 @@
 # @ai-sdk/harness-codex
 
+## 1.0.75
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness@1.0.73
+
 ## 1.0.74
 
 ### Patch Changes

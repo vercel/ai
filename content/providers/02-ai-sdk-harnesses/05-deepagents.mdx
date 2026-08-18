@@ -100,6 +100,12 @@ Settings:
   random 32-byte token. Custom implementations must return a suitably secret
   token.
 
+## Structured Output
+
+Deep Agents supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+The adapter applies a per-turn LangChain tool strategy and returns the graph's
+validated `structuredResponse` as JSON text.
+
 ## Authentication
 
 Deep Agents always drives the Anthropic client. Non-Anthropic models reach it

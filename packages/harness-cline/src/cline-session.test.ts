@@ -22,6 +22,7 @@ const clineMock = vi.hoisted(() => ({
     headers?: Record<string, string>;
   }>,
   runInputs: [] as AgentRunInput[],
+  outputText: '',
 }));
 
 vi.mock('@ai-sdk/harness/utils', () => ({
@@ -64,7 +65,7 @@ vi.mock('@cline/agents', () => ({
         runId: 'run-1',
         status: 'completed',
         iterations: 1,
-        outputText: '',
+        outputText: clineMock.outputText,
         messages: this.messages,
         usage: {
           inputTokens: 0,
@@ -118,6 +119,7 @@ describe('createClineSession instructions', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.outputText = '';
   });
 
   it('appends instructions to the system prompt without changing the user prompt', async () => {
@@ -251,6 +253,7 @@ describe('createClineSession model configuration', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.outputText = '';
   });
 
   it('uses the Cline backend and delegates default model selection', async () => {
@@ -428,6 +431,7 @@ describe('createClineSession tool results', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.outputText = '';
   });
 
   it.each([
@@ -619,6 +623,7 @@ describe('createClineSession tool execution', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.outputText = '';
   });
 
   it('configures initial and rebuilt agents for parallel tool execution', async () => {
@@ -647,6 +652,99 @@ describe('createClineSession tool execution', () => {
         'parallel',
         'parallel',
       ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('uses a schema-constrained terminal tool for structured output', async () => {
+    clineMock.outputText = '{"answer":"yes"}';
+    const session = await createSession();
+    const emitted: unknown[] = [];
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Answer.',
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+        emit: event => emitted.push(event),
+      });
+      await control.done;
+
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      const structuredOutput = findTool({
+        config,
+        name: 'structured_output',
+      });
+      expect(config.completionPolicy).toEqual({
+        requireCompletionTool: true,
+      });
+      expect(structuredOutput.inputSchema).toEqual({
+        type: 'object',
+        properties: {
+          output: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+        required: ['output'],
+        additionalProperties: false,
+      });
+      await expect(
+        structuredOutput.execute(
+          { output: { answer: 42 } },
+          createToolContext({ toolCallId: 'invalid' }),
+        ),
+      ).resolves.toBe('{"answer":42}');
+      await expect(
+        structuredOutput.execute(
+          { output: { answer: 'yes' } },
+          createToolContext({ toolCallId: 'valid' }),
+        ),
+      ).resolves.toBe('{"answer":"yes"}');
+      expect(emitted).toEqual(
+        expect.arrayContaining([
+          {
+            type: 'text-delta',
+            id: 'structured-output-session-1',
+            delta: '{"answer":"yes"}',
+          },
+        ]),
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rejects structured output for the tool-less Codex CLI provider', async () => {
+    const session = await createSession({
+      settings: { providerId: 'openai-codex-cli' },
+    });
+
+    try {
+      await expect(
+        session.doPromptTurn({
+          prompt: 'Answer.',
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object' },
+          },
+          emit: () => {},
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_HarnessCapabilityUnsupportedError',
+        harnessId: 'cline',
+      });
     } finally {
       await session.doDestroy();
     }

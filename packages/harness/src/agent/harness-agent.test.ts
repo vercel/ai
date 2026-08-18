@@ -13,8 +13,8 @@ import type {
   HarnessV1ToolSpec,
 } from '../v1';
 import { tool } from '@ai-sdk/provider-utils';
-import { isStepCount, NoSuchToolError } from 'ai';
-import { describe, expect, test, vi } from 'vitest';
+import { isStepCount, NoSuchToolError, Output } from 'ai';
+import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
 import { HarnessAgentSession } from './harness-agent-session';
@@ -550,6 +550,149 @@ describe('HarnessAgent', () => {
     expect(result.responseMessages).toHaveLength(1);
     expect(result.responseMessages[0]!.role).toBe('assistant');
 
+    await session.destroy();
+  });
+
+  test('generates typed output and sends its response format on every turn', async () => {
+    const responseFormats: HarnessV1PromptTurnOptions['responseFormat'][] = [];
+    const { harness } = mockHarness({
+      onPromptTurn: options => {
+        responseFormats.push(options.responseFormat);
+      },
+      script: () => [
+        { type: 'text-start', id: 'structured' },
+        {
+          type: 'text-delta',
+          id: 'structured',
+          delta: '{"answer":"yes"}',
+        },
+        { type: 'text-end', id: 'structured' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      output: Output.object({
+        name: 'answer',
+        description: 'A yes or no answer.',
+        schema: z.object({ answer: z.string() }),
+      }),
+    });
+    const session = await agent.createSession();
+
+    const first = await agent.generate({ session, prompt: 'answer' });
+    const second = await agent.generate({ session, prompt: 'answer again' });
+
+    expect(first.output).toEqual({ answer: 'yes' });
+    expectTypeOf(first.output).toEqualTypeOf<{ answer: string }>();
+    expect(second.output).toEqual({ answer: 'yes' });
+    expect(responseFormats).toHaveLength(2);
+    for (const responseFormat of responseFormats) {
+      expect(responseFormat).toMatchObject({
+        type: 'json',
+        name: 'answer',
+        description: 'A yes or no answer.',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+        },
+      });
+    }
+
+    await session.destroy();
+  });
+
+  test('streams partial typed output', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 'structured' },
+        {
+          type: 'text-delta',
+          id: 'structured',
+          delta: '{"answer":"yes"}',
+        },
+        { type: 'text-end', id: 'structured' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      output: Output.object({
+        schema: z.object({ answer: z.string() }),
+      }),
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({ session, prompt: 'answer' });
+    const partialOutputs = [];
+    for await (const partialOutput of result.partialOutputStream) {
+      partialOutputs.push(partialOutput);
+    }
+
+    expect(partialOutputs).toEqual([{ answer: 'yes' }]);
+    await expect(result.output).resolves.toEqual({ answer: 'yes' });
+    await session.destroy();
+  });
+
+  test('streams array elements from typed output', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 'structured' },
+        {
+          type: 'text-delta',
+          id: 'structured',
+          delta: '{"elements":[{"answer":"yes"},{"answer":"no"}]}',
+        },
+        { type: 'text-end', id: 'structured' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      output: Output.array({
+        element: z.object({ answer: z.string() }),
+      }),
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({ session, prompt: 'answer twice' });
+    const elements = [];
+    for await (const element of result.elementStream) {
+      elements.push(element);
+    }
+
+    expect(elements).toEqual([{ answer: 'yes' }, { answer: 'no' }]);
     await session.destroy();
   });
 

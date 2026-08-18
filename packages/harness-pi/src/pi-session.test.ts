@@ -160,6 +160,36 @@ describe('createPiSession', () => {
     }));
   });
 
+  it('rejects structured output turns', async () => {
+    const session = await createPiSession({
+      sessionId: 'session-structured-output',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      await expect(
+        session.doPromptTurn({
+          prompt: 'Generate an object.',
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object' },
+          },
+          emit: () => {},
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_HarnessCapabilityUnsupportedError',
+        harnessId: 'pi',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('loads a caller-supplied inline extension factory through createPi', async () => {
     const factory = vi.fn((piApi: ExtensionAPI) => {
       expect(piApi).toBe(piMock.extensionApi);
