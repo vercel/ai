@@ -1170,7 +1170,7 @@ function resolveThinkingConfig({
     getGoogleModelCapabilities(modelId).usesGemini3Features &&
     !modelId.includes('gemini-3-pro-image')
   ) {
-    return resolveGemini3ThinkingConfig({ reasoning, warnings });
+    return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
   }
 
   return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
@@ -1178,23 +1178,29 @@ function resolveThinkingConfig({
 
 function resolveGemini3ThinkingConfig({
   reasoning,
+  modelId,
   warnings,
 }: {
   reasoning: Exclude<
     LanguageModelV4CallOptions['reasoning'],
     'provider-default' | undefined
   >;
+  modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
+  const minimumThinkingLevel = /(^|\/)gemini-3\.7-flash$/i.test(modelId)
+    ? 'low'
+    : 'minimal';
+
   if (reasoning === 'none') {
     // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: 'minimal' };
+    return { thinkingLevel: minimumThinkingLevel };
   }
 
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      minimal: 'minimal',
+      minimal: minimumThinkingLevel,
       low: 'low',
       medium: 'medium',
       high: 'high',
