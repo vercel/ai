@@ -335,8 +335,23 @@ describe('GatewayBatchLanguageModel', () => {
       result: {
         content: [{ type: 'text', text: 'pong 1' }],
         finishReason: { unified: 'stop' },
+        response: {
+          modelId: 'openai/gpt-5.6-luna',
+          timestamp: '2026-08-18T00:00:00.000Z',
+        },
         usage: { inputTokens: 4, outputTokens: 2 },
         warnings: [],
+      },
+    };
+    // What the parsed stream yields: the wire's ISO timestamp revived to Date.
+    const expectedSucceededItem = {
+      ...succeededItem,
+      result: {
+        ...succeededItem.result,
+        response: {
+          ...succeededItem.result.response,
+          timestamp: new Date('2026-08-18T00:00:00.000Z'),
+        },
       },
     };
     const failedItem = {
@@ -345,6 +360,23 @@ describe('GatewayBatchLanguageModel', () => {
       error: { message: 'boom' },
     };
     const cancelledItem = { id: 'req-3', status: 'cancelled' };
+
+    it('should revive response.timestamp into a Date on succeeded items', async () => {
+      prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);
+
+      const stream = await createTestModel().experimental_doGetBatchResults({
+        batchId: 'job_123',
+      });
+      const [item] = await convertReadableStreamToArray(stream);
+
+      if (item.status !== 'succeeded') {
+        throw new Error(`expected succeeded, got ${item.status}`);
+      }
+      expect(item.result.response?.timestamp).toBeInstanceOf(Date);
+      expect(item.result.response?.timestamp.toISOString()).toBe(
+        '2026-08-18T00:00:00.000Z',
+      );
+    });
 
     it('should post the batchId with the correct headers', async () => {
       prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);
@@ -380,7 +412,7 @@ describe('GatewayBatchLanguageModel', () => {
       });
       const items = await convertReadableStreamToArray(stream);
 
-      expect(items).toEqual([succeededItem, failedItem, cancelledItem]);
+      expect(items).toEqual([expectedSucceededItem, failedItem, cancelledItem]);
     });
 
     it('should skip empty lines', async () => {
@@ -393,7 +425,7 @@ describe('GatewayBatchLanguageModel', () => {
       });
       const items = await convertReadableStreamToArray(stream);
 
-      expect(items).toEqual([succeededItem, failedItem]);
+      expect(items).toEqual([expectedSucceededItem, failedItem]);
     });
 
     it('should convert a 400 for a non-terminal batch via the gateway error path', async () => {

@@ -398,7 +398,17 @@ async function parseGatewayBatchResultLine(
     text: line,
     schema: gatewayBatchItemResultLineSchema,
   });
-  return parsed as unknown as BatchV4ItemResult<LanguageModelV4GenerateResult>;
+  const item =
+    parsed as unknown as BatchV4ItemResult<LanguageModelV4GenerateResult>;
+  // JSON carries `response.timestamp` as an ISO string; core expects a Date
+  // (`GeneratedFile`-style consumers call `.toISOString()`).
+  if (item.status === 'succeeded') {
+    const response = item.result?.response;
+    if (response !== undefined && typeof response.timestamp === 'string') {
+      response.timestamp = new Date(response.timestamp);
+    }
+  }
+  return item;
 }
 
 const gatewayBatchItemResultLineSchema = z
