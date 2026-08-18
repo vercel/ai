@@ -11,16 +11,16 @@ Learn more in the [Interfaze documentation](https://interfaze.ai/docs).
 
 ## Setup
 
-The Interfaze provider is available in the `@interfaze-ai/ai-sdk-provider` module. You can install it with:
+The Interfaze provider is available in the `@interfaze-ai/ai-sdk` module. You can install it with:
 
-<InstallPackages packages="@interfaze-ai/ai-sdk-provider" />
+<InstallPackages packages="@interfaze-ai/ai-sdk" />
 
 ## Provider Instance
 
 Import the default `interfaze` instance, or build one with `createInterfaze`:
 
 ```ts
-import { createInterfaze, interfaze } from "@interfaze-ai/ai-sdk-provider";
+import { createInterfaze, interfaze } from "@interfaze-ai/ai-sdk";
 
 interfaze("interfaze-beta"); // default, reads INTERFAZE_API_KEY
 
@@ -34,7 +34,7 @@ You can obtain your API key from the [Interfaze dashboard](https://interfaze.ai)
 Create a model with the provider instance and use it with `generateText` / `streamText`:
 
 ```ts
-import { interfaze } from "@interfaze-ai/ai-sdk-provider";
+import { interfaze } from "@interfaze-ai/ai-sdk";
 import { generateText } from "ai";
 
 const { text } = await generateText({
@@ -50,7 +50,7 @@ A web search backs the answer here — the sources land on `providerMetadata.int
 Interfaze supports structured outputs, so `generateObject` / `streamObject` work with a Zod schema — including extraction from an image (OCR runs under the hood):
 
 ```ts
-import { interfaze } from "@interfaze-ai/ai-sdk-provider";
+import { interfaze } from "@interfaze-ai/ai-sdk";
 import { generateObject } from "ai";
 import { z } from "zod";
 
@@ -174,6 +174,6 @@ const interfaze = createInterfaze({
 
 ## Additional Resources
 
-- [`@interfaze-ai/ai-sdk-provider` on npm](https://www.npmjs.com/package/@interfaze-ai/ai-sdk-provider)
-- [`@interfaze-ai/ai-sdk-provider` on GitHub](https://github.com/InterfazeAI/interfaze-ai-sdk)
+- [`@interfaze-ai/ai-sdk` on npm](https://www.npmjs.com/package/@interfaze-ai/ai-sdk)
+- [`@interfaze-ai/ai-sdk` on GitHub](https://github.com/InterfazeAI/interfaze-ai-sdk)
 - [Interfaze documentation](https://interfaze.ai/docs)
