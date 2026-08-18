@@ -19,7 +19,7 @@ run(async () => {
         duration: 8,
         poll: { timeoutMs: 600000 }, // 10 minutes
         providerOptions: {
-          bfl: {
+          blackForestLabs: {
             resolution: 'fhd',
           },
         },
