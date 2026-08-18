@@ -100,6 +100,17 @@ const instructionMappingSchema: z.ZodType<ACPInstructionMapping> =
     }),
   ]);
 
+type ACPSerializableOutputSchemaMapping = {
+  readonly type: 'session-prompt-meta';
+  readonly path: string[];
+};
+
+const outputSchemaMappingSchema: z.ZodType<ACPSerializableOutputSchemaMapping> =
+  z.object({
+    type: z.literal('session-prompt-meta'),
+    path: z.array(z.string().min(1)).min(1),
+  });
+
 export type ACPTurnStartConfig = {
   readonly version: 1;
   readonly configurationFingerprint: string;
@@ -109,6 +120,10 @@ export type ACPTurnStartConfig = {
   readonly permissionMode: HarnessV1PermissionMode;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
   readonly debug?: HarnessV1DebugConfig;
+  readonly responseFormat?: z.infer<
+    typeof harnessV1BridgeStartBaseSchema
+  >['responseFormat'];
+  readonly outputSchemaMapping?: ACPSerializableOutputSchemaMapping;
 };
 
 export const acpTurnStartConfigSchema = z.object({
@@ -120,6 +135,9 @@ export const acpTurnStartConfigSchema = z.object({
   permissionMode: harnessV1BridgeStartBaseSchema.shape.permissionMode.unwrap(),
   permissionModeMapping: permissionModeMappingSchema.optional(),
   debug: harnessV1BridgeStartBaseSchema.shape.debug.optional(),
+  responseFormat:
+    harnessV1BridgeStartBaseSchema.shape.responseFormat.optional(),
+  outputSchemaMapping: outputSchemaMappingSchema.optional(),
 }) satisfies z.ZodType<ACPTurnStartConfig>;
 
 export type ACPColdSessionState = Omit<
@@ -166,6 +184,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: z.array(acpTextContentBlockSchema),
   instructions: z.string().optional(),
   instructionMapping: instructionMappingSchema.optional(),
+  outputSchemaMapping: outputSchemaMappingSchema.optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
   tools: z.array(acpSerializableToolSpecSchema).optional(),
   builtinTools: z.array(builtinToolSchema).readonly().default([]),

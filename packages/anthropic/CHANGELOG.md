@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.39
+
+### Patch Changes
+
+- 4579b08: Preserve Anthropic server-tool caller metadata in multi-turn conversations.
+
 ## 4.0.38
 
 ### Patch Changes

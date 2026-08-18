@@ -100,6 +100,11 @@ export type ACPInstructionMapping =
       readonly path: ReadonlyArray<string>;
     };
 
+export type ACPOutputSchemaMapping = {
+  readonly type: 'session-prompt-meta';
+  readonly path: ReadonlyArray<string>;
+};
+
 export type ACPV1Settings = {
   readonly version?: 'v1';
   readonly harnessId: string;
@@ -125,6 +130,11 @@ export type ACPV1Settings = {
    * prompt. When omitted, instructions are prepended to the first user prompt.
    */
   readonly instructionMapping?: ACPInstructionMapping;
+  /**
+   * Maps structured output JSON Schema to an implementation-specific path
+   * below the ACP session prompt's `_meta` field.
+   */
+  readonly outputSchemaMapping?: ACPOutputSchemaMapping;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;

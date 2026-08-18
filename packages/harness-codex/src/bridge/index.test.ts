@@ -1,18 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 type CodexOptions = {
-  config?: {
-    base_instructions?: unknown;
-    developer_instructions?: unknown;
-    mcp_servers?: unknown;
-    model_provider?: unknown;
-    model_providers?: unknown;
-    model_reasoning_summary?: unknown;
-    model_supports_reasoning_summaries?: unknown;
-    preferred_auth_method?: unknown;
-  };
+  config?: Record<string, unknown>;
 };
 type ThreadOptions = { model?: string };
+type TurnOptions = { outputSchema?: Record<string, unknown> };
 const CODEX_ENV_KEYS = [
   'AI_GATEWAY_API_KEY',
   'AI_GATEWAY_BASE_URL',
@@ -23,8 +15,13 @@ const CODEX_ENV_KEYS = [
 const state = vi.hoisted(() => ({
   codexOptions: [] as CodexOptions[],
   threadOptions: [] as ThreadOptions[],
+  turnOptions: [] as TurnOptions[],
   startModel: 'gpt-5.5',
+  startResponseFormat: undefined as
+    | { type: 'json'; schema: Record<string, unknown> }
+    | undefined,
   startInstructions: undefined as string | undefined,
+  startCodexConfig: undefined as Record<string, unknown> | undefined,
   startMcpServers: undefined as Record<string, unknown> | undefined,
   originalArgv: [] as string[],
   originalEnv: {} as Record<
@@ -42,11 +39,14 @@ vi.mock('@openai/codex-sdk', () => ({
     startThread(options: ThreadOptions = {}) {
       state.threadOptions.push(options);
       return {
-        runStreamed: async () => ({
-          events: (async function* () {
-            yield { type: 'turn.completed' };
-          })(),
-        }),
+        runStreamed: async (...[, options]: [string, TurnOptions]) => {
+          state.turnOptions.push(options);
+          return {
+            events: (async function* () {
+              yield { type: 'turn.completed' };
+            })(),
+          };
+        },
       };
     }
 
@@ -65,10 +65,12 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     await onStart(
       {
         prompt: 'Use the weather tool.',
+        responseFormat: state.startResponseFormat,
         ...(state.startInstructions
           ? { instructions: state.startInstructions }
           : {}),
         model: state.startModel,
+        codexConfig: state.startCodexConfig,
         mcpServers: state.startMcpServers,
         tools: [
           {
@@ -92,8 +94,11 @@ describe('Codex bridge config', () => {
   beforeEach(() => {
     state.codexOptions = [];
     state.threadOptions = [];
+    state.turnOptions = [];
     state.startModel = 'gpt-5.5';
+    state.startResponseFormat = undefined;
     state.startInstructions = undefined;
+    state.startCodexConfig = undefined;
     state.startMcpServers = undefined;
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
@@ -146,6 +151,40 @@ describe('Codex bridge config', () => {
     expect(state.codexOptions[0]?.config?.mcp_servers).toEqual(
       state.startMcpServers,
     );
+  });
+
+  test('passes through native config without mutating it and preserves adapter-owned values', async () => {
+    const codexConfig = {
+      model_verbosity: 'low',
+      features: { multi_agent: false },
+      developer_instructions: 'Caller instructions.',
+      model_reasoning_summary: 'none',
+    };
+    state.startCodexConfig = codexConfig;
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.config).not.toBe(codexConfig);
+    expect(state.codexOptions[0]?.config).toMatchInlineSnapshot(`
+      {
+        "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
+        "features": {
+          "multi_agent": false,
+        },
+        "model_reasoning_summary": "detailed",
+        "model_verbosity": "low",
+      }
+    `);
+    expect(codexConfig).toMatchInlineSnapshot(`
+      {
+        "developer_instructions": "Caller instructions.",
+        "features": {
+          "multi_agent": false,
+        },
+        "model_reasoning_summary": "none",
+        "model_verbosity": "low",
+      }
+    `);
   });
 
   test('requests detailed reasoning summaries by default', async () => {
@@ -227,5 +266,22 @@ describe('Codex bridge config', () => {
     await import('./index');
 
     expect(state.threadOptions[0]?.model).toBe('openai/gpt-5.5');
+  });
+
+  test('passes the requested JSON schema to Codex', async () => {
+    state.startResponseFormat = {
+      type: 'json',
+      schema: {
+        type: 'object',
+        properties: { answer: { type: 'string' } },
+        required: ['answer'],
+      },
+    };
+
+    await import('./index');
+
+    expect(state.turnOptions[0]?.outputSchema).toEqual(
+      state.startResponseFormat.schema,
+    );
   });
 });

@@ -1,14 +1,12 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import { posix } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
-  type HarnessV1Bootstrap,
   type HarnessV1DebugConfig,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PortEndpoint,
   type HarnessV1PromptControl,
   type HarnessV1Session,
   type HarnessV1StreamPart,
@@ -45,14 +43,11 @@ import {
 import type { ACPToolCall } from '../acp-tool-call';
 import {
   createACPV1Implementation,
-  createImplementationDescriptor,
   createImplementationIdentity,
-  createImplementationInstallCommand,
-  createImplementationManifest,
-  getImplementationLockfile,
   resolveImplementationEnvironment,
   validateACPV1Implementation,
 } from './implementation';
+import { createACPBootstrap } from './acp-bootstrap';
 import {
   outboundMessageSchema,
   type ACPBuiltinToolMapping,
@@ -81,6 +76,7 @@ import {
 } from './acp-v1-prompt';
 import type {
   ACPInstructionMapping,
+  ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPSerializableValue,
@@ -157,10 +153,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   }
   const implementation = createACPV1Implementation({ settings });
   validateACPV1Implementation(implementation);
-
-  const BOOTSTRAP_DIR = `.harness-bootstrap/${settings.harnessId}`;
-
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
+  const bootstrap = createACPBootstrap({
+    harnessId: settings.harnessId,
+    implementation,
+  });
   const permissionModeMapping = isCompletePermissionModeMapping({
     value: settings.permissionModeMapping,
   })
@@ -174,71 +170,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     supportsBuiltinToolApprovals: true,
     supportsBuiltinToolFiltering: false,
     lifecycleStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [bridgePackage, bridgeLock, bridge, hostToolMCP] =
-        await Promise.all([
-          readBridgeAsset({ name: 'package.json' }),
-          readBridgeAsset({ name: 'pnpm-lock.yaml' }),
-          readBridgeAsset({ name: 'index.mjs' }),
-          readBridgeAsset({ name: 'host-tool-mcp.mjs' }),
-        ]);
-      const implementationLock = getImplementationLockfile({
-        implementation,
-      });
-      cachedBootstrap = {
-        harnessId: settings.harnessId,
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          {
-            path: `${BOOTSTRAP_DIR}/package.json`,
-            content: bridgePackage,
-          },
-          {
-            path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`,
-            content: bridgeLock,
-          },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-          {
-            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
-            content: hostToolMCP,
-          },
-          {
-            path: `${BOOTSTRAP_DIR}/implementation/package.json`,
-            content: createImplementationManifest({
-              implementation,
-            }),
-          },
-          {
-            path: `${BOOTSTRAP_DIR}/implementation/implementation.json`,
-            content: createImplementationDescriptor({
-              implementation,
-            }),
-          },
-          ...(implementationLock == null
-            ? []
-            : [
-                {
-                  path: `${BOOTSTRAP_DIR}/implementation/pnpm-lock.yaml`,
-                  content: implementationLock,
-                },
-              ]),
-        ],
-        commands: [
-          {
-            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-          },
-          {
-            command: createImplementationInstallCommand({
-              implementationDir: 'implementation',
-              storeDir: '../.pnpm-store',
-              implementation,
-            }),
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: bootstrap.getBootstrap,
     doStart: async startOptions => {
       if (startOptions.builtinToolFiltering != null) {
         throw unsupported({
@@ -346,7 +278,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const sandbox = sandboxSession.restricted();
       const resolvedBridgeDir = posix.resolve(
         sandboxSession.defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
+        bootstrap.bootstrapDir,
       );
       const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
       const workDir = startOptions.sessionWorkDir;
@@ -433,13 +365,16 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }
         if (coords != null) {
           try {
-            const attachUrl =
-              (await sandboxSession.getPortUrl({
-                port: coords.port,
-                protocol: 'ws',
-              })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+            const endpoint = await sandboxSession.getPortEndpoint({
+              port: coords.port,
+              protocol: 'ws',
+            });
+            const attachEndpoint = withBridgeToken({
+              endpoint,
+              token: coords.token,
+            });
             const attachChannel: ACPChannel = new SandboxChannel({
-              connect: () => openWebSocket({ url: attachUrl }),
+              connect: () => openWebSocket(attachEndpoint),
               outboundSchema: outboundMessageSchema,
               initialLastSeenEventId: coords.lastSeenEventId,
               onDiagnostic,
@@ -454,6 +389,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               modelId: settings.modelId,
               sessionMeta: settings.session?.meta,
               instructionMapping: settings.instructionMapping,
+              outputSchemaMapping: settings.outputSchemaMapping,
               debug: startOptions.observability?.debug,
               implementationIdentity,
               authenticationProfile,
@@ -512,6 +448,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   authenticationProfile,
                   sessionMeta: settings.session?.meta,
                   instructionMapping: settings.instructionMapping,
+                  outputSchemaMapping: settings.outputSchemaMapping,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
                   mcpServers: settings.mcpServers,
@@ -543,6 +480,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             authenticationProfile,
             sessionMeta: settings.session?.meta,
             instructionMapping: settings.instructionMapping,
+            outputSchemaMapping: settings.outputSchemaMapping,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
             mcpServers: settings.mcpServers,
@@ -637,13 +575,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const wsUrl =
-        (await sandboxSession.getPortUrl({
-          port: boundPort,
-          protocol: 'ws',
-        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
+      const endpoint = await sandboxSession.getPortEndpoint({
+        port: boundPort,
+        protocol: 'ws',
+      });
+      const bridgeEndpoint = withBridgeToken({ endpoint, token });
       const channel: ACPChannel = new SandboxChannel({
-        connect: () => openWebSocket({ url: wsUrl }),
+        connect: () => openWebSocket(bridgeEndpoint),
         outboundSchema: outboundMessageSchema,
         ...(respawnStrategy?.mode === 'disk-replay'
           ? { initialLastSeenEventId: respawnStrategy.afterSeq }
@@ -704,6 +642,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         modelId: settings.modelId,
         sessionMeta: settings.session?.meta,
         instructionMapping: settings.instructionMapping,
+        outputSchemaMapping: settings.outputSchemaMapping,
         debug: startOptions.observability?.debug,
         implementationIdentity,
         authenticationProfile,
@@ -801,36 +740,6 @@ function requireResolvedEnvironmentValue({
   return value;
 }
 
-async function readBridgeAsset({ name }: { name: string }): Promise<string> {
-  const candidates = resolveBridgeAssetCandidates({
-    name,
-    moduleUrl: import.meta.url,
-  });
-  let lastError: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      lastError = error;
-    }
-  }
-  throw lastError ?? new Error(`ACP bridge asset not found: ${name}`);
-}
-
-export function resolveBridgeAssetCandidates({
-  name,
-  moduleUrl,
-}: {
-  name: string;
-  moduleUrl: string | URL;
-}): URL[] {
-  return [
-    new URL(`./bridge/${name}`, moduleUrl),
-    new URL(`../bridge/${name}`, moduleUrl),
-  ];
-}
-
 function resolveBridgePort({
   sandboxSession,
   override,
@@ -850,9 +759,14 @@ function resolveBridgePort({
   });
 }
 
-function openWebSocket({ url }: { url: string }): Promise<WebSocket> {
+function openWebSocket({
+  url,
+  headers,
+}: HarnessV1PortEndpoint): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, {
+      headers: headers == null ? undefined : { ...headers },
+    });
     const onOpen = () => {
       ws.off('error', onError);
       resolve(ws);
@@ -864,6 +778,18 @@ function openWebSocket({ url }: { url: string }): Promise<WebSocket> {
     ws.once('open', onOpen);
     ws.once('error', onError);
   });
+}
+
+function withBridgeToken({
+  endpoint,
+  token,
+}: {
+  endpoint: HarnessV1PortEndpoint;
+  token: string;
+}): HarnessV1PortEndpoint {
+  const bridgeUrl = new URL(endpoint.url);
+  bridgeUrl.searchParams.set('agent_bridge_token', token);
+  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function restoreColdACPSession({
@@ -958,6 +884,7 @@ function createSession({
   modelId,
   sessionMeta,
   instructionMapping,
+  outputSchemaMapping,
   debug,
   implementationIdentity,
   authenticationProfile,
@@ -989,6 +916,7 @@ function createSession({
   modelId: string | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   debug: HarnessV1DebugConfig | undefined;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
@@ -1290,6 +1218,20 @@ function createSession({
     isResume,
     ...(modelId == null ? {} : { modelId }),
     doPromptTurn: async options => {
+      if (options.responseFormat?.type === 'json') {
+        if (options.responseFormat.schema == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} requires a JSON schema for structured output.`,
+          });
+        }
+        if (outputSchemaMapping == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} does not support structured output through ACP.`,
+          });
+        }
+      }
       if (replayOnly) {
         throw new Error(
           `${harnessId} recovered this turn through disk replay only and has no restored ACP process for a subsequent prompt.`,
@@ -1316,6 +1258,8 @@ function createSession({
         authenticationProfile,
         sessionMeta,
         instructionMapping,
+        responseFormat: options.responseFormat,
+        outputSchemaMapping,
       });
       const control = wireTurn({
         emit: options.emit,
@@ -1351,6 +1295,12 @@ function createSession({
             builtinTools,
             permissionMode,
             permissionModeMapping,
+            ...(options.responseFormat == null
+              ? {}
+              : { responseFormat: options.responseFormat }),
+            ...(turnStartConfig.outputSchemaMapping == null
+              ? {}
+              : { outputSchemaMapping: turnStartConfig.outputSchemaMapping }),
             ...(mcpServers == null ? {} : { mcpServers }),
             tools: options.tools == null ? undefined : turnStartConfig.tools,
             turnStartConfig,
@@ -1362,6 +1312,20 @@ function createSession({
       return control;
     },
     doContinueTurn: async options => {
+      if (options.responseFormat?.type === 'json') {
+        if (options.responseFormat.schema == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} requires a JSON schema for structured output.`,
+          });
+        }
+        if (outputSchemaMapping == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} does not support structured output through ACP.`,
+          });
+        }
+      }
       if (!turnInFlight) {
         throw new Error(`${harnessId} has no in-flight ACP turn to continue.`);
       }
@@ -1389,6 +1353,12 @@ function createSession({
             builtinTools: turnStartConfig.builtinTools,
             permissionMode: turnStartConfig.permissionMode,
             permissionModeMapping: turnStartConfig.permissionModeMapping,
+            ...(turnStartConfig.responseFormat == null
+              ? {}
+              : { responseFormat: turnStartConfig.responseFormat }),
+            ...(turnStartConfig.outputSchemaMapping == null
+              ? {}
+              : { outputSchemaMapping: turnStartConfig.outputSchemaMapping }),
             ...(instructionMapping == null
               ? {}
               : {
@@ -1561,6 +1531,7 @@ function validateACPTurnStartConfig({
   authenticationProfile,
   sessionMeta,
   instructionMapping,
+  outputSchemaMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
@@ -1569,6 +1540,7 @@ function validateACPTurnStartConfig({
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1584,6 +1556,8 @@ function validateACPTurnStartConfig({
     authenticationProfile,
     sessionMeta,
     instructionMapping,
+    responseFormat: turnStartConfig.responseFormat,
+    outputSchemaMapping,
   });
   if (
     current.configurationFingerprint !==
@@ -1602,6 +1576,7 @@ function validateACPColdSessionConfiguration({
   authenticationProfile,
   sessionMeta,
   instructionMapping,
+  outputSchemaMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
@@ -1613,6 +1588,7 @@ function validateACPColdSessionConfiguration({
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1629,6 +1605,8 @@ function validateACPColdSessionConfiguration({
     authenticationProfile,
     sessionMeta,
     instructionMapping,
+    responseFormat: coldSession.responseFormat,
+    outputSchemaMapping,
   });
   if (
     current.configurationFingerprint !== coldSession.configurationFingerprint ||
