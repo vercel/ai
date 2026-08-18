@@ -5,7 +5,6 @@ import type {
   HarnessV1JSONSchema,
   HarnessV1NetworkSandboxSession,
   HarnessV1ResponseFormat,
-  HarnessV1SandboxProvider,
 } from '../v1';
 import {
   asArray,
@@ -54,7 +53,6 @@ import {
   ensureSandboxDirectory,
   resolveSessionWorkDir,
   validateSandboxBootstrapSettings,
-  type SandboxBootstrapPlan,
 } from './internal/sandbox-bootstrap';
 import { buildObservability } from './internal/resolve-observability';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
@@ -284,13 +282,26 @@ export class HarnessAgent<
     // Acquires the concrete sandbox session, either by starting fresh and then
     // creating a post-bootstrap snapshot, or by reusing a previously created
     // snapshot based on the bootstrap-based hashes.
-    const sandboxSession = await this._acquireSandbox({
-      sandboxProvider,
-      sessionId,
-      isResume: isResumedSession,
-      bootstrapPlan: sandboxBootstrapPlan,
-      abortSignal,
-    });
+    let sandboxSession: HarnessV1NetworkSandboxSession;
+    if (isResumedSession) {
+      if (sandboxProvider.resumeSession == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
+          harnessId: harness.harnessId,
+        });
+      }
+      sandboxSession = await sandboxProvider.resumeSession({
+        sessionId,
+        abortSignal,
+      });
+    } else {
+      sandboxSession = await sandboxProvider.createSession({
+        sessionId,
+        abortSignal,
+        identity: sandboxBootstrapPlan.identity,
+        onFirstCreate: sandboxBootstrapPlan.onFirstCreate,
+      });
+    }
     const sessionWorkDir = resolveSessionWorkDir({
       defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
       harnessId: harness.harnessId,
@@ -567,34 +578,6 @@ export class HarnessAgent<
       output: this.settings.output,
       telemetry: this.settings.telemetry,
       stopConditions: this.stopConditions,
-    });
-  }
-
-  private async _acquireSandbox(input: {
-    sandboxProvider: HarnessV1SandboxProvider;
-    sessionId: string;
-    isResume: boolean;
-    bootstrapPlan: SandboxBootstrapPlan;
-    abortSignal: AbortSignal | undefined;
-  }): Promise<HarnessV1NetworkSandboxSession> {
-    const { sandboxProvider } = input;
-    if (input.isResume) {
-      if (sandboxProvider.resumeSession == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
-          harnessId: this.settings.harness.harnessId,
-        });
-      }
-      return sandboxProvider.resumeSession({
-        sessionId: input.sessionId,
-        abortSignal: input.abortSignal,
-      });
-    }
-    return sandboxProvider.createSession({
-      sessionId: input.sessionId,
-      abortSignal: input.abortSignal,
-      identity: input.bootstrapPlan.identity,
-      onFirstCreate: input.bootstrapPlan.onFirstCreate,
     });
   }
 
