@@ -337,6 +337,21 @@ export type OpenAIResponsesFunctionTool = {
   defer_loading?: boolean;
 };
 
+/**
+ * Entry in `tool_choice.allowed_tools.tools`. OpenAI identifies most built-in
+ * tools by type alone; only `function`, `custom` and `mcp` carry an identifier.
+ */
+export type OpenAIResponsesAllowedTool =
+  | { type: 'function'; name: string }
+  | { type: 'custom'; name: string }
+  | { type: 'mcp'; server_label: string }
+  | {
+      type: Exclude<
+        OpenAIResponsesTool['type'],
+        'function' | 'custom' | 'mcp' | 'namespace' | 'tool_search'
+      >;
+    };
+
 export type OpenAIResponsesTool =
   | OpenAIResponsesFunctionTool
   | {
