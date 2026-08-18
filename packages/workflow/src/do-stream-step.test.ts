@@ -197,4 +197,50 @@ describe('doStreamStep', () => {
       timeoutSpy.mockRestore();
     }
   });
+
+  it('returns model stream errors as terminal step data', async () => {
+    const terminal = new Error('terminal model error');
+    const streamedParts: unknown[] = [];
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'error' as const, error: terminal },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'error' as const, raw: 'error' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 0,
+                text: 0,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          streamedParts.push(part);
+        },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      terminalError: terminal,
+      finish: { finishReason: 'error' },
+    });
+    expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
+  });
 });

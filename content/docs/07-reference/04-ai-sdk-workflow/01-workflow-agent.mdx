@@ -680,6 +680,12 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
         'Tool results from the last step. Only includes results for tools that were executed.',
     },
     {
+      name: 'error',
+      type: 'unknown | undefined',
+      description:
+        "The original value from a model stream error part. The property is present when an error part was emitted, even if its value is undefined; use `'error' in result` to distinguish that case.",
+    },
+    {
       name: 'output',
       type: 'OUTPUT',
       description:
