@@ -17,7 +17,6 @@ run(async () => {
           'camera tracking, natural movement, birdsong and rustling leaves.',
         aspectRatio: '16:9',
         duration: 8,
-        poll: { timeoutMs: 600000 }, // 10 minutes
         providerOptions: {
           blackForestLabs: {
             resolution: 'fhd',
