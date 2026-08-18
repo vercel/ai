@@ -1252,44 +1252,89 @@ function getLangGraphNamespaceKey(namespace: string[] | undefined): string {
   return JSON.stringify(namespace ?? []);
 }
 
+function getOrCreateNamespaceSet(
+  setsByNamespace: Map<string, Set<string>>,
+  namespace: string,
+): Set<string> {
+  let values = setsByNamespace.get(namespace);
+  if (!values) {
+    values = new Set();
+    setsByNamespace.set(namespace, values);
+  }
+  return values;
+}
+
 function hasEmittedToolCallInCurrentStep(
   state: LangGraphEventState,
   toolCallId: string,
+  namespace: string,
 ): boolean {
-  return state.currentStep === null
+  return !state.currentStepsByNamespace.has(namespace)
     ? state.emittedToolCalls.has(toolCallId)
-    : state.emittedToolCallsInCurrentStep.has(toolCallId);
+    : state.emittedToolCallsInCurrentStepByNamespace
+        .get(namespace)
+        ?.has(toolCallId) === true;
 }
 
 function markToolCallEmitted(
   state: LangGraphEventState,
   toolCallId: string,
+  namespace: string,
 ): void {
   state.emittedToolCalls.add(toolCallId);
-  state.emittedToolCallsInCurrentStep.add(toolCallId);
+  if (state.currentStepsByNamespace.has(namespace)) {
+    getOrCreateNamespaceSet(
+      state.emittedToolCallsInCurrentStepByNamespace,
+      namespace,
+    ).add(toolCallId);
+  }
 }
 
 function hasEmittedToolInputInCurrentStep(
   state: LangGraphEventState,
   toolCallId: string,
+  namespace: string,
 ): boolean {
-  return state.currentStep === null
+  return !state.currentStepsByNamespace.has(namespace)
     ? state.emittedToolInputs.has(toolCallId)
-    : state.emittedToolInputsInCurrentStep.has(toolCallId);
+    : state.emittedToolInputsInCurrentStepByNamespace
+        .get(namespace)
+        ?.has(toolCallId) === true;
 }
 
 function markToolInputEmitted(
   state: LangGraphEventState,
   toolCallId: string,
+  namespace: string,
 ): void {
   state.emittedToolInputs.add(toolCallId);
-  state.emittedToolInputsInCurrentStep.add(toolCallId);
+  if (state.currentStepsByNamespace.has(namespace)) {
+    getOrCreateNamespaceSet(
+      state.emittedToolInputsInCurrentStepByNamespace,
+      namespace,
+    ).add(toolCallId);
+  }
+}
+
+function findMessageCurrentStepNamespace(
+  state: LangGraphEventState,
+  messageId: string,
+): string | undefined {
+  for (const [
+    namespace,
+    messageIds,
+  ] of state.messageIdsInCurrentStepByNamespace) {
+    if (messageIds.has(messageId)) {
+      return namespace;
+    }
+  }
+  return undefined;
 }
 
 /**
- * Ends and clears message state for the namespace that drives the global UI
- * step lifecycle. Returns whether another namespace still has active text or
- * reasoning that would be invalidated by a global finish-step chunk.
+ * Ends and clears message state for an advancing namespace. Returns whether
+ * another namespace still has active text or reasoning that would be
+ * invalidated by a global finish-step chunk.
  */
 function closeStepNamespaceMessages(
   state: LangGraphEventState,
@@ -1353,6 +1398,7 @@ export function processLangGraphEvent(
     rawNamespace.every(segment => typeof segment === 'string')
       ? rawNamespace
       : undefined;
+  const eventNamespace = getLangGraphNamespaceKey(namespace);
   controller = createLangGraphNamespaceController(controller, state, namespace);
 
   switch (type) {
@@ -1406,32 +1452,40 @@ export function processLangGraphEvent(
       }
 
       /**
-       * The first namespace with a step counter drives the global UI step
-       * lifecycle. This is the root namespace for complete subgraph streams and
-       * the selected namespace for streams filtered to one subgraph.
-       *
-       * Other namespaces have independent counters and must not change this
-       * cursor. A finish-step chunk clears every active UI text/reasoning part,
-       * so omit finish-step when another namespace is still active while still
-       * starting a new reducer scope for the advancing namespace.
+       * Each namespace has an independent LangGraph step counter. Advancing a
+       * namespace starts a new reducer scope so provider-scoped tool call IDs
+       * can be reused in that namespace. A finish-step chunk clears every
+       * active UI text/reasoning part, so omit it when another namespace is
+       * still active.
        */
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
           ? metadata.langgraph_step
           : null;
-      const eventNamespace = getLangGraphNamespaceKey(namespace);
-      if (langgraphStep !== null && state.stepNamespace === null) {
-        state.stepNamespace = eventNamespace;
-      }
-      if (
-        langgraphStep !== null &&
-        eventNamespace === state.stepNamespace &&
-        langgraphStep !== state.currentStep
-      ) {
-        if (state.currentStep !== null) {
+      if (langgraphStep !== null) {
+        const currentStep =
+          state.currentStepsByNamespace.get(eventNamespace) ?? null;
+        if (currentStep === null) {
+          if (state.currentStepsByNamespace.size === 0) {
+            controller.enqueue({ type: 'start-step' });
+          }
+          state.currentStepsByNamespace.set(eventNamespace, langgraphStep);
+          state.messageIdsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+          state.emittedToolCallsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+          state.emittedToolInputsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+        } else if (langgraphStep !== currentStep) {
           const hasConcurrentMessageParts = closeStepNamespaceMessages(
             state,
-            state.stepNamespace,
+            eventNamespace,
             controller,
           );
           if (!hasConcurrentMessageParts) {
@@ -1441,17 +1495,31 @@ export function processLangGraphEvent(
           /**
            * A concurrent namespace prevents finish-step because it would close
            * that namespace's active text/reasoning parts. Still emit start-step
-           * so tool calls in the new LangGraph step have a distinct reducer
+           * so tool calls in the advancing namespace have a distinct reducer
            * scope while the concurrent message lifecycle remains active.
            */
+          controller.enqueue({ type: 'start-step' });
+          state.currentStepsByNamespace.set(eventNamespace, langgraphStep);
+          state.messageIdsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+          state.emittedToolCallsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+          state.emittedToolInputsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
         }
-        controller.enqueue({ type: 'start-step' });
-        state.messageIdsInCurrentStep.clear();
-        state.emittedToolCallsInCurrentStep.clear();
-        state.emittedToolInputsInCurrentStep.clear();
-        state.currentStep = langgraphStep;
       }
-      state.messageIdsInCurrentStep.add(msgId);
+      if (state.currentStepsByNamespace.has(eventNamespace)) {
+        getOrCreateNamespaceSet(
+          state.messageIdsInCurrentStepByNamespace,
+          eventNamespace,
+        ).add(msgId);
+      }
 
       /**
        * Accumulate message chunks for later reference
@@ -1576,8 +1644,14 @@ export function processLangGraphEvent(
               updatedSeen.tool ??= new Set();
               updatedSeen.tool.add(toolCallId);
 
-              if (!hasEmittedToolCallInCurrentStep(state, toolCallId)) {
-                markToolCallEmitted(state, toolCallId);
+              if (
+                !hasEmittedToolCallInCurrentStep(
+                  state,
+                  toolCallId,
+                  eventNamespace,
+                )
+              ) {
+                markToolCallEmitted(state, toolCallId, eventNamespace);
                 controller.enqueue({
                   type: 'tool-input-start',
                   toolCallId: toolCallId,
@@ -1741,12 +1815,14 @@ export function processLangGraphEvent(
       }: {
         allowPreviousStep: boolean;
       }) => {
-        if (!hasEmittedToolCallInCurrentStep(state, toolCallId)) {
+        if (
+          !hasEmittedToolCallInCurrentStep(state, toolCallId, eventNamespace)
+        ) {
           if (allowPreviousStep && emittedToolCalls.has(toolCallId)) {
             return;
           }
 
-          markToolCallEmitted(state, toolCallId);
+          markToolCallEmitted(state, toolCallId, eventNamespace);
           controller.enqueue({
             type: 'tool-input-start',
             toolCallId,
@@ -1755,8 +1831,10 @@ export function processLangGraphEvent(
           });
         }
 
-        if (!hasEmittedToolInputInCurrentStep(state, toolCallId)) {
-          markToolInputEmitted(state, toolCallId);
+        if (
+          !hasEmittedToolInputInCurrentStep(state, toolCallId, eventNamespace)
+        ) {
+          markToolInputEmitted(state, toolCallId, eventNamespace);
           controller.enqueue({
             type: 'tool-input-available',
             toolCallId,
@@ -1816,6 +1894,9 @@ export function processLangGraphEvent(
        * Finalize all pending message chunks
        */
       for (const [id, seen] of messageSeen) {
+        const messageNamespace = getLangGraphNamespaceKey(
+          state.messageNamespaces.get(id),
+        );
         if (seen.text) controller.enqueue({ type: 'text-end', id });
         if (seen.tool) {
           for (const toolCallId of seen.tool) {
@@ -1825,12 +1906,18 @@ export function processLangGraphEvent(
             );
 
             if (toolCall) {
-              markToolCallEmitted(state, toolCallId);
+              markToolCallEmitted(state, toolCallId, messageNamespace);
               // Store mapping for HITL interrupt lookup
               const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
               emittedToolCallsByKey.set(toolCallKey, toolCallId);
-              if (!hasEmittedToolInputInCurrentStep(state, toolCallId)) {
-                markToolInputEmitted(state, toolCallId);
+              if (
+                !hasEmittedToolInputInCurrentStep(
+                  state,
+                  toolCallId,
+                  messageNamespace,
+                )
+              ) {
+                markToolInputEmitted(state, toolCallId, messageNamespace);
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId,
@@ -1975,9 +2062,12 @@ export function processLangGraphEvent(
 
             if (toolCalls && toolCalls.length > 0) {
               for (const toolCall of toolCalls) {
-                const wasObservedInCurrentStep =
-                  state.currentStep !== null &&
-                  state.messageIdsInCurrentStep.has(msgId);
+                const messageNamespace = findMessageCurrentStepNamespace(
+                  state,
+                  msgId,
+                );
+                const lifecycleNamespace = messageNamespace ?? eventNamespace;
+                const wasObservedInCurrentStep = messageNamespace !== undefined;
                 /**
                  * Emit tool calls recovered from a message in the current step,
                  * even when a prior step used the same provider-scoped ID.
@@ -1986,12 +2076,16 @@ export function processLangGraphEvent(
                  */
                 if (
                   toolCall.id &&
-                  !hasEmittedToolCallInCurrentStep(state, toolCall.id) &&
+                  !hasEmittedToolCallInCurrentStep(
+                    state,
+                    toolCall.id,
+                    lifecycleNamespace,
+                  ) &&
                   (wasObservedInCurrentStep ||
                     (!emittedToolCalls.has(toolCall.id) &&
                       !completedToolCallIds.has(toolCall.id)))
                 ) {
-                  markToolCallEmitted(state, toolCall.id);
+                  markToolCallEmitted(state, toolCall.id, lifecycleNamespace);
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
@@ -2006,7 +2100,7 @@ export function processLangGraphEvent(
                     toolName: toolCall.name,
                     dynamic: true,
                   });
-                  markToolInputEmitted(state, toolCall.id);
+                  markToolInputEmitted(state, toolCall.id, lifecycleNamespace);
                   controller.enqueue({
                     type: 'tool-input-available',
                     toolCallId: toolCall.id,
@@ -2132,7 +2226,7 @@ export function processLangGraphEvent(
                * so the UI knows what tool is being called with proper lifecycle
                */
               if (!emittedToolCalls.has(toolCallId)) {
-                markToolCallEmitted(state, toolCallId);
+                markToolCallEmitted(state, toolCallId, eventNamespace);
                 emittedToolCallsByKey.set(toolCallKey, toolCallId);
                 controller.enqueue({
                   type: 'tool-input-start',
@@ -2140,7 +2234,7 @@ export function processLangGraphEvent(
                   toolName,
                   dynamic: true,
                 });
-                markToolInputEmitted(state, toolCallId);
+                markToolInputEmitted(state, toolCallId, eventNamespace);
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId,

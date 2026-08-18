@@ -638,6 +638,161 @@ describe('toUIMessageStream', () => {
     ]);
   });
 
+  it('should preserve repeated child tool lifecycles across child steps', async () => {
+    const rootMessageId = 'root-message';
+    const childNamespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root before' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-message-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: ' root after' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(chunk => chunk.type === 'tool-input-start')
+        .map(chunk => ({
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+          providerMetadata: chunk.providerMetadata,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+    expect(
+      rawChunks.filter(
+        chunk =>
+          'id' in chunk &&
+          chunk.id === rootMessageId &&
+          (chunk.type === 'reasoning-start' ||
+            chunk.type === 'reasoning-delta' ||
+            chunk.type === 'reasoning-end'),
+      ),
+    ).toEqual([
+      {
+        type: 'reasoning-start',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: 'root before',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: ' root after',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-end',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+    ]);
+  });
+
   it('should emit step boundaries for a stream filtered to one subgraph', async () => {
     const namespace = ['tools:child-call'];
     const inputStream = convertArrayToReadableStream([
