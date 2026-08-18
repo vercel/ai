@@ -1188,9 +1188,7 @@ function resolveGemini3ThinkingConfig({
   modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
-  const minimumThinkingLevel = /(^|\/)gemini-3\.7-flash$/i.test(modelId)
-    ? 'low'
-    : 'minimal';
+  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
 
   if (reasoning === 'none') {
     // It's not possible to fully disable thinking with Gemini 3.
@@ -1214,6 +1212,31 @@ function resolveGemini3ThinkingConfig({
   }
 
   return { thinkingLevel };
+}
+
+function getMinimumThinkingLevelForGemini3Model(
+  modelId: string,
+): 'minimal' | 'low' {
+  const modelName = modelId.split('/').at(-1)?.toLowerCase();
+
+  if (modelName === 'gemini-flash-latest') {
+    return 'low';
+  }
+
+  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
+    modelName ?? '',
+  );
+
+  if (versionMatch == null) {
+    return 'minimal';
+  }
+
+  const majorVersion = Number(versionMatch[1]);
+  const minorVersion = Number(versionMatch[2]);
+
+  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
+    ? 'low'
+    : 'minimal';
 }
 
 function resolveGemini25ThinkingConfig({

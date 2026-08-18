@@ -1,7 +1,0 @@
-{
-  "error": {
-    "code": 400,
-    "message": "Thinking level MINIMAL is not supported for this model. Please retry with other thinking level.",
-    "status": "INVALID_ARGUMENT"
-  }
-}
