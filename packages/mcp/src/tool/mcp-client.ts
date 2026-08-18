@@ -917,11 +917,12 @@ class DefaultMCPClient implements MCPClient {
       resultSchema: ListToolsResultSchema,
       options,
     });
-    return this.prepareToolDefinitions(result);
+    return this.prepareToolDefinitions(result, params?.cursor == null);
   }
 
   private prepareToolDefinitions(
     definitions: ListToolsResult,
+    resetHeaderBindings = false,
   ): ListToolsResult {
     if (
       this.protocolEra !== 'modern' ||
@@ -930,7 +931,9 @@ class DefaultMCPClient implements MCPClient {
       return definitions;
     }
 
-    this.toolHeaderBindings.clear();
+    if (resetHeaderBindings) {
+      this.toolHeaderBindings.clear();
+    }
     const tools = definitions.tools.filter(toolDefinition => {
       const result = getMCPToolHeaderBindings(toolDefinition.inputSchema);
       if (!result.success) {
