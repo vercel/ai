@@ -167,12 +167,10 @@ const ToolSchema = z
      */
     title: z.optional(z.string()),
     description: z.optional(z.string()),
-    inputSchema: z
-      .object({
-        type: z.literal('object'),
-        properties: z.optional(z.object({}).loose()),
-      })
-      .loose(),
+    inputSchema: z.looseObject({
+      type: z.optional(z.unknown()),
+      properties: z.optional(z.object({}).loose()),
+    }),
     /**
      * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#output-schema
      */

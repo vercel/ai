@@ -26,8 +26,14 @@ import {
   isCustomMcpTransport,
   type MCPTransport,
   type MCPTransportConfig,
+  type MCPTransportSendOptions,
 } from './mcp-transport';
 import { getMCPAppToolMeta, MCP_APP_MIME_TYPE } from './mcp-apps';
+import {
+  createMCPToolHeaders,
+  getMCPToolHeaderBindings,
+  type MCPToolHeaderBinding,
+} from './mcp-http-headers';
 import {
   CallToolResultSchema,
   CompleteResultSchema,
@@ -236,6 +242,16 @@ export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
   transport: MCPTransportConfig | MCPTransport;
   /**
+   * Whether transports that support stateless protocol discovery should probe
+   * with `server/discover` before falling back to legacy initialization.
+   *
+   * Disable this for legacy servers that require `initialize` to be the first
+   * request.
+   *
+   * @default true
+   */
+  protocolVersionDiscovery?: boolean;
+  /**
    * Options that bound or cancel transport startup and the initialize request.
    */
   initializationOptions?: RequestOptions;
@@ -393,6 +409,7 @@ export interface MCPClient {
  */
 class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
+  private protocolVersionDiscovery: boolean;
   private onUncaughtError?: (error: unknown) => void;
   private maxRetries: number;
   private clientInfo: ClientConfiguration;
@@ -414,6 +431,7 @@ class DefaultMCPClient implements MCPClient {
   private _serverInstructions?: string;
   private protocolEra: 'legacy' | 'modern' = 'legacy';
   private protocolVersion = LATEST_LEGACY_PROTOCOL_VERSION;
+  private toolHeaderBindings = new Map<string, MCPToolHeaderBinding[]>();
   private isClosed = true;
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
@@ -429,12 +447,14 @@ class DefaultMCPClient implements MCPClient {
     capabilities,
     initialInitializeResult,
     initializationOptions,
+    protocolVersionDiscovery = true,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
     this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
     this.initialInitializeResult = initialInitializeResult;
     this.initializationOptions = initializationOptions;
+    this.protocolVersionDiscovery = protocolVersionDiscovery;
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
@@ -517,7 +537,10 @@ class DefaultMCPClient implements MCPClient {
         return this;
       }
 
-      if (this.transport.supportsProtocolVersionDiscovery) {
+      if (
+        this.protocolVersionDiscovery &&
+        this.transport.supportsProtocolVersionDiscovery
+      ) {
         const discovered = await this.tryProtocolDiscovery(signal);
         if (discovered) {
           return this;
@@ -676,12 +699,9 @@ class DefaultMCPClient implements MCPClient {
 
   private send(
     message: JSONRPCMessage,
-    signal: AbortSignal | undefined,
+    options?: MCPTransportSendOptions,
   ): Promise<void> {
-    return this.transport.send(
-      message,
-      signal == null ? undefined : { signal },
-    );
+    return this.transport.send(message, options);
   }
 
   private assertCapability(method: string): void {
@@ -785,6 +805,7 @@ class DefaultMCPClient implements MCPClient {
         jsonrpc: '2.0',
         id: messageId,
       };
+      const headers = this.getToolRequestHeaders(preparedRequest);
 
       const rejectWithAbortError = () => {
         reject(
@@ -867,10 +888,10 @@ class DefaultMCPClient implements MCPClient {
         timeoutId = setTimeout(onTimeout, timeout);
       }
 
-      const sendPromise =
-        transportSignal == null
-          ? this.transport.send(jsonrpcRequest)
-          : this.send(jsonrpcRequest, transportSignal);
+      const sendPromise = this.send(jsonrpcRequest, {
+        ...(transportSignal == null ? {} : { signal: transportSignal }),
+        ...(headers == null ? {} : { headers }),
+      });
 
       sendPromise.catch(error => {
         rejectAndCleanup(error);
@@ -885,11 +906,75 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListToolsResult> {
-    return this.request({
+    const result = await this.request({
       request: { method: 'tools/list', params },
       resultSchema: ListToolsResultSchema,
       options,
     });
+    return this.prepareToolDefinitions(result);
+  }
+
+  private prepareToolDefinitions(
+    definitions: ListToolsResult,
+  ): ListToolsResult {
+    if (
+      this.protocolEra !== 'modern' ||
+      !this.transport.supportsMcpToolParameterHeaders
+    ) {
+      return definitions;
+    }
+
+    this.toolHeaderBindings.clear();
+    const tools = definitions.tools.filter(toolDefinition => {
+      const result = getMCPToolHeaderBindings(toolDefinition.inputSchema);
+      if (!result.success) {
+        this.onError(
+          new MCPClientError({
+            message: `Ignoring MCP tool "${toolDefinition.name}": ${result.error}`,
+          }),
+        );
+        return false;
+      }
+
+      this.toolHeaderBindings.set(toolDefinition.name, result.bindings);
+      return true;
+    });
+
+    return { ...definitions, tools };
+  }
+
+  private getToolRequestHeaders(
+    request: Request,
+  ): Record<string, string> | undefined {
+    if (
+      this.protocolEra !== 'modern' ||
+      request.method !== 'tools/call' ||
+      typeof request.params?.name !== 'string'
+    ) {
+      return undefined;
+    }
+
+    const bindings = this.toolHeaderBindings.get(request.params.name);
+    if (bindings == null || bindings.length === 0) {
+      return undefined;
+    }
+
+    const args = request.params.arguments;
+    if (args == null || typeof args !== 'object' || Array.isArray(args)) {
+      return undefined;
+    }
+
+    try {
+      return createMCPToolHeaders({
+        bindings,
+        args: args as Record<string, unknown>,
+      });
+    } catch (error) {
+      throw new MCPClientError({
+        message: `Failed to create MCP headers for tool "${request.params.name}"`,
+        cause: error,
+      });
+    }
   }
 
   private async callToolWithRetry({
@@ -1054,7 +1139,10 @@ class DefaultMCPClient implements MCPClient {
       jsonrpc: '2.0',
     };
     await waitForAbort(
-      this.send(jsonrpcNotification, options?.signal),
+      this.send(
+        jsonrpcNotification,
+        options?.signal == null ? undefined : { signal: options.signal },
+      ),
       options?.signal,
     );
   }
@@ -1084,6 +1172,7 @@ class DefaultMCPClient implements MCPClient {
       schemas?: TOOL_SCHEMAS;
     },
   ): McpToolSet<TOOL_SCHEMAS> {
+    definitions = this.prepareToolDefinitions(definitions);
     const tools: Record<string, Tool & { _meta?: ToolMeta }> = {};
 
     for (const {
