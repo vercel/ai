@@ -373,7 +373,7 @@ describe('GatewayBatchLanguageModel', () => {
         throw new Error(`expected succeeded, got ${item.status}`);
       }
       expect(item.result.response?.timestamp).toBeInstanceOf(Date);
-      expect(item.result.response?.timestamp.toISOString()).toBe(
+      expect(item.result.response?.timestamp?.toISOString()).toBe(
         '2026-08-18T00:00:00.000Z',
       );
     });
