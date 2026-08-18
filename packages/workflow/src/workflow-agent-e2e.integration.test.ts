@@ -13,6 +13,7 @@ import {
   agentBasicE2e,
   agentErrorToolE2e,
   agentInstructionsStringE2e,
+  agentModelRetriesE2e,
   agentMultiStepE2e,
   agentOnFinishE2e,
   agentOnStartE2e,
@@ -43,6 +44,14 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
         stepCount: 1,
         lastStepText: 'Echo: hello world',
       });
+    });
+
+    it('retries model calls within one durable step attempt', async () => {
+      const run = await start(agentModelRetriesE2e, []);
+
+      await expect(run.returnValue).resolves.toBe(
+        'model-attempts=3;step-attempt=1',
+      );
     });
 
     it('single tool call', async () => {

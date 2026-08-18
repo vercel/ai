@@ -4,6 +4,7 @@
 import { tool } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
+import { retryingModel } from './retrying-model.js';
 import { createTestSandbox } from './test-sandbox.js';
 import { FatalError, getWritable } from 'workflow';
 import { z } from 'zod/v4';
@@ -45,6 +46,19 @@ export async function agentBasicE2e(prompt: string) {
     stepCount: result.steps.length,
     lastStepText: result.steps[result.steps.length - 1]?.text,
   };
+}
+
+export async function agentModelRetriesE2e() {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: retryingModel(),
+    maxRetries: 2,
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'retry the model call' }],
+    writable: getWritable(),
+  });
+  return result.steps.at(-1)?.text;
 }
 
 export async function agentToolCallE2e(a: number, b: number) {

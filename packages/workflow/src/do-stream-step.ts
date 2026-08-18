@@ -2,15 +2,10 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import {
-  isAbortError,
-  retryWithExponentialBackoff,
-} from '@ai-sdk/provider-utils';
+import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
-  InvalidArgumentError,
-  RetryError,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModel,
@@ -21,6 +16,7 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
+import { prepareRetries } from 'ai/internal';
 import type { ProviderOptions } from './workflow-agent.js';
 import {
   resolveSerializableTools,
@@ -106,40 +102,6 @@ export interface DoStreamStepRawResult {
   warnings?: unknown[];
 }
 
-function prepareRetries({
-  maxRetries,
-  abortSignal,
-}: {
-  maxRetries: number | undefined;
-  abortSignal: AbortSignal | undefined;
-}) {
-  if (maxRetries != null) {
-    if (!Number.isInteger(maxRetries)) {
-      throw new InvalidArgumentError({
-        parameter: 'maxRetries',
-        value: maxRetries,
-        message: 'maxRetries must be an integer',
-      });
-    }
-
-    if (maxRetries < 0) {
-      throw new InvalidArgumentError({
-        parameter: 'maxRetries',
-        value: maxRetries,
-        message: 'maxRetries must be >= 0',
-      });
-    }
-  }
-
-  return retryWithExponentialBackoff({
-    maxRetries: maxRetries ?? 2,
-    abortSignal,
-    shouldRetry: () => true,
-    createRetryError: ({ message, reason, errors }) =>
-      new RetryError({ message, reason, errors }),
-  });
-}
-
 export type DoStreamStepResult =
   | { aborted: true }
   | {
@@ -214,7 +176,7 @@ export async function doStreamStep(
   // streamModelCall handles prompt standardization, tool preparation,
   // model.doStream(), and stream part transformation. Retries are applied
   // around the model dispatch because streamModelCall itself does not retry.
-  const retry = prepareRetries({
+  const { retry } = prepareRetries({
     maxRetries: options?.maxRetries,
     abortSignal,
   });

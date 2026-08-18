@@ -404,7 +404,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
-      description: 'How many times to retry on failure. Default: 2.',
+      description:
+        'How many times to retry retryable model-call failures. Set to 0 to disable retries. Retry-After response headers are respected, and durable workflow step retries are not stacked. Default: 2.',
     },
     {
       name: 'headers',

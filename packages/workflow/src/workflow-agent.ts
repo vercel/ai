@@ -212,7 +212,7 @@ export interface GenerationSettings {
   seed?: number;
 
   /**
-   * Maximum number of retries for each model call. Set to 0 to disable retries.
+   * Maximum number of retries for retryable model call failures. Set to 0 to disable retries.
    * @default 2
    */
   maxRetries?: number;
