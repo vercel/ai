@@ -1,4 +1,4 @@
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import { convertUint8ArrayToBase64, isRecord } from '@ai-sdk/provider-utils';
 
 type HeaderValueType = 'boolean' | 'integer' | 'string';
 
@@ -14,10 +14,6 @@ export type MCPToolHeaderBindingsResult =
 
 const HTTP_TOKEN_PATTERN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
 const BASE64_SENTINEL_PATTERN = /^=\?base64\?.*\?=$/;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
 
 export function encodeMCPHeaderValue(value: string): string {
   const isPlainAscii = [...value].every(character => {
