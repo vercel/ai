@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 18997,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18997-openai-allowed-built-in-tools.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18997-openai-allowed-built-in-tools.ts",
+    "packages/openai/src/responses/openai-responses-language-model.test.ts",
+    "packages/openai/src/responses/__fixtures__/openai-allowed-tools-web-search-error.1.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18997_REPRODUCED: OpenAI rejected the SDK's built-in web_search allow-list entry"
+  }
+}

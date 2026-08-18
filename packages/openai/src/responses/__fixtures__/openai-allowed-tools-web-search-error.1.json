@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Tool choice 'web_search' not found in 'tools' parameter.",
+    "type": "invalid_request_error",
+    "param": "tool_choice",
+    "code": null
+  }
+}
