@@ -167,4 +167,53 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
       ]),
     );
   });
+
+  it('surfaces modeled exception frames as stream errors', async () => {
+    const exception = {
+      message: 'An error occurred while streaming the response.',
+      originalMessage: 'The model stream failed.',
+      originalStatusCode: 424,
+    };
+    const exceptionFrame = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+        ':exception-type': {
+          type: 'string',
+          value: 'modelStreamErrorException',
+        },
+        ':content-type': { type: 'string', value: 'application/json' },
+      },
+      body: fromUtf8(JSON.stringify(exception)),
+    });
+    const model = new AmazonBedrockChatLanguageModel(
+      'anthropic.claude-3-haiku-20240307-v1:0',
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: {},
+        fetch: async () =>
+          new Response(createStream([exceptionFrame]), {
+            status: 200,
+            headers: {
+              'content-type': 'application/vnd.amazon.eventstream',
+            },
+          }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.at(-2)).toEqual({
+      type: 'error',
+      error: exception,
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'error' },
+    });
+  });
 });
