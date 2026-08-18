@@ -1277,6 +1277,64 @@ The custom tool can be configured with:
   - **definition** _string_ - (grammar only) The grammar definition string (a regex pattern or Lark grammar).
 - **execute** _function_ (optional) - An async function that receives the raw string input and returns a string result. Enables multi-turn tool calling.
 
+#### Restricting Callable Tools
+
+The `allowedTools` provider option restricts which of the tools you declared the model is allowed to
+call, while still sending the full `tools` list to OpenAI. Because the tools list stays byte-identical
+across requests, the prompt cache is preserved — unlike `activeTools`, which removes tools from the
+request and invalidates the cache whenever the allow-list changes.
+
+`allowedTools` is only supported by the Responses API, and it overrides the request-level `toolChoice`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.5'),
+  tools: {
+    weather: weatherTool,
+    cityAttractions: cityAttractionsTool,
+    search: openai.tools.webSearch(),
+  },
+  providerOptions: {
+    openai: {
+      allowedTools: { toolNames: ['weather', 'search'], mode: 'auto' },
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+- **toolNames** _string[]_ - The tools the model may call, named as you declared them in `tools`. For
+  provider-defined tools you may also use the canonical OpenAI name (for example `web_search`).
+- **mode** _'auto' | 'required'_ (optional) - `'auto'` (default) lets the model pick one of the allowed
+  tools or answer with a message; `'required'` forces it to call at least one of them.
+
+Both function tools and provider-defined tools can be allow-listed, including web search, file search,
+image generation, code interpreter, computer, apply patch, shell, programmatic tool calling, custom
+tools, and MCP servers.
+
+If a name matches both a tool you declared and the canonical OpenAI name of a different tool, the tool
+you declared under that name wins, and a warning reports the ambiguity. If several tools share the same
+canonical name — two MCP servers, for example — that name is ambiguous, so it is dropped with a warning;
+name those tools as you declared them instead.
+
+<Note>
+  Three kinds of tools cannot be allow-listed, because OpenAI's `allowed_tools`
+  only sees the eagerly-loaded tool list: the [tool search tool](#tool-search),
+  tools marked with `deferLoading`, and tools grouped into a namespace. Naming
+  one of these in `allowedTools` removes it from the allow-list and emits a
+  warning; if that leaves no tools at all, the request fails with an error
+  instead of silently sending no restriction.
+</Note>
+
+<Note>
+  An MCP server is allow-listed as a whole: the entry carries the server label,
+  so every tool on that server is callable. To restrict which tools on a server
+  the model may call, use the MCP tool's own `allowedTools` argument.
+</Note>
+
 #### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
