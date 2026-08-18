@@ -2,9 +2,11 @@ import { z } from 'zod/v4';
 import type { JSONObject } from '@ai-sdk/provider';
 import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 
-export const LATEST_PROTOCOL_VERSION = '2025-11-25';
+export const LATEST_PROTOCOL_VERSION = '2026-07-28';
+export const LATEST_LEGACY_PROTOCOL_VERSION = '2025-11-25';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
   LATEST_PROTOCOL_VERSION,
+  LATEST_LEGACY_PROTOCOL_VERSION,
   '2025-06-18',
   '2025-03-26',
   '2024-11-05',
@@ -73,7 +75,9 @@ export const BaseParamsSchema = z.looseObject({
   _meta: z.optional(z.object({}).loose()),
 });
 type BaseParams = z.infer<typeof BaseParamsSchema>;
-export const ResultSchema = BaseParamsSchema;
+export const ResultSchema = BaseParamsSchema.extend({
+  resultType: z.optional(z.string()),
+});
 
 export const RequestSchema = z.object({
   method: z.string(),
@@ -127,6 +131,15 @@ export const ClientCapabilitiesSchema = z
 
 export type ClientCapabilities = z.infer<typeof ClientCapabilitiesSchema>;
 export type ElicitationCapability = z.infer<typeof ElicitationCapabilitySchema>;
+
+export const DiscoverResultSchema = ResultSchema.extend({
+  supportedVersions: z.array(z.string()),
+  capabilities: ServerCapabilitiesSchema,
+  instructions: z.optional(z.string()),
+  ttlMs: z.optional(z.number()),
+  cacheScope: z.optional(z.union([z.literal('public'), z.literal('private')])),
+});
+export type DiscoverResult = z.infer<typeof DiscoverResultSchema>;
 
 export const InitializeResultSchema = ResultSchema.extend({
   protocolVersion: z.string(),

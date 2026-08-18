@@ -25,6 +25,12 @@ Create an MCP client using one of the following transport options:
 - SSE (Server-Sent Events): An alternative HTTP-based transport
 - `stdio`: For local development only. Uses standard input/output streams for local MCP servers
 
+The AI SDK MCP client supports both legacy initialization-based protocol
+versions and stateless MCP `2026-07-28`. The built-in stdio transport probes
+with `server/discover` and automatically falls back to the legacy
+`initialize` handshake for older servers. Custom transports can opt into this
+negotiation with `supportsProtocolVersionDiscovery: true`.
+
 ### HTTP Transport (Recommended)
 
 For production deployments, we recommend using the HTTP transport. You can configure it directly on the client:
@@ -49,8 +55,9 @@ const mcpClient = await createMCPClient({
 });
 ```
 
-If the MCP server uses Streamable HTTP sessions, you can reattach to a saved
-session by restoring both the previous session id and initialize result:
+If a legacy MCP server uses Streamable HTTP sessions, you can reattach to a
+saved session by restoring both the previous session id and initialize result.
+MCP `2026-07-28` is stateless and does not use these options:
 
 ```typescript
 import { createMCPClient } from '@ai-sdk/mcp';

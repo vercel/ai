@@ -40,6 +40,14 @@ export type MCPTransportCloseOptions = {
 
 export interface MCPTransport {
   /**
+   * Whether this transport can probe for stateless MCP protocol versions.
+   *
+   * Custom transports default to the legacy initialization flow unless they
+   * explicitly opt in.
+   */
+  supportsProtocolVersionDiscovery?: boolean;
+
+  /**
    * Initialize and start the transport
    */
   start(): Promise<void>;
