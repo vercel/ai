@@ -4515,6 +4515,35 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('hosted MCP observability', () => {
+      it('should preserve imported remote tool definitions', async () => {
+        prepareJsonFixtureResponse('openai-issue-19007-hosted-mcp');
+
+        const result = await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.mcp',
+              name: 'mcp',
+              args: {
+                serverLabel: 'deepwiki',
+                serverUrl: 'https://mcp.deepwiki.com/mcp',
+              },
+            },
+          ],
+        });
+
+        expect(
+          result.content.filter(part => part.type === 'tool-call'),
+        ).toHaveLength(2);
+        expect(
+          result.content.filter(part => part.type === 'tool-result'),
+        ).toHaveLength(2);
+        expect(JSON.stringify(result.content)).toContain('read_wiki_contents');
+      });
+    });
+
     describe('mcp tool approval', () => {
       const MCP_TOOL = {
         type: 'provider' as const,

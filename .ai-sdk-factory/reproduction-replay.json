@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19007,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19007-openai-otel-hosted-mcp.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19007-openai-otel-hosted-mcp.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19007_REPRODUCED: hosted MCP telemetry is incomplete"
+  }
+}

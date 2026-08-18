@@ -1684,6 +1684,128 @@ describe('OpenTelemetry', () => {
   });
 
   describe('generateText integration', () => {
+    it('observes provider-executed hosted tool calls and results', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.responses',
+          modelId: 'gpt-5.5',
+          doGenerate: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'mcp-call-1',
+                toolName: 'mcp.read_wiki_structure',
+                input: '{"repoName":"vercel/ai"}',
+                providerExecuted: true,
+                dynamic: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'mcp-call-1',
+                toolName: 'mcp.read_wiki_structure',
+                result: {
+                  type: 'call',
+                  serverLabel: 'deepwiki',
+                  name: 'read_wiki_structure',
+                  arguments: '{"repoName":"vercel/ai"}',
+                  output: 'Available pages for vercel/ai',
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'mcp-call-2',
+                toolName: 'mcp.ask_question',
+                input:
+                  '{"repoName":"vercel/ai","question":"What is this repository for?"}',
+                providerExecuted: true,
+                dynamic: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'mcp-call-2',
+                toolName: 'mcp.ask_question',
+                result: {
+                  type: 'call',
+                  serverLabel: 'deepwiki',
+                  name: 'ask_question',
+                  arguments:
+                    '{"repoName":"vercel/ai","question":"What is this repository for?"}',
+                  output: 'The AI SDK is a TypeScript toolkit.',
+                },
+              },
+              { type: 'text', text: 'The AI SDK is a TypeScript toolkit.' },
+            ],
+            finishReason: { raw: 'stop', unified: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 10,
+                noCache: 10,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 20,
+                text: 20,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        }),
+        tools: {
+          mcp: {
+            type: 'provider',
+            isProviderExecuted: true,
+            id: 'openai.mcp',
+            inputSchema: z.object({}),
+            outputSchema: z.unknown(),
+            args: {
+              serverLabel: 'deepwiki',
+              serverUrl: 'https://mcp.deepwiki.com/mcp',
+            },
+          },
+        },
+        prompt: 'Use both DeepWiki tools.',
+        telemetry: {
+          integrations: integration,
+          recordInputs: true,
+          recordOutputs: true,
+        },
+      });
+
+      expect(result.toolCalls).toHaveLength(2);
+      expect(result.toolResults).toHaveLength(2);
+
+      const finishedSpans = sdkTrace.exporter.getFinishedSpans();
+      expect
+        .soft(
+          finishedSpans
+            .filter(
+              span =>
+                span.attributes['gen_ai.operation.name'] === 'execute_tool',
+            )
+            .map(span => span.attributes['gen_ai.tool.name']),
+        )
+        .toEqual(['mcp.read_wiki_structure', 'mcp.ask_question']);
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-5.5');
+      const outputMessages = JSON.parse(
+        String(chatSpan.attributes['gen_ai.output.messages']),
+      ) as Array<{ parts: Array<{ type: string; id?: string }> }>;
+      expect
+        .soft(
+          outputMessages.flatMap(message =>
+            message.parts
+              .filter(part => part.type === 'tool_call_response')
+              .map(part => part.id),
+          ),
+        )
+        .toEqual(['mcp-call-1', 'mcp-call-2']);
+    });
+
     it('records system instructions on the chat span', async () => {
       const sdkTrace = createSdkTracer();
       integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
