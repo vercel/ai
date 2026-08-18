@@ -1290,14 +1290,20 @@ describe('assistant messages', () => {
     });
   });
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
   it('should strip invalid characters from tool call names', async () => {
     const result = await convertToBedrockChatMessages([
+=======
+  it('should wrap non-object (invalid) tool call input in an object', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+>>>>>>> cf06314e2d (fix(bedrock): wrap invalid tool input in object (#16561)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
       {
         role: 'assistant',
         content: [
           {
             type: 'tool-call',
             toolCallId: 'call-1',
+<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
             toolName: '$READFILE',
             input: {},
           },
@@ -1312,11 +1318,17 @@ describe('assistant messages', () => {
             toolCallId: 'call-3',
             toolName: '$',
             input: {},
+=======
+            toolName: 'cityAttractions',
+            // malformed JSON the model produced, kept as a raw string
+            input: '{ "city": "San Francisco", }',
+>>>>>>> cf06314e2d (fix(bedrock): wrap invalid tool input in object (#16561)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
           },
         ],
       },
     ]);
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
     expect(result.messages).toEqual([
       {
         role: 'assistant',
@@ -1345,6 +1357,25 @@ describe('assistant messages', () => {
         ],
       },
     ]);
+=======
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'cityAttractions',
+                input: { rawInvalidInput: '{ "city": "San Francisco", }' },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+>>>>>>> cf06314e2d (fix(bedrock): wrap invalid tool input in object (#16561)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
   });
 
   it('should preserve empty text blocks when reasoning blocks are present', async () => {
