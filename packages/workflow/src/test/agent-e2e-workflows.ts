@@ -58,20 +58,20 @@ export async function agentStreamErrorE2e() {
     model: mockSequenceModel([{ type: 'error', error: terminal }]),
   });
 
-  let rejection: unknown;
-  try {
-    await agent.stream({
-      messages: [{ role: 'user', content: 'trigger the terminal error' }],
-      writable: getWritable(),
-      onError: async ({ error }) => {
-        callbackErrors.push(error);
-      },
-    });
-  } catch (error) {
-    rejection = error;
-  }
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'trigger the terminal error' }],
+    writable: getWritable(),
+    onError: async ({ error }) => {
+      callbackErrors.push(error);
+    },
+  });
 
-  return { rejection, callbackErrors };
+  return {
+    error: result.error,
+    finishReason: result.finishReason,
+    stepCount: result.steps.length,
+    callbackErrors,
+  };
 }
 
 export async function agentToolCallE2e(a: number, b: number) {

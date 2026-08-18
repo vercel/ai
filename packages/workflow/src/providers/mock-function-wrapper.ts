@@ -81,7 +81,15 @@ class SerializableMockLanguageModel extends MockLanguageModelV4 {
                     usage,
                   },
                 ]
-              : [...prefix, { type: 'error', error: response.error }];
+              : [
+                  ...prefix,
+                  { type: 'error', error: response.error },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'error', raw: 'error' },
+                    usage,
+                  },
+                ];
 
         return { stream: convertArrayToReadableStream(streamParts) };
       },

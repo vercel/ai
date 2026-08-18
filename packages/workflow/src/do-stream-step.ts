@@ -105,14 +105,12 @@ export type DoStreamStepResult =
   | { aborted: true }
   | {
       aborted?: false;
-      terminalError: unknown;
-    }
-  | {
-      aborted?: false;
       toolCalls: ParsedToolCall[];
       finish: StreamFinish | undefined;
       raw: DoStreamStepRawResult;
       providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
+      /** Present when the model stream emitted an error part. */
+      terminalError?: unknown;
     };
 
 export async function doStreamStep(
@@ -232,6 +230,8 @@ export async function doStreamStep(
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
   let warnings: unknown[] | undefined;
+  let terminalError: unknown;
+  let hasTerminalError = false;
 
   // Acquire writer once before the loop to avoid per-chunk lock overhead
   const writer = writable?.getWriter();
@@ -310,11 +310,13 @@ export async function doStreamStep(
         await writer.write(part);
       }
 
-      if (part.type === 'error') {
-        // Return model error parts as step data. Throwing here would make the
-        // durable workflow runtime retry the model step and normalize the
-        // original value before WorkflowAgent can surface it.
-        return { terminalError: part.error };
+      if (part.type === 'error' && !hasTerminalError) {
+        // Retain the first model error as step data. Throwing here would make
+        // the durable workflow runtime retry the model step and normalize the
+        // original value before WorkflowAgent can surface it. Continue
+        // consuming so the existing finish reason and usage are preserved.
+        terminalError = part.error;
+        hasTerminalError = true;
       }
     }
   } catch (error) {
@@ -344,5 +346,6 @@ export async function doStreamStep(
       warnings,
     },
     providerExecutedToolResults,
+    ...(hasTerminalError ? { terminalError } : {}),
   };
 }

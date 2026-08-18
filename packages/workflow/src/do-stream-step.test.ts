@@ -53,21 +53,41 @@ describe('doStreamStep', () => {
         stream: convertArrayToReadableStream([
           { type: 'stream-start' as const, warnings: [] },
           { type: 'error' as const, error: terminal },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'error' as const, raw: 'error' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 0,
+                text: 0,
+                reasoning: undefined,
+              },
+            },
+          },
         ]),
       }),
     });
 
-    await expect(
-      doStreamStep(
-        prompt,
-        model,
-        new WritableStream({
-          write(part) {
-            streamedParts.push(part);
-          },
-        }),
-      ),
-    ).resolves.toEqual({ terminalError: terminal });
+    const result = await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          streamedParts.push(part);
+        },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      terminalError: terminal,
+      finish: { finishReason: 'error' },
+    });
     expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
   });
 });

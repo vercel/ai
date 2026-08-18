@@ -2,4 +2,4 @@
 '@ai-sdk/workflow': patch
 ---
 
-Reject WorkflowAgent streams with the value from model stream error parts without retrying the durable model step.
+Expose the original value from model stream error parts on resolved WorkflowAgent results without retrying the durable model step.

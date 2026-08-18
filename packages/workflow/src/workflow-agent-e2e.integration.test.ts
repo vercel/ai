@@ -76,7 +76,9 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       };
 
       expect(rv).toEqual({
-        rejection: terminal,
+        error: terminal,
+        finishReason: 'error',
+        stepCount: 1,
         callbackErrors: [terminal],
       });
       expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([

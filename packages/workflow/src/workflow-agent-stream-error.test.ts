@@ -36,9 +36,10 @@ async function runAgentWithStreamError(
 
   let didReject = false;
   let rejection: unknown;
+  let streamResult: Awaited<ReturnType<(typeof agent)['stream']>> | undefined;
 
   try {
-    await agent.stream({
+    streamResult = await agent.stream({
       messages: [{ role: 'user', content: 'trigger the terminal error' }],
       writable: new WritableStream({
         write(part) {
@@ -52,28 +53,39 @@ async function runAgentWithStreamError(
     rejection = error;
   }
 
-  return { didReject, rejection, streamedParts };
+  return { didReject, rejection, streamResult, streamedParts };
 }
 
 describe('WorkflowAgent.stream error parts', () => {
-  it('forwards the error part and rejects with its error value', async () => {
+  it('forwards the error part and resolves with its original value', async () => {
     const terminal = new Error('terminal model error');
 
     const result = await runAgentWithStreamError(terminal);
 
-    expect(result.didReject).toBe(true);
-    expect(result.rejection).toBe(terminal);
+    expect(result.didReject).toBe(false);
+    expect(result.rejection).toBeUndefined();
+    expect(result.streamResult).toMatchObject({
+      finishReason: 'error',
+      error: terminal,
+    });
     expect(result.streamedParts).toContainEqual({
       type: 'error',
       error: terminal,
     });
   });
 
-  it('rejects when the error value is falsy', async () => {
+  it('preserves a falsy error value', async () => {
     const result = await runAgentWithStreamError(false);
 
-    expect(result.didReject).toBe(true);
-    expect(result.rejection).toBe(false);
+    expect(result.didReject).toBe(false);
+    expect(result.streamResult).toHaveProperty('error', false);
+  });
+
+  it('preserves the presence of an undefined error value', async () => {
+    const result = await runAgentWithStreamError(undefined);
+
+    expect(result.didReject).toBe(false);
+    expect(result.streamResult).toHaveProperty('error', undefined);
   });
 
   it('calls onError once for a model stream error part', async () => {
