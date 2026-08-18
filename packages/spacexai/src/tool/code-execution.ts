@@ -7,7 +7,7 @@ const codeExecutionOutputSchema = z.object({
 });
 
 const codeExecutionToolFactory = createProviderExecutedToolFactory({
-  id: 'xai.code_execution',
+  id: 'spacexai.code_execution',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: codeExecutionOutputSchema,
 });
