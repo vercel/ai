@@ -1,7 +1,7 @@
 # AI SDK - Perplexity Provider
 
 The **[Perplexity provider](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity)** for the [AI SDK](https://ai-sdk.dev/docs)
-contains language model support for Perplexity's Sonar API - a powerful answer engine with real-time web search capabilities.
+contains language model support for Perplexity's Agent API, including web search, citations, function tools, and structured output.
 
 ## Features
 
@@ -47,7 +47,7 @@ import { perplexity } from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: perplexity('sonar-pro'),
+  model: perplexity('low'),
   prompt: 'What are the latest developments in quantum computing?',
 });
 ```

@@ -1,11 +1,13 @@
 ---
 title: Perplexity
-description: Learn how to use Perplexity's Sonar API with the AI SDK.
+description: Learn how to use Perplexity's Agent API with the AI SDK.
 ---
 
 # Perplexity Provider
 
-The [Perplexity](https://sonar.perplexity.ai) provider offers access to Sonar API - a language model that uniquely combines real-time web search with natural language processing. Each response is grounded in current web data and includes detailed citations, making it ideal for research, fact-checking, and obtaining up-to-date information.
+The [Perplexity](https://www.perplexity.ai) provider offers access to the
+[Agent API](https://docs.perplexity.ai/docs/agent-api/quickstart). The Agent API
+can route across models, search the web, call tools, and return cited answers.
 
 API keys can be obtained from the [Perplexity Platform](https://docs.perplexity.ai).
 
@@ -62,10 +64,26 @@ import { perplexity } from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: perplexity('sonar-pro'),
+  model: perplexity('low'),
   prompt: 'What are the latest developments in quantum computing?',
 });
 ```
+
+The Agent API provides the `fast`, `low`, `medium`, `high`, and `xhigh`
+presets. You can also pass an Agent API model ID directly, such as
+`perplexity/sonar`.
+
+The legacy Sonar model IDs remain available as deprecated aliases:
+
+| Legacy model ID       | Agent API preset |
+| --------------------- | ---------------- |
+| `sonar`               | `fast`           |
+| `sonar-pro`           | `low`            |
+| `sonar-reasoning`     | `medium`         |
+| `sonar-reasoning-pro` | `medium`         |
+| `sonar-deep-research` | `high`           |
+
+Using a legacy model ID emits a deprecation warning.
 
 ### Sources
 
@@ -76,14 +94,75 @@ import { perplexity } from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: perplexity('sonar-pro'),
+  model: perplexity('low'),
   prompt: 'What are the latest developments in quantum computing?',
 });
 
 console.log(sources);
 ```
 
-### Provider Options & Metadata
+### Agent Tools
+
+Pass native Agent API tools through `providerOptions.perplexity.tools`:
+
+```ts
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: perplexity('low'),
+  prompt: 'Summarize recent US federal AI policy from official sources.',
+  providerOptions: {
+    perplexity: {
+      tools: [
+        {
+          type: 'web_search',
+          filters: {
+            search_domain_filter: [
+              'whitehouse.gov',
+              'congress.gov',
+              'federalregister.gov',
+            ],
+            search_recency_filter: 'month',
+          },
+          max_results: 10,
+          search_context_size: 'medium',
+        },
+      ],
+    } satisfies PerplexityLanguageModelOptions,
+  },
+});
+```
+
+Supported native tools are `web_search`, `fetch_url`, `people_search`,
+`finance_search`, `sandbox`, `mcp`, and `connector`. Agent API presets include
+preconfigured tools that remain enabled; the `tools` option can add explicit
+tools or supply tools when using a direct model ID.
+
+AI SDK function tools can be passed through the top-level `tools` option:
+
+```ts
+import { perplexity } from '@ai-sdk/perplexity';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: perplexity('low'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    weather: tool({
+      description: 'Get the weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, temperature: 18 }),
+    }),
+  },
+});
+```
+
+### Provider Options and Metadata
 
 The Perplexity provider includes additional metadata in the response through `providerMetadata`.
 Additional configuration options are available through `providerOptions`.
@@ -96,12 +175,13 @@ import {
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: perplexity('sonar-pro'),
+  model: perplexity('low'),
   prompt: 'What are the latest developments in quantum computing?',
   providerOptions: {
     perplexity: {
-      return_images: true, // Enable image responses (Tier-2 Perplexity users only)
-      search_recency_filter: 'week', // Filter search results by recency
+      max_steps: 5,
+      store: true,
+      reasoning: { effort: 'low' },
     } satisfies PerplexityLanguageModelOptions,
   },
 });
@@ -110,86 +190,99 @@ console.log(result.providerMetadata);
 // Example output:
 // {
 //   perplexity: {
-//     usage: { citationTokens: 5286, numSearchQueries: 1 },
-//     images: [
-//       { imageUrl: "https://example.com/image1.jpg", originUrl: "https://elsewhere.com/page1", height: 1280, width: 720 },
-//       { imageUrl: "https://example.com/image2.jpg", originUrl: "https://elsewhere.com/page2", height: 1280, width: 720 }
-//     ]
+//     usage: { citationTokens: null, numSearchQueries: 1 },
+//     images: null,
+//     cost: { totalCost: 0.006, currency: 'USD', ... },
+//     toolCalls: { search_web: { invocation: 1 } },
 //   },
 // }
 ```
 
 #### Provider Options
 
-The following provider-specific options are available:
+The following Agent API options are available:
 
-- **return_images** _boolean_
+- **instructions** _string_
 
-  Enable image responses. When set to `true`, the response may include relevant images. This feature is only available to Perplexity Tier-2 users and above.
+  Top-level instructions for the Agent API run.
 
-- **search_recency_filter** _string_
+- **tools** _array_
 
-  Filter search results by recency. Possible values: `'hour'`, `'day'`, `'week'`, `'month'`, `'year'`. If not specified, defaults to all time.
+  Native Agent API tools and their configuration.
+
+- **models** _string[]_
+
+  A fallback model list for Agent API routing.
+
+- **max_steps** _number_
+
+  The maximum number of agentic steps.
+
+- **max_tool_calls** _number_
+
+  The maximum number of native tool calls. Setting this to `0` disables all
+  preset tools.
+
+- **previous_response_id** _string_
+
+  Continue a conversation from an earlier Agent API response.
+
+- **store** _boolean_
+
+  Whether Perplexity should store the response.
+
+- **language_preference** _string_
+
+  Preferred response language as an ISO 639-1 language code.
+
+- **reasoning** _object_
+
+  Reasoning configuration. `effort` supports `'minimal'`, `'low'`, `'medium'`,
+  `'high'`, and `'xhigh'`.
+
+- **skills** _array_
+
+  Agent API skill configuration.
 
 <Note>
-  Any other [Perplexity API
-  parameters](https://docs.perplexity.ai/api-reference/chat-completions) can
-  also be passed through `providerOptions.perplexity`.
+  See the [Perplexity Agent API
+  documentation](https://docs.perplexity.ai/docs/agent-api/quickstart) for
+  details about native request fields.
 </Note>
 
 #### Provider Metadata
 
 The response metadata includes:
 
-- `usage`: Object containing `citationTokens` and `numSearchQueries` metrics
-- `images`: Array of image objects when `return_images` is enabled (Tier-2 users only). Each image contains `imageUrl`, `originUrl`, `height`, and `width`.
+- `usage`: `citationTokens` (always `null` for Agent API responses) and the
+  number of search queries
+- `cost`: Token, tool, and total costs returned by Perplexity
+- `toolCalls`: Invocation counts grouped by native tool
+- `images`: Always `null`; the Agent API does not return Sonar image results
 
-### PDF Support
+### Structured Output
 
-The Perplexity provider supports reading PDF files.
-You can pass PDF files as part of the message content using the `file` type:
+`Output.object` and `Output.array` send an Agent API JSON schema response
+format. JSON output without a schema is not supported.
 
-```ts
-const result = await generateText({
-  model: perplexity('sonar-pro'),
-  messages: [
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: 'What is this document about?',
-        },
-        {
-          type: 'file',
-          data: fs.readFileSync('./data/ai.pdf'),
-          mediaType: 'application/pdf',
-          filename: 'ai.pdf', // optional
-        },
-      ],
-    },
-  ],
-});
-```
+### Input Images
 
-You can also pass the URL of a PDF:
+Image URL and data inputs are converted to Agent API `input_image` parts.
+The Agent API does not provide a Sonar-equivalent PDF input field, so PDF file
+parts are not supported.
 
-```ts
-{
-  type: 'file',
-  data: new URL('https://example.com/document.pdf'),
-  mediaType: 'application/pdf',
-  filename: 'document.pdf', // optional
-}
-```
+### Migrating from Sonar
 
-The model will have access to the contents of the PDF file and
-respond to questions about it.
+The provider maps common Sonar options to the Agent API and emits deprecation
+warnings. `maxOutputTokens` is sent as `max_output_tokens`, search filters are
+moved into the `web_search` tool, and `reasoning_effort` is mapped to
+`reasoning.effort`.
 
-<Note>
-  For more details about Perplexity's capabilities, see the [Perplexity chat
-  completion docs](https://docs.perplexity.ai/api-reference/chat-completions).
-</Note>
+Options with no Agent API equivalent emit unsupported warnings, including
+`search_language_filter`, `return_images`, image filters, related questions,
+media responses, and `stream_mode`. See Perplexity's
+[migration guide](https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar/overview)
+for the full API-level comparison.
 
 ## Embedding Models
 
@@ -266,13 +359,13 @@ The following optional provider options are available for embedding models:
 
 ## Model Capabilities
 
-| Model                 | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| --------------------- | ----------- | ----------------- | ---------- | -------------- |
-| `sonar-deep-research` | <Cross />   | <Check />         | <Cross />  | <Cross />      |
-| `sonar-reasoning-pro` | <Check />   | <Check />         | <Cross />  | <Cross />      |
-| `sonar-reasoning`     | <Check />   | <Check />         | <Cross />  | <Cross />      |
-| `sonar-pro`           | <Check />   | <Check />         | <Cross />  | <Cross />      |
-| `sonar`               | <Check />   | <Check />         | <Cross />  | <Cross />      |
+| Model    | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| -------- | ----------- | ----------------- | ---------- | -------------- |
+| `fast`   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `low`    | <Check />   | <Check />         | <Check />  | <Check />      |
+| `medium` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `high`   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `xhigh`  | <Check />   | <Check />         | <Check />  | <Check />      |
 
 <Note>
   Please see the [Perplexity docs](https://docs.perplexity.ai) for detailed API
