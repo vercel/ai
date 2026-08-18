@@ -27,6 +27,75 @@ it('should remove additionalProperties and $schema', () => {
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
 
+it('should translate $ref and $defs to Google schema references', () => {
+  const input = {
+    type: 'object',
+    properties: {
+      locale: {
+        $ref: '#/$defs/Locale',
+        description: 'Locale for formatting',
+      },
+    },
+    required: ['locale'],
+    additionalProperties: false,
+    $defs: {
+      Locale: { type: 'string', enum: ['de', 'en'] },
+    },
+  } as JSONSchema7 & { $defs: Record<string, JSONSchema7> };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      locale: {
+        description: 'Locale for formatting',
+        ref: '#/defs/Locale',
+      },
+    },
+    required: ['locale'],
+    defs: {
+      Locale: { type: 'string', enum: ['de', 'en'] },
+    },
+  });
+});
+
+it('should translate references inside $defs', () => {
+  const input = {
+    type: 'object',
+    properties: {
+      node: { $ref: '#/$defs/Node' },
+    },
+    $defs: {
+      Node: {
+        type: 'object',
+        properties: {
+          child: { $ref: '#/$defs/Node' },
+        },
+      },
+    },
+  } as JSONSchema7 & { $defs: Record<string, JSONSchema7> };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      node: { ref: '#/defs/Node' },
+    },
+    defs: {
+      Node: {
+        type: 'object',
+        properties: {
+          child: { ref: '#/defs/Node' },
+        },
+      },
+    },
+  });
+});
+
+it('should reject references outside root-level $defs', () => {
+  expect(() =>
+    convertJSONSchemaToOpenAPISchema({ $ref: '#/properties/value' }),
+  ).toThrow(UnsupportedFunctionalityError);
+});
+
 it('should remove additionalProperties object from nested object schemas', function () {
   const input: JSONSchema7 = {
     type: 'object',

@@ -4,6 +4,10 @@ import {
   type JSONSchema7Definition,
 } from '@ai-sdk/provider';
 
+type JSONSchema7WithDefinitions = JSONSchema7 & {
+  $defs?: Record<string, JSONSchema7Definition>;
+};
+
 /**
  * Converts JSON Schema 7 to OpenAPI Schema 3.0
  */
@@ -32,6 +36,8 @@ export function convertJSONSchemaToOpenAPISchema(
   }
 
   const {
+    $ref,
+    $defs,
     type,
     description,
     required,
@@ -44,13 +50,23 @@ export function convertJSONSchemaToOpenAPISchema(
     const: constValue,
     minLength,
     enum: enumValues,
-  } = jsonSchema;
+  } = jsonSchema as JSONSchema7WithDefinitions;
 
   const result: Record<string, unknown> = {};
 
   if (description) result.description = description;
   if (required) result.required = required;
   if (format) result.format = format;
+  if ($ref != null) result.ref = convertJSONSchemaReference($ref);
+
+  if ($defs) {
+    result.defs = Object.fromEntries(
+      Object.entries($defs).map(([key, value]) => [
+        key,
+        convertJSONSchemaToOpenAPISchema(value, false),
+      ]),
+    );
+  }
 
   // Handle type
   if (type) {
@@ -146,6 +162,27 @@ export function convertJSONSchemaToOpenAPISchema(
   }
 
   return result;
+}
+
+function convertJSONSchemaReference(reference: string): string {
+  const rootDefinitionPrefix = '#/$defs/';
+  const definitionName = reference.startsWith(rootDefinitionPrefix)
+    ? reference.slice(rootDefinitionPrefix.length)
+    : undefined;
+
+  if (
+    definitionName == null ||
+    definitionName.length === 0 ||
+    definitionName.includes('/')
+  ) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `JSON Schema reference: ${reference}`,
+      message:
+        'Google only supports JSON Schema references to direct children of root-level $defs.',
+    });
+  }
+
+  return `#/defs/${definitionName}`;
 }
 
 type EnumValues = NonNullable<JSONSchema7['enum']>;
