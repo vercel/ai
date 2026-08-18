@@ -43,6 +43,30 @@ describe('MCP HTTP headers', () => {
     },
     {
       schema: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            region: { type: 'string', 'x-mcp-header': 'Region' },
+          },
+        },
+      },
+      error: 'not on a statically reachable property',
+    },
+    {
+      schema: {
+        type: 'object',
+        additionalProperties: {
+          type: 'object',
+          properties: {
+            region: { type: 'string', 'x-mcp-header': 'Region' },
+          },
+        },
+      },
+      error: 'not on a statically reachable property',
+    },
+    {
+      schema: {
         type: 'object',
         properties: {
           count: { type: 'number', 'x-mcp-header': 'Count' },

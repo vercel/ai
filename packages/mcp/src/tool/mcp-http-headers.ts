@@ -53,14 +53,14 @@ export function getMCPToolHeaderBindings(
   const visit = (
     value: unknown,
     path: string[],
-    annotationAllowed: boolean,
+    staticallyReachable: boolean,
   ): void => {
     if (error != null || !isRecord(value)) {
       return;
     }
 
     if ('x-mcp-header' in value) {
-      if (!annotationAllowed) {
+      if (!staticallyReachable || path.length === 0) {
         error = 'x-mcp-header is not on a statically reachable property';
         return;
       }
@@ -102,7 +102,7 @@ export function getMCPToolHeaderBindings(
 
       if (key === 'properties' && isRecord(child)) {
         for (const [propertyName, propertySchema] of Object.entries(child)) {
-          visit(propertySchema, [...path, propertyName], true);
+          visit(propertySchema, [...path, propertyName], staticallyReachable);
         }
       } else {
         visit(child, path, false);
@@ -110,7 +110,7 @@ export function getMCPToolHeaderBindings(
     }
   };
 
-  visit(inputSchema, [], false);
+  visit(inputSchema, [], true);
 
   return error == null
     ? { success: true, bindings }
