@@ -49,6 +49,13 @@ export function createAmazonBedrockEventStreamDecoder<T>(
           await processEvent({ messageType, eventType, data }, controller);
         }
       },
+      flush() {
+        if (buffer.length > 0) {
+          throw new Error(
+            `Incomplete Amazon Bedrock event-stream frame: ${buffer.length} buffered bytes remain at end of stream.`,
+          );
+        }
+      },
     }),
   );
 }
