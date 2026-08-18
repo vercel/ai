@@ -210,6 +210,32 @@ This hook is called before the SDK fetches authorization server metadata, so a
 rejected URL is not requested. It is optional and does not change existing OAuth
 flows unless you implement it.
 
+### OAuth Callback Issuer Validation
+
+When completing an OAuth authorization callback, pass the callback's `iss`
+parameter to `auth` as `callbackIssuer`:
+
+```typescript
+import { auth } from '@ai-sdk/mcp';
+
+const callbackUrl = new URL(request.url);
+
+await auth(myOAuthClientProvider, {
+  serverUrl: 'https://mcp.example.com',
+  authorizationCode: callbackUrl.searchParams.get('code')!,
+  callbackState: callbackUrl.searchParams.get('state') ?? undefined,
+  callbackIssuer: callbackUrl.searchParams.get('iss') ?? undefined,
+});
+```
+
+When `iss` is present, it must exactly match the discovered authorization
+server issuer. The authorization code is not exchanged when it does not match.
+
+Dynamic client registration requests include an OAuth `application_type`. The
+client infers `native` for loopback, localhost, and custom-scheme redirects,
+and `web` for remote HTTP(S) redirects. You can override this by setting
+`application_type` in the provider's `clientMetadata`.
+
 ### Retrying Transient Tool Failures
 
 MCP tool calls can fail for transient transport reasons, such as rate limits,
