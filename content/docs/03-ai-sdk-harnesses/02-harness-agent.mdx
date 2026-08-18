@@ -401,10 +401,7 @@ const sandboxFromSnapshot = await Sandbox.create({
 
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    sandbox: sandboxFromSnapshot,
-    bridgePorts: [4000],
-  }),
+  sandbox: createVercelSandbox({ sandbox: sandboxFromSnapshot }),
   sandboxConfig,
 });
 

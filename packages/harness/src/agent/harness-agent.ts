@@ -50,10 +50,6 @@ import {
 } from './harness-agent-tool-result-continuation';
 import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
 import {
-  acquireBridgePort,
-  releaseBridgePort,
-} from './internal/bridge-port-registry';
-import {
   createSandboxBootstrapPlan,
   ensureSandboxDirectory,
   resolveSessionWorkDir,
@@ -288,21 +284,13 @@ export class HarnessAgent<
     // Acquires the concrete sandbox session, either by starting fresh and then
     // creating a post-bootstrap snapshot, or by reusing a previously created
     // snapshot based on the bootstrap-based hashes.
-    const acquiredSandboxSession = await this._acquireSandbox({
+    const sandboxSession = await this._acquireSandbox({
       sandboxProvider,
       sessionId,
       isResume: isResumedSession,
       bootstrapPlan: sandboxBootstrapPlan,
       abortSignal,
     });
-
-    const leased = applyPortLease({
-      provider: sandboxProvider,
-      sandboxSession: acquiredSandboxSession,
-      sessionId,
-    });
-    const sandboxSession = leased.sandboxSession;
-    const leasedBridgePort = leased.port;
     const sessionWorkDir = resolveSessionWorkDir({
       defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
       harnessId: harness.harnessId,
@@ -342,10 +330,7 @@ export class HarnessAgent<
       }
     } catch (err) {
       await cleanupAfterStartFailure({
-        sandboxProvider,
         sandboxSession,
-        sessionId,
-        leasedBridgePort,
       });
       throw err;
     }
@@ -371,8 +356,6 @@ export class HarnessAgent<
         harness,
         underlyingSession,
         sandboxSession,
-        sandboxProvider,
-        leasedBridgePort,
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
@@ -390,10 +373,7 @@ export class HarnessAgent<
       });
     } catch (error) {
       await cleanupAfterStartFailure({
-        sandboxProvider,
         sandboxSession,
-        sessionId,
-        leasedBridgePort,
       });
       throw error;
     }
@@ -890,64 +870,8 @@ function resolveSandboxConfig(
   };
 }
 
-/*
- * Bridge-port leasing helper. Returns the port-narrowed network sandbox session
- * plus the leased port (or `undefined` when the provider has no port pool). Kept here
- * rather than on the session so the lease is established as part of session
- * start — the session only needs to release it on close/detach.
- */
-function applyPortLease(input: {
-  provider: HarnessV1SandboxProvider;
-  sandboxSession: HarnessV1NetworkSandboxSession;
-  sessionId: string;
-}): {
-  sandboxSession: HarnessV1NetworkSandboxSession;
-  port: number | undefined;
-} {
-  const pool = input.provider.bridgePorts;
-  if (pool == null || pool.length === 0) {
-    return { sandboxSession: input.sandboxSession, port: undefined };
-  }
-  const port = acquireBridgePort({
-    poolKey: input.provider,
-    pool,
-    sessionId: input.sessionId,
-  });
-  return {
-    sandboxSession: narrowNetworkSessionPorts(input.sandboxSession, port),
-    port,
-  };
-}
-
-/*
- * Derive a view of the network sandbox session that reports only the leased
- * port. Implemented as a prototype-delegating overlay so every other member
- * (file I/O, exec, spawn, lifecycle, `restricted`) forwards to the same live
- * instance — only `ports` is shadowed.
- */
-function narrowNetworkSessionPorts(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  leasedPort: number,
-): HarnessV1NetworkSandboxSession {
-  return Object.create(sandboxSession, {
-    ports: {
-      value: [leasedPort] as ReadonlyArray<number>,
-      enumerable: true,
-    },
-  }) as HarnessV1NetworkSandboxSession;
-}
-
 async function cleanupAfterStartFailure(input: {
-  sandboxProvider: HarnessV1SandboxProvider;
   sandboxSession: HarnessV1NetworkSandboxSession;
-  sessionId: string;
-  leasedBridgePort: number | undefined;
 }): Promise<void> {
   await Promise.resolve(input.sandboxSession.stop()).catch(() => {});
-  if (input.leasedBridgePort != null) {
-    releaseBridgePort({
-      poolKey: input.sandboxProvider,
-      sessionId: input.sessionId,
-    });
-  }
 }

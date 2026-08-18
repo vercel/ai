@@ -116,9 +116,9 @@ bootstrap recipes and `sandboxConfig.onBootstrap`, returns the computed
 preparation identity and per-harness recipe identities, and leaves snapshotting
 or stopping the sandbox to your code. Later, create a sandbox from that snapshot
 and pass the native sandbox object to `createVercelSandbox({ sandbox })` for the
-`HarnessAgent`. When you reuse a caller-provided sandbox with a bridge-backed
-harness, declare the available port pool, for example
-`createVercelSandbox({ sandbox, bridgePorts: [4000] })`.
+`HarnessAgent`. When several bridge-backed harnesses share a caller-provided
+sandbox, create that sandbox with one exposed port for each harness. Then pass
+each harness's assigned port to that harness's `create*` function.
 
 ### Available harnesses
 

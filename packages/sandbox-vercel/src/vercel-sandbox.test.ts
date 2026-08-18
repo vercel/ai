@@ -420,23 +420,6 @@ describe('createVercelSandbox (wrap existing)', () => {
       );
     });
   });
-
-  describe('bridgePorts', () => {
-    it('is exposed on the provider when set on settings', () => {
-      const { sandbox } = makeMockSandbox();
-      const provider = createVercelSandbox({
-        sandbox,
-        bridgePorts: [5001, 5002],
-      });
-      expect(provider.bridgePorts).toEqual([5001, 5002]);
-    });
-
-    it('is undefined when not set', () => {
-      const { sandbox } = makeMockSandbox();
-      const provider = createVercelSandbox({ sandbox });
-      expect(provider.bridgePorts).toBeUndefined();
-    });
-  });
 });
 
 describe('createVercelSandbox (create from scratch)', () => {
