@@ -71,7 +71,8 @@ export interface OpenResponsesExtension {
 
   /**
    * Encodes a registered AI SDK provider tool. Return `undefined` when the
-   * supplied arguments cannot be encoded. The adapter adds `toolType`.
+   * supplied arguments cannot be encoded. The adapter adds `toolType` and
+   * omits any specific tool choice that selected the omitted tool.
    */
   encodeTool(options: {
     name: string;
@@ -88,7 +89,9 @@ export interface OpenResponsesExtension {
   }): MaybePromiseLike<JSONObject | undefined>;
 
   /**
-   * Decodes a completed namespaced item into AI SDK content parts.
+   * Decodes a completed namespaced item into AI SDK content parts. The adapter
+   * prepends a durable custom replay part containing the original item and
+   * adds lightweight replay references to the returned parts.
    */
   decodeItem(options: {
     item: OpenResponsesExtensionItem;

@@ -523,6 +523,18 @@ describe('OpenResponsesLanguageModel', () => {
 
         expect(first.content).toEqual([
           {
+            type: 'custom',
+            kind: 'open-responses.extension-replay',
+            providerMetadata: {
+              lmstudio: {
+                openResponsesExtension: {
+                  id: 'acme.document_search',
+                  item: receipt,
+                },
+              },
+            },
+          },
+          {
             type: 'tool-call',
             toolCallId: 'call_1',
             toolName: 'documentSearch',
@@ -532,7 +544,7 @@ describe('OpenResponsesLanguageModel', () => {
               lmstudio: {
                 openResponsesExtension: {
                   id: 'acme.document_search',
-                  item: receipt,
+                  itemId: 'search_1',
                 },
               },
             },
@@ -548,7 +560,7 @@ describe('OpenResponsesLanguageModel', () => {
               lmstudio: {
                 openResponsesExtension: {
                   id: 'acme.document_search',
-                  item: receipt,
+                  itemId: 'search_1',
                 },
               },
             },
@@ -561,12 +573,17 @@ describe('OpenResponsesLanguageModel', () => {
               role: 'assistant',
               content: [
                 {
+                  type: 'custom',
+                  kind: 'open-responses.extension-replay',
+                  providerOptions: first.content[0].providerMetadata,
+                },
+                {
                   type: 'tool-call',
                   toolCallId: 'call_1',
                   toolName: 'documentSearch',
                   input: { text: 'climate' },
                   providerExecuted: true,
-                  providerOptions: first.content[0].providerMetadata,
+                  providerOptions: first.content[1].providerMetadata,
                 },
                 {
                   type: 'tool-result',
@@ -578,7 +595,7 @@ describe('OpenResponsesLanguageModel', () => {
                       documents: [{ id: 'doc_1', score: 0.9 }],
                     },
                   },
-                  providerOptions: first.content[1].providerMetadata,
+                  providerOptions: first.content[2].providerMetadata,
                 },
               ],
             },
@@ -587,6 +604,85 @@ describe('OpenResponsesLanguageModel', () => {
 
         expect((await server.calls[1].requestBodyJson).input).toEqual([
           receipt,
+        ]);
+      });
+
+      it('should replay a source-only extension item through response history', async () => {
+        const sourceItem = {
+          id: 'source_1',
+          type: 'acme:document_search_receipt',
+          status: 'completed',
+          url: 'https://example.com/documentation',
+          title: 'Extension documentation',
+          opaque_receipt: {
+            trace_id: 'trace_source_1',
+          },
+        };
+        prepareOutputResponse([sourceItem]);
+
+        const extension = createDocumentSearchExtension({
+          providerExecuted: true,
+        });
+        extension.decodeItem = ({ item }) => [
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: item.id,
+            url: item.url as string,
+            title: item.title as string,
+          },
+        ];
+
+        const model = createModel('gemma-7b-it', [extension]);
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toEqual([
+          {
+            type: 'custom',
+            kind: 'open-responses.extension-replay',
+            providerMetadata: {
+              lmstudio: {
+                openResponsesExtension: {
+                  id: 'acme.document_search',
+                  item: sourceItem,
+                },
+              },
+            },
+          },
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: 'source_1',
+            url: 'https://example.com/documentation',
+            title: 'Extension documentation',
+            providerMetadata: {
+              lmstudio: {
+                openResponsesExtension: {
+                  id: 'acme.document_search',
+                  itemId: 'source_1',
+                },
+              },
+            },
+          },
+        ]);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'custom',
+                  kind: 'open-responses.extension-replay',
+                  providerOptions: first.content[0].providerMetadata,
+                },
+              ],
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          sourceItem,
         ]);
       });
 
@@ -818,7 +914,7 @@ describe('OpenResponsesLanguageModel', () => {
         ]);
       });
 
-      it('should warn and omit a registered provider tool that cannot be encoded', async () => {
+      it('should warn and omit a registered provider tool and its selected choice when it cannot be encoded', async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
         const extension = createDocumentSearchExtension({
           providerExecuted: true,
@@ -836,16 +932,44 @@ describe('OpenResponsesLanguageModel', () => {
                 args: {},
               },
             ],
+            toolChoice: { type: 'tool', toolName: 'documentSearch' },
           },
         );
 
-        expect(
-          (await server.calls.at(-1)!.requestBodyJson).tools,
-        ).toBeUndefined();
+        const requestBody = await server.calls.at(-1)!.requestBodyJson;
+        expect(requestBody.tools).toBeUndefined();
+        expect(requestBody.tool_choice).toBeUndefined();
         expect(result.warnings).toEqual([
           {
             type: 'unsupported',
             feature: 'provider-defined tool acme.document_search',
+          },
+        ]);
+      });
+
+      it('should omit a selected unregistered provider tool choice', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'acme.unregistered',
+              name: 'unregistered',
+              args: {},
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'unregistered' },
+        });
+
+        const requestBody = await server.calls.at(-1)!.requestBodyJson;
+        expect(requestBody.tools).toBeUndefined();
+        expect(requestBody.tool_choice).toBeUndefined();
+        expect(result.warnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'provider-defined tool acme.unregistered',
           },
         ]);
       });
@@ -1481,6 +1605,18 @@ describe('OpenResponsesLanguageModel', () => {
         delta: '{"text":"streamed query"}',
       });
       expect(parts).toContainEqual({
+        type: 'custom',
+        kind: 'open-responses.extension-replay',
+        providerMetadata: {
+          lmstudio: {
+            openResponsesExtension: {
+              id: 'acme.document_search',
+              item: receipt,
+            },
+          },
+        },
+      });
+      expect(parts).toContainEqual({
         type: 'tool-call',
         toolCallId: 'call_stream_1',
         toolName: 'documentSearch',
@@ -1490,7 +1626,7 @@ describe('OpenResponsesLanguageModel', () => {
           lmstudio: {
             openResponsesExtension: {
               id: 'acme.document_search',
-              item: receipt,
+              itemId: 'search_stream_1',
             },
           },
         },
@@ -1504,7 +1640,7 @@ describe('OpenResponsesLanguageModel', () => {
           lmstudio: {
             openResponsesExtension: {
               id: 'acme.document_search',
-              item: receipt,
+              itemId: 'search_stream_1',
             },
           },
         },

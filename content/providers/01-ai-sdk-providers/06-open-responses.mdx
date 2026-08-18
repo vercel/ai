@@ -324,7 +324,8 @@ An extension codec can define:
 
 - `encodeTool` to encode the registered provider tool. Return `undefined` when
   its arguments cannot be encoded; the provider emits an `unsupported` warning
-  and omits that tool.
+  and omits that tool. A specific `toolChoice` selecting the omitted tool is
+  also omitted rather than being encoded as a function-tool choice.
 - `encodeToolChoice` to customize a specific `toolChoice` object. By default,
   the adapter sends `{ type: toolType }`.
 - `decodeItem` to map completed registered items to AI SDK tool, custom, file,
@@ -336,17 +337,21 @@ An extension codec can define:
   parts. Its `state` map is unique to the current response stream and can
   accumulate extension-specific deltas.
 
-For every decoded item, the provider stores the original JSON item in provider
-metadata. When you append `result.response.messages` to a later request, that
-item is replayed once, in its original position and with all opaque fields
-preserved. This enables lossless manual-history round trips for hosted-tool
-receipts.
+For every decoded item, the provider adds an
+`open-responses.extension-replay` custom part that stores the original JSON
+item in provider metadata. Decoded parts carry only a lightweight reference to
+that replay part, so the opaque item is not duplicated for every mapped part.
+When you append `result.response.messages` to a later request, the replay part
+survives even when the codec mapped the item only to response-only source
+parts. The item is then replayed once, in its original position and with all
+opaque fields preserved. This enables lossless manual-history round trips for
+hosted-tool receipts.
 
 Only the top-level extension discriminator fields are checked by the adapter.
 Treat all other item and event fields as untrusted endpoint data and validate
 them in the codec before returning AI SDK parts. Opaque item data is retained
-in provider metadata and can therefore reach persisted messages, telemetry,
-logs, or UI payloads.
+once per decoded item in replay-part provider metadata and can therefore reach
+persisted messages, telemetry, logs, or UI payloads.
 
 Registered codecs are callback-based and are not serializable across workflow
 step boundaries. Create the Open Responses provider with its extensions inside

@@ -9,26 +9,37 @@ import { run } from '../../lib/run';
 const documentSearchExtension: OpenResponsesExtension = {
   id: 'acme.document_search',
   toolType: 'acme:document_search',
-  itemTypes: ['acme:document_search_receipt'],
+  itemTypes: ['acme:document_search_source', 'acme:document_search_receipt'],
   providerExecuted: true,
   encodeTool: ({ name, args }) => ({
     name,
     index: args.index as string,
   }),
-  decodeItem: ({ item }) => [
-    {
-      type: 'tool-call',
-      toolCallId: item.call_id as string,
-      toolName: item.name as string,
-      input: JSON.stringify(item.query),
-    },
-    {
-      type: 'tool-result',
-      toolCallId: item.call_id as string,
-      toolName: item.name as string,
-      result: item.result!,
-    },
-  ],
+  decodeItem: ({ item }) =>
+    item.type === 'acme:document_search_source'
+      ? [
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: item.id,
+            url: item.url as string,
+            title: item.title as string,
+          },
+        ]
+      : [
+          {
+            type: 'tool-call',
+            toolCallId: item.call_id as string,
+            toolName: item.name as string,
+            input: JSON.stringify(item.query),
+          },
+          {
+            type: 'tool-result',
+            toolCallId: item.call_id as string,
+            toolName: item.name as string,
+            result: item.result!,
+          },
+        ],
 };
 
 const requestBodies: Array<Record<string, unknown>> = [];
@@ -49,6 +60,14 @@ const openResponses = createOpenResponses({
       model: 'acme-model',
       output: firstTurn
         ? [
+            {
+              type: 'acme:document_search_source',
+              id: 'source_1',
+              status: 'completed',
+              url: 'https://ai-sdk.dev/providers/ai-sdk-providers/open-responses',
+              title: 'Open Responses provider',
+              opaque_receipt: { trace_id: 'trace_source_1' },
+            },
             {
               type: 'acme:document_search_receipt',
               id: 'search_1',

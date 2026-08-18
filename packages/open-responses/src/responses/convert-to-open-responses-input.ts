@@ -137,18 +137,21 @@ export async function convertToOpenResponsesInput({
         };
 
         for (const part of content) {
-          const replayItem = getExtensionReplayItem({
+          const extensionReplay = getExtensionReplay({
             part,
             providerOptionsName,
             extensionRegistry,
           });
 
-          if (replayItem != null) {
+          if (extensionReplay != null) {
             flushAssistantContent();
-            const replayKey = `${replayItem.type}:${replayItem.id}`;
-            if (!replayedExtensionItems.has(replayKey)) {
-              input.push(replayItem);
-              replayedExtensionItems.add(replayKey);
+            const replayItem = extensionReplay.item;
+            if (replayItem != null) {
+              const replayKey = `${replayItem.type}:${replayItem.id}`;
+              if (!replayedExtensionItems.has(replayKey)) {
+                input.push(replayItem);
+                replayedExtensionItems.add(replayKey);
+              }
             }
             continue;
           }
@@ -298,17 +301,20 @@ export async function convertToOpenResponsesInput({
       case 'tool': {
         for (const part of content) {
           if (part.type === 'tool-result') {
-            const replayItem = getExtensionReplayItem({
+            const extensionReplay = getExtensionReplay({
               part,
               providerOptionsName,
               extensionRegistry,
             });
 
-            if (replayItem != null) {
-              const replayKey = `${replayItem.type}:${replayItem.id}`;
-              if (!replayedExtensionItems.has(replayKey)) {
-                input.push(replayItem);
-                replayedExtensionItems.add(replayKey);
+            if (extensionReplay != null) {
+              const replayItem = extensionReplay.item;
+              if (replayItem != null) {
+                const replayKey = `${replayItem.type}:${replayItem.id}`;
+                if (!replayedExtensionItems.has(replayKey)) {
+                  input.push(replayItem);
+                  replayedExtensionItems.add(replayKey);
+                }
               }
               continue;
             }
@@ -480,7 +486,7 @@ async function encodeExtensionInputPart({
   }
 }
 
-function getExtensionReplayItem({
+function getExtensionReplay({
   part,
   providerOptionsName,
   extensionRegistry,
@@ -490,7 +496,7 @@ function getExtensionReplayItem({
   };
   providerOptionsName: string;
   extensionRegistry: OpenResponsesExtensionRegistry | undefined;
-}): OpenResponsesExtensionItem | undefined {
+}): { item?: OpenResponsesExtensionItem } | undefined {
   const extensionData = getProviderData(
     part,
     providerOptionsName,
@@ -504,12 +510,13 @@ function getExtensionReplayItem({
     return undefined;
   }
 
-  const { id, item } = extensionData as {
+  const { id, item, itemId } = extensionData as {
     id?: unknown;
     item?: unknown;
+    itemId?: unknown;
   };
 
-  if (typeof id !== 'string' || !isOpenResponsesExtensionItem(item)) {
+  if (typeof id !== 'string') {
     return undefined;
   }
 
@@ -517,9 +524,18 @@ function getExtensionReplayItem({
     id as LanguageModelV4ProviderTool['id'],
   );
 
-  return extension != null && extension.itemTypes.includes(item.type)
-    ? item
-    : undefined;
+  if (extension == null) {
+    return undefined;
+  }
+
+  if (
+    isOpenResponsesExtensionItem(item) &&
+    extension.itemTypes.includes(item.type)
+  ) {
+    return { item };
+  }
+
+  return typeof itemId === 'string' ? {} : undefined;
 }
 
 function getProviderData(

@@ -213,10 +213,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       );
 
       if (registeredTool == null) {
-        convertedToolChoice = {
-          type: 'function',
-          name: toolChoice.toolName,
-        };
+        if (!providerToolsByName.has(toolChoice.toolName)) {
+          convertedToolChoice = {
+            type: 'function',
+            name: toolChoice.toolName,
+          };
+        }
       } else {
         const { extension, tool } = registeredTool;
         let fields: unknown = {};
@@ -870,17 +872,51 @@ async function decodeExtensionItem({
   }
 
   const decoded = await extension.decodeItem({ item, mode });
-  return decoded?.map(part =>
-    addExtensionItemMetadata({
+  if (decoded == null) {
+    return undefined;
+  }
+
+  return [
+    createExtensionReplayCarrier({
       extension,
       item,
-      part,
       providerOptionsName,
     }),
-  );
+    ...decoded.map(part =>
+      addExtensionItemReferenceMetadata({
+        extension,
+        item,
+        part,
+        providerOptionsName,
+      }),
+    ),
+  ];
 }
 
-function addExtensionItemMetadata({
+function createExtensionReplayCarrier({
+  extension,
+  item,
+  providerOptionsName,
+}: {
+  extension: OpenResponsesExtension;
+  item: OpenResponsesExtensionItem;
+  providerOptionsName: string;
+}): OpenResponsesExtensionContentPart {
+  return {
+    type: 'custom',
+    kind: 'open-responses.extension-replay',
+    providerMetadata: {
+      [providerOptionsName]: {
+        openResponsesExtension: {
+          id: extension.id,
+          item,
+        },
+      },
+    },
+  };
+}
+
+function addExtensionItemReferenceMetadata({
   extension,
   item,
   part,
@@ -908,7 +944,7 @@ function addExtensionItemMetadata({
         ...providerMetadata[providerOptionsName],
         openResponsesExtension: {
           id: extension.id,
-          item,
+          itemId: item.id,
         },
       },
     },
