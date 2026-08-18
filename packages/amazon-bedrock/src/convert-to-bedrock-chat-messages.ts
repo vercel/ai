@@ -1,6 +1,7 @@
 import {
   UnsupportedFunctionalityError,
   type JSONObject,
+  type JSONValue,
   type LanguageModelV3FilePart,
   type LanguageModelV3Message,
   type LanguageModelV3Prompt,
@@ -415,7 +416,7 @@ export async function convertToBedrockChatMessages(
                   toolUse: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
                     name: sanitizeToolName(part.toolName),
-                    input: part.input as JSONObject,
+                    input: toBedrockToolInput(part.input),
                   },
                 });
                 break;
@@ -440,6 +441,13 @@ export async function convertToBedrockChatMessages(
   }
 
   return { system, messages };
+}
+
+// wrap invalid tool call input because Bedrock requires it to be an object
+function toBedrockToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }
 
 function isBedrockImageFormat(format: string): format is BedrockImageFormat {
