@@ -146,16 +146,33 @@ describe('prepareSandboxForHarness', () => {
     expect(run).not.toHaveBeenCalled();
   });
 
-  it('rejects duplicate harness ids', async () => {
-    const first = makeHarness({ harnessId: 'alpha', recipe: makeRecipe('a') });
-    const second = makeHarness({ harnessId: 'alpha', recipe: makeRecipe('b') });
+  it('deduplicates harnesses by id and uses the last adapter', async () => {
+    const firstRecipe = makeRecipe('alpha');
+    const secondRecipe = {
+      ...makeRecipe('alpha'),
+      commands: [{ command: 'echo second' }],
+    };
+    const first = makeHarness({ harnessId: 'alpha', recipe: firstRecipe });
+    const second = makeHarness({ harnessId: 'alpha', recipe: secondRecipe });
+    const { session, run } = makeSession();
 
-    await expect(
-      prepareSandboxForHarness({
-        session: makeSession().session,
-        harnesses: [first, second],
-      }),
-    ).rejects.toThrow(/duplicate harness id/);
+    const result = await prepareSandboxForHarness({
+      session,
+      harnesses: [first, second],
+    });
+
+    expect(result).toEqual({
+      identity: expect.stringMatching(/^[0-9a-f]{16}$/),
+      recipeIdentities: {
+        alpha: await hashHarnessBootstrap(secondRecipe),
+      },
+      skippedHarnessIds: [],
+    });
+    expect(run.mock.calls.map(([args]) => args.command)).toEqual([
+      'pwd',
+      'mkdir -p "$BOOTSTRAP_DIR"',
+      'echo second',
+    ]);
   });
 
   it('validates caller bootstrap settings', async () => {

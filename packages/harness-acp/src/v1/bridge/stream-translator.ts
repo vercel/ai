@@ -78,7 +78,6 @@ export function createACPStreamTranslator({
     | undefined;
   let blockCounter = 0;
   let stepOpen = false;
-  let completedToolStepEligible = false;
   let finished = false;
   const blockIdCounts = new Map<string, number>();
   const toolStates = new Map<string, ToolState>();
@@ -154,15 +153,10 @@ export function createACPStreamTranslator({
       harnessMetadata: { acp: { inferredStep: true } },
     });
     stepOpen = false;
-    completedToolStepEligible = false;
   };
 
-  const flushCompletedToolStep = () => {
-    if (
-      !stepOpen ||
-      !completedToolStepEligible ||
-      pendingToolCallIds.size > 0
-    ) {
+  const finishCompletedToolStep = () => {
+    if (!stepOpen || pendingToolCallIds.size > 0) {
       return;
     }
     emitInferredStep({
@@ -252,7 +246,6 @@ export function createACPStreamTranslator({
       state.emittedCall = true;
       stepOpen = true;
       pendingToolCallIds.add(state.toolCallId);
-      completedToolStepEligible = false;
     }
 
     emitFileChanges({ state, emit });
@@ -270,7 +263,7 @@ export function createACPStreamTranslator({
       });
       state.emittedResult = true;
       pendingToolCallIds.delete(state.toolCallId);
-      completedToolStepEligible = pendingToolCallIds.size === 0;
+      finishCompletedToolStep();
     }
   };
 
@@ -293,7 +286,6 @@ export function createACPStreamTranslator({
     });
     stepOpen = true;
     pendingToolCallIds.add(toolCallId);
-    completedToolStepEligible = false;
   };
 
   const hostToolResult = ({
@@ -316,7 +308,7 @@ export function createACPStreamTranslator({
       ...(isError ? { isError: true } : {}),
     });
     pendingToolCallIds.delete(toolCallId);
-    completedToolStepEligible = pendingToolCallIds.size === 0;
+    finishCompletedToolStep();
   };
 
   return {
@@ -338,7 +330,6 @@ export function createACPStreamTranslator({
         update.content?.type === 'text' &&
         typeof update.content.text === 'string'
       ) {
-        flushCompletedToolStep();
         emitContent({
           type: 'text',
           text: update.content.text,
@@ -351,7 +342,6 @@ export function createACPStreamTranslator({
         update.content?.type === 'text' &&
         typeof update.content.text === 'string'
       ) {
-        flushCompletedToolStep();
         emitContent({
           type: 'reasoning',
           text: update.content.text,

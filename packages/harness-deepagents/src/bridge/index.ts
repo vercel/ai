@@ -15,7 +15,7 @@ import {
   type ClientConfig,
 } from '@langchain/mcp-adapters';
 import { createDeepAgent } from 'deepagents';
-import { createMiddleware } from 'langchain';
+import { createMiddleware, toolStrategy } from 'langchain';
 import type { StartMessage } from '../deepagents-bridge-protocol';
 import { buildInterruptOn, collectActionRequests } from './approvals';
 import {
@@ -131,6 +131,30 @@ let agent: ReturnType<typeof createDeepAgent> | undefined;
 let currentTurn: BridgeTurn | undefined;
 let mcpClient: MultiServerMCPClient | undefined;
 let mcpToolNames = new Set<string>();
+let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
+
+type DeepAgentsJsonSchema = Record<string, unknown> & {
+  type:
+    | 'null'
+    | 'boolean'
+    | 'object'
+    | 'array'
+    | 'number'
+    | 'string'
+    | 'integer';
+};
+
+const responseFormatMiddleware = createMiddleware({
+  name: 'HarnessResponseFormat',
+  wrapModelCall(request, handler) {
+    return handler({
+      ...request,
+      ...(currentResponseFormat == null
+        ? {}
+        : { responseFormat: currentResponseFormat }),
+    });
+  },
+});
 
 // Host tools become LangChain tools that emit a `tool-call` and block on the host's `tool-result`.
 function buildHostTools(toolSchemas: StartMessage['tools']) {
@@ -161,6 +185,10 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   currentTurn = turn;
+  currentResponseFormat =
+    start.responseFormat?.type === 'json' && start.responseFormat.schema != null
+      ? toolStrategy(start.responseFormat.schema as DeepAgentsJsonSchema)
+      : undefined;
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
@@ -191,6 +219,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     );
     const middleware = [
+      responseFormatMiddleware,
       ...(reasoningMiddleware ? [reasoningMiddleware] : []),
       ...(builtinToolFilteringMiddleware
         ? [builtinToolFilteringMiddleware]
@@ -230,6 +259,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     configuredModel: start.model,
     hostToolNames,
     mcpToolNames,
+    structuredOutputToolNames: new Set(
+      currentResponseFormat?.map(format => format.name) ?? [],
+    ),
     emit,
   });
 
@@ -259,12 +291,33 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let resumeInput: unknown = {
     messages: [{ role: 'user', content: start.prompt }],
   };
+  let emittedStructuredOutput = false;
 
   while (true) {
     const stream = await agent.streamEvents(resumeInput as never, config);
 
     for await (const event of stream) {
       emitStreamEvent(event as DeepAgentsStreamEvent);
+      const streamEvent = event as DeepAgentsStreamEvent;
+      const namespace = streamEvent.metadata?.langgraph_checkpoint_ns ?? '';
+      const output = (streamEvent.data as { output?: unknown } | undefined)
+        ?.output as { structuredResponse?: unknown } | undefined;
+      if (
+        !emittedStructuredOutput &&
+        streamEvent.event === 'on_chain_end' &&
+        !namespace.includes('|') &&
+        output?.structuredResponse !== undefined
+      ) {
+        const id = `structured-output-${randomUUID()}`;
+        emit({ type: 'text-start', id });
+        emit({
+          type: 'text-delta',
+          id,
+          delta: JSON.stringify(output.structuredResponse),
+        });
+        emit({ type: 'text-end', id });
+        emittedStructuredOutput = true;
+      }
     }
 
     const actionRequests = await readPendingApprovals();

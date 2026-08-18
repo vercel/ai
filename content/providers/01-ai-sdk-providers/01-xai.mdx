@@ -746,6 +746,45 @@ const result = await generateSpeech({
 
   Whether to normalize written-form input text before synthesizing speech.
 
+- **withTimestamps** _boolean_
+
+  Return character-level timing metadata alongside the audio. The timing data
+  and total duration are exposed via `providerMetadata.xai` (see below).
+
+- **replace** _Record&lt;string, string&gt;_
+
+  Map of phrases to spoken substitutions applied before synthesis. Values may
+  be respellings (`{ 'Acme Mobile': 'Acme Mobull' }`) or IPA phonetics
+  (`{ nginx: '/ˈɛndʒɪn ˈɛks/' }`).
+
+### Provider Metadata
+
+xAI speech results include provider-specific metadata under
+`providerMetadata.xai`:
+
+- **traceId** _string_ — the xAI trace ID for the request, useful for
+  debugging with xAI support.
+- **duration** _number_ — total audio duration in seconds (only with
+  `withTimestamps`).
+- **contentType** _string_ — MIME type of the decoded audio, e.g.
+  `'audio/mpeg'` (only with `withTimestamps`).
+- **audioTimestamps** `{ graphChars: string[]; graphTimes: [number, number][] }` —
+  per-character alignment data (only with `withTimestamps`). `graphChars[i]`
+  is the character spoken during the `[start, end]` interval
+  `graphTimes[i]`, in seconds.
+
+```ts
+const result = await generateSpeech({
+  model: xai.speech(),
+  text: 'Hello world.',
+  providerOptions: {
+    xai: { withTimestamps: true } satisfies XaiSpeechModelOptions,
+  },
+});
+
+const { traceId, duration, audioTimestamps } = result.providerMetadata.xai;
+```
+
 ### Model Capabilities
 
 | Model     | Language  | Speed     | Output Formats             |
