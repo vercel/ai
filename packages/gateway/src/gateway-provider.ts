@@ -31,7 +31,7 @@ import {
   type GatewayGenerationInfoParams,
   type GatewayGenerationInfo,
 } from './gateway-generation-info';
-import { GatewayLanguageModel } from './gateway-language-model';
+import { GatewayBatchLanguageModel } from './gateway-language-model-batch';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
@@ -417,7 +417,7 @@ export function createGateway(
   };
 
   const createLanguageModel = (modelId: GatewayModelId) => {
-    return new GatewayLanguageModel(modelId, {
+    return new GatewayBatchLanguageModel(modelId, {
       provider: 'gateway',
       baseURL,
       headers: getHeaders,
