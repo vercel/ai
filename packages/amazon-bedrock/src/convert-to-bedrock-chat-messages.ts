@@ -1,17 +1,11 @@
 import {
   UnsupportedFunctionalityError,
   type JSONObject,
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
+  type JSONValue,
   type LanguageModelV3FilePart,
   type LanguageModelV3Message,
   type LanguageModelV3Prompt,
   type SharedV3ProviderMetadata,
-=======
-  type JSONValue,
-  type LanguageModelV4Message,
-  type LanguageModelV4Prompt,
-  type SharedV4ProviderMetadata,
->>>>>>> cf06314e2d (fix(bedrock): wrap invalid tool input in object (#16561)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
@@ -421,13 +415,8 @@ export async function convertToBedrockChatMessages(
                 bedrockContent.push({
                   toolUse: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
                     name: sanitizeToolName(part.toolName),
-                    input: part.input as JSONObject,
-=======
-                    name: part.toolName,
                     input: toBedrockToolInput(part.input),
->>>>>>> cf06314e2d (fix(bedrock): wrap invalid tool input in object (#16561)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
                   },
                 });
                 break;
@@ -454,7 +443,13 @@ export async function convertToBedrockChatMessages(
   return { system, messages };
 }
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.ts
+// wrap invalid tool call input because Bedrock requires it to be an object
+function toBedrockToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
+}
+
 function isBedrockImageFormat(format: string): format is BedrockImageFormat {
   return Object.values(BEDROCK_IMAGE_MIME_TYPES).includes(
     format as BedrockImageFormat,
@@ -470,20 +465,6 @@ function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {
   }
 
   const format = BEDROCK_IMAGE_MIME_TYPES[mimeType as BedrockImageMimeType];
-=======
-// wrap invalid tool call input because Bedrock requires it to be an object
-function toBedrockToolInput(input: unknown): JSONObject {
-  return typeof input === 'object' && input !== null && !Array.isArray(input)
-    ? (input as JSONObject)
-    : { rawInvalidInput: input as JSONValue };
-}
-
-function getAmazonBedrockImageFormat(
-  mimeType: string,
-): AmazonBedrockImageFormat {
-  const format =
-    BEDROCK_IMAGE_MIME_TYPES[mimeType as AmazonBedrockImageMimeType];
->>>>>>> cf06314e2d (fix(bedrock): wrap invalid tool input in object (#16561)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.ts
   if (!format) {
     throw new UnsupportedFunctionalityError({
       functionality: `image mime type: ${mimeType}`,

@@ -1290,20 +1290,14 @@ describe('assistant messages', () => {
     });
   });
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
   it('should strip invalid characters from tool call names', async () => {
     const result = await convertToBedrockChatMessages([
-=======
-  it('should wrap non-object (invalid) tool call input in an object', async () => {
-    const result = await convertToAmazonBedrockChatMessages([
->>>>>>> cf06314e2d (fix(bedrock): wrap invalid tool input in object (#16561)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
       {
         role: 'assistant',
         content: [
           {
             type: 'tool-call',
             toolCallId: 'call-1',
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
             toolName: '$READFILE',
             input: {},
           },
@@ -1318,17 +1312,11 @@ describe('assistant messages', () => {
             toolCallId: 'call-3',
             toolName: '$',
             input: {},
-=======
-            toolName: 'cityAttractions',
-            // malformed JSON the model produced, kept as a raw string
-            input: '{ "city": "San Francisco", }',
->>>>>>> cf06314e2d (fix(bedrock): wrap invalid tool input in object (#16561)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
           },
         ],
       },
     ]);
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/convert-to-bedrock-chat-messages.test.ts
     expect(result.messages).toEqual([
       {
         role: 'assistant',
@@ -1357,7 +1345,24 @@ describe('assistant messages', () => {
         ],
       },
     ]);
-=======
+  });
+
+  it('should wrap non-object (invalid) tool call input in an object', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            // malformed JSON the model produced, kept as a raw string
+            input: '{ "city": "San Francisco", }',
+          },
+        ],
+      },
+    ]);
+
     expect(result).toEqual({
       messages: [
         {
@@ -1375,7 +1380,6 @@ describe('assistant messages', () => {
       ],
       system: [],
     });
->>>>>>> cf06314e2d (fix(bedrock): wrap invalid tool input in object (#16561)):packages/amazon-bedrock/src/convert-to-amazon-bedrock-chat-messages.test.ts
   });
 
   it('should preserve empty text blocks when reasoning blocks are present', async () => {
