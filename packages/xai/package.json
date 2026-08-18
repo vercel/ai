@@ -1,6 +1,7 @@
 {
   "name": "@ai-sdk/xai",
   "version": "4.0.40",
+  "deprecated": "Use @ai-sdk/spacexai instead.",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
