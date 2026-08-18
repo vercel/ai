@@ -53,16 +53,9 @@ export const aiUtils = {
       options: compilerOptions,
       host,
     });
-    const sourceFile = program.getSourceFile(fileName);
-    if (!sourceFile) {
-      throw new Error(`Source file not found: ${fileName}`);
-    }
-
-    const emitResult = program.emit(sourceFile);
+    const emitResult = program.emit();
     const diagnostics = [
-      ...program.getSyntacticDiagnostics(sourceFile),
-      ...program.getSemanticDiagnostics(sourceFile),
-      ...program.getDeclarationDiagnostics(sourceFile),
+      ...ts.getPreEmitDiagnostics(program),
       ...emitResult.diagnostics,
     ];
 
