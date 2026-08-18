@@ -5,7 +5,10 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMCPClient } from './mcp-client';
 import { HttpMCPTransport } from './mcp-http-transport';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import {
+  LATEST_LEGACY_PROTOCOL_VERSION,
+  LATEST_PROTOCOL_VERSION,
+} from './types';
 import { MCPClientError } from '../error/mcp-client-error';
 import { UnauthorizedError, type OAuthClientProvider } from './oauth';
 import type { OAuthTokens } from './oauth-types';
@@ -78,7 +81,7 @@ describe('HttpMCPTransport', () => {
 
     expect(server.calls[1].requestMethod).toBe('POST');
     expect(server.calls[1].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'application/json, text/event-stream',
       'content-type': 'application/json',
     });
@@ -930,7 +933,7 @@ describe('HttpMCPTransport', () => {
     await transport.send(message);
 
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -938,7 +941,7 @@ describe('HttpMCPTransport', () => {
 
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'application/json, text/event-stream',
       ...customHeaders,
     });
@@ -1317,7 +1320,7 @@ describe('HttpMCPTransport', () => {
   });
 
   describe('protocol version downgrade', () => {
-    it('should use LATEST_PROTOCOL_VERSION by default', async () => {
+    it('should use LATEST_LEGACY_PROTOCOL_VERSION by default', async () => {
       await transport.start();
 
       const message = {
@@ -1330,7 +1333,7 @@ describe('HttpMCPTransport', () => {
       await transport.send(message);
 
       expect(server.calls[1].requestHeaders['mcp-protocol-version']).toBe(
-        LATEST_PROTOCOL_VERSION,
+        LATEST_LEGACY_PROTOCOL_VERSION,
       );
     });
 

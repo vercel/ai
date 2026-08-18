@@ -19,7 +19,7 @@ import {
   type AuthResult,
   type OAuthClientProvider,
 } from './oauth';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import { LATEST_LEGACY_PROTOCOL_VERSION } from './types';
 
 function isMessageEvent(event: string | undefined): boolean {
   return event === undefined || event === 'message';
@@ -111,7 +111,8 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': this.protocolVersion ?? LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version':
+        this.protocolVersion ?? LATEST_LEGACY_PROTOCOL_VERSION,
     };
 
     if (includeSessionId && this.sessionId) {
