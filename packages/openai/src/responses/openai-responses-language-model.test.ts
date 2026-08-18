@@ -10191,6 +10191,95 @@ describe('OpenAIResponsesLanguageModel', () => {
       },
     ];
 
+    const issue18970Tools: Array<
+      LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+    > = [
+      {
+        type: 'provider',
+        id: 'openai.programmatic_tool_calling',
+        name: 'program',
+        args: {},
+      },
+      {
+        type: 'function',
+        name: 'getHours',
+        inputSchema: {
+          type: 'object',
+          properties: { member: { type: 'string' } },
+          required: ['member'],
+        },
+      },
+    ];
+
+    it('should map the recorded issue #18970 nested function call', async () => {
+      prepareJsonFixtureResponse('issue-18970-programmatic-approval.1');
+
+      const result = await createModel('gpt-5.6-terra').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: issue18970Tools,
+      });
+
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_YbiaUwdtG9jg12dor5Tw9gEY',
+            toolName: 'program',
+            providerExecuted: true,
+          }),
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_QVArMuTpSoYmTdG9RoDQJEdi',
+            toolName: 'getHours',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_0e49c6b8c9a16264016a84cd76243887d295644761ab09a39b',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_YbiaUwdtG9jg12dor5Tw9gEY',
+                },
+              },
+            },
+          }),
+        ]),
+      );
+    });
+
+    it('should stream the recorded issue #18970 nested function call', async () => {
+      prepareChunksFixtureResponse('issue-18970-programmatic-approval.1');
+
+      const { stream } = await createModel('gpt-5.6-terra').doStream({
+        prompt: TEST_PROMPT,
+        tools: issue18970Tools,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_6mAgBBQwycfi35K0D6DmLTrm',
+            toolName: 'program',
+            providerExecuted: true,
+          }),
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_8dgfKswBoIhLW7yM50f06CSf',
+            toolName: 'getHours',
+            providerMetadata: {
+              openai: {
+                itemId: 'fc_09c51821e4558baa016a84cd8bcd6881929f7110bfb0a4485d',
+                caller: {
+                  type: 'program',
+                  callerId: 'call_6mAgBBQwycfi35K0D6DmLTrm',
+                },
+              },
+            },
+          }),
+        ]),
+      );
+    });
+
     it('should map programmatic tool calling across generate steps from real fixtures', async () => {
       const content: LanguageModelV4Content[] = [];
 
