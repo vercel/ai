@@ -1,6 +1,6 @@
 # AI SDK - xAI Grok Provider
 
-The **[xAI Grok provider](https://ai-sdk.dev/providers/ai-sdk-providers/xai)** for the [AI SDK](https://ai-sdk.dev/docs)
+The **[xAI Grok provider](https://ai-sdk.dev/providers/ai-sdk-providers/spacexai)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for the xAI chat and completion APIs.
 
 This package re-exports [`@ai-sdk/spacexai`](https://www.npmjs.com/package/@ai-sdk/spacexai).
@@ -45,4 +45,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[xAI Grok provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/xai)** for more information.
+Please check out the **[xAI Grok provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/spacexai)** for more information.
