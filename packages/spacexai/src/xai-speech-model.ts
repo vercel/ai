@@ -4,7 +4,6 @@ import {
   convertBase64ToUint8Array,
   createBinaryResponseHandler,
   createJsonResponseHandler,
-  parseProviderOptions,
   postJsonToApi,
   resolve,
   serializeModelOptions,
@@ -16,6 +15,10 @@ import {
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import { xaiSpeechModelOptionsSchema } from './xai-speech-model-options';
+import {
+  parseSpaceXAIProviderOptions,
+  spacexaiProviderMetadata,
+} from './spacexai-provider-options';
 
 interface XaiSpeechModelConfig {
   provider: string;
@@ -65,8 +68,7 @@ export class XaiSpeechModel implements SpeechModelV4 {
     providerOptions,
   }: Parameters<SpeechModelV4['doGenerate']>[0]) {
     const warnings: SharedV4Warning[] = [];
-    const xaiOptions = await parseProviderOptions({
-      provider: 'xai',
+    const xaiOptions = await parseSpaceXAIProviderOptions({
       providerOptions,
       schema: xaiSpeechModelOptionsSchema,
     });
@@ -192,25 +194,21 @@ export class XaiSpeechModel implements SpeechModelV4 {
         headers: responseHeaders,
         body: rawValue,
       },
-      providerMetadata: {
-        xai: {
-          ...(traceId != null ? { traceId } : {}),
-          ...(envelope?.duration != null
-            ? { duration: envelope.duration }
-            : {}),
-          ...(envelope?.content_type != null
-            ? { contentType: envelope.content_type }
-            : {}),
-          ...(envelope?.audio_timestamps != null
-            ? {
-                audioTimestamps: {
-                  graphChars: envelope.audio_timestamps.graph_chars,
-                  graphTimes: envelope.audio_timestamps.graph_times,
-                },
-              }
-            : {}),
-        },
-      },
+      providerMetadata: spacexaiProviderMetadata({
+        ...(traceId != null ? { traceId } : {}),
+        ...(envelope?.duration != null ? { duration: envelope.duration } : {}),
+        ...(envelope?.content_type != null
+          ? { contentType: envelope.content_type }
+          : {}),
+        ...(envelope?.audio_timestamps != null
+          ? {
+              audioTimestamps: {
+                graphChars: envelope.audio_timestamps.graph_chars,
+                graphTimes: envelope.audio_timestamps.graph_times,
+              },
+            }
+          : {}),
+      }),
     };
   }
 }

@@ -15,7 +15,6 @@ import {
   createJsonResponseHandler,
   isCustomReasoning,
   mapReasoningToProviderEffort,
-  parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
@@ -25,6 +24,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
+import {
+  parseSpaceXAIProviderOptions,
+  spacexaiProviderMetadata,
+} from '../spacexai-provider-options';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
@@ -107,8 +110,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     const warnings: SharedV4Warning[] = [];
 
     const options =
-      (await parseProviderOptions({
-        provider: 'xai',
+      (await parseSpaceXAIProviderOptions({
         providerOptions,
         schema: xaiLanguageModelResponsesOptions,
       })) ?? {};
@@ -495,14 +497,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               type: 'reasoning',
               text: reasoningText,
               ...(hasMetadata && {
-                providerMetadata: {
-                  xai: {
-                    ...(part.encrypted_content && {
-                      reasoningEncryptedContent: part.encrypted_content,
-                    }),
-                    ...(part.id && { itemId: part.id }),
-                  },
-                },
+                providerMetadata: spacexaiProviderMetadata({
+                  ...(part.encrypted_content && {
+                    reasoningEncryptedContent: part.encrypted_content,
+                  }),
+                  ...(part.id && { itemId: part.id }),
+                }),
               }),
             });
           }
@@ -531,16 +531,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           },
       ...((response.usage?.cost_in_usd_ticks != null ||
         response.service_tier != null) && {
-        providerMetadata: {
-          xai: {
-            ...(response.usage?.cost_in_usd_ticks != null && {
-              costInUsdTicks: response.usage.cost_in_usd_ticks,
-            }),
-            ...(response.service_tier != null && {
-              serviceTier: response.service_tier,
-            }),
-          },
-        },
+        providerMetadata: spacexaiProviderMetadata({
+          ...(response.usage?.cost_in_usd_ticks != null && {
+            costInUsdTicks: response.usage.cost_in_usd_ticks,
+          }),
+          ...(response.service_tier != null && {
+            serviceTier: response.service_tier,
+          }),
+        }),
       }),
       request: { body },
       response: {
@@ -652,11 +650,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 controller.enqueue({
                   type: 'reasoning-start',
                   id: blockId,
-                  providerMetadata: {
-                    xai: {
-                      itemId: event.item_id,
-                    },
-                  },
+                  providerMetadata: spacexaiProviderMetadata({
+                    itemId: event.item_id,
+                  }),
                 });
               }
             }
@@ -668,11 +664,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 type: 'reasoning-delta',
                 id: blockId,
                 delta: event.delta,
-                providerMetadata: {
-                  xai: {
-                    itemId: event.item_id,
-                  },
-                },
+                providerMetadata: spacexaiProviderMetadata({
+                  itemId: event.item_id,
+                }),
               });
 
               return;
@@ -690,11 +684,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 controller.enqueue({
                   type: 'reasoning-start',
                   id: blockId,
-                  providerMetadata: {
-                    xai: {
-                      itemId: event.item_id,
-                    },
-                  },
+                  providerMetadata: spacexaiProviderMetadata({
+                    itemId: event.item_id,
+                  }),
                 });
               }
 
@@ -702,11 +694,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 type: 'reasoning-delta',
                 id: blockId,
                 delta: event.delta,
-                providerMetadata: {
-                  xai: {
-                    itemId: event.item_id,
-                  },
-                },
+                providerMetadata: spacexaiProviderMetadata({
+                  itemId: event.item_id,
+                }),
               });
 
               return;
@@ -909,25 +899,21 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     controller.enqueue({
                       type: 'reasoning-start',
                       id: blockId,
-                      providerMetadata: {
-                        xai: {
-                          ...(part.id && { itemId: part.id }),
-                        },
-                      },
+                      providerMetadata: spacexaiProviderMetadata({
+                        ...(part.id && { itemId: part.id }),
+                      }),
                     });
                   }
 
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: blockId,
-                    providerMetadata: {
-                      xai: {
-                        ...(part.encrypted_content && {
-                          reasoningEncryptedContent: part.encrypted_content,
-                        }),
-                        ...(part.id && { itemId: part.id }),
-                      },
-                    },
+                    providerMetadata: spacexaiProviderMetadata({
+                      ...(part.encrypted_content && {
+                        reasoningEncryptedContent: part.encrypted_content,
+                      }),
+                      ...(part.id && { itemId: part.id }),
+                    }),
                   });
                   delete activeReasoning[part.id];
                 }
@@ -1235,12 +1221,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
               ...((costInUsdTicks != null || serviceTier != null) && {
-                providerMetadata: {
-                  xai: {
-                    ...(costInUsdTicks != null && { costInUsdTicks }),
-                    ...(serviceTier != null && { serviceTier }),
-                  },
-                },
+                providerMetadata: spacexaiProviderMetadata({
+                  ...(costInUsdTicks != null && { costInUsdTicks }),
+                  ...(serviceTier != null && { serviceTier }),
+                }),
               }),
             });
           },

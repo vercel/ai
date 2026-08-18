@@ -125,6 +125,37 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
+  it('should convert image file parts with spacexai provider reference', async () => {
+    const { messages, warnings } = await convertToXaiChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: {
+              type: 'reference' as const,
+              reference: { spacexai: 'file-space123', openai: 'file-xyz789' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: { file_id: 'file-space123' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert non-image file parts with provider reference', async () => {
     const { messages, warnings } = await convertToXaiChatMessages([
       {
@@ -156,7 +187,7 @@ describe('convertToXaiChatMessages', () => {
     ]);
   });
 
-  it('should throw error when provider reference is missing xai key', async () => {
+  it('should throw error when provider reference is missing spacexai and xai keys', async () => {
     await expect(
       convertToXaiChatMessages([
         {
@@ -174,7 +205,7 @@ describe('convertToXaiChatMessages', () => {
         },
       ]),
     ).rejects.toThrow(
-      "No provider reference found for provider 'xai'. Available providers: openai",
+      "No provider reference found for provider 'spacexai'. Available providers: openai",
     );
   });
 

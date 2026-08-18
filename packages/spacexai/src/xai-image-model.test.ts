@@ -14,7 +14,7 @@ function createModel({
   currentDate?: () => Date;
 } = {}) {
   return new XaiImageModel('grok-imagine-image', {
-    provider: 'xai.image',
+    provider: 'spacexai.image',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
     _internal: {
@@ -47,7 +47,7 @@ describe('XaiImageModel', () => {
     it('should expose correct provider and model information', () => {
       const model = createModel();
 
-      expect(model.provider).toBe('xai.image');
+      expect(model.provider).toBe('spacexai.image');
       expect(model.modelId).toBe('grok-imagine-image');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(3);
@@ -346,6 +346,35 @@ describe('XaiImageModel', () => {
       });
     });
 
+    it('should pass providerOptions.spacexai', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          spacexai: {
+            output_format: 'jpeg',
+            sync_mode: true,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-image',
+        prompt,
+        n: 1,
+        response_format: 'b64_json',
+        output_format: 'jpeg',
+        sync_mode: true,
+      });
+    });
+
     it('should pass resolution provider option', async () => {
       const model = createModel();
 
@@ -449,6 +478,9 @@ describe('XaiImageModel', () => {
       });
 
       expect(result.providerMetadata).toStrictEqual({
+        spacexai: {
+          images: [{ revisedPrompt: 'A revised prompt' }],
+        },
         xai: {
           images: [{ revisedPrompt: 'A revised prompt' }],
         },

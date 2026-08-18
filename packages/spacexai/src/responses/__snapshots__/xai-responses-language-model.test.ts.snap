@@ -278,6 +278,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   {
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -288,6 +291,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "First",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -298,6 +304,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -308,6 +317,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " the",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -318,6 +330,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " question",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -328,6 +343,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " is",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -338,6 +356,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ":",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -348,6 +369,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " "",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -358,6 +382,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "What",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -368,6 +395,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " is",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -378,6 +408,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " specifically",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -388,6 +421,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " notable",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -398,6 +434,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " about",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -408,6 +447,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " the",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -418,6 +460,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " style",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -428,6 +473,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " of",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -438,6 +486,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " Son",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -448,6 +499,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "oran",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -458,6 +512,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " food",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -468,6 +525,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "?"",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -478,6 +538,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " This",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -488,6 +551,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " seems",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -498,6 +564,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " like",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -508,6 +577,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " an",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -518,6 +590,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " open",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -528,6 +603,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "-ended",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -538,6 +616,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " question",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -548,6 +629,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " about",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -558,6 +642,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " cuisine",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -568,6 +655,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ".",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -578,6 +668,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " It's",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -588,6 +681,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " not",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -598,6 +694,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " closed",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -608,6 +707,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "-ended",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -618,6 +720,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " science",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -628,6 +733,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "/math",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -638,6 +746,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "/search",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -648,6 +759,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -658,6 +772,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " so",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -668,6 +785,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " I",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -678,6 +798,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " should",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -688,6 +811,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " make",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -698,6 +824,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " it",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -708,6 +837,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " maximally",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -718,6 +850,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " informative",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -728,6 +863,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -738,6 +876,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " structured",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -748,6 +889,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -758,6 +902,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " and",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -768,6 +915,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " easy",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -778,6 +928,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " to",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -788,6 +941,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " parse",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -798,6 +954,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ".",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -808,6 +967,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " Use",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -818,6 +980,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " sections",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -828,6 +993,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " if",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -838,6 +1006,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " appropriate",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -849,6 +1020,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 ",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -862,6 +1036,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 - The question focuses on what makes Sonoran food's style notable, suggesting an exploration of its unique characteristics.",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -873,6 +1050,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 - This is an open-ended question about cuisine, requiring a structured, informative response to highlight key aspects.",
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -882,6 +1062,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   {
     "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
@@ -4094,6 +4277,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   {
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4104,6 +4290,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "First",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4114,6 +4303,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4124,6 +4316,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " the",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4134,6 +4329,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " question",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4144,6 +4342,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " is",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4154,6 +4355,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ":",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4164,6 +4368,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " "",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4174,6 +4381,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "What",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4184,6 +4394,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " is",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4194,6 +4407,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " specifically",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4204,6 +4420,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " notable",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4214,6 +4433,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " about",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4224,6 +4446,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " the",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4234,6 +4459,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " style",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4244,6 +4472,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " of",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4254,6 +4485,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " Son",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4264,6 +4498,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "oran",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4274,6 +4511,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " food",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4284,6 +4524,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "?"",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4294,6 +4537,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " This",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4304,6 +4550,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " is",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4314,6 +4563,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " an",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4324,6 +4576,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " open",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4334,6 +4589,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "-ended",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4344,6 +4602,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " question",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4354,6 +4615,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " about",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4364,6 +4628,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " food",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4374,6 +4641,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " culture",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4384,6 +4654,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4394,6 +4667,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " specifically",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4404,6 +4680,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " Son",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4414,6 +4693,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "oran",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4424,6 +4706,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " cuisine",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4434,6 +4719,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ".",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4444,6 +4732,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " It's",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4454,6 +4745,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " not",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4464,6 +4758,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " closed",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4474,6 +4771,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "-ended",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4484,6 +4784,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " math",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4494,6 +4797,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "/science",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4504,6 +4810,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4514,6 +4823,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " so",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4524,6 +4836,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " I",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4534,6 +4849,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " need",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4544,6 +4862,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " to",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4554,6 +4875,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " be",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4564,6 +4888,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " maximally",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4574,6 +4901,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " informative",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4584,6 +4914,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4594,6 +4927,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " structure",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4604,6 +4940,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " it",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4614,6 +4953,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " easily",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4624,6 +4966,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " pars",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4634,6 +4979,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "able",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4644,6 +4992,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4654,6 +5005,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " perhaps",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4664,6 +5018,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " with",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4674,6 +5031,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " sections",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4684,6 +5044,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " if",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4694,6 +5057,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " needed",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4705,6 +5071,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 ",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4718,6 +5087,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 - The question focuses on what makes Sonoran food style notable, indicating an open-ended exploration of its cultural and culinary significance.",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4729,6 +5101,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 - Sonoran cuisine is part of food culture, suggesting a need for a structured, informative response to highlight its unique traits.",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4740,6 +5115,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 - The task isn't math or science, so the approach will prioritize breadth and accessibility, possibly using sections for clarity.",
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
       },
@@ -4749,6 +5127,10 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   {
     "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+        "reasoningEncryptedContent": "WjtnRFdCMihgUoZ7mSMscKCe3dmgPFa5M5kX7HQJj34tLsndn347jFS2T+DK3E4DLLPTW1w51ttWSKNi2Rn/7pJ6foFMHeAbX5Q7+5CaeXto/8EOgaUC1Hn/PLLXOzw6za/AjoSEmPkr0m1KIo90k0mggP0UFLVKAXD2Z4+3rO1MVap2oVjPqVa6KctTSHtTScev9QhDPGGGbuo+YJa87ECGA1/UgKqzoA02/smPm7Ooh4wgR+XZvp1N0jENAwb2CmTNCv+GjxQrlIQ02zL4WHEwLE2HeKJXDKJUEIrTAT2hu0LFsWpAI+DbIIDekViyoQsbwVaGgBfY867CohK+NWpkOtagGIoNcmJBvR1mlqrKoHURBngvjrFW46Ng0bYH1uH8yEhQ7ao9vAve8jfpXa9qhsraY+DXuzjiCRojxpqcLkx7/tMMwGemucyQlmiIyVtIffA401dkp6JiJ//5ow00zNIXYSmT9R8eb530Qaz5dIrsr7tdzhkBOT+bvfTlD/dp8lYUcTuiz5F+L+TatdD2AIRkGC5hnQJanhDF7SQa7yVS8zyT+712VskotdJ6h9sXGMvQwZI95dB1EpUegUszK40NkH/l/srbyO7Itqt4Vbl/r7saky2zq40BVLRfiH6aON/1J1EBFl8t734VhW0ToKrSMOBcSS3/XnztO9r4VZKWl8ezcDI4qb5rIFgR+rZKjVOKH8A+/MAzAUlvdhe8n1FX+Ux1DSvh7E+RRHbt8181DI/98fqzkJ4p2V10HiOiI0QpMkB8Ow5oHfI4AfR8GIQanSLGKJ1B6sR7iGO4j/3ak88jx13glVnRoaAvHytCtGN22ZGx4zKqfnzCPDN7Qp/Zs9DNfHG8i9Ybom7AEsuZcthgwYcnM/OYFi7ecNXlEbnUDET2KxyELqMIUQcPIX6YiLayL6GizvhH/iNXZ8iW0ovzwL6td+qq3pUfdIf2sN/+RTeCvyw7F552pkd92kgl3fpBnekknL/9G0LFEG2odqe8dep3sk6TMUZBLdRKgHb/As0Yl6adefHuLspQQ0cquSgBK0vpxKCVA356axHyYiEtHtK6Zs7411xvwIUiyk7C5+bV7LxZuPQJcy8Dnwees5wK5NgHC/O0jZ010yROx0+6mUogY7tH6DGJ1dz1/LkYAwvcUmkSjGCchqfr1dTFr3VFXKRRxtqI5ngyegEu42xKY/lUoS1coTnu2QTB3a+g4gBlTHNdA+3YW1pm813vnvhuZC2WX/zCluAgUJNoeRS86iKHb/3R2zDi625ODgd7KnSx81ZIg34y3nTjSSAvR0CGhOq99KEP3+e4ckRsbQ6TbxY6XBEEYMOWw0u4/vNaqNlMID6bstszrKgFzk2DPAdMyYh4uiitzWjGefHdbwciVjNXj+PKPQOzvVSHG7zARXv3bJ31jWHO1E2btxjdUutFU8sn5bDFt8qOU9oT8YjkCIel7gDBf4A3U58/DbsWkRGLg1A2CCyzn2oBzG4ogCVnN5q39NUbhf6MTbbMXR1feWK48tajCjEACtbVynBi7ARXvx2Hiurs9zbRMY92zJP9QphFrWQKaRDaNLEhqvKMEeraMOADSWhPWkRkwvO59NcKfjDzb3d2sW1AJOmrjqnyvLmoQI9qVSuFCkwkjnB0T0AU51Hw28c2g5dlVmE9BTEVbG1zrJ0234pag7Iv65RbcrOtfEgrtfQ5uLuP0aSa0/yrz+mjndXaAUM",
+      },
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
         "reasoningEncryptedContent": "WjtnRFdCMihgUoZ7mSMscKCe3dmgPFa5M5kX7HQJj34tLsndn347jFS2T+DK3E4DLLPTW1w51ttWSKNi2Rn/7pJ6foFMHeAbX5Q7+5CaeXto/8EOgaUC1Hn/PLLXOzw6za/AjoSEmPkr0m1KIo90k0mggP0UFLVKAXD2Z4+3rO1MVap2oVjPqVa6KctTSHtTScev9QhDPGGGbuo+YJa87ECGA1/UgKqzoA02/smPm7Ooh4wgR+XZvp1N0jENAwb2CmTNCv+GjxQrlIQ02zL4WHEwLE2HeKJXDKJUEIrTAT2hu0LFsWpAI+DbIIDekViyoQsbwVaGgBfY867CohK+NWpkOtagGIoNcmJBvR1mlqrKoHURBngvjrFW46Ng0bYH1uH8yEhQ7ao9vAve8jfpXa9qhsraY+DXuzjiCRojxpqcLkx7/tMMwGemucyQlmiIyVtIffA401dkp6JiJ//5ow00zNIXYSmT9R8eb530Qaz5dIrsr7tdzhkBOT+bvfTlD/dp8lYUcTuiz5F+L+TatdD2AIRkGC5hnQJanhDF7SQa7yVS8zyT+712VskotdJ6h9sXGMvQwZI95dB1EpUegUszK40NkH/l/srbyO7Itqt4Vbl/r7saky2zq40BVLRfiH6aON/1J1EBFl8t734VhW0ToKrSMOBcSS3/XnztO9r4VZKWl8ezcDI4qb5rIFgR+rZKjVOKH8A+/MAzAUlvdhe8n1FX+Ux1DSvh7E+RRHbt8181DI/98fqzkJ4p2V10HiOiI0QpMkB8Ow5oHfI4AfR8GIQanSLGKJ1B6sR7iGO4j/3ak88jx13glVnRoaAvHytCtGN22ZGx4zKqfnzCPDN7Qp/Zs9DNfHG8i9Ybom7AEsuZcthgwYcnM/OYFi7ecNXlEbnUDET2KxyELqMIUQcPIX6YiLayL6GizvhH/iNXZ8iW0ovzwL6td+qq3pUfdIf2sN/+RTeCvyw7F552pkd92kgl3fpBnekknL/9G0LFEG2odqe8dep3sk6TMUZBLdRKgHb/As0Yl6adefHuLspQQ0cquSgBK0vpxKCVA356axHyYiEtHtK6Zs7411xvwIUiyk7C5+bV7LxZuPQJcy8Dnwees5wK5NgHC/O0jZ010yROx0+6mUogY7tH6DGJ1dz1/LkYAwvcUmkSjGCchqfr1dTFr3VFXKRRxtqI5ngyegEu42xKY/lUoS1coTnu2QTB3a+g4gBlTHNdA+3YW1pm813vnvhuZC2WX/zCluAgUJNoeRS86iKHb/3R2zDi625ODgd7KnSx81ZIg34y3nTjSSAvR0CGhOq99KEP3+e4ckRsbQ6TbxY6XBEEYMOWw0u4/vNaqNlMID6bstszrKgFzk2DPAdMyYh4uiitzWjGefHdbwciVjNXj+PKPQOzvVSHG7zARXv3bJ31jWHO1E2btxjdUutFU8sn5bDFt8qOU9oT8YjkCIel7gDBf4A3U58/DbsWkRGLg1A2CCyzn2oBzG4ogCVnN5q39NUbhf6MTbbMXR1feWK48tajCjEACtbVynBi7ARXvx2Hiurs9zbRMY92zJP9QphFrWQKaRDaNLEhqvKMEeraMOADSWhPWkRkwvO59NcKfjDzb3d2sW1AJOmrjqnyvLmoQI9qVSuFCkwkjnB0T0AU51Hw28c2g5dlVmE9BTEVbG1zrJ0234pag7Iv65RbcrOtfEgrtfQ5uLuP0aSa0/yrz+mjndXaAUM",
@@ -7723,6 +8105,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   {
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7733,6 +8118,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "First",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7743,6 +8131,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7753,6 +8144,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " the",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7763,6 +8157,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " question",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7773,6 +8170,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " is",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7783,6 +8183,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ":",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7793,6 +8196,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " "",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7803,6 +8209,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "What",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7813,6 +8222,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " is",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7823,6 +8235,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " specifically",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7833,6 +8248,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " notable",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7843,6 +8261,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " about",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7853,6 +8274,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " the",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7863,6 +8287,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " style",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7873,6 +8300,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " of",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7883,6 +8313,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " Son",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7893,6 +8326,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "oran",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7903,6 +8339,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " food",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7913,6 +8352,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "?"",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7923,6 +8365,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " This",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7933,6 +8378,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " seems",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7943,6 +8391,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " like",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7953,6 +8404,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " an",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7963,6 +8417,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " open",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7973,6 +8430,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "-ended",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7983,6 +8443,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " question",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -7993,6 +8456,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " about",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8003,6 +8469,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " cuisine",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8013,6 +8482,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8023,6 +8495,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " not",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8033,6 +8508,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " closed",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8043,6 +8521,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "-ended",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8053,6 +8534,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " science",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8063,6 +8547,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "/math",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8073,6 +8560,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "/search",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8083,6 +8573,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ".",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8093,6 +8586,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " So",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8103,6 +8599,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8113,6 +8612,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " I",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8123,6 +8625,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " need",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8133,6 +8638,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " to",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8143,6 +8651,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " make",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8153,6 +8664,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " my",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8163,6 +8677,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " response",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8173,6 +8690,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " maximally",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8183,6 +8703,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " informative",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8193,6 +8716,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8203,6 +8729,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " structured",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8213,6 +8742,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8223,6 +8755,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " and",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8233,6 +8768,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " easily",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8243,6 +8781,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " pars",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8253,6 +8794,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": "able",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8263,6 +8807,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ".",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8273,6 +8820,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " Use",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8283,6 +8833,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " sections",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8293,6 +8846,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " if",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8303,6 +8859,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " appropriate",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8313,6 +8872,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": ",",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8323,6 +8885,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " with",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8333,6 +8898,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " descriptive",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8343,6 +8911,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "delta": " headers",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8354,6 +8925,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 ",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8368,6 +8942,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 - This is an open-ended question about cuisine, requiring a structured, informative response.",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8381,6 +8958,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 - The response should focus on key characteristics of Sonoran food, ensuring it’s easy to read and parse.",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8392,6 +8972,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
 - Consider using sections with clear headers to organize notable features systematically.",
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },
@@ -8401,6 +8984,9 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   {
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "providerMetadata": {
+      "spacexai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
       },

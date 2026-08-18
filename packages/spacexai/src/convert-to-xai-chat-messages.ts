@@ -6,12 +6,14 @@ import {
 import {
   convertToBase64,
   getTopLevelMediaType,
-  parseProviderOptions,
   resolveFullMediaType,
-  resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import type { XaiChatPrompt, XaiUserMessageContent } from './xai-chat-prompt';
 import { xaiFilePartProviderOptions } from './xai-file-part-options';
+import {
+  parseSpaceXAIProviderOptions,
+  resolveSpaceXAIProviderReference,
+} from './spacexai-provider-options';
 
 export async function convertToXaiChatMessages(
   prompt: LanguageModelV4Prompt,
@@ -49,10 +51,9 @@ export async function convertToXaiChatMessages(
                   userContent.push({
                     type: 'file',
                     file: {
-                      file_id: resolveProviderReference({
-                        reference: part.data.reference,
-                        provider: 'xai',
-                      }),
+                      file_id: resolveSpaceXAIProviderReference(
+                        part.data.reference,
+                      ),
                     },
                   });
                   break;
@@ -65,8 +66,7 @@ export async function convertToXaiChatMessages(
                 case 'url':
                 case 'data': {
                   if (getTopLevelMediaType(part.mediaType) === 'image') {
-                    const filePartOptions = await parseProviderOptions({
-                      provider: 'xai',
+                    const filePartOptions = await parseSpaceXAIProviderOptions({
                       providerOptions: part.providerOptions,
                       schema: xaiFilePartProviderOptions,
                     });

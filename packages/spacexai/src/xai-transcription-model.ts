@@ -10,7 +10,6 @@ import {
   createJsonResponseHandler,
   connectToWebSocket,
   mediaTypeToExtension,
-  parseProviderOptions,
   postFormDataToApi,
   safeParseJSON,
   serializeModelOptions,
@@ -29,6 +28,7 @@ import {
   xaiTranscriptionModelOptionsSchema,
   type XaiTranscriptionModelOptions,
 } from './xai-transcription-model-options';
+import { parseSpaceXAIProviderOptions } from './spacexai-provider-options';
 
 interface XaiTranscriptionModelConfig {
   provider: string;
@@ -85,8 +85,7 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
     providerOptions,
   }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
     const warnings: SharedV4Warning[] = [];
-    const xaiOptions = await parseProviderOptions({
-      provider: 'xai',
+    const xaiOptions = await parseSpaceXAIProviderOptions({
       providerOptions,
       schema: xaiTranscriptionModelOptionsSchema,
     });
@@ -184,8 +183,7 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
   > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
-    const xaiOptions = await parseProviderOptions({
-      provider: 'xai',
+    const xaiOptions = await parseSpaceXAIProviderOptions({
       providerOptions: options.providerOptions,
       schema: xaiTranscriptionModelOptionsSchema,
     });

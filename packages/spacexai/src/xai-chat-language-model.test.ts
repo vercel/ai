@@ -15,7 +15,7 @@ vi.mock('./version', () => ({
 }));
 
 const testConfig = {
-  provider: 'xai.chat',
+  provider: 'spacexai.chat',
   baseURL: 'https://api.x.ai/v1',
   headers: () => ({ authorization: 'Bearer test-api-key' }),
   generateId: () => 'test-id',
@@ -61,7 +61,7 @@ function prepareChunksFixtureResponse(
 describe('XaiChatLanguageModel', () => {
   it('should be instantiated correctly', () => {
     expect(model.modelId).toBe('grok-3');
-    expect(model.provider).toBe('xai.chat');
+    expect(model.provider).toBe('spacexai.chat');
     expect(model.specificationVersion).toBe('v4');
   });
 
@@ -318,6 +318,45 @@ describe('XaiChatLanguageModel', () => {
       });
     });
 
+    it('should pass serviceTier from providerOptions.spacexai', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          spacexai: {
+            serviceTier: 'priority',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-3',
+        service_tier: 'priority',
+      });
+    });
+
+    it('should prefer providerOptions.spacexai over providerOptions.xai', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            serviceTier: 'default',
+          },
+          spacexai: {
+            serviceTier: 'priority',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-3',
+        service_tier: 'priority',
+      });
+    });
+
     it('should expose the applied service tier as provider metadata', async () => {
       server.urls['https://api.x.ai/v1/chat/completions'].response = {
         type: 'json-value',
@@ -344,6 +383,7 @@ describe('XaiChatLanguageModel', () => {
       });
 
       expect(providerMetadata).toStrictEqual({
+        spacexai: { serviceTier: 'priority' },
         xai: { serviceTier: 'priority' },
       });
     });
@@ -374,6 +414,7 @@ describe('XaiChatLanguageModel', () => {
       });
 
       expect(providerMetadata).toStrictEqual({
+        spacexai: { serviceTier: 'default' },
         xai: { serviceTier: 'default' },
       });
     });
@@ -392,7 +433,7 @@ describe('XaiChatLanguageModel', () => {
       prepareJsonFixtureResponse('xai-text');
 
       const modelWithHeaders = new XaiChatLanguageModel('grok-3', {
-        provider: 'xai.chat',
+        provider: 'spacexai.chat',
         baseURL: 'https://api.x.ai/v1',
         headers: () => ({
           authorization: 'Bearer test-api-key',
@@ -437,7 +478,7 @@ describe('XaiChatLanguageModel', () => {
       });
 
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/xai/0.0.0-test`,
+        `ai-sdk/spacexai/0.0.0-test`,
       );
     });
 
@@ -1054,6 +1095,7 @@ describe('XaiChatLanguageModel', () => {
       const finish = chunks.find(chunk => chunk.type === 'finish');
 
       expect(finish?.providerMetadata).toStrictEqual({
+        spacexai: { serviceTier: 'priority' },
         xai: { serviceTier: 'priority' },
       });
     });
@@ -1113,7 +1155,7 @@ describe('XaiChatLanguageModel', () => {
       prepareChunksFixtureResponse('xai-text');
 
       const modelWithHeaders = new XaiChatLanguageModel('grok-3', {
-        provider: 'xai.chat',
+        provider: 'spacexai.chat',
         baseURL: 'https://api.x.ai/v1',
         headers: () => ({
           authorization: 'Bearer test-api-key',
@@ -1332,6 +1374,43 @@ describe('XaiChatLanguageModel', () => {
                 mediaType: 'image/png',
                 data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
                 providerOptions: { xai: { imageDetail: 'low' } },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is in this image?' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: 'data:image/png;base64,AAECAw==',
+                detail: 'low',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should pass detail from providerOptions.spacexai.imageDetail on image parts', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is in this image?' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: Buffer.from([0, 1, 2, 3]) },
+                providerOptions: { spacexai: { imageDetail: 'low' } },
               },
             ],
           },

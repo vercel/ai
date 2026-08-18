@@ -160,12 +160,12 @@ export function createSpaceXAI(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/xai/${VERSION}`,
+      `ai-sdk/spacexai/${VERSION}`,
     );
 
   const createChatLanguageModel = (modelId: XaiChatModelId) => {
     return new XaiChatLanguageModel(modelId, {
-      provider: 'xai.chat',
+      provider: 'spacexai.chat',
       baseURL,
       headers: getHeaders,
       generateId,
@@ -175,7 +175,7 @@ export function createSpaceXAI(
 
   const createResponsesLanguageModel = (modelId: XaiResponsesModelId) => {
     return new XaiResponsesLanguageModel(modelId, {
-      provider: 'xai.responses',
+      provider: 'spacexai.responses',
       baseURL,
       headers: getHeaders,
       generateId,
@@ -185,7 +185,7 @@ export function createSpaceXAI(
 
   const createImageModel = (modelId: XaiImageModelId) => {
     return new XaiImageModel(modelId, {
-      provider: 'xai.image',
+      provider: 'spacexai.image',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -194,7 +194,7 @@ export function createSpaceXAI(
 
   const createVideoModel = (modelId: XaiVideoModelId) => {
     return new XaiVideoModel(modelId, {
-      provider: 'xai.video',
+      provider: 'spacexai.video',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -203,7 +203,7 @@ export function createSpaceXAI(
 
   const createRealtimeModel = (modelId: string) => {
     return new XaiRealtimeModel(modelId, {
-      provider: 'xai.realtime',
+      provider: 'spacexai.realtime',
       baseURL: baseURL ?? 'https://api.x.ai/v1',
       headers: getHeaders,
       fetch: options.fetch,
@@ -212,7 +212,7 @@ export function createSpaceXAI(
 
   const createSpeechModel = () => {
     return new XaiSpeechModel('', {
-      provider: 'xai.speech',
+      provider: 'spacexai.speech',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -221,7 +221,7 @@ export function createSpaceXAI(
 
   const createTranscriptionModel = () => {
     return new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -250,7 +250,7 @@ export function createSpaceXAI(
 
   const createFiles = () =>
     new XaiFiles({
-      provider: 'xai.files',
+      provider: 'spacexai.files',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,

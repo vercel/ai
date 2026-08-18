@@ -4,7 +4,7 @@ import { XaiRealtimeModel } from './xai-realtime-model';
 describe('XaiRealtimeModel', () => {
   const createModel = (fetch?: typeof globalThis.fetch) =>
     new XaiRealtimeModel('grok-voice-latest', {
-      provider: 'xai.realtime',
+      provider: 'spacexai.realtime',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ authorization: 'Bearer test-key' }),
       fetch,

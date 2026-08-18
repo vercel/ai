@@ -17,7 +17,7 @@ const server = createTestServer({
 
 describe('XaiSpeechModel', () => {
   it('should expose correct provider and model information', () => {
-    expect(model.provider).toBe('xai.speech');
+    expect(model.provider).toBe('spacexai.speech');
     expect(model.modelId).toBe('');
     expect(model.specificationVersion).toBe('v4');
   });
@@ -147,6 +147,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should map providerOptions.spacexai onto xAI request fields', async () => {
+    prepareAudioResponse();
+
+    await model.doGenerate({
+      text: 'Hello from the AI SDK!',
+      providerOptions: {
+        spacexai: {
+          sampleRate: 44100,
+          bitRate: 192000,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      output_format: {
+        codec: 'mp3',
+        sample_rate: 44100,
+        bit_rate: 192000,
+      },
+    });
+  });
+
   it('should pass withTimestamps and replace provider options', async () => {
     prepareTimestampsResponse();
 
@@ -178,6 +200,18 @@ describe('doGenerate', () => {
 
     expect(result.audio).toStrictEqual(audio);
     expect(result.providerMetadata).toStrictEqual({
+      spacexai: {
+        traceId: '993675dc-8ea6-4f54-b4ad-a59ac2615026',
+        duration: 1.19,
+        contentType: 'audio/mpeg',
+        audioTimestamps: {
+          graphChars: ['H', 'i'],
+          graphTimes: [
+            [0.04, 0.06],
+            [0.06, 0.1],
+          ],
+        },
+      },
       xai: {
         traceId: '993675dc-8ea6-4f54-b4ad-a59ac2615026',
         duration: 1.19,
@@ -201,6 +235,7 @@ describe('doGenerate', () => {
     const result = await model.doGenerate({ text: 'Hello from the AI SDK!' });
 
     expect(result.providerMetadata).toStrictEqual({
+      spacexai: { traceId: '06e3dab5-e3ba-4c6b-83a6-1e9ea11d78af' },
       xai: { traceId: '06e3dab5-e3ba-4c6b-83a6-1e9ea11d78af' },
     });
   });
@@ -210,7 +245,10 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({ text: 'Hello from the AI SDK!' });
 
-    expect(result.providerMetadata).toStrictEqual({ xai: {} });
+    expect(result.providerMetadata).toStrictEqual({
+      spacexai: {},
+      xai: {},
+    });
   });
 
   it('should warn and use mp3 for unsupported output formats', async () => {
@@ -285,7 +323,9 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
-    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/xai/0.0.0-test');
+    expect(server.calls[0].requestUserAgent).toContain(
+      'ai-sdk/spacexai/0.0.0-test',
+    );
   });
 
   it('should return binary audio data', async () => {
@@ -301,7 +341,7 @@ describe('doGenerate', () => {
     prepareAudioResponse({ headers: { 'x-request-id': 'test-request-id' } });
     const testDate = new Date(0);
     const customModel = new XaiSpeechModel('', {
-      provider: 'xai.speech',
+      provider: 'spacexai.speech',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       _internal: { currentDate: () => testDate },

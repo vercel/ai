@@ -74,7 +74,7 @@ function prepareJsonResponse(headers?: Record<string, string>) {
 
 describe('XaiTranscriptionModel', () => {
   it('should expose correct provider and model information', () => {
-    expect(model.provider).toBe('xai.transcription');
+    expect(model.provider).toBe('spacexai.transcription');
     expect(model.modelId).toBe('');
     expect(model.specificationVersion).toBe('v4');
   });
@@ -132,6 +132,29 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should map providerOptions.spacexai onto xAI request fields', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/pcm',
+      providerOptions: {
+        spacexai: {
+          audioFormat: 'pcm',
+          sampleRate: 16000,
+          language: 'en',
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body).toMatchObject({
+      audio_format: 'pcm',
+      sample_rate: '16000',
+      language: 'en',
+    });
+  });
+
   it('should append file after all other multipart fields', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -145,7 +168,7 @@ describe('doGenerate', () => {
       ),
     );
     const customModel = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       fetch: fetchMock as unknown as typeof fetch,
@@ -208,7 +231,9 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
-    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/xai/0.0.0-test');
+    expect(server.calls[0].requestUserAgent).toContain(
+      'ai-sdk/spacexai/0.0.0-test',
+    );
   });
 
   it('should extract text, segments, language, and duration', async () => {
@@ -246,7 +271,7 @@ describe('doGenerate', () => {
     });
     const testDate = new Date(0);
     const customModel = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       _internal: { currentDate: () => testDate },
@@ -321,7 +346,7 @@ describe('doStream', () => {
     MockWebSocket.instances = [];
     const testDate = new Date(0);
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,
@@ -418,7 +443,7 @@ describe('doStream', () => {
   it('should strip undefined header values before the WebSocket constructor', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,
@@ -448,7 +473,7 @@ describe('doStream', () => {
       },
     });
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: class {
@@ -481,7 +506,7 @@ describe('doStream', () => {
       },
     });
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,
@@ -513,7 +538,7 @@ describe('doStream', () => {
   it('should emit one transcript-final per utterance and reconstruct the finish text when transcript.done is empty', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,
@@ -585,7 +610,7 @@ describe('doStream', () => {
   it('should treat is_final fragments as partials and use the speech_final text for finish', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,
@@ -642,7 +667,7 @@ describe('doStream', () => {
   it('should fall back to the latest pending text when no speech_final arrived before transcript.done', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,
@@ -680,7 +705,7 @@ describe('doStream', () => {
   it('should join finalized utterances per channel when transcript.done is empty', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,
@@ -725,7 +750,7 @@ describe('doStream', () => {
   it('should error the stream with the server message on error events', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,
@@ -754,7 +779,7 @@ describe('doStream', () => {
   it('should close the WebSocket and stop reading audio when the stream is cancelled', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,
@@ -786,7 +811,7 @@ describe('doStream', () => {
   it('should warn on unrecognized inputAudioFormat types', async () => {
     MockWebSocket.instances = [];
     const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
+      provider: 'spacexai.transcription',
       baseURL: 'https://api.x.ai/v1',
       headers: () => ({ Authorization: 'Bearer test-api-key' }),
       webSocket: MockWebSocket,

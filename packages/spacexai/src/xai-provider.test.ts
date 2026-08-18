@@ -126,7 +126,7 @@ describe('xAIProvider', () => {
       const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
 
       expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1].provider).toBe('xai.chat');
+      expect(constructorCall[1].provider).toBe('spacexai.chat');
       expect(constructorCall[1].baseURL).toBe('https://api.x.ai/v1');
     });
   });
@@ -144,7 +144,7 @@ describe('xAIProvider', () => {
       expect(constructorCall[0]).toBe(modelId);
 
       const config = constructorCall[1];
-      expect(config.provider).toBe('xai.image');
+      expect(config.provider).toBe('spacexai.image');
       expect(config.baseURL).toBe('https://api.x.ai/v1');
     });
 
@@ -173,7 +173,7 @@ describe('xAIProvider', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk/spacexai/0.0.0-test',
       });
     });
   });
@@ -191,7 +191,7 @@ describe('xAIProvider', () => {
       expect(constructorCall[0]).toBe(modelId);
 
       const config = constructorCall[1];
-      expect(config.provider).toBe('xai.video');
+      expect(config.provider).toBe('spacexai.video');
       expect(config.baseURL).toBe('https://api.x.ai/v1');
     });
 
@@ -219,7 +219,7 @@ describe('xAIProvider', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk/spacexai/0.0.0-test',
       });
     });
 
@@ -245,7 +245,7 @@ describe('xAIProvider', () => {
 
       const constructorCall = XaiSpeechModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe('');
-      expect(constructorCall[1].provider).toBe('xai.speech');
+      expect(constructorCall[1].provider).toBe('spacexai.speech');
       expect(constructorCall[1].baseURL).toBe('https://api.x.ai/v1');
     });
 
@@ -262,7 +262,7 @@ describe('xAIProvider', () => {
       expect(constructorCall[1].headers()).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk/spacexai/0.0.0-test',
       });
     });
 
@@ -285,7 +285,7 @@ describe('xAIProvider', () => {
 
       const constructorCall = XaiTranscriptionModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe('');
-      expect(constructorCall[1].provider).toBe('xai.transcription');
+      expect(constructorCall[1].provider).toBe('spacexai.transcription');
       expect(constructorCall[1].baseURL).toBe('https://api.x.ai/v1');
     });
 
@@ -302,7 +302,7 @@ describe('xAIProvider', () => {
       expect(constructorCall[1].headers()).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk/spacexai/0.0.0-test',
       });
     });
 

@@ -37,7 +37,7 @@ describe('XaiFiles', () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -64,7 +64,7 @@ describe('XaiFiles', () => {
       });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -75,7 +75,10 @@ describe('XaiFiles', () => {
         mediaType: 'application/octet-stream',
       });
 
-      expect(result.providerReference).toEqual({ xai: 'file-xyz789' });
+      expect(result.providerReference).toEqual({
+        spacexai: 'file-xyz789',
+        xai: 'file-xyz789',
+      });
     });
 
     it('should include providerMetadata with response data', async () => {
@@ -90,7 +93,7 @@ describe('XaiFiles', () => {
       });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -102,6 +105,11 @@ describe('XaiFiles', () => {
       });
 
       expect(result.providerMetadata).toEqual({
+        spacexai: {
+          filename: 'data.csv',
+          bytes: 512,
+          createdAt: 1700000000,
+        },
         xai: {
           filename: 'data.csv',
           bytes: 512,
@@ -114,7 +122,7 @@ describe('XaiFiles', () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -136,7 +144,7 @@ describe('XaiFiles', () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -157,7 +165,7 @@ describe('XaiFiles', () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -176,11 +184,34 @@ describe('XaiFiles', () => {
       expect(body.get('team_id')).toBe('team-123');
     });
 
+    it('should include team_id from providerOptions.spacexai', async () => {
+      const fetchMock = mockFetchResponse({ body: defaultResponseBody });
+
+      const files = new XaiFiles({
+        provider: 'spacexai.files',
+        baseURL: 'https://api.x.ai/v1',
+        headers: mockHeaders,
+        fetch: fetchMock,
+      });
+
+      await files.uploadFile({
+        data: { type: 'data', data: new Uint8Array([1]) },
+        mediaType: 'application/octet-stream',
+        providerOptions: {
+          spacexai: { teamId: 'team-456' },
+        },
+      });
+
+      const [, options] = fetchMock.mock.calls[0];
+      const body = options.body as FormData;
+      expect(body.get('team_id')).toBe('team-456');
+    });
+
     it('should not include team_id when not provided', async () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -200,7 +231,7 @@ describe('XaiFiles', () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -232,7 +263,7 @@ describe('XaiFiles', () => {
       });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -243,14 +274,17 @@ describe('XaiFiles', () => {
         mediaType: 'application/octet-stream',
       });
 
-      expect(result.providerMetadata).toEqual({ xai: {} });
+      expect(result.providerMetadata).toEqual({
+        spacexai: {},
+        xai: {},
+      });
     });
 
     it('should return empty warnings array', async () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
         fetch: fetchMock,
@@ -266,7 +300,7 @@ describe('XaiFiles', () => {
 
     it('should have specificationVersion v4', () => {
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
       });
@@ -276,12 +310,12 @@ describe('XaiFiles', () => {
 
     it('should have the correct provider name', () => {
       const files = new XaiFiles({
-        provider: 'xai.files',
+        provider: 'spacexai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
       });
 
-      expect(files.provider).toBe('xai.files');
+      expect(files.provider).toBe('spacexai.files');
     });
   });
 });

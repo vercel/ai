@@ -50,7 +50,8 @@ export const xaiSpeechModelOptionsSchema = lazySchema(() =>
       /**
        * Return character-level timing metadata alongside the audio. When
        * enabled, the response carries per-character start/end times and the
-       * total duration, exposed via `providerMetadata.xai`.
+       * total duration, exposed via `providerMetadata.spacexai` (and the
+       * legacy `providerMetadata.xai` alias).
        */
       withTimestamps: z.boolean().nullish(),
 

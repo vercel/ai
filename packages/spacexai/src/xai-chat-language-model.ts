@@ -17,7 +17,6 @@ import {
   extractResponseHeaders,
   isCustomReasoning,
   mapReasoningToProviderEffort,
-  parseProviderOptions,
   postJsonToApi,
   safeParseJSON,
   serializeModelOptions,
@@ -31,6 +30,10 @@ import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
+import {
+  parseSpaceXAIProviderOptions,
+  spacexaiProviderMetadata,
+} from './spacexai-provider-options';
 import { supportsReasoningEffort } from './supports-reasoning-effort';
 import {
   xaiLanguageModelChatOptions,
@@ -99,10 +102,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
 
-    // parse xai-specific provider options
+    // parse SpaceXAI-specific provider options (`spacexai`, with `xai` fallback)
     const options =
-      (await parseProviderOptions({
-        provider: 'xai',
+      (await parseSpaceXAIProviderOptions({
         providerOptions,
         schema: xaiLanguageModelChatOptions,
       })) ?? {};
@@ -351,9 +353,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
       ...(response.service_tier != null && {
-        providerMetadata: {
-          xai: { serviceTier: response.service_tier },
-        },
+        providerMetadata: spacexaiProviderMetadata({
+          serviceTier: response.service_tier,
+        }),
       }),
       request: { body },
       response: {
@@ -659,7 +661,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
               ...(serviceTier != null && {
-                providerMetadata: { xai: { serviceTier } },
+                providerMetadata: spacexaiProviderMetadata({ serviceTier }),
               }),
             });
           },

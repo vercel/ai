@@ -7,7 +7,6 @@ import {
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
-  parseProviderOptions,
   postFormDataToApi,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -17,6 +16,11 @@ import {
   xaiFilesOptionsSchema,
   type XaiFilesOptions,
 } from './xai-files-options';
+import {
+  parseSpaceXAIProviderOptions,
+  spacexaiProviderMetadata,
+  spacexaiProviderReference,
+} from '../spacexai-provider-options';
 interface XaiFilesConfig {
   provider: string;
   baseURL: string | undefined;
@@ -39,15 +43,14 @@ export class XaiFiles implements FilesV4 {
     filename,
     providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    const xaiOptions = (await parseProviderOptions({
-      provider: 'xai',
+    const xaiOptions = (await parseSpaceXAIProviderOptions({
       providerOptions,
       schema: xaiFilesOptionsSchema,
     })) as XaiFilesOptions | undefined;
 
     const fileBytes = convertInlineFileDataToUint8Array(data);
 
-    const blob = new Blob([fileBytes], {
+    const blob = new Blob([new Uint8Array(fileBytes)], {
       type: mediaType,
     });
 
@@ -75,20 +78,18 @@ export class XaiFiles implements FilesV4 {
 
     return {
       warnings: [],
-      providerReference: { xai: response.id },
+      providerReference: spacexaiProviderReference(response.id),
       ...((response.filename ?? filename)
         ? { filename: response.filename ?? filename }
         : {}),
       ...(mediaType != null ? { mediaType } : {}),
-      providerMetadata: {
-        xai: {
-          ...(response.filename != null ? { filename: response.filename } : {}),
-          ...(response.bytes != null ? { bytes: response.bytes } : {}),
-          ...(response.created_at != null
-            ? { createdAt: response.created_at }
-            : {}),
-        },
-      },
+      providerMetadata: spacexaiProviderMetadata({
+        ...(response.filename != null ? { filename: response.filename } : {}),
+        ...(response.bytes != null ? { bytes: response.bytes } : {}),
+        ...(response.created_at != null
+          ? { createdAt: response.created_at }
+          : {}),
+      }),
     };
   }
 }

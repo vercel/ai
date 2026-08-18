@@ -671,9 +671,39 @@ describe('convertToXaiResponsesInput', () => {
       `);
       expect(result.inputWarnings).toEqual([]);
     });
-  });
 
-  describe('top-level-only media type resolution', () => {
+    it('should round-trip reasoning from providerOptions.spacexai', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Thinking.',
+                providerOptions: {
+                  spacexai: {
+                    itemId: 'rs_space',
+                    reasoningEncryptedContent: 'encrypted_space',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'reasoning',
+          id: 'rs_space',
+          summary: [{ type: 'summary_text', text: 'Thinking.' }],
+          status: 'completed',
+          encrypted_content: 'encrypted_space',
+        },
+      ]);
+      expect(result.inputWarnings).toEqual([]);
+    });
     const pngBase64 = 'iVBORw0KGgo=';
 
     it('passes full image/png through unchanged for inline data', async () => {

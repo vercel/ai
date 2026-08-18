@@ -6,11 +6,14 @@ import {
 import {
   convertToBase64,
   getTopLevelMediaType,
-  parseProviderOptions,
   resolveFullMediaType,
-  resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import { xaiFilePartProviderOptions } from '../xai-file-part-options';
+import {
+  getSpaceXAIPartOptions,
+  parseSpaceXAIProviderOptions,
+  resolveSpaceXAIProviderReference,
+} from '../spacexai-provider-options';
 import type {
   XaiResponsesFunctionCallOutput,
   XaiResponsesInput,
@@ -54,10 +57,9 @@ export async function convertToXaiResponsesInput({
                 case 'reference': {
                   contentParts.push({
                     type: 'input_file',
-                    file_id: resolveProviderReference({
-                      reference: block.data.reference,
-                      provider: 'xai',
-                    }),
+                    file_id: resolveSpaceXAIProviderReference(
+                      block.data.reference,
+                    ),
                   });
                   break;
                 }
@@ -74,8 +76,7 @@ export async function convertToXaiResponsesInput({
                         ? block.data.url.toString()
                         : `data:${resolveFullMediaType({ part: block })};base64,${convertToBase64(block.data.data)}`;
 
-                    const filePartOptions = await parseProviderOptions({
-                      provider: 'xai',
+                    const filePartOptions = await parseSpaceXAIProviderOptions({
                       providerOptions: block.providerOptions,
                       schema: xaiFilePartProviderOptions,
                     });
@@ -130,9 +131,10 @@ export async function convertToXaiResponsesInput({
         for (const part of message.content) {
           switch (part.type) {
             case 'text': {
+              const partOptions = getSpaceXAIPartOptions(part.providerOptions);
               const id =
-                typeof part.providerOptions?.xai?.itemId === 'string'
-                  ? part.providerOptions.xai.itemId
+                typeof partOptions?.itemId === 'string'
+                  ? partOptions.itemId
                   : undefined;
 
               input.push({
@@ -149,9 +151,10 @@ export async function convertToXaiResponsesInput({
                 break;
               }
 
+              const partOptions = getSpaceXAIPartOptions(part.providerOptions);
               const id =
-                typeof part.providerOptions?.xai?.itemId === 'string'
-                  ? part.providerOptions.xai.itemId
+                typeof partOptions?.itemId === 'string'
+                  ? partOptions.itemId
                   : undefined;
 
               input.push({
@@ -170,14 +173,14 @@ export async function convertToXaiResponsesInput({
             }
 
             case 'reasoning': {
+              const partOptions = getSpaceXAIPartOptions(part.providerOptions);
               const itemId =
-                typeof part.providerOptions?.xai?.itemId === 'string'
-                  ? part.providerOptions.xai.itemId
+                typeof partOptions?.itemId === 'string'
+                  ? partOptions.itemId
                   : undefined;
               const encryptedContent =
-                typeof part.providerOptions?.xai?.reasoningEncryptedContent ===
-                'string'
-                  ? part.providerOptions.xai.reasoningEncryptedContent
+                typeof partOptions?.reasoningEncryptedContent === 'string'
+                  ? partOptions.reasoningEncryptedContent
                   : undefined;
 
               if (itemId != null || encryptedContent != null) {

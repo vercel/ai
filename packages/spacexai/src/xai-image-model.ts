@@ -6,7 +6,6 @@ import {
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   getFromApi,
-  parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
@@ -17,6 +16,10 @@ import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import { xaiImageModelOptions } from './xai-image-model-options';
 import type { XaiImageModelId } from './xai-image-settings';
+import {
+  parseSpaceXAIProviderOptions,
+  spacexaiProviderMetadata,
+} from './spacexai-provider-options';
 
 interface XaiImageModelConfig {
   provider: string;
@@ -94,8 +97,7 @@ export class XaiImageModel implements ImageModelV4 {
       });
     }
 
-    const xaiOptions = await parseProviderOptions({
-      provider: 'xai',
+    const xaiOptions = await parseSpaceXAIProviderOptions({
       providerOptions,
       schema: xaiImageModelOptions,
     });
@@ -180,18 +182,16 @@ export class XaiImageModel implements ImageModelV4 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        xai: {
-          images: response.data.map(item => ({
-            ...(item.revised_prompt
-              ? { revisedPrompt: item.revised_prompt }
-              : {}),
-          })),
-          ...(response.usage?.cost_in_usd_ticks != null
-            ? { costInUsdTicks: response.usage.cost_in_usd_ticks }
+      providerMetadata: spacexaiProviderMetadata({
+        images: response.data.map(item => ({
+          ...(item.revised_prompt
+            ? { revisedPrompt: item.revised_prompt }
             : {}),
-        },
-      },
+        })),
+        ...(response.usage?.cost_in_usd_ticks != null
+          ? { costInUsdTicks: response.usage.cost_in_usd_ticks }
+          : {}),
+      }),
     };
   }
 

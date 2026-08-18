@@ -15,7 +15,7 @@ const TEST_PROMPT: LanguageModelV4Prompt = [
 
 function createModel(modelId = 'grok-4-fast-non-reasoning') {
   return new XaiResponsesLanguageModel(modelId, {
-    provider: 'xai.responses',
+    provider: 'spacexai.responses',
     baseURL: 'https://api.x.ai/v1',
     headers: () => ({ Authorization: 'Bearer test-key' }),
     generateId: mockId(),
@@ -175,6 +175,7 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         expect(result.providerMetadata).toStrictEqual({
+          spacexai: { costInUsdTicks: 113500 },
           xai: { costInUsdTicks: 113500 },
         });
       });
@@ -311,6 +312,10 @@ describe('XaiResponsesLanguageModel', () => {
           [
             {
               "providerMetadata": {
+                "spacexai": {
+                  "itemId": "rs_456",
+                  "reasoningEncryptedContent": "abc123encryptedcontent",
+                },
                 "xai": {
                   "itemId": "rs_456",
                   "reasoningEncryptedContent": "abc123encryptedcontent",
@@ -373,6 +378,9 @@ describe('XaiResponsesLanguageModel', () => {
           [
             {
               "providerMetadata": {
+                "spacexai": {
+                  "itemId": "rs_456",
+                },
                 "xai": {
                   "itemId": "rs_456",
                 },
@@ -435,6 +443,9 @@ describe('XaiResponsesLanguageModel', () => {
           [
             {
               "providerMetadata": {
+                "spacexai": {
+                  "itemId": "rs_456",
+                },
                 "xai": {
                   "itemId": "rs_456",
                 },
@@ -495,6 +506,10 @@ describe('XaiResponsesLanguageModel', () => {
           [
             {
               "providerMetadata": {
+                "spacexai": {
+                  "itemId": "rs_789",
+                  "reasoningEncryptedContent": "encrypted_zdr_content_xyz",
+                },
                 "xai": {
                   "itemId": "rs_789",
                   "reasoningEncryptedContent": "encrypted_zdr_content_xyz",
@@ -573,6 +588,29 @@ describe('XaiResponsesLanguageModel', () => {
             prompt: TEST_PROMPT,
             providerOptions: {
               xai: {
+                reasoningEffort: 'high',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('high');
+        });
+
+        it('reasoningEffort from providerOptions.spacexai', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              spacexai: {
                 reasoningEffort: 'high',
               } satisfies XaiLanguageModelResponsesOptions,
             },
@@ -822,6 +860,7 @@ describe('XaiResponsesLanguageModel', () => {
 
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.service_tier).toBe('priority');
+          expect(providerMetadata?.spacexai.serviceTier).toBe('priority');
           expect(providerMetadata?.xai.serviceTier).toBe('priority');
         });
 
@@ -845,6 +884,7 @@ describe('XaiResponsesLanguageModel', () => {
             },
           });
 
+          expect(providerMetadata?.spacexai.serviceTier).toBe('default');
           expect(providerMetadata?.xai.serviceTier).toBe('default');
         });
 
@@ -2597,6 +2637,10 @@ describe('XaiResponsesLanguageModel', () => {
           {
             "id": "reasoning-rs_456",
             "providerMetadata": {
+              "spacexai": {
+                "itemId": "rs_456",
+                "reasoningEncryptedContent": "encrypted_data_abc123",
+              },
               "xai": {
                 "itemId": "rs_456",
                 "reasoningEncryptedContent": "encrypted_data_abc123",
@@ -2690,6 +2734,9 @@ describe('XaiResponsesLanguageModel', () => {
           {
             "id": "reasoning-rs_456",
             "providerMetadata": {
+              "spacexai": {
+                "itemId": "rs_456",
+              },
               "xai": {
                 "itemId": "rs_456",
               },
@@ -2702,6 +2749,10 @@ describe('XaiResponsesLanguageModel', () => {
           {
             "id": "reasoning-rs_456",
             "providerMetadata": {
+              "spacexai": {
+                "itemId": "rs_456",
+                "reasoningEncryptedContent": "encrypted_reasoning_content_xyz",
+              },
               "xai": {
                 "itemId": "rs_456",
                 "reasoningEncryptedContent": "encrypted_reasoning_content_xyz",
@@ -2823,6 +2874,9 @@ describe('XaiResponsesLanguageModel', () => {
           {
             "id": "reasoning-rs_456",
             "providerMetadata": {
+              "spacexai": {
+                "itemId": "rs_456",
+              },
               "xai": {
                 "itemId": "rs_456",
               },
@@ -2843,6 +2897,9 @@ describe('XaiResponsesLanguageModel', () => {
           {
             "id": "reasoning-rs_456",
             "providerMetadata": {
+              "spacexai": {
+                "itemId": "rs_456",
+              },
               "xai": {
                 "itemId": "rs_456",
               },
@@ -3362,6 +3419,10 @@ describe('XaiResponsesLanguageModel', () => {
                 "unified": "stop",
               },
               "providerMetadata": {
+                "spacexai": {
+                  "costInUsdTicks": 123456,
+                  "serviceTier": "default",
+                },
                 "xai": {
                   "costInUsdTicks": 123456,
                   "serviceTier": "default",
@@ -4414,6 +4475,7 @@ describe('XaiResponsesLanguageModel', () => {
         expect(finishPart).toMatchObject({
           type: 'finish',
           providerMetadata: {
+            spacexai: { costInUsdTicks: 113500 },
             xai: { costInUsdTicks: 113500 },
           },
         });

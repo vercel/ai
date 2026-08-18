@@ -15,7 +15,6 @@ import {
   extractResponseHeaders,
   getFromApi,
   getTopLevelMediaType,
-  parseProviderOptions,
   postJsonToApi,
   safeParseJSON,
   type FetchFunction,
@@ -28,6 +27,10 @@ import {
   type XaiParsedVideoModelOptions,
 } from './xai-video-model-options';
 import type { XaiVideoModelId } from './xai-video-settings';
+import {
+  parseSpaceXAIProviderOptions,
+  spacexaiProviderMetadata,
+} from './spacexai-provider-options';
 
 interface XaiVideoModelConfig {
   provider: string;
@@ -195,8 +198,7 @@ export class XaiVideoModel implements VideoModelV4 {
   }> {
     const warnings: SharedV4Warning[] = [];
 
-    const xaiOptions = (await parseProviderOptions({
-      provider: 'xai',
+    const xaiOptions = (await parseSpaceXAIProviderOptions({
       providerOptions: options.providerOptions,
       schema: xaiVideoModelOptionsSchema,
     })) as XaiParsedVideoModelOptions | undefined;
@@ -622,21 +624,19 @@ export class XaiVideoModel implements VideoModelV4 {
           modelId: this.modelId,
           headers: responseHeaders,
         },
-        providerMetadata: {
-          xai: {
-            requestId,
-            videoUrl: statusResponse.video.url,
-            ...(statusResponse.video.duration != null
-              ? { duration: statusResponse.video.duration }
-              : {}),
-            ...(statusResponse.usage?.cost_in_usd_ticks != null
-              ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
-              : {}),
-            ...(statusResponse.progress != null
-              ? { progress: statusResponse.progress }
-              : {}),
-          },
-        },
+        providerMetadata: spacexaiProviderMetadata({
+          requestId,
+          videoUrl: statusResponse.video.url,
+          ...(statusResponse.video.duration != null
+            ? { duration: statusResponse.video.duration }
+            : {}),
+          ...(statusResponse.usage?.cost_in_usd_ticks != null
+            ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
+            : {}),
+          ...(statusResponse.progress != null
+            ? { progress: statusResponse.progress }
+            : {}),
+        }),
       };
     }
 

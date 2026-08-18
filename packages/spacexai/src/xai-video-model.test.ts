@@ -47,7 +47,7 @@ function createModel({
   modelId?: string;
 } = {}) {
   return new XaiVideoModel(modelId, {
-    provider: 'xai.video',
+    provider: 'spacexai.video',
     baseURL: TEST_BASE_URL,
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
     _internal: {
@@ -88,7 +88,7 @@ describe('XaiVideoModel', () => {
     it('should expose correct provider and model information', () => {
       const model = createModel();
 
-      expect(model.provider).toBe('xai.video');
+      expect(model.provider).toBe('spacexai.video');
       expect(model.modelId).toBe('grok-imagine-video');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
@@ -203,6 +203,26 @@ describe('XaiVideoModel', () => {
       });
 
       expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        video: { url: 'https://example.com/source-video.mp4' },
+      });
+    });
+
+    it('should use edits endpoint with providerOptions.spacexai', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          spacexai: {
+            mode: 'edit-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+          },
+        },
+      });
+
       expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
@@ -1240,6 +1260,12 @@ describe('XaiVideoModel', () => {
           mediaType: 'video/mp4',
         });
         expect(result.providerMetadata).toStrictEqual({
+          spacexai: {
+            requestId: 'req-123',
+            videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
+            duration: 5,
+            progress: 100,
+          },
           xai: {
             requestId: 'req-123',
             videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
@@ -1458,6 +1484,13 @@ describe('XaiVideoModel', () => {
       expect(result.status).toBe('completed');
       if (result.status === 'completed') {
         expect(result.providerMetadata).toStrictEqual({
+          spacexai: {
+            requestId: 'req-123',
+            videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
+            duration: 5,
+            progress: 100,
+            costInUsdTicks: 4000000000,
+          },
           xai: {
             requestId: 'req-123',
             videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
