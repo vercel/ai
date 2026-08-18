@@ -6,13 +6,10 @@ contains language model support for Perplexity's Agent API, including web search
 ## Features
 
 - Real-time web search grounding for accurate, up-to-date responses
-- Support for advanced queries and follow-up questions
-- Multiple tiers available:
-  - **Sonar Pro**: Enhanced capabilities for complex tasks with 2x more citations
-  - **Sonar**: Lightweight offering optimized for speed and cost
-- Industry-leading answer quality
-- Data privacy - no training on customer data
-- Self-serve API access with scalable pricing
+- Agent API presets from `fast` through `xhigh`
+- Direct access to supported third-party models through Perplexity
+- Native tools for web search, URL fetching, code execution, finance, MCP, and connectors
+- AI SDK function tools, structured output, reasoning streams, and multi-turn tool calls
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access Perplexity (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
@@ -51,6 +48,11 @@ const { text } = await generateText({
   prompt: 'What are the latest developments in quantum computing?',
 });
 ```
+
+Legacy Sonar model IDs remain available as deprecated aliases for Agent API
+presets. Because presets can select different models and tools, review the
+[migration notes](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity#migrating-from-sonar)
+before upgrading an existing application.
 
 ## Documentation
 

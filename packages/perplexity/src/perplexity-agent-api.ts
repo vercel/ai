@@ -100,6 +100,11 @@ export const perplexityAgentResponseSchema = z.looseObject({
   object: z.literal('response'),
   output: z.array(perplexityOutputItemSchema),
   status: z.string(),
+  incomplete_details: z
+    .looseObject({
+      reason: z.string(),
+    })
+    .nullish(),
   error: z
     .looseObject({
       code: z.string().optional(),
@@ -120,6 +125,9 @@ export const perplexityAgentChunkSchema = z.looseObject({
   content_index: z.number().optional(),
   delta: z.string().optional(),
   text: z.string().optional(),
+  thought: z.string().optional(),
+  queries: z.array(z.string()).optional(),
+  urls: z.array(z.string()).optional(),
   results: z.array(perplexitySearchResultSchema).optional(),
   contents: z.array(perplexityFetchedContentSchema).optional(),
   error: z

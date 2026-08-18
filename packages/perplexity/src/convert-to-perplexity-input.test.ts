@@ -114,6 +114,34 @@ describe('convertToPerplexityInput', () => {
     ]);
   });
 
+  it('omits null thought signatures from multi-turn input', () => {
+    expect(
+      convertToPerplexityInput([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'San Francisco' },
+              providerOptions: {
+                perplexity: { thoughtSignature: null },
+              },
+            },
+          ],
+        },
+      ]).input,
+    ).toEqual([
+      {
+        type: 'function_call',
+        call_id: 'call-1',
+        name: 'weather',
+        arguments: '{"city":"San Francisco"}',
+      },
+    ]);
+  });
+
   it('warns when reasoning prompt parts cannot be replayed', () => {
     const result = convertToPerplexityInput([
       {

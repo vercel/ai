@@ -278,6 +278,11 @@ warnings. `maxOutputTokens` is sent as `max_output_tokens`, search filters are
 moved into the `web_search` tool, and `reasoning_effort` is mapped to
 `reasoning.effort`.
 
+Legacy Sonar model IDs select Agent API presets rather than the original Sonar
+models. A preset can choose a different underlying model and set of tools, so
+its cost, latency, and output can differ from the legacy model with the same
+alias.
+
 Options with no Agent API equivalent emit unsupported warnings, including
 `search_language_filter`, `return_images`, image filters, related questions,
 media responses, and `stream_mode`. See Perplexity's

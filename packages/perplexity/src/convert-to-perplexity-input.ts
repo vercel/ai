@@ -46,7 +46,8 @@ function getThoughtSignature(
     | Record<string, Record<string, unknown> | undefined>
     | undefined,
 ): string | undefined {
-  return providerOptions?.perplexity?.thoughtSignature as string | undefined;
+  const thoughtSignature = providerOptions?.perplexity?.thoughtSignature;
+  return typeof thoughtSignature === 'string' ? thoughtSignature : undefined;
 }
 
 export function convertToPerplexityInput(prompt: LanguageModelV4Prompt): {

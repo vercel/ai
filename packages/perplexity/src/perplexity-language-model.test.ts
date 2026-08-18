@@ -1,4 +1,5 @@
 import {
+  APICallError,
   InvalidArgumentError,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
@@ -495,6 +496,139 @@ describe('doGenerate', () => {
     });
   });
 
+  it('omits missing function call thought signatures', async () => {
+    prepareJsonResponse(
+      createResponse({
+        status: 'requires_action',
+        output: [
+          {
+            id: 'fc-123',
+            type: 'function_call',
+            call_id: 'call-123',
+            name: 'weather',
+            arguments: '{"city":"San Francisco"}',
+          },
+        ],
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.content[0]).toEqual(
+      expect.objectContaining({
+        providerMetadata: { perplexity: { itemId: 'fc-123' } },
+      }),
+    );
+  });
+
+  it.each([
+    ['max_output_tokens', 'length'],
+    ['content_filter', 'content-filter'],
+  ] as const)(
+    'maps incomplete reason %s to %s',
+    async (incompleteReason, unifiedFinishReason) => {
+      prepareJsonResponse(
+        createResponse({
+          status: 'incomplete',
+          incomplete_details: { reason: incompleteReason },
+        }),
+      );
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.finishReason).toEqual({
+        unified: unifiedFinishReason,
+        raw: incompleteReason,
+      });
+    },
+  );
+
+  it('throws an API call error for failed responses returned with HTTP 200', async () => {
+    prepareJsonResponse(
+      createResponse({
+        status: 'failed',
+        error: { message: 'Agent run failed', type: 'server_error' },
+        output: [],
+      }),
+    );
+
+    const promise = model.doGenerate({ prompt: TEST_PROMPT });
+    await expect(promise).rejects.toBeInstanceOf(APICallError);
+    await expect(promise).rejects.toMatchObject({
+      message: 'Agent run failed',
+      statusCode: 400,
+    });
+  });
+
+  it('rejects malformed successful responses', async () => {
+    prepareJsonResponse({
+      id: 'resp-123',
+      created_at: 1784292159,
+      model: 'openai/gpt-5.1',
+      object: 'response',
+      status: 'completed',
+    });
+
+    await expect(
+      model.doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      message: 'Invalid JSON response',
+      statusCode: 200,
+    });
+  });
+
+  it('keeps the search result ID when an annotation with the same URL appears first', async () => {
+    prepareJsonResponse(
+      createResponse({
+        output: [
+          {
+            id: 'msg-123',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Answer',
+                annotations: [
+                  {
+                    type: 'url_citation',
+                    url: 'https://example.com/source',
+                    title: 'Annotation title',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'search_results',
+            results: [
+              {
+                id: 7,
+                title: 'Search result title',
+                url: 'https://example.com/source',
+                snippet: 'Search result snippet.',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+    const source = result.content.find(part => part.type === 'source');
+
+    expect(source).toEqual(
+      expect.objectContaining({
+        id: '7',
+        title: 'Search result title',
+        providerMetadata: {
+          perplexity: expect.objectContaining({ resultId: 7 }),
+        },
+      }),
+    );
+  });
+
   it('passes request and provider headers and exposes response headers', async () => {
     prepareJsonResponse(createResponse(), { 'test-header': 'test-value' });
     const customModel = new PerplexityLanguageModel('fast', {
@@ -679,6 +813,147 @@ describe('doStream', () => {
           sourceType: 'url',
           url: 'https://example.com/fetched',
           title: 'Fetched page',
+        }),
+      ]),
+    );
+  });
+
+  it('emits an enriched search source when a fetched URL was emitted first', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.fetch_url_results',
+        sequence_number: 0,
+        contents: [
+          {
+            title: 'Fetched page',
+            url: 'https://example.com/source',
+            snippet: 'Fetched content.',
+          },
+        ],
+      },
+      {
+        type: 'response.reasoning.search_results',
+        sequence_number: 1,
+        results: [
+          {
+            id: 7,
+            title: 'Search result',
+            url: 'https://example.com/source',
+            snippet: 'Search result content.',
+          },
+        ],
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    const sources = chunks.filter(chunk => chunk.type === 'source');
+
+    expect(sources).toHaveLength(2);
+    expect(sources[1]).toEqual(
+      expect.objectContaining({
+        id: '7',
+        providerMetadata: {
+          perplexity: expect.objectContaining({ resultId: 7 }),
+        },
+      }),
+    );
+  });
+
+  it('streams Agent API reasoning thoughts', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.started',
+        sequence_number: 0,
+        thought: 'Planning. ',
+      },
+      {
+        type: 'response.reasoning.search_queries',
+        sequence_number: 1,
+        queries: ['latest AI news'],
+        thought: 'Searching. ',
+      },
+      {
+        type: 'response.reasoning.search_results',
+        sequence_number: 2,
+        results: [],
+        thought: 'Reviewing results. ',
+      },
+      {
+        type: 'response.reasoning.fetch_url_queries',
+        sequence_number: 3,
+        urls: ['https://example.com/source'],
+        thought: 'Fetching details. ',
+      },
+      {
+        type: 'response.reasoning.fetch_url_results',
+        sequence_number: 4,
+        contents: [],
+        thought: 'Checking details. ',
+      },
+      {
+        type: 'response.reasoning.stopped',
+        sequence_number: 5,
+        thought: 'Done.',
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks).toEqual([
+      { type: 'stream-start', warnings: [] },
+      { type: 'reasoning-start', id: 'reasoning-0' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Planning. ' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Searching. ' },
+      {
+        type: 'reasoning-delta',
+        id: 'reasoning-0',
+        delta: 'Reviewing results. ',
+      },
+      {
+        type: 'reasoning-delta',
+        id: 'reasoning-0',
+        delta: 'Fetching details. ',
+      },
+      {
+        type: 'reasoning-delta',
+        id: 'reasoning-0',
+        delta: 'Checking details. ',
+      },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Done.' },
+      { type: 'reasoning-end', id: 'reasoning-0' },
+      expect.objectContaining({ type: 'finish' }),
+    ]);
+  });
+
+  it('handles incomplete terminal events and preserves usage', async () => {
+    prepareStream([
+      {
+        type: 'response.incomplete',
+        sequence_number: 0,
+        response: createResponse({
+          status: 'incomplete',
+          incomplete_details: { reason: 'max_output_tokens' },
+        }),
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: {
+            unified: 'length',
+            raw: 'max_output_tokens',
+          },
+          usage: expect.objectContaining({
+            inputTokens: expect.objectContaining({ total: 120 }),
+            outputTokens: expect.objectContaining({ total: 45 }),
+          }),
         }),
       ]),
     );

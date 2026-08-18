@@ -1,13 +1,14 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  APICallError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -174,6 +175,10 @@ function createSource(
       },
     },
   };
+}
+
+function hasSearchResultId(source: PerplexityUrlSource): boolean {
+  return typeof source.providerMetadata?.perplexity?.resultId === 'number';
 }
 
 function getSearchResults(item: PerplexityOutputItem) {
@@ -505,12 +510,13 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
   ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
+    const url = `${this.config.baseURL}/v1/agent`;
     const {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
     } = await postJsonToApi({
-      url: `${this.config.baseURL}/v1/agent`,
+      url,
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
@@ -524,14 +530,32 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    if (response.error != null || response.status === 'failed') {
+      throw new APICallError({
+        message: response.error?.message ?? 'Perplexity response failed',
+        url,
+        requestBodyValues: body,
+        statusCode: 400,
+        responseHeaders,
+        responseBody: rawResponse as string,
+        isRetryable: false,
+      });
+    }
+
     const content: LanguageModelV4Content[] = [];
-    const seenSourceUrls = new Set<string>();
+    const sourceIndexesByUrl = new Map<string, number>();
     let hasFunctionCall = false;
 
     const addSource = (source: PerplexityUrlSource) => {
-      if (!seenSourceUrls.has(source.url)) {
-        seenSourceUrls.add(source.url);
+      const existingIndex = sourceIndexesByUrl.get(source.url);
+      if (existingIndex == null) {
+        sourceIndexesByUrl.set(source.url, content.length);
         content.push(source);
+      } else if (
+        hasSearchResultId(source) &&
+        !hasSearchResultId(content[existingIndex] as PerplexityUrlSource)
+      ) {
+        content[existingIndex] = source;
       }
     };
 
@@ -585,21 +609,26 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
           providerMetadata: {
             perplexity: {
               itemId: item.id ?? null,
-              thoughtSignature: item.thought_signature ?? null,
+              ...(item.thought_signature != null && {
+                thoughtSignature: item.thought_signature,
+              }),
             },
           },
         });
       }
     }
 
+    const finishReason = response.incomplete_details?.reason ?? response.status;
+
     return {
       content,
       finishReason: {
         unified: mapPerplexityFinishReason({
           status: response.status,
+          incompleteReason: response.incomplete_details?.reason,
           hasFunctionCall,
         }),
-        raw: response.status,
+        raw: finishReason,
       },
       usage: convertPerplexityUsage(response.usage),
       request: { body },
@@ -641,8 +670,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     let usage: PerplexityUsage | undefined;
     let hasFunctionCall = false;
     let hasResponseMetadata = false;
+    let activeReasoningId: string | undefined;
     const activeTextIds = new Set<string>();
-    const seenSourceUrls = new Set<string>();
+    const emittedSourcesByUrl = new Map<string, boolean>();
     const seenFunctionCalls = new Set<string>();
     const generateId = this.config.generateId;
 
@@ -670,9 +700,24 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
             const value = chunk.value;
 
             const emitSource = (source: PerplexityUrlSource) => {
-              if (!seenSourceUrls.has(source.url)) {
-                seenSourceUrls.add(source.url);
+              const hasResultId = hasSearchResultId(source);
+              const previousHasResultId = emittedSourcesByUrl.get(source.url);
+              if (
+                previousHasResultId == null ||
+                (hasResultId && !previousHasResultId)
+              ) {
+                emittedSourcesByUrl.set(source.url, hasResultId);
                 controller.enqueue(source);
+              }
+            };
+
+            const emitReasoningThought = (thought: string | undefined) => {
+              if (activeReasoningId != null && thought != null) {
+                controller.enqueue({
+                  type: 'reasoning-delta',
+                  id: activeReasoningId,
+                  delta: thought,
+                });
               }
             };
 
@@ -707,7 +752,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                 providerMetadata: {
                   perplexity: {
                     itemId: item.id ?? null,
-                    thoughtSignature: item.thought_signature ?? null,
+                    ...(item.thought_signature != null && {
+                      thoughtSignature: item.thought_signature,
+                    }),
                   },
                 },
               });
@@ -770,7 +817,32 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                 break;
               }
 
+              case 'response.reasoning.started': {
+                if (activeReasoningId != null) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: activeReasoningId,
+                  });
+                }
+                activeReasoningId = `reasoning-${
+                  value.sequence_number ?? generateId()
+                }`;
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: activeReasoningId,
+                });
+                emitReasoningThought(value.thought);
+                break;
+              }
+
+              case 'response.reasoning.search_queries':
+              case 'response.reasoning.fetch_url_queries': {
+                emitReasoningThought(value.thought);
+                break;
+              }
+
               case 'response.reasoning.search_results': {
+                emitReasoningThought(value.thought);
                 for (const result of value.results ?? []) {
                   emitSource(createSource(result, generateId));
                 }
@@ -778,6 +850,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
 
               case 'response.reasoning.fetch_url_results': {
+                emitReasoningThought(value.thought);
                 for (const result of value.contents ?? []) {
                   emitSource({
                     type: 'source',
@@ -793,6 +866,18 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                 break;
               }
 
+              case 'response.reasoning.stopped': {
+                emitReasoningThought(value.thought);
+                if (activeReasoningId != null) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: activeReasoningId,
+                  });
+                  activeReasoningId = undefined;
+                }
+                break;
+              }
+
               case 'response.output_item.done': {
                 if (value.item != null) {
                   emitOutputSources(value.item);
@@ -801,7 +886,8 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                 break;
               }
 
-              case 'response.completed': {
+              case 'response.completed':
+              case 'response.incomplete': {
                 if (value.response != null) {
                   if (!hasResponseMetadata) {
                     controller.enqueue({
@@ -815,12 +901,17 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                     emitFunctionCall(item);
                   }
                   usage = value.response.usage ?? undefined;
+                  const rawFinishReason =
+                    value.response.incomplete_details?.reason ??
+                    value.response.status;
                   finishReason = {
                     unified: mapPerplexityFinishReason({
                       status: value.response.status,
+                      incompleteReason:
+                        value.response.incomplete_details?.reason,
                       hasFunctionCall,
                     }),
-                    raw: value.response.status,
+                    raw: rawFinishReason,
                   };
                 }
                 break;
@@ -838,6 +929,12 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            if (activeReasoningId != null) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: activeReasoningId,
+              });
+            }
             for (const id of activeTextIds) {
               controller.enqueue({ type: 'text-end', id });
             }
