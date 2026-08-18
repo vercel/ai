@@ -212,8 +212,7 @@ export interface GenerationSettings {
   seed?: number;
 
   /**
-   * Maximum number of retries. Set to 0 to disable retries.
-   * Note: In workflow context, retries are typically handled by the workflow step mechanism.
+   * Maximum number of retries for retryable model call failures. Set to 0 to disable retries.
    * @default 2
    */
   maxRetries?: number;
