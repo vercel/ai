@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18994,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-18994-amazon-bedrock-corrupt-event-stream-frame.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-18994-amazon-bedrock-corrupt-event-stream-frame.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "REPRODUCTION FAILED: corrupted AWS event-stream frame produced a silent normal completion instead of surfacing an error"
+  }
+}
