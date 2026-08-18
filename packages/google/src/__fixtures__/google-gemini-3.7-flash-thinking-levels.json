@@ -1,0 +1,46 @@
+{
+  "minimal": {
+    "status": 400,
+    "body": {
+      "error": {
+        "code": 400,
+        "message": "Thinking level MINIMAL is not supported for this model. Please retry with other thinking level.",
+        "status": "INVALID_ARGUMENT"
+      }
+    }
+  },
+  "low": {
+    "status": 200,
+    "body": {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "Hello! How can I help you today?",
+                "thoughtSignature": "EmcKZQERTTIP+ioay1Mob3/yO79S3Uw1reSi9ZYBsscvogEBam0cDSSxc0IWmwlx0Mo1DSjAYVEs3iuBm/JgLvTs5nRAR8XR37SNw0t+lT/SR0rU1hoos46dpqQPWNnCUyfIZG4Yyqh0"
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 2,
+        "candidatesTokenCount": 9,
+        "totalTokenCount": 11,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "modelVersion": "gemini-3.7-flash",
+      "responseId": "kNiDavuDIcja_uMP8tCj-QU"
+    }
+  }
+}

@@ -3934,6 +3934,66 @@ describe('doGenerate', () => {
 
     describe('Gemini 3 models (thinkingLevel)', () => {
       const gemini3Model = provider.chat('gemini-3-pro-preview');
+      const gemini37ThinkingLevelFixtures = JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/google-gemini-3.7-flash-thinking-levels.json',
+          'utf8',
+        ),
+      ) as Record<
+        'minimal' | 'low',
+        {
+          status: number;
+          body: unknown;
+        }
+      >;
+
+      function createGemini37ModelWithRecordedThinkingLevelResponses() {
+        return createGoogle({
+          apiKey: 'test-api-key',
+          fetch: async (_url, init) => {
+            const requestBody = JSON.parse(String(init?.body)) as {
+              generationConfig?: {
+                thinkingConfig?: {
+                  thinkingLevel?: string;
+                };
+              };
+            };
+            const thinkingLevel =
+              requestBody.generationConfig?.thinkingConfig?.thinkingLevel;
+
+            if (thinkingLevel !== 'minimal' && thinkingLevel !== 'low') {
+              throw new Error(
+                `Unexpected thinking level: ${String(thinkingLevel)}`,
+              );
+            }
+
+            const fixture = gemini37ThinkingLevelFixtures[thinkingLevel];
+
+            return new Response(JSON.stringify(fixture.body), {
+              status: fixture.status,
+              headers: { 'content-type': 'application/json' },
+            });
+          },
+        }).chat('gemini-3.7-flash');
+      }
+
+      it.each(['minimal', 'none'] as const)(
+        'should generate text for Gemini 3.7 Flash reasoning "%s"',
+        async reasoning => {
+          const result =
+            await createGemini37ModelWithRecordedThinkingLevelResponses().doGenerate(
+              {
+                prompt: TEST_PROMPT,
+                reasoning,
+              },
+            );
+
+          expect(result.content).toContainEqual({
+            type: 'text',
+            text: 'Hello! How can I help you today?',
+          });
+        },
+      );
 
       it('should map reasoning "minimal" to thinkingLevel "minimal"', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
