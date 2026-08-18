@@ -215,6 +215,9 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
+                    ...(part.approval?.callerToolCallId != null
+                      ? { callerToolCallId: part.approval.callerToolCallId }
+                      : {}),
                     toolName,
                     input:
                       part.state === 'output-error'
@@ -232,6 +235,11 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-approval-request' as const,
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
+                      ...(part.approval.callerToolCallId != null
+                        ? {
+                            callerToolCallId: part.approval.callerToolCallId,
+                          }
+                        : {}),
                       isAutomatic: part.approval.isAutomatic,
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }

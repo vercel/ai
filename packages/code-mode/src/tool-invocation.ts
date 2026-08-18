@@ -87,14 +87,35 @@ export async function invokeHostTool({
     ...(codeModeInterrupt !== undefined ? { codeModeInterrupt } : {}),
   };
 
-  const needsApproval =
-    !skipApproval &&
-    (await raceAgainstAbort(
-      requiresApproval(hostTool, validation.value, executionOptions),
-      executionOptions.abortSignal,
-    ));
+  const approvalRequest = {
+    toolName,
+    input: validation.value,
+    toolCallId,
+  };
+  const approvalStatus = skipApproval
+    ? { type: 'not-applicable' as const }
+    : codeModeOptions.approval?.resolve != null
+      ? await raceAgainstAbort(
+          codeModeOptions.approval.resolve(approvalRequest),
+          executionOptions.abortSignal,
+        )
+      : (await raceAgainstAbort(
+            requiresApproval(hostTool, validation.value, executionOptions),
+            executionOptions.abortSignal,
+          ))
+        ? { type: 'user-approval' as const }
+        : { type: 'not-applicable' as const };
 
-  if (needsApproval) {
+  if (approvalStatus.type === 'denied') {
+    throw new CodeModeToolApprovalDeniedError(
+      toolName,
+      validation.value,
+      toolCallId,
+      approvalStatus.reason,
+    );
+  }
+
+  if (approvalStatus.type === 'user-approval') {
     if (codeModeOptions.approval?.mode === 'interrupt') {
       return {
         type: 'interrupted',
@@ -107,11 +128,7 @@ export async function invokeHostTool({
 
     const approval = await raceAgainstAbort(
       Promise.resolve(
-        codeModeOptions.approval?.onApprovalRequired?.({
-          toolName,
-          input: validation.value,
-          toolCallId,
-        }),
+        codeModeOptions.approval?.onApprovalRequired?.(approvalRequest),
       ),
       baseExecutionOptions.abortSignal,
     );

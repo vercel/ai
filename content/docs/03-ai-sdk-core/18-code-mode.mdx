@@ -134,6 +134,70 @@ const user = await tools['lookup-user']({ userId: 'user_123' });
 return { id: user.id, plan: user.plan };
 ```
 
+## Tool Approvals
+
+Use the regular `toolApproval` option to require approval for code mode itself,
+for tools called by code mode, or both. When a nested tool requires manual
+approval, code mode pauses and returns a standard `tool-approval-request`.
+Calling `generateText` or `streamText` again with the approval response resumes
+the same program. A program can pause more than once if it calls multiple tools
+that require approval.
+
+This example requires approval for the generated code and for
+`getInventory`, using the tools defined above:
+
+```ts
+import { generateText, type ModelMessage, type ToolApprovalResponse } from 'ai';
+
+const messages: ModelMessage[] = [
+  {
+    role: 'user',
+    content: 'Compare inventory and demand for product sku_123.',
+  },
+];
+
+while (true) {
+  const result = await generateText({
+    model: __MODEL__,
+    tools,
+    experimental_toolCallers: {
+      getInventory: ['code_mode'],
+      getDemand: ['code_mode'],
+    },
+    toolApproval: {
+      code_mode: 'user-approval',
+      getInventory: 'user-approval',
+    },
+    messages,
+  });
+
+  messages.push(...result.responseMessages);
+
+  const responses: ToolApprovalResponse[] = [];
+  for (const part of result.content) {
+    if (part.type === 'tool-approval-request' && !part.isAutomatic) {
+      responses.push({
+        type: 'tool-approval-response',
+        approvalId: part.approvalId,
+        approved: await requestUserApproval(part.toolCall),
+      });
+    }
+  }
+
+  if (responses.length === 0) {
+    break;
+  }
+
+  messages.push({ role: 'tool', content: responses });
+}
+```
+
+`requestUserApproval` represents your application-specific UI or confirmation
+logic. Omit `code_mode` from `toolApproval` if the generated program may run
+without approval, while still protecting selected nested tools. See
+[Tool Execution Approval](/docs/ai-sdk-core/tools-and-tool-calling#tool-execution-approval)
+for dynamic policies and UI integration.
+
 ## Writing Code Mode Programs
 
 Generated programs support:
@@ -245,5 +309,5 @@ to code mode.
 Tool input schemas are validated before their `execute` functions run. Abort
 signals and AI SDK tool execution context are forwarded to nested tool calls.
 
-Code mode does not currently support approval flows for nested tool calls.
-Tools that require approval are rejected instead of being executed.
+Nested tool calls use the same `toolApproval` configuration as directly called
+tools.

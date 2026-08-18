@@ -131,6 +131,7 @@ const uiMessagesSchema = lazySchema(() =>
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: z.object({
                     id: z.string(),
+                    callerToolCallId: z.string().optional(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
@@ -150,6 +151,7 @@ const uiMessagesSchema = lazySchema(() =>
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: z.object({
                     id: z.string(),
+                    callerToolCallId: z.string().optional(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
@@ -172,6 +174,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z
                     .object({
                       id: z.string(),
+                      callerToolCallId: z.string().optional(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
@@ -195,6 +198,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z
                     .object({
                       id: z.string(),
+                      callerToolCallId: z.string().optional(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
@@ -215,6 +219,7 @@ const uiMessagesSchema = lazySchema(() =>
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: z.object({
                     id: z.string(),
+                    callerToolCallId: z.string().optional(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
@@ -257,6 +262,7 @@ const uiMessagesSchema = lazySchema(() =>
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: z.object({
                     id: z.string(),
+                    callerToolCallId: z.string().optional(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
@@ -275,6 +281,7 @@ const uiMessagesSchema = lazySchema(() =>
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: z.object({
                     id: z.string(),
+                    callerToolCallId: z.string().optional(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
@@ -296,6 +303,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z
                     .object({
                       id: z.string(),
+                      callerToolCallId: z.string().optional(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
@@ -318,6 +326,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z
                     .object({
                       id: z.string(),
+                      callerToolCallId: z.string().optional(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
@@ -337,6 +346,7 @@ const uiMessagesSchema = lazySchema(() =>
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: z.object({
                     id: z.string(),
+                    callerToolCallId: z.string().optional(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),

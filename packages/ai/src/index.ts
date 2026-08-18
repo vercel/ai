@@ -20,7 +20,7 @@ export {
   type InferToolOutput,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
-  type Experimental_ToolCallerTool,
+  type Experimental_ToolWithCaller,
   type Schema,
   type Tool,
   type ToolApprovalRequest,

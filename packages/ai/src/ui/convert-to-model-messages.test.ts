@@ -740,45 +740,45 @@ describe('convertToModelMessages', () => {
         ]);
 
         expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "content": [
-              {
-                "text": "Let me calculate that for you.",
-                "type": "text",
-              },
-              {
-                "input": {
-                  "numbers": [
-                    1,
-                    2,
-                  ],
-                  "operation": "add",
+          [
+            {
+              "content": [
+                {
+                  "text": "Let me calculate that for you.",
+                  "type": "text",
                 },
-                "providerExecuted": undefined,
-                "toolCallId": "call1",
-                "toolName": "calculator",
-                "type": "tool-call",
-              },
-            ],
-            "role": "assistant",
-          },
-          {
-            "content": [
-              {
-                "output": {
-                  "type": "error-text",
-                  "value": "Error: Invalid input",
+                {
+                  "input": {
+                    "numbers": [
+                      1,
+                      2,
+                    ],
+                    "operation": "add",
+                  },
+                  "providerExecuted": undefined,
+                  "toolCallId": "call1",
+                  "toolName": "calculator",
+                  "type": "tool-call",
                 },
-                "toolCallId": "call1",
-                "toolName": "calculator",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
-        ]
-      `);
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "error-text",
+                    "value": "Error: Invalid input",
+                  },
+                  "toolCallId": "call1",
+                  "toolName": "calculator",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
       });
 
       it('should handle assistant message with tool output error that has no raw input', async () => {
@@ -804,45 +804,45 @@ describe('convertToModelMessages', () => {
         ]);
 
         expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "content": [
-              {
-                "text": "Let me calculate that for you.",
-                "type": "text",
-              },
-              {
-                "input": {
-                  "numbers": [
-                    1,
-                    2,
-                  ],
-                  "operation": "add",
+          [
+            {
+              "content": [
+                {
+                  "text": "Let me calculate that for you.",
+                  "type": "text",
                 },
-                "providerExecuted": undefined,
-                "toolCallId": "call1",
-                "toolName": "calculator",
-                "type": "tool-call",
-              },
-            ],
-            "role": "assistant",
-          },
-          {
-            "content": [
-              {
-                "output": {
-                  "type": "error-text",
-                  "value": "Error: Invalid input",
+                {
+                  "input": {
+                    "numbers": [
+                      1,
+                      2,
+                    ],
+                    "operation": "add",
+                  },
+                  "providerExecuted": undefined,
+                  "toolCallId": "call1",
+                  "toolName": "calculator",
+                  "type": "tool-call",
                 },
-                "toolCallId": "call1",
-                "toolName": "calculator",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
-        ]
-      `);
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "error-text",
+                    "value": "Error: Invalid input",
+                  },
+                  "toolCallId": "call1",
+                  "toolName": "calculator",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
       });
     });
 
@@ -1807,6 +1807,55 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when converting tool approval request responses', () => {
+    it('round-trips a nested caller approval from UI chunks to model messages', async () => {
+      const recordedMessage = await recordAssistantMessageFromChunks([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'nested-call',
+          toolName: 'weather',
+          input: { city: 'Tokyo' },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'nested-approval',
+          toolCallId: 'nested-call',
+          callerToolCallId: 'outer-call',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      expect(await convertToModelMessages([recordedMessage]))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "callerToolCallId": "outer-call",
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "providerExecuted": undefined,
+                  "toolCallId": "nested-call",
+                  "toolName": "weather",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "nested-approval",
+                  "callerToolCallId": "outer-call",
+                  "isAutomatic": undefined,
+                  "toolCallId": "nested-call",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+    });
+
     it('should convert an approved tool approval request (static tool)', async () => {
       const result = await convertToModelMessages([
         {

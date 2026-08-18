@@ -318,6 +318,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       callProviderMetadata?: ProviderMetadata;
       approval: {
         id: string;
+        callerToolCallId?: string;
         approved?: never;
         reason?: never;
         isAutomatic?: boolean;
@@ -332,6 +333,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       callProviderMetadata?: ProviderMetadata;
       approval: {
         id: string;
+        callerToolCallId?: string;
         approved: boolean;
         reason?: string;
         isAutomatic?: boolean;
@@ -348,6 +350,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       preliminary?: boolean;
       approval?: {
         id: string;
+        callerToolCallId?: string;
         approved: true;
         reason?: string;
         isAutomatic?: boolean;
@@ -364,6 +367,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       resultProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;
+        callerToolCallId?: string;
         approved: true;
         reason?: string;
         isAutomatic?: boolean;
@@ -378,6 +382,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       callProviderMetadata?: ProviderMetadata;
       approval: {
         id: string;
+        callerToolCallId?: string;
         approved: false;
         reason?: string;
         isAutomatic?: boolean;
@@ -436,6 +441,7 @@ export type DynamicToolUIPart = {
       callProviderMetadata?: ProviderMetadata;
       approval: {
         id: string;
+        callerToolCallId?: string;
         approved?: never;
         reason?: never;
         isAutomatic?: boolean;
@@ -450,6 +456,7 @@ export type DynamicToolUIPart = {
       callProviderMetadata?: ProviderMetadata;
       approval: {
         id: string;
+        callerToolCallId?: string;
         approved: boolean;
         reason?: string;
         isAutomatic?: boolean;
@@ -466,6 +473,7 @@ export type DynamicToolUIPart = {
       preliminary?: boolean;
       approval?: {
         id: string;
+        callerToolCallId?: string;
         approved: true;
         reason?: string;
         isAutomatic?: boolean;
@@ -481,6 +489,7 @@ export type DynamicToolUIPart = {
       resultProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;
+        callerToolCallId?: string;
         approved: true;
         reason?: string;
         isAutomatic?: boolean;
@@ -495,6 +504,7 @@ export type DynamicToolUIPart = {
       callProviderMetadata?: ProviderMetadata;
       approval: {
         id: string;
+        callerToolCallId?: string;
         approved: false;
         reason?: string;
         isAutomatic?: boolean;
