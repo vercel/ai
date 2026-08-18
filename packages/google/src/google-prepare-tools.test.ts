@@ -1,5 +1,5 @@
 import type { LanguageModelV4ProviderTool } from '@ai-sdk/provider';
-import { expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
@@ -1014,5 +1014,77 @@ it('should use AUTO mode when no tools have strict: true', () => {
   });
   expect(result.toolConfig).toEqual({
     functionCallingConfig: { mode: 'AUTO' },
+  });
+});
+
+describe('useParametersJsonSchema', () => {
+  // A schema the OpenAPI conversion cannot carry: `$defs`/`$ref` are not in
+  // its keyword list, so it drops them and the parameter reaches the model as
+  // an empty object while still being required.
+  const SCHEMA_WITH_DEFS = {
+    type: 'object',
+    $defs: { Thesis: { type: 'object', properties: { name: { type: 'string' } } } },
+    properties: { thesis: { $ref: '#/$defs/Thesis' } },
+    required: ['thesis'],
+  } as const;
+
+  // A multi-type node. It carries no `anyOf`, but the conversion has no other
+  // way to express it, so it emits `anyOf` while leaving `required`/`properties`
+  // in place — which the API rejects, because `anyOf` must be the only field.
+  const SCHEMA_MULTI_TYPE = {
+    type: 'object',
+    properties: {
+      entries: {
+        type: 'array',
+        items: {
+          type: ['null', 'object'],
+          required: ['path'],
+          properties: { path: { type: 'string' } },
+        },
+      },
+    },
+  } as const;
+
+  const toolWith = (inputSchema: unknown) => [
+    {
+      type: 'function' as const,
+      name: 'testTool',
+      description: 'test',
+      inputSchema: inputSchema as any,
+    },
+  ];
+
+  it('sends the schema verbatim and omits parameters', () => {
+    const { tools } = prepareTools({
+      tools: toolWith(SCHEMA_WITH_DEFS),
+      modelId: 'gemini-2.5-flash',
+      useParametersJsonSchema: true,
+    });
+
+    const declaration = (tools as any)[0].functionDeclarations[0];
+    expect(declaration.parametersJsonSchema).toEqual(SCHEMA_WITH_DEFS);
+    // Mutually exclusive: sending both is an API error.
+    expect(declaration.parameters).toBeUndefined();
+  });
+
+  it('does not turn a multi-type node into anyOf with siblings', () => {
+    const { tools } = prepareTools({
+      tools: toolWith(SCHEMA_MULTI_TYPE),
+      modelId: 'gemini-2.5-flash',
+      useParametersJsonSchema: true,
+    });
+
+    expect(JSON.stringify(tools)).not.toContain('anyOf');
+  });
+
+  it('defaults to the OpenAPI conversion', () => {
+    const { tools } = prepareTools({
+      tools: toolWith(SCHEMA_WITH_DEFS),
+      modelId: 'gemini-2.5-flash',
+    });
+
+    const declaration = (tools as any)[0].functionDeclarations[0];
+    expect(declaration.parameters).toBeDefined();
+    expect(declaration.parametersJsonSchema).toBeUndefined();
   });
 });
