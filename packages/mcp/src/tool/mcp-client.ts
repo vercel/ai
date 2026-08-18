@@ -701,7 +701,9 @@ class DefaultMCPClient implements MCPClient {
     message: JSONRPCMessage,
     options?: MCPTransportSendOptions,
   ): Promise<void> {
-    return this.transport.send(message, options);
+    return options == null
+      ? this.transport.send(message)
+      : this.transport.send(message, options);
   }
 
   private assertCapability(method: string): void {
@@ -888,10 +890,14 @@ class DefaultMCPClient implements MCPClient {
         timeoutId = setTimeout(onTimeout, timeout);
       }
 
-      const sendPromise = this.send(jsonrpcRequest, {
+      const sendOptions: MCPTransportSendOptions = {
         ...(transportSignal == null ? {} : { signal: transportSignal }),
         ...(headers == null ? {} : { headers }),
-      });
+      };
+      const sendPromise =
+        Object.keys(sendOptions).length === 0
+          ? this.send(jsonrpcRequest)
+          : this.send(jsonrpcRequest, sendOptions);
 
       sendPromise.catch(error => {
         rejectAndCleanup(error);

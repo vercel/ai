@@ -184,7 +184,7 @@ describe('HttpMCPTransport', () => {
         jsonrpc: '2.0',
         id: 0,
         result: {
-          protocolVersion: LATEST_PROTOCOL_VERSION,
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
           capabilities: {},
           serverInfo: { name: 'test-server', version: '1.0.0' },
         },
@@ -271,7 +271,7 @@ describe('HttpMCPTransport', () => {
               jsonrpc: '2.0',
               id: message.id,
               result: {
-                protocolVersion: LATEST_PROTOCOL_VERSION,
+                protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
                 capabilities: {},
                 serverInfo: { name: 'test-server', version: '1.0.0' },
               },
@@ -326,7 +326,7 @@ describe('HttpMCPTransport', () => {
               jsonrpc: '2.0',
               id: message.id,
               result: {
-                protocolVersion: LATEST_PROTOCOL_VERSION,
+                protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
                 capabilities: { tools: {} },
                 serverInfo: { name: 'test-server', version: '1.0.0' },
               },
@@ -1029,7 +1029,7 @@ describe('HttpMCPTransport', () => {
             jsonrpc: '2.0',
             id: 0,
             result: {
-              protocolVersion: LATEST_PROTOCOL_VERSION,
+              protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
               capabilities: {},
               serverInfo: { name: 'test-server', version: '1.0.0' },
             },
