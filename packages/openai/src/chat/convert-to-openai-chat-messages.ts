@@ -13,7 +13,9 @@ import {
 } from '@ai-sdk/provider-utils';
 
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(input === undefined ? {} : input);
+  return typeof input === 'string'
+    ? input
+    : JSON.stringify(input === undefined ? {} : input);
 }
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };

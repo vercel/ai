@@ -870,10 +870,38 @@ describe('tool calls', () => {
         content: JSON.stringify({ oof: '321rab' }),
         tool_call_id: 'quux',
       },
-    ]);
-  });
+      ]);
+    });
 
-  it('should send empty string content for assistant messages with no tool calls', () => {
+    it('should preserve string tool call arguments', () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                input: '{"foo":"bar123"}',
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.messages[0]).toMatchObject({
+        tool_calls: [
+          {
+            function: {
+              arguments: '{"foo":"bar123"}',
+            },
+          },
+        ],
+      });
+    });
+  
+    it('should send empty string content for assistant messages with no tool calls', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
         {
