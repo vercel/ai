@@ -1,5 +1,12 @@
 # @ai-sdk/togetherai
 
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [7440d89]
+  - @ai-sdk/openai-compatible@2.0.69
+
 ## 2.0.74
 
 ### Patch Changes
