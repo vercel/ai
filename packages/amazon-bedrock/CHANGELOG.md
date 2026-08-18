@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.116
+
+### Patch Changes
+
+- 0ecface: fix(bedrock): wrap invalid tool input in object
+
 ## 3.0.115
 
 ### Patch Changes
