@@ -1,6 +1,7 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import type { ModelMessage } from '@ai-sdk/provider-utils';
-import { describe, expect, it } from 'vitest';
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
+import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { convertToModelMessages } from './convert-to-model-messages';
@@ -1223,6 +1224,52 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when ignoring incomplete tool calls', () => {
+    it('should ignore preliminary tool outputs', async () => {
+      const toModelOutput = vi.fn(() => ({
+        type: 'text' as const,
+        value: 'converted preliminary output',
+      }));
+
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-progress',
+                state: 'output-available',
+                toolCallId: 'call-1',
+                input: { task: 'report' },
+                output: { phase: 'working' },
+                preliminary: true,
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        {
+          ignoreIncompleteToolCalls: true,
+          tools: {
+            progress: tool({
+              inputSchema: z.object({ task: z.string() }),
+              toModelOutput,
+            }),
+          },
+        },
+      );
+
+      expect(toModelOutput).not.toHaveBeenCalled();
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
     it('should ignore tool calls that are awaiting approval or have no state', async () => {
       const result = await convertToModelMessages(
         [
