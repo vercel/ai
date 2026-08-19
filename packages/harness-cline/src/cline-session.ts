@@ -16,6 +16,7 @@ import {
 import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
 import {
   Agent,
+  createTool,
   type AgentMessage,
   type AgentModel,
   type AgentRunResult,
@@ -372,6 +373,7 @@ export async function createClineSession(
   function rebuildAgent(rebuildInput: {
     userTools: ReadonlyArray<HarnessV1ToolSpec>;
     instructions?: string;
+    responseFormat?: HarnessV1PromptTurnOptions['responseFormat'];
   }): void {
     unsubscribe?.();
     unsubscribe = undefined;
@@ -401,7 +403,32 @@ export async function createClineSession(
           specs: rebuildInput.userTools,
           pendingToolResults,
         }),
+        ...(rebuildInput.responseFormat?.type === 'json' &&
+        rebuildInput.responseFormat.schema != null
+          ? [
+              createTool({
+                name: 'structured_output',
+                description:
+                  rebuildInput.responseFormat.description ??
+                  'Return the final structured output.',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    output: rebuildInput.responseFormat.schema,
+                  },
+                  required: ['output'],
+                  additionalProperties: false,
+                },
+                lifecycle: { completesRun: true },
+                execute: async ({ output }: { output: unknown }) =>
+                  JSON.stringify(output),
+              }),
+            ]
+          : []),
       ],
+      ...(rebuildInput.responseFormat?.type === 'json'
+        ? { completionPolicy: { requireCompletionTool: true } }
+        : {}),
       hooks: {
         afterTool: ({ result }) => {
           const toolResult = unwrapClineToolResult(result.output);
@@ -512,17 +539,43 @@ export async function createClineSession(
     instructions?: string;
     emit: (part: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
+    responseFormat?: HarnessV1PromptTurnOptions['responseFormat'];
   }): HarnessV1PromptControl {
     if (stopped) {
       throw new Error('Cline session has been stopped.');
     }
 
     const userTools = turnOpts.tools;
-    const signature = JSON.stringify(userTools.map(t => t.name).sort());
+    if (
+      turnOpts.responseFormat?.type === 'json' &&
+      turnOpts.responseFormat.schema == null
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message:
+          "Harness 'cline' requires a JSON schema for structured output.",
+        harnessId: HARNESS_ID,
+      });
+    }
+    if (
+      turnOpts.responseFormat?.type === 'json' &&
+      providerId === 'openai-codex-cli'
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message:
+          "Harness 'cline' cannot require structured output with the openai-codex-cli provider because that provider does not expose external tools.",
+        harnessId: HARNESS_ID,
+      });
+    }
+
+    const signature = JSON.stringify({
+      tools: userTools.map(t => t.name).sort(),
+      responseFormat: turnOpts.responseFormat,
+    });
     if (agent == null || signature !== lastToolsSignature) {
       currentMessages = agent?.snapshot().messages ?? currentMessages;
       rebuildAgent({
         userTools,
+        responseFormat: turnOpts.responseFormat,
         ...(turnOpts.instructions
           ? { instructions: turnOpts.instructions }
           : {}),
@@ -534,6 +587,8 @@ export async function createClineSession(
     translatorState = createClineTranslatorState({
       builtinToolNames: activeBuiltinNames,
       hostToolNames: userTools.map(tool => tool.name),
+      ignoredToolNames:
+        turnOpts.responseFormat?.type === 'json' ? ['structured_output'] : [],
       mcpToolNames: mcpRuntime.toolNames,
     });
 
@@ -571,6 +626,37 @@ export async function createClineSession(
         for (const part of finishClineTranslation(translatorState)) {
           currentEmit?.(part);
         }
+      }
+
+      if (
+        turnOpts.responseFormat?.type === 'json' &&
+        result.status === 'completed'
+      ) {
+        const id = `structured-output-${input.sessionId}`;
+        currentEmit?.({ type: 'text-start', id });
+        currentEmit?.({
+          type: 'text-delta',
+          id,
+          delta: result.outputText,
+        });
+        currentEmit?.({ type: 'text-end', id });
+        currentEmit?.({
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'structured-output' },
+          usage: {
+            inputTokens: {
+              total: 0,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 0,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        });
       }
 
       if (result.status === 'aborted') {
@@ -680,6 +766,7 @@ export async function createClineSession(
         ...(promptOpts.abortSignal
           ? { abortSignal: promptOpts.abortSignal }
           : {}),
+        responseFormat: promptOpts.responseFormat,
       });
     },
 
@@ -713,6 +800,7 @@ export async function createClineSession(
         ...(continueOpts.abortSignal
           ? { abortSignal: continueOpts.abortSignal }
           : {}),
+        responseFormat: continueOpts.responseFormat,
       });
     },
 

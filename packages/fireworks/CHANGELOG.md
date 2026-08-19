@@ -1,5 +1,18 @@
 # @ai-sdk/fireworks
 
+## 3.0.34
+
+### Patch Changes
+
+- ba40fab: fix(fireworks): enable structured outputs so response_format json_schema is forwarded instead of degrading to json_object
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [86892f3]
+  - @ai-sdk/openai-compatible@3.0.31
+
 ## 3.0.32
 
 ### Patch Changes

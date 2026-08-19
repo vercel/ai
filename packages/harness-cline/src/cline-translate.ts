@@ -24,6 +24,7 @@ export interface ClineTranslatorState {
   readonly builtinToolNames: ReadonlySet<string>;
   readonly dynamicToolCallIds: Set<string>;
   readonly hostToolNames: ReadonlySet<string>;
+  readonly ignoredToolNames: ReadonlySet<string>;
   readonly mcpToolNames: ReadonlySet<string>;
   openTextBlockId?: string;
   openReasoningBlockId?: string;
@@ -35,16 +36,19 @@ export interface ClineTranslatorState {
 export function createClineTranslatorState({
   builtinToolNames,
   hostToolNames = [],
+  ignoredToolNames = [],
   mcpToolNames = [],
 }: {
   builtinToolNames: Iterable<string>;
   hostToolNames?: Iterable<string>;
+  ignoredToolNames?: Iterable<string>;
   mcpToolNames?: Iterable<string>;
 }): ClineTranslatorState {
   return {
     builtinToolNames: new Set(builtinToolNames),
     dynamicToolCallIds: new Set(),
     hostToolNames: new Set(hostToolNames),
+    ignoredToolNames: new Set(ignoredToolNames),
     mcpToolNames: new Set(mcpToolNames),
     emittedToolCalls: new Set(),
     blockCounter: 0,
@@ -181,6 +185,7 @@ export function translateClineEvent(
     }
 
     case 'tool-started': {
+      if (state.ignoredToolNames.has(event.toolCall.toolName)) return [];
       if (state.emittedToolCalls.has(event.toolCall.toolCallId)) {
         return [];
       }
@@ -189,6 +194,7 @@ export function translateClineEvent(
     }
 
     case 'tool-finished': {
+      if (state.ignoredToolNames.has(event.toolCall.toolName)) return [];
       // The tool message carries the runtime's recorded result for this call.
       const resultPart = event.message.content.find(
         (part): part is Extract<typeof part, { type: 'tool-result' }> =>

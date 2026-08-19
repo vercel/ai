@@ -427,6 +427,15 @@ async function legacySessionPrompt({
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
     ...(start.variant ? { variant: start.variant } : {}),
+    ...(start.responseFormat?.type === 'json' &&
+    start.responseFormat.schema != null
+      ? {
+          format: {
+            type: 'json_schema' as const,
+            schema: start.responseFormat.schema,
+          },
+        }
+      : {}),
     parts: [{ type: 'text', text: start.prompt }],
   });
 }
@@ -601,12 +610,43 @@ async function runPrompt({
           state,
           emit,
         });
+        const info = asOpenCodeObject(event.properties?.info);
+        if (
+          start.responseFormat?.type === 'json' &&
+          info?.structured !== undefined
+        ) {
+          const id = String(info.id ?? randomUUID());
+          emit({ type: 'text-start', id });
+          emit({
+            type: 'text-delta',
+            id,
+            delta: JSON.stringify(info.structured),
+          });
+          emit({ type: 'text-end', id });
+          emit({
+            type: 'finish-step',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: defaultUsage(),
+          });
+          sawFinishStep = true;
+          turnSettled.resolve('event');
+          return true;
+        }
       }
       if (event.type === 'session.updated') {
         latestSessionTokens =
           extractSessionTokens(event.properties) ?? latestSessionTokens;
       }
       if (isStepSettlementEvent(event)) {
+        if (event.type === 'session.error') {
+          terminalError = formatError(event.properties?.error ?? event);
+        }
+        if (
+          start.responseFormat?.type === 'json' &&
+          event.type === 'session.next.step.ended'
+        ) {
+          return;
+        }
         turnSettled.resolve('event');
         return true;
       }
@@ -617,13 +657,10 @@ async function runPrompt({
         sawBusy = true;
         turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
-        turnSettled.resolve('event');
-        return true;
-      }
-      if (event.type === 'session.error') {
-        terminalError = formatError(event.properties?.error ?? event);
-        turnSettled.resolve('event');
-        return true;
+        if (start.responseFormat?.type !== 'json') {
+          turnSettled.resolve('event');
+          return true;
+        }
       }
     },
   }).finally(() => {

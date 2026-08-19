@@ -68,7 +68,7 @@ jobs:
           - shard: next-core
             filters: --filter=@example/next --filter=@example/next-openai --filter=@example/next-agent
           - shard: next-integrations
-            filters: --filter=@example/next-fastapi --filter=@example/next-google-vertex --filter=@example/next-langchain --filter=@example/next-workflow
+            filters: --filter=@example/harness-e2e-next --filter=@example/next-fastapi --filter=@example/next-google-vertex --filter=@example/next-langchain --filter=@example/next-workflow
           - shard: next-telemetry
             filters: --filter=@example/next-openai-kasada-bot-protection --filter=@example/next-openai-pages --filter=@example/next-openai-rate-limits --filter=@example/next-openai-telemetry --filter=@example/next-openai-telemetry-sentry
           - shard: other-frameworks
