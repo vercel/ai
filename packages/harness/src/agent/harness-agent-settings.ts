@@ -186,6 +186,31 @@ export type HarnessAgentSettings<
   readonly sandbox?: HarnessV1SandboxProvider;
 
   /**
+   * Consent policy for installing the runtime's executable (declared by the
+   * adapter in `HarnessV1.installation`) into the session's environment when
+   * it is missing.
+   *
+   * - Omitted (default): installs into provider-owned (disposable) sandboxes
+   *   are permitted; installs into a user-owned environment (the sandbox
+   *   session declares `environmentOwner: 'user'`) are denied, and the turn
+   *   fails with `HarnessExecutableMissingError` carrying the install
+   *   command.
+   * - `true`: consent is assumed everywhere — the harness installs without
+   *   asking.
+   * - `false`: installation is never permitted, even in disposable sandboxes.
+   * - A function: called with the harness id, the executable, and the install
+   *   command; return `true` to permit the install. Wire this to an
+   *   interactive prompt in a CLI host or to policy in a server host.
+   */
+  readonly onInstallRequest?:
+    | boolean
+    | ((request: {
+        readonly harnessId: string;
+        readonly executable: string;
+        readonly command: string;
+      }) => boolean | PromiseLike<boolean>);
+
+  /**
    * Sandbox working-directory and lifecycle hook configuration.
    */
   readonly sandboxConfig?: HarnessAgentSandboxConfig;

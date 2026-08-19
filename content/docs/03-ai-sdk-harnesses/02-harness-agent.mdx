@@ -458,6 +458,13 @@ console.log(preparation.identity);
 - `permissionMode`: built-in tool permission mode.
 - `toolApproval`: approval status map for host-executed tools.
 - `sandboxConfig`: sandbox working-directory and lifecycle hook configuration.
+- `onInstallRequest`: consent policy for installing the runtime's executable
+  into the session's environment when it is missing. By default, installs into
+  provider-owned (disposable) sandboxes are permitted while installs into a
+  user-owned environment fail with `HarnessExecutableMissingError` carrying
+  the install command. Pass `true` to assume consent everywhere, `false` to
+  never install, or a function to decide per request (wire it to an
+  interactive prompt in a CLI host, or to policy in a server host).
 - `telemetry`, `debug`, and `onLog`: observability and diagnostics.
 
 Adapter-specific settings belong on the adapter factory, for example
