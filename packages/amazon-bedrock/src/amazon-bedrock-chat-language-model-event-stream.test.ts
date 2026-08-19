@@ -168,7 +168,6 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
     );
   });
 
-<<<<<<< HEAD
   it('surfaces modeled exception frames as stream errors', async () => {
     const exception = {
       message: 'An error occurred while streaming the response.',
@@ -193,7 +192,31 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
         headers: {},
         fetch: async () =>
           new Response(createStream([exceptionFrame]), {
-=======
+            status: 200,
+            headers: {
+              'content-type': 'application/vnd.amazon.eventstream',
+            },
+          }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.at(-2)).toEqual({
+      type: 'error',
+      error: exception,
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'error' },
+    });
+  });
+
   it('streams reasoning redacted as `redactedContent` for replay', async () => {
     // `redactedContent` is a member of the ReasoningContentBlockDelta union in
     // the Converse API. OpenAI models on Bedrock (e.g. `us.openai.gpt-5.6-luna`)
@@ -249,39 +272,19 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
             ),
           ]),
           {
->>>>>>> origin/main
             status: 200,
             headers: {
               'content-type': 'application/vnd.amazon.eventstream',
             },
-<<<<<<< HEAD
-          }),
-        generateId: () => 'test-id',
-      },
-    );
-=======
           },
         ),
       generateId: () => 'test-id',
     });
->>>>>>> origin/main
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
     });
-<<<<<<< HEAD
-    const parts = await convertReadableStreamToArray(stream);
-
-    expect(parts.at(-2)).toEqual({
-      type: 'error',
-      error: exception,
-    });
-    expect(parts.at(-1)).toMatchObject({
-      type: 'finish',
-      finishReason: { unified: 'error' },
-    });
-=======
 
     const parts = await convertReadableStreamToArray(stream);
 
@@ -399,6 +402,5 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
         },
       },
     ]);
->>>>>>> origin/main
   });
 });
