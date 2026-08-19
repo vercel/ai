@@ -41,6 +41,7 @@ describe('createGrokBuild', () => {
       args: settings.args,
       credentialEnv: settings.credentialEnv,
       instructionMapping: settings.instructionMapping,
+      outputSchemaMapping: settings.outputSchemaMapping,
       providerAuthentication: settings.providerAuthentication,
       builtinToolNames: Object.keys(settings.builtinTools ?? {}),
     }).toMatchInlineSnapshot(`
@@ -90,6 +91,12 @@ describe('createGrokBuild', () => {
             "rules",
           ],
           "type": "session-meta",
+        },
+        "outputSchemaMapping": {
+          "path": [
+            "outputSchema",
+          ],
+          "type": "session-prompt-meta",
         },
         "providerAuthentication": {
           "gateway": {

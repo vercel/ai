@@ -3117,6 +3117,56 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should send derived allowed_tools entries for function, built-in and mcp tools', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            ...TEST_TOOLS,
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'search',
+              args: {},
+            },
+            {
+              type: 'provider',
+              id: 'openai.mcp',
+              name: 'deepwiki',
+              args: {
+                serverLabel: 'deepwiki',
+                serverUrl: 'https://mcp.deepwiki.com/mcp',
+              },
+            },
+          ],
+          providerOptions: {
+            openai: {
+              allowedTools: { toolNames: ['weather', 'search', 'deepwiki'] },
+            },
+          },
+        });
+
+        const body = (await server.calls[0].requestBodyJson) as {
+          tools: Array<{ type: string; name?: string }>;
+          tool_choice: unknown;
+        };
+
+        expect(body.tools.map(t => t.name ?? t.type)).toEqual([
+          'weather',
+          'cityAttractions',
+          'web_search',
+          'mcp',
+        ]);
+        expect(body.tool_choice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [
+            { type: 'function', name: 'weather' },
+            { type: 'web_search' },
+            { type: 'mcp', server_label: 'deepwiki' },
+          ],
+        });
+      });
+
       it('should send allowed_tools with required mode when allowedTools.mode is required', async () => {
         await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -5804,6 +5854,83 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('compaction', () => {
+      it('should append an explicit compaction trigger as the final input item', async () => {
+        prepareJsonFixtureResponse('openai-compaction.1');
+
+        await createModel('gpt-5.2').doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'custom',
+                  kind: 'openai.compaction',
+                  providerOptions: {
+                    openai: {
+                      type: 'compaction',
+                      itemId: 'cmp_123',
+                      encryptedContent: 'encrypted_compaction_state',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Continue from this context.' }],
+            },
+          ],
+          providerOptions: {
+            openai: {
+              store: false,
+              compactionTrigger: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              type: 'compaction',
+              id: 'cmp_123',
+              encrypted_content: 'encrypted_compaction_state',
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: 'Continue from this context.',
+                },
+              ],
+            },
+            { type: 'compaction_trigger' },
+          ],
+        });
+      });
+
+      it('should not append a compaction trigger when disabled', async () => {
+        prepareJsonFixtureResponse('openai-compaction.1');
+
+        await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              compactionTrigger: false,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+      });
+
       it('should parse compaction output item from real fixture', async () => {
         prepareJsonFixtureResponse('openai-compaction.1');
 
@@ -9914,6 +10041,30 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('compaction', () => {
+      it('should append an explicit compaction trigger to streaming input', async () => {
+        prepareChunksFixtureResponse('openai-compaction.1');
+
+        await createModel('gpt-5.2').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              compactionTrigger: true,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          stream: true,
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+            { type: 'compaction_trigger' },
+          ],
+        });
+      });
+
       it('should stream compaction output item from real fixture', async () => {
         prepareChunksFixtureResponse('openai-compaction.1');
 

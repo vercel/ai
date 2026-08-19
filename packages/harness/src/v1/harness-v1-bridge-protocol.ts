@@ -4,6 +4,7 @@ import {
   harnessV1DebugLevelSchema,
   type HarnessV1Diagnostic,
 } from './harness-v1-diagnostic';
+import type { HarnessV1ResponseFormat } from './harness-v1-response-format';
 import {
   harnessV1CompactionPartSchema,
   harnessV1ErrorPartSchema,
@@ -87,6 +88,17 @@ export const harnessV1BridgeBuiltinToolFilteringSchema = z.discriminatedUnion(
   ],
 );
 
+export const harnessV1BridgeResponseFormatSchema: z.ZodType<HarnessV1ResponseFormat> =
+  z.discriminatedUnion('type', [
+    z.object({ type: z.literal('text') }),
+    z.object({
+      type: z.literal('json'),
+      schema: z.record(z.string(), z.json()).optional(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+    }),
+  ]);
+
 /**
  * Common fields of the inbound `start` message. Each adapter extends this with
  * its runtime-specific configuration (e.g. `thinking`/`continue` for Claude
@@ -105,6 +117,7 @@ export const harnessV1BridgeStartBaseSchema = z.object({
   debug: harnessV1DebugConfigSchema.optional(),
   permissionMode: harnessV1BridgePermissionModeSchema.optional(),
   builtinToolFiltering: harnessV1BridgeBuiltinToolFilteringSchema.optional(),
+  responseFormat: harnessV1BridgeResponseFormatSchema.optional(),
 });
 
 // --- Transport / control frames (outbound, not consumer events) ---

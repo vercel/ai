@@ -24,9 +24,11 @@ import {
   type CallWarning,
   type ContentPart,
   type FinishReason,
-  type GenerateTextResult,
   type InferUIMessageChunk,
+  type InferGenerateOutput,
+  type InferStreamOutput,
   type LanguageModelUsage,
+  type OutputInterface as Output,
   type ProviderMetadata,
   type StepResult,
   type StreamTextResult,
@@ -38,8 +40,17 @@ import {
 type StreamProp<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-  KEY extends keyof StreamTextResult<TOOLS, RUNTIME_CONTEXT, never>,
-> = Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, never>[KEY]>;
+  OUTPUT extends Output,
+  KEY extends keyof StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+> = Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>[KEY]>;
+
+type InferElementOutput<OUTPUT extends Output> =
+  OUTPUT extends Output<any, any, infer ELEMENT> ? ELEMENT : never;
+
+type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
+  part: TextStreamPart<TOOLS>;
+  partialOutput: PARTIAL_OUTPUT | undefined;
+};
 
 /**
  * Concrete `StreamTextResult` implementation backed by a single
@@ -57,68 +68,68 @@ type StreamProp<
  * `text`, `toolCalls`, `toolResults`, `reasoning`, etc. via its getters.
  *
  * The Node.js response helpers (`pipeUIMessageStreamToResponse`,
- * `pipeTextStreamToResponse`, `toTextStreamResponse`) and the
- * output-specification surfaces (`partialOutputStream`/`elementStream`) are not
- * implemented yet — they throw a clear error.
+ * `pipeTextStreamToResponse`, `toTextStreamResponse`) are not implemented yet
+ * and throw a clear error.
  */
 export class HarnessStreamTextResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-> implements StreamTextResult<TOOLS, RUNTIME_CONTEXT, never> {
+  OUTPUT extends Output,
+> implements StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   // Delayed promises backing every PromiseLike accessor. Each is typed
   // against the corresponding `StreamTextResult` property so the public
   // surface stays in lockstep with AI SDK's interface as it evolves.
   private readonly _content = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'content'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'content'>
   >();
   private readonly _text = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'text'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'text'>
   >();
   private readonly _reasoning = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'reasoning'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'reasoning'>
   >();
   private readonly _reasoningText = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'reasoningText'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'reasoningText'>
   >();
   private readonly _files = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'files'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'files'>
   >();
   private readonly _sources = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'sources'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'sources'>
   >();
   private readonly _toolCalls = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'toolCalls'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'toolCalls'>
   >();
   private readonly _staticToolCalls = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'staticToolCalls'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'staticToolCalls'>
   >();
   private readonly _dynamicToolCalls = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'dynamicToolCalls'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'dynamicToolCalls'>
   >();
   private readonly _toolResults = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'toolResults'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'toolResults'>
   >();
   private readonly _staticToolResults = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'staticToolResults'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'staticToolResults'>
   >();
   private readonly _dynamicToolResults = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'dynamicToolResults'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'dynamicToolResults'>
   >();
   private readonly _finishReason = new DelayedPromise<FinishReason>();
   private readonly _rawFinishReason = new DelayedPromise<string | undefined>();
   private readonly _usage = new DelayedPromise<LanguageModelUsage>();
   private readonly _warnings = new DelayedPromise<CallWarning[] | undefined>();
   private readonly _steps = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'steps'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'steps'>
   >();
   private readonly _finalStep = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'finalStep'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'finalStep'>
   >();
   private readonly _request = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'request'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'request'>
   >();
   private readonly _response = new DelayedPromise<
-    StreamProp<TOOLS, RUNTIME_CONTEXT, 'response'>
+    StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'response'>
   >();
   private readonly _responseMessages = new DelayedPromise<
     Array<AssistantModelMessage | ToolModelMessage>
@@ -131,11 +142,9 @@ export class HarnessStreamTextResult<
   private readonly fullStreamController: ReadableStreamDefaultController<
     TextStreamPart<TOOLS>
   >;
-  readonly stream: AsyncIterableStream<TextStreamPart<TOOLS>>;
-  // `fullStream` is the deprecated alias that AI SDK still exposes on the
-  // public interface. Backed by the same underlying stream as `stream`.
-  readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
-  readonly textStream: AsyncIterableStream<string>;
+  private baseStream: ReadableStream<
+    EnrichedStreamPart<TOOLS, InferStreamOutput<OUTPUT>>
+  >;
 
   private readonly stepsBuffer: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
   private currentStepContent: ContentPart<TOOLS>[] = [];
@@ -148,6 +157,7 @@ export class HarnessStreamTextResult<
   private readonly toolsContext: never;
   private readonly providerName: string;
   private readonly modelId: string;
+  private readonly outputSpecification: OUTPUT | undefined;
 
   // Accumulators that span the whole turn.
   private accumulatedUsage: LanguageModelUsage = createNullLanguageModelUsage();
@@ -163,12 +173,14 @@ export class HarnessStreamTextResult<
     toolsContext: never;
     harnessId: string;
     sessionId: string;
+    output: OUTPUT | undefined;
   }) {
     this.tools = options.tools;
     this.runtimeContext = options.runtimeContext;
     this.toolsContext = options.toolsContext;
     this.providerName = `harness:${options.harnessId}`;
     this.modelId = options.sessionId;
+    this.outputSpecification = options.output;
 
     let controllerRef!: ReadableStreamDefaultController<TextStreamPart<TOOLS>>;
     const baseStream = new ReadableStream<TextStreamPart<TOOLS>>({
@@ -185,18 +197,19 @@ export class HarnessStreamTextResult<
     });
     this.fullStreamController = controllerRef;
 
-    const [forFull, forText] = baseStream.tee();
-    this.stream = forFull as AsyncIterableStream<TextStreamPart<TOOLS>>;
-    this.fullStream = this.stream;
-    this.textStream = forText.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, string>({
-        transform(part, controller) {
-          if (part.type === 'text-delta') {
-            controller.enqueue(part.text);
-          }
-        },
-      }),
-    ) as AsyncIterableStream<string>;
+    this.baseStream =
+      options.output == null
+        ? baseStream.pipeThrough(
+            new TransformStream<
+              TextStreamPart<TOOLS>,
+              EnrichedStreamPart<TOOLS, InferStreamOutput<OUTPUT>>
+            >({
+              transform(part, controller) {
+                controller.enqueue({ part, partialOutput: undefined });
+              },
+            }),
+          )
+        : baseStream.pipeThrough(createOutputTransformStream(options.output));
   }
 
   // ─── Writer-side methods used by the driver ────────────────────────
@@ -375,7 +388,12 @@ export class HarnessStreamTextResult<
     const aggregatedContent = this.stepsBuffer.flatMap(s => s.content);
 
     this._content.resolve(
-      aggregatedContent as StreamProp<TOOLS, RUNTIME_CONTEXT, 'content'>,
+      aggregatedContent as StreamProp<
+        TOOLS,
+        RUNTIME_CONTEXT,
+        OUTPUT,
+        'content'
+      >,
     );
     this._text.resolve(finalStep.text);
     // Reasoning content parts are not yet derived from harness events; the
@@ -383,7 +401,7 @@ export class HarnessStreamTextResult<
     // deltas can be wired up to produce real reasoning content in a later
     // pass.
     this._reasoning.resolve(
-      [] as StreamProp<TOOLS, RUNTIME_CONTEXT, 'reasoning'>,
+      [] as StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'reasoning'>,
     );
     this._reasoningText.resolve(undefined);
     this._files.resolve(this.stepsBuffer.flatMap(s => s.files));
@@ -392,6 +410,7 @@ export class HarnessStreamTextResult<
       this.stepsBuffer.flatMap(s => s.toolCalls) as StreamProp<
         TOOLS,
         RUNTIME_CONTEXT,
+        OUTPUT,
         'toolCalls'
       >,
     );
@@ -399,6 +418,7 @@ export class HarnessStreamTextResult<
       this.stepsBuffer.flatMap(s => s.staticToolCalls) as StreamProp<
         TOOLS,
         RUNTIME_CONTEXT,
+        OUTPUT,
         'staticToolCalls'
       >,
     );
@@ -406,6 +426,7 @@ export class HarnessStreamTextResult<
       this.stepsBuffer.flatMap(s => s.dynamicToolCalls) as StreamProp<
         TOOLS,
         RUNTIME_CONTEXT,
+        OUTPUT,
         'dynamicToolCalls'
       >,
     );
@@ -413,6 +434,7 @@ export class HarnessStreamTextResult<
       this.stepsBuffer.flatMap(s => s.toolResults) as StreamProp<
         TOOLS,
         RUNTIME_CONTEXT,
+        OUTPUT,
         'toolResults'
       >,
     );
@@ -420,6 +442,7 @@ export class HarnessStreamTextResult<
       this.stepsBuffer.flatMap(s => s.staticToolResults) as StreamProp<
         TOOLS,
         RUNTIME_CONTEXT,
+        OUTPUT,
         'staticToolResults'
       >,
     );
@@ -427,6 +450,7 @@ export class HarnessStreamTextResult<
       this.stepsBuffer.flatMap(s => s.dynamicToolResults) as StreamProp<
         TOOLS,
         RUNTIME_CONTEXT,
+        OUTPUT,
         'dynamicToolResults'
       >,
     );
@@ -529,6 +553,47 @@ export class HarnessStreamTextResult<
 
   // ─── Reader-side public surface (StreamTextResult contract) ────────
 
+  private teeStream(): ReadableStream<
+    EnrichedStreamPart<TOOLS, InferStreamOutput<OUTPUT>>
+  > {
+    const [stream, remainingStream] = this.baseStream.tee();
+    this.baseStream = remainingStream;
+    return stream;
+  }
+
+  get stream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+    return createAsyncIterableStream(
+      this.teeStream().pipeThrough(
+        new TransformStream<
+          EnrichedStreamPart<TOOLS, InferStreamOutput<OUTPUT>>,
+          TextStreamPart<TOOLS>
+        >({
+          transform({ part }, controller) {
+            controller.enqueue(part);
+          },
+        }),
+      ),
+    ) as AsyncIterableStream<TextStreamPart<TOOLS>>;
+  }
+
+  get fullStream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
+    return this.stream;
+  }
+
+  get textStream(): AsyncIterableStream<string> {
+    return createAsyncIterableStream(
+      this.stream.pipeThrough(
+        new TransformStream<TextStreamPart<TOOLS>, string>({
+          transform(part, controller) {
+            if (part.type === 'text-delta') {
+              controller.enqueue(part.text);
+            }
+          },
+        }),
+      ),
+    ) as AsyncIterableStream<string>;
+  }
+
   get content() {
     return this._content.promise;
   }
@@ -599,18 +664,55 @@ export class HarnessStreamTextResult<
     return this._providerMetadata.promise;
   }
 
-  // Output-specification surfaces are not yet supported.
-  get experimental_partialOutputStream(): never {
-    throw notSupportedYet('partial output stream');
+  get experimental_partialOutputStream(): AsyncIterableStream<
+    InferStreamOutput<OUTPUT>
+  > {
+    return this.partialOutputStream;
   }
-  get partialOutputStream(): never {
-    throw notSupportedYet('partial output stream');
+
+  get partialOutputStream(): AsyncIterableStream<InferStreamOutput<OUTPUT>> {
+    return createAsyncIterableStream(
+      this.teeStream().pipeThrough(
+        new TransformStream<
+          EnrichedStreamPart<TOOLS, InferStreamOutput<OUTPUT>>,
+          InferStreamOutput<OUTPUT>
+        >({
+          transform({ partialOutput }, controller) {
+            if (partialOutput != null) {
+              controller.enqueue(partialOutput);
+            }
+          },
+        }),
+      ),
+    ) as AsyncIterableStream<InferStreamOutput<OUTPUT>>;
   }
-  get elementStream(): never {
-    throw notSupportedYet('element stream');
+
+  get elementStream(): AsyncIterableStream<InferElementOutput<OUTPUT>> {
+    const transform = this.outputSpecification?.createElementStreamTransform();
+    if (transform == null) {
+      throw notSupportedYet(
+        `element streams in ${this.outputSpecification?.name ?? 'text'} mode`,
+      );
+    }
+    return createAsyncIterableStream(
+      this.teeStream().pipeThrough(transform),
+    ) as AsyncIterableStream<InferElementOutput<OUTPUT>>;
   }
-  get output(): never {
-    throw notSupportedYet('structured output');
+
+  get output(): Promise<InferGenerateOutput<OUTPUT>> {
+    return this.finalStep.then(step => {
+      if (this.outputSpecification == null) {
+        throw notSupportedYet('structured output');
+      }
+      return this.outputSpecification.parseCompleteOutput(
+        { text: step.text },
+        {
+          response: step.response,
+          usage: step.usage,
+          finishReason: step.finishReason,
+        },
+      );
+    });
   }
 
   async consumeStream(): Promise<void> {
@@ -722,21 +824,10 @@ export class HarnessStreamTextResult<
         return;
       }
       case 'tool-call':
-        this.currentStepContent.push({
-          ...(part as object),
-        } as ContentPart<TOOLS>);
-        return;
       case 'tool-approval-request':
-        this.currentStepContent.push({
-          ...(part as object),
-        } as ContentPart<TOOLS>);
-        return;
       case 'tool-approval-response':
-        this.currentStepContent.push({
-          ...(part as object),
-        } as ContentPart<TOOLS>);
-        return;
       case 'tool-result':
+      case 'tool-error':
         this.currentStepContent.push({
           ...(part as object),
         } as ContentPart<TOOLS>);
@@ -748,6 +839,103 @@ export class HarnessStreamTextResult<
         return;
     }
   }
+}
+
+function createOutputTransformStream<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output,
+>(
+  output: OUTPUT,
+): TransformStream<
+  TextStreamPart<TOOLS>,
+  EnrichedStreamPart<TOOLS, InferStreamOutput<OUTPUT>>
+> {
+  let firstTextChunkId: string | undefined;
+  let text = '';
+  let textChunk = '';
+  let textProviderMetadata: ProviderMetadata | undefined;
+  let lastPublishedValue = '';
+
+  const publishTextChunk = (options: {
+    controller: TransformStreamDefaultController<
+      EnrichedStreamPart<TOOLS, InferStreamOutput<OUTPUT>>
+    >;
+    partialOutput?: InferStreamOutput<OUTPUT>;
+  }): void => {
+    options.controller.enqueue({
+      part: {
+        type: 'text-delta',
+        id: firstTextChunkId!,
+        text: textChunk,
+        providerMetadata: textProviderMetadata,
+      },
+      partialOutput: options.partialOutput,
+    });
+    textChunk = '';
+  };
+
+  return new TransformStream({
+    async transform(chunk, controller) {
+      if (chunk.type === 'finish-step' && textChunk.length > 0) {
+        publishTextChunk({ controller });
+      }
+
+      if (
+        chunk.type !== 'text-delta' &&
+        chunk.type !== 'text-start' &&
+        chunk.type !== 'text-end'
+      ) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      if (firstTextChunkId == null) {
+        firstTextChunkId = chunk.id;
+      } else if (chunk.id !== firstTextChunkId) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      if (chunk.type === 'text-start') {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      if (chunk.type === 'text-end') {
+        if (textChunk.length > 0) {
+          publishTextChunk({ controller });
+        }
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      text += chunk.text;
+      textChunk += chunk.text;
+      textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
+
+      if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
+      const result = await output.parsePartialOutput({ text });
+      if (result === undefined) {
+        return;
+      }
+
+      const currentValue =
+        typeof result.partial === 'string'
+          ? result.partial
+          : JSON.stringify(result.partial);
+      if (currentValue !== lastPublishedValue) {
+        publishTextChunk({
+          controller,
+          partialOutput: result.partial,
+        });
+        lastPublishedValue = currentValue;
+      }
+    },
+  });
 }
 
 function createEmptyPerformance(): StepResult<ToolSet, Context>['performance'] {
@@ -774,10 +962,3 @@ function notSupportedYet(feature: string): Error {
 // async-iterator contract in modern runtimes; we expose them under the same
 // nominal type AI SDK does.
 type AsyncIterableStream<T> = ReadableStream<T> & AsyncIterable<T>;
-
-// `GenerateTextResult` is re-exported only so downstream code can keep this
-// file as the single source of return-shape constants; not otherwise used here.
-export type _GenerateTextResultMarker<
-  TOOLS extends ToolSet,
-  RUNTIME_CONTEXT extends Context,
-> = GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>;

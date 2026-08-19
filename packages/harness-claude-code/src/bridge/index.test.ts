@@ -126,4 +126,22 @@ describe('Claude Code bridge configuration', () => {
 
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
+
+  test('passes the requested JSON schema to the Agent SDK', async () => {
+    const schema = {
+      type: 'object',
+      properties: { answer: { type: 'string' } },
+      required: ['answer'],
+    };
+    state.start = {
+      ...state.start,
+      responseFormat: { type: 'json', schema },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      outputFormat: { type: 'json_schema', schema },
+    });
+  });
 });

@@ -2,6 +2,7 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkPolicy,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PortEndpoint,
   type HarnessV1RequestTransformation,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
@@ -46,10 +47,10 @@ export class VercelNetworkSandboxSession
     return new VercelSandboxSession(this.sandbox);
   }
 
-  getPortUrl = async (options: {
+  getPortEndpoint = async (options: {
     port: number;
     protocol?: 'http' | 'https' | 'ws';
-  }): Promise<string> => {
+  }): Promise<HarnessV1PortEndpoint> => {
     const exposedPorts = this.ports;
     if (!exposedPorts.includes(options.port)) {
       throw new HarnessCapabilityUnsupportedError({
@@ -71,7 +72,17 @@ export class VercelNetworkSandboxSession
         url.protocol = isSecure ? 'wss:' : 'ws:';
         break;
     }
-    return url.toString();
+    return { url: url.toString() };
+  };
+
+  /**
+   * @deprecated Use `getPortEndpoint` instead.
+   */
+  getPortUrl = async (options: {
+    port: number;
+    protocol?: 'http' | 'https' | 'ws';
+  }): Promise<string> => {
+    return (await this.getPortEndpoint(options)).url;
   };
 
   setNetworkPolicy = async (policy: HarnessV1NetworkPolicy): Promise<void> => {
