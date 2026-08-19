@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 4.0.72
+
+### Patch Changes
+
+- ai@7.0.69
+
 ## 4.0.71
 
 ### Patch Changes
