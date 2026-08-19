@@ -18,6 +18,7 @@ import {
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
+  harnessV1StateDirectory,
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
@@ -264,10 +265,11 @@ export function createOpenCode(
       }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
-      const bootstrapDir = path.posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
+      // Harness SDK state (bootstrap, per-session runs) lives in the
+      // provider's state directory, which is the working directory unless the
+      // provider separates the two to keep the workspace clean.
+      const stateDir = harnessV1StateDirectory(sandboxSession);
+      const bootstrapDir = path.posix.resolve(stateDir, BOOTSTRAP_DIR);
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -286,7 +288,7 @@ export function createOpenCode(
       const coords = resumeData?.bridge;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = `${stateDir}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
       const model = splitOpenCodeModel(settings.model, settings.provider).model;

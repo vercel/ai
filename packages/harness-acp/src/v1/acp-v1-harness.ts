@@ -11,6 +11,7 @@ import {
   type HarnessV1Session,
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
+  harnessV1StateDirectory,
 } from '@ai-sdk/harness';
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
@@ -276,8 +277,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         warnCredentialBrokeringUnavailable();
       }
       const sandbox = sandboxSession.restricted();
+      // Harness SDK state lives in the provider's state directory, which is
+      // the working directory unless the provider separates the two to keep
+      // the workspace clean.
       const resolvedBridgeDir = posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
+        harnessV1StateDirectory(sandboxSession),
         bootstrap.bootstrapDir,
       );
       const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
