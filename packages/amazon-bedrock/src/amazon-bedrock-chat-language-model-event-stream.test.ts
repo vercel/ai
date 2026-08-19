@@ -1,13 +1,13 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { fromUtf8, toUtf8 } from '@smithy/util-utf8';
 import { describe, expect, it } from 'vitest';
-import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
+import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 
 const codec = new EventStreamCodec(toUtf8, fromUtf8);
 
-const TEST_PROMPT: LanguageModelV4Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -34,12 +34,12 @@ function createStream(
   });
 }
 
-describe('AmazonBedrockChatLanguageModel doStream', () => {
+describe('BedrockChatLanguageModel doStream', () => {
   it('surfaces event stream decoding failures', async () => {
     const corruptedFrame = createEvent('corrupted');
     corruptedFrame[corruptedFrame.length - 1] ^= 0xff;
 
-    const model = new AmazonBedrockChatLanguageModel(
+    const model = new BedrockChatLanguageModel(
       'anthropic.claude-3-haiku-20240307-v1:0',
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',

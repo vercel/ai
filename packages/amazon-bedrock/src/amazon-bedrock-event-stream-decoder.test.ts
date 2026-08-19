@@ -2,7 +2,7 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { fromUtf8, toUtf8 } from '@smithy/util-utf8';
 import { describe, expect, it, vi } from 'vitest';
-import { createAmazonBedrockEventStreamDecoder } from './amazon-bedrock-event-stream-decoder';
+import { createBedrockEventStreamDecoder } from './bedrock-event-stream-decoder';
 
 const codec = new EventStreamCodec(toUtf8, fromUtf8);
 
@@ -29,14 +29,14 @@ function createStream(
   });
 }
 
-describe('createAmazonBedrockEventStreamDecoder', () => {
+describe('createBedrockEventStreamDecoder', () => {
   it('surfaces frame decode errors instead of stranding later frames', async () => {
     const corruptedFrame = createEvent('corrupted');
     corruptedFrame[corruptedFrame.length - 1] ^= 0xff;
     const processEvent = vi.fn();
 
     const result = convertReadableStreamToArray(
-      createAmazonBedrockEventStreamDecoder(
+      createBedrockEventStreamDecoder(
         createStream([corruptedFrame, createEvent('later')]),
         processEvent,
       ),
@@ -50,7 +50,7 @@ describe('createAmazonBedrockEventStreamDecoder', () => {
     const processEventError = new Error('processEvent failed');
 
     const result = convertReadableStreamToArray(
-      createAmazonBedrockEventStreamDecoder(
+      createBedrockEventStreamDecoder(
         createStream([createEvent('data')]),
         () => {
           throw processEventError;
@@ -66,7 +66,7 @@ describe('createAmazonBedrockEventStreamDecoder', () => {
     const midpoint = Math.floor(frame.length / 2);
 
     const result = await convertReadableStreamToArray(
-      createAmazonBedrockEventStreamDecoder(
+      createBedrockEventStreamDecoder(
         createStream([frame.subarray(0, midpoint), frame.subarray(midpoint)]),
         (event, controller) => {
           controller.enqueue(event.data);
