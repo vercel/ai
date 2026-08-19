@@ -21,7 +21,7 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && pnpm copy-bridge-assets",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
-    "copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.copyFile('src/bridge/package.json', 'dist/bridge/package.json'); await fs.copyFile('src/bridge/pnpm-lock.yaml', 'dist/bridge/pnpm-lock.yaml'); })\"",
+    "copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.copyFile('src/bridge/package.json', 'dist/bridge/package.json'); await fs.copyFile('src/bridge/pnpm-lock.yaml', 'dist/bridge/pnpm-lock.yaml'); await fs.copyFile('src/bridge/pnpm-workspace.yaml', 'dist/bridge/pnpm-workspace.yaml'); })\"",
     "type-check": "tsc --build",
     "test": "pnpm test:node",
     "test:watch": "vitest --config vitest.node.config.js",
