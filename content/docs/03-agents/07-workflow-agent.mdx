@@ -36,10 +36,10 @@ For simpler use cases that don't need durability, use [`ToolLoopAgent`](/docs/ag
 ## Installation
 
 ```bash
-npm install @ai-sdk/workflow workflow
+npm install @ai-sdk/workflow workflow@beta
 ```
 
-`@ai-sdk/workflow` requires the `ai` package and `zod` as peer dependencies. The `workflow` package provides the Workflow DevKit runtime (`getWritable`, `'use workflow'`, `'use step'`).
+`@ai-sdk/workflow` requires Workflow 5, which is currently available under the `beta` tag, as well as the `ai` package and `zod` peer dependencies. The `workflow` package provides the Workflow DevKit runtime (`getWritable`, `'use workflow'`, `'use step'`).
 
 ## Creating a WorkflowAgent
 
@@ -184,6 +184,11 @@ return createUIMessageStreamResponse({
   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
 });
 ```
+
+The transform also forwards `reset-step` events emitted by `WorkflowAgent` on
+retries.
+Clients remove partial parts from the failed model-call step before processing
+the retried output.
 
 ## Resumable Streaming with WorkflowChatTransport
 
@@ -589,7 +594,7 @@ export type MyAgentUIMessage = InferWorkflowAgentUIMessage<typeof myAgent>;
 Install the new package alongside `workflow`:
 
 ```bash
-npm install @ai-sdk/workflow
+npm install @ai-sdk/workflow workflow@beta
 ```
 
 ### Write `ModelCallStreamPart`, not `UIMessageChunk`
