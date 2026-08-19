@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18824,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/workflow-agent-stream-error-terminal.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/workflow-agent-stream-error-terminal.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18824_REPRODUCED: WorkflowAgent.stream did not surface the supplied stream error as a terminal failure"
+  }
+}
