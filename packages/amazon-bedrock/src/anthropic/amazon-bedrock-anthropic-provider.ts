@@ -21,6 +21,10 @@ import {
   createSigV4FetchFunction,
   type AmazonBedrockCredentials,
 } from '../amazon-bedrock-sigv4-fetch';
+import {
+  supportsNativeStructuredOutput,
+  supportsStrictTools,
+} from '../amazon-bedrock-anthropic-model-support';
 import { createAmazonBedrockAnthropicFetch } from './amazon-bedrock-anthropic-fetch';
 import type { AmazonBedrockAnthropicModelId } from './amazon-bedrock-anthropic-options';
 import { VERSION } from '../version';
@@ -342,13 +346,8 @@ export function createAmazonBedrockAnthropic(
 
       // Bedrock Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
-      // native structured output via output_config.format is supported on Bedrock
-      // Bedrock rejects `output_config.format` for `claude-opus-4-7`, `claude-opus-4-8`, `claude-fable-5`, and `claude-sonnet-5`
-      supportsNativeStructuredOutput:
-        !modelId.includes('claude-opus-4-7') &&
-        !modelId.includes('claude-opus-4-8') &&
-        !modelId.includes('claude-fable-5') &&
-        !modelId.includes('claude-sonnet-5'),
+      supportsNativeStructuredOutput: supportsNativeStructuredOutput(modelId),
+      supportsStrictTools: supportsStrictTools(modelId),
     });
 
   const provider = function (modelId: AmazonBedrockAnthropicModelId) {

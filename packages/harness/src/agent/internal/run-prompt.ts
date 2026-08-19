@@ -7,6 +7,7 @@ import {
   type HarnessV1PendingToolResult,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1ResponseFormat,
   type HarnessV1Session,
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
@@ -21,16 +22,19 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import type {
-  LanguageModelV4FinishReason,
-  LanguageModelV4ToolCall,
-  LanguageModelV4Usage,
+import {
+  getErrorMessage,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4ToolCall,
+  type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { parseToolCall } from 'ai/internal';
 import type {
   ContentPart,
+  OutputInterface as Output,
   ProviderMetadata,
   StepResult,
+  StopCondition,
   TelemetryOptions,
   TextStreamPart,
 } from 'ai';
@@ -40,9 +44,14 @@ import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-set
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
 import { stripWorkDir } from './strip-work-dir';
-import { createTurnTelemetry, type TurnContentPart } from './turn-telemetry';
+import {
+  createTurnTelemetry,
+  type TurnContentPart,
+  type TurnTelemetry,
+} from './turn-telemetry';
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
+import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
 
 /**
  * Drive one prompt turn end-to-end:
@@ -59,13 +68,14 @@ import { logBridgeError } from '../../utils/bridge-diagnostics';
 export function runPrompt<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
 >(input: {
   harness: HarnessV1;
   session: HarnessV1Session;
   /**
    * Turn entry point. `'prompt'` (default) starts a new turn from `prompt`;
    * `'continue'` continues the in-flight turn via `doContinueTurn` and ignores
-   * `prompt`/`instructions`.
+   * `prompt`.
    */
   mode?: 'prompt' | 'continue';
   /** Required for `mode: 'prompt'`; absent for `mode: 'continue'`. */
@@ -79,7 +89,10 @@ export function runPrompt<
   sessionWorkDir: string;
   runtimeContext: RUNTIME_CONTEXT;
   abortSignal: AbortSignal | undefined;
+  responseFormat?: HarnessV1ResponseFormat | undefined;
+  output?: OUTPUT | undefined;
   telemetry?: TelemetryOptions | undefined;
+  stopConditions?: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
   toolApproval?: HarnessAgentToolApprovalConfiguration | undefined;
   pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
   pendingToolResults?: readonly HarnessV1PendingToolResult[];
@@ -95,17 +108,25 @@ export function runPrompt<
   onToolResultSettled?: (toolCallId: string) => void;
   onTurnFinished?: () => void;
   onTurnFailed?: () => void;
+  onPromptControlAvailable?: (control: HarnessV1PromptControl) => void;
+  /**
+   * Reports that the adapter stream closed because the host intentionally
+   * suspended the still-running turn at a workflow slice boundary.
+   */
+  isTurnSuspending?: () => boolean;
+  onStopConditionMet?: () => Promise<void>;
 }): {
-  result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>;
+  result: HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   done: Promise<void>;
 } {
-  const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT>({
+  const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     tools: input.tools,
     runtimeContext: input.runtimeContext,
     // toolsContext is not configurable for harnesses; pass undefined cast.
     toolsContext: undefined as never,
     harnessId: input.harness.harnessId,
     sessionId: input.session.sessionId,
+    output: input.output,
   });
   const pendingToolApprovals = input.pendingToolApprovals ?? [];
   const pendingToolResults = input.pendingToolResults ?? [];
@@ -124,6 +145,32 @@ export function runPrompt<
     runtimeContext: input.runtimeContext,
   });
 
+  /*
+   * Settle a failed turn. When the caller's own `abortSignal` has fired, the
+   * failure is a user-initiated stop, not an error: surface it as an `abort`
+   * stream part — matching `streamText`'s abort contract — so
+   * `toUIMessageStream` consumers observe an `abort` chunk and
+   * `isAborted: true` instead of a spurious `onError`. Every other failure
+   * stays a real `error` part. Both outcomes notify `onTurnFailed` so the
+   * session's turn tracking returns to idle and the session stays usable,
+   * unless the turn is being suspended for a future continuation.
+   */
+  const settleFailure = (err: unknown) => {
+    if (!input.isTurnSuspending?.()) {
+      input.onTurnFailed?.();
+    }
+    if (input.abortSignal?.aborted) {
+      result.abort({
+        error: err,
+        ...(input.abortSignal.reason !== undefined
+          ? { reason: getErrorMessage(input.abortSignal.reason) }
+          : {}),
+      });
+      return;
+    }
+    result.fail(err);
+  };
+
   const done = (async () => {
     let bridge: Awaited<ReturnType<typeof toHarnessStream>>;
     try {
@@ -132,7 +179,9 @@ export function runPrompt<
           input.mode === 'continue'
             ? emit =>
                 input.session.doContinueTurn({
+                  responseFormat: input.responseFormat,
                   tools: input.toolSpecs,
+                  instructions: input.instructions,
                   abortSignal: input.abortSignal,
                   emit,
                 })
@@ -144,6 +193,7 @@ export function runPrompt<
                 }
                 return input.session.doPromptTurn({
                   prompt: input.prompt,
+                  responseFormat: input.responseFormat,
                   tools: input.toolSpecs,
                   instructions: input.instructions,
                   abortSignal: input.abortSignal,
@@ -152,25 +202,38 @@ export function runPrompt<
               },
       });
     } catch (err) {
-      telemetry.error(err);
+      await telemetry.error(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
         context: 'failed to start harness turn',
         error: err,
       });
-      input.onTurnFailed?.();
-      result.fail(err);
+      settleFailure(err);
       return;
     }
 
     const { stream, control } = bridge;
+    input.onPromptControlAvailable?.(control);
     const reader = stream.getReader();
     const toolCallsByToolCallId = new Map<string, ToolCallTextStreamPart>();
     const rawToolCallsByToolCallId = new Map<
       string,
       Extract<HarnessV1StreamPart, { type: 'tool-call' }>
     >();
+    /*
+     * Host results are echoed back as `tool-result` events too, so the event
+     * alone cannot say who ran the tool — classify by the originating
+     * `tool-call`. Only an explicit `true` counts: `LanguageModelV4ToolCall`
+     * defines an omitted flag as client-executed. A call missing from the map
+     * arrived in an earlier slice, where nothing here can classify it.
+     */
+    const translateOptions = {
+      isProviderExecuted: (toolCallId: string): boolean => {
+        const rawToolCall = rawToolCallsByToolCallId.get(toolCallId);
+        return rawToolCall == null || rawToolCall.providerExecuted === true;
+      },
+    };
     const pendingApprovalsByApprovalId = new Map(
       pendingToolApprovals.map(approval => [approval.approvalId, approval]),
     );
@@ -197,9 +260,40 @@ export function runPrompt<
     );
     const settledHostToolCallIds = new Set<string>();
     let closingResumedStep = false;
+    let pendingStopBoundary:
+      | {
+          finishReason: LanguageModelV4FinishReason;
+          usage: LanguageModelV4Usage;
+          releaseCheckpoint: (() => void) | undefined;
+        }
+      | undefined;
     let finalFinish:
       | Extract<HarnessV1StreamPart, { type: 'finish' }>
       | undefined;
+    const completedSteps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>> = [];
+    const outstandingHostToolExecutions: Promise<void>[] = [];
+    const startHostToolExecution = (execution: Promise<void>): void => {
+      outstandingHostToolExecutions.push(execution);
+      // The execution is joined at the next step boundary. Attach a rejection
+      // handler immediately so failures cannot become unhandled in the
+      // meantime; awaiting the original promise still propagates the failure.
+      void execution.catch(() => {});
+    };
+    const waitForOutstandingHostToolExecutions = async (): Promise<void> => {
+      if (outstandingHostToolExecutions.length === 0) return;
+      const executions = outstandingHostToolExecutions.splice(0);
+      const results = await Promise.allSettled(executions);
+      const failedExecution = results.find(
+        result => result.status === 'rejected',
+      );
+      if (failedExecution != null) {
+        throw failedExecution.reason;
+      }
+    };
+    const releasePendingStopBoundary = (): void => {
+      pendingStopBoundary?.releaseCheckpoint?.();
+      pendingStopBoundary = undefined;
+    };
 
     // Accumulate the model's output content per step so telemetry can record
     // `gen_ai.output.messages` and reporters can log what was actually said.
@@ -235,36 +329,39 @@ export function runPrompt<
       unified: 'tool-calls',
       raw: undefined,
     };
-    const completeStep = (input: {
+    const completeStep = async (input: {
       finishReason: LanguageModelV4FinishReason;
       usage: LanguageModelV4Usage;
       providerMetadata: ProviderMetadata | undefined;
-    }): StepResult<TOOLS, RUNTIME_CONTEXT> => {
-      telemetry.stepFinish({
+    }): Promise<StepResult<TOOLS, RUNTIME_CONTEXT>> => {
+      await telemetry.stepFinish({
         finishReason: input.finishReason,
         usage: input.usage,
         providerMetadata: input.providerMetadata,
         content: buildStepContent(),
       });
       resetStepContent();
-      return result.finishStep({
+      const step = result.finishStep({
         finishReason: input.finishReason,
         usage: input.usage,
         providerMetadata: input.providerMetadata,
         warnings: [],
       });
+      completedSteps.push(step);
+      return step;
     };
     const finishForHostInputPause = async (options: {
       completeCurrentStep: boolean;
     }): Promise<void> => {
+      await waitForOutstandingHostToolExecutions();
       if (options.completeCurrentStep) {
-        completeStep({
+        await completeStep({
           finishReason: toolCallsFinishReason,
           usage: zeroUsage,
           providerMetadata: undefined,
         });
       }
-      telemetry.end({
+      await telemetry.end({
         finishReason: toolCallsFinishReason,
         usage: zeroUsage,
       });
@@ -346,6 +443,41 @@ export function runPrompt<
         isError: continuation.isError,
       });
     };
+    const enqueueHostToolOutcome = (options: {
+      toolCall: HarnessAgentToolApprovalContinuation['toolCall'];
+      outcome: HostToolOutcome;
+    }): void => {
+      if (options.outcome.ok) {
+        const stripped = stripWorkDir(
+          {
+            type: 'tool-result',
+            toolCallId: options.toolCall.toolCallId,
+            toolName: options.toolCall.toolName,
+            result: options.outcome.output as Extract<
+              HarnessV1StreamPart,
+              { type: 'tool-result' }
+            >['result'],
+          },
+          input.sessionWorkDir,
+        ) as Extract<HarnessV1StreamPart, { type: 'tool-result' }>;
+        result.enqueueContinuation({
+          type: 'tool-result',
+          toolCallId: options.toolCall.toolCallId,
+          toolName: options.toolCall.toolName,
+          input: options.toolCall.input,
+          output: stripped.result,
+        } as TextStreamPart<TOOLS>);
+        return;
+      }
+
+      result.enqueueContinuation({
+        type: 'tool-error',
+        toolCallId: options.toolCall.toolCallId,
+        toolName: options.toolCall.toolName,
+        input: options.toolCall.input,
+        error: options.outcome.error,
+      } as TextStreamPart<TOOLS>);
+    };
     const processPendingApprovalContinuation = async (
       approval: HarnessV1PendingToolApproval,
       continuation: HarnessAgentToolApprovalContinuation,
@@ -390,9 +522,16 @@ export function runPrompt<
           input: approval.input,
         } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
 
+      await telemetry.start(input.session.modelId);
+      await telemetry.toolStart({
+        toolCallId: rawToolCall.toolCallId,
+        toolName: rawToolCall.toolName,
+        input: rawToolCall.input,
+      });
       const execution = await maybeExecuteHostTool({
         event: rawToolCall,
         tools: activeTools,
+        wrappedExecuteTool: telemetry.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
         control,
@@ -424,7 +563,11 @@ export function runPrompt<
         await finishForHostInputPause({ completeCurrentStep: false });
         return 'awaiting-tool-result';
       }
-      telemetry.toolEnd(rawToolCall.toolCallId, execution.outcome);
+      enqueueHostToolOutcome({
+        toolCall: continuation.toolCall,
+        outcome: execution.outcome,
+      });
+      await telemetry.toolEnd(rawToolCall.toolCallId, execution.outcome);
       return 'continued';
     };
 
@@ -455,13 +598,39 @@ export function runPrompt<
 
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
+        if (done) {
+          releasePendingStopBoundary();
+          break;
+        }
         if (value == null) continue;
+
+        if (pendingStopBoundary != null) {
+          if (value.type === 'finish') {
+            releasePendingStopBoundary();
+          } else if (
+            (
+              await Promise.all(
+                input.stopConditions!.map(condition =>
+                  condition({ steps: completedSteps }),
+                ),
+              )
+            ).some(Boolean)
+          ) {
+            await input.onStopConditionMet?.();
+            const { finishReason, usage } = pendingStopBoundary;
+            releasePendingStopBoundary();
+            await telemetry.end({ finishReason, usage });
+            await result.finish();
+            return;
+          } else {
+            releasePendingStopBoundary();
+          }
+        }
 
         // Begin the operation span on stream-start, using the runtime-resolved
         // model the adapter reports (falling back to the session's model).
         if (value.type === 'stream-start') {
-          telemetry.start(value.modelId ?? input.session.modelId);
+          await telemetry.start(value.modelId ?? input.session.modelId);
         }
 
         // Open a step span lazily before the first content of each step.
@@ -471,7 +640,7 @@ export function runPrompt<
           value.type !== 'finish' &&
           value.type !== 'error'
         ) {
-          telemetry.ensureStepOpen();
+          await telemetry.ensureStepOpen();
         }
 
         /*
@@ -531,8 +700,34 @@ export function runPrompt<
           }
         }
 
+        /*
+         * Settle failures before the translate-and-forward step below: the
+         * translated `error` part must not reach the consumer stream, or the
+         * turn surfaces BOTH a forwarded `error` part and the settle-owned
+         * terminal part (an `abort` part for user stops via `settleFailure`,
+         * or a second `error` part from `fail`).
+         */
+        if (value.type === 'error' && displayValue.type === 'error') {
+          await waitForOutstandingHostToolExecutions();
+          // Telemetry and stderr diagnostics keep the raw error (absolute
+          // paths help debugging); the consumer-facing settle uses the
+          // workDir-stripped one, like every other forwarded part.
+          await telemetry.error(value.error);
+          logBridgeError({
+            harnessId: input.harness.harnessId,
+            sessionId: input.session.sessionId,
+            context: 'harness stream error',
+            error: value.error,
+          });
+          settleFailure(displayValue.error);
+          return;
+        }
+
         // Forward to consumer as soon as possible.
-        for (const part of translateStreamPart<TOOLS>(displayValue)) {
+        for (const part of translateStreamPart<TOOLS>(
+          displayValue,
+          translateOptions,
+        )) {
           result.enqueue(part);
         }
 
@@ -564,7 +759,7 @@ export function runPrompt<
             toolName: value.toolName,
             input: value.input,
           });
-          telemetry.toolStart({
+          await telemetry.toolStart({
             toolCallId: value.toolCallId,
             toolName: value.toolName,
             input: value.input,
@@ -573,7 +768,7 @@ export function runPrompt<
 
         // Telemetry: close a tool span when its provider-executed result lands.
         if (value.type === 'tool-result') {
-          telemetry.toolEnd(
+          await telemetry.toolEnd(
             value.toolCallId,
             value.isError
               ? { ok: false, error: value.result }
@@ -636,16 +831,25 @@ export function runPrompt<
 
         // Drive step boundaries.
         if (value.type === 'finish-step') {
-          completeStep({
+          await waitForOutstandingHostToolExecutions();
+          await completeStep({
             finishReason: value.finishReason,
             usage: value.usage,
             providerMetadata: value.harnessMetadata,
           });
+          if (input.stopConditions != null && input.stopConditions.length > 0) {
+            pendingStopBoundary = {
+              finishReason: value.finishReason,
+              usage: value.usage,
+              releaseCheckpoint: pinSandboxChannelEventCheckpoint(value),
+            };
+          }
         }
 
         if (value.type === 'finish') {
+          await waitForOutstandingHostToolExecutions();
           finalFinish = value;
-          telemetry.end({
+          await telemetry.end({
             finishReason: value.finishReason,
             usage: value.totalUsage,
           });
@@ -671,7 +875,7 @@ export function runPrompt<
               toolCallId: toolCall.toolCallId,
               output,
             });
-            telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
+            await telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
             continue;
           }
           const customToolApprovalDecision = resolveCustomToolApproval({
@@ -700,7 +904,7 @@ export function runPrompt<
               toolCallId: toolCall.toolCallId,
               output,
             });
-            telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
+            await telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
             continue;
           }
           const pendingApproval =
@@ -755,65 +959,74 @@ export function runPrompt<
             await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
-          const execution = await maybeExecuteHostTool({
-            event: toolCall,
-            tools: activeTools,
-            sandboxSession: input.sandboxSession,
-            abortSignal: input.abortSignal,
-            control,
-            onPreliminaryResult: preliminaryOutput => {
-              /*
-               * Project a `yield`ed value as a preliminary AI SDK
-               * `tool-result` part. Unlike the final result — which is
-               * submitted to the runtime, echoed back as a `tool-result`
-               * event, and stripped on its way through the loop above —
-               * preliminary values never reach the runtime, so strip the
-               * working directory here to match the final result's projection.
-               */
-              const stripped = stripWorkDir(
-                {
-                  type: 'tool-result',
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  result: preliminaryOutput as Extract<
-                    HarnessV1StreamPart,
-                    { type: 'tool-result' }
-                  >['result'],
-                },
-                input.sessionWorkDir,
-              ) as Extract<HarnessV1StreamPart, { type: 'tool-result' }>;
-              result.enqueue({
-                type: 'tool-result',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: undefined,
-                output: stripped.result,
-                preliminary: true,
-              } as TextStreamPart<TOOLS>);
-            },
-          });
-          if (!execution.executed) {
+          if (!isExecutableTool(activeTools[toolCall.toolName])) {
             recordPendingToolResult({ toolCall });
             await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
-          telemetry.toolEnd(toolCall.toolCallId, execution.outcome);
-        }
-
-        if (value.type === 'error') {
-          telemetry.error(value.error);
-          logBridgeError({
-            harnessId: input.harness.harnessId,
-            sessionId: input.session.sessionId,
-            context: 'harness stream error',
-            error: value.error,
-          });
-          input.onTurnFailed?.();
-          result.fail(value.error);
-          return;
+          startHostToolExecution(
+            (async () => {
+              const execution = await maybeExecuteHostTool({
+                event: toolCall,
+                tools: activeTools,
+                wrappedExecuteTool: telemetry.executeTool,
+                sandboxSession: input.sandboxSession,
+                abortSignal: input.abortSignal,
+                control,
+                onPreliminaryResult: preliminaryOutput => {
+                  /*
+                   * Project a `yield`ed value as a preliminary AI SDK
+                   * `tool-result` part. Unlike the final result — which is
+                   * submitted to the runtime, echoed back as a `tool-result`
+                   * event, and stripped on its way through the loop above —
+                   * preliminary values never reach the runtime, so strip the
+                   * working directory here to match the final result's projection.
+                   */
+                  const stripped = stripWorkDir(
+                    {
+                      type: 'tool-result',
+                      toolCallId: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                      result: preliminaryOutput as Extract<
+                        HarnessV1StreamPart,
+                        { type: 'tool-result' }
+                      >['result'],
+                    },
+                    input.sessionWorkDir,
+                  ) as Extract<HarnessV1StreamPart, { type: 'tool-result' }>;
+                  result.enqueue({
+                    type: 'tool-result',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    input: undefined,
+                    output: stripped.result,
+                    preliminary: true,
+                  } as TextStreamPart<TOOLS>);
+                },
+              });
+              if (!execution.executed) {
+                throw new Error(
+                  `Harness '${input.harness.harnessId}' could not execute host tool '${toolCall.toolName}'.`,
+                );
+              }
+              await telemetry.toolEnd(toolCall.toolCallId, execution.outcome);
+            })(),
+          );
         }
       }
-      if (finalFinish != null) {
+      await waitForOutstandingHostToolExecutions();
+      const isTurnSuspending = input.isTurnSuspending?.() === true;
+      if (isTurnSuspending) {
+        if (finalFinish == null) {
+          /*
+           * A timed slice may stop in the middle of a model step. Its partial
+           * content remains in the bridge replay log for the next slice, but it
+           * cannot form a valid StepResult in this slice because no finish-step
+           * has arrived yet.
+           */
+          result.discardCurrentStepContent();
+        }
+      } else if (finalFinish != null) {
         input.onTurnFinished?.();
       } else {
         input.onTurnFailed?.();
@@ -828,16 +1041,21 @@ export function runPrompt<
           : undefined,
       );
     } catch (err) {
-      telemetry.error(err);
+      try {
+        await waitForOutstandingHostToolExecutions();
+      } catch {
+        // Preserve the error that stopped the reader loop.
+      }
+      await telemetry.error(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
         context: 'harness turn failed',
         error: err,
       });
-      input.onTurnFailed?.();
-      result.fail(err);
+      settleFailure(err);
     } finally {
+      releasePendingStopBoundary();
       reader.releaseLock();
     }
   })();
@@ -890,6 +1108,7 @@ function hasTool(input: { tools: ToolSet; toolName: string }): boolean {
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
   tools: TOOLS;
+  wrappedExecuteTool: TurnTelemetry['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
   control: HarnessV1PromptControl;
@@ -918,25 +1137,31 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
      * back to the model — preliminary values are surfaced to the consumer
      * stream alone, matching how the AI SDK treats `onPreliminaryToolResult`.
      */
-    let output: unknown;
-    const stream = executeTool({
-      tool,
-      input: args as never,
-      options: {
-        toolCallId: input.event.toolCallId,
-        messages: [],
-        abortSignal: input.abortSignal,
-        context: undefined as never,
-        experimental_sandbox: input.sandboxSession,
+    const output = await input.wrappedExecuteTool({
+      toolCallId: input.event.toolCallId,
+      execute: async () => {
+        let output: unknown;
+        const stream = executeTool({
+          tool,
+          input: args as never,
+          options: {
+            toolCallId: input.event.toolCallId,
+            messages: [],
+            abortSignal: input.abortSignal,
+            context: undefined as never,
+            experimental_sandbox: input.sandboxSession,
+          },
+        });
+        for await (const part of stream) {
+          if (part.type === 'preliminary') {
+            input.onPreliminaryResult(part.output);
+          } else {
+            output = part.output;
+          }
+        }
+        return output;
       },
     });
-    for await (const part of stream) {
-      if (part.type === 'preliminary') {
-        input.onPreliminaryResult(part.output);
-      } else {
-        output = part.output;
-      }
-    }
 
     await input.control.submitToolResult({
       toolCallId: input.event.toolCallId,
@@ -978,6 +1203,7 @@ export async function validateToolCall<TOOLS extends ToolSet>(args: {
     ...(event.providerExecuted !== undefined
       ? { providerExecuted: event.providerExecuted }
       : {}),
+    ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
     ...(event.providerMetadata !== undefined
       ? { providerMetadata: event.providerMetadata }
       : {}),

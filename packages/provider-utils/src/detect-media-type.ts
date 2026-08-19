@@ -63,7 +63,7 @@ const documentMediaTypeSignatures = [
   },
 ] as const;
 
-const audioMediaTypeSignatures = [
+const audioMediaTypeSignaturesWithoutMp4 = [
   {
     mediaType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xfb],
@@ -118,12 +118,25 @@ const audioMediaTypeSignatures = [
     bytesPrefix: [0x40, 0x15, 0x00, 0x00],
   },
   {
-    mediaType: 'audio/mp4' as const,
-    bytesPrefix: [0x66, 0x74, 0x79, 0x70],
-  },
-  {
     mediaType: 'audio/webm',
     bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3],
+  },
+] as const;
+
+const audioMediaTypeSignatures = [
+  ...audioMediaTypeSignaturesWithoutMp4,
+  {
+    mediaType: 'audio/mp4' as const,
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      null,
+      0x66,
+      0x74,
+      0x79,
+      0x70, // ftyp
+    ],
   },
 ] as const;
 
@@ -280,7 +293,9 @@ export function detectMediaType({
       signatures: [
         ...imageMediaTypeSignatures,
         ...documentMediaTypeSignatures,
-        ...audioMediaTypeSignatures,
+        // MP4 containers cannot be distinguished as audio or video by ftyp alone.
+        // Preserve the generic detection result as video/mp4.
+        ...audioMediaTypeSignaturesWithoutMp4,
         ...videoMediaTypeSignatures,
       ],
     });

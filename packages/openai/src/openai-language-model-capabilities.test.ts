@@ -26,14 +26,18 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-3.5-turbo', false],
       ['gpt-3.5-turbo-1106', false],
       ['gpt-5-chat-latest', false],
+      ['gpt-5.99-chat-latest', true],
       ['o1', true],
       ['o1-2024-12-17', true],
       ['o3-mini', true],
       ['o3-mini-2025-01-31', true],
       ['o3', true],
       ['o3-2025-04-16', true],
+      ['o4', true],
       ['o4-mini', true],
       ['o4-mini-2025-04-16', true],
+      ['o99', true],
+      ['o99-2099-01-01', true],
       ['gpt-5', true],
       ['gpt-5-2025-08-07', true],
       ['gpt-5-codex', true],
@@ -53,8 +57,13 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.6-luna', true],
       ['gpt-5.6-sol', true],
       ['gpt-5.6-terra', true],
+      ['gpt-5.99', true],
+      ['gpt-99', true],
+      ['gpt-99-mini', true],
       ['new-unknown-model', false],
       ['ft:gpt-4o-2024-08-06:org:custom:abc123', false],
+      ['ft:gpt-99:org:custom:abc123', false],
+      ['acme-gpt-99-proxy', false],
       ['custom-model', false],
     ])('%s reasoning model: %s', (modelId, expectedCapabilities) => {
       expect(
@@ -86,17 +95,69 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.6-luna', true],
       ['gpt-5.6-sol', true],
       ['gpt-5.6-terra', true],
+      ['gpt-5.99', true],
+      ['gpt-5.100', true],
+      ['gpt-99', true],
       ['gpt-5', false],
+      ['gpt-5.0', false],
       ['gpt-5-mini', false],
       ['gpt-5-nano', false],
       ['gpt-5-pro', false],
       ['gpt-5-chat-latest', false],
+      ['ft:gpt-99:org:custom:abc123', false],
+      ['acme-gpt-99-proxy', false],
     ])(
       '%s supports non-reasoning parameters: %s',
       (modelId, expectedCapabilities) => {
         expect(
           getOpenAILanguageModelCapabilities(modelId)
             .supportsNonReasoningParameters,
+        ).toEqual(expectedCapabilities);
+      },
+    );
+  });
+
+  describe('supportsFlexProcessing', () => {
+    it.each([
+      ['o1', false],
+      ['o3', true],
+      ['o4', true],
+      ['o99', true],
+      ['gpt-4.1', false],
+      ['gpt-5', true],
+      ['gpt-5.99', true],
+      ['gpt-99', true],
+      ['gpt-99-chat-latest', false],
+      ['ft:gpt-99:org:custom:abc123', false],
+      ['acme-gpt-99-proxy', false],
+    ])('%s supports flex processing: %s', (modelId, expectedCapabilities) => {
+      expect(
+        getOpenAILanguageModelCapabilities(modelId).supportsFlexProcessing,
+      ).toEqual(expectedCapabilities);
+    });
+  });
+
+  describe('supportsPriorityProcessing', () => {
+    it.each([
+      ['o1', false],
+      ['o3', true],
+      ['o4', true],
+      ['o99', true],
+      ['gpt-4.1', true],
+      ['gpt-5', true],
+      ['gpt-5.4-nano', false],
+      ['gpt-5.99', true],
+      ['gpt-99', true],
+      ['gpt-99-nano', false],
+      ['gpt-99-chat-latest', false],
+      ['ft:gpt-99:org:custom:abc123', false],
+      ['acme-gpt-99-proxy', false],
+    ])(
+      '%s supports priority processing: %s',
+      (modelId, expectedCapabilities) => {
+        expect(
+          getOpenAILanguageModelCapabilities(modelId)
+            .supportsPriorityProcessing,
         ).toEqual(expectedCapabilities);
       },
     );

@@ -5,5 +5,11 @@ export const deepAgents = createDeepAgents();
 
 export { createDeepAgents } from './deepagents-harness';
 export { VERSION } from './version';
-export type { DeepAgentsHarnessSettings } from './deepagents-harness';
-export type { DeepAgentsAuthOptions } from './deepagents-auth';
+export type {
+  DeepAgentsHarnessSettings,
+  DeepAgentsThinkingConfig,
+} from './deepagents-harness';
+export type {
+  DeepAgentsAuthenticationMode,
+  DeepAgentsAuthOptions,
+} from './deepagents-auth';
