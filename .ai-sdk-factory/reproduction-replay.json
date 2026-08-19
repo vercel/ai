@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19062,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-redacted-content.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-redacted-content.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19062_REPRODUCED: generateText rejected an HTTP 200 response containing reasoningContent.redactedContent"
+  }
+}

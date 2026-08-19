@@ -3605,6 +3605,36 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot();
     });
+
+    it('should surface documented redactedContent reasoning and preserve the tool call', async () => {
+      prepareJsonFixtureResponse('amazon-bedrock-redacted-content');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'reasoning',
+          text: '',
+          providerMetadata: {
+            amazonBedrock: {
+              redactedContent: expect.any(String),
+            },
+            bedrock: {
+              redactedContent: expect.any(String),
+            },
+          },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_144c4e2e449d535e83c74d130aca0d89',
+          toolName: 'propose',
+          input:
+            '{"groups":[{"name":"Sales","parentGroupName":""},{"name":"Team1","parentGroupName":"Sales"}]}',
+        },
+      ]);
+    });
   });
 
   it('should extract finish reason', async () => {
