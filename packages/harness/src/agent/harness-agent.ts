@@ -335,6 +335,33 @@ export class HarnessAgent<
           sessionId,
           workDir: this.sandboxConfig.workDir,
         });
+
+        // Ensure the harness bootstrap recipe on resumed sessions too. The
+        // marker is keyed by recipe identity, so a resume whose bootstrap is
+        // already current costs one file read, while a resume into a sandbox
+        // bootstrapped by an older adapter build — a snapshot that outlived
+        // the harness version that made it — would otherwise keep running a
+        // stale bridge against a newer host, silently missing whatever the
+        // newer protocol added.
+        const recipe = await harness.getBootstrap?.({ abortSignal });
+        if (recipe != null) {
+          const recipeIdentity = await hashHarnessBootstrap(recipe);
+          try {
+            await applyBootstrapRecipe({
+              session: sandboxSession.restricted(),
+              recipe,
+              identity: recipeIdentity,
+              defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+              abortSignal,
+            });
+          } catch (err) {
+            await cleanupAfterStartFailure({
+              sandboxSession,
+              ownsSandboxLifecycle,
+            });
+            throw err;
+          }
+        }
       } else {
         // The logic in this clause applies the bootstrap plan, including both the harness
         // bootstrap recipe and agent specific sandbox configuration.
