@@ -111,6 +111,12 @@ interface ActiveClineTurn {
   readonly done: Promise<void>;
 }
 
+interface PendingUserMessage {
+  readonly text: string;
+  resolve(): void;
+  reject(error: unknown): void;
+}
+
 /**
  * Whether a thrown error is an abort — the expected result of
  * `doSuspendTurn` aborting the in-flight turn. Only these are safe to swallow
@@ -319,7 +325,7 @@ export async function createClineSession(
   let suspending = false;
   const pendingToolResults = new Map<string, PendingToolResult>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
-  const pendingUserMessages: string[] = [];
+  const pendingUserMessages: PendingUserMessage[] = [];
   let acceptingUserMessages = false;
 
   // Emit channel set at the start of every turn and cleared on end.
@@ -344,6 +350,20 @@ export async function createClineSession(
       pending.resolve({ approved: false, reason });
     }
     pendingToolApprovals.clear();
+  }
+
+  function consumePendingUserMessage(): string | undefined {
+    const pending = pendingUserMessages.shift();
+    if (pending == null) return undefined;
+    pending.resolve();
+    return pending.text;
+  }
+
+  function rejectPendingUserMessages(error: unknown): void {
+    for (const pending of pendingUserMessages) {
+      pending.reject(error);
+    }
+    pendingUserMessages.length = 0;
   }
 
   async function persistHistory(): Promise<void> {
@@ -464,7 +484,7 @@ export async function createClineSession(
       },
       // Mid-turn user messages injected via `submitUserMessage` are consumed
       // by the runtime between loop iterations, before the next model call.
-      consumePendingUserMessage: () => pendingUserMessages.shift(),
+      consumePendingUserMessage,
     });
     agentHasRun = false;
 
@@ -522,11 +542,15 @@ export async function createClineSession(
           ...(args.reason !== undefined ? { reason: args.reason } : {}),
         });
       },
-      async submitUserMessage(text) {
+      submitUserMessage(text) {
         if (!acceptingUserMessages) {
-          throw new Error('Cline has no running turn to steer.');
+          return Promise.reject(
+            new Error('Cline has no running turn to steer.'),
+          );
         }
-        pendingUserMessages.push(text);
+        return new Promise<void>((resolve, reject) => {
+          pendingUserMessages.push({ text, resolve, reject });
+        });
       },
       done: controlInput.done,
     };
@@ -627,7 +651,7 @@ export async function createClineSession(
           }
 
           if (result.status !== 'completed') break;
-          const pendingUserMessage = pendingUserMessages.shift();
+          const pendingUserMessage = consumePendingUserMessage();
           if (pendingUserMessage == null) break;
           nextText = pendingUserMessage;
         }
@@ -700,7 +724,9 @@ export async function createClineSession(
         currentEmit?.({ type: 'error', error });
       } finally {
         acceptingUserMessages = false;
-        pendingUserMessages.length = 0;
+        rejectPendingUserMessages(
+          new Error('Cline turn ended before accepting the user message.'),
+        );
       }
     })();
 

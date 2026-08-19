@@ -9,6 +9,7 @@
 
 import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { env as procEnv, pid, stdout } from 'node:process';
 import { WebSocketServer, type WebSocket } from 'ws';
 
@@ -109,6 +110,7 @@ function createBridgeUserMessageQueue(options: {
     }
   >();
   let closed = false;
+  let pendingCount = 0;
 
   const enqueue = (input: { messageId: string; text: string }): void => {
     const existing = entries.get(input.messageId);
@@ -123,6 +125,7 @@ function createBridgeUserMessageQueue(options: {
     const settle = (response: BridgeUserMessageResponse): void => {
       if (settled) return;
       settled = true;
+      pendingCount--;
       const entry = entries.get(input.messageId);
       if (entry != null) entry.response = response;
       options.respond(response);
@@ -149,6 +152,7 @@ function createBridgeUserMessageQueue(options: {
     entries.set(input.messageId, {
       reject: message.reject,
     });
+    pendingCount++;
 
     if (closed) {
       message.reject(
@@ -182,11 +186,7 @@ function createBridgeUserMessageQueue(options: {
 
   return {
     get pendingCount() {
-      let count = 0;
-      for (const entry of entries.values()) {
-        if (entry.response == null) count++;
-      }
-      return count;
+      return pendingCount;
     },
     enqueue,
     close,
@@ -330,7 +330,7 @@ type InboundControl =
       approved: boolean;
       reason?: string;
     }
-  | { type: 'user-message'; messageId: string; text: string }
+  | { type: 'user-message'; messageId?: string; text: string }
   | { type: 'abort' }
   | { type: 'stop' }
   | { type: 'destroy' }
@@ -748,21 +748,34 @@ export async function runBridge<TStart extends { type: 'start' }>(
         }
         return;
       }
-      case 'user-message':
+      case 'user-message': {
+        const messageId = msg.messageId ?? randomUUID();
         if (currentUserMessages == null) {
           sendControl(ws, {
             type: 'user-message-response',
-            messageId: msg.messageId,
+            messageId,
             accepted: false,
             error: { message: 'The bridge has no active turn to steer.' },
           });
           return;
         }
+        if (ws !== activeSocket) {
+          sendControl(ws, {
+            type: 'user-message-response',
+            messageId,
+            accepted: false,
+            error: {
+              message: 'The connection does not own the active bridge turn.',
+            },
+          });
+          return;
+        }
         currentUserMessages.enqueue({
-          messageId: msg.messageId,
+          messageId,
           text: msg.text,
         });
         return;
+      }
       case 'abort':
         turnAbort?.abort();
         return;

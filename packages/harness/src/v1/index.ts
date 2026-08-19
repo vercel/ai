@@ -73,6 +73,7 @@ export {
   harnessV1BridgeDestroyInboundSchema,
   harnessV1BridgeHelloSchema,
   harnessV1BridgeInboundCommandSchemas,
+  harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeOutboundMessageSchema,
   harnessV1BridgeReadySchema,
   harnessV1BridgeResponseFormatSchema,

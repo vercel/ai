@@ -19,7 +19,29 @@ const webSocketMocks = vi.hoisted(() => {
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
-      queueMicrotask(() => this.emit('open'));
+      queueMicrotask(() => {
+        this.emit('open');
+        this.emit(
+          'message',
+          JSON.stringify({
+            type: 'bridge-hello',
+            ...(webSocketMocks.supportsUserMessageResponses
+              ? {
+                  capabilities: {
+                    experimental_userMessageResponses: true,
+                  },
+                }
+              : {}),
+          }),
+        );
+      });
+    }
+
+    on(type: string, listener: Listener): this {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return this;
     }
 
     once(type: string, listener: Listener): this {
@@ -45,7 +67,11 @@ const webSocketMocks = vi.hoisted(() => {
     }
   }
 
-  return { calls, WebSocket: FakeWebSocket };
+  return {
+    calls,
+    supportsUserMessageResponses: true,
+    WebSocket: FakeWebSocket,
+  };
 });
 
 vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
@@ -86,15 +112,6 @@ const harnessUtilsMocks = vi.hoisted(() => {
       const listeners = this.listeners.get(type) ?? new Set();
       listeners.add(listener);
       this.listeners.set(type, listeners);
-      if (
-        type === 'bridge-hello' &&
-        harnessUtilsMocks.supportsUserMessageResponses
-      ) {
-        listener({
-          type: 'bridge-hello',
-          capabilities: { experimental_userMessageResponses: true },
-        });
-      }
       return () => listeners.delete(listener);
     }
 
@@ -126,7 +143,6 @@ const harnessUtilsMocks = vi.hoisted(() => {
   return {
     channels,
     connectOnOpen: false,
-    supportsUserMessageResponses: true,
     markBridgeStarting: vi.fn(),
     SandboxChannel: MockSandboxChannel,
     waitForBridgeReady: vi.fn(async (): Promise<{ port: number }> => {
@@ -173,7 +189,7 @@ function getBuiltinToolMetadata(tool: unknown): {
 describe('createOpenCode adapter', () => {
   beforeEach(() => {
     harnessUtilsMocks.connectOnOpen = false;
-    harnessUtilsMocks.supportsUserMessageResponses = true;
+    webSocketMocks.supportsUserMessageResponses = true;
     webSocketMocks.calls.length = 0;
   });
 
@@ -597,6 +613,7 @@ describe('createOpenCode adapter', () => {
 
   it('waits for the bridge to accept a steering message', async () => {
     harnessUtilsMocks.channels.length = 0;
+    harnessUtilsMocks.connectOnOpen = true;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const emptyStream = () =>
       new ReadableStream<Uint8Array>({

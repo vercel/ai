@@ -298,11 +298,16 @@ export const harnessV1BridgeToolApprovalResponseInboundSchema = z.object({
   reason: z.string().optional(),
 });
 
-export const experimental_harnessV1BridgeUserMessageInboundSchema = z.object({
+export const harnessV1BridgeUserMessageInboundSchema = z.object({
   type: z.literal('user-message'),
-  messageId: z.string(),
+  messageId: z.string().optional(),
   text: z.string(),
 });
+
+export const experimental_harnessV1BridgeUserMessageInboundSchema =
+  harnessV1BridgeUserMessageInboundSchema.extend({
+    messageId: z.string(),
+  });
 
 export const harnessV1BridgeAbortInboundSchema = z.object({
   type: z.literal('abort'),
@@ -337,7 +342,7 @@ export const harnessV1BridgeStopInboundSchema = z.object({
 export const harnessV1BridgeInboundCommandSchemas = [
   harnessV1BridgeToolResultInboundSchema,
   harnessV1BridgeToolApprovalResponseInboundSchema,
-  experimental_harnessV1BridgeUserMessageInboundSchema,
+  harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeAbortInboundSchema,
   harnessV1BridgeDestroyInboundSchema,
   harnessV1BridgeResumeInboundSchema,

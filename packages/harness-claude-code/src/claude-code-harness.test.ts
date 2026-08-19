@@ -896,6 +896,24 @@ describe('createClaudeCode adapter', () => {
       await session.doDestroy();
     });
 
+    it('submits compaction without requiring an active acknowledged turn', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+
+      const session = await startWithFakeBridgeSocket();
+      await session.doCompact?.('keep the error trace');
+
+      expect(sentMessages).toContainEqual({
+        type: 'user-message',
+        text: '/compact keep the error trace',
+      });
+      await session.doDestroy();
+    });
+
     it('rejects when the socket opens but bridge-hello never arrives', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {

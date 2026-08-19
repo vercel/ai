@@ -34,7 +34,6 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
-  type Experimental_BridgeUserMessageSubmitter,
 } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
@@ -1416,9 +1415,6 @@ function createSession({
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
-  let activeUserMessageSubmitter:
-    | Experimental_BridgeUserMessageSubmitter
-    | undefined;
   /*
    * Force the Claude SDK's `continue: true` on the first prompt only when the
    * bridge was respawned (rerun/replay): a fresh bridge process treats its
@@ -1451,8 +1447,6 @@ function createSession({
           onReconnect: listener => channel.onReconnect(listener),
         })
       : undefined;
-    activeUserMessageSubmitter = userMessageSubmitter;
-
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
       try {
@@ -1465,9 +1459,6 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       userMessageSubmitter?.close();
-      if (activeUserMessageSubmitter === userMessageSubmitter) {
-        activeUserMessageSubmitter = undefined;
-      }
       for (const u of unsubs) u();
       pendingResolve!();
     };
@@ -1475,9 +1466,6 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       userMessageSubmitter?.close(err);
-      if (activeUserMessageSubmitter === userMessageSubmitter) {
-        activeUserMessageSubmitter = undefined;
-      }
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -1717,13 +1705,7 @@ function createSession({
         customInstructions && customInstructions.trim()
           ? `/compact ${customInstructions.trim()}`
           : '/compact';
-      const submitter = activeUserMessageSubmitter;
-      if (submitter == null) {
-        throw new Error(
-          'Claude Code compaction requires an active turn that can accept the command.',
-        );
-      }
-      await submitter.submit(text);
+      channel.send({ type: 'user-message', text });
     },
     doDetach: async () => {
       if (stopped) {
