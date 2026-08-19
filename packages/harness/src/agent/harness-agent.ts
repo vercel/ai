@@ -1,10 +1,11 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
-import type {
-  HarnessV1Bootstrap,
-  HarnessV1BuiltinToolFiltering,
-  HarnessV1JSONSchema,
-  HarnessV1NetworkSandboxSession,
-  HarnessV1ResponseFormat,
+import {
+  harnessV1StateDirectory,
+  type HarnessV1Bootstrap,
+  type HarnessV1BuiltinToolFiltering,
+  type HarnessV1JSONSchema,
+  type HarnessV1NetworkSandboxSession,
+  type HarnessV1ResponseFormat,
 } from '../v1';
 import {
   asArray,
@@ -300,7 +301,9 @@ export class HarnessAgent<
             session: sandboxSession.restricted(),
             recipe,
             identity: recipeIdentity,
-            defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+            // State, not workspace: providers that separate the two keep the
+            // recipe's dependencies out of the session's working directory.
+            defaultWorkingDirectory: harnessV1StateDirectory(sandboxSession),
             abortSignal,
           });
         } catch (err) {
@@ -351,7 +354,9 @@ export class HarnessAgent<
               session: sandboxSession.restricted(),
               recipe,
               identity: recipeIdentity,
-              defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+              // State, not workspace: providers that separate the two keep
+              // the recipe's dependencies out of the working directory.
+              defaultWorkingDirectory: harnessV1StateDirectory(sandboxSession),
               abortSignal,
             });
           } catch (err) {
@@ -405,7 +410,9 @@ export class HarnessAgent<
               session: sandboxSession.restricted(),
               recipe: sandboxBootstrapPlan.recipe,
               identity: sandboxBootstrapPlan.recipeIdentity,
-              defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+              // State, not workspace: providers that separate the two keep
+              // the recipe's dependencies out of the working directory.
+              defaultWorkingDirectory: harnessV1StateDirectory(sandboxSession),
               abortSignal,
             });
           } catch (err) {

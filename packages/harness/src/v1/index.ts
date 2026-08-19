@@ -46,6 +46,7 @@ export type {
   HarnessV1PortEndpoint,
   HarnessV1RequestTransformation,
 } from './harness-v1-network-sandbox-session';
+export { harnessV1StateDirectory } from './harness-v1-network-sandbox-session';
 export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
 export {
