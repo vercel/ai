@@ -863,7 +863,7 @@ describe('streamObject', () => {
       it('should reject pending result promises when doStream throws', async () => {
         const error = new Error('test error');
         const result = streamObject({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV3({
             doStream: async () => {
               throw error;
             },
@@ -897,7 +897,7 @@ describe('streamObject', () => {
 
         try {
           const result = streamObject({
-            model: new MockLanguageModelV4({
+            model: new MockLanguageModelV3({
               doStream: async () => {
                 throw error;
               },
@@ -921,10 +921,9 @@ describe('streamObject', () => {
       it('should reject pending result promises and report failure for an error stream part', async () => {
         const error = new Error('test error');
         const onError = vitest.fn();
-        const onStepFinish = vitest.fn();
         const onFinish = vitest.fn();
         const result = streamObject({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([{ type: 'error', error }]),
             }),
@@ -932,7 +931,6 @@ describe('streamObject', () => {
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
           onError,
-          onStepFinish,
           onFinish,
         });
 
@@ -941,17 +939,10 @@ describe('streamObject', () => {
         ).toStrictEqual([{ type: 'error', error }]);
 
         expect(onError).toHaveBeenCalledWith({ error });
-        expect(onStepFinish).toHaveBeenCalledWith(
-          expect.objectContaining({
-            finishReason: 'error',
-            usage: createNullLanguageModelUsage(),
-          }),
-        );
         expect(onFinish).toHaveBeenCalledWith(
           expect.objectContaining({
             object: undefined,
             error,
-            finishReason: 'error',
             usage: createNullLanguageModelUsage(),
           }),
         );
@@ -973,7 +964,7 @@ describe('streamObject', () => {
         const error = new Error('test error');
         const onError = vitest.fn();
         const result = streamObject({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: new ReadableStream({
                 start(controller) {
