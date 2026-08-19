@@ -11,9 +11,6 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: 0.3.213
         version: 0.3.213(@anthropic-ai/sdk@0.97.1(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)
-      '@anthropic-ai/claude-code':
-        specifier: 2.1.213
-        version: 2.1.213
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
         version: 1.29.0(zod@4.4.3)
@@ -77,55 +74,6 @@ packages:
       '@anthropic-ai/sdk': '>=0.93.0'
       '@modelcontextprotocol/sdk': ^1.29.0
       zod: ^4.0.0
-
-  '@anthropic-ai/claude-code-darwin-arm64@2.1.213':
-    resolution: {integrity: sha512-Ne7TvVpSgQ4kY7liVX+QtGII57SVJEptj+EKcpQaji2CY1G7D4UYwwd2ixjq+Vg4g2QeiwrFPQfBC5+3dfM3bw==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@anthropic-ai/claude-code-darwin-x64@2.1.213':
-    resolution: {integrity: sha512-8Y2RcjEZutGMS4YqVy48qLYe6tdSn/DkxmTNxJ/CJFSgRCJnwc5ylTdqWXEPcFNID/F1emfsQxcEXTePxMpPRA==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@anthropic-ai/claude-code-linux-arm64-musl@2.1.213':
-    resolution: {integrity: sha512-avCIHxn7nFH6RBmY+EhlqCB4OAm0WQ26Yzb2NwfCq9m0yO93O8xQ0JO/LKrkO8iqlLLdmdXX71hOv21PI5bcpA==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@anthropic-ai/claude-code-linux-arm64@2.1.213':
-    resolution: {integrity: sha512-9YB9ex1HVKGVKcgiYuiHX3C7rB2WtzmxM1dSnKpEk6cGWgSfUVcrDNXD7Y6QVo7JII7mC+T1caS7CKJiS2S8uw==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@anthropic-ai/claude-code-linux-x64-musl@2.1.213':
-    resolution: {integrity: sha512-W8NZmV98bcGhdDuxSVF4xe6j5i28jEFQ55YK0moahGsjFqK8kIrqr4Dwny+SXCqQianKJmYdL3g939QUPd0UHQ==}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
-  '@anthropic-ai/claude-code-linux-x64@2.1.213':
-    resolution: {integrity: sha512-fWyCW0er/aUeUqXcBiXY5dqisDFy8AkbNNFxiYCcNsIFYbOgH09DSYT91LxSe0P/vm3O+N9yRA0d+zpxOcC69Q==}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
-  '@anthropic-ai/claude-code-win32-arm64@2.1.213':
-    resolution: {integrity: sha512-Guwf+nDUfMlzHbzmWsBRqSODDfEBzL1ZlvDhGvR9SuqW9BmlgpZpb32064aNE+yzU3VV67OigFFGMidySADdxQ==}
-    cpu: [arm64]
-    os: [win32]
-
-  '@anthropic-ai/claude-code-win32-x64@2.1.213':
-    resolution: {integrity: sha512-Un91ljQDFZN6Ep8HqolJRa7XI9JdsBsFQjSPot9zzyWgZrDTTkpJ0uTPA255I0LJBWPnomE/aMtsPUZSiQQdVQ==}
-    cpu: [x64]
-    os: [win32]
-
-  '@anthropic-ai/claude-code@2.1.213':
-    resolution: {integrity: sha512-uy0LoD2ZE+8FO0WZQo25BFLRypZjkd0TDjRB8suLvxUcz7og58s+lffpTIg/eW6MnHSxeVbHXxV4zSrJtMUBIw==}
-    engines: {node: '>=22.0.0'}
-    hasBin: true
 
   '@anthropic-ai/sdk@0.97.1':
     resolution: {integrity: sha512-wOf7AUeJPitcVpvKO4UMu63mWH5SaVipkGd7OOQJt/G6VYGlV8D2Gp9dLxOrttDJh/9gqPqdaBwDGcBevumeAg==}
@@ -578,41 +526,6 @@ snapshots:
       '@anthropic-ai/claude-agent-sdk-linux-x64-musl': 0.3.213
       '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.213
       '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.213
-
-  '@anthropic-ai/claude-code-darwin-arm64@2.1.213':
-    optional: true
-
-  '@anthropic-ai/claude-code-darwin-x64@2.1.213':
-    optional: true
-
-  '@anthropic-ai/claude-code-linux-arm64-musl@2.1.213':
-    optional: true
-
-  '@anthropic-ai/claude-code-linux-arm64@2.1.213':
-    optional: true
-
-  '@anthropic-ai/claude-code-linux-x64-musl@2.1.213':
-    optional: true
-
-  '@anthropic-ai/claude-code-linux-x64@2.1.213':
-    optional: true
-
-  '@anthropic-ai/claude-code-win32-arm64@2.1.213':
-    optional: true
-
-  '@anthropic-ai/claude-code-win32-x64@2.1.213':
-    optional: true
-
-  '@anthropic-ai/claude-code@2.1.213':
-    optionalDependencies:
-      '@anthropic-ai/claude-code-darwin-arm64': 2.1.213
-      '@anthropic-ai/claude-code-darwin-x64': 2.1.213
-      '@anthropic-ai/claude-code-linux-arm64': 2.1.213
-      '@anthropic-ai/claude-code-linux-arm64-musl': 2.1.213
-      '@anthropic-ai/claude-code-linux-x64': 2.1.213
-      '@anthropic-ai/claude-code-linux-x64-musl': 2.1.213
-      '@anthropic-ai/claude-code-win32-arm64': 2.1.213
-      '@anthropic-ai/claude-code-win32-x64': 2.1.213
 
   '@anthropic-ai/sdk@0.97.1(zod@4.4.3)':
     dependencies:

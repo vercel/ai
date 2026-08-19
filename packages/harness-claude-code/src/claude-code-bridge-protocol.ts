@@ -50,6 +50,11 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   // a resume that itself started a new thread. Mutually exclusive with
   // `continue` in the SDK, so the bridge sends one or the other.
   resumeSessionId: z.string().optional(),
+  // Absolute path of the `claude` executable the bridge drives — the
+  // environment's own installation, resolved (or consent-installed) by the
+  // adapter at session start. The Agent SDK's bundled binaries are never
+  // installed, so the SDK must always be pointed at this.
+  claudeExecutablePath: z.string().optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;
