@@ -5522,9 +5522,6 @@ describe('doGenerate', () => {
       [
         {
           "providerMetadata": {
-            "amazonBedrock": {
-              "redactedContent": "encrypted-reasoning-payload",
-            },
             "bedrock": {
               "redactedContent": "encrypted-reasoning-payload",
             },

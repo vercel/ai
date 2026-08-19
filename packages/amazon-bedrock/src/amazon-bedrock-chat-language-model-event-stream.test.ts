@@ -174,7 +174,7 @@ describe('BedrockChatLanguageModel doStream', () => {
     // stream their encrypted reasoning in this shape. Deltas are accumulated and
     // attached once via `reasoning-end`, because the merged provider metadata of
     // a reasoning part is last-write-wins.
-    const model = new AmazonBedrockChatLanguageModel('us.openai.gpt-5.6-luna', {
+    const model = new BedrockChatLanguageModel('us.openai.gpt-5.6-luna', {
       baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
       headers: {},
       fetch: async () =>
@@ -250,9 +250,6 @@ describe('BedrockChatLanguageModel doStream', () => {
           type: 'reasoning-end',
           id: '0',
           providerMetadata: {
-            amazonBedrock: {
-              redactedContent: 'encrypted-reasoning-payload',
-            },
             bedrock: {
               redactedContent: 'encrypted-reasoning-payload',
             },
@@ -269,7 +266,7 @@ describe('BedrockChatLanguageModel doStream', () => {
   it('keeps multiple redacted reasoning blocks separate', async () => {
     // OpenAI models on Bedrock can return several redacted reasoning blocks in
     // a single response. Each block must surface its own payload.
-    const model = new AmazonBedrockChatLanguageModel('us.openai.gpt-5.6-luna', {
+    const model = new BedrockChatLanguageModel('us.openai.gpt-5.6-luna', {
       baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
       headers: {},
       fetch: async () =>
@@ -340,7 +337,6 @@ describe('BedrockChatLanguageModel doStream', () => {
         type: 'reasoning-end',
         id: '0',
         providerMetadata: {
-          amazonBedrock: { redactedContent: 'first-payload' },
           bedrock: { redactedContent: 'first-payload' },
         },
       },
@@ -348,7 +344,6 @@ describe('BedrockChatLanguageModel doStream', () => {
         type: 'reasoning-end',
         id: '1',
         providerMetadata: {
-          amazonBedrock: { redactedContent: 'second-payload' },
           bedrock: { redactedContent: 'second-payload' },
         },
       },

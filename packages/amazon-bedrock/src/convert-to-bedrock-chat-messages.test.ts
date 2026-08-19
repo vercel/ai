@@ -774,7 +774,7 @@ describe('assistant messages', () => {
 
   it('should replay reasoning redacted as `redactedContent`', async () => {
     const redactedContent = 'encrypted-reasoning-payload';
-    const result = await convertToAmazonBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
