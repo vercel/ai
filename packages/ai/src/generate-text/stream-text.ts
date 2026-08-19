@@ -334,7 +334,7 @@ export type StreamTextOnAbortCallback<
  * If set and supported by the model, calls will generate deterministic results.
  *
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
- * @param streamRetries - Maximum number of retries for provider errors received after streaming starts. Set to 0 to disable stream retries. Default: 0.
+ * @param streamRetries - Maximum number of retries for provider errors received after streaming starts. Set to 0 to disable automatic stream retries while allowing `onError` to request retries. Omit to disable all stream retry behavior. Default: 0.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
@@ -588,7 +588,8 @@ export function streamText<
      * Callback that is invoked when an error occurs during streaming.
      * You can use it to log errors.
      * Return `{ retry: true }` to retry the current model step after a provider
-     * error is received from the response stream.
+     * error is received from the response stream when `streamRetries` is
+     * explicitly configured.
      * The stream processing will pause until the callback promise is resolved.
      */
     onError?: StreamTextOnErrorCallback;
@@ -601,7 +602,12 @@ export function streamText<
      * Partial output from a failed attempt that was already emitted cannot be
      * retracted and remains in consumer-facing streams.
      *
-     * @default 0
+     * Set to `0` to disable automatic retries while allowing `onError` to
+     * request retries. Omit this option to disable all stream retry behavior
+     * and preserve incremental tool streaming for existing `onError`
+     * observers.
+     *
+     * @default 0 (stream retry behavior disabled when omitted)
      */
     streamRetries?: number;
 
@@ -841,7 +847,7 @@ export function streamText<
     timeout,
     onChunk,
     onError,
-    canRetryStreamViaOnError: onErrorArg != null,
+    canRetryStreamViaOnError: streamRetries !== undefined && onErrorArg != null,
     onEnd,
     onAbort,
     onStepFinish: resolvedOnStepEnd,
@@ -2237,6 +2243,7 @@ class DefaultStreamTextResult<
                 const error = wrapGatewayError(value.error);
                 const onErrorResult = await onError({ error });
                 const callbackRequestedRetry =
+                  canRetryStreamViaOnError &&
                   typeof onErrorResult === 'object' &&
                   onErrorResult != null &&
                   'retry' in onErrorResult &&

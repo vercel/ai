@@ -2636,6 +2636,7 @@ describe('streamText', () => {
           }),
         }),
         prompt: 'test-input',
+        streamRetries: 0,
         onError,
       });
 
@@ -3100,6 +3101,113 @@ describe('streamText', () => {
       providerController.close();
 
       while (!(await reader.read()).done) {}
+    });
+
+    it('should stream tool parts incrementally for an existing onError observer', async () => {
+      let providerController!: ReadableStreamDefaultController<LanguageModelV4StreamPart>;
+      const providerStream = new ReadableStream<LanguageModelV4StreamPart>({
+        start(controller) {
+          providerController = controller;
+        },
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({ stream: providerStream }),
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        onError: () => {},
+      });
+
+      const reader = result.fullStream.getReader();
+      const readUntil = async (type: TextStreamPart<ToolSet>['type']) => {
+        while (true) {
+          const readResult = await Promise.race([
+            reader.read(),
+            delay(100).then(() => {
+              throw new Error(`Timed out waiting for ${type}`);
+            }),
+          ]);
+
+          if (readResult.done || readResult.value.type === type) {
+            return readResult;
+          }
+        }
+      };
+
+      providerController.enqueue({
+        type: 'tool-input-start',
+        id: 'tool-call-1',
+        toolName: 'tool1',
+      });
+      expect((await readUntil('tool-input-start')).value).toEqual({
+        type: 'tool-input-start',
+        id: 'tool-call-1',
+        toolName: 'tool1',
+        providerExecuted: undefined,
+        dynamic: false,
+      });
+
+      providerController.enqueue({
+        type: 'tool-call',
+        toolCallId: 'tool-call-1',
+        toolName: 'tool1',
+        input: '{"value":"test"}',
+      });
+      expect((await readUntil('tool-call')).value).toEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool1',
+          input: { value: 'test' },
+        }),
+      );
+
+      providerController.enqueue({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+        usage: testUsage,
+      });
+      providerController.close();
+
+      while (!(await reader.read()).done) {}
+    });
+
+    it('should not retry from an existing onError observer without streamRetries', async () => {
+      let callCount = 0;
+      const onError = vi.fn(() => ({ retry: true }) as const);
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(1);
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(await result.finishReason).toBe('error');
     });
 
     it('should preserve onChunk before onError ordering when retries are disabled', async () => {

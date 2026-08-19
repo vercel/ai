@@ -50,6 +50,7 @@ describe('streamText types', () => {
       streamText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
+        streamRetries: 0,
         onError: async ({ error }) => {
           if (error instanceof Error) {
             return { retry: true } as const;

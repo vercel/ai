@@ -125,7 +125,8 @@ A retry remains part of the same logical step. `onStepStart` runs once for that
 step. `onLanguageModelCallStart` runs for each provider call attempt, while
 `onLanguageModelCallEnd` runs only for attempts that reach a model-call finish.
 
-You can also decide dynamically in `onError`:
+You can also decide dynamically in `onError`. Set `streamRetries` explicitly to
+enable stream recovery; use `0` when retries should only be callback-directed:
 
 ```ts highlight="7-12"
 const result = streamText({
@@ -140,10 +141,11 @@ const result = streamText({
 });
 ```
 
-The default for `streamRetries` is `0`. An `onError` return value other than
-`{ retry: true }` keeps its previous behavior and does not request recovery.
-Provider error events that are recovered are not emitted as final `error`
-parts.
+When `streamRetries` is omitted, all stream retry behavior is disabled and an
+existing logging-only `onError` callback retains incremental tool streaming.
+An `onError` return value other than `{ retry: true }` keeps its previous
+behavior and does not request recovery. Provider error events that are
+recovered are not emitted as final `error` parts.
 
 <Note type="warning">
   Non-tool output emitted before a provider error cannot be retracted. A retried
