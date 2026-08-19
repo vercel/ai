@@ -603,7 +603,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         } else {
           const isMistral = isMistralModel(this.modelId);
           const rawToolCallId =
-            part.toolUse?.toolUseId ?? this.config.generateId();
+            part.toolUse?.toolUseId || this.config.generateId();
           content.push({
             type: 'tool-call' as const,
             toolCallId: normalizeToolCallId(rawToolCallId, isMistral),
