@@ -79,6 +79,7 @@ import type {
 } from './generate-text-events';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
@@ -1259,7 +1260,12 @@ export async function generateText<
               );
               const toolExecutionMs: Record<string, number> = {};
 
-              if (stepExecutionTools != null) {
+              if (
+                stepExecutionTools != null &&
+                isToolExecutionAllowedFinishReason(
+                  currentModelResponse.finishReason.unified,
+                )
+              ) {
                 const toolExecutionResults = await executeTools({
                   toolCalls: clientToolCalls.filter(
                     toolCall =>
