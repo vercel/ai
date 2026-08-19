@@ -157,10 +157,10 @@ export class StreamingToolCallTracker<
       }
     }
 
-    if (toolCallDelta.id == null) {
+    if (toolCallDelta.id == null || toolCallDelta.id.length === 0) {
       throw new InvalidResponseDataError({
         data: toolCallDelta,
-        message: `Expected 'id' to be a string.`,
+        message: `Expected 'id' to be a non-empty string.`,
       });
     }
 
