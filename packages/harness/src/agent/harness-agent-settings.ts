@@ -3,6 +3,7 @@ import type {
   HarnessDiagnostic,
 } from './observability/types';
 import type { HarnessV1SandboxProvider } from '../v1';
+import type { LocalWorkspace } from '../workspace/local-workspace';
 import type {
   HarnessAgentAdapter,
   HarnessAgentPermissionMode,
@@ -180,10 +181,32 @@ export type HarnessAgentSettings<
 
   /**
    * Optional sandbox provider used to create or resume network sandbox
-   * sessions. When omitted, every `createSession()` call must provide an
-   * existing network sandbox session.
+   * sessions.
+   *
+   * Mutually exclusive with `workspace`. When neither is set and a
+   * `createSession()` call provides no existing network sandbox session, the
+   * harness runs in an implicit local workspace at `process.cwd()` (see
+   * `workspace`) and a warning is emitted once per process; suppress it by
+   * setting the `AI_SDK_LOG_WARNINGS` global to `false` or to your own
+   * logger.
    */
   readonly sandbox?: HarnessV1SandboxProvider;
+
+  /**
+   * A local project directory the harness works in, created with
+   * `localWorkspace({ path })`. Mutually exclusive with `sandbox`.
+   *
+   * The harness runs **on the local machine** as the current user, reusing
+   * the CLI configuration and credentials already there. Harness SDK state
+   * lives in `~/.ai-sdk/harness/projects/…`, never inside the project, and
+   * conversations belong to the runtime's own store so they can be continued
+   * directly in the agent's own CLI.
+   *
+   * **This provides no isolation**: the harness has every permission the
+   * current user has. Pass a `sandbox` provider for untrusted input or
+   * untrusted output.
+   */
+  readonly workspace?: LocalWorkspace;
 
   /**
    * Consent policy for installing the runtime's executable (declared by the

@@ -1,0 +1,5 @@
+---
+'@ai-sdk/harness': patch
+---
+
+feat (harness): run harnesses against a local project directory. `HarnessAgent` gains a `workspace` setting — `workspace: localWorkspace({ path })` — that runs the harness on the local machine as the current user, with the project directory as its working directory, reusing the CLI configuration and credentials already there. `sandbox` becomes optional and mutually exclusive with `workspace`; when both are omitted, an implicit workspace at `process.cwd()` is used and a warning is emitted once per process (suppress via the `AI_SDK_LOG_WARNINGS` global). The project stays clean: all Harness SDK state (bridge dependencies, setup markers, per-session run state) lives in a central per-project store at `~/.ai-sdk/harness/projects/<basename>-<hash>/` whose `manifest.json` maps it back to the project (relocatable via `AI_SDK_HARNESS_STATE_DIR`). A workspace provides **no isolation** — it is the same trust level as running the agent's CLI in a terminal — and, because the environment is user-owned, nothing is installed into it without explicit consent.
