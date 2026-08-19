@@ -167,6 +167,27 @@ const harness = createClaudeCode({
 The supplied record replaces the host environment for authentication
 discovery. Only recognized authentication variables are forwarded.
 
+## Resuming the Exact Conversation
+
+Every Claude Code turn belongs to a native conversation the CLI persists
+itself. The adapter tracks its id and writes it into the state returned by
+`session.stop()` and `session.detach()`, so resuming a session rehydrates the
+exact conversation rather than the SDK's `continue` fallback, which means
+"most recent thread in this working directory" and silently picks the wrong
+one once a second thread exists there.
+
+The id is also surfaced to consumers as harness metadata on `finish` stream
+parts (`harnessMetadata['claude-code'].sessionId`), so a UI can offer the
+native escape hatch:
+
+```ts
+// The same conversation, continued directly in the user's own terminal:
+//   claude --resume <sessionId>
+```
+
+No configuration is required; state written by older adapter versions falls
+back to the previous `continue` behavior.
+
 ## Sandbox
 
 Claude Code requires a network sandbox with at least one exposed port,

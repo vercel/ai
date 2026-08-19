@@ -16,6 +16,8 @@ const state = vi.hoisted(() => ({
   messages: [] as Record<string, unknown>[],
   queryArgs: [] as QueryArgs[],
   start: {} as Record<string, unknown>,
+  onStop: undefined as (() => unknown) | undefined,
+  firstTurn: true,
   originalArgv: [] as string[],
   originalEnv: {} as Record<string, string | undefined>,
   steering: false,
@@ -76,9 +78,12 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
 vi.mock('@ai-sdk/harness/bridge', () => ({
   runBridge: async ({
     onStart,
+    onStop,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
+    onStop?: () => unknown;
   }) => {
+    state.onStop = onStop;
     await onStart(state.start, {
       abortSignal: (state.turnAbortController ?? new AbortController()).signal,
       experimental_userMessages: {
@@ -94,7 +99,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
           };
         },
       },
-      firstTurn: true,
+      firstTurn: state.firstTurn,
       emit: (event: Record<string, unknown>) => state.emitted.push(event),
       emitWarning: () => {},
       emitError: (input: unknown) => state.emitError?.(input),
@@ -118,6 +123,8 @@ describe('Claude Code bridge configuration', () => {
     state.createQuery = undefined;
     state.turnAbortController = undefined;
     state.emitError = undefined;
+    state.onStop = undefined;
+    state.firstTurn = true;
     state.start = {
       prompt: 'Inspect the project.',
       thinking: { type: 'disabled' },
@@ -190,6 +197,56 @@ describe('Claude Code bridge configuration', () => {
     await import('./index');
 
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
+  });
+
+  test('resumes the exact conversation when the start names one', async () => {
+    state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options).toMatchObject({ resume: 'claude-session-1' });
+    // `resume` and `continue` are mutually exclusive in the SDK.
+    expect(options).not.toHaveProperty('continue');
+  });
+
+  test('falls back to continue when no exact conversation is named', async () => {
+    state.start = { ...state.start, continue: true };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({ continue: true });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('resume');
+  });
+
+  test('surfaces the observed session id on finish metadata and the stop payload', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-2',
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+        session_id: 'claude-session-2',
+      },
+    ];
+
+    await import('./index');
+
+    const finish = state.emitted.find(msg => msg.type === 'finish');
+    expect(finish?.harnessMetadata).toMatchObject({
+      'claude-code': { sessionId: 'claude-session-2' },
+    });
+    expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
+  });
+
+  test('reports an empty stop payload when no session id was observed', async () => {
+    await import('./index');
+
+    expect(state.onStop?.()).toEqual({});
   });
 
   test('passes the requested JSON schema to the Agent SDK', async () => {

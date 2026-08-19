@@ -125,13 +125,23 @@ const claudeSdk = claudeAgentSdk as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mcpModule = mcpServerModule as any;
 
+/**
+ * The Claude session id most recently reported by the SDK, captured from the
+ * message stream. Every turn in this bridge process may fork a new id (the
+ * SDK's `continue`/`resume` create a new session linked to the previous one),
+ * so the latest observation is the one a later resume must name.
+ */
+let lastClaudeSessionId: string | undefined;
+
 await runBridge<StartMessage>({
   bridgeType: 'claude-code',
   bridgeStateDir,
   onStart: runTurn,
-  // Claude Code's session state lives in the workdir on the sandbox filesystem
-  // (captured by the sandbox snapshot on stop); the resume payload is empty.
-  onStop: () => ({}),
+  // Claude Code's conversation state lives in the runtime's own store, keyed
+  // by working directory. The resume payload names the exact conversation so a
+  // later resume does not have to fall back to "most recent in this workdir".
+  onStop: () =>
+    lastClaudeSessionId == null ? {} : { claudeSessionId: lastClaudeSessionId },
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
@@ -392,11 +402,21 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           },
         ],
       },
-      // Continuation rule: the host can force-continue (resume after a
-      // cross-process detach) by setting `start.continue: true`; otherwise
-      // we continue every subsequent turn after the first one in this
-      // bridge process.
-      ...(start.continue === true || !turn.firstTurn ? { continue: true } : {}),
+      // Continuation rule, most specific first.
+      //
+      // `resumeSessionId` names the exact conversation and is what a
+      // cross-process resume should use: `continue` means "most recent thread
+      // in this workdir", which silently picks the wrong one once anything
+      // else has run there. The two are mutually exclusive in the SDK.
+      //
+      // Otherwise the host can force-continue by setting `start.continue`,
+      // and every turn after the first in this bridge process continues by
+      // construction.
+      ...(turn.firstTurn && start.resumeSessionId
+        ? { resume: start.resumeSessionId }
+        : start.continue === true || !turn.firstTurn
+          ? { continue: true }
+          : {}),
       ...permissionOptions,
       mcpServers,
       cwd: workdir,
@@ -458,6 +478,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
       if (type === 'command_lifecycle') {
         queryInput.handleLifecycle(msg);
+      }
+
+      // Every SDK message carries the session id of the conversation it
+      // belongs to. Track the latest so the stop payload and the terminal
+      // finish metadata name the exact conversation.
+      const sessionId = (msg as { session_id?: unknown }).session_id;
+      if (typeof sessionId === 'string' && sessionId.length > 0) {
+        lastClaudeSessionId = sessionId;
       }
 
       emitStreamEvent(msg);
@@ -559,8 +587,20 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     type: 'finish',
     finishReason: { unified: 'stop', raw: 'stop' },
     totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
-    ...(totalCostUsd !== undefined
-      ? { harnessMetadata: { 'claude-code': { costUsd: totalCostUsd } } }
+    ...(totalCostUsd !== undefined || lastClaudeSessionId !== undefined
+      ? {
+          harnessMetadata: {
+            'claude-code': {
+              ...(totalCostUsd !== undefined ? { costUsd: totalCostUsd } : {}),
+              // The conversation this turn belongs to, resumable outside the
+              // SDK with `claude --resume <sessionId>` and captured by the
+              // adapter for exact cross-process resume.
+              ...(lastClaudeSessionId !== undefined
+                ? { sessionId: lastClaudeSessionId }
+                : {}),
+            },
+          },
+        }
       : {}),
   });
 }
