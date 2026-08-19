@@ -4764,6 +4764,17 @@ describe('XaiResponsesLanguageModel', () => {
 
   describe('response.failed handling', () => {
     it('should set finish reason to error', async () => {
+      const responseFailedEvent = {
+        type: 'response.failed',
+        response: {
+          error: {
+            code: 'server_error',
+            message: 'Internal server error',
+          },
+          usage: { input_tokens: 50, output_tokens: 0 },
+        },
+      } as const;
+
       prepareStreamChunks([
         JSON.stringify({
           type: 'response.created',
@@ -4774,16 +4785,7 @@ describe('XaiResponsesLanguageModel', () => {
             output: [],
           },
         }),
-        JSON.stringify({
-          type: 'response.failed',
-          response: {
-            error: {
-              code: 'server_error',
-              message: 'Internal server error',
-            },
-            usage: { input_tokens: 50, output_tokens: 0 },
-          },
-        }),
+        JSON.stringify(responseFailedEvent),
       ]);
 
       const { stream } = await createModel().doStream({
@@ -4792,6 +4794,7 @@ describe('XaiResponsesLanguageModel', () => {
 
       const parts = await convertReadableStreamToArray(stream);
       const finish = parts.find(part => part.type === 'finish');
+      const errorPart = parts.find(part => part.type === 'error');
 
       expect(finish).toMatchObject({
         type: 'finish',
@@ -4803,6 +4806,16 @@ describe('XaiResponsesLanguageModel', () => {
           inputTokens: expect.objectContaining({ total: 50 }),
           outputTokens: expect.objectContaining({ total: 0 }),
         }),
+      });
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: responseFailedEvent.response.error.message,
+          type: responseFailedEvent.response.error.code,
+          statusCode: 500,
+          isRetryable: true,
+          data: responseFailedEvent,
+        },
       });
     });
 
@@ -4849,6 +4862,13 @@ describe('XaiResponsesLanguageModel', () => {
 
   describe('error event handling', () => {
     it('should emit error chunk for server error events', async () => {
+      const errorEvent = {
+        type: 'error',
+        code: 'server_error',
+        message: 'Internal server error',
+        param: null,
+      } as const;
+
       prepareStreamChunks([
         JSON.stringify({
           type: 'response.created',
@@ -4859,13 +4879,7 @@ describe('XaiResponsesLanguageModel', () => {
             output: [],
           },
         }),
-        JSON.stringify({
-          type: 'error',
-          code: null,
-          message:
-            'Service temporarily unavailable. The model did not respond to this request.',
-          param: null,
-        }),
+        JSON.stringify(errorEvent),
       ]);
 
       const { stream } = await createModel().doStream({
@@ -4878,11 +4892,11 @@ describe('XaiResponsesLanguageModel', () => {
       expect(errorPart).toMatchObject({
         type: 'error',
         error: {
-          type: 'error',
-          code: null,
-          message:
-            'Service temporarily unavailable. The model did not respond to this request.',
-          param: null,
+          message: errorEvent.message,
+          type: errorEvent.code,
+          statusCode: 500,
+          isRetryable: true,
+          data: errorEvent,
         },
       });
     });

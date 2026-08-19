@@ -128,6 +128,24 @@ describe('normalizeStreamProviderError', () => {
     });
   });
 
+  it('preserves the provider type when code contains a numeric HTTP status', () => {
+    const data = {
+      message: 'Rate limit reached',
+      type: 'rate_limit_error',
+      code: '429',
+    };
+
+    const error = normalizeStreamProviderError(data);
+
+    expect(error).toMatchObject({
+      message: 'Rate limit reached',
+      type: 'rate_limit_error',
+      statusCode: 429,
+      isRetryable: true,
+      data,
+    });
+  });
+
   it('uses explicit status metadata for non-retryable provider errors', () => {
     const error = normalizeStreamProviderError({
       message: 'A required provider dependency is unavailable',

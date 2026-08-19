@@ -1,10 +1,12 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createGateway } from '@ai-sdk/gateway';
+import { createGroq } from '@ai-sdk/groq';
 import { createMoonshotAI } from '@ai-sdk/moonshotai';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModelV4 } from '@ai-sdk/provider';
 import { convertAsyncIterableToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { createXai } from '@ai-sdk/xai';
 import { describe, expect, it } from 'vitest';
 import { StreamProviderError } from '../error';
 import { streamText } from './stream-text';
@@ -12,9 +14,11 @@ import { streamText } from './stream-text';
 describe('stream provider error integration', () => {
   const server = createTestServer({
     'https://api.test.com/deepseek/chat/completions': {},
+    'https://api.test.com/groq/v1/chat/completions': {},
     'https://api.test.com/language-model': {},
     'https://api.test.com/moonshot/v1/chat/completions': {},
     'https://api.test.com/openai/v1/responses': {},
+    'https://api.test.com/xai/v1/responses': {},
   });
 
   async function expectNormalizedProviderError({
@@ -228,6 +232,79 @@ describe('stream provider error integration', () => {
       expected: {
         message: data.error.message,
         type: data.error.type,
+        statusCode: 500,
+        isRetryable: true,
+        data,
+      },
+    });
+  });
+
+  it('normalizes an actual Groq rate-limit event with provider-owned metadata', async () => {
+    const data = {
+      error: {
+        message: 'Rate limit reached',
+        type: 'rate_limit_error',
+      },
+    };
+
+    server.urls['https://api.test.com/groq/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
+    };
+
+    await expectNormalizedProviderError({
+      model: createGroq({
+        apiKey: 'test-api-key',
+        baseURL: 'https://api.test.com/groq/v1',
+      })('llama-3.3-70b-versatile'),
+      expected: {
+        message: data.error.message,
+        type: data.error.type,
+        statusCode: 429,
+        isRetryable: true,
+        data,
+      },
+    });
+  });
+
+  it('normalizes an actual xAI response.failed event with provider-owned metadata', async () => {
+    const data = {
+      type: 'response.failed',
+      response: {
+        error: {
+          code: 'server_error',
+          message: 'Internal server error',
+        },
+        incomplete_details: null,
+        usage: null,
+      },
+    };
+
+    server.urls['https://api.test.com/xai/v1/responses'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_test',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        })}\n\n`,
+        `data: ${JSON.stringify(data)}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    await expectNormalizedProviderError({
+      model: createXai({
+        apiKey: 'test-api-key',
+        baseURL: 'https://api.test.com/xai/v1',
+      }).responses('grok-4-fast-non-reasoning'),
+      expected: {
+        message: data.response.error.message,
+        type: data.response.error.code,
         statusCode: 500,
         isRetryable: true,
         data,
