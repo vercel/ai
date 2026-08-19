@@ -257,6 +257,19 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('points the Agent SDK at the environment executable', async () => {
+    state.start = {
+      ...state.start,
+      claudeExecutablePath: '/usr/local/bin/claude',
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      pathToClaudeCodeExecutable: '/usr/local/bin/claude',
+    });
+  });
+
   test('resumes the exact conversation when the start names one', async () => {
     state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
     state.firstTurn = false;

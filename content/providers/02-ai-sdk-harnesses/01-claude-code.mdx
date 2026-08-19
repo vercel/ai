@@ -22,6 +22,39 @@ WebSocket.
 The adapter bootstraps the Claude Code bridge dependencies inside the sandbox
 when the first session starts.
 
+## The Environment's Own `claude`
+
+The adapter always drives the `claude` executable already present in the
+session's environment — the installation the user configured, authenticated,
+and can continue conversations with directly (`claude --resume`). The
+bootstrap installs only the bridge's JavaScript dependencies (about 40 MB),
+never a copy of the CLI.
+
+When the environment has no working `claude`, installation of the pinned
+version is requested through the agent's `onInstallRequest` consent policy:
+
+- In a provider-owned (disposable) sandbox, consent is granted by default and
+  the adapter installs `@anthropic-ai/claude-code` at the version the bridge
+  is tested against.
+- In a user-owned environment, nothing is installed without explicit consent;
+  the session fails with `HarnessExecutableMissingError` carrying the exact
+  install command instead.
+
+```ts
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  sandbox,
+  // Optional: decide per request (e.g. an interactive prompt in a CLI host).
+  onInstallRequest: async ({ command }) => confirmWithUser(command),
+});
+```
+
+<Note>
+  The executable is verified by running it, not merely finding it on `PATH`, and
+  a reused executable is whatever version the environment has — which may differ
+  from the version the bridge is tested against.
+</Note>
+
 ## Import
 
 ```ts
