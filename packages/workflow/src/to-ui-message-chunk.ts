@@ -214,24 +214,44 @@ export function toUIMessageChunk(
 /**
  * Create a TransformStream that converts ModelCallStreamPart to UIMessageChunk.
  * Wraps toUIMessageChunk with start/start-step/finish-step lifecycle chunks.
+ *
+ * @param options.uiStartIndex - Number of UIMessageChunks to omit from the
+ * transformed stream. This is useful when replaying a raw workflow stream from
+ * the beginning to resume at a UIMessageChunk cursor.
  */
-export function createModelCallToUIChunkTransform(): TransformStream<
-  ModelCallStreamPart<ToolSet>,
-  UIMessageChunk
-> {
+export function createModelCallToUIChunkTransform(
+  options: { uiStartIndex?: number } = {},
+): TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk> {
+  const uiStartIndex = options.uiStartIndex ?? 0;
+
+  if (!Number.isSafeInteger(uiStartIndex) || uiStartIndex < 0) {
+    throw new RangeError('uiStartIndex must be a non-negative safe integer');
+  }
+
+  let uiChunkIndex = 0;
+
+  const enqueue = (
+    controller: TransformStreamDefaultController<UIMessageChunk>,
+    chunk: UIMessageChunk,
+  ) => {
+    if (uiChunkIndex++ >= uiStartIndex) {
+      controller.enqueue(chunk);
+    }
+  };
+
   return new TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk>({
     start: controller => {
-      controller.enqueue({ type: 'start' });
-      controller.enqueue({ type: 'start-step' });
+      enqueue(controller, { type: 'start' });
+      enqueue(controller, { type: 'start-step' });
     },
     flush: controller => {
-      controller.enqueue({ type: 'finish-step' });
-      controller.enqueue({ type: 'finish' });
+      enqueue(controller, { type: 'finish-step' });
+      enqueue(controller, { type: 'finish' });
     },
     transform: (part, controller) => {
       const uiChunk = toUIMessageChunk(part);
       if (uiChunk) {
-        controller.enqueue(uiChunk);
+        enqueue(controller, uiChunk);
       }
     },
   });

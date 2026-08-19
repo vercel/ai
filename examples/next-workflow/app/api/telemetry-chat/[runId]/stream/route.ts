@@ -27,7 +27,10 @@ export async function GET(
   }
 
   const run = await getRun(runId);
-  const readable = toUIMessageStream(run.getReadable({ startIndex }));
+  const readable = toUIMessageStream(
+    run.getReadable({ startIndex: 0 }),
+    startIndex,
+  );
 
   return createUIMessageStreamResponse({
     stream: readable,

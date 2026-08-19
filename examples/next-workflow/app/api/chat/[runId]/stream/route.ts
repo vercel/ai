@@ -14,8 +14,10 @@ export async function GET(
 
     const run = await getRun(runId);
     const readable = run
-      .getReadable({ startIndex })
-      .pipeThrough(createModelCallToUIChunkTransform());
+      .getReadable({ startIndex: 0 })
+      .pipeThrough(
+        createModelCallToUIChunkTransform({ uiStartIndex: startIndex }),
+      );
 
     return new Response(readable, {
       headers: {

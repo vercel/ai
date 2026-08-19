@@ -14,7 +14,7 @@ export async function GET(
   const run = await getRun(runId);
 
   return createUIMessageStreamResponse({
-    stream: toUIMessageStream(run.getReadable({ startIndex })),
+    stream: toUIMessageStream(run.getReadable({ startIndex: 0 }), startIndex),
     headers: {
       'x-workflow-run-id': runId,
     },

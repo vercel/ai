@@ -708,6 +708,10 @@ return createUIMessageStreamResponse({
 });
 ```
 
+Pass a non-negative `uiStartIndex` to omit that many transformed UI chunks.
+This lets a reconnect endpoint replay a raw workflow stream from index `0`
+while resuming at the UI chunk cursor reported by `WorkflowChatTransport`.
+
 ### `toUIMessageChunk()`
 
 Converts a single `ModelCallStreamPart` to a `UIMessageChunk`. Returns `undefined` for parts that don't map to UI chunks.
