@@ -51,6 +51,29 @@ function createModel(responseChunks: Uint8Array[]) {
 }
 
 describe('BedrockChatLanguageModel doStream event stream handling', () => {
+  it('surfaces event stream decoding failures', async () => {
+    const corruptedFrame = createEvent('contentBlockDelta', {
+      contentBlockIndex: 0,
+      delta: { text: 'corrupted' },
+    });
+    corruptedFrame[corruptedFrame.length - 1] ^= 0xff;
+
+    const { stream } = await createModel([
+      corruptedFrame,
+      createEvent('contentBlockDelta', {
+        contentBlockIndex: 0,
+        delta: { text: 'later' },
+      }),
+    ]).doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toThrow(
+      'The message checksum',
+    );
+  });
+
   it('rejects a truncated event stream frame at EOF', async () => {
     const textFrame = createEvent('contentBlockDelta', {
       contentBlockIndex: 0,

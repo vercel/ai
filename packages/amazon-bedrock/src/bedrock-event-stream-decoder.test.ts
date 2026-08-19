@@ -28,6 +28,37 @@ function createStream(chunks: Uint8Array[]): ReadableStream<Uint8Array> {
 }
 
 describe('createBedrockEventStreamDecoder', () => {
+  it('surfaces frame decode errors instead of stranding later frames', async () => {
+    const corruptedFrame = createEvent('corrupted');
+    corruptedFrame[corruptedFrame.length - 1] ^= 0xff;
+    const processEvent = vi.fn();
+
+    const result = convertReadableStreamToArray(
+      createBedrockEventStreamDecoder(
+        createStream([corruptedFrame, createEvent('later')]),
+        processEvent,
+      ),
+    );
+
+    await expect(result).rejects.toThrow();
+    expect(processEvent).not.toHaveBeenCalled();
+  });
+
+  it('surfaces processEvent errors', async () => {
+    const processEventError = new Error('processEvent failed');
+
+    const result = convertReadableStreamToArray(
+      createBedrockEventStreamDecoder(
+        createStream([createEvent('data')]),
+        () => {
+          throw processEventError;
+        },
+      ),
+    );
+
+    await expect(result).rejects.toBe(processEventError);
+  });
+
   it('processes frames split across chunks', async () => {
     const frame = createEvent('data');
     const midpoint = Math.floor(frame.length / 2);
