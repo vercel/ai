@@ -10,6 +10,24 @@ export type HarnessV1PortEndpoint = {
 };
 
 /**
+ * Where the harness machinery keeps its generated state for this session's
+ * sandbox: the provider's {@link HarnessV1NetworkSandboxSession.stateDirectory}
+ * when it declares one, otherwise the sandbox's default working directory.
+ *
+ * Adapters and the framework must derive every state path (bootstrap
+ * directories, `.agent-runs`, markers) through this so a provider can keep
+ * infrastructure out of the user's workspace.
+ */
+export function harnessV1StateDirectory(
+  session: Pick<
+    HarnessV1NetworkSandboxSession,
+    'stateDirectory' | 'defaultWorkingDirectory'
+  >,
+): string {
+  return session.stateDirectory ?? session.defaultWorkingDirectory;
+}
+
+/**
  * Network sandbox session returned by `HarnessV1SandboxProvider.createSession()`. The
  * harness keeps this for the lifetime of a session. It is itself a
  * {@link SandboxSession} (file I/O, exec, spawn) and adds the infra surface on
@@ -44,6 +62,23 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
    * not bake a provider-specific base into their own paths.
    */
   readonly defaultWorkingDirectory: string;
+
+  /**
+   * Directory where the harness machinery keeps its own generated state —
+   * bootstrap recipes and their dependencies (`.harness-bootstrap/…`), and
+   * per-session adapter state (`.agent-runs/…`). This is Harness SDK state,
+   * not the runtime's own store (Claude Code's `~/.claude`, Codex's
+   * `~/.codex`, …), which each runtime continues to manage itself.
+   *
+   * Optional. When omitted, state lives under {@link defaultWorkingDirectory},
+   * which is correct for hosted sandboxes: their snapshot machinery preserves
+   * the working-directory mount, so state written there survives
+   * stop → snapshot → resume cycles. Providers whose working directory is a
+   * directory the user owns set this elsewhere so the workspace stays free of
+   * infrastructure. Resolve it through {@link harnessV1StateDirectory} rather
+   * than reading the field directly.
+   */
+  readonly stateDirectory?: string;
 
   /** Ports the sandbox exposes; resolvable via `getPortEndpoint`. */
   readonly ports: ReadonlyArray<number>;
