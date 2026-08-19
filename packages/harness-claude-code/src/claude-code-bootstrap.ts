@@ -16,6 +16,21 @@ import type { HarnessV1Bootstrap } from '@ai-sdk/harness';
  */
 export const CLAUDE_CODE_BOOTSTRAP_DIR = '.harness-bootstrap/claude-code';
 
+/**
+ * The Claude Code CLI version this adapter's bridge (`@anthropic-ai/
+ * claude-agent-sdk`) is built and tested against. The bootstrap installs no
+ * CLI of its own — the adapter drives the environment's `claude`, installing
+ * this version (with consent) only when the environment has none.
+ */
+export const CLAUDE_CODE_PINNED_CLI_VERSION = '2.1.213';
+
+/**
+ * The adapter-preferred command to install the Claude Code CLI into an
+ * environment that lacks it. Declared as `HarnessV1.installation.command`;
+ * run only after the host consents.
+ */
+export const CLAUDE_CODE_INSTALL_COMMAND = `npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_PINNED_CLI_VERSION}`;
+
 let cachedBootstrap: HarnessV1Bootstrap | undefined;
 
 export async function getClaudeCodeBootstrap(): Promise<HarnessV1Bootstrap> {
@@ -40,10 +55,21 @@ export async function getClaudeCodeBootstrap(): Promise<HarnessV1Bootstrap> {
     ],
     commands: [
       {
-        command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-      },
-      {
-        command: './node_modules/.bin/claude --version',
+        // The bridge's JavaScript dependencies only. `--no-optional` skips
+        // the Agent SDK's bundled platform binaries (hundreds of megabytes of
+        // CLI copies): the adapter always drives the environment's own
+        // `claude`, so the bundled ones would never run. The pnpm store is a
+        // build artifact nothing reads afterwards — pnpm copies rather than
+        // hardlinks here, so it is a second copy of everything — but its
+        // cleanup must not swallow the install's exit status: a failed
+        // install recorded as a completed bootstrap leaves a half-linked
+        // node_modules that every later session trusts.
+        command: [
+          'pnpm install --frozen-lockfile --store-dir .pnpm-store --no-optional',
+          'install_status=$?',
+          'rm -rf .pnpm-store',
+          'exit $install_status',
+        ].join('\n'),
       },
     ],
   };

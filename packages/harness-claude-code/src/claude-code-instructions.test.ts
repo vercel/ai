@@ -66,7 +66,16 @@ function emptyStream(): ReadableStream<Uint8Array> {
 function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
   const port = 4319;
   const session = {
-    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    run: async ({ command }: { command: string }) => {
+      if (command === 'command -v claude && claude --version') {
+        return {
+          exitCode: 0,
+          stdout: '/usr/local/bin/claude\n2.1.213 (Claude Code)\n',
+          stderr: '',
+        };
+      }
+      return { exitCode: 0, stdout: '', stderr: '' };
+    },
     readTextFile: async () => null,
     spawn: async () => ({
       stdout: readyStream(port),

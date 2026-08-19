@@ -1,2 +1,4 @@
-allowBuilds:
-  '@anthropic-ai/claude-code@2.1.213': true
+# Marks the bridge install as its own workspace so a surrounding project's
+# pnpm workspace cannot capture it. The bridge deliberately has no build
+# scripts: the Claude Code CLI itself is the environment's own installation,
+# resolved by the adapter, never installed here.
