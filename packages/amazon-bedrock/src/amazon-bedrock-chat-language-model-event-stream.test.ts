@@ -12,14 +12,7 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-<<<<<<< HEAD
-function createEvent(
-  data: string,
-  eventType = 'contentBlockDelta',
-): Uint8Array {
-=======
 function createEvent(eventType: string, data: string): Uint8Array {
->>>>>>> origin/release-v6.0
   return codec.encode({
     headers: {
       ':message-type': { type: 'string', value: 'event' },
@@ -85,7 +78,6 @@ describe('BedrockChatLanguageModel doStream', () => {
     );
   });
 
-<<<<<<< HEAD
   it('accepts documented redactedContent from a recorded Converse stream', async () => {
     const fixture = fs
       .readFileSync(
@@ -99,7 +91,7 @@ describe('BedrockChatLanguageModel doStream', () => {
       fixture[1].contentBlockDelta.delta.reasoningContent.redactedContent;
     const events = fixture.map(event => {
       const eventType = Object.keys(event)[0];
-      return createEvent(JSON.stringify(event[eventType]), eventType);
+      return createEvent(eventType, JSON.stringify(event[eventType]));
     });
 
     const model = new BedrockChatLanguageModel('us.openai.gpt-5.6-luna', {
@@ -114,7 +106,28 @@ describe('BedrockChatLanguageModel doStream', () => {
         }),
       generateId: () => 'test-id',
     });
-=======
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.find(part => part.type === 'error')).toBeUndefined();
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'call_61f8fcbe423a58699163c53e076f1a06',
+      toolName: 'propose',
+      input: JSON.stringify({
+        groups: [
+          { name: 'Sales', parentGroupName: '' },
+          { name: 'Team1', parentGroupName: 'Sales' },
+        ],
+      }),
+    });
+    expect(JSON.stringify(parts)).toContain(redactedContent);
+  });
+
   it('rejects a truncated event stream frame at EOF', async () => {
     const textFrame = createEvent(
       'contentBlockDelta',
@@ -148,29 +161,11 @@ describe('BedrockChatLanguageModel doStream', () => {
         generateId: () => 'test-id',
       },
     );
->>>>>>> origin/release-v6.0
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
     });
-<<<<<<< HEAD
-    const parts = await convertReadableStreamToArray(stream);
-
-    expect(parts.find(part => part.type === 'error')).toBeUndefined();
-    expect(parts).toContainEqual({
-      type: 'tool-call',
-      toolCallId: 'call_61f8fcbe423a58699163c53e076f1a06',
-      toolName: 'propose',
-      input: JSON.stringify({
-        groups: [
-          { name: 'Sales', parentGroupName: '' },
-          { name: 'Team1', parentGroupName: 'Sales' },
-        ],
-      }),
-    });
-    expect(JSON.stringify(parts)).toContain(redactedContent);
-=======
 
     await expect(convertReadableStreamToArray(stream)).rejects.toThrow(
       'Incomplete Amazon Bedrock event-stream frame',
@@ -222,6 +217,5 @@ describe('BedrockChatLanguageModel doStream', () => {
         }),
       ]),
     );
->>>>>>> origin/release-v6.0
   });
 });
