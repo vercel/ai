@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19080,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19080-preliminary-tool-output.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19080-preliminary-tool-output.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19080_REPRODUCED: preliminary tool output was converted into a model-facing tool result"
+  }
+}
