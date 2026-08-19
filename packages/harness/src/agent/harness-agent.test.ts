@@ -1859,13 +1859,45 @@ describe('HarnessAgent', () => {
     ).toThrow(/workDir/);
   });
 
-  test('requires a configured provider or a provided sandbox session', async () => {
-    const { harness } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness });
-
-    await expect(agent.createSession()).rejects.toThrow(
-      'HarnessAgent.createSession: configure `sandbox` on HarnessAgent or pass `sandboxSession` to createSession().',
+  test('falls back to an implicit local workspace without a provider or provided sandbox session', async () => {
+    const previousStateRoot = process.env.AI_SDK_HARNESS_STATE_DIR;
+    const previousWarnings = globalThis.AI_SDK_LOG_WARNINGS;
+    const warnings: string[] = [];
+    globalThis.AI_SDK_LOG_WARNINGS = options => {
+      for (const warning of options.warnings) {
+        warnings.push(
+          warning.type === 'other' ? warning.message : warning.type,
+        );
+      }
+    };
+    const { mkdtemp, realpath } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    process.env.AI_SDK_HARNESS_STATE_DIR = await mkdtemp(
+      join(await realpath(tmpdir()), 'implicit-state-'),
     );
+    try {
+      const { harness } = mockHarness({ script: () => [] });
+      const agent = new HarnessAgent({ harness });
+
+      const session = await agent.createSession();
+      try {
+        // The harness runs on the local machine, in the current working
+        // directory, and says so once per process.
+        expect(warnings.some(message => message.includes('no isolation'))).toBe(
+          true,
+        );
+      } finally {
+        await session.destroy();
+      }
+    } finally {
+      globalThis.AI_SDK_LOG_WARNINGS = previousWarnings;
+      if (previousStateRoot == null) {
+        delete process.env.AI_SDK_HARNESS_STATE_DIR;
+      } else {
+        process.env.AI_SDK_HARNESS_STATE_DIR = previousStateRoot;
+      }
+    }
   });
 
   test('uses a provided basic sandbox session, resolves its working directory, and applies the harness bootstrap recipe', async () => {
@@ -2128,6 +2160,19 @@ describe('HarnessAgent', () => {
     );
 
     await session.destroy();
+  });
+
+  test('rejects sandbox and workspace together', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const { localWorkspace } = await import('../workspace/local-workspace');
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          sandbox: makeSandboxProvider(),
+          workspace: localWorkspace({ path: '/tmp/some-project' }),
+        }),
+    ).toThrow(/mutually exclusive/);
   });
 
   test('readHistory() reads the runtime history through the adapter', async () => {
