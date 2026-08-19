@@ -40,6 +40,7 @@ import { extractTextContent } from './extract-text-content';
 import { filterActiveTools } from './filter-active-tools';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
@@ -532,7 +533,12 @@ A function that attempts to repair a tool call that failed to parse.
             toolCall => !toolCall.providerExecuted,
           );
 
-          if (stepToolSet != null) {
+          if (
+            stepToolSet != null &&
+            isToolExecutionAllowedFinishReason(
+              currentModelResponse.finishReason,
+            )
+          ) {
             clientToolOutputs.push(
               ...(await executeTools({
                 toolCalls: clientToolCalls.filter(
