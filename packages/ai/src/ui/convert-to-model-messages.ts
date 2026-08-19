@@ -222,9 +222,20 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           ('rawInput' in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
-                    ...(part.callProviderMetadata != null
-                      ? { providerOptions: part.callProviderMetadata }
-                      : {}),
+                    ...(part.state === 'output-error' &&
+                    part.input == null &&
+                    'rawInput' in part &&
+                    typeof part.rawInput === 'string' &&
+                    part.rawInput !== undefined
+                      ? {
+                          providerOptions: {
+                            ...(part.callProviderMetadata ?? {}),
+                            __ai_sdk: { rawToolCallArguments: true },
+                          },
+                        }
+                      : part.callProviderMetadata != null
+                        ? { providerOptions: part.callProviderMetadata }
+                        : {}),
                   });
 
                   if (part.approval != null) {

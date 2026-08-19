@@ -12,10 +12,8 @@ import {
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
-function serializeToolCallArguments(input: unknown): string {
-  return typeof input === 'string'
-    ? input
-    : JSON.stringify(input === undefined ? {} : input);
+function serializeToolCallArguments(input: unknown, raw = false): string {
+  return raw ? String(input ?? '') : JSON.stringify(input === undefined ? {} : input);
 }
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
@@ -282,7 +280,10 @@ export function convertToOpenAIChatMessages({
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: serializeToolCallArguments(part.input),
+                  arguments: serializeToolCallArguments(
+                    part.input,
+                    part.providerOptions?.__ai_sdk?.rawToolCallArguments === true,
+                  ),
                 },
               });
               break;
