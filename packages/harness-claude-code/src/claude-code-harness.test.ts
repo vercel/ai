@@ -519,12 +519,16 @@ describe('createClaudeCode adapter', () => {
       },
     );
     const headers = { 'E2B-Traffic-Access-Token': 'traffic-token' };
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge?existing=value',
+      headers,
+    };
     const harness = createClaudeCode({
       mintBridgeToken: () => 'bridge-token',
+      portEndpoint,
     });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
-      bridgePortUrl: 'wss://sandbox.example/bridge?existing=value',
-      bridgePortHeaders: headers,
+      bridgePortUrl: 'ws://unused.example',
       writes: [],
       runs: [],
     });

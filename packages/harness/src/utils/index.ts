@@ -40,3 +40,5 @@ export {
   forwardBridgeProcessStream,
   logBridgeError,
 } from './bridge-diagnostics';
+export { resolveSandboxDefaultWorkingDirectory } from './resolve-sandbox-default-working-directory';
+export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';

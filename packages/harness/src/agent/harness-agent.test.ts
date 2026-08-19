@@ -12,7 +12,10 @@ import type {
   HarnessV1StreamPart,
   HarnessV1ToolSpec,
 } from '../v1';
-import { tool } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_SandboxSession as SandboxSession,
+} from '@ai-sdk/provider-utils';
 import { isStepCount, NoSuchToolError, Output } from 'ai';
 import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -1652,7 +1655,7 @@ describe('HarnessAgent', () => {
     );
   });
 
-  test('uses a provided sandbox session without a configured provider and applies the harness bootstrap recipe', async () => {
+  test('uses a provided basic sandbox session, resolves its working directory, and applies the harness bootstrap recipe', async () => {
     const base = mockHarness({ script: () => [] });
     const recipe: HarnessV1Bootstrap = {
       harnessId: 'mock',
@@ -1666,21 +1669,21 @@ describe('HarnessAgent', () => {
     };
     const readTextFile = vi.fn(async () => null);
     const writeTextFile = vi.fn(async () => {});
-    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
-    const restrictedSession = { readTextFile, writeTextFile, run };
-    const sandboxStop = vi.fn(async () => {});
-    const sandboxDestroy = vi.fn(async () => {});
-    const sandboxSession = makeSandboxSession({
+    const run = vi.fn(async (args: { command: string }) => ({
+      exitCode: 0,
+      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stderr: '',
+    }));
+    const restrictedSession = {
+      readTextFile,
+      writeTextFile,
       run,
-      stop: sandboxStop,
-      destroy: sandboxDestroy,
-      restricted: () => restrictedSession as never,
-    });
+    } as unknown as SandboxSession;
     const agent = new HarnessAgent({ harness });
 
     const session = await agent.createSession({
       sessionId: 's1',
-      sandboxSession,
+      sandboxSession: restrictedSession,
       resumeFrom: {
         type: 'resume-session',
         harnessId: 'mock',
@@ -1696,10 +1699,15 @@ describe('HarnessAgent', () => {
       content: expect.any(String),
       abortSignal: undefined,
     });
+    expect(run).toHaveBeenCalledWith({
+      command: 'pwd',
+      abortSignal: undefined,
+    });
+    expect(base.doStart).toHaveBeenCalledWith(
+      expect.objectContaining({ sandboxSession: restrictedSession }),
+    );
 
     await session.destroy();
-    expect(sandboxStop).not.toHaveBeenCalled();
-    expect(sandboxDestroy).not.toHaveBeenCalled();
   });
 
   test('prefers a provided sandbox session over a configured provider', async () => {
