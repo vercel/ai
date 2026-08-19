@@ -199,6 +199,27 @@ const harness = createClaudeCode({
 The supplied record replaces the host environment for authentication
 discovery. Only recognized authentication variables are forwarded.
 
+## Reading Conversation History
+
+Claude Code persists every conversation itself, under
+`~/.claude/projects/<encoded working directory>/<sessionId>.jsonl` in the
+session's environment — the same store `claude --resume` reads. The adapter
+implements `session.readHistory()` on top of it, so exchanges that happened
+outside your process (the user continuing the conversation in their own
+terminal, for instance) can be rendered too:
+
+```ts
+const { messages, cursor } = await session.readHistory();
+// Parts use the stream vocabulary: text, reasoning, tool-call (with input),
+// tool-result (with the full recorded output). Each message also carries the
+// runtime's raw transcript record.
+
+const delta = await session.readHistory({ since: cursor });
+```
+
+Reads go through the sandbox session, so they work in hosted sandboxes and on
+the local machine alike.
+
 ## Sandbox
 
 Claude Code requires a network sandbox with at least one exposed port,

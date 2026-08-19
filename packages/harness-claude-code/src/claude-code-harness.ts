@@ -54,6 +54,7 @@ import {
   CLAUDE_CODE_INSTALL_COMMAND,
   getClaudeCodeBootstrap,
 } from './claude-code-bootstrap';
+import { readClaudeCodeHistory } from './claude-code-history';
 import { resolveClaudeExecutable } from './resolve-claude-executable';
 import {
   CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
@@ -1028,6 +1029,7 @@ export function createClaudeCode(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            workDir,
             // The live bridge keeps serving turns, and each turn's query runs
             // the environment executable this process resolves.
             claudeExecutablePath: await resolveClaudeExecutable({
@@ -1203,6 +1205,7 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         proc,
+        workDir,
         claudeExecutablePath,
         model: settings.model,
         maxTurns: settings.maxTurns,
@@ -1523,6 +1526,7 @@ function createSession({
   sessionId,
   channel,
   proc,
+  workDir,
   claudeExecutablePath,
   model,
   maxTurns,
@@ -1549,6 +1553,8 @@ function createSession({
   channel: ClaudeCodeChannel;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
+  /** Where the runtime runs; keys its transcript store for history reads. */
+  workDir: string;
   /** The environment's `claude`, resolved (or installed) at start. */
   claudeExecutablePath: string;
   model: string | undefined;
@@ -1572,6 +1578,7 @@ function createSession({
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
+  /** Tool-safe surface of the sandbox; skill writes and history reads go through it. */
   sandbox: SandboxSession;
   sandboxHomeDir: string;
   mcpServers: Record<string, unknown> | undefined;
@@ -1908,6 +1915,12 @@ function createSession({
 
       return control;
     },
+    doReadHistory: async readOpts =>
+      readClaudeCodeHistory({
+        session: sandbox,
+        workDir,
+        ...(readOpts.since != null ? { since: readOpts.since } : {}),
+      }),
     doCompact: async (customInstructions?: string) => {
       /*
        * Claude Code has no SDK/control method for compaction — the supported
