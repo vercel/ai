@@ -57,17 +57,10 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
       ...message,
       parts: message.parts.filter(
         part =>
-<<<<<<< HEAD
           !isToolOrDynamicToolUIPart(part) ||
           (part.state !== 'input-streaming' &&
-            part.state !== 'input-available'),
-=======
-          !isToolUIPart(part) ||
-          part.state === 'approval-responded' ||
-          (part.state === 'output-available' && part.preliminary !== true) ||
-          part.state === 'output-error' ||
-          part.state === 'output-denied',
->>>>>>> 705407352f (fix: omit preliminary tool outputs when ignoring incomplete tool calls (#19084))
+            part.state !== 'input-available' &&
+            (part.state !== 'output-available' || part.preliminary !== true)),
       ),
     }));
   }
