@@ -20,15 +20,8 @@ export interface LangGraphEventState {
   messageIdsInCurrentStepByNamespace: Map<string, Set<string>>;
   /** Tracks which tool call IDs have emitted tool-input-start */
   emittedToolCalls: Set<string>;
-<<<<<<< HEAD
-=======
   /** Tracks tool-input-start chunks emitted in each namespace's current step */
   emittedToolCallsInCurrentStepByNamespace: Map<string, Set<string>>;
-  /** Tracks which tool call IDs have emitted complete tool inputs */
-  emittedToolInputs: Set<string>;
-  /** Tracks complete tool inputs emitted in each namespace's current step */
-  emittedToolInputsInCurrentStepByNamespace: Map<string, Set<string>>;
->>>>>>> 404a9d9b6b (fix: preserve LangGraph tool lifecycles when provider tool call IDs repeat across steps (#18837))
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */
