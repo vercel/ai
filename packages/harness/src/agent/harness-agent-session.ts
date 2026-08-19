@@ -1,4 +1,8 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  Experimental_SandboxSession as SandboxSession,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import type {
   OutputInterface as Output,
   StopCondition,
@@ -25,6 +29,7 @@ import type { HarnessAgentToolApprovalContinuation } from './harness-agent-tool-
 import type { HarnessAgentToolResultContinuation } from './harness-agent-tool-result-continuation';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
+import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
 
 type HarnessAgentTurnResult<
   TOOLS extends ToolSet,
@@ -48,7 +53,7 @@ type HarnessAgentTurnState =
  * Live harness session held by the caller.
  *
  * Created by {@link import('./harness-agent').HarnessAgent.createSession}.
- * Owns the underlying adapter session and the network sandbox session.
+ * Owns the underlying adapter session and holds its sandbox session.
  *
  * Pass the instance back to `agent.generate` / `agent.stream` on every
  * call; end the local handle with `detach()`, `stop()`, or `destroy()`.
@@ -68,7 +73,10 @@ export class HarnessAgentSession {
   private readonly sessionWorkDir: string;
   private readonly ownsSandboxLifecycle: boolean;
   private underlyingSession: HarnessAgentAdapterSession | undefined;
-  private sandboxSession: HarnessV1NetworkSandboxSession | undefined;
+  private sandboxSession:
+    | HarnessV1NetworkSandboxSession
+    | SandboxSession
+    | undefined;
   private readonly toolApproval:
     | HarnessAgentToolApprovalConfiguration
     | undefined;
@@ -98,7 +106,7 @@ export class HarnessAgentSession {
     sessionId: string;
     harness: HarnessAgentAdapter;
     underlyingSession: HarnessAgentAdapterSession;
-    sandboxSession: HarnessV1NetworkSandboxSession;
+    sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
     ownsSandboxLifecycle?: boolean;
     sessionWorkDir: string;
     toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
@@ -130,11 +138,11 @@ export class HarnessAgentSession {
   }
 
   /**
-   * Active network sandbox session.
+   * Active sandbox session.
    *
    * @internal — accessed by session turn and lifecycle drivers.
    */
-  getSandboxSession(): HarnessV1NetworkSandboxSession {
+  getSandboxSession(): HarnessV1NetworkSandboxSession | SandboxSession {
     if (this.sessionState !== 'active' || this.sandboxSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} has ended and cannot be reused.`,
@@ -189,7 +197,7 @@ export class HarnessAgentSession {
         activeTools: options.activeTools,
         toolSpecs: options.toolSpecs,
         builtinToolFiltering: options.builtinToolFiltering,
-        sandboxSession: sandboxSession.restricted(),
+        sandboxSession: getRestrictedSandboxSession(sandboxSession),
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
@@ -269,7 +277,7 @@ export class HarnessAgentSession {
         activeTools: options.activeTools,
         toolSpecs: options.toolSpecs,
         builtinToolFiltering: options.builtinToolFiltering,
-        sandboxSession: sandboxSession.restricted(),
+        sandboxSession: getRestrictedSandboxSession(sandboxSession),
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
@@ -388,7 +396,7 @@ export class HarnessAgentSession {
       return validated;
     } finally {
       this.endLocalHandle({ sessionState: 'stopped' });
-      if (this.ownsSandboxLifecycle) {
+      if (this.ownsSandboxLifecycle && 'stop' in sandboxSession) {
         await Promise.resolve(sandboxSession.stop()).catch(() => {});
       }
     }
@@ -407,9 +415,11 @@ export class HarnessAgentSession {
       await Promise.resolve(session.doDestroy()).catch(() => {});
     }
     if (!this.ownsSandboxLifecycle) return;
-    await Promise.resolve(
-      sandboxSession.destroy?.() ?? sandboxSession.stop(),
-    ).catch(() => {});
+    if ('stop' in sandboxSession) {
+      await Promise.resolve(
+        sandboxSession.destroy?.() ?? sandboxSession.stop(),
+      ).catch(() => {});
+    }
   }
 
   /**
