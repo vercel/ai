@@ -31,7 +31,11 @@ import {
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
-import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
+import {
+  getRestrictedSandboxSession,
+  resolveSandboxHomeDir,
+} from '@ai-sdk/harness/utils';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
   registerPiProviders,
   resolvePiEnv,
@@ -220,7 +224,7 @@ export interface PiSessionSettings {
 
 export interface CreatePiSessionInput {
   readonly sessionId: string;
-  readonly sandboxSession: HarnessV1NetworkSandboxSession;
+  readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: PiSessionSettings;
@@ -314,9 +318,11 @@ export async function createPiSession(
   await mkdir(hostAgentDir, { recursive: true });
   await mkdir(hostSessionDir, { recursive: true });
 
-  const sandbox = input.sandboxSession.restricted();
+  const toolSafeSandboxSession = getRestrictedSandboxSession(
+    input.sandboxSession,
+  );
   const sandboxHomeDir = await resolveSandboxHomeDir({
-    sandbox,
+    sandbox: toolSafeSandboxSession,
     ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
   const privateSessionDir = resolvePiPrivateSessionDirectory({
@@ -336,7 +342,7 @@ export async function createPiSession(
       sandboxSkillRootDir,
     });
     await writePiSkills({
-      sandbox,
+      sandbox: toolSafeSandboxSession,
       sandboxHomeDir,
       skills: input.skills,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
@@ -351,7 +357,7 @@ export async function createPiSession(
       input.resumeSessionFileName,
     );
     resumeSessionFilePath = await pullSessionFileFromSandbox({
-      sandbox,
+      sandbox: toolSafeSandboxSession,
       privateSessionDir,
       hostSessionDir,
       sessionFileName: resumeSessionFileName,
@@ -362,7 +368,7 @@ export async function createPiSession(
   // Snapshot sandbox state into the host mirror BEFORE the VFS goes live so
   // Pi sees the workspace as soon as it boots.
   await syncHostWorkspaceFromSandbox({
-    sandbox,
+    sandbox: toolSafeSandboxSession,
     sandboxWorkDir: input.sessionWorkDir,
     hostWorkDir,
   });
@@ -573,7 +579,7 @@ export async function createPiSession(
   }
 
   const remoteOps = createPiRemoteOps({
-    sandbox,
+    sandbox: toolSafeSandboxSession,
     paths,
     onFileChange: (event, relPath) => {
       currentEmit?.({ type: 'file-change', event, path: relPath });
@@ -597,7 +603,7 @@ export async function createPiSession(
   async function persistSessionFile(): Promise<void> {
     if (!sessionFileName) return;
     await persistSessionFileToSandbox({
-      sandbox,
+      sandbox: toolSafeSandboxSession,
       privateSessionDir,
       hostSessionDir,
       sessionFileName,
@@ -1112,7 +1118,7 @@ export async function createPiSession(
           turnAbortController.signal.throwIfAborted();
         }
         await syncHostWorkspaceFromSandbox({
-          sandbox,
+          sandbox: toolSafeSandboxSession,
           sandboxWorkDir: input.sessionWorkDir,
           hostWorkDir,
         });

@@ -25,8 +25,10 @@ import {
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
   markBridgeStarting,
   maskSandboxCredentials,
+  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -37,7 +39,7 @@ import {
 import {
   tool,
   type Experimental_SandboxProcess,
-  type Experimental_SandboxSession,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
@@ -88,6 +90,11 @@ export type OpenCodeHarnessSettings = {
    */
   readonly reasoningVariant?: string;
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
@@ -233,6 +240,26 @@ export function createOpenCode(
     getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: settings.port,
+        portEndpoint: settings.portEndpoint,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'opencode',
+          message:
+            'The OpenCode harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
+        });
+      }
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal: startOpts.abortSignal,
+        });
       const authenticationMode = resolveOpenCodeAuthenticationMode({
         auth: settings.auth,
         model: settings.model,
@@ -244,7 +271,10 @@ export function createOpenCode(
         provider: settings.provider,
       });
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
-      if (sandboxSession.addRequestTransformations != null) {
+      if (
+        'addRequestTransformations' in sandboxSession &&
+        sandboxSession.addRequestTransformations != null
+      ) {
         const requestTransformations = createOpenCodeRequestTransformations(
           resolvedAuthEnvironment,
           authenticationMode,
@@ -262,10 +292,8 @@ export function createOpenCode(
       } else {
         warnCredentialBrokeringUnavailable();
       }
-      const session = sandboxSession.restricted();
-      const sandboxId = sandboxSession.id;
       const bootstrapDir = path.posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
+        defaultWorkingDirectory,
         BOOTSTRAP_DIR,
       );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
@@ -286,7 +314,7 @@ export function createOpenCode(
       const coords = resumeData?.bridge;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
       const model = splitOpenCodeModel(settings.model, settings.provider).model;
@@ -308,9 +336,10 @@ export function createOpenCode(
 
       if (coords) {
         try {
-          const endpoint = await sandboxSession.getPortEndpoint({
+          const endpoint = await resolveBridgeEndpoint({
+            sandboxSession,
+            override: settings.portEndpoint,
             port: coords.port,
-            protocol: 'ws',
           });
           const attachEndpoint = withBridgeToken({
             endpoint,
@@ -351,7 +380,7 @@ export function createOpenCode(
         : undefined;
       if (coords && isContinue) {
         const logRaw = await Promise.resolve(
-          session.readTextFile({
+          toolSafeSandboxSession.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
             abortSignal: startOpts.abortSignal,
           }),
@@ -361,13 +390,16 @@ export function createOpenCode(
         }
       }
 
-      const port = resolveBridgePort(sandboxSession, settings.port);
+      const port = resolveBridgePort({
+        sandboxSession,
+        override: settings.port,
+      });
       const token =
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
-          : settings.mintBridgeToken(sandboxId);
+          : settings.mintBridgeToken(sandboxId!);
       const sandboxHomeDir = await resolveSandboxHomeDir({
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         abortSignal: startOpts.abortSignal,
       });
       const xdgConfigHome = `${sandboxHomeDir}/.config`;
@@ -377,7 +409,7 @@ export function createOpenCode(
       const skillSetup =
         startOpts.skills && startOpts.skills.length > 0
           ? await writeOpenCodeSkills({
-              sandbox: session,
+              sandbox: toolSafeSandboxSession,
               skills: startOpts.skills,
               homeDir: sandboxHomeDir,
               abortSignal: startOpts.abortSignal,
@@ -400,20 +432,20 @@ export function createOpenCode(
       };
 
       if (respawnStrategy === undefined) {
-        await session.run({
+        await toolSafeSandboxSession.run({
           command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)} ${shellQuote(xdgConfigHome)} ${shellQuote(xdgCacheHome)} ${shellQuote(xdgDataHome)} ${shellQuote(xdgStateHome)}`,
           abortSignal: startOpts.abortSignal,
         });
       }
 
       await markBridgeStarting({
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'opencode',
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await session.spawn({
+      const proc = await toolSafeSandboxSession.spawn({
         command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}${skillSetup ? ` --skills-dir ${shellQuote(skillSetup.skillsDir)}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
@@ -428,7 +460,7 @@ export function createOpenCode(
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'opencode',
         timeoutMs,
@@ -452,9 +484,10 @@ export function createOpenCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await sandboxSession.getPortEndpoint({
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: settings.portEndpoint,
         port: boundPort,
-        protocol: 'ws',
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
@@ -494,17 +527,68 @@ export function createOpenCode(
   };
 }
 
-function resolveBridgePort(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  override: number | undefined,
-): number {
+function resolveBridgePort({
+  sandboxSession,
+  override,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: number | undefined;
+}): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'opencode',
     message:
       'The OpenCode harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createOpenCode({ port })`.',
+  });
+}
+
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'opencode',
+      message:
+        'The OpenCode harness requires an explicit `port` when using a basic sandbox session.',
+    });
+  }
+  if (portEndpoint == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'opencode',
+      message:
+        'The OpenCode harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+    });
+  }
+}
+
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'opencode',
+    message:
+      'The OpenCode harness requires an explicit `portEndpoint` when using a basic sandbox session.',
   });
 }
 
@@ -514,7 +598,7 @@ async function writeOpenCodeSkills({
   homeDir,
   abortSignal,
 }: {
-  sandbox: Experimental_SandboxSession;
+  sandbox: SandboxSession;
   skills: ReadonlyArray<HarnessV1Skill>;
   homeDir: string;
   abortSignal?: AbortSignal;
@@ -599,7 +683,7 @@ function createSession({
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
-  sandboxId: string;
+  sandboxId: string | undefined;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -885,7 +969,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };
@@ -1002,7 +1086,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };

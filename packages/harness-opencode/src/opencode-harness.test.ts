@@ -241,17 +241,18 @@ describe('createOpenCode adapter', () => {
       restricted: () => sandbox,
       ports: [4000] as ReadonlyArray<number>,
       async getPortEndpoint() {
-        return {
-          url: 'wss://sandbox.example/bridge?existing=value',
-          headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
-        };
+        return { url: 'ws://unused.example' };
       },
       async getPortUrl() {
         return 'ws://sandbox.example';
       },
       async stop() {},
     } as unknown as HarnessV1NetworkSandboxSession;
-    const harness = createOpenCode({ mintBridgeToken });
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge?existing=value',
+      headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+    };
+    const harness = createOpenCode({ mintBridgeToken, portEndpoint });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession,
@@ -278,11 +279,11 @@ describe('createOpenCode adapter', () => {
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
     ]);
     await attachedSession.doDetach();
