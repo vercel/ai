@@ -82,10 +82,7 @@ describe('createBedrockEventStreamDecoder', () => {
     const incompleteFrame = frame.subarray(0, -1);
 
     const result = convertReadableStreamToArray(
-      createAmazonBedrockEventStreamDecoder(
-        createStream([incompleteFrame]),
-        vi.fn(),
-      ),
+      createBedrockEventStreamDecoder(createStream([incompleteFrame]), vi.fn()),
     );
 
     await expect(result).rejects.toThrow(
@@ -95,7 +92,7 @@ describe('createBedrockEventStreamDecoder', () => {
 
   it('allows EOF at a complete frame boundary', async () => {
     const result = await convertReadableStreamToArray(
-      createAmazonBedrockEventStreamDecoder(
+      createBedrockEventStreamDecoder(
         createStream([createEvent('data')]),
         (event, controller) => {
           controller.enqueue(event.data);

@@ -92,7 +92,7 @@ describe('BedrockChatLanguageModel doStream', () => {
       }),
     );
 
-    const model = new AmazonBedrockChatLanguageModel(
+    const model = new BedrockChatLanguageModel(
       'anthropic.claude-3-haiku-20240307-v1:0',
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -122,7 +122,7 @@ describe('BedrockChatLanguageModel doStream', () => {
   });
 
   it('allows EOF at a complete frame boundary without messageStop', async () => {
-    const model = new AmazonBedrockChatLanguageModel(
+    const model = new BedrockChatLanguageModel(
       'anthropic.claude-3-haiku-20240307-v1:0',
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
