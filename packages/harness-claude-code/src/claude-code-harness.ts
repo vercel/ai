@@ -783,6 +783,17 @@ const claudeCodeBridgeCoordsSchema = z.object({
  */
 const claudeCodeResumeStateSchema = z.looseObject({
   bridge: claudeCodeBridgeCoordsSchema.optional(),
+  /**
+   * The exact Claude conversation to rehydrate on resume. Written by the
+   * adapter on `doStop()`/`doDetach()`/`doSuspendTurn()` from the session id
+   * the bridge observed, so a resume names the conversation instead of
+   * relying on the SDK's `continue` flag — "most recent thread in this
+   * workdir" — which silently picks the wrong one once a second thread
+   * exists there. Hosts that captured the id themselves (it is surfaced as
+   * `harnessMetadata['claude-code'].sessionId` on `finish` parts) may also
+   * set it explicitly.
+   */
+  claudeSessionId: z.string().optional(),
 });
 
 type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
@@ -854,9 +865,14 @@ export function createClaudeCode(
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
-      const coords = isResume
-        ? (lifecycleState?.data as { bridge?: ClaudeCodeBridgeCoords })?.bridge
+      const resumeState = isResume
+        ? (lifecycleState?.data as z.infer<typeof claudeCodeResumeStateSchema>)
         : undefined;
+      const coords: ClaudeCodeBridgeCoords | undefined = resumeState?.bridge;
+      // The conversation the host wants back, when it is known. Absent on
+      // state written before this field existed; those resumes fall back to
+      // the `continue` flag as before.
+      const resumeSessionId = resumeState?.claudeSessionId;
 
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
@@ -918,6 +934,7 @@ export function createClaudeCode(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
@@ -1104,6 +1121,7 @@ export function createClaudeCode(
         effort: settings.effort,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
+        ...(resumeSessionId ? { resumeSessionId } : {}),
         rerunContinue: respawnStrategy === 'rerun',
         bridgePort: boundPort,
         bridgeToken: token,
@@ -1359,6 +1377,7 @@ function createSession({
   effort,
   isResume,
   continueOnFirstPrompt,
+  resumeSessionId,
   rerunContinue,
   bridgePort,
   bridgeToken,
@@ -1380,6 +1399,12 @@ function createSession({
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
+  /**
+   * Exact conversation to rehydrate on the first prompt, when the host knows
+   * which one it means. Takes precedence over the `continue` flag, which can
+   * only mean "most recent in this workdir".
+   */
+  resumeSessionId?: string;
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
@@ -1399,6 +1424,14 @@ function createSession({
    * `attach`ed bridge is already past its first turn and continues on its own.
    */
   let pendingResumeFlag = continueOnFirstPrompt;
+
+  /*
+   * The Claude conversation this session currently embodies. Seeded from the
+   * resume state and updated from every `finish` part's metadata — each turn
+   * may fork a new id, so the latest observation is the one a later
+   * stop/detach must record for exact resume.
+   */
+  let lastClaudeSessionId = resumeSessionId;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1462,6 +1495,14 @@ function createSession({
     }
     unsubs.push(
       channel.on('finish', msg => {
+        const metadata = (
+          msg as {
+            harnessMetadata?: { 'claude-code'?: { sessionId?: unknown } };
+          }
+        ).harnessMetadata?.['claude-code']?.sessionId;
+        if (typeof metadata === 'string' && metadata.length > 0) {
+          lastClaudeSessionId = metadata;
+        }
         forward(msg);
         settleSuccess();
       }),
@@ -1581,7 +1622,11 @@ function createSession({
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
-        ...(pendingResumeFlag ? { continue: true } : {}),
+        ...(pendingResumeFlag && lastClaudeSessionId
+          ? { resumeSessionId: lastClaudeSessionId }
+          : pendingResumeFlag
+            ? { continue: true }
+            : {}),
       };
       pendingResumeFlag = false;
       channel.send(startMessage);
@@ -1652,7 +1697,9 @@ function createSession({
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
-          continue: true,
+          ...(lastClaudeSessionId
+            ? { resumeSessionId: lastClaudeSessionId }
+            : { continue: true }),
         });
       }
 
@@ -1691,6 +1738,9 @@ function createSession({
             lastSeenEventId,
             sandboxId,
           },
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
         },
       };
       return payload;
@@ -1798,7 +1848,15 @@ function createSession({
         type: 'resume-session',
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
-        data: (data ?? {}) as HarnessV1ResumeSessionState['data'],
+        // The bridge's stop reply carries the session id it observed; the
+        // adapter's own record backfills it when the reply predates the
+        // field or the channel was already closed.
+        data: {
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
+          ...((data ?? {}) as Record<string, unknown>),
+        } as HarnessV1ResumeSessionState['data'],
       };
       return payload;
     },
@@ -1829,6 +1887,9 @@ function createSession({
             lastSeenEventId,
             sandboxId,
           },
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
         },
       };
       return payload;
