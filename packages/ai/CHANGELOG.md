@@ -1,5 +1,57 @@
 # ai
 
+## 7.0.70
+
+### Patch Changes
+
+- 9566914: Stop multi-step text generation for client tool approval even when a provider-executed tool has a deferred result.
+- b181020: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- 7054073: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- a828527: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+- d3cc3fe: Clear partial UI message parts when a WorkflowAgent model-call step is retried.
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/gateway@4.0.56
+
+## 7.0.69
+
+### Patch Changes
+
+- Updated dependencies [1f7a464]
+  - @ai-sdk/gateway@4.0.55
+
+## 7.0.68
+
+### Patch Changes
+
+- Updated dependencies [257632b]
+  - @ai-sdk/gateway@4.0.54
+
+## 7.0.67
+
+### Patch Changes
+
+- Updated dependencies [a0b1ffc]
+  - @ai-sdk/gateway@4.0.53
+
+## 7.0.66
+
+### Patch Changes
+
+- 0782259: Keep chat status submitted until response content begins streaming.
+- 2fd1214: Fix declaration emit for exported values that infer an `Output` type.
+
+## 7.0.65
+
+### Patch Changes
+
+- dc8caae: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 72ec74f: Preserve root-level JSON Schema definitions when wrapping array output schemas.
+- c5b0515: Propagate errors thrown by the Chat `onFinish` callback to the initiating request.
+- Updated dependencies [16650e9]
+  - @ai-sdk/gateway@4.0.52
+
 ## 7.0.64
 
 ### Patch Changes

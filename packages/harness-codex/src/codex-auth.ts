@@ -1,6 +1,37 @@
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import {
+  createCredentialRequestTransformation,
+  getAiGatewayAuthFromEnv,
+} from '@ai-sdk/harness/utils';
 
-export type CodexAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh/v1';
+export const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
+export const CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  'AI_GATEWAY_API_KEY',
+  'CODEX_API_KEY',
+] as const;
+
+export function createCodexRequestTransformations(
+  env: Record<string, string>,
+  auth: CodexResolvedAuthenticationMode,
+): HarnessV1RequestTransformation[] {
+  if (!env.CODEX_API_KEY) return [];
+  return [
+    createCredentialRequestTransformation({
+      baseUrl:
+        env.OPENAI_BASE_URL ??
+        (auth === 'ai-gateway'
+          ? DEFAULT_AI_GATEWAY_BASE_URL
+          : DEFAULT_OPENAI_BASE_URL),
+      headers: { Authorization: `Bearer ${env.CODEX_API_KEY}` },
+    }),
+  ];
+}
+
+export type CodexResolvedAuthenticationMode = 'direct' | 'ai-gateway';
+
+export type CodexAuthenticationMode = CodexResolvedAuthenticationMode | 'auto';
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use a `CodexAuthenticationMode` string value ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -64,6 +95,24 @@ export function resolveCodexEnv(
     });
   }
   return pickOpenAI({ processEnv });
+}
+
+export function resolveCodexAuthenticationMode(
+  auth: CodexAuthOptions | undefined,
+  processEnv: Record<string, string | undefined> = process.env,
+): CodexResolvedAuthenticationMode {
+  if (typeof auth !== 'string' && auth?.openaiCompatible) {
+    return 'direct';
+  }
+  if (auth === 'direct' || (typeof auth !== 'string' && auth?.openai)) {
+    return 'direct';
+  }
+  if (auth === 'ai-gateway' || (typeof auth !== 'string' && auth?.gateway)) {
+    return 'ai-gateway';
+  }
+  return getAiGatewayAuthFromEnv({ env: processEnv }).apiKey
+    ? 'ai-gateway'
+    : 'direct';
 }
 
 function normalizeCodexAuthToLegacyAuth(
@@ -142,6 +191,7 @@ function pickGateway({
     env.CODEX_API_KEY = apiKey;
   }
   env.AI_GATEWAY_BASE_URL = baseUrl;
+  env.OPENAI_BASE_URL = baseUrl;
   return env;
 }
 

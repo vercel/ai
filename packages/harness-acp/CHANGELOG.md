@@ -1,5 +1,67 @@
 # @ai-sdk/harness-acp
 
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+
+## 1.0.12
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+
+## 1.0.11
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness@1.0.73
+
+## 1.0.10
+
+### Patch Changes
+
+- 8d05a55: fix(harness-acp): fix incorrect `finish-step` emission timing
+
+## 1.0.9
+
+### Patch Changes
+
+- 69bb613: feat(harness): support request transformations in network sandbox abstraction and use it to apply credential brokering when available
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- 4cd4989: chore(harness): decouple bridge based harness bootstrap recipe logic from dynamic params and enforce unique harnesses in `prepareSandboxForHarness()` helper
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness@1.0.72
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [8d717b3]
+  - @ai-sdk/harness@1.0.71
+
 ## 1.0.7
 
 ### Patch Changes

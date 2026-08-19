@@ -1,5 +1,33 @@
 # @ai-sdk/xai
 
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.40
+
+### Patch Changes
+
+- 1ffa1d2: feat(xai): speech timestamps, pronunciation replacements, provider metadata, and error parsing
+
+  - Add `withTimestamps` and `replace` provider options for text to speech. With
+    `withTimestamps`, the JSON envelope is decoded and the audio returned as
+    usual, while duration, content type, and character-level alignment are
+    exposed via `providerMetadata.xai`.
+  - Return `providerMetadata.xai.traceId` (from the `x-trace-id` response
+    header) on every speech response.
+  - Parse the text to speech error shape (`{"error":"..."}`) so `APICallError`
+    messages carry xAI's real error detail instead of the HTTP reason phrase.
+
+## 4.0.39
+
+### Patch Changes
+
+- 646c86e: fix(provider/xai): report video moderation blocks and missing URLs as an error status instead of throwing
+
 ## 4.0.38
 
 ### Patch Changes

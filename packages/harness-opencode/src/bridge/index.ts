@@ -17,13 +17,18 @@ import {
   createTranslationState,
   emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
-  isStepSettlementEvent,
   type TranslationState,
   unwrapOpenCodeEvent,
 } from './opencode-events';
+import {
+  createAssistantSnapshotBaseline,
+  isAssistantSnapshotAfterBaseline,
+  type AssistantSnapshotBaseline,
+} from './opencode-context-fallback';
 import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
+import { configureOpenCodeServerAuth } from './opencode-server-auth';
 import {
   addUsage,
   defaultUsage,
@@ -148,6 +153,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   } catch (err) {
     turn.emitError({ error: err, message: 'OpenCode turn failed' });
   } finally {
+    turn.experimental_userMessages.close();
     emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'stop' },
@@ -176,6 +182,7 @@ async function ensureRuntime({
     });
   }
 
+  const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
   const server = await createOpencodeServer({
     hostname: '127.0.0.1',
     port: 0,
@@ -189,6 +196,7 @@ async function ensureRuntime({
   runtime.client = createOpencodeClient({
     baseUrl: server.url,
     directory: workdir,
+    headers: serverAuthHeaders,
   });
   const mcpStatus = await runtime.client.mcp.status();
   const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
@@ -408,18 +416,29 @@ async function legacySessionPrompt({
   client,
   sessionId,
   start,
+  prompt: promptText,
 }: {
   client: OpenCodeClient;
   sessionId: string;
   start: StartMessage;
+  prompt?: string;
 }): Promise<{ error?: unknown; data?: unknown }> {
   const session = (client as any).session;
-  const prompt = session.promptAsync ?? session.prompt;
-  return prompt.call(session, {
+  const submitPrompt = session.promptAsync ?? session.prompt;
+  return submitPrompt.call(session, {
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
     ...(start.variant ? { variant: start.variant } : {}),
-    parts: [{ type: 'text', text: start.prompt }],
+    ...(start.responseFormat?.type === 'json' &&
+    start.responseFormat.schema != null
+      ? {
+          format: {
+            type: 'json_schema' as const,
+            schema: start.responseFormat.schema,
+          },
+        }
+      : {}),
+    parts: [{ type: 'text', text: promptText ?? start.prompt }],
   });
 }
 
@@ -548,16 +567,21 @@ async function runPrompt({
   emit: Emit;
 }): Promise<HarnessUsage | undefined> {
   const eventsAbort = new AbortController();
-  const turnSettled = createDeferred<void>();
+  const turnSettled = createDeferred<'event' | 'stream-ended'>();
   let sawContent = false;
   let sawFinishStep = false;
   let sawBusy = false;
+  let sawStructuredOutput = false;
   let terminalError: string | undefined;
+  let submittingUserMessage = false;
   const state = createTranslationState();
   const initialSessionTokens = await readSessionTokens({
     client,
     sessionId,
   }).catch(() => undefined);
+  const assistantBaseline = createAssistantSnapshotBaseline(
+    await latestAssistantSnapshot({ client, sessionId }),
+  );
   const eventsReady = createDeferred<void>();
   let stepUsage: HarnessUsage | undefined;
   let latestSessionTokens: OpenCodeTokenUsage | undefined;
@@ -590,13 +614,50 @@ async function runPrompt({
           state,
           emit,
         });
+        const info = asOpenCodeObject(event.properties?.info);
+        if (
+          start.responseFormat?.type === 'json' &&
+          info?.structured !== undefined
+        ) {
+          const id = String(info.id ?? randomUUID());
+          emit({ type: 'text-start', id });
+          emit({
+            type: 'text-delta',
+            id,
+            delta: JSON.stringify(info.structured),
+          });
+          emit({ type: 'text-end', id });
+          emit({
+            type: 'finish-step',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: defaultUsage(),
+          });
+          sawFinishStep = true;
+          sawStructuredOutput = true;
+          if (
+            !submittingUserMessage &&
+            turn.experimental_userMessages.pendingCount === 0
+          ) {
+            turn.experimental_userMessages.close();
+            turnSettled.resolve('event');
+            return true;
+          }
+        }
       }
       if (event.type === 'session.updated') {
         latestSessionTokens =
           extractSessionTokens(event.properties) ?? latestSessionTokens;
       }
-      if (isStepSettlementEvent(event)) {
-        turnSettled.resolve();
+      if (
+        event.type === 'session.next.step.failed' ||
+        event.type === 'session.error'
+      ) {
+        const error = formatError(event.properties?.error ?? event);
+        if (event.type === 'session.error') {
+          terminalError = error;
+        }
+        turn.experimental_userMessages.close(new Error(error));
+        turnSettled.resolve('event');
         return true;
       }
       const status = legacyStatusType(event);
@@ -606,20 +667,50 @@ async function runPrompt({
         sawBusy = true;
         turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
-        turnSettled.resolve();
-        return true;
-      }
-      if (event.type === 'session.error') {
-        terminalError = formatError(event.properties?.error ?? event);
-        turnSettled.resolve();
-        return true;
+        sawBusy = false;
+        if (
+          !submittingUserMessage &&
+          turn.experimental_userMessages.pendingCount === 0 &&
+          (start.responseFormat?.type !== 'json' || sawStructuredOutput)
+        ) {
+          turn.experimental_userMessages.close();
+          turnSettled.resolve('event');
+          return true;
+        }
       }
     },
   }).finally(() => {
     eventsReady.resolve(undefined);
-    turnSettled.resolve();
+    turn.experimental_userMessages.close(
+      new Error('OpenCode event stream ended before the turn settled.'),
+    );
+    turnSettled.resolve('stream-ended');
   });
   await eventsReady.promise;
+  const userMessageLoop = (async () => {
+    for await (const message of turn.experimental_userMessages) {
+      submittingUserMessage = true;
+      try {
+        const prompted = await legacySessionPrompt({
+          client,
+          sessionId,
+          start,
+          prompt: message.text,
+        });
+        if (prompted.error) {
+          message.reject(
+            new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
+          );
+          continue;
+        }
+        message.accept();
+      } catch (error) {
+        message.reject(error);
+      } finally {
+        submittingUserMessage = false;
+      }
+    }
+  })();
   const prompted = await legacySessionPrompt({
     client,
     sessionId,
@@ -627,27 +718,32 @@ async function runPrompt({
   });
   if (prompted.error) {
     eventsAbort.abort();
+    turn.experimental_userMessages.close(
+      new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
+    );
     throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);
   }
-  await turnSettled.promise;
+  const settlement = await turnSettled.promise;
   eventsAbort.abort();
   await eventLoop.catch(() => {});
+  await userMessageLoop.catch(() => {});
+  if (settlement === 'stream-ended') {
+    throw new Error('OpenCode event stream ended before the turn settled.');
+  }
   if (terminalError) throw new Error(terminalError);
   if (!sawFinishStep) {
     const emittedFallback = await emitContextFallback({
       client,
       sessionId,
+      assistantBaseline,
       state,
       emit,
       emitContent: !sawContent,
     }).catch(() => false);
     if (!emittedFallback) {
-      emit({
-        type: 'finish-step',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: defaultUsage(),
-        harnessMetadata: { opencode: { fallback: true, missingContext: true } },
-      });
+      throw new Error(
+        'OpenCode turn settled without a correlated assistant response.',
+      );
     }
   }
   const finalSessionTokens =
@@ -1081,18 +1177,28 @@ function authorizeHostToolCall({
 async function emitContextFallback({
   client,
   sessionId,
+  assistantBaseline,
   state,
   emit,
   emitContent,
 }: {
   client: OpenCodeClient;
   sessionId: string;
+  assistantBaseline: AssistantSnapshotBaseline;
   state: TranslationState;
   emit: Emit;
   emitContent: boolean;
 }): Promise<boolean> {
   const assistant = await latestAssistantSnapshot({ client, sessionId });
-  if (!assistant) return false;
+  if (
+    !assistant ||
+    !isAssistantSnapshotAfterBaseline({
+      assistant,
+      baseline: assistantBaseline,
+    })
+  ) {
+    return false;
+  }
   emitOpenCodeStreamStart({ info: assistant, state, emit });
   if (emitContent && Array.isArray(assistant.contentParts)) {
     for (const part of assistant.contentParts) {
@@ -1136,6 +1242,7 @@ async function readSessionTokens({
 }
 
 type AssistantSnapshot = {
+  id?: unknown;
   contentParts?: unknown[];
   metadata?: unknown;
   model?: unknown;

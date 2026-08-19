@@ -104,10 +104,18 @@ Settings:
 The adapter pins the Grok Build CLI and ACP launch command. These implementation
 details cannot be overridden through `createGrokBuild()`.
 
+## Structured Output
+
+Grok Build supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+Its profile maps the JSON Schema to Grok Build's private ACP prompt metadata,
+which the runtime enforces through its provider structured-output mechanism.
+
 ## Authentication
 
-By default, authentication is resolved from the host environment and forwarded
-to the Grok Build process in the sandbox.
+By default, authentication is resolved from the host environment. When the
+sandbox supports additive request transformations, Grok Build receives a
+placeholder and the adapter injects the credential into matching outbound
+requests. Other sandboxes retain direct credential forwarding.
 
 Supported environment variables:
 
@@ -116,8 +124,8 @@ Supported environment variables:
 - `AI_GATEWAY_BASE_URL`
 - `XAI_API_KEY`
 
-With direct authentication, the adapter forwards `XAI_API_KEY`. With AI
-Gateway, it supplies the Gateway credential as `XAI_API_KEY`, maps the Gateway
+With direct authentication, the adapter uses `XAI_API_KEY`. With AI Gateway,
+it supplies the Gateway credential as `XAI_API_KEY`, maps the Gateway
 base URL ending in `/v1` to `GROK_XAI_API_BASE_URL` and
 `GROK_MODELS_BASE_URL`, and sets `GROK_CLIENT_NAME` and
 `GROK_CLIENT_VERSION` for client attribution.

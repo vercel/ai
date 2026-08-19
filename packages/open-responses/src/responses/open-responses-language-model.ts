@@ -8,6 +8,7 @@ import {
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
   type LanguageModelV4Usage,
+  type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -29,10 +30,12 @@ import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
   openResponsesErrorSchema,
+  type Annotation,
   type FunctionToolParam,
   type OpenResponsesRequestBody,
   type OpenResponsesResponseBody,
   type OpenResponsesChunk,
+  type ReasoningBody,
   type ToolChoiceParam,
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
@@ -112,20 +115,30 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       warnings: inputWarnings,
     } = await convertToOpenResponsesInput({
       prompt,
+      providerOptionsName: this.config.providerOptionsName,
     });
 
     warnings.push(...inputWarnings);
 
     // Convert function tools to the Open Responses format
-    const functionTools: FunctionToolParam[] | undefined = tools
-      ?.filter(tool => tool.type === 'function')
-      .map(tool => ({
-        type: 'function' as const,
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.inputSchema,
-        ...(tool.strict != null ? { strict: tool.strict } : {}),
-      }));
+    const functionTools: FunctionToolParam[] = [];
+
+    for (const tool of tools ?? []) {
+      if (tool.type === 'provider') {
+        warnings.push({
+          type: 'unsupported',
+          feature: `provider-defined tool ${tool.id}`,
+        });
+      } else {
+        functionTools.push({
+          type: 'function',
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.inputSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
+        });
+      }
+    }
 
     // Convert tool choice to the Open Responses format
     const convertedToolChoice: ToolChoiceParam | undefined =
@@ -156,21 +169,23 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       schema: openResponsesLanguageModelOptions,
     });
 
-    const resolvedReasoningEffort = isCustomReasoning(reasoning)
-      ? reasoning === 'none'
-        ? 'none'
-        : mapReasoningToProviderEffort({
-            reasoning,
-            effortMap: {
-              minimal: 'low',
-              low: 'low',
-              medium: 'medium',
-              high: 'high',
-              xhigh: 'xhigh',
-            },
-            warnings,
-          })
-      : undefined;
+    const resolvedReasoningEffort =
+      openResponsesOptions?.reasoningEffort ??
+      (isCustomReasoning(reasoning)
+        ? reasoning === 'none'
+          ? 'none'
+          : mapReasoningToProviderEffort({
+              reasoning,
+              effortMap: {
+                minimal: 'low',
+                low: 'low',
+                medium: 'medium',
+                high: 'high',
+                xhigh: 'xhigh',
+              },
+              warnings,
+            })
+        : undefined);
 
     return {
       body: {
@@ -194,7 +209,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 }),
               }
             : undefined,
-        tools: functionTools?.length ? functionTools : undefined,
+        tools: functionTools.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
         ...(textFormat != null && { text: { format: textFormat } }),
       },
@@ -263,10 +278,26 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       switch (part.type) {
         // TODO AI SDK 7 adjust reasoning in the specification to better support the reasoning structure from open responses.
         case 'reasoning': {
-          for (const contentPart of part.content ?? []) {
+          if ((part.content?.length ?? 0) > 0) {
+            for (const contentPart of part.content!) {
+              content.push({
+                type: 'reasoning',
+                text: contentPart.text,
+                providerMetadata: createReasoningProviderMetadata({
+                  part,
+                  providerOptionsName: this.config.providerOptionsName,
+                  reasoningContent: [contentPart],
+                }),
+              });
+            }
+          } else {
             content.push({
               type: 'reasoning',
-              text: contentPart.text,
+              text: part.summary.map(summaryPart => summaryPart.text).join(''),
+              providerMetadata: createReasoningProviderMetadata({
+                part,
+                providerOptionsName: this.config.providerOptionsName,
+              }),
             });
           }
           break;
@@ -274,9 +305,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
         case 'message': {
           for (const contentPart of part.content) {
+            const annotations = getOutputTextAnnotations(contentPart);
+
             content.push({
               type: 'text',
               text: contentPart.text,
+              providerMetadata: {
+                [this.config.providerOptionsName]: {
+                  itemId: part.id,
+                  ...(annotations.length > 0 && { annotations }),
+                },
+              },
             });
           }
 
@@ -290,6 +329,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
             toolCallId: part.call_id,
             toolName: part.name,
             input: part.arguments,
+            providerMetadata: {
+              [this.config.providerOptionsName]: { itemId: part.id },
+            },
           });
           break;
         }
@@ -401,7 +443,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       usage.raw = responseUsage;
     };
 
-    let isActiveReasoning = false;
+    let activeReasoningId: string | undefined;
     let hasToolCalls = false;
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -411,6 +453,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       string,
       { toolName?: string; toolCallId?: string; arguments?: string }
     >();
+    const providerOptionsName = this.config.providerOptionsName;
 
     return {
       stream: response.pipeThrough(
@@ -488,6 +531,11 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 toolCallId,
                 toolName,
                 input,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: chunk.item.id,
+                  },
+                },
               });
               hasToolCalls = true;
 
@@ -503,7 +551,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 type: 'reasoning-start',
                 id: chunk.item.id,
               });
-              isActiveReasoning = true;
+              activeReasoningId = chunk.item.id;
             } else if (
               (chunk as { type: string }).type ===
               'response.reasoning_text.delta'
@@ -521,8 +569,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'reasoning'
             ) {
-              controller.enqueue({ type: 'reasoning-end', id: chunk.item.id });
-              isActiveReasoning = false;
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: chunk.item.id,
+                providerMetadata: createReasoningProviderMetadata({
+                  part: chunk.item,
+                  providerOptionsName,
+                }),
+              });
+              if (activeReasoningId === chunk.item.id) {
+                activeReasoningId = undefined;
+              }
             }
 
             // Text events
@@ -541,7 +598,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'message'
             ) {
-              controller.enqueue({ type: 'text-end', id: chunk.item.id });
+              const annotations = chunk.item.content.flatMap(
+                getOutputTextAnnotations,
+              );
+
+              controller.enqueue({
+                type: 'text-end',
+                id: chunk.item.id,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: chunk.item.id,
+                    ...(annotations.length > 0 && { annotations }),
+                  },
+                },
+              });
             } else if (
               chunk.type === 'response.completed' ||
               chunk.type === 'response.incomplete'
@@ -565,8 +635,11 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
-            if (isActiveReasoning) {
-              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+            if (activeReasoningId != null) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: activeReasoningId,
+              });
             }
 
             controller.enqueue({
@@ -582,4 +655,64 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function createReasoningProviderMetadata({
+  part,
+  providerOptionsName,
+  reasoningContent = part.content,
+}: {
+  part: ReasoningBody;
+  providerOptionsName: string;
+  reasoningContent?: ReasoningBody['content'];
+}): SharedV4ProviderMetadata {
+  return {
+    [providerOptionsName]: {
+      itemId: part.id,
+      reasoningSummary: part.summary.map(summaryPart => ({
+        type: 'summary_text',
+        text: summaryPart.text,
+      })),
+      reasoningContent:
+        reasoningContent == null
+          ? null
+          : reasoningContent.map(contentPart => ({
+              type: 'reasoning_text',
+              text: contentPart.text,
+            })),
+      ...(part.encrypted_content != null && {
+        reasoningEncryptedContent: part.encrypted_content,
+      }),
+    },
+  };
+}
+
+function getOutputTextAnnotations(value: unknown): Annotation[] {
+  if (
+    value == null ||
+    typeof value !== 'object' ||
+    !('annotations' in value) ||
+    !Array.isArray(value.annotations) ||
+    !value.annotations.every(
+      annotation =>
+        annotation != null &&
+        typeof annotation === 'object' &&
+        (annotation as { type?: unknown }).type === 'url_citation' &&
+        typeof (annotation as { start_index?: unknown }).start_index ===
+          'number' &&
+        typeof (annotation as { end_index?: unknown }).end_index === 'number' &&
+        typeof (annotation as { url?: unknown }).url === 'string' &&
+        typeof (annotation as { title?: unknown }).title === 'string',
+    )
+  ) {
+    return [];
+  }
+
+  return value.annotations.map(annotation => ({
+    type: 'url_citation',
+    start_index: (annotation as { start_index: number }).start_index,
+    end_index: (annotation as { end_index: number }).end_index,
+    url: (annotation as { url: string }).url,
+    title: (annotation as { title: string }).title,
+  }));
 }

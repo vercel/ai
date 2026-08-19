@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs';
 import {
   commonTool,
   type HarnessV1,
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import {
   createACP,
   type ACPProviderAuthenticationMode,
@@ -12,15 +12,14 @@ import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
 
+declare const __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: string;
+declare const __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
+
 const GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
-const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON = readFileSync(
-  new URL('./bridge/package.json', import.meta.url),
-  'utf8',
-);
-const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK = readFileSync(
-  new URL('./bridge/pnpm-lock.yaml', import.meta.url),
-  'utf8',
-);
+const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON =
+  __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__;
+const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
+  __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__;
 
 export type GrokBuildHarnessSettings = {
   /**
@@ -308,10 +307,23 @@ export function createGrokBuild(
     },
     executable: 'grok',
     args: ['agent', 'stdio'],
-    forwardEnv: ['XAI_API_KEY'],
+    credentialEnv: ['XAI_API_KEY'],
+    credentialBrokering: ({ env }) => {
+      if (!env.XAI_API_KEY) return [];
+      return [
+        createCredentialRequestTransformation({
+          baseUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
+          headers: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+        }),
+      ];
+    },
     instructionMapping: {
       type: 'session-meta',
       path: ['rules'],
+    },
+    outputSchemaMapping: {
+      type: 'session-prompt-meta',
+      path: ['outputSchema'],
     },
     providerAuthentication: {
       gateway: {

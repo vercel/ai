@@ -25,6 +25,8 @@ Run these commands exactly as below:
 pnpm --filter harness-acp update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --lockfile-only
 # Claude Code
 pnpm --filter harness-claude-code update @anthropic-ai/claude-agent-sdk @modelcontextprotocol/sdk --latest --lockfile-only
+# Cline
+pnpm --filter harness-cline update @cline/agents --latest --lockfile-only
 # Codex
 pnpm --filter harness-codex update @openai/codex-sdk --latest --lockfile-only
 # Deep Agents

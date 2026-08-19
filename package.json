@@ -5,6 +5,7 @@
     "build": "turbo build --concurrency 16",
     "build:examples": "turbo build --filter=@example/*",
     "build:packages": "turbo build --filter=@ai-sdk/* --filter=ai",
+    "benchmark:memory": "node tools/memory-benchmark/src/cli.mjs",
     "changeset": "changeset",
     "clean": "turbo clean",
     "dev": "turbo dev --cache=local:r,remote:r --concurrency 25 --continue",

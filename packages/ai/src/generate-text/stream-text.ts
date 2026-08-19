@@ -2622,13 +2622,12 @@ class DefaultStreamTextResult<
                   cleanupStepTimeouts();
 
                   if (
-                    // Continue if:
-                    // 1. There are client tool calls that have all been executed or denied, OR
-                    // 2. There are pending deferred results from provider-executed tools, OR
-                    ((clientToolCalls.length > 0 &&
-                      clientToolCalls.length ===
-                        clientToolOutputs.length +
-                          deniedToolApprovalResponses.length) ||
+                    // Continue only after all client tool calls have been executed or denied,
+                    // and if there are client results or pending deferred provider results.
+                    clientToolCalls.length ===
+                      clientToolOutputs.length +
+                        deniedToolApprovalResponses.length &&
+                    (clientToolCalls.length > 0 ||
                       pendingDeferredToolCalls.size > 0) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({

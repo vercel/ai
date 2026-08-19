@@ -1,4 +1,7 @@
-import type { HarnessV1PermissionMode } from '@ai-sdk/harness';
+import type {
+  HarnessV1PermissionMode,
+  HarnessV1RequestTransformation,
+} from '@ai-sdk/harness';
 import type { ACPToolCall } from '../acp-tool-call';
 
 export type ACPSerializablePrimitive = string | number | boolean | null;
@@ -60,6 +63,12 @@ export type ACPProviderAuthentication = {
   };
 };
 
+export type ACPCredentialBrokering = ({
+  env,
+}: {
+  env: Readonly<Record<string, string>>;
+}) => ReadonlyArray<HarnessV1RequestTransformation>;
+
 export type ACPPermissionModeTarget =
   | {
       readonly type: 'session-mode';
@@ -91,6 +100,11 @@ export type ACPInstructionMapping =
       readonly path: ReadonlyArray<string>;
     };
 
+export type ACPOutputSchemaMapping = {
+  readonly type: 'session-prompt-meta';
+  readonly path: ReadonlyArray<string>;
+};
+
 export type ACPV1Settings = {
   readonly version?: 'v1';
   readonly harnessId: string;
@@ -101,6 +115,8 @@ export type ACPV1Settings = {
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;
   readonly forwardEnv?: ReadonlyArray<string>;
+  readonly credentialEnv?: ReadonlyArray<string>;
+  readonly credentialBrokering?: ACPCredentialBrokering;
   /**
    * Runtime environment values that are safe to persist in bootstrap and
    * lifecycle compatibility identity.
@@ -114,6 +130,11 @@ export type ACPV1Settings = {
    * prompt. When omitted, instructions are prepended to the first user prompt.
    */
   readonly instructionMapping?: ACPInstructionMapping;
+  /**
+   * Maps structured output JSON Schema to an implementation-specific path
+   * below the ACP session prompt's `_meta` field.
+   */
+  readonly outputSchemaMapping?: ACPOutputSchemaMapping;
   readonly permissionModeMapping?: ACPPermissionModeMapping;
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;

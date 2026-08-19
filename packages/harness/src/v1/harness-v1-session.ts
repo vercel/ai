@@ -3,6 +3,7 @@ import type { HarnessV1Observability } from './harness-v1-observability';
 import type { HarnessV1PermissionMode } from './harness-v1-permission-mode';
 import type { HarnessV1Prompt } from './harness-v1-prompt';
 import type { HarnessV1PromptControl } from './harness-v1-prompt-control';
+import type { HarnessV1ResponseFormat } from './harness-v1-response-format';
 import type {
   HarnessV1ContinueTurnState,
   HarnessV1ResumeSessionState,
@@ -78,8 +79,10 @@ export type HarnessV1StartOptions = {
    * Network sandbox session the adapter operates against. It is owned and
    * lifecycled by `HarnessAgent`. Adapters call `restricted()` for the
    * tool-safe filesystem/exec/spawn surface, and use the infra methods
-   * (`getPortUrl`, `ports`, `setNetworkPolicy`) for bridge wiring. Adapters
-   * must not call `stop()` themselves; the agent does that during cleanup.
+   * (`getPortEndpoint`, `ports`, `setNetworkPolicy`,
+   * `setRequestTransformations`, `addRequestTransformations`) for bridge
+   * wiring. Adapters must not call `stop()` themselves; the agent does that
+   * during cleanup.
    */
   readonly sandboxSession: HarnessV1NetworkSandboxSession;
 
@@ -102,6 +105,12 @@ export type HarnessV1PromptTurnOptions = {
    * so prior turns are never replayed across the contract.
    */
   readonly prompt: HarnessV1Prompt;
+
+  /**
+   * Response format requested for this turn. Adapters that cannot honor a
+   * JSON response format must throw `HarnessCapabilityUnsupportedError`.
+   */
+  readonly responseFormat?: HarnessV1ResponseFormat;
 
   /**
    * Host-defined tools to make available to the underlying runtime for this
@@ -142,6 +151,12 @@ export type HarnessV1PromptTurnOptions = {
  * that was previously suspended temporarily, e.g. by the workflow slice loop.
  */
 export type HarnessV1ContinueTurnOptions = {
+  /**
+   * Response format of the in-flight turn. Rerun-based adapters use this when
+   * reconstructing the turn; attach-based adapters may ignore it.
+   */
+  readonly responseFormat?: HarnessV1ResponseFormat;
+
   /**
    * Host-defined tools to make available for the continued turn. Same shape
    * as `doPromptTurn`'s `tools`. An adapter that purely attaches to a live turn
