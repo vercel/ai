@@ -1,5 +1,14 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.32
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- 2f77de8: Preserve Gemini thought signatures for custom OpenAI-compatible provider names
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
 ## 3.0.31
 
 ### Patch Changes

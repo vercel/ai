@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.70
+
+### Patch Changes
+
+- 9566914: Stop multi-step text generation for client tool approval even when a provider-executed tool has a deferred result.
+- b181020: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- 7054073: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- a828527: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+- d3cc3fe: Clear partial UI message parts when a WorkflowAgent model-call step is retried.
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/gateway@4.0.56
+
 ## 7.0.69
 
 ### Patch Changes

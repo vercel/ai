@@ -1,5 +1,14 @@
 # @ai-sdk/harness-codex
 
+## 1.0.79
+
+### Patch Changes
+
+- 0fd1b7e: Close the inferred Codex step when a turn completes with stale pending tool items.
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
 ## 1.0.78
 
 ### Patch Changes
