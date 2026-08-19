@@ -162,6 +162,30 @@ This is different from model calls, where the application usually sends the full
 message history. In chat routes, persist and resume the harness session instead
 of relying on message replay.
 
+### Reading the Runtime's Own History
+
+The runtime's conversation can grow outside your process — the same
+conversation continued interactively in the agent's own CLI, for instance —
+and the live event stream never sees those exchanges. Adapters that can reach
+their runtime's store expose them through `session.readHistory()`:
+
+```ts
+if (session.supportsHistory) {
+  const { messages, cursor } = await session.readHistory();
+  // messages: text, reasoning, tool-call, and tool-result parts, with the
+  // runtime's raw record attached for full fidelity.
+
+  // Later: read only what was recorded since.
+  const delta = await session.readHistory({ since: cursor });
+}
+```
+
+`readHistory()` throws `HarnessCapabilityUnsupportedError` when the adapter
+does not implement history reads, and `HarnessHistoryUnavailableError` when it
+does but cannot reach the runtime's store from this environment (for example,
+the store lives inside a remote sandbox). A conversation with no recorded
+messages yet is not an error; it resolves to an empty `messages` array.
+
 ## Session Lifecycle
 
 End every session explicitly:
