@@ -86,6 +86,24 @@ export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
   }) => PromiseLike<HarnessV1Bootstrap>;
 
   /**
+   * How the runtime's executable is installed into an environment that does
+   * not have it. Declared by the adapter — each runtime knows its own
+   * preferred installation — and used by the framework two ways: as the
+   * command executed when installation is consented to (see
+   * `HarnessV1StartOptions.requestInstallConsent`), and as the actionable
+   * instruction inside `HarnessExecutableMissingError` when it is not.
+   *
+   * Adapters whose runtime needs no environment-level executable (fully
+   * bootstrapped runtimes) omit this.
+   */
+  readonly installation?: {
+    /** The executable the runtime needs on `PATH` (e.g. `claude`). */
+    readonly executable: string;
+    /** Shell command that installs it (e.g. `npm install -g …`). */
+    readonly command: string;
+  };
+
+  /**
    * Start a fresh session, resume a parked session via `resumeFrom`, or resume
    * a suspended turn via `continueFrom`. The host then issues prompts against
    * the returned session, ending with `doDetach`, `doStop`, or `doDestroy`.
