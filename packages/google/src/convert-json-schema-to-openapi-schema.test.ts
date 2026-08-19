@@ -1,4 +1,7 @@
-import type { JSONSchema7 } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type JSONSchema7,
+} from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { it, expect } from 'vitest';
 
@@ -100,7 +103,7 @@ it('should convert "const" to "enum" with a single value', () => {
   const expected = {
     type: 'object',
     properties: {
-      status: { enum: ['active'] },
+      status: { type: 'string', enum: ['active'] },
     },
   };
 
@@ -214,6 +217,7 @@ it('should convert deeply nested "const" to "enum"', () => {
                 type: 'object',
                 properties: {
                   value: {
+                    type: 'string',
                     enum: ['specific value'],
                   },
                 },
@@ -602,6 +606,102 @@ it('should convert string enum properties', () => {
     },
     required: ['kind'],
   });
+});
+
+it('should infer the type of an untyped string enum', () => {
+  expect(
+    convertJSONSchemaToOpenAPISchema({ enum: ['text', 'code', 'image'] }),
+  ).toEqual({
+    type: 'string',
+    enum: ['text', 'code', 'image'],
+  });
+});
+
+it('should convert non-string enum values to the Google enum format', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      numberValue: { type: 'number', const: 15 },
+      integerValue: { type: 'integer', enum: [1, 2] },
+      booleanValue: { type: 'boolean', const: true },
+      nullValue: { const: null },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      numberValue: { type: 'number', format: 'enum', enum: ['15'] },
+      integerValue: {
+        type: 'integer',
+        format: 'enum',
+        enum: ['1', '2'],
+      },
+      booleanValue: { type: 'boolean', format: 'enum', enum: ['true'] },
+      nullValue: { type: 'null' },
+    },
+  });
+});
+
+it('should convert nullable type-array and untyped primitive enums', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      nullableString: {
+        type: ['string', 'null'],
+        enum: ['a', 'b'],
+      },
+      nullableNumber: {
+        type: ['number', 'null'],
+        enum: [1, 2],
+      },
+      nullableBoolean: {
+        type: ['boolean', 'null'],
+        enum: [true, null],
+      },
+      untypedNumber: { enum: [1, 2] },
+      untypedBoolean: { enum: [true, false] },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      nullableString: {
+        type: 'string',
+        nullable: true,
+        enum: ['a', 'b'],
+      },
+      nullableNumber: {
+        type: 'number',
+        nullable: true,
+        format: 'enum',
+        enum: ['1', '2'],
+      },
+      nullableBoolean: {
+        type: 'boolean',
+        nullable: true,
+        format: 'enum',
+        enum: ['true'],
+      },
+      untypedNumber: {
+        type: 'number',
+        format: 'enum',
+        enum: ['1', '2'],
+      },
+      untypedBoolean: {
+        type: 'boolean',
+        format: 'enum',
+        enum: ['true', 'false'],
+      },
+    },
+  });
+});
+
+it('should reject enum values with mixed types', () => {
+  expect(() => convertJSONSchemaToOpenAPISchema({ enum: ['text', 1] })).toThrow(
+    UnsupportedFunctionalityError,
+  );
 });
 
 it('should convert nullable string enum', () => {

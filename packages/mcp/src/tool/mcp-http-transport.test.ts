@@ -5,10 +5,46 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMCPClient } from './mcp-client';
 import { HttpMCPTransport } from './mcp-http-transport';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import {
+  LATEST_LEGACY_PROTOCOL_VERSION,
+  LATEST_PROTOCOL_VERSION,
+} from './types';
 import { MCPClientError } from '../error/mcp-client-error';
-import type { OAuthClientProvider } from './oauth';
+import { UnauthorizedError, type OAuthClientProvider } from './oauth';
 import type { OAuthTokens } from './oauth-types';
+
+function createAbortableSseResponse({
+  signal,
+  onAbort,
+}: {
+  signal: AbortSignal;
+  onAbort: () => void;
+}): Response {
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        signal.addEventListener(
+          'abort',
+          () => {
+            onAbort();
+            controller.error(signal.reason);
+          },
+          { once: true },
+        );
+      },
+    }),
+    { headers: { 'content-type': 'text/event-stream' } },
+  );
+}
+
+function createLegacyHttpTransport(
+  options: ConstructorParameters<typeof HttpMCPTransport>[0],
+): HttpMCPTransport {
+  return new HttpMCPTransport({
+    initialProtocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+    ...options,
+  });
+}
 
 describe('HttpMCPTransport', () => {
   const server = createTestServer({
@@ -26,7 +62,9 @@ describe('HttpMCPTransport', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+    transport = createLegacyHttpTransport({
+      url: 'http://localhost:4000/mcp',
+    });
   });
 
   afterEach(() => {
@@ -54,14 +92,16 @@ describe('HttpMCPTransport', () => {
 
     expect(server.calls[1].requestMethod).toBe('POST');
     expect(server.calls[1].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'application/json, text/event-stream',
       'content-type': 'application/json',
     });
   });
 
   it('should handle text/event-stream responses', async () => {
-    transport = new HttpMCPTransport({ url: 'http://localhost:4000/stream' });
+    transport = createLegacyHttpTransport({
+      url: 'http://localhost:4000/stream',
+    });
     const controller = new TestResponseController();
 
     // Avoid locking a single ReadableStream for both GET (start) and POST (send)
@@ -128,6 +168,7 @@ describe('HttpMCPTransport', () => {
     };
 
     const clientPromise = createMCPClient({
+      protocolVersionDiscovery: false,
       transport: {
         type: 'http',
         url: 'http://localhost:4000/stream',
@@ -143,7 +184,7 @@ describe('HttpMCPTransport', () => {
         jsonrpc: '2.0',
         id: 0,
         result: {
-          protocolVersion: LATEST_PROTOCOL_VERSION,
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
           capabilities: {},
           serverInfo: { name: 'test-server', version: '1.0.0' },
         },
@@ -158,6 +199,174 @@ describe('HttpMCPTransport', () => {
 
     await client.close();
   });
+
+  it('should abort an unterminated initialization response on timeout', async () => {
+    let responseAborted = false;
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method !== 'POST') {
+          return new Response(null, { status: 405 });
+        }
+
+        return createAbortableSseResponse({
+          signal: init.signal as AbortSignal,
+          onAbort: () => {
+            responseAborted = true;
+          },
+        });
+      },
+    );
+    const clientPromise = createMCPClient({
+      protocolVersionDiscovery: false,
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/mcp',
+        fetch,
+      },
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(responseAborted).toBe(true);
+  });
+
+  it('should bound session cleanup after failed initialization', async () => {
+    let resolveDeleteStarted: () => void;
+    const deleteStarted = new Promise<void>(resolve => {
+      resolveDeleteStarted = resolve;
+    });
+    let deleteAborted = false;
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === 'GET') {
+          return new Response(null, { status: 405 });
+        }
+
+        if (init?.method === 'DELETE') {
+          resolveDeleteStarted();
+          return new Promise<Response>((_, reject) => {
+            const signal = init.signal as AbortSignal;
+            signal.addEventListener(
+              'abort',
+              () => {
+                deleteAborted = true;
+                reject(signal.reason);
+              },
+              { once: true },
+            );
+          });
+        }
+
+        const message = JSON.parse(String(init?.body));
+        if (message.method === 'initialize') {
+          return Response.json(
+            {
+              jsonrpc: '2.0',
+              id: message.id,
+              result: {
+                protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+                capabilities: {},
+                serverInfo: { name: 'test-server', version: '1.0.0' },
+              },
+            },
+            { headers: { 'mcp-session-id': 'cleanup-session' } },
+          );
+        }
+
+        return new Response('failed initialized notification', {
+          status: 500,
+        });
+      },
+    );
+    const clientPromise = createMCPClient({
+      protocolVersionDiscovery: false,
+      transport: {
+        type: 'http',
+        url: 'http://localhost:4000/mcp',
+        fetch,
+      },
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await deleteStarted;
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(deleteAborted).toBe(true);
+  });
+
+  it.each([
+    ['timeout', { timeout: 100 }],
+    ['maximum total timeout', { maxTotalTimeout: 100 }],
+  ])(
+    'should abort an unterminated request response at its %s',
+    async (_, options) => {
+      let responseAborted = false;
+      const fetch = vi.fn(
+        async (_input: RequestInfo | URL, init?: RequestInit) => {
+          if (init?.method !== 'POST') {
+            return new Response(null, { status: 405 });
+          }
+
+          const message = JSON.parse(String(init.body));
+          if (message.method === 'initialize') {
+            return Response.json({
+              jsonrpc: '2.0',
+              id: message.id,
+              result: {
+                protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+                capabilities: { tools: {} },
+                serverInfo: { name: 'test-server', version: '1.0.0' },
+              },
+            });
+          }
+
+          if (message.method === 'notifications/initialized') {
+            return new Response(null, { status: 202 });
+          }
+
+          return createAbortableSseResponse({
+            signal: init.signal as AbortSignal,
+            onAbort: () => {
+              responseAborted = true;
+            },
+          });
+        },
+      );
+      const client = await createMCPClient({
+        protocolVersionDiscovery: false,
+        transport: {
+          type: 'http',
+          url: 'http://localhost:4000/mcp',
+          fetch,
+        },
+      });
+      const requestPromise = client.listTools({ options });
+      const rejection = expect(requestPromise).rejects.toSatisfy(
+        error =>
+          MCPClientError.isInstance(error) &&
+          error.message === 'Request timed out after 100ms',
+      );
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      await rejection;
+      expect(responseAborted).toBe(true);
+      await client.close();
+    },
+  );
 
   it('should (re)open inbound SSE after 202 Accepted', async () => {
     const controller = new TestResponseController();
@@ -741,7 +950,7 @@ describe('HttpMCPTransport', () => {
     await transport.send(message);
 
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -749,7 +958,7 @@ describe('HttpMCPTransport', () => {
 
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'application/json, text/event-stream',
       ...customHeaders,
     });
@@ -820,7 +1029,7 @@ describe('HttpMCPTransport', () => {
             jsonrpc: '2.0',
             id: 0,
             result: {
-              protocolVersion: LATEST_PROTOCOL_VERSION,
+              protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
               capabilities: {},
               serverInfo: { name: 'test-server', version: '1.0.0' },
             },
@@ -868,6 +1077,7 @@ describe('HttpMCPTransport', () => {
     );
 
     const clientPromise = createMCPClient({
+      protocolVersionDiscovery: false,
       transport: {
         type: 'http',
         url: 'http://localhost:4000/mcp',
@@ -888,6 +1098,90 @@ describe('HttpMCPTransport', () => {
     await client.close();
 
     expect(refreshRequests).toHaveLength(1);
+  });
+
+  it('should use the scope from an OAuth challenge for authorization', async () => {
+    let authorizationUrl: URL | undefined;
+    const authProvider: OAuthClientProvider = {
+      tokens: vi.fn(async () => undefined),
+      saveTokens: vi.fn(),
+      redirectToAuthorization: vi.fn(async url => {
+        authorizationUrl = url;
+      }),
+      saveCodeVerifier: vi.fn(),
+      codeVerifier: vi.fn(async () => 'verifier'),
+      redirectUrl: 'http://localhost:4000/callback',
+      clientMetadata: {
+        redirect_uris: ['http://localhost:4000/callback'],
+      },
+      clientInformation: vi.fn(async () => ({ client_id: 'test-client' })),
+      saveAuthorizationServerInformation: vi.fn(),
+    };
+
+    const fetchFn = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(String(input));
+
+        if (url.href === 'http://localhost:4000/mcp') {
+          return new Response(null, {
+            status: init?.method === 'POST' ? 401 : 405,
+            headers:
+              init?.method === 'POST'
+                ? {
+                    'www-authenticate':
+                      'Bearer resource_metadata="http://localhost:4000/.well-known/oauth-protected-resource", scope="mcp.challenge"',
+                  }
+                : undefined,
+          });
+        }
+
+        if (
+          url.href ===
+          'http://localhost:4000/.well-known/oauth-protected-resource'
+        ) {
+          return Response.json({
+            resource: 'http://localhost:4000/mcp',
+            authorization_servers: ['http://localhost:4000'],
+            scopes_supported: ['mcp.read', 'mcp.write'],
+          });
+        }
+
+        if (
+          url.href ===
+          'http://localhost:4000/.well-known/oauth-authorization-server'
+        ) {
+          return Response.json({
+            issuer: 'http://localhost:4000',
+            authorization_endpoint: 'http://localhost:4000/authorize',
+            token_endpoint: 'http://localhost:4000/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          });
+        }
+
+        throw new Error(`Unexpected request: ${url.href}`);
+      },
+    );
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      authProvider,
+      fetch: fetchFn,
+    });
+
+    await transport.start();
+
+    await expect(
+      transport.send({
+        jsonrpc: '2.0',
+        method: 'initialize',
+        id: 1,
+        params: {},
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedError);
+
+    expect(authorizationUrl?.searchParams.get('scope')).toBe('mcp.challenge');
+    await transport.close();
   });
 
   describe('redirect option', () => {
@@ -1044,7 +1338,7 @@ describe('HttpMCPTransport', () => {
   });
 
   describe('protocol version downgrade', () => {
-    it('should use LATEST_PROTOCOL_VERSION by default', async () => {
+    it('should use LATEST_LEGACY_PROTOCOL_VERSION by default', async () => {
       await transport.start();
 
       const message = {
@@ -1057,7 +1351,7 @@ describe('HttpMCPTransport', () => {
       await transport.send(message);
 
       expect(server.calls[1].requestHeaders['mcp-protocol-version']).toBe(
-        LATEST_PROTOCOL_VERSION,
+        LATEST_LEGACY_PROTOCOL_VERSION,
       );
     });
 

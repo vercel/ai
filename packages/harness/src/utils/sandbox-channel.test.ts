@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { WebSocket } from 'ws';
 import { z } from 'zod/v4';
-import { SandboxChannel } from './sandbox-channel';
+import {
+  pinSandboxChannelEventCheckpoint,
+  SandboxChannel,
+} from './sandbox-channel';
 
 const outboundSchema = z.discriminatedUnion('type', [
   z.object({
@@ -10,18 +13,13 @@ const outboundSchema = z.discriminatedUnion('type', [
     delta: z.string(),
   }),
   z.object({ type: z.literal('finish') }),
-  z.object({
-    type: z.literal('bridge-interrupted'),
-    ok: z.boolean(),
-    error: z.unknown().optional(),
-  }),
+  z.object({ type: z.literal('finish-step') }),
   z.object({ type: z.literal('error'), error: z.unknown() }),
 ]);
 type Outbound = z.infer<typeof outboundSchema>;
 type Inbound =
   | { type: 'start' }
   | { type: 'abort' }
-  | { type: 'interrupt' }
   | { type: 'resume'; lastSeenEventId: number };
 
 type FakeSocket = {
@@ -135,7 +133,6 @@ describe('SandboxChannel', () => {
     connector
       .current()
       .deliver({ type: 'text-delta', id: 'a', delta: 'two' }, 2);
-    await flush();
 
     const cursor = await channel.suspend();
     expect(cursor).toBe(2);
@@ -165,33 +162,54 @@ describe('SandboxChannel', () => {
     ]);
   });
 
-  it('sends interrupt and resolves after the bridge acknowledges it', async () => {
+  it('suspends from a pinned event even after later events were dispatched', async () => {
     const connector = makeConnector();
     const channel = makeChannel(connector);
     await channel.open();
+    let finishStep: Outbound | undefined;
+    channel.on('finish-step', event => {
+      finishStep = event;
+    });
+    channel.on('text-delta', () => {});
 
-    const interrupted = channel.interrupt();
-    expect(connector.current().sent).toEqual([
-      JSON.stringify({ type: 'interrupt' }),
-    ]);
+    connector.current().deliver({ type: 'finish-step' }, 1);
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'next' }, 2);
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: ' step' }, 3);
+    await flush();
 
-    connector.current().deliver({ type: 'bridge-interrupted', ok: true });
-    await expect(interrupted).resolves.toBeUndefined();
+    expect(channel.lastSeenEventId).toBe(3);
+    expect(pinSandboxChannelEventCheckpoint(finishStep)).toEqual(
+      expect.any(Function),
+    );
+    expect(connector.current().sent).toEqual([]);
+    await expect(channel.suspend()).resolves.toBe(1);
   });
 
-  it('rejects interrupt when the bridge reports a failure', async () => {
+  it('returns to the latest cursor after releasing a checkpoint', async () => {
     const connector = makeConnector();
     const channel = makeChannel(connector);
     await channel.open();
-
-    const interrupted = channel.interrupt();
-    connector.current().deliver({
-      type: 'bridge-interrupted',
-      ok: false,
-      error: { message: 'native interrupt failed' },
+    let finishStep: Outbound | undefined;
+    channel.on('finish-step', event => {
+      finishStep = event;
     });
+    channel.on('text-delta', () => {});
 
-    await expect(interrupted).rejects.toThrow(/native interrupt failed/);
+    connector.current().deliver({ type: 'finish-step' }, 1);
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'next' }, 2);
+    await flush();
+
+    const releaseCheckpoint = pinSandboxChannelEventCheckpoint(finishStep);
+    expect(releaseCheckpoint).toEqual(expect.any(Function));
+    releaseCheckpoint?.();
+
+    await expect(channel.suspend()).resolves.toBe(2);
   });
 
   it('refuses to send once terminally closed', async () => {

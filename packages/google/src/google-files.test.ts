@@ -173,7 +173,7 @@ describe('GoogleFiles', () => {
       expect(JSON.parse(capturedBody!)).toEqual({ file: {} });
     });
 
-    it('should send file data to the upload URL with correct headers', async () => {
+    it('should let fetch derive the content length for the upload body', async () => {
       let capturedUploadInit: RequestInit | undefined;
       const uploadUrl = 'https://upload.example.com/resume-session';
       const { files } = createMockFiles({
@@ -194,7 +194,7 @@ describe('GoogleFiles', () => {
 
       expect(capturedUploadInit?.method).toBe('POST');
       const headers = capturedUploadInit?.headers as Record<string, string>;
-      expect(headers['Content-Length']).toBe('3');
+      expect(headers).not.toHaveProperty('Content-Length');
       expect(headers['X-Goog-Upload-Offset']).toBe('0');
       expect(headers['X-Goog-Upload-Command']).toBe('upload, finalize');
       expect(capturedUploadInit?.body).toEqual(bytes);

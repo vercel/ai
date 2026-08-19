@@ -1,6 +1,7 @@
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import type { ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import z from 'zod/v4';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { convertToModelMessages } from './convert-to-model-messages';
@@ -1350,6 +1351,155 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when ignoring incomplete tool calls', () => {
+    it('should ignore preliminary tool outputs', async () => {
+      let toModelOutputCalls = 0;
+
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-streamingTool',
+                state: 'output-available',
+                toolCallId: 'call-preliminary',
+                input: { task: 'finish the work' },
+                output: { complete: false, progress: 'half finished' },
+                preliminary: true,
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        {
+          ignoreIncompleteToolCalls: true,
+          tools: {
+            streamingTool: tool({
+              inputSchema: z.object({ task: z.string() }),
+              toModelOutput: ({ output }) => {
+                toModelOutputCalls++;
+                return { type: 'json', value: output };
+              },
+            }),
+          },
+        },
+      );
+
+      expect(toModelOutputCalls).toBe(0);
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should ignore tool calls that are awaiting approval or have no state', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Waiting for completed tool calls.',
+                state: 'done',
+              },
+              {
+                type: 'tool-weather',
+                state: 'approval-requested',
+                toolCallId: 'call-awaiting-approval',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-without-state',
+                input: { city: 'Berlin' },
+              } as any,
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Waiting for completed tool calls.',
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should preserve tool calls with approval responses', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                state: 'approval-responded',
+                toolCallId: 'call-approved',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1', approved: true },
+              },
+            ],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-approved',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+              providerExecuted: undefined,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-1',
+              toolCallId: 'call-approved',
+              isAutomatic: undefined,
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-1',
+              approved: true,
+              reason: undefined,
+              providerExecuted: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should handle conversation with multiple tool invocations and user message at the end', async () => {
       const result = await convertToModelMessages(
         [
