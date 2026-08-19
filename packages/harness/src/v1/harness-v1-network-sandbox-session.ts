@@ -80,6 +80,21 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
    */
   readonly stateDirectory?: string;
 
+  /**
+   * Who owns the environment this session runs in.
+   *
+   * `'provider'` (the default when omitted) means a provisioned, disposable
+   * environment — a hosted microVM, a virtual filesystem — where the harness
+   * machinery may install what it needs without asking. `'user'` means the
+   * environment belongs to the user — their own machine, their own accounts —
+   * where nothing may be installed without explicit consent.
+   *
+   * The framework uses this as the default consent policy for runtime
+   * executable installation; a consumer's `onInstallRequest` setting always
+   * wins over the default.
+   */
+  readonly environmentOwner?: 'provider' | 'user';
+
   /** Ports the sandbox exposes; resolvable via `getPortEndpoint`. */
   readonly ports: ReadonlyArray<number>;
 
