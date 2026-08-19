@@ -86,8 +86,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(a795ef4e3094b1797a50ed740fa12e5b)
       '@vercel/geistdocs':
-        specifier: 1.20.1
-        version: 1.20.1(2a608f05c441b61ae256496ca918ec3b)
+        specifier: 1.20.4
+        version: 1.20.4(2a608f05c441b61ae256496ca918ec3b)
       fumadocs-core:
         specifier: 16.2.2
         version: 16.2.2(@types/react@18.3.28)(algoliasearch@5.35.0)(lucide-react@0.555.0(react@19.2.6))(next@16.2.12(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -14126,8 +14126,8 @@ packages:
     peerDependencies:
       valibot: ^1.4.0
 
-  '@vercel/agent-readability@0.5.0':
-    resolution: {integrity: sha512-ZY2i+p2/YCu4kAMGeGCq7Dn22XFWmLwQ1+sa2PrvWdeGCKqcx+CNp+4RF022QI+/e8RgPRjwQurjpmafiZlhTA==}
+  '@vercel/agent-readability@0.5.1':
+    resolution: {integrity: sha512-iQih444RJMoAREej/ccTmAUc+PiSogRffqQZMvGdcfF/5GN/4VilXrMHYQWRIq75c70D2AIOxX5sh9EG23ZT3w==}
     engines: {node: '>=20.0.0'}
     hasBin: true
     peerDependencies:
@@ -14209,8 +14209,8 @@ packages:
       ws:
         optional: true
 
-  '@vercel/geistdocs@1.20.1':
-    resolution: {integrity: sha512-deSa27Awi51HrQbgPNN5acCyhkr+noRRKeXzFxg+bQVTb7vfCmzDFn02/i6EDa59S6qGVsDzsyYXhjFecUMsvg==}
+  '@vercel/geistdocs@1.20.4':
+    resolution: {integrity: sha512-W+4jWaH+9bgI9dJ5U6A7dkhhTzUURuiLjMzv8hKDre++fSZpDmsBNOkZowz4kFZBFgZgr4w3N8OWhXUIzGnVDA==}
     hasBin: true
     peerDependencies:
       next: ^16.2.11
@@ -36487,7 +36487,7 @@ snapshots:
     dependencies:
       valibot: 1.4.0(typescript@5.8.3)
 
-  '@vercel/agent-readability@0.5.0(@sveltejs/kit@2.60.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.7)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(svelte@5.55.7)(typescript@5.9.3)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(@vercel/functions@3.7.5(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.3))(h3@1.15.11)(next@16.2.12(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))':
+  '@vercel/agent-readability@0.5.1(@sveltejs/kit@2.60.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.7)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(svelte@5.55.7)(typescript@5.9.3)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(@vercel/functions@3.7.5(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.3))(h3@1.15.11)(next@16.2.12(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))':
     optionalDependencies:
       '@sveltejs/kit': 2.60.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.7)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(svelte@5.55.7)(typescript@5.9.3)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0))
       '@vercel/functions': 3.7.5(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.3)
@@ -36556,7 +36556,7 @@ snapshots:
       ws: 8.21.3
     optional: true
 
-  '@vercel/geistdocs@1.20.1(2a608f05c441b61ae256496ca918ec3b)':
+  '@vercel/geistdocs@1.20.4(2a608f05c441b61ae256496ca918ec3b)':
     dependencies:
       '@ai-sdk/react': 3.0.223(react@19.2.6)(zod@4.4.3)
       '@clack/prompts': 0.11.0
@@ -36564,7 +36564,7 @@ snapshots:
       '@orama/tokenizers': 3.1.18
       '@streamdown/cjk': 1.0.3(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(react@19.2.6)(unified@11.0.5)
       '@streamdown/code': 1.1.1(react@19.2.6)
-      '@vercel/agent-readability': 0.5.0(@sveltejs/kit@2.60.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.7)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(svelte@5.55.7)(typescript@5.9.3)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(@vercel/functions@3.7.5(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.3))(h3@1.15.11)(next@16.2.12(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))
+      '@vercel/agent-readability': 0.5.1(@sveltejs/kit@2.60.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.55.7)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(svelte@5.55.7)(typescript@5.9.3)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.48.0)(tsx@4.22.0)(yaml@2.9.0)))(@vercel/functions@3.7.5(@aws-sdk/credential-provider-web-identity@3.972.73)(ws@8.21.3))(h3@1.15.11)(next@16.2.12(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))
       '@vercel/oidc': 3.8.0
       ai: 6.0.221(zod@4.4.3)
       class-variance-authority: 0.7.1
