@@ -1,5 +1,18 @@
 # @ai-sdk/harness
 
+## 1.0.75
+
+### Patch Changes
+
+- d300737: fix(harness): keep the runtime's error message on failed provider-executed tool results
+  - ai@7.0.68
+
+## 1.0.74
+
+### Patch Changes
+
+- ai@7.0.67
+
 ## 1.0.73
 
 ### Patch Changes

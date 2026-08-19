@@ -1,5 +1,19 @@
 # @ai-sdk/workflow
 
+## 1.0.69
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 1.0.68
+
+### Patch Changes
+
+- e6064c5: Honor `WorkflowAgent` model-call retry settings without stacking workflow step retries.
+- 83f9b12: Expose the original value from model stream error parts on resolved WorkflowAgent results without retrying the durable model step.
+  - ai@7.0.67
+
 ## 1.0.67
 
 ### Patch Changes
