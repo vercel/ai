@@ -1,0 +1,143 @@
+{
+  "model": "claude-sonnet-4-6",
+  "id": "msg_011CdyCfLiveIssue18785",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "server_tool_use",
+      "id": "srvtoolu_code_execution_issue_18785",
+      "name": "code_execution",
+      "input": {
+        "code": "for query in [\"AI SDK\", \"Vercel\", \"Anthropic\"]:\n result = await web_search({\"query\": query})\n print(result)\n"
+      },
+      "caller": {
+        "type": "direct"
+      }
+    },
+    {
+      "type": "server_tool_use",
+      "id": "srvtoolu_web_search_issue_18785_1",
+      "name": "web_search",
+      "input": {
+        "query": "AI SDK"
+      },
+      "caller": {
+        "type": "code_execution_20260120",
+        "tool_id": "srvtoolu_code_execution_issue_18785"
+      }
+    },
+    {
+      "type": "web_search_tool_result",
+      "tool_use_id": "srvtoolu_web_search_issue_18785_1",
+      "content": [
+        {
+          "type": "web_search_result",
+          "title": "AI SDK",
+          "url": "https://ai-sdk.dev/",
+          "encrypted_content": "redacted-live-encrypted-content-1",
+          "page_age": null
+        }
+      ],
+      "caller": {
+        "type": "code_execution_20260120",
+        "tool_id": "srvtoolu_code_execution_issue_18785"
+      }
+    },
+    {
+      "type": "server_tool_use",
+      "id": "srvtoolu_web_search_issue_18785_2",
+      "name": "web_search",
+      "input": {
+        "query": "Vercel"
+      },
+      "caller": {
+        "type": "code_execution_20260120",
+        "tool_id": "srvtoolu_code_execution_issue_18785"
+      }
+    },
+    {
+      "type": "web_search_tool_result",
+      "tool_use_id": "srvtoolu_web_search_issue_18785_2",
+      "content": [
+        {
+          "type": "web_search_result",
+          "title": "Vercel",
+          "url": "https://vercel.com/",
+          "encrypted_content": "redacted-live-encrypted-content-2",
+          "page_age": null
+        }
+      ],
+      "caller": {
+        "type": "code_execution_20260120",
+        "tool_id": "srvtoolu_code_execution_issue_18785"
+      }
+    },
+    {
+      "type": "server_tool_use",
+      "id": "srvtoolu_web_search_issue_18785_3",
+      "name": "web_search",
+      "input": {
+        "query": "Anthropic"
+      },
+      "caller": {
+        "type": "code_execution_20260120",
+        "tool_id": "srvtoolu_code_execution_issue_18785"
+      }
+    },
+    {
+      "type": "web_search_tool_result",
+      "tool_use_id": "srvtoolu_web_search_issue_18785_3",
+      "content": [
+        {
+          "type": "web_search_result",
+          "title": "Anthropic",
+          "url": "https://www.anthropic.com/",
+          "encrypted_content": "redacted-live-encrypted-content-3",
+          "page_age": null
+        }
+      ],
+      "caller": {
+        "type": "code_execution_20260120",
+        "tool_id": "srvtoolu_code_execution_issue_18785"
+      }
+    },
+    {
+      "type": "code_execution_tool_result",
+      "tool_use_id": "srvtoolu_code_execution_issue_18785",
+      "content": {
+        "type": "encrypted_code_execution_result",
+        "encrypted_stdout": "redacted-live-encrypted-stdout",
+        "stderr": "",
+        "return_code": 0,
+        "content": []
+      }
+    },
+    {
+      "type": "text",
+      "text": "The three searches completed."
+    }
+  ],
+  "container": {
+    "id": "container_issue_18785",
+    "expires_at": "2026-08-12T17:30:00Z"
+  },
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 100,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 100,
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "server_tool_use": {
+      "web_search_requests": 3,
+      "web_fetch_requests": 0
+    }
+  }
+}
