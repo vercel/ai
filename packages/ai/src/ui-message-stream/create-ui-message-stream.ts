@@ -9,7 +9,7 @@ import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-ca
 import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
-import type { UIMessageStreamWriter } from './ui-message-stream-writer';
+import type { UIMessageStreamWriterWithOutcome } from './ui-message-stream-writer';
 
 /**
  * Creates a UI message stream that can be used to send messages to the client.
@@ -37,7 +37,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   generateId = generateIdFunc,
 }: {
   execute: (options: {
-    writer: UIMessageStreamWriter<UI_MESSAGE>;
+    writer: UIMessageStreamWriterWithOutcome<UI_MESSAGE>;
   }) => Promise<void> | void;
   onError?: (error: unknown) => string;
 

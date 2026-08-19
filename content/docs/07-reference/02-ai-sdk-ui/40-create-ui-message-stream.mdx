@@ -75,12 +75,12 @@ const stream = createUIMessageStream({
   content={[
     {
       name: 'execute',
-      type: '(options: { writer: UIMessageStreamWriter }) => Promise<void> | void',
+      type: '(options: { writer: UIMessageStreamWriterWithOutcome }) => Promise<void> | void',
       description:
         'A function that receives a writer instance and can use it to write UI message chunks to the stream.',
       properties: [
         {
-          type: 'UIMessageStreamWriter',
+          type: 'UIMessageStreamWriterWithOutcome',
           parameters: [
             {
               name: 'write',

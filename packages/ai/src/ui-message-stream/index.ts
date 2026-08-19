@@ -19,4 +19,7 @@ export type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-fin
 export type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 export type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 export type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
-export type { UIMessageStreamWriter } from './ui-message-stream-writer';
+export type {
+  UIMessageStreamWriter,
+  UIMessageStreamWriterWithOutcome,
+} from './ui-message-stream-writer';

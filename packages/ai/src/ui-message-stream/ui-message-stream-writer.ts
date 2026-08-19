@@ -17,17 +17,21 @@ export interface UIMessageStreamWriter<
   merge(stream: ReadableStream<InferUIMessageChunk<UI_MESSAGE>>): void;
 
   /**
+   * Error handler that is used by the data stream writer.
+   * This is intended for forwarding when merging streams
+   * to prevent duplicated error masking.
+   */
+  onError: ErrorHandler | undefined;
+}
+
+export interface UIMessageStreamWriterWithOutcome<
+  UI_MESSAGE extends UIMessage = UIMessage,
+> extends UIMessageStreamWriter<UI_MESSAGE> {
+  /**
    * Declares the operation-level outcome of the composed stream.
    *
    * The first terminal outcome is retained. Declaring an outcome does not
    * write a chunk or close the stream.
    */
   setOutcome(outcome: UIMessageStreamOutcome): void;
-
-  /**
-   * Error handler that is used by the data stream writer.
-   * This is intended for forwarding when merging streams
-   * to prevent duplicated error masking.
-   */
-  onError: ErrorHandler | undefined;
 }

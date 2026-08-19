@@ -59,7 +59,29 @@ export function toUIMessageStream<
         })
       : undefined;
 
-  const uiMessageChunkStream = stream.pipeThrough(
+  const sourceReader = stream.getReader();
+  const sourceStream = new ReadableStream<TextStreamPart<TOOLS>>({
+    async pull(controller) {
+      try {
+        const { done, value } = await sourceReader.read();
+
+        if (done) {
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        setOutcome({ status: 'failed', error });
+        controller.error(error);
+      }
+    },
+
+    cancel(reason) {
+      return sourceReader.cancel(reason);
+    },
+  });
+
+  const uiMessageChunkStream = sourceStream.pipeThrough(
     new TransformStream({
       transform: async (part, controller) => {
         if (part.type === 'finish') {

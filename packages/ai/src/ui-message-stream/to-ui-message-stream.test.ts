@@ -366,4 +366,29 @@ describe('toUIMessageStream', () => {
       }
     `);
   });
+
+  it('reports an errored source stream as failed exactly once', async () => {
+    const sourceError = new Error('source stream failed');
+    const onEnd = vi.fn();
+
+    const stream = toUIMessageStream({
+      stream: new ReadableStream({
+        start(controller) {
+          controller.error(sourceError);
+        },
+      }),
+      tools: undefined,
+      onEnd,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+      sourceError,
+    );
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: sourceError,
+    });
+  });
 });
