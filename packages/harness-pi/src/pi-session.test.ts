@@ -287,6 +287,49 @@ describe('createPiSession', () => {
     }
   });
 
+  it('steers the active Pi session', async () => {
+    let finishPrompt!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      finishPrompt = resolve;
+    });
+    const steer = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => promptDone),
+      steer,
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+    const session = await createPiSession({
+      sessionId: 'session-steering',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Weather in Paris?',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.submitUserMessage?.('Actually, Paris, Texas.');
+
+      expect(steer).toHaveBeenCalledExactlyOnceWith('Actually, Paris, Texas.');
+      finishPrompt();
+      await control.done;
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('reloads inline extensions when the Pi session is rebuilt', async () => {
     const factory = vi.fn();
     piMock.session = {

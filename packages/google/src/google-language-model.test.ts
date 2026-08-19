@@ -1243,6 +1243,44 @@ describe('doGenerate', () => {
         },
       ]);
     });
+
+    it('should generate an ID when the function call ID is empty', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [
+                  {
+                    functionCall: { id: '', name: 'read_theme', args: {} },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.content).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolName: 'read_theme',
+        input: '{}',
+        providerMetadata: undefined,
+      });
+    });
   });
 
   it('should expose the raw response headers', async () => {
@@ -4097,6 +4135,111 @@ describe('doGenerate', () => {
           },
         });
       });
+
+      it.each([
+        {
+          modelId: 'gemini-3.7-flash-video-understanding-eap',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.7-flash-video-understanding-eap',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-flash-latest',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-flash-latest',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'models/gemini-3.7-flash',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.8-flash',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.10-flash-preview',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-4.0-flash',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3-flash-preview',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'gemini-3.6-flash',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'gemini-3.7-flash-lite',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'gemini-3.10-flash-lite-preview',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'gemini-flash-lite-latest',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+      ])(
+        'should map reasoning "$reasoning" to thinkingLevel "$expectedThinkingLevel" for $modelId',
+        async ({ modelId, reasoning, expectedThinkingLevel }) => {
+          let requestBody:
+            | {
+                generationConfig?: {
+                  thinkingConfig?: { thinkingLevel?: string };
+                };
+              }
+            | undefined;
+
+          const testProvider = createGoogle({
+            apiKey: 'test-api-key',
+            generateId: () => 'test-id',
+            fetch: async (_input, init) => {
+              if (typeof init?.body !== 'string') {
+                throw new Error('Expected a JSON request body');
+              }
+
+              requestBody = JSON.parse(init.body);
+
+              return new Response(JSON.stringify(simpleResponseBody), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              });
+            },
+          });
+
+          await testProvider.chat(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect(
+            requestBody?.generationConfig?.thinkingConfig?.thinkingLevel,
+          ).toBe(expectedThinkingLevel);
+        },
+      );
 
       it('should also detect gemini-3.1 models as Gemini 3', async () => {
         const gemini31Model = provider.chat('gemini-3.1-pro-preview');

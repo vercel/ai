@@ -1,5 +1,21 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
+## 1.0.76
+
+### Patch Changes
+
+- fc1970b: feat(harness): allow passing caller-owned `sandboxSession` to `HarnessAgent.createSession()` and in that case allow omitting the then unnecessary `sandbox` arg from `HarnessAgent` constructor
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
 ## 1.0.75
 
 ### Patch Changes

@@ -1098,6 +1098,111 @@ describe('provider-specific metadata merging', () => {
 });
 
 describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
+  it('should serialize thought signature from a custom provider namespace', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'function-call-1',
+              toolName: 'check_flight',
+              input: { flight: 'AA100' },
+              providerOptions: {
+                myGateway: {
+                  thoughtSignature: '<Custom Signature>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsKey: 'myGateway' },
+    );
+
+    expect(result[0]).toMatchObject({
+      tool_calls: [
+        {
+          extra_content: {
+            google: { thought_signature: '<Custom Signature>' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should fall back to the google namespace', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'function-call-1',
+              toolName: 'check_flight',
+              input: { flight: 'AA100' },
+              providerOptions: {
+                google: {
+                  thoughtSignature: '<Google Signature>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsKey: 'myGateway' },
+    );
+
+    expect(result[0]).toMatchObject({
+      tool_calls: [
+        {
+          extra_content: {
+            google: { thought_signature: '<Google Signature>' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should prefer the custom provider namespace over google', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'function-call-1',
+              toolName: 'check_flight',
+              input: { flight: 'AA100' },
+              providerOptions: {
+                myGateway: {
+                  thoughtSignature: '<Custom Signature>',
+                },
+                google: {
+                  thoughtSignature: '<Google Signature>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsKey: 'myGateway' },
+    );
+
+    expect(result[0]).toMatchObject({
+      tool_calls: [
+        {
+          extra_content: {
+            google: { thought_signature: '<Custom Signature>' },
+          },
+        },
+      ],
+    });
+  });
+
   it('should serialize thought signature to extra_content for single tool call', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {

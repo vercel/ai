@@ -207,6 +207,33 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should generate distinct IDs for parallel tool calls with empty IDs', async () => {
+    prepareJsonResponse({
+      finish_reason: 'tool_calls',
+      tool_calls: [
+        {
+          id: '',
+          type: 'function',
+          function: { name: 'first', arguments: '{"value":1}' },
+        },
+        {
+          id: '',
+          type: 'function',
+          function: { name: 'second', arguments: '{"value":2}' },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+    const toolCallIds = result.content
+      .filter(part => part.type === 'tool-call')
+      .map(part => part.toolCallId);
+
+    expect(toolCallIds).toHaveLength(2);
+    expect(toolCallIds.every(id => id.length > 0)).toBe(true);
+    expect(new Set(toolCallIds).size).toBe(2);
+  });
+
   it('should extract usage', async () => {
     prepareJsonFixtureResponse('xai-text');
 
@@ -506,6 +533,48 @@ describe('doGenerate', () => {
         "someCustomOption": "test-value",
       }
     `);
+  });
+
+  it('should serialize thought signatures using the custom provider metadata key', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await provider('grok-3').doGenerate({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'test_tool',
+              input: { value: 'test' },
+              providerOptions: {
+                'test-provider': {
+                  thoughtSignature: '<Signature A>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'assistant',
+          tool_calls: [
+            {
+              extra_content: {
+                google: {
+                  thought_signature: '<Signature A>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
   });
 
   it('should not include provider-specific options for different provider', async () => {
