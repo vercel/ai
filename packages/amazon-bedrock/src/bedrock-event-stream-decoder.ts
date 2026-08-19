@@ -37,21 +37,16 @@ export function createBedrockEventStreamDecoder<T>(
             break;
           }
 
-          try {
-            const subView = buffer.subarray(0, totalLength);
-            const decoded = codec.decode(subView);
+          const subView = buffer.subarray(0, totalLength);
+          const decoded = codec.decode(subView);
 
-            buffer = buffer.slice(totalLength);
+          buffer = buffer.slice(totalLength);
 
-            const messageType = decoded.headers[':message-type']
-              ?.value as string;
-            const eventType = decoded.headers[':event-type']?.value as string;
-            const data = textDecoder.decode(decoded.body);
+          const messageType = decoded.headers[':message-type']?.value as string;
+          const eventType = decoded.headers[':event-type']?.value as string;
+          const data = textDecoder.decode(decoded.body);
 
-            await processEvent({ messageType, eventType, data }, controller);
-          } catch {
-            break;
-          }
+          await processEvent({ messageType, eventType, data }, controller);
         }
       },
     }),
