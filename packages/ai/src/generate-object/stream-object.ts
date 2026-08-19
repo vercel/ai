@@ -60,6 +60,12 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
+async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
+  try {
+    await promise;
+  } catch {}
+}
+
 /**
 Callback that is set using the `onError` option.
 
@@ -584,6 +590,7 @@ class DefaultStreamObjectResult<
         let providerMetadata: ProviderMetadata | undefined;
         let object: RESULT | undefined;
         let error: unknown | undefined;
+        let terminalError: { error: unknown } | undefined;
 
         // pipe chunks through a transformation stream that extracts metadata:
         let accumulatedText = '';
@@ -696,6 +703,19 @@ class DefaultStreamObjectResult<
                     break;
                   }
 
+                  case 'error': {
+                    if (terminalError === undefined) {
+                      const wrappedError = wrapGatewayError(chunk.error);
+                      terminalError = { error: wrappedError };
+                      error = wrappedError;
+                      finishReason = 'error';
+                      self.rejectResultPromises(wrappedError);
+                    }
+
+                    controller.enqueue(chunk);
+                    break;
+                  }
+
                   case 'finish': {
                     // send final text delta:
                     if (textDelta !== '') {
@@ -703,7 +723,10 @@ class DefaultStreamObjectResult<
                     }
 
                     // store finish reason for telemetry:
-                    finishReason = chunk.finishReason;
+                    finishReason =
+                      terminalError === undefined
+                        ? chunk.finishReason
+                        : 'error';
 
                     // store usage and metadata for promises and onFinish callback:
                     usage = chunk.usage;
@@ -717,6 +740,10 @@ class DefaultStreamObjectResult<
 
                     // log warnings:
                     logWarnings(warnings ?? []);
+
+                    if (terminalError !== undefined) {
+                      break;
+                    }
 
                     // resolve promises that can be resolved now:
                     self._usage.resolve(usage);
@@ -839,10 +866,18 @@ class DefaultStreamObjectResult<
             }),
           );
 
-        stitchableStream.addStream(transformedStream);
+        stitchableStream.addStream(transformedStream, {
+          onError(error) {
+            const wrappedError = wrapGatewayError(error);
+            self.rejectResultPromises(wrappedError);
+            void onError({ error: wrappedError });
+          },
+        });
       },
     })
       .catch(error => {
+        self.rejectResultPromises(error);
+
         // add an empty stream with an error to break the stream:
         stitchableStream.addStream(
           new ReadableStream({
@@ -858,6 +893,29 @@ class DefaultStreamObjectResult<
       });
 
     this.outputStrategy = outputStrategy;
+  }
+
+  private rejectResultPromises(error: unknown) {
+    this.rejectResultPromise({ delayedPromise: this._object, error });
+    this.rejectResultPromise({ delayedPromise: this._usage, error });
+    this.rejectResultPromise({ delayedPromise: this._providerMetadata, error });
+    this.rejectResultPromise({ delayedPromise: this._warnings, error });
+    this.rejectResultPromise({ delayedPromise: this._request, error });
+    this.rejectResultPromise({ delayedPromise: this._response, error });
+    this.rejectResultPromise({ delayedPromise: this._finishReason, error });
+  }
+
+  private rejectResultPromise<T>({
+    delayedPromise,
+    error,
+  }: {
+    delayedPromise: DelayedPromise<T>;
+    error: unknown;
+  }) {
+    if (delayedPromise.isPending()) {
+      delayedPromise.reject(error);
+      markPromiseAsHandled(delayedPromise.promise);
+    }
   }
 
   get object() {
