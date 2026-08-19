@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19062,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-redacted-content.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-redacted-content.ts",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-redacted-content.json",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-redacted-content.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19062 REPRODUCED: documented Bedrock reasoningContent.redactedContent is rejected, lost, or not replayed"
+  }
+}

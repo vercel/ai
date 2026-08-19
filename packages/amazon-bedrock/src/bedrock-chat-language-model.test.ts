@@ -5488,6 +5488,43 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should accept documented redactedContent from a recorded Converse response', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-redacted-content');
+    const fixture = JSON.parse(
+      fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-redacted-content.json',
+        'utf8',
+      ),
+    );
+    const redactedContent =
+      fixture.output.message.content[0].reasoningContent.redactedContent;
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toContainEqual({
+      type: 'reasoning',
+      text: '',
+      providerMetadata: {
+        bedrock: {
+          redactedContent,
+        },
+      },
+    });
+    expect(result.content).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'call_f9b3e3c877325ec4940fcad11b0a3a88',
+      toolName: 'json',
+      input: JSON.stringify({
+        groups: [
+          { name: 'Sales', parentGroupName: '' },
+          { name: 'Team1', parentGroupName: 'Sales' },
+        ],
+      }),
+    });
+  });
+
   it('should handle multiple reasoning blocks', async () => {
     server.urls[generateUrl].response = {
       type: 'json-value',

@@ -1,0 +1,44 @@
+{
+  "metrics": {
+    "latencyMs": 47329
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "reasoningContent": {
+            "redactedContent": "cnNuX3BVUGgxNnRvNFZLWURnSkFQeW1iRUFJRmVPQjBFZEw0bjZtT3NQelFXNmxxdW12OERZS1U5TUttWWJ3NHVwSExPdTg5QUY4QUFRQVZZWGR6TFdOeWVYQjBieTF3ZFdKc2FXTXRhMlY1QUVSQmNFMHlUQ3N3Y1VRMWJVMVlOamh6S3pSTlpGbFJWRzU2WWxKR1IxRndkazExTHpOU1FVMHliMGx3YkV0UFFXRlFhRUZxVlZjM2JYcGtkV1JwYkZkR2VIYzlQUUFCQUJGaGQzTXRhMjF6TFdocFpYSmhjbU5vZVFBS1ltVnliUzF6ZEc5eVpRQmNxQkFqU1psbW5wcVVPSXRiV2FmZ0tPMjBISkJaM1BtbStlbitDN3lNUzlzVU9FejZtUWk3SDF4cDRPTWd5bFI5RklXT3RuYWc0b0JhNy9UL05oN2VrQXVYTExtTU5sNUNBb09wcmVxM2RMeDN2TGhHaSszWDE4cWMzTUVDQUFBUUFPY05SVk5XcUY3K0t2dGY2bGFzbnBlTkVpd1VaTkdIMFBWZGowZGxzeVhEbW1MK01zZTN4RWM5aEVybmQ3eGEwZi8vLy84QUFBQUJBQUFBQUFBQUFBQUFBQUFCQUFBQWxpcmZDa2VjaTVUTGloUUsxbGZsbVZwVm5EQ2V1a0NMVXFkcExQMUpFV0VBWGkxTGpEOGVhc25tbVlTblhBc245TklISHZ3d0pyeG9zTmtQL0ZMTlJyNDg5cWJnN3FMb3pReVdibEJVUzEya0E5c01wMkg5alJZZ0NyQ3hJQ3lMTEJrNm5hVHpwWEovcjFGQ09yTjNnN1R3L1JnSFU3RitTQk9PWDVLMm8rWXAydVFpVjdvMmh0SURlTWJwL082Qm5ZVnBLSG8wRSs0dzUzYTF0SHQ3TXplbUM1RklHc2tBWnpCbEFqRUF1T1lpK3E5U3V3RFhZWHlQVG1RZzlROENXWEJGSzA4ZDBpNFNuS292dzlqeUFYZ21DVnJObkdDVUZoSk5KMkF5QWpBSWFsZzFJdkg0TXVqa2UzMmF5QW5vdHlYbHFCbmZlZnE0NXV2WlJ4YzNVZWVmaUtnNDNubVNUdWFMdElldUtnVT0="
+          }
+        },
+        {
+          "toolUse": {
+            "input": {
+              "groups": [
+                {
+                  "name": "Sales",
+                  "parentGroupName": ""
+                },
+                {
+                  "name": "Team1",
+                  "parentGroupName": "Sales"
+                }
+              ]
+            },
+            "name": "json",
+            "toolUseId": "call_f9b3e3c877325ec4940fcad11b0a3a88"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "inputTokens": 69,
+    "outputTokens": 59,
+    "serverToolUsage": {},
+    "totalTokens": 128
+  }
+}

@@ -772,6 +772,48 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should replay documented redactedContent verbatim', async () => {
+    const redactedContent = 'recorded-encrypted-reasoning';
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: {
+              bedrock: { redactedContent },
+            },
+          },
+        ],
+      },
+    ] as any);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedContent,
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
     const result = await convertToBedrockChatMessages([
       {
