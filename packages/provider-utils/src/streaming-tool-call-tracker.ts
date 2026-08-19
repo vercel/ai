@@ -83,7 +83,7 @@ export class StreamingToolCallTracker<
 > {
   private toolCalls: TrackedToolCall[] = [];
   private toolCallsById = new Map<string, Set<TrackedToolCall>>();
-  private toolCallsByIndex = new Map<number, TrackedToolCall>();
+  private toolCallsByIndex = new Map<number, Set<TrackedToolCall>>();
   private usedToolCallIds = new Set<string>();
   private nextGeneratedIdSuffixes = new Map<string, number>();
   private readonly controller: StreamingToolCallTrackerController;
@@ -122,6 +122,9 @@ export class StreamingToolCallTracker<
       index,
       name,
       hasExplicitType: toolCallDelta.type != null,
+      hasCompleteArguments:
+        toolCallDelta.function?.arguments != null &&
+        isParsableJson(toolCallDelta.function.arguments),
     });
 
     // `null` indicates that the available labels match multiple calls or
@@ -146,7 +149,7 @@ export class StreamingToolCallTracker<
     }
 
     if (index != null) {
-      this.toolCallsByIndex.set(index, toolCall);
+      this.associateIndex(toolCall, index);
     }
   }
 
@@ -176,24 +179,37 @@ export class StreamingToolCallTracker<
     index,
     name,
     hasExplicitType,
+    hasCompleteArguments,
   }: {
     wireId: string | undefined;
     index: number | null | undefined;
     name: string | undefined;
     hasExplicitType: boolean;
+    hasCompleteArguments: boolean;
   }): TrackedToolCall | null | undefined {
-    const indexedToolCall =
+    const indexedToolCalls =
       index != null ? this.toolCallsByIndex.get(index) : undefined;
+    const matchingIndexedToolCalls = this.filterToolCallsByName(
+      indexedToolCalls,
+      name,
+    );
+    const isExplicitCompleteCall =
+      hasExplicitType && name != null && hasCompleteArguments;
 
     if (wireId != null) {
       const toolCallsWithId = this.toolCallsById.get(wireId);
 
       if (toolCallsWithId != null) {
         if (index != null) {
-          if (indexedToolCall != null && toolCallsWithId.has(indexedToolCall)) {
-            return name == null || indexedToolCall.function.name === name
-              ? indexedToolCall
-              : undefined;
+          const matchingToolCalls = matchingIndexedToolCalls.filter(toolCall =>
+            toolCallsWithId.has(toolCall),
+          );
+          const matchingToolCall = this.selectMatchingToolCall(
+            matchingToolCalls,
+            isExplicitCompleteCall,
+          );
+          if (matchingToolCall !== undefined) {
+            return matchingToolCall;
           }
 
           // A named delta with a distinct index starts a new call even when its
@@ -204,7 +220,7 @@ export class StreamingToolCallTracker<
           }
 
           // Conflicting labels on a continuation cannot be resolved safely.
-          if (indexedToolCall != null) {
+          if (indexedToolCalls != null) {
             return null;
           }
 
@@ -218,11 +234,10 @@ export class StreamingToolCallTracker<
             toolCall => toolCall.function.name === name,
           );
 
-          if (matchingToolCalls.length === 0) {
-            return undefined;
-          }
-
-          return matchingToolCalls.length === 1 ? matchingToolCalls[0] : null;
+          return this.selectMatchingToolCall(
+            matchingToolCalls,
+            isExplicitCompleteCall,
+          );
         }
 
         return toolCallsWithId.size === 1
@@ -230,30 +245,27 @@ export class StreamingToolCallTracker<
           : null;
       }
 
-      if (indexedToolCall != null) {
+      if (matchingIndexedToolCalls.length > 0) {
         // IDs can change during a call. A matching index/name continues an
         // incomplete call even if the type is repeated, while a complete call
         // followed by another explicit start at the same index stays distinct.
-        if (
-          name == null ||
-          (indexedToolCall.function.name === name &&
-            (!hasExplicitType ||
-              !isParsableJson(indexedToolCall.function.arguments)))
-        ) {
-          return indexedToolCall;
-        }
+        return this.selectMatchingToolCall(
+          matchingIndexedToolCalls,
+          hasExplicitType && name != null,
+        );
       }
 
       return undefined;
     }
 
-    if (indexedToolCall != null) {
+    if (indexedToolCalls != null) {
       // Repeated names are valid on continuations. A different name at the
       // same index is evidence of a new call from a provider that reuses
       // indices across parallel calls.
-      return name == null || indexedToolCall.function.name === name
-        ? indexedToolCall
-        : undefined;
+      return this.selectMatchingToolCall(
+        matchingIndexedToolCalls,
+        isExplicitCompleteCall,
+      );
     }
 
     if (name != null) {
@@ -267,6 +279,42 @@ export class StreamingToolCallTracker<
       return unfinishedToolCalls[0];
     }
     return unfinishedToolCalls.length > 1 ? null : undefined;
+  }
+
+  private filterToolCallsByName(
+    toolCalls: Set<TrackedToolCall> | undefined,
+    name: string | undefined,
+  ): TrackedToolCall[] {
+    if (toolCalls == null) {
+      return [];
+    }
+
+    return [...toolCalls].filter(
+      toolCall => name == null || toolCall.function.name === name,
+    );
+  }
+
+  private selectMatchingToolCall(
+    toolCalls: TrackedToolCall[],
+    startsExplicitCall: boolean,
+  ): TrackedToolCall | null | undefined {
+    if (toolCalls.length === 0) {
+      return undefined;
+    }
+
+    if (!startsExplicitCall) {
+      return toolCalls.length === 1 ? toolCalls[0] : null;
+    }
+
+    const incompleteToolCalls = toolCalls.filter(
+      toolCall => !isParsableJson(toolCall.function.arguments),
+    );
+
+    if (incompleteToolCalls.length === 1) {
+      return incompleteToolCalls[0];
+    }
+
+    return incompleteToolCalls.length > 1 ? null : undefined;
   }
 
   private processNewToolCall(
@@ -354,6 +402,15 @@ export class StreamingToolCallTracker<
       this.toolCallsById.set(wireId, toolCallsWithId);
     }
     toolCallsWithId.add(toolCall);
+  }
+
+  private associateIndex(toolCall: TrackedToolCall, index: number): void {
+    let toolCallsWithIndex = this.toolCallsByIndex.get(index);
+    if (toolCallsWithIndex == null) {
+      toolCallsWithIndex = new Set();
+      this.toolCallsByIndex.set(index, toolCallsWithIndex);
+    }
+    toolCallsWithIndex.add(toolCall);
   }
 
   private createToolCallId(wireId: string | undefined): string {

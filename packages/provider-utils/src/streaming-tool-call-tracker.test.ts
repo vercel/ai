@@ -463,6 +463,80 @@ describe('StreamingToolCallTracker', () => {
       ]);
     });
 
+    it.each([
+      { description: 'missing ids', id: undefined },
+      { description: 'a repeated id', id: 'dup' },
+    ])(
+      'should keep complete same-name calls distinct with $description and a reused index',
+      ({ id }) => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller, {
+          generateId: () => 'generated-id',
+        });
+
+        tracker.processDelta({
+          index: 0,
+          id,
+          type: 'function',
+          function: { name: 'same_tool', arguments: '{"value":1}' },
+        });
+        tracker.processDelta({
+          index: 0,
+          id,
+          type: 'function',
+          function: { name: 'same_tool', arguments: '{"value":2}' },
+        });
+        tracker.flush();
+
+        const toolCalls = parts.filter(part => part.type === 'tool-call');
+        expect(toolCalls.map(toolCall => toolCall.input)).toEqual([
+          '{"value":1}',
+          '{"value":2}',
+        ]);
+        expect(
+          new Set(toolCalls.map(toolCall => toolCall.toolCallId)).size,
+        ).toBe(2);
+      },
+    );
+
+    it('should ignore an index-only continuation after the index is reused', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'first', arguments: '{"value":1}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'second', arguments: '{"value":2}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: '{"unattributed":true}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'first',
+          input: '{"value":1}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_2',
+          toolName: 'second',
+          input: '{"value":2}',
+        },
+      ]);
+    });
+
     it('should use the index when continuation ids are blank', () => {
       const { parts, controller } = createCollector();
       const tracker = new StreamingToolCallTracker(controller);
