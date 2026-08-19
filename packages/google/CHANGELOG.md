@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 4.0.45
+
+### Patch Changes
+
+- bb0cf2e: fix(google): coerce minimal reasoning to low for Gemini 3.7 Flash
+
+## 4.0.44
+
+### Patch Changes
+
+- 16650e9: feat(google): add `gemini-3.7-flash` model
+
 ## 4.0.43
 
 ### Patch Changes

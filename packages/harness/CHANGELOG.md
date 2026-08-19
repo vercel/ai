@@ -1,5 +1,46 @@
 # @ai-sdk/harness
 
+## 1.0.75
+
+### Patch Changes
+
+- d300737: fix(harness): keep the runtime's error message on failed provider-executed tool results
+  - ai@7.0.68
+
+## 1.0.74
+
+### Patch Changes
+
+- ai@7.0.67
+
+## 1.0.73
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- d25cae2: fix(harness): claim the bridge event stream on start/resume instead of on connect
+
+## 1.0.72
+
+### Patch Changes
+
+- 69bb613: feat(harness): support request transformations in network sandbox abstraction and use it to apply credential brokering when available
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- 4cd4989: chore(harness): decouple bridge based harness bootstrap recipe logic from dynamic params and enforce unique harnesses in `prepareSandboxForHarness()` helper
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 1.0.71
+
+### Patch Changes
+
+- 8d717b3: Execute independent host tool calls concurrently within a harness step.
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
 ## 1.0.70
 
 ### Patch Changes

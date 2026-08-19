@@ -100,6 +100,12 @@ Settings:
   random 32-byte token. Custom implementations must return a suitably secret
   token.
 
+## Structured Output
+
+OpenCode supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+The adapter uses OpenCode's `json_schema` prompt format and returns the
+validated `structured` result as JSON text.
+
 ## Authentication
 
 The `auth` setting selects how credentials are resolved from the host
@@ -110,6 +116,11 @@ environment:
 - `anthropic`: use Anthropic credentials.
 - `openai`: use OpenAI credentials.
 - `ai-gateway`: use AI Gateway credentials.
+
+When the sandbox supports additive request transformations, the bridge receives
+placeholders and the adapter injects credentials into matching outbound
+requests. Sandboxes without that capability retain direct credential
+forwarding.
 
 Supported environment variables:
 

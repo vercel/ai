@@ -1,5 +1,43 @@
 # @ai-sdk/workflow
 
+## 1.0.69
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 1.0.68
+
+### Patch Changes
+
+- e6064c5: Honor `WorkflowAgent` model-call retry settings without stacking workflow step retries.
+- 83f9b12: Expose the original value from model stream error parts on resolved WorkflowAgent results without retrying the durable model step.
+  - ai@7.0.67
+
+## 1.0.67
+
+### Patch Changes
+
+- e3325bd: Fix `WorkflowAgent` timeout handling by enforcing absolute deadlines inside durable model-call steps and routing timeouts through abort handling.
+
+## 1.0.66
+
+### Patch Changes
+
+- c661693: Fix the Workflow integration test harness by aligning `@workflow/vitest` with the installed Workflow runtime.
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
 ## 1.0.64
 
 ### Patch Changes

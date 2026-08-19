@@ -1,5 +1,35 @@
 # @ai-sdk/code-mode
 
+## 1.0.25
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 1.0.24
+
+### Patch Changes
+
+- ai@7.0.67
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 1.0.22
+
+### Patch Changes
+
+- 0438749: feat(code-mode): use run package for code-mode execution
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
 ## 1.0.21
 
 ### Patch Changes

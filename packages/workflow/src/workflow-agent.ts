@@ -7,6 +7,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   getErrorMessage,
+  isAbortError,
   validateTypes,
   withUserAgentSuffix,
   type Context,
@@ -39,7 +40,6 @@ import {
   createRestrictedTelemetryDispatcher,
   collectToolApprovals,
   convertToLanguageModelPrompt,
-  mergeAbortSignals,
   mergeCallbacks,
   standardizePrompt,
   validateApprovedToolApprovals,
@@ -212,8 +212,7 @@ export interface GenerationSettings {
   seed?: number;
 
   /**
-   * Maximum number of retries. Set to 0 to disable retries.
-   * Note: In workflow context, retries are typically handled by the workflow step mechanism.
+   * Maximum number of retries for retryable model call failures. Set to 0 to disable retries.
    * @default 2
    */
   maxRetries?: number;
@@ -1192,6 +1191,15 @@ export interface WorkflowAgentStreamResult<
   finishReason: FinishReason;
 
   /**
+   * The original value from a model stream error part.
+   *
+   * This property is present when the model emitted an error part, including
+   * when the supplied value is `undefined`. Check with `'error' in result` to
+   * distinguish that case from a result without a model stream error.
+   */
+  error?: unknown;
+
+  /**
    * The total token usage across all steps.
    */
   totalUsage: LanguageModelUsage;
@@ -1788,10 +1796,10 @@ export class WorkflowAgent<
       download,
     });
 
-    const effectiveAbortSignal = mergeAbortSignals(
-      options.abortSignal ?? effectiveGenerationSettings.abortSignal,
-      options.timeout,
-    );
+    const effectiveAbortSignal =
+      options.abortSignal ?? effectiveGenerationSettings.abortSignal;
+    const timeoutAt =
+      options.timeout == null ? undefined : Date.now() + options.timeout;
 
     // Merge generation settings: constructor defaults < prepareCall < stream options
     const mergedGenerationSettings: GenerationSettings = {
@@ -2146,7 +2154,6 @@ export class WorkflowAgent<
       stopConditions: effectiveStopWhenFromPrepare,
       onStepEnd: mergedOnStepEnd as any,
       onStepStart: mergedOnStepStart as any,
-      onError: options.onError,
       prepareStep: (options.prepareStep ??
         (this.prepareStep as
           | PrepareStepCallback<ToolSet, TRuntimeContext>
@@ -2157,6 +2164,7 @@ export class WorkflowAgent<
       toolsContext,
       telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
+      timeoutAt,
       repairToolCall: (options.repairToolCall ??
         options.experimental_repairToolCall ??
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
@@ -2167,7 +2175,10 @@ export class WorkflowAgent<
     // Track the final conversation messages from the iterator
     let finalMessages: LanguageModelV4Prompt | undefined;
     let encounteredError: unknown;
+    let hasEncounteredError = false;
     let wasAborted = false;
+    let terminalError: unknown;
+    let hasTerminalError = false;
 
     try {
       let result = await iterator.next();
@@ -2519,14 +2530,29 @@ export class WorkflowAgent<
         }
       }
 
-      // When the iterator completes normally, result.value contains the final conversation prompt
+      // When the iterator completes normally, result.value contains the final
+      // conversation prompt. Aborts inside the retryable model step are
+      // returned as data so the workflow runtime does not retry them.
       if (result.done) {
-        finalMessages = result.value;
+        if (Array.isArray(result.value)) {
+          finalMessages = result.value;
+        } else if ('error' in result.value) {
+          finalMessages = result.value.messages;
+          terminalError = result.value.error;
+          hasTerminalError = true;
+        } else {
+          finalMessages = result.value.messages;
+          wasAborted = true;
+          if (options.onAbort) {
+            await options.onAbort({ steps });
+          }
+        }
       }
     } catch (error) {
       encounteredError = error;
+      hasEncounteredError = true;
       // Check if this is an abort error
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (isAbortError(error)) {
         wasAborted = true;
         if (options.onAbort) {
           await options.onAbort({ steps });
@@ -2537,6 +2563,13 @@ export class WorkflowAgent<
       }
       await telemetryDispatcher.onError?.(error);
       // Don't throw yet - we want to call onEnd first
+    }
+
+    if (hasTerminalError) {
+      if (options.onError) {
+        await options.onError({ error: terminalError });
+      }
+      await telemetryDispatcher.onError?.(terminalError);
     }
 
     // Use the final messages from the iterator, or fall back to standardized messages
@@ -2562,8 +2595,9 @@ export class WorkflowAgent<
         } catch (parseError) {
           // If there's already an error, don't override it
           // If not, set this as the error
-          if (!encounteredError) {
+          if (!hasEncounteredError) {
             encounteredError = parseError;
+            hasEncounteredError = true;
           }
         }
       }
@@ -2599,7 +2633,7 @@ export class WorkflowAgent<
     }
 
     // Re-throw any error that occurred
-    if (encounteredError) {
+    if (hasEncounteredError) {
       // Close the stream before throwing
       if (options.writable) {
         const sendFinish = options.sendFinish ?? true;
@@ -2628,6 +2662,7 @@ export class WorkflowAgent<
       finishReason,
       totalUsage,
       output: experimentalOutput,
+      ...(hasTerminalError ? { error: terminalError } : {}),
     };
   }
 }

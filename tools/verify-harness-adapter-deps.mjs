@@ -29,6 +29,12 @@ const adapterConfigs = [
     ],
   },
   {
+    name: 'Cline',
+    packageDir: 'packages/harness-cline',
+    primarySdk: '@cline/agents',
+    sdkPackages: ['@cline/agents'],
+  },
+  {
     name: 'Codex',
     packageDir: 'packages/harness-codex',
     primarySdk: '@openai/codex-sdk',
