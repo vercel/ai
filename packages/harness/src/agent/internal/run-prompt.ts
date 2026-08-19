@@ -219,6 +219,19 @@ export function runPrompt<
       string,
       Extract<HarnessV1StreamPart, { type: 'tool-call' }>
     >();
+    /*
+     * Host results are echoed back as `tool-result` events too, so the event
+     * alone cannot say who ran the tool — classify by the originating
+     * `tool-call`. Only an explicit `true` counts: `LanguageModelV4ToolCall`
+     * defines an omitted flag as client-executed. A call missing from the map
+     * arrived in an earlier slice, where nothing here can classify it.
+     */
+    const translateOptions = {
+      isProviderExecuted: (toolCallId: string): boolean => {
+        const rawToolCall = rawToolCallsByToolCallId.get(toolCallId);
+        return rawToolCall == null || rawToolCall.providerExecuted === true;
+      },
+    };
     const pendingApprovalsByApprovalId = new Map(
       pendingToolApprovals.map(approval => [approval.approvalId, approval]),
     );
@@ -709,7 +722,10 @@ export function runPrompt<
         }
 
         // Forward to consumer as soon as possible.
-        for (const part of translateStreamPart<TOOLS>(displayValue)) {
+        for (const part of translateStreamPart<TOOLS>(
+          displayValue,
+          translateOptions,
+        )) {
           result.enqueue(part);
         }
 
