@@ -1,0 +1,74 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "model": "claude-opus-4-8[1m]"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01KXafZqWK3Uvydo9sMXqoSz",
+          "name": "Bash",
+          "input": {
+            "command": "printf 19068",
+            "description": "Print the number 19068"
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 6323,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 20
+      }
+    },
+    "parent_tool_use_id": null
+  },
+  {
+    "type": "user",
+    "message": {
+      "content": [
+        {
+          "tool_use_id": "toolu_01KXafZqWK3Uvydo9sMXqoSz",
+          "type": "tool_result",
+          "content": "19068",
+          "is_error": false
+        }
+      ]
+    },
+    "parent_tool_use_id": null
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "content": [
+        {
+          "type": "text",
+          "text": "done"
+        }
+      ],
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 85,
+        "cache_read_input_tokens": 6323,
+        "output_tokens": 1
+      }
+    },
+    "parent_tool_use_id": null
+  },
+  {
+    "type": "result",
+    "subtype": "success",
+    "result": "done",
+    "total_cost_usd": 0.045855499999999993,
+    "usage": {
+      "input_tokens": 4,
+      "cache_creation_input_tokens": 6408,
+      "cache_read_input_tokens": 6323,
+      "output_tokens": 81
+    }
+  }
+]

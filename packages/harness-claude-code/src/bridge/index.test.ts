@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { ClaudeMessage } from './create-emit-stream-event';
 
 type QueryArgs = {
   options: Record<string, unknown>;
@@ -12,6 +14,8 @@ const TEST_ENV_KEYS = [
 
 const state = vi.hoisted(() => ({
   queryArgs: [] as QueryArgs[],
+  queryMessages: [] as Record<string, unknown>[],
+  emitted: [] as Record<string, unknown>[],
   start: {} as Record<string, unknown>,
   originalArgv: [] as string[],
   originalEnv: {} as Record<string, string | undefined>,
@@ -21,11 +25,7 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
   query: (args: QueryArgs) => {
     state.queryArgs.push(args);
     return (async function* () {
-      yield {
-        type: 'result',
-        subtype: 'success',
-        result: 'done',
-      };
+      yield* state.queryMessages;
     })();
   },
 }));
@@ -44,9 +44,10 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
       abortSignal: new AbortController().signal,
       pendingUserMessages: [],
       firstTurn: true,
-      emit: () => {},
+      emit: (event: Record<string, unknown>) => state.emitted.push(event),
       emitWarning: () => {},
       emitError: () => {},
+      bridgeLog: () => {},
       requestToolResult: async () => ({ output: {} }),
       requestToolApproval: async () => ({ approved: true }),
     });
@@ -56,6 +57,14 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
 describe('Claude Code bridge configuration', () => {
   beforeEach(() => {
     state.queryArgs = [];
+    state.queryMessages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+      },
+    ];
+    state.emitted = [];
     state.start = {
       prompt: 'Inspect the project.',
       thinking: { type: 'disabled' },
@@ -142,6 +151,49 @@ describe('Claude Code bridge configuration', () => {
 
     expect(state.queryArgs[0]?.options).toMatchObject({
       outputFormat: { type: 'json_schema', schema },
+    });
+  });
+
+  test('reports the final model call usage on its finish-step', async () => {
+    state.queryMessages = JSON.parse(
+      readFileSync(
+        new URL('./__fixtures__/multi-step-usage-stream.json', import.meta.url),
+        'utf8',
+      ),
+    ) as ClaudeMessage[];
+    state.start = {
+      prompt:
+        'Use the Bash tool exactly once to run `printf 19068`, then reply with only the text done.',
+      thinking: { type: 'disabled' },
+      permissionMode: 'allow-all',
+      builtinToolFiltering: { mode: 'allow', toolNames: ['bash'] },
+    };
+
+    await import('./index');
+
+    const finishSteps = state.emitted.filter(
+      event => event.type === 'finish-step',
+    );
+    const finish = state.emitted.find(event => event.type === 'finish');
+
+    expect(finishSteps).toHaveLength(2);
+    expect(finishSteps[1].usage).toEqual({
+      inputTokens: {
+        total: 6410,
+        noCache: 2,
+        cacheRead: 6323,
+        cacheWrite: 85,
+      },
+      outputTokens: { total: 1, text: 1 },
+    });
+    expect(finish?.totalUsage).toEqual({
+      inputTokens: {
+        total: 12735,
+        noCache: 4,
+        cacheRead: 6323,
+        cacheWrite: 6408,
+      },
+      outputTokens: { total: 81, text: 81 },
     });
   });
 });
