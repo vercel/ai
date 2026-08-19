@@ -340,6 +340,157 @@ describe('urlContextMetadata', () => {
 });
 
 describe('doGenerate', () => {
+  it('should associate multiple generated and streamed code execution results with the same tool call', async () => {
+    const response = {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                executableCode: {
+                  language: 'PYTHON',
+                  code: "print('ok')\nprint(1/0)",
+                },
+              },
+              {
+                codeExecutionResult: {
+                  outcome: 'OUTCOME_OK',
+                  output: 'ok\n',
+                },
+              },
+              {
+                codeExecutionResult: {
+                  outcome: 'OUTCOME_FAILED',
+                  output: 'ZeroDivisionError: division by zero\n',
+                },
+              },
+            ],
+            role: 'model',
+          },
+          finishReason: 'STOP',
+        },
+      ],
+    };
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(`data: ${JSON.stringify(response)}\n\n`, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      );
+    const testProvider = createGoogle({
+      apiKey: 'test-api-key',
+      fetch,
+      generateId: () => 'test-id',
+    });
+
+    const { content } = await testProvider
+      .languageModel('gemini-2.0-pro')
+      .doGenerate({
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.code_execution',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "ok
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_FAILED",
+            "output": "ZeroDivisionError: division by zero
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+
+    const { stream } = await testProvider
+      .languageModel('gemini-2.0-pro')
+      .doStream({
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.code_execution',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+    const events = await convertReadableStreamToArray(stream);
+    const toolEvents = events.filter(
+      event => event.type === 'tool-call' || event.type === 'tool-result',
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(toolEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "ok
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_FAILED",
+            "output": "ZeroDivisionError: division by zero
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
   const TEST_URL_GEMINI_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
@@ -361,6 +512,12 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_3_1_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent';
 
+  const TEST_URL_GEMINI_3_7_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent';
+
+  const TEST_URL_GEMINI_99_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
+
   const TEST_URL_GEMINI_2_5_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
 
@@ -378,6 +535,8 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_1_5_FLASH]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
     [TEST_URL_GEMINI_3_1_PRO]: {},
+    [TEST_URL_GEMINI_3_7_FLASH]: {},
+    [TEST_URL_GEMINI_99_PRO]: {},
     [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_2_5_FLASH]: {},
@@ -454,6 +613,64 @@ describe('doGenerate', () => {
       },
     };
   };
+
+  it('should omit function call IDs from Vertex requests', async () => {
+    prepareJsonResponse({ content: 'done' });
+
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Look up the answer.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_repro_1',
+              toolName: 'lookup',
+              input: { query: 'vertex function id repro' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_repro_1',
+              toolName: 'lookup',
+              output: {
+                type: 'json',
+                value: { answer: 'known' },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.contents[1].parts[0].functionCall).toEqual({
+      name: 'lookup',
+      args: { query: 'vertex function id repro' },
+    });
+    expect(requestBody.contents[2].parts[0].functionResponse).toEqual({
+      name: 'lookup',
+      response: {
+        name: 'lookup',
+        content: { answer: 'known' },
+      },
+    });
+  });
 
   it('should send PDF tool result data as inlineData for Gemini 2.5 legacy tool results', async () => {
     server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
@@ -532,6 +749,101 @@ describe('doGenerate', () => {
     ]);
   });
 
+  it('should use newest request behavior for an unknown future Gemini model', async () => {
+    server.urls[TEST_URL_GEMINI_99_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const model = provider.chat('gemini-99-pro-preview');
+
+    await model.doGenerate({
+      reasoning: 'high',
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Create a weather chart.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolName: 'createWeatherChart',
+              toolCallId: 'testCallId',
+              input: { location: 'San Francisco' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'createWeatherChart',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'Weather chart' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'iVBORw0KGgo=' },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.generationConfig.thinkingConfig).toEqual({
+      thinkingLevel: 'high',
+    });
+    expect(requestBody.contents[1].parts[0]).toMatchObject({
+      functionCall: {
+        id: 'testCallId',
+        name: 'createWeatherChart',
+        args: { location: 'San Francisco' },
+      },
+      thoughtSignature: 'skip_thought_signature_validator',
+    });
+    expect(requestBody.contents[2].parts).toEqual([
+      {
+        functionResponse: {
+          id: 'testCallId',
+          name: 'createWeatherChart',
+          response: {
+            name: 'createWeatherChart',
+            content: 'Weather chart',
+          },
+          parts: [
+            {
+              inlineData: {
+                mimeType: 'image/png',
+                data: 'iVBORw0KGgo=',
+              },
+            },
+          ],
+        },
+      },
+    ]);
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('google-text');
@@ -564,7 +876,7 @@ describe('doGenerate', () => {
         modelId: response?.modelId,
       }).toMatchInlineSnapshot(`
         {
-          "id": undefined,
+          "id": "Un6LacrVMcjUxs0PmJfWoQc",
           "modelId": undefined,
           "timestamp": undefined,
         }
@@ -3626,6 +3938,7 @@ describe('doGenerate', () => {
 
     describe('Gemini 3 models (thinkingLevel)', () => {
       const gemini3Model = provider.chat('gemini-3-pro-preview');
+      const gemini37FlashModel = provider.chat('gemini-3.7-flash');
 
       it('should map reasoning "minimal" to thinkingLevel "minimal"', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
@@ -3739,6 +4052,49 @@ describe('doGenerate', () => {
           feature: 'reasoning',
           details:
             'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
+        });
+      });
+
+      it('should coerce reasoning "minimal" to thinkingLevel "low" for Gemini 3.7 Flash', async () => {
+        server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini37FlashModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'low' },
+          },
+        });
+
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+        });
+      });
+
+      it('should coerce reasoning "none" to thinkingLevel "low" for Gemini 3.7 Flash', async () => {
+        server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini37FlashModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'low' },
+          },
         });
       });
 
@@ -4272,6 +4628,23 @@ describe('doStream', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should emit response-metadata with the provider responseId', async () => {
+      // Gemini repeats `responseId` on every chunk; the provider emits a single
+      // response-metadata part carrying it (see google-text.chunks.txt fixture).
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const responseMetadata = (
+        await convertReadableStreamToArray(stream)
+      ).filter(chunk => chunk.type === 'response-metadata');
+
+      expect(responseMetadata).toEqual([
+        { type: 'response-metadata', id: 'bH6LaZW8Fp_3nsEPqtaSwQ4' },
+      ]);
     });
 
     it('should expose the raw response headers', async () => {

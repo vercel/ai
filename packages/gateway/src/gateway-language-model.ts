@@ -10,6 +10,7 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   postJsonToApi,
   resolve,
   serializeModelOptions,
@@ -18,7 +19,7 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from './zod';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
@@ -92,7 +93,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         successfulResponseHandler: createJsonResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -135,7 +136,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

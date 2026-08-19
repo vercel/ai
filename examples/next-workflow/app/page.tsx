@@ -46,6 +46,12 @@ export default function Chat() {
         >
           Open sandbox e2e harness
         </Link>
+        <Link
+          href="/async-apis"
+          className="ml-4 mt-2 inline-block text-sm text-blue-600 hover:underline"
+        >
+          Open async video workflow
+        </Link>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

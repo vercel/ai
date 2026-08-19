@@ -14,17 +14,17 @@ import {
   createOpencodeServer,
 } from '@opencode-ai/sdk/v2';
 import {
-  emitMissingFinalDelta,
+  createTranslationState,
+  emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
   isStepSettlementEvent,
-  type OpenCodeEvent,
+  type TranslationState,
   unwrapOpenCodeEvent,
 } from './opencode-events';
-import {
-  legacyStepFinishPartToFinishStep,
-  mapOpenCodeFinishReason,
-} from './opencode-finish-step';
+import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
+import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
+import { configureOpenCodeServerAuth } from './opencode-server-auth';
 import {
   addUsage,
   defaultUsage,
@@ -34,6 +34,11 @@ import {
   type HarnessUsage,
   type OpenCodeTokenUsage,
 } from './opencode-usage';
+import {
+  asOpenCodeObject,
+  type OpenCodeEvent,
+  type OpenCodeObject,
+} from './opencode-types';
 import { startAuthorizedToolRelay, type ToolRelay } from './tool-relay';
 
 type Emit = (msg: Record<string, unknown>) => void;
@@ -47,6 +52,7 @@ type RuntimeState = {
   sessionId?: string;
   relay?: ToolRelay;
   toolNames: Set<string>;
+  mcpToolPrefixes: Set<string>;
 };
 
 type CommonBuiltinToolName =
@@ -111,7 +117,10 @@ const bridgeStateDir =
   args.bridgeStateDir ?? emitFatal('Missing --bridge-state-dir argument.');
 const bootstrapDir = args.bootstrapDir ?? workdir;
 const skillsDir = args.skillsDir;
-const runtime: RuntimeState = { toolNames: new Set() };
+const runtime: RuntimeState = {
+  toolNames: new Set(),
+  mcpToolPrefixes: new Set(),
+};
 prependOpenCodeBinToPath({ bootstrapDir, env: procEnv });
 
 mkdirSync(process.env.HOME ?? '/tmp/opencode-home', { recursive: true });
@@ -120,7 +129,7 @@ await runBridge<StartMessage>({
   bridgeType: 'opencode',
   bridgeStateDir,
   onStart: runTurn,
-  onDetach: () =>
+  onStop: () =>
     runtime.sessionId ? { openCodeSessionId: runtime.sessionId } : {},
 });
 
@@ -168,6 +177,7 @@ async function ensureRuntime({
     });
   }
 
+  const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
   const server = await createOpencodeServer({
     hostname: '127.0.0.1',
     port: 0,
@@ -181,7 +191,19 @@ async function ensureRuntime({
   runtime.client = createOpencodeClient({
     baseUrl: server.url,
     directory: workdir,
+    headers: serverAuthHeaders,
   });
+  const mcpStatus = await runtime.client.mcp.status();
+  const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
+  runtime.mcpToolPrefixes = new Set(
+    Object.entries(mcpServers)
+      .filter(
+        ([serverName, status]) =>
+          serverName !== 'harness-tools' &&
+          asOpenCodeObject(status)?.status === 'connected',
+      )
+      .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
+  );
 }
 
 function buildOpenCodeConfig({
@@ -223,25 +245,25 @@ function buildOpenCodeConfig({
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
+  const mcp = { ...(start.mcpServers ?? {}) };
   if (relayPort && start.tools && start.tools.length > 0) {
-    config.mcp = {
-      'harness-tools': {
-        type: 'local',
-        enabled: true,
-        command: ['node', `${bootstrapDir}/host-tool-mcp.mjs`],
-        environment: {
-          TOOL_SCHEMAS: JSON.stringify(
-            start.tools.map(t => ({
-              name: t.name,
-              description: t.description,
-              inputSchema: t.inputSchema,
-            })),
-          ),
-          TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
-        },
+    mcp['harness-tools'] = {
+      type: 'local',
+      enabled: true,
+      command: ['node', `${bootstrapDir}/host-tool-mcp.mjs`],
+      environment: {
+        TOOL_SCHEMAS: JSON.stringify(
+          start.tools.map(t => ({
+            name: t.name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+          })),
+        ),
+        TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
       },
     };
   }
+  if (Object.keys(mcp).length > 0) config.mcp = mcp;
   return config;
 }
 
@@ -400,6 +422,15 @@ async function legacySessionPrompt({
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
     ...(start.variant ? { variant: start.variant } : {}),
+    ...(start.responseFormat?.type === 'json' &&
+    start.responseFormat.schema != null
+      ? {
+          format: {
+            type: 'json_schema' as const,
+            schema: start.responseFormat.schema,
+          },
+        }
+      : {}),
     parts: [{ type: 'text', text: start.prompt }],
   });
 }
@@ -481,30 +512,6 @@ function legacyRetryStatusMessage(event: OpenCodeEvent): string {
     : 'OpenCode session retry';
 }
 
-function nextRetryEventMessage(event: OpenCodeEvent): string {
-  const props = event.properties ?? {};
-  const details: string[] = [];
-  if (typeof props.attempt === 'number') {
-    details.push(`attempt ${props.attempt}`);
-  }
-  const error = props.error;
-  if (isRecord(error)) {
-    const message =
-      stringValue(error.message) ??
-      (isRecord(error.data) ? stringValue(error.data.message) : undefined);
-    const statusCode = error.statusCode;
-    if (typeof statusCode === 'number') {
-      details.push(`HTTP ${statusCode}`);
-    }
-    if (message) details.push(message);
-  } else if (error != null) {
-    details.push(formatError(error));
-  }
-  return details.length > 0
-    ? `OpenCode session retry: ${details.join('; ')}`
-    : 'OpenCode session retry';
-}
-
 async function ensureSession({
   client,
   start,
@@ -558,6 +565,7 @@ async function runPrompt({
   let sawFinishStep = false;
   let sawBusy = false;
   let terminalError: string | undefined;
+  const state = createTranslationState();
   const initialSessionTokens = await readSessionTokens({
     client,
     sessionId,
@@ -571,6 +579,7 @@ async function runPrompt({
     permissionMode: start.permissionMode,
     builtinToolFiltering: start.builtinToolFiltering,
     turn,
+    state,
     emit: msg => {
       if (msg.type === 'text-delta' || msg.type === 'reasoning-delta') {
         sawContent = true;
@@ -587,11 +596,49 @@ async function runPrompt({
     signal: eventsAbort.signal,
     onSubscribed: () => eventsReady.resolve(undefined),
     onEvent: event => {
+      if (event.type === 'message.updated') {
+        emitOpenCodeStreamStart({
+          info: event.properties?.info,
+          state,
+          emit,
+        });
+        const info = asOpenCodeObject(event.properties?.info);
+        if (
+          start.responseFormat?.type === 'json' &&
+          info?.structured !== undefined
+        ) {
+          const id = String(info.id ?? randomUUID());
+          emit({ type: 'text-start', id });
+          emit({
+            type: 'text-delta',
+            id,
+            delta: JSON.stringify(info.structured),
+          });
+          emit({ type: 'text-end', id });
+          emit({
+            type: 'finish-step',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: defaultUsage(),
+          });
+          sawFinishStep = true;
+          turnSettled.resolve();
+          return true;
+        }
+      }
       if (event.type === 'session.updated') {
         latestSessionTokens =
           extractSessionTokens(event.properties) ?? latestSessionTokens;
       }
       if (isStepSettlementEvent(event)) {
+        if (event.type === 'session.error') {
+          terminalError = formatError(event.properties?.error ?? event);
+        }
+        if (
+          start.responseFormat?.type === 'json' &&
+          event.type === 'session.next.step.ended'
+        ) {
+          return;
+        }
         turnSettled.resolve();
         return true;
       }
@@ -602,22 +649,15 @@ async function runPrompt({
         sawBusy = true;
         turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
-        turnSettled.resolve();
-        return true;
-      }
-      if (event.type === 'session.error') {
-        terminalError = formatError(event.properties?.error ?? event);
-        turnSettled.resolve();
-        return true;
+        if (start.responseFormat?.type !== 'json') {
+          turnSettled.resolve();
+          return true;
+        }
       }
     },
   }).finally(() => {
     eventsReady.resolve(undefined);
     turnSettled.resolve();
-  });
-  emit({
-    type: 'stream-start',
-    ...(start.model ? { modelId: start.model } : {}),
   });
   await eventsReady.promise;
   const prompted = await legacySessionPrompt({
@@ -637,6 +677,7 @@ async function runPrompt({
     const emittedFallback = await emitContextFallback({
       client,
       sessionId,
+      state,
       emit,
       emitContent: !sawContent,
     }).catch(() => false);
@@ -697,6 +738,7 @@ async function runCompaction({
     permissionMode: start.permissionMode,
     builtinToolFiltering: start.builtinToolFiltering,
     turn,
+    state: createTranslationState(),
     emit: msg => {
       if (msg.type === 'compaction') sawCompaction = true;
       emit(msg);
@@ -760,6 +802,7 @@ async function consumeEvents({
   permissionMode,
   builtinToolFiltering,
   turn,
+  state,
   emit,
   signal,
   onSubscribed,
@@ -770,6 +813,7 @@ async function consumeEvents({
   permissionMode: StartMessage['permissionMode'];
   builtinToolFiltering: StartMessage['builtinToolFiltering'];
   turn: BridgeTurn;
+  state: TranslationState;
   emit: Emit;
   signal: AbortSignal;
   onSubscribed?: () => void;
@@ -778,614 +822,54 @@ async function consumeEvents({
   const stream = await subscribeLegacyEvents({ client, signal });
   onSubscribed?.();
   if (!stream) return;
-  const state = createTranslationState();
+  const emitStreamEvent = createEmitStreamEvent({
+    state,
+    emit,
+    emitWarning: turn.emitWarning,
+    emitError: turn.emitError,
+    toWireToolName,
+    nativeNameField,
+    getHostToolName,
+    authorizeHostToolCall: input => authorizeHostToolCall({ ...input, state }),
+    isMcpToolName: toolName =>
+      [...runtime.mcpToolPrefixes].some(prefix => toolName.startsWith(prefix)),
+    stripWorkDir,
+    formatError,
+  });
   for await (const rawEvent of stream) {
     if (signal.aborted || turn.abortSignal.aborted) break;
     const event = unwrapOpenCodeEvent(rawEvent);
     const eventSessionId = event ? getOpenCodeEventSessionId(event) : undefined;
     if (!event || (eventSessionId && eventSessionId !== sessionId)) continue;
-    await translateAndEmit({
-      event,
-      state,
-      sessionId,
-      permissionMode,
-      builtinToolFiltering,
-      client,
-      turn,
-      emit,
-    });
+    if (event.type === 'permission.v2.asked') {
+      await handlePermissionV2({
+        client,
+        sessionId,
+        permissionMode,
+        builtinToolFiltering,
+        turn,
+        emit,
+        event,
+      });
+    } else if (event.type === 'permission.asked') {
+      await handlePermission({
+        client,
+        sessionId,
+        permissionMode,
+        builtinToolFiltering,
+        turn,
+        emit,
+        event,
+      });
+    } else {
+      emitStreamEvent(event);
+    }
     if (onEvent?.(event)) break;
   }
 }
 
-type TranslationState = {
-  textDeltas: Map<string, string>;
-  reasoningDeltas: Map<string, string>;
-  toolInputs: Map<string, string>;
-  toolNames: Map<string, { rawToolName: string; toolName: string }>;
-  toolCallsEmitted: Set<string>;
-  toolResultsEmitted: Set<string>;
-  hostToolCallsAuthorized: Set<string>;
-  shellCommands: Map<string, string>;
-  messageRoles: Map<string, string>;
-  turnUsage: Record<string, unknown> | undefined;
-  legacyTextPartIds: Set<string>;
-  legacyReasoningPartIds: Set<string>;
-  legacyStepFinishPartIds: Set<string>;
-};
-
-function createTranslationState(): TranslationState {
-  return {
-    textDeltas: new Map(),
-    reasoningDeltas: new Map(),
-    toolInputs: new Map(),
-    toolNames: new Map(),
-    toolCallsEmitted: new Set(),
-    toolResultsEmitted: new Set(),
-    hostToolCallsAuthorized: new Set(),
-    shellCommands: new Map(),
-    messageRoles: new Map(),
-    turnUsage: undefined,
-    legacyTextPartIds: new Set(),
-    legacyReasoningPartIds: new Set(),
-    legacyStepFinishPartIds: new Set(),
-  };
-}
-
-async function translateAndEmit({
-  event,
-  state,
-  sessionId,
-  permissionMode,
-  builtinToolFiltering,
-  client,
-  turn,
-  emit,
-}: {
-  event: OpenCodeEvent;
-  state: TranslationState;
-  sessionId: string;
-  permissionMode: StartMessage['permissionMode'];
-  builtinToolFiltering: StartMessage['builtinToolFiltering'];
-  client: OpenCodeClient;
-  turn: BridgeTurn;
-  emit: Emit;
-}): Promise<void> {
-  const type = event.type;
-  const props = event.properties ?? {};
-
-  if (type === 'message.updated') {
-    const info = props.info;
-    if (isRecord(info)) {
-      const id = stringValue(info.id);
-      const role = stringValue(info.role);
-      if (id && role) state.messageRoles.set(id, role);
-    }
-    return;
-  }
-
-  if (type === 'message.part.delta') {
-    const field = String(props.field ?? '');
-    const delta = String(props.delta ?? '');
-    if (!delta) return;
-    const messageID = stringValue(props.messageID);
-    if (messageID && state.messageRoles.get(messageID) === 'user') return;
-    if (field === 'text') {
-      const id = legacyPartId({ value: props, fallback: 'legacy-text' });
-      startLegacyPart({ ids: state.legacyTextPartIds, id, emit, type: 'text' });
-      state.textDeltas.set(id, `${state.textDeltas.get(id) ?? ''}${delta}`);
-      emit({ type: 'text-delta', id, delta });
-      return;
-    }
-    if (field === 'reasoning') {
-      const id = legacyPartId({ value: props, fallback: 'legacy-reasoning' });
-      startLegacyPart({
-        ids: state.legacyReasoningPartIds,
-        id,
-        emit,
-        type: 'reasoning',
-      });
-      state.reasoningDeltas.set(
-        id,
-        `${state.reasoningDeltas.get(id) ?? ''}${delta}`,
-      );
-      emit({ type: 'reasoning-delta', id, delta });
-    }
-    return;
-  }
-
-  if (type === 'message.part.updated') {
-    if (emitLegacyTextPartUpdate({ part: props.part, state, emit })) return;
-    if (emitLegacyStepFinishPart({ part: props.part, state, emit })) return;
-    emitLegacyToolPart({ part: props.part, state, emit });
-    return;
-  }
-
-  if (type === 'session.next.text.started') {
-    emit({ type: 'text-start', id: String(props.textID ?? event.id) });
-    return;
-  }
-  if (type === 'session.next.text.delta') {
-    const id = String(props.textID ?? event.id);
-    state.textDeltas.set(
-      id,
-      `${state.textDeltas.get(id) ?? ''}${String(props.delta ?? '')}`,
-    );
-    emit({
-      type: 'text-delta',
-      id,
-      delta: String(props.delta ?? ''),
-    });
-    return;
-  }
-  if (type === 'session.next.text.ended') {
-    const id = String(props.textID ?? event.id);
-    emitMissingFinalDelta({
-      id,
-      fullText: typeof props.text === 'string' ? props.text : undefined,
-      emittedText: state.textDeltas.get(id) ?? '',
-      emit,
-      type: 'text-delta',
-    });
-    emit({ type: 'text-end', id });
-    return;
-  }
-  if (type === 'session.next.reasoning.started') {
-    emit({
-      type: 'reasoning-start',
-      id: String(props.reasoningID ?? event.id),
-    });
-    return;
-  }
-  if (type === 'session.next.reasoning.delta') {
-    const id = String(props.reasoningID ?? event.id);
-    state.reasoningDeltas.set(
-      id,
-      `${state.reasoningDeltas.get(id) ?? ''}${String(props.delta ?? '')}`,
-    );
-    emit({
-      type: 'reasoning-delta',
-      id,
-      delta: String(props.delta ?? ''),
-    });
-    return;
-  }
-  if (type === 'session.next.reasoning.ended') {
-    const id = String(props.reasoningID ?? event.id);
-    emitMissingFinalDelta({
-      id,
-      fullText: typeof props.text === 'string' ? props.text : undefined,
-      emittedText: state.reasoningDeltas.get(id) ?? '',
-      emit,
-      type: 'reasoning-delta',
-    });
-    emit({ type: 'reasoning-end', id });
-    return;
-  }
-  if (type === 'session.next.shell.started') {
-    const callID = String(props.callID ?? event.id);
-    const command = String(props.command ?? '');
-    state.shellCommands.set(callID, command);
-    emit({
-      type: 'tool-call',
-      toolCallId: callID,
-      toolName: 'bash',
-      nativeName: 'bash',
-      input: JSON.stringify({ command }),
-      providerExecuted: true,
-    });
-    return;
-  }
-  if (type === 'session.next.shell.ended') {
-    const callID = String(props.callID ?? event.id);
-    emit({
-      type: 'tool-result',
-      toolCallId: callID,
-      toolName: 'bash',
-      result: {
-        command: state.shellCommands.get(callID) ?? '',
-        output: String(props.output ?? ''),
-      },
-    });
-    return;
-  }
-  if (type === 'session.next.tool.input.delta') {
-    const callID = String(props.callID ?? event.id);
-    state.toolInputs.set(
-      callID,
-      `${state.toolInputs.get(callID) ?? ''}${String(props.delta ?? '')}`,
-    );
-    return;
-  }
-  if (type === 'session.next.tool.input.ended') {
-    state.toolInputs.set(
-      String(props.callID ?? event.id),
-      String(props.text ?? ''),
-    );
-    return;
-  }
-  if (type === 'session.next.tool.called') {
-    const callID = String(props.callID ?? event.id);
-    const rawToolName = String(props.tool ?? 'unknown');
-    const toolName = toWireToolName(rawToolName);
-    state.toolNames.set(callID, { rawToolName, toolName });
-    const hostToolName = getHostToolName(toolName, props.tool);
-    if (hostToolName) {
-      authorizeHostToolCall({
-        callID,
-        toolName: hostToolName,
-        input: props.input ?? parseToolInput(state, props),
-        state,
-      });
-      return;
-    }
-    emit({
-      type: 'tool-call',
-      toolCallId: callID,
-      toolName,
-      ...nativeNameField({ nativeName: rawToolName, toolName }),
-      input: JSON.stringify(props.input ?? parseToolInput(state, props)),
-      providerExecuted: true,
-      ...(props.provider?.metadata
-        ? { providerMetadata: props.provider.metadata }
-        : {}),
-    });
-    return;
-  }
-  if (
-    type === 'session.next.tool.success' ||
-    type === 'session.next.tool.failed'
-  ) {
-    const callID = String(props.callID ?? event.id);
-    const cachedTool = state.toolNames.get(callID);
-    const rawToolName =
-      cachedTool?.rawToolName ??
-      String((props as { tool?: unknown }).tool ?? '');
-    const toolName =
-      cachedTool?.toolName ?? toWireToolName(rawToolName || 'unknown');
-    if (getHostToolName(toolName, rawToolName)) return;
-    emit({
-      type: 'tool-result',
-      toolCallId: callID,
-      toolName,
-      result:
-        props.result ??
-        props.structured ??
-        ('content' in props ? props.content : null) ??
-        null,
-      ...(type === 'session.next.tool.failed' ? { isError: true } : {}),
-    });
-    return;
-  }
-  if (type === 'session.next.retried') {
-    const error = props.error ?? event;
-    if (isRecord(error) && error.isRetryable === false) {
-      turn.emitError({
-        error,
-        message: 'OpenCode session retry failed',
-      });
-    } else {
-      turn.emitWarning({ message: nextRetryEventMessage(event) });
-    }
-    return;
-  }
-  if (type === 'session.next.step.ended') {
-    closeLegacyOpenParts({ state, emit });
-    state.turnUsage = mapUsage(props.tokens);
-    emit({
-      type: 'finish-step',
-      finishReason: {
-        unified: mapOpenCodeFinishReason(String(props.finish ?? 'stop')),
-        raw: String(props.finish ?? 'stop'),
-      },
-      usage: state.turnUsage,
-      ...(typeof props.cost === 'number'
-        ? { harnessMetadata: { opencode: { cost: props.cost } } }
-        : {}),
-    });
-    return;
-  }
-  if (type === 'session.next.compaction.ended') {
-    emit({
-      type: 'compaction',
-      trigger: props.reason === 'auto' ? 'auto' : 'manual',
-      summary: String(props.text ?? ''),
-      harnessMetadata: {
-        opencode: {
-          recent: String(props.recent ?? ''),
-        },
-      },
-    });
-    return;
-  }
-  if (type === 'file.edited') {
-    emit({
-      type: 'file-change',
-      event: 'modify',
-      path: stripWorkDir(String(props.file ?? '')),
-    });
-    return;
-  }
-  if (type === 'session.error' || type === 'session.next.step.failed') {
-    const error = props.error ?? event;
-    turn.emitError({
-      error,
-      message:
-        type === 'session.error'
-          ? 'OpenCode session error'
-          : 'OpenCode step failed',
-    });
-    return;
-  }
-  if (type === 'permission.v2.asked') {
-    await handlePermissionV2({
-      client,
-      sessionId,
-      permissionMode,
-      builtinToolFiltering,
-      turn,
-      emit,
-      event,
-    });
-    return;
-  }
-  if (type === 'permission.asked') {
-    await handlePermission({
-      client,
-      sessionId,
-      permissionMode,
-      builtinToolFiltering,
-      turn,
-      emit,
-      event,
-    });
-  }
-}
-
-function legacyPartId({
-  value,
-  fallback,
-}: {
-  value: Record<string, unknown>;
-  fallback: string;
-}): string {
-  return stringValue(value.partID) ?? stringValue(value.id) ?? fallback;
-}
-
-function startLegacyPart({
-  ids,
-  id,
-  emit,
-  type,
-}: {
-  ids: Set<string>;
-  id: string;
-  emit: Emit;
-  type: 'text' | 'reasoning';
-}): void {
-  if (ids.has(id)) return;
-  ids.add(id);
-  emit({ type: `${type}-start`, id });
-}
-
-function emitLegacyTextPartUpdate({
-  part,
-  state,
-  emit,
-}: {
-  part: unknown;
-  state: TranslationState;
-  emit: Emit;
-}): boolean {
-  if (!isRecord(part)) return false;
-  if (part.type !== 'text' && part.type !== 'reasoning') return false;
-  const id = stringValue(part.id);
-  if (!id) return true;
-
-  const messageID = stringValue(part.messageID);
-  if (messageID && state.messageRoles.get(messageID) === 'user') return true;
-
-  const isReasoning = part.type === 'reasoning';
-  const ids = isReasoning
-    ? state.legacyReasoningPartIds
-    : state.legacyTextPartIds;
-  const deltaMap = isReasoning ? state.reasoningDeltas : state.textDeltas;
-  const deltaType = isReasoning ? 'reasoning-delta' : 'text-delta';
-  const text = typeof part.text === 'string' ? part.text : undefined;
-
-  startLegacyPart({
-    ids,
-    id,
-    emit,
-    type: isReasoning ? 'reasoning' : 'text',
-  });
-
-  if (text !== undefined) {
-    emitMissingFinalDelta({
-      id,
-      fullText: text,
-      emittedText: deltaMap.get(id) ?? '',
-      emit,
-      type: deltaType,
-    });
-    deltaMap.set(id, text);
-  }
-
-  if (legacyPartEnded(part)) {
-    ids.delete(id);
-    deltaMap.delete(id);
-    emit({ type: isReasoning ? 'reasoning-end' : 'text-end', id });
-  }
-
-  return true;
-}
-
-function legacyPartEnded(part: Record<string, unknown>): boolean {
-  return isRecord(part.time) && part.time.end != null;
-}
-
-function closeLegacyOpenParts({
-  state,
-  emit,
-}: {
-  state: TranslationState;
-  emit: Emit;
-}): void {
-  for (const id of state.legacyReasoningPartIds) {
-    emit({ type: 'reasoning-end', id });
-    state.reasoningDeltas.delete(id);
-  }
-  state.legacyReasoningPartIds.clear();
-  for (const id of state.legacyTextPartIds) {
-    emit({ type: 'text-end', id });
-    state.textDeltas.delete(id);
-  }
-  state.legacyTextPartIds.clear();
-}
-
-function emitLegacyStepFinishPart({
-  part,
-  state,
-  emit,
-}: {
-  part: unknown;
-  state: TranslationState;
-  emit: Emit;
-}): boolean {
-  const event = legacyStepFinishPartToFinishStep(part);
-  if (!event) return false;
-  const id = isRecord(part) ? stringValue(part.id) : undefined;
-  if (id) {
-    if (state.legacyStepFinishPartIds.has(id)) return true;
-    state.legacyStepFinishPartIds.add(id);
-  }
-  closeLegacyOpenParts({ state, emit });
-  state.turnUsage = event.usage as Record<string, unknown>;
-  emit(event);
-  return true;
-}
-
-function emitLegacyToolPart({
-  part,
-  state,
-  emit,
-}: {
-  part: unknown;
-  state: TranslationState;
-  emit: Emit;
-}): void {
-  if (!part || typeof part !== 'object') return;
-  const toolPart = part as Record<string, any>;
-  if (toolPart.type !== 'tool') return;
-  const status = legacyToolPartStatus(toolPart);
-  if (status !== 'running' && status !== 'completed' && status !== 'error') {
-    return;
-  }
-  if (
-    typeof toolPart.tool !== 'string' ||
-    typeof toolPart.callID !== 'string'
-  ) {
-    return;
-  }
-  const callID = toolPart.callID;
-  const rawToolName = toolPart.tool;
-  const toolName = toWireToolName(rawToolName);
-  state.toolNames.set(callID, { rawToolName, toolName });
-  const hostToolName = getHostToolName(toolName, rawToolName);
-  if (hostToolName) {
-    if (status === 'running') {
-      authorizeHostToolCall({
-        callID,
-        toolName: hostToolName,
-        input: legacyToolPartInput(toolPart),
-        state,
-      });
-    }
-    return;
-  }
-  if (!state.toolCallsEmitted.has(callID)) {
-    state.toolCallsEmitted.add(callID);
-    emit({
-      type: 'tool-call',
-      toolCallId: callID,
-      toolName,
-      ...nativeNameField({ nativeName: rawToolName, toolName }),
-      input: JSON.stringify(legacyToolPartInput(toolPart)),
-      providerExecuted: true,
-      ...(toolPart.provider?.metadata
-        ? { providerMetadata: toolPart.provider.metadata }
-        : {}),
-    });
-  }
-  if (
-    (status === 'completed' || status === 'error') &&
-    !state.toolResultsEmitted.has(callID)
-  ) {
-    state.toolResultsEmitted.add(callID);
-    emit({
-      type: 'tool-result',
-      toolCallId: callID,
-      toolName,
-      result: legacyToolPartOutput(toolPart),
-      ...(status === 'error' ? { isError: true } : {}),
-    });
-  }
-}
-
-function legacyToolPartStatus(part: Record<string, any>): string | undefined {
-  return typeof part.state === 'string'
-    ? part.state
-    : typeof part.state === 'object' && part.state !== null
-      ? String(part.state.status ?? '')
-      : undefined;
-}
-
-function legacyToolPartInput(
-  part: Record<string, any>,
-): Record<string, unknown> {
-  const state =
-    typeof part.state === 'object' && part.state !== null
-      ? (part.state as Record<string, any>)
-      : undefined;
-  return {
-    ...(isRecord(part.metadata) ? part.metadata : {}),
-    ...(isRecord(state?.metadata) ? state.metadata : {}),
-    ...(isRecord(state?.input) ? state.input : {}),
-  };
-}
-
-function legacyToolPartOutput(part: Record<string, any>): unknown {
-  const state =
-    typeof part.state === 'object' && part.state !== null
-      ? (part.state as Record<string, any>)
-      : undefined;
-  if (state?.status === 'error') {
-    return state.error ?? part.error ?? state.result ?? 'tool failed';
-  }
-  return (
-    state?.output ??
-    state?.result ??
-    state?.structured ??
-    state?.content ??
-    null
-  );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
-
-function parseToolInput(
-  state: TranslationState,
-  props: Record<string, any>,
-): unknown {
-  const text = state.toolInputs.get(String(props.callID ?? ''));
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { input: text };
-  }
+function sanitizeMcpToolName(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
 async function handlePermissionV2({
@@ -1414,12 +898,7 @@ async function handlePermissionV2({
       ? props.resources.map(String)
       : [],
     requestID,
-    toolCallId:
-      typeof props.source === 'object' &&
-      props.source !== null &&
-      'callID' in props.source
-        ? String((props.source as { callID?: unknown }).callID)
-        : requestID,
+    toolCallId: String(props.source?.callID ?? requestID),
     permissionMode,
     builtinToolFiltering,
     turn,
@@ -1453,16 +932,12 @@ async function handlePermission({
   const props = event.properties ?? {};
   const requestID = String(props.id ?? '');
   if (!requestID) return;
+  const tool = asOpenCodeObject(props.tool);
   const reply = await selectPermissionReply({
     action: String(props.permission ?? ''),
     resources: Array.isArray(props.patterns) ? props.patterns.map(String) : [],
     requestID,
-    toolCallId:
-      typeof props.tool === 'object' &&
-      props.tool !== null &&
-      'callID' in props.tool
-        ? String((props.tool as { callID?: unknown }).callID)
-        : requestID,
+    toolCallId: String(tool?.callID ?? requestID),
     permissionMode,
     builtinToolFiltering,
     turn,
@@ -1646,16 +1121,19 @@ function authorizeHostToolCall({
 async function emitContextFallback({
   client,
   sessionId,
+  state,
   emit,
   emitContent,
 }: {
   client: OpenCodeClient;
   sessionId: string;
+  state: TranslationState;
   emit: Emit;
   emitContent: boolean;
 }): Promise<boolean> {
   const assistant = await latestAssistantSnapshot({ client, sessionId });
   if (!assistant) return false;
+  emitOpenCodeStreamStart({ info: assistant, state, emit });
   if (emitContent && Array.isArray(assistant.contentParts)) {
     for (const part of assistant.contentParts) {
       emitAssistantContentPart(part, emit);
@@ -1879,15 +1357,13 @@ function modelRefFromAssistantSnapshot(
   const direct = modelRefFromValue(assistant);
   if (direct) return direct;
 
-  if (isRecord(assistant.metadata)) {
-    return modelRefFromValue(assistant.metadata.assistant);
-  }
-  return undefined;
+  return modelRefFromValue(asOpenCodeObject(assistant.metadata)?.assistant);
 }
 
 function modelRefFromSessionInfo(data: unknown): OpenCodeModelRef | undefined {
-  if (!isRecord(data)) return undefined;
-  return modelRefFromValue(data.model) ?? modelRefFromValue(data);
+  const session = asOpenCodeObject(data);
+  if (!session) return undefined;
+  return modelRefFromValue(session.model) ?? modelRefFromObject(session);
 }
 
 function modelRefFromStart(start: StartMessage): OpenCodeModelRef | undefined {
@@ -1901,15 +1377,17 @@ function modelRefFromStart(start: StartMessage): OpenCodeModelRef | undefined {
 }
 
 function modelRefFromValue(value: unknown): OpenCodeModelRef | undefined {
-  if (!isRecord(value)) return undefined;
+  const model = asOpenCodeObject(value);
+  return model ? modelRefFromObject(model) : undefined;
+}
+
+function modelRefFromObject(
+  value: OpenCodeObject,
+): OpenCodeModelRef | undefined {
   const providerID = stringValue(value.providerID);
   const modelID = stringValue(value.modelID ?? value.id);
   if (!providerID || !modelID) return undefined;
   return { providerID, modelID };
-}
-
-function stringValue(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function stripWorkDir(file: string): string {

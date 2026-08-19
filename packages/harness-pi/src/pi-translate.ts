@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { extractAssistantText, type PiSessionEvent } from './pi-events';
 import { serializeToolOutput } from './pi-utils';
 
@@ -43,6 +44,7 @@ export interface PiTranslatorState {
    * the matching `tool_result`/`tool_execution_end` event is translated.
    */
   hostToolResults: Map<string, unknown>;
+  dynamicToolCallIds: Set<string>;
   /**
    * Names of tools that Pi executes natively (read/write/edit/bash/grep/
    * find/ls). `tool-call` events for these get `providerExecuted: true`
@@ -50,6 +52,7 @@ export interface PiTranslatorState {
    * tools are not in this set.
    */
   readonly builtinToolNames: ReadonlySet<string>;
+  readonly hostToolNames: ReadonlySet<string>;
   /**
    * Map of native tool name → common name. `find` → `glob`, etc. Pi emits
    * native names on its events; the wire `toolName` is the common name when
@@ -60,6 +63,7 @@ export interface PiTranslatorState {
 
 export interface PiTranslatorStateOptions {
   readonly builtinToolNames?: ReadonlyArray<string>;
+  readonly hostToolNames?: ReadonlyArray<string>;
   readonly nativeToCommon?:
     | ReadonlyMap<string, string>
     | Record<string, string>;
@@ -82,7 +86,9 @@ export function createPiTranslatorState(
     pendingStepToolCallIds: new Set(),
     stepOpen: false,
     hostToolResults: new Map(),
+    dynamicToolCallIds: new Set(),
     builtinToolNames: new Set(options.builtinToolNames ?? []),
+    hostToolNames: new Set(options.hostToolNames ?? []),
     nativeToCommonNameMap: map,
   };
 }
@@ -126,6 +132,15 @@ function unwrapPiToolResult(event: PiSessionEvent): never {
   if (typeof event.result === 'string') return event.result as never;
   if (typeof event.content === 'string') return event.content as never;
   return (event.result ?? event.content ?? null) as never;
+}
+
+function parseMcpToolResult(content: unknown): unknown {
+  if (typeof content !== 'string') return content;
+  try {
+    return secureJsonParse(content);
+  } catch {
+    return content;
+  }
 }
 
 function resolveToolName(
@@ -307,7 +322,11 @@ export function translatePiEvent(
       if (!event.toolCallId || !event.toolName) return [];
       const { wire, native } = resolveToolName(state, event.toolName);
       state.observedToolNames.set(event.toolCallId, wire);
-      const providerExecuted = state.builtinToolNames.has(native);
+      const isMcpTool =
+        !state.hostToolNames.has(native) &&
+        (native === 'mcp' || native.startsWith('mcp__'));
+      const providerExecuted = state.builtinToolNames.has(native) || isMcpTool;
+      if (isMcpTool) state.dynamicToolCallIds.add(event.toolCallId);
       const input = serializeToolOutput(event.args ?? event.input ?? {});
       return [
         {
@@ -317,6 +336,7 @@ export function translatePiEvent(
           input,
           ...(wire !== native ? { nativeName: native } : {}),
           ...(providerExecuted ? { providerExecuted: true } : {}),
+          ...(isMcpTool ? { dynamic: true } : {}),
         } as HarnessV1StreamPart,
       ];
     }
@@ -330,6 +350,7 @@ export function translatePiEvent(
         recordedName ??
         (nativeName ? resolveToolName(state, nativeName).wire : undefined);
       if (!wire) return [];
+      const dynamic = state.dynamicToolCallIds.delete(event.toolCallId);
       /*
        * Prefer the exact value the host submitted for user-registered tools
        * (see `hostToolResults`). Built-in tools, whose results Pi produces and
@@ -341,7 +362,9 @@ export function translatePiEvent(
             HarnessV1StreamPart,
             { type: 'tool-result' }
           >['result'])
-        : unwrapPiToolResult(event);
+        : dynamic
+          ? parseMcpToolResult(unwrapPiToolResult(event))
+          : unwrapPiToolResult(event);
       state.hostToolResults.delete(event.toolCallId);
       state.pendingStepToolCallIds.delete(event.toolCallId);
       return [
@@ -351,6 +374,7 @@ export function translatePiEvent(
           toolName: wire,
           result,
           ...(event.isError ? { isError: true } : {}),
+          ...(dynamic ? { dynamic: true } : {}),
         } as HarnessV1StreamPart,
         ...finishStep(state),
       ];

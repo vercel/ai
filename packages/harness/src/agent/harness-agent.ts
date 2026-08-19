@@ -2,10 +2,13 @@ import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-
 import type {
   HarnessV1Bootstrap,
   HarnessV1BuiltinToolFiltering,
+  HarnessV1JSONSchema,
   HarnessV1NetworkSandboxSession,
+  HarnessV1ResponseFormat,
   HarnessV1SandboxProvider,
 } from '../v1';
 import {
+  asArray,
   asSchema,
   generateId,
   type Context,
@@ -17,8 +20,10 @@ import type {
   AgentCallParameters,
   AgentStreamParameters,
   GenerateTextResult,
+  OutputInterface as Output,
   ReasoningFileOutput,
   ReasoningOutput,
+  StopCondition,
   StreamTextResult,
 } from 'ai';
 import type {
@@ -39,6 +44,10 @@ import {
   collectHarnessAgentToolApprovalContinuations,
   type HarnessAgentToolApprovalContinuation,
 } from './harness-agent-tool-approval-continuation';
+import {
+  collectHarnessAgentToolResultContinuations,
+  type HarnessAgentToolResultContinuation,
+} from './harness-agent-tool-result-continuation';
 import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
 import {
   acquireBridgePort,
@@ -112,11 +121,12 @@ export class HarnessAgent<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = never,
 > implements Agent<
   never,
   HarnessAllTools<THarness, TUserTools>,
   RUNTIME_CONTEXT,
-  never
+  OUTPUT
 > {
   readonly version = 'agent-v1' as const;
   readonly id: string | undefined;
@@ -129,7 +139,15 @@ export class HarnessAgent<
    */
   readonly tools: HarnessAllTools<THarness, TUserTools>;
 
-  private readonly settings: HarnessAgentSettings<THarness, TUserTools>;
+  private readonly settings: HarnessAgentSettings<
+    THarness,
+    TUserTools,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >;
+  private readonly stopConditions: Array<
+    StopCondition<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>
+  >;
   private readonly sandboxConfig: HarnessAgentSandboxConfig;
   private readonly activeUserTools: TUserTools;
   private readonly builtinToolFiltering:
@@ -137,10 +155,19 @@ export class HarnessAgent<
     | undefined;
   private readonly permissionMode: HarnessAgentPermissionMode;
 
-  constructor(settings: HarnessAgentSettings<THarness, TUserTools>) {
+  constructor(
+    settings: HarnessAgentSettings<
+      THarness,
+      TUserTools,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >,
+  ) {
     const sandboxConfig = resolveSandboxConfig(settings);
     validateSandboxBootstrapSettings(sandboxConfig);
     this.settings = settings;
+    this.stopConditions =
+      settings.stopWhen == null ? [] : asArray(settings.stopWhen);
     this.sandboxConfig = sandboxConfig;
     this.id = settings.id;
     const userTools = settings.tools ?? ({} as TUserTools);
@@ -293,12 +320,13 @@ export class HarnessAgent<
         sandboxBootstrapPlan.recipe != null &&
         sandboxBootstrapPlan.recipeIdentity != null
       ) {
-        await applyBootstrapRecipe(
-          sandboxSession.restricted(),
-          sandboxBootstrapPlan.recipe,
-          sandboxBootstrapPlan.recipeIdentity,
-          { abortSignal },
-        );
+        await applyBootstrapRecipe({
+          session: sandboxSession.restricted(),
+          recipe: sandboxBootstrapPlan.recipe,
+          identity: sandboxBootstrapPlan.recipeIdentity,
+          defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+          abortSignal,
+        });
       }
       await ensureSandboxDirectory({
         session: sandboxSession,
@@ -348,13 +376,17 @@ export class HarnessAgent<
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
+        pendingToolResults: effectiveContinueFrom?.pendingToolResults,
         turnState:
           effectiveContinueFrom == null
             ? 'idle'
             : effectiveContinueFrom.pendingToolApprovals != null &&
                 effectiveContinueFrom.pendingToolApprovals.length > 0
               ? 'awaiting-approval'
-              : 'suspended',
+              : effectiveContinueFrom.pendingToolResults != null &&
+                  effectiveContinueFrom.pendingToolResults.length > 0
+                ? 'awaiting-tool-result'
+                : 'suspended',
       });
     } catch (error) {
       await cleanupAfterStartFailure({
@@ -378,16 +410,18 @@ export class HarnessAgent<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const turnInput = this._resolveTurnInput(options);
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const responseFormat = await this._resolveResponseFormat();
     const { result, done } = this._startTurn({
       session: options.session,
       turnInput,
       runtimeContext,
       abortSignal: options.abortSignal,
+      responseFormat,
     });
     await done;
     return this._toGenerateResult(result);
@@ -404,16 +438,18 @@ export class HarnessAgent<
     StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const turnInput = this._resolveTurnInput(options);
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const responseFormat = await this._resolveResponseFormat();
     const { result } = this._startTurn({
       session: options.session,
       turnInput,
       runtimeContext,
       abortSignal: options.abortSignal,
+      responseFormat,
     });
     return result;
   }
@@ -426,24 +462,28 @@ export class HarnessAgent<
   async continueGenerate(options: {
     session: HarnessAgentSession;
     toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
+    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
     abortSignal?: AbortSignal;
   }): Promise<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const responseFormat = await this._resolveResponseFormat();
 
     const { result, done } = this._startTurn({
       session: options.session,
       turnInput: {
         mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
+        toolResultContinuations: options.toolResultContinuations ?? [],
       },
       runtimeContext,
       abortSignal: options.abortSignal,
+      responseFormat,
     });
     await done;
     return this._toGenerateResult(result);
@@ -460,24 +500,28 @@ export class HarnessAgent<
   async continueStream(options: {
     session: HarnessAgentSession;
     toolApprovalContinuations?: readonly HarnessAgentToolApprovalContinuation[];
+    toolResultContinuations?: readonly HarnessAgentToolResultContinuation[];
     abortSignal?: AbortSignal;
   }): Promise<
     StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const responseFormat = await this._resolveResponseFormat();
 
     const { result } = this._startTurn({
       session: options.session,
       turnInput: {
         mode: 'continue',
         toolApprovalContinuations: options.toolApprovalContinuations ?? [],
+        toolResultContinuations: options.toolResultContinuations ?? [],
       },
       runtimeContext,
       abortSignal: options.abortSignal,
+      responseFormat,
     });
     return result;
   }
@@ -491,21 +535,24 @@ export class HarnessAgent<
       | {
           mode: 'continue';
           toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
+          toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
         };
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
+    responseFormat: HarnessV1ResponseFormat | undefined;
   }): {
     result: StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >;
     done: Promise<void>;
   } {
     if (input.turnInput.mode === 'continue') {
       return input.session.continueTurn<
         HarnessAllTools<THarness, TUserTools>,
-        RUNTIME_CONTEXT
+        RUNTIME_CONTEXT,
+        OUTPUT
       >({
         instructions: this.settings.instructions,
         tools: this.tools,
@@ -514,14 +561,19 @@ export class HarnessAgent<
         builtinToolFiltering: this.builtinToolFiltering,
         runtimeContext: input.runtimeContext,
         abortSignal: input.abortSignal,
+        responseFormat: input.responseFormat,
+        output: this.settings.output,
         telemetry: this.settings.telemetry,
+        stopConditions: this.stopConditions,
         toolApprovalContinuations: input.turnInput.toolApprovalContinuations,
+        toolResultContinuations: input.turnInput.toolResultContinuations,
       });
     }
 
     return input.session.promptTurn<
       HarnessAllTools<THarness, TUserTools>,
-      RUNTIME_CONTEXT
+      RUNTIME_CONTEXT,
+      OUTPUT
     >({
       prompt: input.turnInput.prompt,
       instructions: this.settings.instructions,
@@ -531,7 +583,10 @@ export class HarnessAgent<
       builtinToolFiltering: this.builtinToolFiltering,
       runtimeContext: input.runtimeContext,
       abortSignal: input.abortSignal,
+      responseFormat: input.responseFormat,
+      output: this.settings.output,
       telemetry: this.settings.telemetry,
+      stopConditions: this.stopConditions,
     });
   }
 
@@ -579,6 +634,7 @@ export class HarnessAgent<
     | {
         mode: 'continue';
         toolApprovalContinuations: readonly HarnessAgentToolApprovalContinuation[];
+        toolResultContinuations: readonly HarnessAgentToolResultContinuation[];
       } {
     if (typeof options.prompt === 'string') {
       return { mode: 'prompt', prompt: options.prompt };
@@ -589,10 +645,16 @@ export class HarnessAgent<
     if (Array.isArray(messages)) {
       const toolApprovalContinuations =
         collectHarnessAgentToolApprovalContinuations({ messages });
-      if (toolApprovalContinuations.length > 0) {
+      const toolResultContinuations =
+        collectHarnessAgentToolResultContinuations({ messages });
+      if (
+        toolApprovalContinuations.length > 0 ||
+        toolResultContinuations.length > 0
+      ) {
         return {
           mode: 'continue',
           toolApprovalContinuations,
+          toolResultContinuations,
         };
       }
       for (let i = messages.length - 1; i >= 0; i--) {
@@ -640,28 +702,51 @@ export class HarnessAgent<
     streamResult: StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >,
   ): Promise<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     // The stream is already drained by the time generate() calls this helper
     // (done has resolved). `steps` is the single source of truth the result
     // derives everything else from, mirroring core's `generateText` result.
-    const [steps, usage, responseMessages] = await Promise.all([
+    const [steps, usage, responseMessages, output] = await Promise.all([
       streamResult.steps,
       streamResult.usage,
       streamResult.responseMessages,
+      this.settings.output == null
+        ? Promise.resolve(undefined as never)
+        : streamResult.output,
     ]);
 
     return new HarnessGenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
-      RUNTIME_CONTEXT
-    >({ steps, usage, responseMessages });
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >({ steps, usage, responseMessages, output });
+  }
+
+  private async _resolveResponseFormat(): Promise<
+    HarnessV1ResponseFormat | undefined
+  > {
+    const responseFormat = await this.settings.output?.responseFormat;
+    if (responseFormat == null || responseFormat.type === 'text') {
+      return responseFormat == null ? undefined : { type: 'text' };
+    }
+    return {
+      type: 'json',
+      ...(responseFormat.schema == null
+        ? {}
+        : { schema: responseFormat.schema as HarnessV1JSONSchema }),
+      ...(responseFormat.name == null ? {} : { name: responseFormat.name }),
+      ...(responseFormat.description == null
+        ? {}
+        : { description: responseFormat.description }),
+    };
   }
 }
 
@@ -676,28 +761,31 @@ export class HarnessAgent<
 class HarnessGenerateTextResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never> {
-  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['steps'];
-  readonly usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['usage'];
+  OUTPUT extends Output,
+> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
+  readonly usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['usage'];
   readonly responseMessages: GenerateTextResult<
     TOOLS,
     RUNTIME_CONTEXT,
-    never
+    OUTPUT
   >['responseMessages'];
-  readonly output = undefined as never;
+  readonly output: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['output'];
 
   constructor(options: {
-    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['steps'];
-    usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['usage'];
+    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
+    usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['usage'];
     responseMessages: GenerateTextResult<
       TOOLS,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >['responseMessages'];
+    output: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['output'];
   }) {
     this.steps = options.steps;
     this.usage = options.usage;
     this.responseMessages = options.responseMessages;
+    this.output = options.output;
   }
 
   get finalStep() {
