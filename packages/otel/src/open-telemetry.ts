@@ -833,6 +833,76 @@ export class OpenTelemetry implements Telemetry {
       }),
     );
 
+    const finalToolOutputs = new Map<
+      string,
+      Extract<
+        (typeof event.content)[number],
+        { type: 'tool-result' | 'tool-error' }
+      >
+    >();
+    for (const part of event.content) {
+      if (
+        part.type === 'tool-error' ||
+        (part.type === 'tool-result' && part.preliminary !== true)
+      ) {
+        finalToolOutputs.set(part.toolCallId, part);
+      }
+    }
+
+    const recordedToolCallIds = new Set<string>();
+    for (const part of event.content) {
+      if (
+        part.type !== 'tool-call' ||
+        !part.providerExecuted ||
+        recordedToolCallIds.has(part.toolCallId)
+      ) {
+        continue;
+      }
+      recordedToolCallIds.add(part.toolCallId);
+
+      const toolSpan = this.tracer.startSpan(
+        `execute_tool ${part.toolName}`,
+        {
+          attributes: this.getSpanAttributes({
+            attributes: selectAttributes(telemetry, {
+              'gen_ai.operation.name': 'execute_tool',
+              'gen_ai.tool.name': part.toolName,
+              'gen_ai.tool.call.id': part.toolCallId,
+              'gen_ai.tool.type': 'extension',
+              'gen_ai.tool.call.arguments': {
+                input: () => JSON.stringify(part.input),
+              },
+            }),
+            spanType: 'tool',
+            operationId: state.operationId,
+            callId: event.callId,
+            runtimeContext: state.runtimeContext,
+          }),
+          kind: SpanKind.INTERNAL,
+        },
+        state.inferenceContext,
+      );
+
+      const toolOutput = finalToolOutputs.get(part.toolCallId);
+      if (toolOutput?.type === 'tool-result') {
+        try {
+          toolSpan.setAttributes(
+            selectAttributes(telemetry, {
+              'gen_ai.tool.call.result': {
+                output: () => JSON.stringify(toolOutput.output),
+              },
+            }),
+          );
+        } catch {
+          // JSON.stringify might fail for non-serializable results
+        }
+      } else if (toolOutput?.type === 'tool-error') {
+        recordErrorOnSpan(toolSpan, toolOutput.error);
+      }
+
+      toolSpan.end();
+    }
+
     state.inferenceSpan.end();
     state.inferenceSpan = undefined;
     state.inferenceContext = undefined;
