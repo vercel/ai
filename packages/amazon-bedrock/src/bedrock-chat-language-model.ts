@@ -472,15 +472,13 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             },
           });
         } else if ('redactedContent' in part.reasoningContent) {
-          const redactedPayload: AmazonBedrockReasoningMetadata = {
-            redactedContent: part.reasoningContent.redactedContent,
-          };
           content.push({
             type: 'reasoning',
             text: '',
             providerMetadata: {
-              amazonBedrock: redactedPayload,
-              bedrock: redactedPayload,
+              bedrock: {
+                redactedContent: part.reasoningContent.redactedContent,
+              } satisfies BedrockReasoningMetadata,
             },
           });
         }
@@ -734,18 +732,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
               if (contentBlock != null) {
                 if (contentBlock.type === 'reasoning') {
-                  const redactedPayload: AmazonBedrockReasoningMetadata | null =
-                    contentBlock.redactedContent != null
-                      ? { redactedContent: contentBlock.redactedContent }
-                      : null;
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: String(blockIndex),
-                    ...(redactedPayload != null
+                    ...(contentBlock.redactedContent != null
                       ? {
                           providerMetadata: {
-                            amazonBedrock: redactedPayload,
-                            bedrock: redactedPayload,
+                            bedrock: {
+                              redactedContent: contentBlock.redactedContent,
+                            } satisfies BedrockReasoningMetadata,
                           },
                         }
                       : {}),
@@ -845,7 +840,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                     id: String(blockIndex),
                   });
                 }
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
@@ -856,21 +850,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                     } satisfies BedrockReasoningMetadata,
                   },
                 });
-=======
-                {
-                  const redactedPayload: AmazonBedrockReasoningMetadata = {
-                    redactedData: reasoningContent.data,
-                  };
-                  controller.enqueue({
-                    type: 'reasoning-delta',
-                    id: String(blockIndex),
-                    delta: '',
-                    providerMetadata: {
-                      amazonBedrock: redactedPayload,
-                      bedrock: redactedPayload,
-                    },
-                  });
-                }
               } else if (
                 'redactedContent' in reasoningContent &&
                 reasoningContent.redactedContent
@@ -892,7 +871,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                     (contentBlock.redactedContent ?? '') +
                     reasoningContent.redactedContent;
                 }
->>>>>>> aabc617303 (fix(amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API (#19058)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
               }
             }
 

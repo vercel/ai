@@ -296,6 +296,12 @@ export async function convertToBedrockChatMessages(
                         },
                       },
                     });
+                  } else if (reasoningMetadata.redactedContent != null) {
+                    bedrockContent.push({
+                      reasoningContent: {
+                        redactedContent: reasoningMetadata.redactedContent,
+                      },
+                    });
                   } else if (reasoningMetadata.redactedData != null) {
                     bedrockContent.push({
                       reasoningContent: {

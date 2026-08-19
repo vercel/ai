@@ -120,4 +120,122 @@ describe('BedrockChatLanguageModel doStream event stream handling', () => {
       ]),
     );
   });
+
+  it('streams reasoning redacted as `redactedContent` for replay', async () => {
+    const { stream } = await createModel([
+      createEvent('contentBlockDelta', {
+        contentBlockIndex: 0,
+        delta: {
+          reasoningContent: {
+            redactedContent: 'encrypted-reasoning-',
+          },
+        },
+      }),
+      createEvent('contentBlockDelta', {
+        contentBlockIndex: 0,
+        delta: {
+          reasoningContent: {
+            redactedContent: 'payload',
+          },
+        },
+      }),
+      createEvent('contentBlockStop', {
+        contentBlockIndex: 0,
+      }),
+      createEvent('contentBlockDelta', {
+        contentBlockIndex: 1,
+        delta: { text: 'The answer is 42.' },
+      }),
+      createEvent('contentBlockStop', {
+        contentBlockIndex: 1,
+      }),
+      createEvent('messageStop', {
+        stopReason: 'end_turn',
+      }),
+    ]).doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'error')).toStrictEqual([]);
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'reasoning-start',
+          id: '0',
+        }),
+        expect.objectContaining({
+          type: 'reasoning-end',
+          id: '0',
+          providerMetadata: {
+            bedrock: {
+              redactedContent: 'encrypted-reasoning-payload',
+            },
+          },
+        }),
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'The answer is 42.',
+        }),
+      ]),
+    );
+  });
+
+  it('keeps multiple redacted reasoning blocks separate', async () => {
+    const { stream } = await createModel([
+      createEvent('contentBlockDelta', {
+        contentBlockIndex: 0,
+        delta: {
+          reasoningContent: { redactedContent: 'first-payload' },
+        },
+      }),
+      createEvent('contentBlockStop', {
+        contentBlockIndex: 0,
+      }),
+      createEvent('contentBlockDelta', {
+        contentBlockIndex: 1,
+        delta: {
+          reasoningContent: { redactedContent: 'second-payload' },
+        },
+      }),
+      createEvent('contentBlockStop', {
+        contentBlockIndex: 1,
+      }),
+      createEvent('contentBlockDelta', {
+        contentBlockIndex: 2,
+        delta: { text: 'The answer is 42.' },
+      }),
+      createEvent('contentBlockStop', {
+        contentBlockIndex: 2,
+      }),
+      createEvent('messageStop', {
+        stopReason: 'end_turn',
+      }),
+    ]).doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'error')).toStrictEqual([]);
+    expect(parts.filter(part => part.type === 'reasoning-end')).toStrictEqual([
+      {
+        type: 'reasoning-end',
+        id: '0',
+        providerMetadata: {
+          bedrock: { redactedContent: 'first-payload' },
+        },
+      },
+      {
+        type: 'reasoning-end',
+        id: '1',
+        providerMetadata: {
+          bedrock: { redactedContent: 'second-payload' },
+        },
+      },
+    ]);
+  });
 });

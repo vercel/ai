@@ -189,6 +189,12 @@ export interface BedrockRedactedReasoningContentBlock {
   };
 }
 
+export interface BedrockRedactedContentBlock {
+  reasoningContent: {
+    redactedContent: string;
+  };
+}
+
 export type BedrockContentBlock =
   | BedrockDocumentBlock
   | BedrockGuardrailConverseContentBlock
@@ -198,4 +204,5 @@ export type BedrockContentBlock =
   | BedrockToolUseBlock
   | BedrockReasoningContentBlock
   | BedrockRedactedReasoningContentBlock
+  | BedrockRedactedContentBlock
   | BedrockCachePoint;
