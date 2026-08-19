@@ -528,6 +528,12 @@ export async function convertToAmazonBedrockChatMessages(
                       },
                     },
                   });
+                } else if (reasoningMetadata?.redactedContent != null) {
+                  amazonBedrockContent.push({
+                    reasoningContent: {
+                      redactedContent: reasoningMetadata.redactedContent,
+                    },
+                  });
                 }
                 // Unsigned reasoning is intentionally not replayed. Some
                 // Bedrock models (for example OpenAI gpt-oss) return reasoning

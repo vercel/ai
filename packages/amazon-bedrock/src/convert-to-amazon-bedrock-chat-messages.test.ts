@@ -914,6 +914,46 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should properly convert encrypted redactedContent reasoning content type', async () => {
+    const redactedContent = 'cnNuX2VuY3J5cHRlZC1yZWFzb25pbmc=';
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: { bedrock: { redactedContent } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedContent,
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {

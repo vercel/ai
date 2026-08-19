@@ -2413,6 +2413,103 @@ describe('doStream', () => {
     `);
   });
 
+  it('should stream encrypted redactedContent reasoning', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              reasoningContent: {
+                redactedContent: 'cnNuX2VuY3J5cHRlZC1yZWFzb25pbmc=',
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { text: 'Here is my answer.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "",
+          "id": "0",
+          "providerMetadata": {
+            "amazonBedrock": {
+              "redactedContent": "cnNuX2VuY3J5cHRlZC1yZWFzb25pbmc=",
+            },
+            "bedrock": {
+              "redactedContent": "cnNuX2VuY3J5cHRlZC1yZWFzb25pbmc=",
+            },
+          },
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is my answer.",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
   it('should include raw chunks when includeRawChunks is true', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -5590,6 +5687,54 @@ describe('doGenerate', () => {
             },
             "bedrock": {
               "redactedData": "redacted-reasoning-data",
+            },
+          },
+          "text": "",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should extract encrypted redactedContent reasoning', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  redactedContent: 'cnNuX2VuY3J5cHRlZC1yZWFzb25pbmc=',
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "amazonBedrock": {
+              "redactedContent": "cnNuX2VuY3J5cHRlZC1yZWFzb25pbmc=",
+            },
+            "bedrock": {
+              "redactedContent": "cnNuX2VuY3J5cHRlZC1yZWFzb25pbmc=",
             },
           },
           "text": "",
