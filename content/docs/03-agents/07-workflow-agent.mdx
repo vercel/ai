@@ -207,7 +207,6 @@ export default function Chat() {
       new WorkflowChatTransport({
         api: '/api/chat',
         maxConsecutiveErrors: 5,
-        initialStartIndex: -50, // On page refresh, fetch last 50 chunks
       }),
     [],
   );
@@ -252,11 +251,19 @@ export async function GET(
   const startIndex = Number(
     new URL(request.url).searchParams.get('startIndex') ?? '0',
   );
+  if (!Number.isSafeInteger(startIndex) || startIndex < 0) {
+    return Response.json(
+      { error: 'startIndex must be a non-negative safe integer' },
+      { status: 400 },
+    );
+  }
 
   const run = await getRun(runId);
   const readable = run
-    .getReadable({ startIndex })
-    .pipeThrough(createModelCallToUIChunkTransform());
+    .getReadable({ startIndex: 0 })
+    .pipeThrough(
+      createModelCallToUIChunkTransform({ uiStartIndex: startIndex }),
+    );
 
   return new Response(readable, {
     headers: {
@@ -268,6 +275,12 @@ export async function GET(
   });
 }
 ```
+
+The reconnect cursor counts `UIMessageChunk` objects, while the workflow stream
+stores raw `ModelCallStreamPart` objects. Always replay the raw stream from index
+`0` and apply the cursor during conversion. Negative tail indexes are not
+supported for raw model-call streams; they require a durable stream that already
+stores UI message chunks.
 
 For the full API reference, see [`WorkflowChatTransport`](/docs/reference/ai-sdk-workflow/workflow-chat-transport).
 

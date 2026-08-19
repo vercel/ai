@@ -11,11 +11,19 @@ export async function GET(
     const startIndex = Number(
       new URL(request.url).searchParams.get('startIndex') ?? '0',
     );
+    if (!Number.isSafeInteger(startIndex) || startIndex < 0) {
+      return Response.json(
+        { error: 'startIndex must be a non-negative safe integer' },
+        { status: 400 },
+      );
+    }
 
     const run = await getRun(runId);
     const readable = run
-      .getReadable({ startIndex })
-      .pipeThrough(createModelCallToUIChunkTransform());
+      .getReadable({ startIndex: 0 })
+      .pipeThrough(
+        createModelCallToUIChunkTransform({ uiStartIndex: startIndex }),
+      );
 
     return new Response(readable, {
       headers: {

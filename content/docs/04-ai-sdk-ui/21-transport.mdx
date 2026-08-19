@@ -192,6 +192,14 @@ Key features:
 - **Configurable retries**: `maxConsecutiveErrors` controls how many consecutive reconnection failures to tolerate
 - **Lifecycle callbacks**: `onChatSendMessage` and `onChatEnd` for tracking chat state
 
+<Note>
+  Negative `initialStartIndex` values require the server's durable stream and
+  `x-workflow-stream-tail-index` header to use `UIMessageChunk` indexes. A
+  `WorkflowAgent` stream stores raw `ModelCallStreamPart` objects instead; use
+  the non-negative cursor conversion shown in the [WorkflowAgent
+  guide](/docs/agents/workflow-agent#resumable-streaming-with-workflowchattransport).
+</Note>
+
 For the full API reference, see [`WorkflowChatTransport`](/docs/reference/ai-sdk-workflow/workflow-chat-transport). For server-side endpoint setup, see the [WorkflowAgent guide](/docs/agents/workflow-agent#resumable-streaming-with-workflowchattransport).
 
 ## Building Custom Transports
