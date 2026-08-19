@@ -489,7 +489,9 @@ export async function convertToAmazonBedrockChatMessages(
           );
           const hasReasoningBlocks = reasoningMetadata.some(
             metadata =>
-              metadata?.signature != null || metadata?.redactedData != null,
+              metadata?.signature != null ||
+              metadata?.redactedContent != null ||
+              metadata?.redactedData != null,
           );
 
           for (let k = 0; k < content.length; k++) {
@@ -532,17 +534,13 @@ export async function convertToAmazonBedrockChatMessages(
                       },
                     },
                   });
-<<<<<<< HEAD
-                } else if (metadata?.redactedData != null) {
-=======
-                } else if (reasoningMetadata?.redactedContent != null) {
+                } else if (metadata?.redactedContent != null) {
                   amazonBedrockContent.push({
                     reasoningContent: {
-                      redactedContent: reasoningMetadata.redactedContent,
+                      redactedContent: metadata.redactedContent,
                     },
                   });
-                } else if (reasoningMetadata?.redactedData != null) {
->>>>>>> origin/main
+                } else if (metadata?.redactedData != null) {
                   amazonBedrockContent.push({
                     reasoningContent: {
                       redactedReasoning: {
