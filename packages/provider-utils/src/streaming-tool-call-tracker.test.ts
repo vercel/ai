@@ -385,21 +385,7 @@ describe('StreamingToolCallTracker', () => {
           type: 'function',
           function: { name: 'fn' },
         }),
-      ).toThrow("Expected 'id' to be a non-empty string.");
-    });
-
-    it('should throw when id is empty for a new tool call', () => {
-      const { controller } = createCollector();
-      const tracker = new StreamingToolCallTracker(controller);
-
-      expect(() =>
-        tracker.processDelta({
-          index: 0,
-          id: '',
-          type: 'function',
-          function: { name: 'fn' },
-        }),
-      ).toThrow("Expected 'id' to be a non-empty string.");
+      ).toThrow("Expected 'id' to be a string.");
     });
 
     it('should throw when function.name is missing', () => {
