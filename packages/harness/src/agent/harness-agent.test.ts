@@ -2126,6 +2126,55 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('applies the bootstrap recipe in the provider state directory when the session declares one', async () => {
+    const base = mockHarness({ script: () => [] });
+    const recipe: HarnessV1Bootstrap = {
+      harnessId: 'mock',
+      bootstrapDir: '.harness-bootstrap/mock',
+      files: [{ path: '.harness-bootstrap/mock/bridge.mjs', content: 'x' }],
+      commands: [],
+    };
+    const harness: HarnessV1 = {
+      ...base.harness,
+      getBootstrap: vi.fn(async () => recipe),
+    };
+    const readTextFile = vi.fn(async () => null);
+    const writeTextFile = vi.fn(async () => {});
+    const run = vi.fn(async (args: { command: string }) => ({
+      exitCode: 0,
+      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stderr: '',
+    }));
+    const restrictedSession = { run, readTextFile, writeTextFile };
+    const sandboxSession = makeSandboxSession({
+      run,
+      stateDirectory: '/state',
+      restricted: () => restrictedSession as never,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(sandboxSession),
+      sandboxConfig: { workDir: 'ai-sdk' },
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    // All harness-generated state resolves against the state directory …
+    const writtenPaths = (
+      writeTextFile.mock.calls as unknown as Array<[{ path: string }]>
+    ).map(call => call[0].path);
+    expect(writtenPaths).toContain('/state/.harness-bootstrap/mock/bridge.mjs');
+    for (const path of writtenPaths) {
+      expect(path).toMatch(/^\/state\//);
+    }
+    // … while the session still works in the sandbox working directory.
+    expect(base.doStart.mock.calls[0]![0]).toMatchObject({
+      sessionWorkDir: '/work/ai-sdk',
+    });
+
+    await session.destroy();
+  });
+
   test('ensures the harness bootstrap recipe on resumed sessions', async () => {
     const base = mockHarness({ script: () => [] });
     const recipe: HarnessV1Bootstrap = {
