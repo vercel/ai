@@ -15,10 +15,16 @@ const tools: Array<LanguageModelV4FunctionTool> = [
   },
 ];
 
+const providerContext = {
+  providerOptionsName: 'openai',
+  itemId: 'fc_parallel',
+};
+
 describe('expandParallelToolCall', () => {
   it('expands an internal parallel wrapper into declared tool calls', async () => {
     await expect(
       expandParallelToolCall({
+        ...providerContext,
         toolCall: {
           toolCallId: 'call_parallel',
           toolName: 'parallel',
@@ -43,12 +49,38 @@ describe('expandParallelToolCall', () => {
         toolCallId: 'call_parallel_0',
         toolName: 'weather',
         input: '{"location":"San Francisco"}',
+        providerMetadata: {
+          openai: {
+            parallelToolCall: {
+              itemId: 'fc_parallel',
+              toolCallId: 'call_parallel',
+              toolName: 'parallel',
+              input:
+                '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}',
+              index: 0,
+              count: 2,
+            },
+          },
+        },
       },
       {
         type: 'tool-call',
         toolCallId: 'call_parallel_1',
         toolName: 'cityAttractions',
         input: '{"city":"Rome"}',
+        providerMetadata: {
+          openai: {
+            parallelToolCall: {
+              itemId: 'fc_parallel',
+              toolCallId: 'call_parallel',
+              toolName: 'parallel',
+              input:
+                '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}',
+              index: 1,
+              count: 2,
+            },
+          },
+        },
       },
     ]);
   });
@@ -56,6 +88,7 @@ describe('expandParallelToolCall', () => {
   it('does not expand a declared tool named parallel', async () => {
     await expect(
       expandParallelToolCall({
+        ...providerContext,
         toolCall: {
           toolCallId: 'call_parallel',
           toolName: 'parallel',
@@ -92,6 +125,7 @@ describe('expandParallelToolCall', () => {
   ])('does not expand %s', async (_name, input) => {
     await expect(
       expandParallelToolCall({
+        ...providerContext,
         toolCall: {
           toolCallId: 'call_parallel',
           toolName: 'parallel',

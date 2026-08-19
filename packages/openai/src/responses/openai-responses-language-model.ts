@@ -967,6 +967,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               input: part.arguments,
             },
             tools: functionTools,
+            providerOptionsName,
+            itemId: part.id,
           });
 
           if (expandedToolCalls != null) {
@@ -1745,6 +1747,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                     input: value.item.arguments,
                   },
                   tools: functionTools,
+                  providerOptionsName,
+                  itemId: value.item.id,
                 });
 
                 if (expandedToolCalls != null) {

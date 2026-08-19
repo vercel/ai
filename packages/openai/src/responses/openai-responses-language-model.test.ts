@@ -49,6 +49,24 @@ const TEST_TOOLS: Array<LanguageModelV4FunctionTool> = [
   },
 ];
 
+const PARALLEL_TOOL_CALL_INPUT =
+  '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
+
+function parallelToolCallProviderMetadata(index: number) {
+  return {
+    openai: {
+      parallelToolCall: {
+        itemId: 'fc_parallel',
+        toolCallId: 'call_parallel',
+        toolName: 'parallel',
+        input: PARALLEL_TOOL_CALL_INPUT,
+        index,
+        count: 2,
+      },
+    },
+  };
+}
+
 const HOSTED_TOOL_SEARCH_TOOLS: Array<
   LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
 > = [
@@ -2950,12 +2968,14 @@ describe('OpenAIResponsesLanguageModel', () => {
             toolCallId: 'call_parallel_0',
             toolName: 'weather',
             input: '{"location":"San Francisco"}',
+            providerMetadata: parallelToolCallProviderMetadata(0),
           },
           {
             type: 'tool-call',
             toolCallId: 'call_parallel_1',
             toolName: 'cityAttractions',
             input: '{"city":"Rome"}',
+            providerMetadata: parallelToolCallProviderMetadata(1),
           },
         ]);
       });
@@ -6609,6 +6629,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           toolCallId: 'call_parallel_0',
           toolName: 'weather',
           input: '{"location":"San Francisco"}',
+          providerMetadata: parallelToolCallProviderMetadata(0),
         },
         {
           type: 'tool-input-start',
@@ -6629,6 +6650,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           toolCallId: 'call_parallel_1',
           toolName: 'cityAttractions',
           input: '{"city":"Rome"}',
+          providerMetadata: parallelToolCallProviderMetadata(1),
         },
       ]);
     });
