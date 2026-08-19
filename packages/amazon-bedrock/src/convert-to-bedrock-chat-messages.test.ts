@@ -527,6 +527,41 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should replay reasoningContent.redactedContent verbatim', async () => {
+    const redactedContent = 'cnNuX3BVUGgxNnRvNFZLWURnSkFQeW1iRUFJRmVD';
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: {
+              bedrock: {
+                redactedContent,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[1]).toEqual({
+      role: 'assistant',
+      content: [
+        {
+          reasoningContent: {
+            redactedContent,
+          },
+        },
+      ],
+    });
+  });
+
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
     const result = await convertToBedrockChatMessages([
       {

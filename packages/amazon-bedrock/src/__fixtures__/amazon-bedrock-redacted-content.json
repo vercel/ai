@@ -1,0 +1,44 @@
+{
+  "metrics": {
+    "latencyMs": 5450
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "reasoningContent": {
+            "redactedContent": "cnNuX3BVUGgxNnRvNFZLWURnSkFQeW1iRUFJRmVD"
+          }
+        },
+        {
+          "toolUse": {
+            "input": {
+              "groups": [
+                {
+                  "name": "Sales",
+                  "parentGroupName": ""
+                },
+                {
+                  "name": "Team1",
+                  "parentGroupName": "Sales"
+                }
+              ]
+            },
+            "name": "propose",
+            "toolUseId": "call_de740135c0a05d0fa2bd3b18f5487133"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "inputTokens": 67,
+    "outputTokens": 69,
+    "serverToolUsage": {},
+    "totalTokens": 136
+  }
+}

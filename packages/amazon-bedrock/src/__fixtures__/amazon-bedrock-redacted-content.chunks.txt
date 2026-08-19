@@ -1,0 +1,6 @@
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"reasoningContent":{"redactedContent":"cnNuX3BVUGgxNnRvNFZLWURnSkFQeW1iRUFJRmVK"}}}}
+{"contentBlockStart":{"contentBlockIndex":1,"start":{"toolUse":{"toolUseId":"call_stream_19062","name":"propose"}}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"toolUse":{"input":"{\"groups\":[{\"name\":\"Sales\",\"parentGroupName\":\"\"},{\"name\":\"Team1\",\"parentGroupName\":\"Sales\"}]}"}}}}
+{"contentBlockStop":{"contentBlockIndex":1}}
+{"messageStop":{"stopReason":"tool_use"}}
+{"metadata":{"usage":{"inputTokens":67,"outputTokens":69,"totalTokens":136}}}
