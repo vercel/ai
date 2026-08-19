@@ -6,11 +6,11 @@ import {
   type FlexibleSchema,
   type Tool,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
 import { getOwn } from '../util/get-own';
 import { providerMetadataSchema } from '../types/provider-metadata';
+import { z, type ZodType } from '../util/zod';
 import type {
   DataUIPart,
   InferUIMessageData,
@@ -19,7 +19,7 @@ import type {
   UIMessage,
 } from './ui-messages';
 
-const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
+const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
   jsonValueSchema.optional(),
 );
@@ -45,6 +45,7 @@ const uiMessagesSchema = lazySchema(() =>
                 }),
                 z.object({
                   type: z.literal('reasoning'),
+                  id: z.string().optional(),
                   text: z.string(),
                   state: z.enum(['streaming', 'done']).optional(),
                   providerMetadata: providerMetadataSchema.optional(),
@@ -497,14 +498,10 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             }
 
             // Tool input validation
-            // Note: input is intentionally not re-validated for `output-error`
-            // states. A tool call that failed with an invalid-input error keeps
-            // its (invalid) input, and re-validating it on replay would throw a
-            // TypeValidationError that crashes follow-up messages.
-            if (
-              toolPart.state === 'input-available' ||
-              toolPart.state === 'output-available'
-            ) {
+            // Note: input is intentionally not re-validated for terminal states.
+            // Terminal tool calls can keep invalid or incomplete input, and
+            // re-validating it on replay would crash follow-up messages.
+            if (toolPart.state === 'input-available') {
               await validateTypes({
                 value: toolPart.input,
                 schema: tool.inputSchema,
