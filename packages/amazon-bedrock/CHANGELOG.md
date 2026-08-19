@@ -1,5 +1,12 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.157
+
+### Patch Changes
+
+- 4c5e34f: Reject Amazon Bedrock event streams that end with an incomplete buffered frame instead of completing normally with partial output.
+- 50be36b: Surface Amazon Bedrock event stream frame decoding and processing failures instead of silently completing the stream.
+
 ## 4.0.156
 
 ### Patch Changes
