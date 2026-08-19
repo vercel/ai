@@ -31,6 +31,7 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
 
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
+  { providerOptionsKey = 'google' }: { providerOptionsKey?: string } = {},
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
@@ -196,6 +197,7 @@ export function convertToOpenAICompatibleChatMessages(
             case 'tool-call': {
               // TODO: thoughtSignature should be abstracted once we add support for other providers
               const thoughtSignature =
+                part.providerOptions?.[providerOptionsKey]?.thoughtSignature ??
                 part.providerOptions?.google?.thoughtSignature;
               toolCalls.push({
                 id: part.toolCallId,

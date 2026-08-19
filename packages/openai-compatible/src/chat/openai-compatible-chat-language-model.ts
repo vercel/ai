@@ -314,7 +314,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(prompt, {
+          providerOptionsKey: metadataKey,
+        }),
 
         // tools:
         tools: openaiTools,

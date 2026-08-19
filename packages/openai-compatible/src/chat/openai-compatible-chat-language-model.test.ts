@@ -535,6 +535,48 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should serialize thought signatures using the custom provider metadata key', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await provider('grok-3').doGenerate({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'test_tool',
+              input: { value: 'test' },
+              providerOptions: {
+                'test-provider': {
+                  thoughtSignature: '<Signature A>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'assistant',
+          tool_calls: [
+            {
+              extra_content: {
+                google: {
+                  thought_signature: '<Signature A>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should not include provider-specific options for different provider', async () => {
     prepareJsonResponse();
 
