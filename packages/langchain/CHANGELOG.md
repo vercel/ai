@@ -1,5 +1,18 @@
 # @ai-sdk/langchain
 
+## 3.0.68
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 3.0.67
+
+### Patch Changes
+
+- 404a9d9: Preserve tool input lifecycles when LangGraph steps reuse a provider tool call ID.
+  - ai@7.0.67
+
 ## 3.0.66
 
 ### Patch Changes

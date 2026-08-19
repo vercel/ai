@@ -20,9 +20,10 @@ let cachedBootstrap: HarnessV1Bootstrap | undefined;
 
 export async function getClaudeCodeBootstrap(): Promise<HarnessV1Bootstrap> {
   if (cachedBootstrap != null) return cachedBootstrap;
-  const [pkg, lock, bridge] = await Promise.all([
+  const [pkg, lock, workspace, bridge] = await Promise.all([
     readBridgeAsset('package.json'),
     readBridgeAsset('pnpm-lock.yaml'),
+    readBridgeAsset('pnpm-workspace.yaml'),
     readBridgeAsset('index.mjs'),
   ]);
   cachedBootstrap = {
@@ -31,6 +32,10 @@ export async function getClaudeCodeBootstrap(): Promise<HarnessV1Bootstrap> {
     files: [
       { path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/package.json`, content: pkg },
       { path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
+      {
+        path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/pnpm-workspace.yaml`,
+        content: workspace,
+      },
       { path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
     ],
     commands: [
@@ -38,8 +43,7 @@ export async function getClaudeCodeBootstrap(): Promise<HarnessV1Bootstrap> {
         command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       },
       {
-        command:
-          'if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
+        command: './node_modules/.bin/claude --version',
       },
     ],
   };

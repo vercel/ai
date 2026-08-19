@@ -16,10 +16,16 @@ export interface LangGraphEventState {
   messageNamespaces: Map<string, string[]>;
   /** Accumulates message chunks for later reference */
   messageConcat: Map<string, AIMessageChunk>;
+  /** Tracks message IDs observed in each namespace's current LangGraph step */
+  messageIdsInCurrentStepByNamespace: Map<string, Set<string>>;
   /** Tracks which tool call IDs have emitted tool-input-start */
   emittedToolCalls: Set<string>;
+  /** Tracks tool-input-start chunks emitted in each namespace's current step */
+  emittedToolCallsInCurrentStepByNamespace: Map<string, Set<string>>;
   /** Tracks which tool call IDs have emitted complete tool inputs */
   emittedToolInputs: Set<string>;
+  /** Tracks complete tool inputs emitted in each namespace's current step */
+  emittedToolInputsInCurrentStepByNamespace: Map<string, Set<string>>;
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */
@@ -28,10 +34,8 @@ export interface LangGraphEventState {
   messageReasoningIds: Map<string, string>;
   /** Maps message ID + tool call index to tool call info (for streaming chunks without ID) */
   toolCallInfoByIndex: Map<string, Map<number, { id: string; name: string }>>;
-  /** Tracks the current LangGraph step for start-step/finish-step events */
-  currentStep: number | null;
-  /** Namespace whose step counter drives the global UI step lifecycle */
-  stepNamespace: string | null;
+  /** Tracks each namespace's current LangGraph step */
+  currentStepsByNamespace: Map<string, number>;
   /** Maps tool call key (name:argsJson) to tool call ID for HITL interrupt handling */
   emittedToolCallsByKey: Map<string, string>;
   /** Tracks source IDs already emitted to avoid duplicates across messages/values events */

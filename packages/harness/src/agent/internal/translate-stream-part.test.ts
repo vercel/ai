@@ -21,6 +21,7 @@ describe('translateStreamPart', () => {
       toolCallId: 'c1',
       toolName: 'mcp__weather__current',
       result: { temperature: 72 },
+      isError: false,
       dynamic: true,
     });
 
@@ -29,6 +30,76 @@ describe('translateStreamPart', () => {
         type: 'tool-result',
         toolCallId: 'c1',
         toolName: 'mcp__weather__current',
+        dynamic: true,
+      }),
+    ]);
+  });
+
+  it('translates a failed tool-result into a provider-executed tool-error', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'bash',
+      result: 'bash: command not found: pnpmm',
+      isError: true,
+      providerMetadata: {
+        'claude-code': { subtype: 'error_during_execution' },
+      },
+    });
+
+    expect(out).toEqual([
+      {
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        input: undefined,
+        error: 'bash: command not found: pnpmm',
+        providerExecuted: true,
+        providerMetadata: {
+          'claude-code': { subtype: 'error_during_execution' },
+        },
+      },
+    ]);
+  });
+
+  it('leaves a failed host tool result as a tool-result', () => {
+    const out = translateStreamPart<ToolSet>(
+      {
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'weather',
+        result: { error: 'Error: boom' },
+        isError: true,
+      },
+      { isProviderExecuted: () => false },
+    );
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        output: { error: 'Error: boom' },
+      }),
+    ]);
+  });
+
+  it('preserves dynamic on a failed tool-result', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'mcp__weather__current',
+      result: { message: 'upstream timeout' },
+      isError: true,
+      dynamic: true,
+    });
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'mcp__weather__current',
+        error: { message: 'upstream timeout' },
+        providerExecuted: true,
         dynamic: true,
       }),
     ]);

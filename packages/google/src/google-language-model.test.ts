@@ -512,6 +512,9 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_3_1_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent';
 
+  const TEST_URL_GEMINI_3_7_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent';
+
   const TEST_URL_GEMINI_99_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
 
@@ -532,6 +535,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_1_5_FLASH]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
     [TEST_URL_GEMINI_3_1_PRO]: {},
+    [TEST_URL_GEMINI_3_7_FLASH]: {},
     [TEST_URL_GEMINI_99_PRO]: {},
     [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
@@ -3934,6 +3938,7 @@ describe('doGenerate', () => {
 
     describe('Gemini 3 models (thinkingLevel)', () => {
       const gemini3Model = provider.chat('gemini-3-pro-preview');
+      const gemini37FlashModel = provider.chat('gemini-3.7-flash');
 
       it('should map reasoning "minimal" to thinkingLevel "minimal"', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
@@ -4047,6 +4052,49 @@ describe('doGenerate', () => {
           feature: 'reasoning',
           details:
             'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
+        });
+      });
+
+      it('should coerce reasoning "minimal" to thinkingLevel "low" for Gemini 3.7 Flash', async () => {
+        server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini37FlashModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'low' },
+          },
+        });
+
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+        });
+      });
+
+      it('should coerce reasoning "none" to thinkingLevel "low" for Gemini 3.7 Flash', async () => {
+        server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini37FlashModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'low' },
+          },
         });
       });
 

@@ -1512,9 +1512,50 @@ describe('registerClient', () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(validClientMetadata),
+        body: JSON.stringify({
+          ...validClientMetadata,
+          application_type: 'native',
+        }),
       }),
     );
+  });
+
+  it('infers web application type for remote redirect URIs', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validClientInfo,
+    });
+
+    await registerClient('https://auth.example.com', {
+      clientMetadata: {
+        ...validClientMetadata,
+        redirect_uris: ['https://app.example.com/oauth/callback'],
+      },
+    });
+
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toMatchObject({
+      application_type: 'web',
+    });
+  });
+
+  it('preserves an explicit application type', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validClientInfo,
+    });
+
+    await registerClient('https://auth.example.com', {
+      clientMetadata: {
+        ...validClientMetadata,
+        application_type: 'web',
+      },
+    });
+
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toMatchObject({
+      application_type: 'web',
+    });
   });
 
   it('validates client information response schema', async () => {
@@ -1592,6 +1633,59 @@ describe('auth function', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+
+  function setupAuthorizationCodeFlow() {
+    mockFetch.mockImplementation(url => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://auth.example.com'],
+          }),
+        });
+      }
+
+      if (urlString.includes('/.well-known/oauth-authorization-server')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      }
+
+      if (urlString.includes('/token')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            access_token: 'access123',
+            token_type: 'Bearer',
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    (mockProvider.clientInformation as Mock).mockResolvedValue({
+      client_id: 'test-client',
+      client_secret: 'test-secret',
+      authorization_server: 'https://auth.example.com/',
+      token_endpoint: 'https://auth.example.com/token',
+    });
+    (mockProvider.codeVerifier as Mock).mockResolvedValue('test-verifier');
+    (mockProvider.saveTokens as Mock).mockResolvedValue(undefined);
+  }
 
   it('falls back to /.well-known/oauth-authorization-server when no protected-resource-metadata', async () => {
     // Setup: First call to protected resource metadata fails (404)
@@ -1871,6 +1965,34 @@ describe('auth function', () => {
     const body = tokenCall![1].body as URLSearchParams;
     expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
     expect(body.get('code')).toBe('auth-code-123');
+  });
+
+  it('accepts a matching authorization response issuer', async () => {
+    setupAuthorizationCodeFlow();
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+        authorizationCode: 'auth-code-123',
+        callbackIssuer: 'https://auth.example.com',
+      }),
+    ).resolves.toBe('AUTHORIZED');
+  });
+
+  it('rejects a mismatched authorization response issuer before code exchange', async () => {
+    setupAuthorizationCodeFlow();
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+        authorizationCode: 'auth-code-123',
+        callbackIssuer: 'https://evil.example',
+      }),
+    ).rejects.toThrow(/does not match expected issuer/);
+
+    expect(
+      mockFetch.mock.calls.some(call => call[0].toString().includes('/token')),
+    ).toBe(false);
   });
 
   it('includes resource in token refresh', async () => {
@@ -2775,6 +2897,7 @@ describe('OAuth state validation', () => {
     expect(result).toBe('AUTHORIZED');
     expect(provider.saveTokens).toHaveBeenCalledWith({
       ...validTokens,
+      issuer: 'https://resource.example.com',
       authorization_server: 'https://resource.example.com/',
       token_endpoint: 'https://auth.example.com/token',
     });

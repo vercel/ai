@@ -25,6 +25,7 @@
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/workflow-harness": "workspace:*",
     "@cline/agents": "^0.0.72",
+    "@cline/core": "^0.0.72",
     "@earendil-works/pi-coding-agent": "^0.80.10",
     "@vercel/sandbox": "^2.0.1",
     "@xai-official/grok": "0.2.111",
@@ -36,7 +37,7 @@
     "streamdown": "^1.6.11",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "workflow": "4.2.1",
+    "workflow": "4.6.0",
     "zod": "3.25.76"
   },
   "devDependencies": {

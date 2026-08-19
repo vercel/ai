@@ -5,7 +5,10 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMCPClient } from './mcp-client';
 import { HttpMCPTransport } from './mcp-http-transport';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import {
+  LATEST_LEGACY_PROTOCOL_VERSION,
+  LATEST_PROTOCOL_VERSION,
+} from './types';
 import { MCPClientError } from '../error/mcp-client-error';
 import { UnauthorizedError, type OAuthClientProvider } from './oauth';
 import type { OAuthTokens } from './oauth-types';
@@ -34,6 +37,15 @@ function createAbortableSseResponse({
   );
 }
 
+function createLegacyHttpTransport(
+  options: ConstructorParameters<typeof HttpMCPTransport>[0],
+): HttpMCPTransport {
+  return new HttpMCPTransport({
+    initialProtocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+    ...options,
+  });
+}
+
 describe('HttpMCPTransport', () => {
   const server = createTestServer({
     'http://localhost:4000/mcp': {
@@ -50,7 +62,9 @@ describe('HttpMCPTransport', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
+    transport = createLegacyHttpTransport({
+      url: 'http://localhost:4000/mcp',
+    });
   });
 
   afterEach(() => {
@@ -78,14 +92,16 @@ describe('HttpMCPTransport', () => {
 
     expect(server.calls[1].requestMethod).toBe('POST');
     expect(server.calls[1].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'application/json, text/event-stream',
       'content-type': 'application/json',
     });
   });
 
   it('should handle text/event-stream responses', async () => {
-    transport = new HttpMCPTransport({ url: 'http://localhost:4000/stream' });
+    transport = createLegacyHttpTransport({
+      url: 'http://localhost:4000/stream',
+    });
     const controller = new TestResponseController();
 
     // Avoid locking a single ReadableStream for both GET (start) and POST (send)
@@ -152,6 +168,7 @@ describe('HttpMCPTransport', () => {
     };
 
     const clientPromise = createMCPClient({
+      protocolVersionDiscovery: false,
       transport: {
         type: 'http',
         url: 'http://localhost:4000/stream',
@@ -167,7 +184,7 @@ describe('HttpMCPTransport', () => {
         jsonrpc: '2.0',
         id: 0,
         result: {
-          protocolVersion: LATEST_PROTOCOL_VERSION,
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
           capabilities: {},
           serverInfo: { name: 'test-server', version: '1.0.0' },
         },
@@ -200,6 +217,7 @@ describe('HttpMCPTransport', () => {
       },
     );
     const clientPromise = createMCPClient({
+      protocolVersionDiscovery: false,
       transport: {
         type: 'http',
         url: 'http://localhost:4000/mcp',
@@ -253,7 +271,7 @@ describe('HttpMCPTransport', () => {
               jsonrpc: '2.0',
               id: message.id,
               result: {
-                protocolVersion: LATEST_PROTOCOL_VERSION,
+                protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
                 capabilities: {},
                 serverInfo: { name: 'test-server', version: '1.0.0' },
               },
@@ -268,6 +286,7 @@ describe('HttpMCPTransport', () => {
       },
     );
     const clientPromise = createMCPClient({
+      protocolVersionDiscovery: false,
       transport: {
         type: 'http',
         url: 'http://localhost:4000/mcp',
@@ -307,7 +326,7 @@ describe('HttpMCPTransport', () => {
               jsonrpc: '2.0',
               id: message.id,
               result: {
-                protocolVersion: LATEST_PROTOCOL_VERSION,
+                protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
                 capabilities: { tools: {} },
                 serverInfo: { name: 'test-server', version: '1.0.0' },
               },
@@ -327,6 +346,7 @@ describe('HttpMCPTransport', () => {
         },
       );
       const client = await createMCPClient({
+        protocolVersionDiscovery: false,
         transport: {
           type: 'http',
           url: 'http://localhost:4000/mcp',
@@ -930,7 +950,7 @@ describe('HttpMCPTransport', () => {
     await transport.send(message);
 
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -938,7 +958,7 @@ describe('HttpMCPTransport', () => {
 
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'application/json, text/event-stream',
       ...customHeaders,
     });
@@ -1009,7 +1029,7 @@ describe('HttpMCPTransport', () => {
             jsonrpc: '2.0',
             id: 0,
             result: {
-              protocolVersion: LATEST_PROTOCOL_VERSION,
+              protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
               capabilities: {},
               serverInfo: { name: 'test-server', version: '1.0.0' },
             },
@@ -1057,6 +1077,7 @@ describe('HttpMCPTransport', () => {
     );
 
     const clientPromise = createMCPClient({
+      protocolVersionDiscovery: false,
       transport: {
         type: 'http',
         url: 'http://localhost:4000/mcp',
@@ -1317,7 +1338,7 @@ describe('HttpMCPTransport', () => {
   });
 
   describe('protocol version downgrade', () => {
-    it('should use LATEST_PROTOCOL_VERSION by default', async () => {
+    it('should use LATEST_LEGACY_PROTOCOL_VERSION by default', async () => {
       await transport.start();
 
       const message = {
@@ -1330,7 +1351,7 @@ describe('HttpMCPTransport', () => {
       await transport.send(message);
 
       expect(server.calls[1].requestHeaders['mcp-protocol-version']).toBe(
-        LATEST_PROTOCOL_VERSION,
+        LATEST_LEGACY_PROTOCOL_VERSION,
       );
     });
 
