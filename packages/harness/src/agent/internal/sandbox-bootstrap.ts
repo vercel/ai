@@ -65,17 +65,33 @@ export function normalizeSandboxWorkDir(workDir: string): string {
   return normalized;
 }
 
+/**
+ * Where the harness runs for this session.
+ *
+ * Normally a per-session subdirectory of the sandbox's default working
+ * directory, since a hosted sandbox is freshly provisioned and that directory
+ * is not itself a workspace.
+ *
+ * `workspaceIsSessionWorkDir` is for workspace mode, whose root *is* the
+ * user's project: a per-session subdirectory there would run the harness in
+ * an empty folder beside their files. An explicit `workDir` still wins.
+ */
 export function resolveSessionWorkDir({
   defaultWorkingDirectory,
   harnessId,
   sessionId,
   workDir,
+  workspaceIsSessionWorkDir = false,
 }: {
   readonly defaultWorkingDirectory: string;
   readonly harnessId: string;
   readonly sessionId: string;
   readonly workDir?: string;
+  readonly workspaceIsSessionWorkDir?: boolean;
 }): string {
+  if (workDir == null && workspaceIsSessionWorkDir) {
+    return defaultWorkingDirectory;
+  }
   return joinSandboxPath({
     base: defaultWorkingDirectory,
     path: workDir ?? `${harnessId}-${sessionId}`,
