@@ -60,6 +60,12 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
+async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
+  try {
+    await promise;
+  } catch {}
+}
+
 /**
 Callback that is set using the `onError` option.
 
@@ -548,6 +554,7 @@ class DefaultStreamObjectResult<
                   input: () => stringifyForTelemetry(callOptions.prompt),
                 },
 
+<<<<<<< HEAD
                 // standardized gen-ai llm span attributes:
                 'gen_ai.system': model.provider,
                 'gen_ai.request.model': model.modelId,
@@ -572,6 +579,262 @@ class DefaultStreamObjectResult<
         );
 
         self._request.resolve(request ?? {});
+=======
+      self._request.resolve(request ?? {});
+
+      let warnings: SharedV4Warning[] | undefined;
+      let usage: LanguageModelUsage = createNullLanguageModelUsage();
+      let finishReason: FinishReason | undefined;
+      let providerMetadata: ProviderMetadata | undefined;
+      let object: RESULT | undefined;
+      let error: unknown | undefined;
+      let terminalError: { error: unknown } | undefined;
+      let msToFirstChunk: number | undefined = undefined;
+
+      let accumulatedText = '';
+      let textDelta = '';
+      let fullResponse: {
+        id: string;
+        timestamp: Date;
+        modelId: string;
+      } = {
+        id: generateId(),
+        timestamp: currentDate(),
+        modelId: model.modelId,
+      };
+
+      let latestObjectJson: JSONValue | undefined = undefined;
+      let latestObject: PARTIAL | undefined = undefined;
+      let isFirstChunk = true;
+      let isFirstDelta = true;
+
+      const transformedStream = stream
+        .pipeThrough(new TransformStream(transformer))
+        .pipeThrough(
+          new TransformStream<
+            string | ObjectStreamInputPart,
+            ObjectStreamPart<PARTIAL>
+          >({
+            async transform(chunk, controller): Promise<void> {
+              if (typeof chunk === 'object' && chunk.type === 'stream-start') {
+                warnings = chunk.warnings;
+                return;
+              }
+
+              if (isFirstChunk) {
+                msToFirstChunk = now() - startTimestampMs;
+                isFirstChunk = false;
+              }
+
+              if (typeof chunk === 'string') {
+                accumulatedText += chunk;
+                textDelta += chunk;
+
+                const { value: currentObjectJson, state: parseState } =
+                  await parsePartialJson(accumulatedText);
+
+                if (
+                  currentObjectJson !== undefined &&
+                  !isDeepEqualData(latestObjectJson, currentObjectJson)
+                ) {
+                  const validationResult =
+                    await outputStrategy.validatePartialResult({
+                      value: currentObjectJson,
+                      textDelta,
+                      latestObject,
+                      isFirstDelta,
+                      isFinalDelta: parseState === 'successful-parse',
+                    });
+
+                  if (
+                    validationResult.success &&
+                    !isDeepEqualData(
+                      latestObject,
+                      validationResult.value.partial,
+                    )
+                  ) {
+                    latestObjectJson = currentObjectJson;
+                    latestObject = validationResult.value.partial;
+
+                    controller.enqueue({
+                      type: 'object',
+                      object: latestObject,
+                    });
+
+                    controller.enqueue({
+                      type: 'text-delta',
+                      textDelta: validationResult.value.textDelta,
+                    });
+
+                    textDelta = '';
+                    isFirstDelta = false;
+                  }
+                }
+
+                return;
+              }
+
+              switch (chunk.type) {
+                case 'response-metadata': {
+                  fullResponse = {
+                    id: chunk.id ?? fullResponse.id,
+                    timestamp: chunk.timestamp ?? fullResponse.timestamp,
+                    modelId: chunk.modelId ?? fullResponse.modelId,
+                  };
+                  break;
+                }
+
+                case 'error': {
+                  if (terminalError === undefined) {
+                    const wrappedError = wrapGatewayError(chunk.error);
+                    terminalError = { error: wrappedError };
+                    error = wrappedError;
+                    finishReason = 'error';
+                    self.rejectResultPromises(wrappedError);
+                  }
+
+                  controller.enqueue(chunk);
+                  break;
+                }
+
+                case 'finish': {
+                  if (textDelta !== '') {
+                    controller.enqueue({ type: 'text-delta', textDelta });
+                  }
+
+                  finishReason =
+                    terminalError === undefined
+                      ? chunk.finishReason.unified
+                      : 'error';
+
+                  usage = asLanguageModelUsage(chunk.usage);
+                  providerMetadata = chunk.providerMetadata;
+
+                  controller.enqueue({
+                    ...chunk,
+                    finishReason,
+                    usage,
+                    response: fullResponse,
+                  });
+
+                  logWarnings({
+                    warnings: warnings ?? [],
+                    provider: model.provider,
+                    model: model.modelId,
+                  });
+
+                  if (terminalError !== undefined) {
+                    break;
+                  }
+
+                  self._usage.resolve(usage);
+                  self._providerMetadata.resolve(providerMetadata);
+                  self._warnings.resolve(warnings);
+                  self._response.resolve({
+                    ...fullResponse,
+                    headers: response?.headers,
+                  });
+                  self._finishReason.resolve(finishReason ?? 'other');
+
+                  try {
+                    object = await parseAndValidateObjectResultWithRepair(
+                      accumulatedText,
+                      outputStrategy,
+                      repairText,
+                      {
+                        response: fullResponse,
+                        usage,
+                        finishReason,
+                      },
+                    );
+                    self._object.resolve(object);
+                  } catch (e) {
+                    error = e;
+                    self._object.reject(e);
+                  }
+                  break;
+                }
+
+                default: {
+                  controller.enqueue(chunk);
+                  break;
+                }
+              }
+            },
+
+            async flush(controller) {
+              try {
+                const finalUsage = usage ?? {
+                  promptTokens: NaN,
+                  completionTokens: NaN,
+                  totalTokens: NaN,
+                };
+
+                await notify({
+                  event: {
+                    callId,
+                    stepNumber: 0 as const,
+                    provider: model.provider,
+                    modelId: model.modelId,
+                    finishReason: finishReason ?? 'other',
+                    usage: finalUsage,
+                    objectText: accumulatedText,
+                    msToFirstChunk,
+                    reasoning: undefined,
+                    warnings,
+                    request: request ?? {},
+                    response: {
+                      ...fullResponse,
+                      headers: response?.headers,
+                    },
+                    providerMetadata,
+                  },
+                  callbacks: [
+                    onStepFinish,
+                    telemetryDispatcher.onObjectStepEnd,
+                  ],
+                });
+
+                await notify({
+                  event: {
+                    callId,
+                    object,
+                    error,
+                    reasoning: undefined,
+                    finishReason: finishReason ?? 'other',
+                    usage: finalUsage,
+                    warnings,
+                    request: request ?? {},
+                    response: {
+                      ...fullResponse,
+                      headers: response?.headers,
+                    },
+                    providerMetadata,
+                  },
+                  callbacks: [onFinish, telemetryDispatcher.onEnd],
+                });
+              } catch (error) {
+                controller.enqueue({ type: 'error', error });
+              }
+            },
+          }),
+        );
+
+      stitchableStream.addStream(transformedStream, {
+        onError(error) {
+          const wrappedError = wrapGatewayError(error);
+          self.rejectResultPromises(wrappedError);
+          void notify({
+            event: { error: wrappedError },
+            callbacks: onError,
+          });
+        },
+      });
+    })()
+      .catch(async error => {
+        self.rejectResultPromises(error);
+        await telemetryDispatcher.onError?.({ callId, error });
+>>>>>>> b181020cdb (fix: settle streamObject results and report provider stream failures without unhandled rejections (#18934))
 
         // store information for onFinish callback:
         let warnings: LanguageModelV2CallWarning[] | undefined;
@@ -858,6 +1121,29 @@ class DefaultStreamObjectResult<
       });
 
     this.outputStrategy = outputStrategy;
+  }
+
+  private rejectResultPromises(error: unknown) {
+    this.rejectResultPromise({ delayedPromise: this._object, error });
+    this.rejectResultPromise({ delayedPromise: this._usage, error });
+    this.rejectResultPromise({ delayedPromise: this._providerMetadata, error });
+    this.rejectResultPromise({ delayedPromise: this._warnings, error });
+    this.rejectResultPromise({ delayedPromise: this._request, error });
+    this.rejectResultPromise({ delayedPromise: this._response, error });
+    this.rejectResultPromise({ delayedPromise: this._finishReason, error });
+  }
+
+  private rejectResultPromise<T>({
+    delayedPromise,
+    error,
+  }: {
+    delayedPromise: DelayedPromise<T>;
+    error: unknown;
+  }) {
+    if (delayedPromise.isPending()) {
+      delayedPromise.reject(error);
+      markPromiseAsHandled(delayedPromise.promise);
+    }
   }
 
   get object() {
