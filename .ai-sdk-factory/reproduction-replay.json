@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 18930,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/stream-object-error-promises.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/stream-object-error-promises.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #18930 REPRODUCED: streamObject failure result promises stayed pending"
+  }
+}
