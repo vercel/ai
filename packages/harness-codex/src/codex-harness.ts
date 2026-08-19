@@ -772,9 +772,6 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
       done,
     };
 

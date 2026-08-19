@@ -21,6 +21,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
@@ -611,10 +612,15 @@ function createSession({
     ? openCodeSessionId
     : undefined;
   let activeTurn = false;
+  let supportsUserMessageResponses = false;
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
 
   channel.on('bridge-thread', msg => {
     latestOpenCodeSessionId = msg.threadId;
+  });
+  channel.on('bridge-hello', msg => {
+    supportsUserMessageResponses =
+      msg.capabilities?.userMessageResponses === true;
   });
 
   const wireTurn = (turnOpts: {
@@ -628,6 +634,13 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
+    const userMessageSubmitter = supportsUserMessageResponses
+      ? createBridgeUserMessageSubmitter({
+          send: message => channel.send(message),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
 
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
@@ -657,6 +670,7 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       activeTurn = false;
+      userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
     };
@@ -664,6 +678,7 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       activeTurn = false;
+      userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -741,9 +756,13 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
+      ...(userMessageSubmitter == null
+        ? {}
+        : {
+            submitUserMessage: async (text: string) => {
+              await userMessageSubmitter.submit(text);
+            },
+          }),
       done,
     };
   };

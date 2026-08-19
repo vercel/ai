@@ -526,6 +526,20 @@ export class HarnessAgent<
     return result;
   }
 
+  /**
+   * Submit another user message to a currently running session turn.
+   *
+   * The returned promise resolves after the runtime has accepted the message
+   * for its next safe input boundary. Output caused by the message remains in
+   * the current turn's stream.
+   */
+  async steer(options: {
+    session: HarnessAgentSession;
+    text: string;
+  }): Promise<void> {
+    await options.session.steerTurn(options.text);
+  }
+
   // ─── Internals ──────────────────────────────────────────────────────
 
   private _startTurn(input: {

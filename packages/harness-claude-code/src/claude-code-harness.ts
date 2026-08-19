@@ -21,6 +21,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
@@ -33,6 +34,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
+  type BridgeUserMessageSubmitter,
 } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
@@ -880,13 +882,20 @@ export function createClaudeCode(
         harnessId: 'claude-code',
         sessionId: startOpts.sessionId,
       });
+      let supportsUserMessageResponses = false;
 
       // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
       // (re)connect: open the socket, then wait for `bridge-hello` so the
       // end-to-end link is proven live before any frame is sent.
       const buildConnect =
         (endpoint: HarnessV1PortEndpoint) => async (): Promise<WebSocket> => {
-          return openBridgeWebSocket({ endpoint, timeoutMs });
+          return openBridgeWebSocket({
+            endpoint,
+            timeoutMs,
+            onHello: supportsResponses => {
+              supportsUserMessageResponses = supportsResponses;
+            },
+          });
         };
 
       /*
@@ -938,6 +947,7 @@ export function createClaudeCode(
             builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
             mcpServers: settings.mcpServers,
+            supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -1113,6 +1123,7 @@ export function createClaudeCode(
         builtinToolFiltering: startOpts.builtinToolFiltering,
         skills: startOpts.skills ?? [],
         mcpServers: settings.mcpServers,
+        supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
   };
@@ -1178,10 +1189,12 @@ function openWebSocketAndWaitForBridgeHello({
   endpoint,
   openTimeoutMs,
   getHelloTimeoutMs,
+  onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   openTimeoutMs: number;
   getHelloTimeoutMs: () => number;
+  onHello: (supportsUserMessageResponses: boolean) => void;
 }): Promise<WebSocket> {
   return new Promise<WebSocket>((resolve, reject) => {
     const ws = new WebSocket(endpoint.url, {
@@ -1253,6 +1266,12 @@ function openWebSocketAndWaitForBridgeHello({
           !Array.isArray(value) &&
           (value as { type?: unknown }).type === 'bridge-hello'
         ) {
+          const capabilities = (
+            value as {
+              capabilities?: { userMessageResponses?: unknown };
+            }
+          ).capabilities;
+          onHello(capabilities?.userMessageResponses === true);
           sawBridgeHello = true;
           tryResolve();
         }
@@ -1280,9 +1299,11 @@ function openWebSocketAndWaitForBridgeHello({
 async function openBridgeWebSocket({
   endpoint,
   timeoutMs,
+  onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   timeoutMs: number;
+  onHello: (supportsUserMessageResponses: boolean) => void;
 }): Promise<WebSocket> {
   const deadline = Date.now() + timeoutMs;
   let attempt = 0;
@@ -1297,6 +1318,7 @@ async function openBridgeWebSocket({
         openTimeoutMs: Math.min(10_000, remaining),
         getHelloTimeoutMs: () =>
           Math.min(5_000, Math.max(1, deadline - Date.now())),
+        onHello,
       });
     } catch (err) {
       lastError = err;
@@ -1368,6 +1390,7 @@ function createSession({
   builtinToolFiltering,
   skills,
   mcpServers,
+  supportsUserMessageResponses,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -1389,9 +1412,11 @@ function createSession({
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   skills: ReadonlyArray<HarnessV1Skill>;
   mcpServers: Record<string, unknown> | undefined;
+  supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
+  let activeUserMessageSubmitter: BridgeUserMessageSubmitter | undefined;
   /*
    * Force the Claude SDK's `continue: true` on the first prompt only when the
    * bridge was respawned (rerun/replay): a fresh bridge process treats its
@@ -1417,6 +1442,14 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? createBridgeUserMessageSubmitter({
+          send: message => channel.send(message),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
+    activeUserMessageSubmitter = userMessageSubmitter;
 
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
@@ -1429,12 +1462,20 @@ function createSession({
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter?.close();
+      if (activeUserMessageSubmitter === userMessageSubmitter) {
+        activeUserMessageSubmitter = undefined;
+      }
       for (const u of unsubs) u();
       pendingResolve!();
     };
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter?.close(err);
+      if (activeUserMessageSubmitter === userMessageSubmitter) {
+        activeUserMessageSubmitter = undefined;
+      }
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -1528,9 +1569,13 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
+      ...(userMessageSubmitter == null
+        ? {}
+        : {
+            submitUserMessage: async (text: string) => {
+              await userMessageSubmitter.submit(text);
+            },
+          }),
       done,
     };
   };
@@ -1670,7 +1715,13 @@ function createSession({
         customInstructions && customInstructions.trim()
           ? `/compact ${customInstructions.trim()}`
           : '/compact';
-      channel.send({ type: 'user-message', text });
+      const submitter = activeUserMessageSubmitter;
+      if (submitter == null) {
+        throw new Error(
+          'Claude Code compaction requires an active turn that can accept the command.',
+        );
+      }
+      await submitter.submit(text);
     },
     doDetach: async () => {
       if (stopped) {

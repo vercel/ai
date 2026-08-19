@@ -51,15 +51,21 @@ const webSocketMocks = vi.hoisted(() => {
 vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
 
 const harnessUtilsMocks = vi.hoisted(() => {
+  type ChannelEvent = { type: string; [key: string]: unknown };
   const channels: Array<{
     sent: unknown[];
     closed: boolean;
     connect: () => Promise<unknown>;
+    emit(type: string, event: ChannelEvent): void;
   }> = [];
 
   class MockSandboxChannel {
     sent: unknown[] = [];
     closed = false;
+    private readonly listeners = new Map<
+      string,
+      Set<(event: ChannelEvent) => void>
+    >();
 
     constructor({ connect }: { connect: () => Promise<unknown> }) {
       this.connect = connect;
@@ -76,8 +82,28 @@ const harnessUtilsMocks = vi.hoisted(() => {
       this.sent.push(message);
     }
 
-    on() {
+    on(type: string, listener: (event: ChannelEvent) => void) {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      if (
+        type === 'bridge-hello' &&
+        harnessUtilsMocks.supportsUserMessageResponses
+      ) {
+        listener({
+          type: 'bridge-hello',
+          capabilities: { userMessageResponses: true },
+        });
+      }
+      return () => listeners.delete(listener);
+    }
+
+    onReconnect() {
       return () => {};
+    }
+
+    emit(type: string, event: ChannelEvent) {
+      for (const listener of this.listeners.get(type) ?? []) listener(event);
     }
 
     onClose() {}
@@ -100,6 +126,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
   return {
     channels,
     connectOnOpen: false,
+    supportsUserMessageResponses: true,
     markBridgeStarting: vi.fn(),
     SandboxChannel: MockSandboxChannel,
     waitForBridgeReady: vi.fn(async (): Promise<{ port: number }> => {
@@ -146,6 +173,7 @@ function getBuiltinToolMetadata(tool: unknown): {
 describe('createOpenCode adapter', () => {
   beforeEach(() => {
     harnessUtilsMocks.connectOnOpen = false;
+    harnessUtilsMocks.supportsUserMessageResponses = true;
     webSocketMocks.calls.length = 0;
   });
 
@@ -564,6 +592,81 @@ describe('createOpenCode adapter', () => {
       mcpServers,
     });
 
+    await session.doDestroy();
+  });
+
+  it('waits for the bridge to accept a steering message', async () => {
+    harnessUtilsMocks.channels.length = 0;
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async spawn() {
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const session = await createOpenCode().doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+    const control = await session.doPromptTurn({
+      prompt: 'Weather in Paris?',
+      emit: () => {},
+    });
+    const channel = harnessUtilsMocks.channels.at(-1)!;
+    const steering = control.submitUserMessage?.('Actually, Paris, Texas.');
+    const request = channel.sent.find(
+      (message): message is Record<string, unknown> =>
+        message != null &&
+        typeof message === 'object' &&
+        Reflect.get(message, 'type') === 'user-message',
+    );
+
+    expect(request).toMatchObject({
+      type: 'user-message',
+      text: 'Actually, Paris, Texas.',
+      messageId: expect.any(String),
+    });
+    channel.emit('user-message-response', {
+      type: 'user-message-response',
+      messageId: request!.messageId,
+      accepted: true,
+    });
+    await expect(steering).resolves.toBeUndefined();
+    channel.emit('finish', {
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'stop' },
+      totalUsage: {},
+    });
+    await control.done;
     await session.doDestroy();
   });
 

@@ -149,6 +149,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   } catch (err) {
     turn.emitError({ error: err, message: 'OpenCode turn failed' });
   } finally {
+    turn.userMessages.close();
     emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'stop' },
@@ -411,14 +412,16 @@ async function legacySessionPrompt({
   client,
   sessionId,
   start,
+  prompt: promptText,
 }: {
   client: OpenCodeClient;
   sessionId: string;
   start: StartMessage;
+  prompt?: string;
 }): Promise<{ error?: unknown; data?: unknown }> {
   const session = (client as any).session;
-  const prompt = session.promptAsync ?? session.prompt;
-  return prompt.call(session, {
+  const submitPrompt = session.promptAsync ?? session.prompt;
+  return submitPrompt.call(session, {
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
     ...(start.variant ? { variant: start.variant } : {}),
@@ -431,7 +434,7 @@ async function legacySessionPrompt({
           },
         }
       : {}),
-    parts: [{ type: 'text', text: start.prompt }],
+    parts: [{ type: 'text', text: promptText ?? start.prompt }],
   });
 }
 
@@ -564,7 +567,9 @@ async function runPrompt({
   let sawContent = false;
   let sawFinishStep = false;
   let sawBusy = false;
+  let sawStructuredOutput = false;
   let terminalError: string | undefined;
+  let submittingUserMessage = false;
   const state = createTranslationState();
   const initialSessionTokens = await readSessionTokens({
     client,
@@ -621,8 +626,7 @@ async function runPrompt({
             usage: defaultUsage(),
           });
           sawFinishStep = true;
-          turnSettled.resolve();
-          return true;
+          sawStructuredOutput = true;
         }
       }
       if (event.type === 'session.updated') {
@@ -632,15 +636,10 @@ async function runPrompt({
       if (isStepSettlementEvent(event)) {
         if (event.type === 'session.error') {
           terminalError = formatError(event.properties?.error ?? event);
+          turn.userMessages.close(new Error(terminalError));
+          turnSettled.resolve();
+          return true;
         }
-        if (
-          start.responseFormat?.type === 'json' &&
-          event.type === 'session.next.step.ended'
-        ) {
-          return;
-        }
-        turnSettled.resolve();
-        return true;
       }
       const status = legacyStatusType(event);
       if (status === 'busy') {
@@ -649,7 +648,13 @@ async function runPrompt({
         sawBusy = true;
         turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
-        if (start.responseFormat?.type !== 'json') {
+        sawBusy = false;
+        if (
+          !submittingUserMessage &&
+          turn.userMessages.pendingCount === 0 &&
+          (start.responseFormat?.type !== 'json' || sawStructuredOutput)
+        ) {
+          turn.userMessages.close();
           turnSettled.resolve();
           return true;
         }
@@ -657,9 +662,36 @@ async function runPrompt({
     },
   }).finally(() => {
     eventsReady.resolve(undefined);
+    turn.userMessages.close(
+      new Error('OpenCode event stream ended before the turn settled.'),
+    );
     turnSettled.resolve();
   });
   await eventsReady.promise;
+  const userMessageLoop = (async () => {
+    for await (const message of turn.userMessages) {
+      submittingUserMessage = true;
+      try {
+        const prompted = await legacySessionPrompt({
+          client,
+          sessionId,
+          start,
+          prompt: message.text,
+        });
+        if (prompted.error) {
+          message.reject(
+            new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
+          );
+          continue;
+        }
+        message.accept();
+      } catch (error) {
+        message.reject(error);
+      } finally {
+        submittingUserMessage = false;
+      }
+    }
+  })();
   const prompted = await legacySessionPrompt({
     client,
     sessionId,
@@ -667,11 +699,15 @@ async function runPrompt({
   });
   if (prompted.error) {
     eventsAbort.abort();
+    turn.userMessages.close(
+      new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
+    );
     throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);
   }
   await turnSettled.promise;
   eventsAbort.abort();
   await eventLoop.catch(() => {});
+  await userMessageLoop.catch(() => {});
   if (terminalError) throw new Error(terminalError);
   if (!sawFinishStep) {
     const emittedFallback = await emitContextFallback({

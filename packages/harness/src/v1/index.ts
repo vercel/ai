@@ -87,12 +87,14 @@ export {
   harnessV1BridgePermissionModeSchema,
   harnessV1BridgeToolWireSchema,
   harnessV1BridgeUserMessageInboundSchema,
+  harnessV1BridgeUserMessageResponseSchema,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1BridgeDebugEvent,
   type HarnessV1BridgeOutboundMessage,
   type HarnessV1BridgeReady,
   type HarnessV1BridgeSandboxLog,
   type HarnessV1BridgeToolWire,
+  type HarnessV1BridgeUserMessageResponse,
 } from './harness-v1-bridge-protocol';
 export {
   harnessV1DebugConfigSchema,

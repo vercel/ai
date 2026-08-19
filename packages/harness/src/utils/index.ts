@@ -4,6 +4,12 @@ export {
   type SandboxChannelOptions,
   type SandboxChannelReconnectOptions,
 } from './sandbox-channel';
+export {
+  createBridgeUserMessageSubmitter,
+  type BridgeUserMessageRequest,
+  type BridgeUserMessageResponse,
+  type BridgeUserMessageSubmitter,
+} from './bridge-user-message-submitter';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
 export {

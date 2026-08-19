@@ -320,6 +320,7 @@ export async function createClineSession(
   const pendingToolResults = new Map<string, PendingToolResult>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
   const pendingUserMessages: string[] = [];
+  let acceptingUserMessages = false;
 
   // Emit channel set at the start of every turn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
@@ -522,6 +523,9 @@ export async function createClineSession(
         });
       },
       async submitUserMessage(text) {
+        if (!acceptingUserMessages) {
+          throw new Error('Cline has no running turn to steer.');
+        }
         pendingUserMessages.push(text);
       },
       done: controlInput.done,
@@ -597,97 +601,107 @@ export async function createClineSession(
       ...(input.settings.modelId ? { modelId: input.settings.modelId } : {}),
     });
 
+    acceptingUserMessages = true;
     const turnPromise = (async () => {
       const runtime = agent!;
-      let result: AgentRunResult;
       try {
-        // `text` is undefined only on rerun-continue: `continue()` without
-        // input re-drives the loop from the restored transcript instead of
-        // pushing an empty user message.
-        result =
-          turnOpts.text === undefined
-            ? await runtime.continue()
-            : agentHasRun
-              ? await runtime.continue(turnOpts.text)
-              : await runtime.run(turnOpts.text);
-        agentHasRun = true;
+        let nextText = turnOpts.text;
+        let result: AgentRunResult;
+        for (;;) {
+          // `text` is undefined only on rerun-continue: `continue()` without
+          // input re-drives the loop from the restored transcript instead of
+          // pushing an empty user message.
+          result =
+            nextText === undefined
+              ? await runtime.continue()
+              : agentHasRun
+                ? await runtime.continue(nextText)
+                : await runtime.run(nextText);
+          agentHasRun = true;
+          currentMessages = result.messages;
+
+          if (translatorState) {
+            for (const part of finishClineTranslation(translatorState)) {
+              currentEmit?.(part);
+            }
+          }
+
+          if (result.status !== 'completed') break;
+          const pendingUserMessage = pendingUserMessages.shift();
+          if (pendingUserMessage == null) break;
+          nextText = pendingUserMessage;
+        }
+
+        if (
+          turnOpts.responseFormat?.type === 'json' &&
+          result.status === 'completed'
+        ) {
+          const id = `structured-output-${input.sessionId}`;
+          currentEmit?.({ type: 'text-start', id });
+          currentEmit?.({
+            type: 'text-delta',
+            id,
+            delta: result.outputText,
+          });
+          currentEmit?.({ type: 'text-end', id });
+          currentEmit?.({
+            type: 'finish-step',
+            finishReason: { unified: 'stop', raw: 'structured-output' },
+            usage: {
+              inputTokens: {
+                total: 0,
+                noCache: undefined,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 0,
+                text: undefined,
+                reasoning: undefined,
+              },
+            },
+          });
+        }
+
+        if (result.status === 'aborted') {
+          /*
+           * A `doSuspendTurn` aborts the in-flight turn on purpose — settle
+           * silently so the stream closes cleanly; the next slice
+           * rerun-continues from the persisted history. Caller-driven aborts
+           * finish the turn with an `other`/aborted reason.
+           */
+          if (suspending) return;
+          currentEmit?.({
+            type: 'finish',
+            finishReason: mapRunFinishReason(result.status),
+            totalUsage: usageFromAgentUsage(result.usage),
+          });
+          return;
+        }
+
+        if (result.status === 'failed') {
+          currentEmit?.({
+            type: 'error',
+            error: result.error ?? new Error('Cline agent run failed'),
+          });
+          return;
+        }
+
+        currentEmit?.({
+          type: 'finish',
+          finishReason: mapRunFinishReason(result.status),
+          totalUsage: usageFromAgentUsage(result.usage),
+        });
       } catch (error) {
         // `run` resolves for aborted/failed statuses; a throw here is
         // unanticipated (e.g. config error). Swallow only the abort our own
         // suspend caused; surface anything else.
         if (suspending && isAbortError(error)) return;
         currentEmit?.({ type: 'error', error });
-        return;
+      } finally {
+        acceptingUserMessages = false;
+        pendingUserMessages.length = 0;
       }
-
-      currentMessages = result.messages;
-
-      if (translatorState) {
-        for (const part of finishClineTranslation(translatorState)) {
-          currentEmit?.(part);
-        }
-      }
-
-      if (
-        turnOpts.responseFormat?.type === 'json' &&
-        result.status === 'completed'
-      ) {
-        const id = `structured-output-${input.sessionId}`;
-        currentEmit?.({ type: 'text-start', id });
-        currentEmit?.({
-          type: 'text-delta',
-          id,
-          delta: result.outputText,
-        });
-        currentEmit?.({ type: 'text-end', id });
-        currentEmit?.({
-          type: 'finish-step',
-          finishReason: { unified: 'stop', raw: 'structured-output' },
-          usage: {
-            inputTokens: {
-              total: 0,
-              noCache: undefined,
-              cacheRead: undefined,
-              cacheWrite: undefined,
-            },
-            outputTokens: {
-              total: 0,
-              text: undefined,
-              reasoning: undefined,
-            },
-          },
-        });
-      }
-
-      if (result.status === 'aborted') {
-        /*
-         * A `doSuspendTurn` aborts the in-flight turn on purpose — settle
-         * silently so the stream closes cleanly; the next slice
-         * rerun-continues from the persisted history. Caller-driven aborts
-         * finish the turn with an `other`/aborted reason.
-         */
-        if (suspending) return;
-        currentEmit?.({
-          type: 'finish',
-          finishReason: mapRunFinishReason(result.status),
-          totalUsage: usageFromAgentUsage(result.usage),
-        });
-        return;
-      }
-
-      if (result.status === 'failed') {
-        currentEmit?.({
-          type: 'error',
-          error: result.error ?? new Error('Cline agent run failed'),
-        });
-        return;
-      }
-
-      currentEmit?.({
-        type: 'finish',
-        finishReason: mapRunFinishReason(result.status),
-        totalUsage: usageFromAgentUsage(result.usage),
-      });
     })();
 
     const activeTurnToken = {};

@@ -133,6 +133,18 @@ export const harnessV1BridgeHelloSchema = z.object({
   type: z.literal('bridge-hello'),
   state: z.string().optional(),
   lastSeq: z.number().optional(),
+  capabilities: z
+    .object({
+      userMessageResponses: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+export const harnessV1BridgeUserMessageResponseSchema = z.object({
+  type: z.literal('user-message-response'),
+  messageId: z.string(),
+  accepted: z.boolean(),
+  error: z.object({ message: z.string() }).optional(),
 });
 
 /**
@@ -211,6 +223,7 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1ErrorPartSchema,
     harnessV1RawPartSchema,
     harnessV1BridgeHelloSchema,
+    harnessV1BridgeUserMessageResponseSchema,
     harnessV1BridgeStopSchema,
     harnessV1BridgeThreadSchema,
     harnessV1BridgeSandboxLogSchema,
@@ -220,6 +233,10 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
 
 export type HarnessV1BridgeOutboundMessage = z.infer<
   typeof harnessV1BridgeOutboundMessageSchema
+>;
+
+export type HarnessV1BridgeUserMessageResponse = z.infer<
+  typeof harnessV1BridgeUserMessageResponseSchema
 >;
 
 export type HarnessV1BridgeSandboxLog = z.infer<
@@ -283,6 +300,7 @@ export const harnessV1BridgeToolApprovalResponseInboundSchema = z.object({
 
 export const harnessV1BridgeUserMessageInboundSchema = z.object({
   type: z.literal('user-message'),
+  messageId: z.string(),
   text: z.string(),
 });
 

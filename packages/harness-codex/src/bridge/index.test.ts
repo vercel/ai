@@ -84,7 +84,11 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         emit: () => {},
         requestToolResult: async () => ({ output: {} }),
         abortSignal: new AbortController().signal,
-        pendingUserMessages: [],
+        userMessages: {
+          pendingCount: 0,
+          close: () => {},
+          [Symbol.asyncIterator]: async function* () {},
+        },
       },
     );
   },
