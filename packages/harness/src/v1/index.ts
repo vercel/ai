@@ -11,7 +11,10 @@ export type {
 } from './harness-v1-bootstrap';
 export type {
   HarnessV1ContinueTurnOptions,
+  HarnessV1HistoryMessage,
+  HarnessV1HistoryPart,
   HarnessV1PromptTurnOptions,
+  HarnessV1ReadHistoryResult,
   HarnessV1Session,
   HarnessV1StartOptions,
 } from './harness-v1-session';

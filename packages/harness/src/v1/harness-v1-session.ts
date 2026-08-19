@@ -86,6 +86,60 @@ export type HarnessV1StartOptions = {
 };
 
 /**
+ * One content part of a history message, in the same vocabulary as the live
+ * stream parts so a UI renders history and stream with one component set.
+ * History parts are settled rather than streamed: text and reasoning arrive
+ * whole, and a tool call carries its result's data on the matching
+ * `tool-result` part.
+ */
+export type HarnessV1HistoryPart =
+  | { readonly type: 'text'; readonly text: string }
+  | { readonly type: 'reasoning'; readonly text: string }
+  | {
+      readonly type: 'tool-call';
+      /** The runtime's id for the call, when it records one. */
+      readonly toolCallId?: string;
+      /** Common tool name where one exists (`bash`, `read`, …), else native. */
+      readonly toolName: string;
+      /** The runtime's native name when it differs from `toolName`. */
+      readonly nativeName?: string;
+      readonly input?: unknown;
+    }
+  | {
+      readonly type: 'tool-result';
+      readonly toolCallId?: string;
+      readonly toolName?: string;
+      /** The full output as the runtime recorded it. */
+      readonly output?: unknown;
+      readonly isError?: boolean;
+    };
+
+/**
+ * One message from the runtime's persisted conversation history.
+ */
+export type HarnessV1HistoryMessage = {
+  readonly role: 'user' | 'assistant';
+  readonly parts: ReadonlyArray<HarnessV1HistoryPart>;
+  /** ISO timestamp, when the runtime recorded one. */
+  readonly at?: string;
+  /**
+   * The runtime's own record for this message, verbatim. Normalization into
+   * parts is necessarily lossy in the corners; this preserves everything the
+   * runtime wrote so a host can reproduce the exchange exactly.
+   */
+  readonly raw?: unknown;
+};
+
+/**
+ * Result of `HarnessV1Session.doReadHistory`.
+ */
+export type HarnessV1ReadHistoryResult = {
+  readonly messages: ReadonlyArray<HarnessV1HistoryMessage>;
+  /** Opaque position; pass back as `since` to read only what follows. */
+  readonly cursor: string;
+};
+
+/**
  * Options passed to `HarnessV1Session.doPromptTurn`.
  */
 export type HarnessV1PromptTurnOptions = HarnessV1TurnSettings & {
@@ -186,6 +240,34 @@ export type HarnessV1Session = {
    * `customInstructions`, when supported, steer the compaction summary.
    */
   doCompact(customInstructions?: string): PromiseLike<void>;
+
+  /**
+   * Read the conversation history the runtime itself persisted, normalized
+   * to `HarnessV1HistoryMessage`.
+   *
+   * The session's history can grow outside the harness contract: the same
+   * runtime conversation may be continued interactively (`claude --resume`),
+   * by another process, or before this session attached. Hosts that render a
+   * continuous record of the conversation — not just the turns they drove —
+   * need to read that history back, and the runtime's own store is the only
+   * source that has it. The adapter owns its runtime's persistence format,
+   * so the read belongs here rather than in every host.
+   *
+   * `since` is the `cursor` from a previous read; the result then contains
+   * only messages recorded after it. The cursor is adapter-owned and opaque
+   * to the host.
+   *
+   * Optional capability: adapters that cannot read their runtime's store
+   * omit the method entirely, and the agent surfaces that as
+   * `HarnessCapabilityUnsupportedError`. An adapter that implements it but
+   * cannot reach the store from the current environment (e.g. it lives
+   * inside a remote sandbox) throws `HarnessHistoryUnavailableError`. A
+   * conversation with no recorded messages yet is not an error — it resolves
+   * to an empty `messages` array.
+   */
+  doReadHistory?(options: {
+    readonly since?: string;
+  }): PromiseLike<HarnessV1ReadHistoryResult>;
 
   /**
    * Continue the in-flight turn **without a new user prompt**, returning the
