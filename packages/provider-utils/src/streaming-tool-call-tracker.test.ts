@@ -398,8 +398,8 @@ describe('StreamingToolCallTracker', () => {
       ]);
     });
 
-    it.each([undefined, '', '   '])(
-      'should throw when function.name is not usable',
+    it.each([undefined, null])(
+      'should throw when function.name is missing',
       name => {
         const { controller } = createCollector();
         const tracker = new StreamingToolCallTracker(controller);
@@ -412,6 +412,41 @@ describe('StreamingToolCallTracker', () => {
             function: { name },
           }),
         ).toThrow("Expected 'function.name' to be a string.");
+      },
+    );
+
+    it.each(['', '   '])(
+      'should ignore a blank function name without preventing prior calls from finalizing',
+      name => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller);
+
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'valid_tool', arguments: '{"value":1}' },
+        });
+
+        expect(() =>
+          tracker.processDelta({
+            index: 1,
+            id: 'call_2',
+            type: 'function',
+            function: { name, arguments: '{"value":2}' },
+          }),
+        ).not.toThrow();
+
+        tracker.flush();
+
+        expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'valid_tool',
+            input: '{"value":1}',
+          },
+        ]);
       },
     );
 
@@ -492,6 +527,42 @@ describe('StreamingToolCallTracker', () => {
         expect(toolCalls.map(toolCall => toolCall.input)).toEqual([
           '{"value":1}',
           '{"value":2}',
+        ]);
+        expect(
+          new Set(toolCalls.map(toolCall => toolCall.toolCallId)).size,
+        ).toBe(2);
+      },
+    );
+
+    it.each([
+      { description: 'missing ids', id: undefined },
+      { description: 'a repeated id', id: 'dup' },
+    ])(
+      'should keep a partial same-name call distinct with $description and a reused index',
+      ({ id }) => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller, {
+          generateId: () => 'generated-id',
+        });
+
+        tracker.processDelta({
+          index: 0,
+          id,
+          type: 'function',
+          function: { name: 'same_tool', arguments: '{"value":1}' },
+        });
+        tracker.processDelta({
+          index: 0,
+          id,
+          type: 'function',
+          function: { name: 'same_tool', arguments: '{"value":' },
+        });
+        tracker.flush();
+
+        const toolCalls = parts.filter(part => part.type === 'tool-call');
+        expect(toolCalls.map(toolCall => toolCall.input)).toEqual([
+          '{"value":1}',
+          '{"value":',
         ]);
         expect(
           new Set(toolCalls.map(toolCall => toolCall.toolCallId)).size,

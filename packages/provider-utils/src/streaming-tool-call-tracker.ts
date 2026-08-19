@@ -113,8 +113,13 @@ export class StreamingToolCallTracker<
    * events as appropriate.
    */
   processDelta(toolCallDelta: DELTA): void {
+    const wireName = toolCallDelta.function?.name;
+    if (typeof wireName === 'string' && wireName.trim().length === 0) {
+      return;
+    }
+
     const wireId = this.getNonBlankString(toolCallDelta.id);
-    const name = this.getNonBlankString(toolCallDelta.function?.name);
+    const name = this.getNonBlankString(wireName);
     const { index } = toolCallDelta;
 
     const existingToolCall = this.findToolCall({
@@ -122,9 +127,6 @@ export class StreamingToolCallTracker<
       index,
       name,
       hasExplicitType: toolCallDelta.type != null,
-      hasCompleteArguments:
-        toolCallDelta.function?.arguments != null &&
-        isParsableJson(toolCallDelta.function.arguments),
     });
 
     // `null` indicates that the available labels match multiple calls or
@@ -179,13 +181,11 @@ export class StreamingToolCallTracker<
     index,
     name,
     hasExplicitType,
-    hasCompleteArguments,
   }: {
     wireId: string | undefined;
     index: number | null | undefined;
     name: string | undefined;
     hasExplicitType: boolean;
-    hasCompleteArguments: boolean;
   }): TrackedToolCall | null | undefined {
     const indexedToolCalls =
       index != null ? this.toolCallsByIndex.get(index) : undefined;
@@ -193,8 +193,7 @@ export class StreamingToolCallTracker<
       indexedToolCalls,
       name,
     );
-    const isExplicitCompleteCall =
-      hasExplicitType && name != null && hasCompleteArguments;
+    const startsExplicitCall = hasExplicitType && name != null;
 
     if (wireId != null) {
       const toolCallsWithId = this.toolCallsById.get(wireId);
@@ -206,7 +205,7 @@ export class StreamingToolCallTracker<
           );
           const matchingToolCall = this.selectMatchingToolCall(
             matchingToolCalls,
-            isExplicitCompleteCall,
+            startsExplicitCall,
           );
           if (matchingToolCall !== undefined) {
             return matchingToolCall;
@@ -236,7 +235,7 @@ export class StreamingToolCallTracker<
 
           return this.selectMatchingToolCall(
             matchingToolCalls,
-            isExplicitCompleteCall,
+            startsExplicitCall,
           );
         }
 
@@ -264,7 +263,7 @@ export class StreamingToolCallTracker<
       // indices across parallel calls.
       return this.selectMatchingToolCall(
         matchingIndexedToolCalls,
-        isExplicitCompleteCall,
+        startsExplicitCall,
       );
     }
 
