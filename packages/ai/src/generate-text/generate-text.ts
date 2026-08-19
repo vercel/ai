@@ -71,6 +71,7 @@ import { filterActiveTools } from './filter-active-tools';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { maybeSignApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
 import { text, type Output } from './output';
@@ -1031,7 +1032,12 @@ export async function generateText<
               toolCall => !toolCall.providerExecuted,
             );
 
-            if (stepToolSet != null) {
+            if (
+              stepToolSet != null &&
+              isToolExecutionAllowedFinishReason(
+                currentModelResponse.finishReason.unified,
+              )
+            ) {
               clientToolOutputs.push(
                 ...(await executeTools({
                   toolCalls: clientToolCalls.filter(
