@@ -887,7 +887,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
-            case 'reset': {
+            case 'reset-step': {
               const currentStepParts = getCurrentStepParts();
 
               state.activeTextParts = createIdMap();

@@ -51,7 +51,7 @@ describe('doStreamStep', () => {
       }),
     );
 
-    expect(writtenParts[0]).toEqual({ type: 'reset' });
+    expect(writtenParts[0]).toEqual({ type: 'reset-step' });
     expect(writtenParts).toContainEqual({
       type: 'text-delta',
       id: 'text-1',

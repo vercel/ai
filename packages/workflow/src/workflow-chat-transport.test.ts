@@ -681,7 +681,7 @@ describe('WorkflowChatTransport', () => {
       ]);
     });
 
-    it('forgets started parts after a reset chunk', async () => {
+    it('forgets started parts after a reset-step chunk', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const transport = new WorkflowChatTransport({
         fetch: mockFetch,
@@ -693,7 +693,7 @@ describe('WorkflowChatTransport', () => {
         headers: new Headers({ 'x-workflow-stream-tail-index': '50' }),
         body: makeSSEStream(
           '{"type":"tool-input-start","toolCallId":"stale","toolName":"deleteFile"}',
-          '{"type":"reset"}',
+          '{"type":"reset-step"}',
           '{"type":"tool-output-available","toolCallId":"stale","output":{}}',
           '{"type":"tool-input-start","toolCallId":"retried","toolName":"deleteFile"}',
           '{"type":"tool-input-available","toolCallId":"retried","toolName":"deleteFile","input":{}}',
@@ -706,7 +706,7 @@ describe('WorkflowChatTransport', () => {
 
       expect(chunks.map(chunk => chunk.type)).toEqual([
         'tool-input-start',
-        'reset',
+        'reset-step',
         'tool-input-start',
         'tool-input-available',
         'finish',

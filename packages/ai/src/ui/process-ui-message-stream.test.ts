@@ -57,7 +57,7 @@ describe('processUIMessageStream', () => {
     });
   };
 
-  describe('reset', () => {
+  describe('reset-step', () => {
     it('removes parts from the current step and accepts retried parts', async () => {
       const stream = createUIMessageStream([
         { type: 'start-step' },
@@ -80,7 +80,7 @@ describe('processUIMessageStream', () => {
           toolCallId: 'stale-tool',
           inputTextDelta: '{"path":"partial',
         },
-        { type: 'reset' },
+        { type: 'reset-step' },
         {
           type: 'tool-input-start',
           toolCallId: 'retried-tool',

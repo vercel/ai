@@ -442,7 +442,7 @@ data: {"type":"finish-step"}
 
 ```
 
-### Reset Part
+### Reset Step Part
 
 Removes all message parts received since the most recent `start-step` part. If
 there is no step boundary, it removes all parts from the current message. This
@@ -454,7 +454,7 @@ Format: Server-Sent Event with JSON object
 Example:
 
 ```
-data: {"type":"reset"}
+data: {"type":"reset-step"}
 
 ```
 

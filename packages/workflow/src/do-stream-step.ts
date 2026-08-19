@@ -24,7 +24,7 @@ import {
 
 export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
   | Experimental_LanguageModelStreamPart<TTools>
-  | { type: 'reset' };
+  | { type: 'reset-step' };
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
 
@@ -239,7 +239,7 @@ export async function doStreamStep(
     // A workflow step can be retried after already writing partial output.
     // Reset the current UI step before every attempt so a retry invalidates
     // chunks left behind by an earlier execution.
-    await writer?.write({ type: 'reset' });
+    await writer?.write({ type: 'reset-step' });
 
     for await (const part of modelStream) {
       switch (part.type) {

@@ -9,8 +9,8 @@ export function toUIMessageChunk(
   part: ModelCallStreamPart<ToolSet>,
 ): UIMessageChunk | undefined {
   switch (part.type) {
-    case 'reset':
-      return { type: 'reset' };
+    case 'reset-step':
+      return { type: 'reset-step' };
 
     case 'text-start':
       return {

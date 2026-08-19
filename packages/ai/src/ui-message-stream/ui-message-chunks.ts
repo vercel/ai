@@ -184,7 +184,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('finish-step'),
       }),
       z.looseObject({
-        type: z.literal('reset'),
+        type: z.literal('reset-step'),
       }),
       z.looseObject({
         type: z.literal('start'),
@@ -385,7 +385,7 @@ export type UIMessageChunk<
       /**
        * Removes all message parts added during the current step.
        */
-      type: 'reset';
+      type: 'reset-step';
     }
   | {
       type: 'start';

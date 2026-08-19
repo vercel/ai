@@ -115,7 +115,7 @@ export async function* normalizeUIMessageStreamParts(
 
   for await (const chunk of source) {
     switch (chunk.type) {
-      case 'reset':
+      case 'reset-step':
         // A retried model-call step starts a new frame. Forget parts from the
         // invalidated attempt so reused ids are framed normally.
         text.open.clear();
