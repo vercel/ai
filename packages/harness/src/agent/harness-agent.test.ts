@@ -927,6 +927,44 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('does not log a bridge error to stderr for a turn the caller aborted', async () => {
+    const abortController = new AbortController();
+    abortController.abort();
+    const { harness } = mockHarness({
+      script: () => [
+        {
+          type: 'error',
+          error: 'AbortError: This operation was aborted',
+        },
+      ],
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    const stderrSpy = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
+    try {
+      const aborted = await agent.stream({
+        session,
+        prompt: 'abort',
+        abortSignal: abortController.signal,
+      });
+      await aborted.consumeStream();
+
+      // The caller's own signal produced the error-shaped part; diagnosing it
+      // to stderr would read as a malfunction.
+      const errorLines = stderrSpy.mock.calls
+        .map(call => String(call[0]))
+        .filter(line => line.includes('harness stream error'));
+      expect(errorLines).toEqual([]);
+    } finally {
+      stderrSpy.mockRestore();
+    }
+
+    await session.destroy();
+  });
+
   test('continueStream() continues an in-flight turn and streams translated parts', async () => {
     const { harness, doContinueTurn, prompts } = mockHarness({
       script: () => [],
