@@ -267,6 +267,44 @@ describe('generateText', () => {
     logWarningsSpy.mockRestore();
   });
 
+  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+    'should not execute tools when the finish reason is %s',
+    async finishReason => {
+      const execute = vi.fn(async () => 'tool-result');
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{"value":"test"}',
+              },
+            ],
+            finishReason: {
+              unified: finishReason,
+              raw: finishReason,
+            },
+            usage: testUsage,
+            warnings: [],
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          }),
+        },
+      });
+
+      expect(result.toolCalls).toHaveLength(1);
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
+
   it('should not synthesize a client tool error for an invalid provider-executed tool call', async () => {
     const result = await generateText({
       model: new MockLanguageModelV3({
