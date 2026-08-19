@@ -5004,6 +5004,12 @@ describe('streamText', () => {
             "type": "tool-call",
           },
           {
+            "id": "4",
+            "providerMetadata": undefined,
+            "text": " World",
+            "type": "text-delta",
+          },
+          {
             "input": {
               "value": "test",
             },
@@ -5017,12 +5023,6 @@ describe('streamText', () => {
             "toolCallId": "2",
             "toolName": "tool1",
             "type": "tool-result",
-          },
-          {
-            "id": "4",
-            "providerMetadata": undefined,
-            "text": " World",
-            "type": "text-delta",
           },
         ]
       `);
@@ -11520,6 +11520,12 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": " WORLD",
+              "type": "text-delta",
+            },
+            {
               "input": {
                 "value": "TEST",
               },
@@ -11529,12 +11535,6 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": " WORLD",
-              "type": "text-delta",
             },
           ]
         `);
@@ -13374,6 +13374,11 @@ describe('streamText', () => {
           [
             {
               "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
             },
             {
               "type": "abort",
