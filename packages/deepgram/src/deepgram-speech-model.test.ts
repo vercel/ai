@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { APICallError } from '@ai-sdk/provider';
 import { createDeepgram } from './deepgram-provider';
 import { DeepgramSpeechModel } from './deepgram-speech-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -401,6 +402,33 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should surface the Deepgram err_msg as the APICallError message', async () => {
+    server.urls['https://api.deepgram.com/v1/speak'].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({
+        err_code: 'INVALID_QUERY_PARAMETER',
+        err_msg: "Invalid 'model' value of 'aura-2-not-a-real-voice-en'.",
+        request_id: '01a00450-5a52-70f0-9253-2fc492123595',
+      }),
+    };
+
+    const error = await model
+      .doGenerate({ text: 'Hello, world!', voice: 'not-a-real-voice' })
+      .then(
+        () => {
+          throw new Error('expected doGenerate to reject');
+        },
+        e => e,
+      );
+
+    expect(APICallError.isInstance(error)).toBe(true);
+    expect((error as APICallError).message).toBe(
+      "Invalid 'model' value of 'aura-2-not-a-real-voice-en'.",
+    );
+    expect((error as APICallError).statusCode).toBe(400);
   });
 
   it('should include request body in response', async () => {
