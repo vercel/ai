@@ -889,6 +889,38 @@ describe('streamObject', () => {
         );
       });
 
+      it('should not emit an unhandled rejection when a result promise is awaited after failure', async () => {
+        const error = new Error('test error');
+        const unhandledRejections: unknown[] = [];
+        const onUnhandledRejection = (reason: unknown) => {
+          unhandledRejections.push(reason);
+        };
+
+        process.on('unhandledRejection', onUnhandledRejection);
+
+        try {
+          const result = streamObject({
+            model: new MockLanguageModelV4({
+              doStream: async () => {
+                throw error;
+              },
+            }),
+            schema: z.object({ content: z.string() }),
+            prompt: 'prompt',
+            onError: () => {},
+          });
+          const objectPromise = result.object;
+
+          await convertAsyncIterableToArray(result.fullStream);
+          await new Promise(resolve => setTimeout(resolve, 0));
+
+          await expect(objectPromise).rejects.toBe(error);
+          expect(unhandledRejections).toStrictEqual([]);
+        } finally {
+          process.off('unhandledRejection', onUnhandledRejection);
+        }
+      });
+
       it('should reject pending result promises and report failure for an error stream part', async () => {
         const error = new Error('test error');
         const onError = vitest.fn();

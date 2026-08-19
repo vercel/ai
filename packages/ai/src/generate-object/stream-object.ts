@@ -68,6 +68,12 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
+async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
+  try {
+    await promise;
+  } catch {}
+}
+
 /**
  * Callback that is set using the `onError` option.
  *
@@ -938,6 +944,7 @@ class DefaultStreamObjectResult<
   }) {
     if (delayedPromise.isPending()) {
       delayedPromise.reject(error);
+      markPromiseAsHandled(delayedPromise.promise);
     }
   }
 
