@@ -1,5 +1,11 @@
 # @ai-sdk/fireworks
 
+## 2.0.79
+
+### Patch Changes
+
+- ebdcd9c: fix(fireworks): enable structured outputs so response_format json_schema is forwarded instead of degrading to json_object
+
 ## 2.0.78
 
 ### Patch Changes
