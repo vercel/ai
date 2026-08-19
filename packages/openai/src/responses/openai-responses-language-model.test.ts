@@ -2936,6 +2936,30 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
+      it('should expand an internal parallel tool call wrapper', async () => {
+        prepareJsonFixtureResponse('parallel-tool-call-wrapper.1');
+
+        const result = await createModel('gpt-5.4').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_parallel_0',
+            toolName: 'weather',
+            input: '{"location":"San Francisco"}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call_parallel_1',
+            toolName: 'cityAttractions',
+            input: '{"city":"Rome"}',
+          },
+        ]);
+      });
+
       it('should JSON-encode error outputs for tools with an output schema', async () => {
         const outputSchema = {
           type: 'object' as const,
@@ -6553,6 +6577,60 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should expand a streamed internal parallel tool call wrapper', async () => {
+      prepareChunksFixtureResponse('parallel-tool-call-wrapper.1');
+
+      const { stream } = await createModel('gpt-5.4').doStream({
+        tools: TEST_TOOLS,
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type.startsWith('tool-'))).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'call_parallel_0',
+          toolName: 'weather',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'call_parallel_0',
+          delta: '{"location":"San Francisco"}',
+        },
+        {
+          type: 'tool-input-end',
+          id: 'call_parallel_0',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          input: '{"location":"San Francisco"}',
+        },
+        {
+          type: 'tool-input-start',
+          id: 'call_parallel_1',
+          toolName: 'cityAttractions',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'call_parallel_1',
+          delta: '{"city":"Rome"}',
+        },
+        {
+          type: 'tool-input-end',
+          id: 'call_parallel_1',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          input: '{"city":"Rome"}',
+        },
+      ]);
     });
 
     it('should preserve namespace on streaming function_call output', async () => {
