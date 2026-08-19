@@ -10,17 +10,20 @@ afterEach(async () => {
 });
 
 /** Start a bridge whose `onStart` is driven by the test. */
-async function startBridge(
-  onStart: (start: { type: 'start' }, turn: BridgeTurn) => Promise<void>,
-  onDetach?: () => unknown,
-): Promise<BridgeHandle> {
+async function startBridge({
+  onStart,
+  onStop,
+}: {
+  onStart: (start: { type: 'start' }, turn: BridgeTurn) => Promise<void>;
+  onStop?: () => unknown;
+}): Promise<BridgeHandle> {
   const handle = await runBridge<{ type: 'start' }>({
     bridgeType: 'test',
     bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-test-${Math.floor(performance.now())}`,
     port: 0,
     token: TOKEN,
     onStart,
-    ...(onDetach ? { onDetach } : {}),
+    ...(onStop ? { onStop } : {}),
     // Never call process.exit from a test.
     onExit: () => {},
   });
@@ -36,6 +39,10 @@ type Client = {
     pred: (f: Record<string, unknown>) => boolean,
   ): Promise<Record<string, unknown>>;
   send(msg: object): void;
+  /** Send a frame the protocol cannot parse. */
+  sendRaw(text: string): void;
+  /** `seq` of every event frame received, in arrival order. */
+  seqs(): number[];
   close(): void;
 };
 
@@ -69,6 +76,14 @@ function connect(port: number): Promise<Client> {
     send(msg) {
       ws.send(JSON.stringify(msg));
     },
+    sendRaw(text) {
+      ws.send(text);
+    },
+    seqs() {
+      return frames
+        .map(f => f.seq)
+        .filter((seq): seq is number => typeof seq === 'number');
+    },
     close() {
       ws.close();
     },
@@ -79,7 +94,7 @@ function connect(port: number): Promise<Client> {
 
 describe('runBridge', () => {
   it('rejects when the requested port is already in use', async () => {
-    const handle = await startBridge(async () => {});
+    const handle = await startBridge({ onStart: async () => {} });
 
     await expect(
       runBridge<{ type: 'start' }>({
@@ -94,10 +109,12 @@ describe('runBridge', () => {
   });
 
   it('greets with bridge-hello and stamps a monotonic seq on emitted events', async () => {
-    const handle = await startBridge(async (_start, turn) => {
-      turn.emit({ type: 'text-delta', delta: 'a' });
-      turn.emit({ type: 'text-delta', delta: 'b' });
-      turn.emit({ type: 'finish' });
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        turn.emit({ type: 'text-delta', delta: 'a' });
+        turn.emit({ type: 'text-delta', delta: 'b' });
+        turn.emit({ type: 'finish' });
+      },
     });
     const client = await connect(handle.port);
 
@@ -120,15 +137,17 @@ describe('runBridge', () => {
     const turnFinished = new Promise<void>(resolve => {
       resolveTurnFinished = resolve;
     });
-    const handle = await startBridge(async (_start, turn) => {
-      turn.emit({ type: 'text-delta', delta: 'one' }); // seq 1
-      turn.emit({ type: 'text-delta', delta: 'two' }); // seq 2
-      await gate;
-      // Emitted AFTER the first client dropped — proves the turn was not
-      // aborted by the disconnect.
-      turn.emit({ type: 'text-delta', delta: 'three' }); // seq 3
-      turn.emit({ type: 'finish' }); // seq 4
-      resolveTurnFinished();
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        turn.emit({ type: 'text-delta', delta: 'one' }); // seq 1
+        turn.emit({ type: 'text-delta', delta: 'two' }); // seq 2
+        await gate;
+        // Emitted AFTER the first client dropped — proves the turn was not
+        // aborted by the disconnect.
+        turn.emit({ type: 'text-delta', delta: 'three' }); // seq 3
+        turn.emit({ type: 'finish' }); // seq 4
+        resolveTurnFinished();
+      },
     });
 
     const a = await connect(handle.port);
@@ -160,16 +179,18 @@ describe('runBridge', () => {
   });
 
   it('routes a host tool result back to the awaiting requestToolResult', async () => {
-    const handle = await startBridge(async (_start, turn) => {
-      turn.emit({
-        type: 'tool-call',
-        toolCallId: 'tc1',
-        toolName: 'foo',
-        input: '{}',
-      });
-      const result = await turn.requestToolResult('tc1');
-      turn.emit({ type: 'tool-observed', output: result.output });
-      turn.emit({ type: 'finish' });
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        turn.emit({
+          type: 'tool-call',
+          toolCallId: 'tc1',
+          toolName: 'foo',
+          input: '{}',
+        });
+        const result = await turn.requestToolResult('tc1');
+        turn.emit({ type: 'tool-observed', output: result.output });
+        turn.emit({ type: 'finish' });
+      },
     });
     const client = await connect(handle.port);
     await client.waitFor(f => f.type === 'bridge-hello');
@@ -201,9 +222,11 @@ describe('runBridge', () => {
     }) as typeof process.stderr.write);
 
     try {
-      const handle = await startBridge(async (_start, turn) => {
-        turn.emitWarning({ message: 'watch this' });
-        turn.emit({ type: 'finish' });
+      const handle = await startBridge({
+        onStart: async (_start, turn) => {
+          turn.emitWarning({ message: 'watch this' });
+          turn.emit({ type: 'finish' });
+        },
       });
       const client = await connect(handle.port);
       await client.waitFor(f => f.type === 'bridge-hello');
@@ -239,9 +262,11 @@ describe('runBridge', () => {
 
     try {
       const error = { name: 'AdapterError', data: { message: 'boom' } };
-      const handle = await startBridge(async (_start, turn) => {
-        turn.emitError({ error, message: 'adapter failed' });
-        turn.emit({ type: 'finish' });
+      const handle = await startBridge({
+        onStart: async (_start, turn) => {
+          turn.emitError({ error, message: 'adapter failed' });
+          turn.emit({ type: 'finish' });
+        },
       });
       const client = await connect(handle.port);
       await client.waitFor(f => f.type === 'bridge-hello');
@@ -260,10 +285,12 @@ describe('runBridge', () => {
 
   it('clears the log per turn but keeps seq monotonic across turns', async () => {
     let turnNo = 0;
-    const handle = await startBridge(async (_start, turn) => {
-      turnNo++;
-      turn.emit({ type: 'text-delta', delta: `t${turnNo}` });
-      turn.emit({ type: 'finish' });
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        turnNo++;
+        turn.emit({ type: 'text-delta', delta: `t${turnNo}` });
+        turn.emit({ type: 'finish' });
+      },
     });
     const a = await connect(handle.port);
     await a.waitFor(f => f.type === 'bridge-hello');
@@ -287,15 +314,15 @@ describe('runBridge', () => {
     expect(replayedSeqs).toEqual([3, 4]);
   });
 
-  it('emits a bridge-detach payload from onDetach', async () => {
+  it('emits bridge-stop runtime resume data from onStop', async () => {
     let exited = false;
     const handle = await runBridge<{ type: 'start' }>({
       bridgeType: 'test',
-      bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-detach`,
+      bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-stop`,
       port: 0,
       token: TOKEN,
       onStart: async () => {},
-      onDetach: () => ({ threadId: 'th_42' }),
+      onStop: () => ({ threadId: 'th_42' }),
       onExit: () => {
         exited = true;
       },
@@ -303,10 +330,110 @@ describe('runBridge', () => {
     cleanups.push(() => handle.close());
     const client = await connect(handle.port);
     await client.waitFor(f => f.type === 'bridge-hello');
-    client.send({ type: 'detach' });
-    const detach = await client.waitFor(f => f.type === 'bridge-detach');
-    expect(detach.data).toEqual({ threadId: 'th_42' });
+    client.send({ type: 'stop' });
+    const stop = await client.waitFor(f => f.type === 'bridge-stop');
+    expect(stop.data).toEqual({ threadId: 'th_42' });
     await new Promise(r => setTimeout(r, 50));
     expect(exited).toBe(true);
+  });
+
+  it('keeps streaming to the running turn when a second client connects to abort it', async () => {
+    let aborted!: () => void;
+    const abortObserved = new Promise<void>(r => (aborted = r));
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        turn.emit({ type: 'text-delta', delta: 'one' }); // seq 1
+        turn.abortSignal.addEventListener('abort', () => aborted(), {
+          once: true,
+        });
+        await abortObserved;
+        turn.emit({ type: 'aborted' }); // seq 2
+        turn.emit({ type: 'finish' }); // seq 3
+      },
+    });
+
+    const a = await connect(handle.port);
+    await a.waitFor(f => f.type === 'bridge-hello');
+    a.send({ type: 'start' });
+    await a.waitFor(f => f.seq === 1);
+
+    // The regression: a second client that connected only to abort used to
+    // claim the stream on connect, so the turn's remaining events went to it
+    // instead — and, with live delivery disabled there, nowhere at all.
+    const b = await connect(handle.port);
+    await b.waitFor(f => f.type === 'bridge-hello');
+    b.send({ type: 'abort' });
+
+    await a.waitFor(f => f.type === 'finish');
+    expect(a.frames.map(f => f.type)).toEqual([
+      'bridge-hello',
+      'text-delta',
+      'aborted',
+      'finish',
+    ]);
+    expect(b.seqs()).toEqual([]);
+  });
+
+  it('hands the stream to whichever socket asks for the next turn', async () => {
+    const handle = await startBridge({
+      onStart: async (_start, turn) => turn.emit({ type: 'finish' }),
+    });
+
+    const a = await connect(handle.port);
+    await a.waitFor(f => f.type === 'bridge-hello');
+    a.send({ type: 'start' });
+    await a.waitFor(f => f.type === 'finish');
+
+    const b = await connect(handle.port);
+    await b.waitFor(f => f.type === 'bridge-hello');
+    b.send({ type: 'start' });
+    await b.waitFor(f => f.type === 'finish');
+
+    // The second turn streamed to B; A kept only the turn it asked for.
+    expect(a.seqs()).toEqual([1]);
+    expect(b.seqs()).toEqual([2]);
+  });
+
+  it('replies to the sending socket when it cannot parse a frame', async () => {
+    const handle = await startBridge({
+      onStart: async (_start, turn) => turn.emit({ type: 'finish' }),
+    });
+
+    const a = await connect(handle.port);
+    await a.waitFor(f => f.type === 'bridge-hello');
+    a.send({ type: 'start' });
+    await a.waitFor(f => f.type === 'finish'); // A now owns the stream
+
+    const b = await connect(handle.port);
+    await b.waitFor(f => f.type === 'bridge-hello');
+    b.sendRaw('not json');
+
+    const error = await b.waitFor(f => f.type === 'error');
+    expect(error.error).toContain('protocol parse error');
+    expect(a.frames.some(f => f.type === 'error')).toBe(false);
+  });
+
+  it('runs onDestroy before exiting', async () => {
+    let exited = false;
+    const onDestroy = vi.fn(async () => {});
+    const handle = await runBridge<{ type: 'start' }>({
+      bridgeType: 'test',
+      bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-bridge-destroy`,
+      port: 0,
+      token: TOKEN,
+      onStart: async () => {},
+      onDestroy,
+      onExit: () => {
+        exited = true;
+      },
+    });
+    cleanups.push(() => handle.close());
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'destroy' });
+    await vi.waitFor(() => {
+      expect(onDestroy).toHaveBeenCalledTimes(1);
+      expect(exited).toBe(true);
+    });
   });
 });

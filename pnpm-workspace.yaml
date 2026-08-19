@@ -10,3 +10,6 @@ minimumReleaseAge: 4320 # 3 days
 minimumReleaseAgeExclude:
   - '@ai-sdk/*'
   - 'ai'
+  # First-party, published from vercel/geistdocs CI; the docs app consumes
+  # releases as part of the documented consumer-update flow.
+  - '@vercel/geistdocs'

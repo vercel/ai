@@ -11,11 +11,10 @@ import type { UserContent } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
- * The codex adapter frames initial prompt guidance before it sends the bridge
- * `start` message. We stub `SandboxChannel` so `send()` records the messages
- * instead of opening a real WebSocket, then drive `doStart` → `doPromptTurn`
- * against a fake network sandbox session. This isolates the "prepend to the
- * first user message only" gating without standing up the in-sandbox bridge.
+ * The codex adapter sends session instructions separately from user text while
+ * retaining first-prompt framing for host-tool relay guidance. We stub
+ * `SandboxChannel` so `send()` records messages instead of opening a real
+ * WebSocket, then drive the session without standing up the in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
@@ -101,6 +100,7 @@ function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
     id: 'sbx',
     defaultWorkingDirectory: '/wd',
     ports: [port],
+    getPortEndpoint: async () => ({ url: `ws://127.0.0.1:${port}` }),
     getPortUrl: async () => `ws://127.0.0.1:${port}`,
     stop: async () => {},
     restricted: () => session,
@@ -141,7 +141,7 @@ async function waitForStart({
   return lastStart();
 }
 
-describe('codex adapter — instructions gating', () => {
+describe('codex adapter — instructions transport', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     openCalls.length = 0;
@@ -162,7 +162,7 @@ describe('codex adapter — instructions gating', () => {
     await waitForStart({ count: 1 });
   });
 
-  it('prepends instructions on the first user message only', async () => {
+  it('keeps instructions separate from every user message', async () => {
     const session = await startSession();
 
     await session.doPromptTurn({
@@ -171,15 +171,8 @@ describe('codex adapter — instructions gating', () => {
       emit: () => {},
     });
     const firstStart = await waitForStart({ count: 1 });
-    expect(firstStart.prompt).toBe(
-      '<session-instructions>\n' +
-        'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
-        'Use turbo build --concurrency=4.\n\n' +
-        'Only respond with your `final` message once you have fully addressed the user request.\n' +
-        '</session-instructions>\n\n' +
-        '<user-message>\nfirst turn\n</user-message>',
-    );
-    expect(firstStart.instructions).toBeUndefined();
+    expect(firstStart.prompt).toBe('first turn');
+    expect(firstStart.instructions).toBe('Use turbo build --concurrency=4.');
 
     await session.doPromptTurn({
       prompt: 'second turn',
@@ -188,7 +181,7 @@ describe('codex adapter — instructions gating', () => {
     });
     const lastStart = await waitForStart({ count: 2 });
     expect(lastStart.prompt).toBe('second turn');
-    expect(lastStart.instructions).toBeUndefined();
+    expect(lastStart.instructions).toBe('Use turbo build --concurrency=4.');
   });
 
   it('preserves ordered text and local images in the start prompt', async () => {
@@ -217,6 +210,12 @@ describe('codex adapter — instructions gating', () => {
           },
         ],
       },
+      tools: [
+        {
+          name: 'inspect_image',
+          inputSchema: { type: 'object' },
+        },
+      ],
       emit: () => {},
     });
 
@@ -225,7 +224,7 @@ describe('codex adapter — instructions gating', () => {
       {
         type: 'text',
         text: expect.stringMatching(
-          /<session-instructions>[\s\S]*<user-message>\n$/,
+          /<host-tool-instructions>[\s\S]*<user-message>\n$/,
         ),
       },
       { type: 'text', text: 'Compare ' },
@@ -334,7 +333,7 @@ describe('codex adapter — instructions gating', () => {
     expect(secondStart.tools).toEqual(tools);
   });
 
-  it('does not apply instructions when resuming a session', async () => {
+  it('keeps instructions separate when resuming a session', async () => {
     const session = await startSession({
       resumeFrom: {
         type: 'resume-session',
@@ -351,7 +350,28 @@ describe('codex adapter — instructions gating', () => {
     });
     const start = await waitForStart({ count: 1 });
     expect(start.prompt).toBe('resumed turn');
-    expect(start.instructions).toBeUndefined();
+    expect(start.instructions).toBe('Use turbo build --concurrency=4.');
+  });
+
+  it('forwards instructions when rerunning a suspended turn', async () => {
+    const session = await startSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+
+    await session.doContinueTurn({
+      instructions: 'Use turbo build --concurrency=4.',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 1 });
+    expect(start.prompt).toBe('Continue.');
+    expect(start.instructions).toBe('Use turbo build --concurrency=4.');
+    expect(start.resumeThreadId).toBe('thread-abc');
   });
 });
 

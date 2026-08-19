@@ -320,7 +320,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'low' },
         });
         expect(result.warnings).toEqual([]);
@@ -336,7 +336,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'medium' },
         });
         expect(result.warnings).toEqual([]);
@@ -352,7 +352,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'high' },
         });
         expect(result.warnings).toEqual([]);
@@ -368,7 +368,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'max' },
         });
         expect(result.warnings).toContainEqual({
@@ -389,7 +389,7 @@ describe('AnthropicLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
-          thinking: { type: 'adaptive' },
+          thinking: { type: 'adaptive', display: 'summarized' },
           output_config: { effort: 'low' },
         });
         expect(result.warnings).toContainEqual({
@@ -592,7 +592,10 @@ describe('AnthropicLanguageModel', () => {
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+        expect(requestBody.thinking).toEqual({
+          type: 'adaptive',
+          display: 'summarized',
+        });
         expect(requestBody.thinking.budget_tokens).toBeUndefined();
         expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
         expect(result.warnings).toEqual([]);
@@ -3875,6 +3878,32 @@ describe('AnthropicLanguageModel', () => {
         it('should include web fetch 20260209 tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
         });
+
+        it('should preserve dynamic filtering callers', async () => {
+          const codeExecutionCall = result.content.find(
+            part =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          const webFetchCall = result.content.find(
+            part => part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          const webFetchResult = result.content.find(
+            part =>
+              part.type === 'tool-result' && part.toolName === 'web_fetch',
+          );
+
+          expect(
+            codeExecutionCall?.providerMetadata?.anthropic?.caller,
+          ).toEqual({ type: 'direct', toolId: undefined });
+          expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_015CSHH7X69AhdK9gNzotEeh',
+          });
+          expect(webFetchResult?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_015CSHH7X69AhdK9gNzotEeh',
+          });
+        });
       });
 
       describe('text response without title', () => {
@@ -4249,7 +4278,10 @@ describe('AnthropicLanguageModel', () => {
                 type: 'provider',
                 id: 'anthropic.advisor_20260301',
                 name: 'advisor',
-                args: { model: 'claude-opus-4-7' },
+                args: {
+                  model: 'claude-opus-4-7',
+                  maxTokens: 2048,
+                },
               },
             ],
           });
@@ -4273,6 +4305,7 @@ describe('AnthropicLanguageModel', () => {
               "model": "claude-sonnet-4-6",
               "tools": [
                 {
+                  "max_tokens": 2048,
                   "model": "claude-opus-4-7",
                   "name": "advisor",
                   "type": "advisor_20260301",
@@ -4333,6 +4366,48 @@ describe('AnthropicLanguageModel', () => {
             ]
           `);
         });
+      });
+
+      it('should expose stopReason for plaintext and redacted advisor results', async () => {
+        prepareJsonFixtureResponse('anthropic-advisor-stop-reasons');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-7', maxTokens: 2048 },
+            },
+          ],
+        });
+
+        expect(result.content.filter(part => part.type === 'tool-result'))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "result": {
+                "stopReason": "max_tokens",
+                "text": "Partial plaintext advice.",
+                "type": "advisor_result",
+              },
+              "toolCallId": "srvtoolu_advisor_plaintext",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+            {
+              "result": {
+                "encryptedContent": "opaque-encrypted-advice",
+                "stopReason": "end_turn",
+                "type": "advisor_redacted_result",
+              },
+              "toolCallId": "srvtoolu_advisor_redacted",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+          ]
+        `);
       });
 
       it('should emit a tool-call for the advisor server_tool_use so it round-trips on follow-up turns', async () => {
@@ -9961,6 +10036,49 @@ describe('AnthropicLanguageModel', () => {
             ]
           `);
       });
+
+      it('should stream stopReason for plaintext and redacted advisor results', async () => {
+        prepareChunksFixtureResponse('anthropic-advisor-stop-reasons');
+
+        const result = await provider('claude-sonnet-4-6').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.advisor_20260301',
+              name: 'advisor',
+              args: { model: 'claude-opus-4-7', maxTokens: 2048 },
+            },
+          ],
+        });
+        const resultParts = await convertReadableStreamToArray(result.stream);
+
+        expect(resultParts.filter(part => part.type === 'tool-result'))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "result": {
+                "stopReason": "max_tokens",
+                "text": "Partial plaintext advice.",
+                "type": "advisor_result",
+              },
+              "toolCallId": "srvtoolu_advisor_plaintext",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+            {
+              "result": {
+                "encryptedContent": "opaque-encrypted-advice",
+                "stopReason": "end_turn",
+                "type": "advisor_redacted_result",
+              },
+              "toolCallId": "srvtoolu_advisor_redacted",
+              "toolName": "advisor",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
     });
 
     describe('code execution 20260120 tool', () => {
@@ -9981,6 +10099,147 @@ describe('AnthropicLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+
+      it('should preserve the complete code execution transcript when replaying streamed output', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20260120-prompt-cache.1',
+        );
+
+        const tools = [
+          {
+            type: 'provider' as const,
+            id: 'anthropic.code_execution_20260120' as const,
+            name: 'code_execution',
+            args: {},
+          },
+        ];
+        const liveResult = await provider('claude-sonnet-5').doStream({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        const parts = await convertReadableStreamToArray(liveResult.stream);
+        const toolCalls = parts.filter(
+          (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+            part.type === 'tool-call' && part.toolName === 'code_execution',
+        );
+        const toolResults = parts.filter(
+          (part): part is LanguageModelV4StreamPart & { type: 'tool-result' } =>
+            part.type === 'tool-result' && part.toolName === 'code_execution',
+        );
+        const text = parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => (part.type === 'text-delta' ? part.delta : ''))
+          .join('');
+
+        expect(toolCalls).toHaveLength(2);
+        expect(toolResults).toHaveLength(2);
+        if (toolCalls.length !== 2 || toolResults.length !== 2) {
+          throw new Error(
+            'Live fixture did not contain the complete code execution transcript',
+          );
+        }
+
+        prepareChunksFixtureResponse('anthropic-refusal');
+        const replayResult = await provider('claude-sonnet-5').doStream({
+          prompt: [
+            ...TEST_PROMPT,
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: toolCalls[0].toolCallId,
+                  toolName: toolCalls[0].toolName,
+                  input: JSON.parse(toolCalls[0].input),
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: toolResults[0].toolCallId,
+                  toolName: toolResults[0].toolName,
+                  output: {
+                    type: 'json',
+                    value: toolResults[0].result,
+                  },
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: toolCalls[1].toolCallId,
+                  toolName: toolCalls[1].toolName,
+                  input: JSON.parse(toolCalls[1].input),
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: toolResults[1].toolCallId,
+                  toolName: toolResults[1].toolName,
+                  output: {
+                    type: 'json',
+                    value: toolResults[1].result,
+                  },
+                },
+                { type: 'text', text },
+              ],
+            },
+          ],
+          tools,
+        });
+        await convertReadableStreamToArray(replayResult.stream);
+
+        const replayRequest = await server.calls[1].requestBodyJson;
+        const expectedTranscript = [
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_011fxGj786xCAh2kPk9GMxQw',
+            name: 'bash_code_execution',
+            input: {
+              command: 'for n in $(seq 1 12); do echo "$n: $((n*n))"; done',
+            },
+          },
+          {
+            type: 'bash_code_execution_tool_result',
+            tool_use_id: 'srvtoolu_011fxGj786xCAh2kPk9GMxQw',
+            content: {
+              type: 'bash_code_execution_result',
+              stdout:
+                '1: 1\n2: 4\n3: 9\n4: 16\n5: 25\n6: 36\n7: 49\n8: 64\n9: 81\n10: 100\n11: 121\n12: 144\n',
+              stderr: '',
+              return_code: 0,
+              content: [],
+            },
+          },
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_013eUksWZnfcjFk1iarJsYgM',
+            name: 'bash_code_execution',
+            input: {
+              command:
+                'sum=0; for n in $(seq 1 12); do sum=$((sum + n*n)); done; echo "Sum: $sum"',
+            },
+          },
+          {
+            type: 'bash_code_execution_tool_result',
+            tool_use_id: 'srvtoolu_013eUksWZnfcjFk1iarJsYgM',
+            content: {
+              type: 'bash_code_execution_result',
+              stdout: 'Sum: 650\n',
+              stderr: '',
+              return_code: 0,
+              content: [],
+            },
+          },
+          {
+            type: 'text',
+            text: 'The sum of the squares of the numbers 1 through 12 is **650**.',
+          },
+        ];
+        const replayedTranscript = replayRequest.messages[1].content;
+
+        expect(replayedTranscript).toEqual(expectedTranscript);
+        expect(JSON.stringify(replayedTranscript)).toBe(
+          JSON.stringify(expectedTranscript),
+        );
       });
     });
 
@@ -10057,6 +10316,36 @@ describe('AnthropicLanguageModel', () => {
           expect(
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();
+        });
+
+        it('should preserve dynamic filtering callers', async () => {
+          const streamArray = await convertReadableStreamToArray(result.stream);
+          const codeExecutionCall = streamArray.find(
+            (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          const webFetchCall = streamArray.find(
+            (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+              part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          const webFetchResult = streamArray.find(
+            (
+              part,
+            ): part is LanguageModelV4StreamPart & { type: 'tool-result' } =>
+              part.type === 'tool-result' && part.toolName === 'web_fetch',
+          );
+
+          expect(
+            codeExecutionCall?.providerMetadata?.anthropic?.caller,
+          ).toEqual({ type: 'direct', toolId: undefined });
+          expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+          });
+          expect(webFetchResult?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+          });
         });
       });
     });

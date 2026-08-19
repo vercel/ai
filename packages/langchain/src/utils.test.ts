@@ -61,6 +61,30 @@ function expectObjectPrototypeNotPolluted() {
   }
 }
 
+class AlternateBuildAIMessageChunk {
+  readonly type = 'ai';
+  readonly additional_kwargs = {};
+  readonly response_metadata = {};
+  readonly tool_call_chunks = [];
+
+  constructor(
+    readonly content: string,
+    readonly id: string,
+  ) {}
+
+  _getType() {
+    return this.type;
+  }
+
+  get text() {
+    return this.content;
+  }
+
+  concat() {
+    return this;
+  }
+}
+
 describe('convertToolResultPart', () => {
   it('should convert text output', () => {
     const part: ToolResultPart = {
@@ -798,6 +822,13 @@ describe('isAIMessageChunk', () => {
     expect(isAIMessageChunk(chunk)).toBe(true);
   });
 
+  it('should return true for AIMessageChunk instances from another module build', () => {
+    const chunk = new AlternateBuildAIMessageChunk('Hello', 'msg-1');
+
+    expect(AIMessageChunk.isInstance(chunk)).toBe(false);
+    expect(isAIMessageChunk(chunk)).toBe(true);
+  });
+
   it('should return true for plain objects with type: ai', () => {
     const plainObj = { type: 'ai', content: 'Hello', id: 'msg-1' };
     expect(isAIMessageChunk(plainObj)).toBe(true);
@@ -955,14 +986,18 @@ describe('extractImageOutputs', () => {
 describe('processLangGraphEvent', () => {
   const createMockState = (): LangGraphEventState => ({
     messageSeen: new Map(),
+    messageNamespaces: new Map(),
     messageConcat: new Map(),
+    messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolCallsInCurrentStepByNamespace: new Map(),
     emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStepByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
-    currentStep: null as number | null,
+    currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });
@@ -1396,6 +1431,11 @@ describe('processLangGraphEvent', () => {
         toolCallId: 'call-weather',
         toolName: 'get_weather',
         dynamic: true,
+        providerMetadata: {
+          langchain: {
+            namespace: ['agent:run-1', 'tools:run-2'],
+          },
+        },
       },
       {
         type: 'tool-input-available',
@@ -1403,11 +1443,21 @@ describe('processLangGraphEvent', () => {
         toolName: 'get_weather',
         input: undefined,
         dynamic: true,
+        providerMetadata: {
+          langchain: {
+            namespace: ['agent:run-1', 'tools:run-2'],
+          },
+        },
       },
       {
         type: 'tool-output-available',
         toolCallId: 'call-weather',
         output: 'Sunny',
+        providerMetadata: {
+          langchain: {
+            namespace: ['agent:run-1', 'tools:run-2'],
+          },
+        },
       },
     ]);
   });
@@ -1439,6 +1489,22 @@ describe('processLangGraphEvent', () => {
     const controller = createMockController(chunks);
 
     const aiChunk = new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+    processLangGraphEvent(['messages', [aiChunk]], state, controller);
+
+    expect(chunks).toContainEqual({ type: 'text-start', id: 'msg-1' });
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      delta: 'Hello',
+      id: 'msg-1',
+    });
+  });
+
+  it('should handle AI message chunks from another module build', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+    const aiChunk = new AlternateBuildAIMessageChunk('Hello', 'msg-1');
+
     processLangGraphEvent(['messages', [aiChunk]], state, controller);
 
     expect(chunks).toContainEqual({ type: 'text-start', id: 'msg-1' });
@@ -2009,12 +2075,12 @@ describe('processLangGraphEvent', () => {
     processLangGraphEvent(['messages', [aiChunk, metadata]], state, controller);
 
     expect(chunks).toContainEqual({ type: 'start-step' });
-    expect(state.currentStep).toBe(1);
+    expect(state.currentStepsByNamespace.get('[]')).toBe(1);
   });
 
   it('should emit finish-step and start-step on step change', () => {
     const state = createMockState();
-    state.currentStep = 1;
+    state.currentStepsByNamespace.set('[]', 1);
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
@@ -2025,12 +2091,12 @@ describe('processLangGraphEvent', () => {
 
     expect(chunks[0]).toEqual({ type: 'finish-step' });
     expect(chunks[1]).toEqual({ type: 'start-step' });
-    expect(state.currentStep).toBe(2);
+    expect(state.currentStepsByNamespace.get('[]')).toBe(2);
   });
 
   it('should not emit step events when step unchanged', () => {
     const state = createMockState();
-    state.currentStep = 1;
+    state.currentStepsByNamespace.set('[]', 1);
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
@@ -2048,6 +2114,79 @@ describe('processLangGraphEvent', () => {
         (c as { type: string }).type === 'finish-step',
     );
     expect(stepEvents).toHaveLength(0);
+  });
+
+  it('should attach delayed tool output to a prior step without synthesizing a new input lifecycle', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            content: '',
+            id: 'msg-1',
+            tool_call_chunks: [
+              {
+                id: 'call-1',
+                name: 'get_weather',
+                args: '{"city":"SF"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({ content: 'Waiting', id: 'msg-2' }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-1',
+          name: 'get_weather',
+          output: 'Sunny',
+        },
+      ],
+      state,
+      controller,
+    );
+
+    expect(
+      chunks.filter(
+        chunk =>
+          (chunk as { type: string }).type === 'tool-input-start' ||
+          (chunk as { type: string }).type === 'tool-input-available',
+      ),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+    ]);
+    expect(chunks).toContainEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-1',
+      output: 'Sunny',
+    });
   });
 
   it('should emit tool-output-error for ToolMessage with status error', () => {
@@ -2754,14 +2893,18 @@ describe('processModelChunk - sources', () => {
 describe('processLangGraphEvent - sources', () => {
   const createMockState = (): LangGraphEventState => ({
     messageSeen: new Map(),
+    messageNamespaces: new Map(),
     messageConcat: new Map(),
+    messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolCallsInCurrentStepByNamespace: new Map(),
     emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStepByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
-    currentStep: null as number | null,
+    currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });

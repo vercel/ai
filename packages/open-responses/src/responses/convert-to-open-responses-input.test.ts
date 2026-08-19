@@ -359,6 +359,157 @@ describe('convertToOpenResponsesInput', () => {
         ]
       `);
     });
+
+    it('should convert reasoning parts to reasoning items', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Analyzing the problem step by step',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'reasoning',
+          summary: [],
+          content: [
+            {
+              type: 'reasoning_text',
+              text: 'Analyzing the problem step by step',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should preserve interleaved assistant content order', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Analyzing the problem',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: '{}',
+              },
+              {
+                type: 'text',
+                text: 'Answer after the call',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(
+        Array.isArray(result.input)
+          ? result.input.map(item => item.type)
+          : undefined,
+      ).toEqual(['reasoning', 'function_call', 'message']);
+    });
+
+    it('should preserve reasoning item provider data', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'safe summary',
+                providerOptions: {
+                  'test-provider': {
+                    itemId: 'rs_123',
+                    reasoningSummary: [
+                      { type: 'summary_text', text: 'safe summary' },
+                    ],
+                    reasoningEncryptedContent: 'encrypted-state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          id: 'rs_123',
+          type: 'reasoning',
+          summary: [{ type: 'summary_text', text: 'safe summary' }],
+          content: [{ type: 'reasoning_text', text: 'safe summary' }],
+          encrypted_content: 'encrypted-state',
+        },
+      ]);
+    });
+
+    it('should preserve output text annotations from provider data', async () => {
+      const result = await convertToOpenResponsesInput({
+        providerOptionsName: 'test-provider',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Sourced answer',
+                providerOptions: {
+                  'test-provider': {
+                    itemId: 'msg_123',
+                    annotations: [
+                      {
+                        type: 'url_citation',
+                        start_index: 0,
+                        end_index: 7,
+                        url: 'https://example.com/source',
+                        title: 'Example source',
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toEqual([
+        {
+          id: 'msg_123',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            {
+              type: 'output_text',
+              text: 'Sourced answer',
+              annotations: [
+                {
+                  type: 'url_citation',
+                  start_index: 0,
+                  end_index: 7,
+                  url: 'https://example.com/source',
+                  title: 'Example source',
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('assistant messages with tool calls', () => {
