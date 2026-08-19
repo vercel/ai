@@ -2,6 +2,7 @@ import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { fromUtf8, toUtf8 } from '@smithy/util-utf8';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 
@@ -51,6 +52,42 @@ function createModel(responseChunks: Uint8Array[]) {
 }
 
 describe('BedrockChatLanguageModel doStream event stream handling', () => {
+  it('surfaces a modeled exception frame as an error part and error finish', async () => {
+    const fixture = readFileSync(
+      new URL(
+        './__fixtures__/model-stream-error-exception.eventstream.base64.txt',
+        import.meta.url,
+      ),
+      'utf8',
+    ).trim();
+
+    const { stream } = await createModel([
+      new Uint8Array(Buffer.from(fixture, 'base64')),
+    ]).doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'before error',
+        }),
+        expect.objectContaining({
+          type: 'error',
+          error: expect.objectContaining({
+            message: 'Model Stream Error',
+          }),
+        }),
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: 'error',
+        }),
+      ]),
+    );
+  });
+
   it('surfaces event stream decoding failures', async () => {
     const corruptedFrame = createEvent('contentBlockDelta', {
       contentBlockIndex: 0,

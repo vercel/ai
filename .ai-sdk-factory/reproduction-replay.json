@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 19034,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-modeled-event-stream-exception.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/amazon-bedrock-modeled-event-stream-exception.ts",
+    "packages/amazon-bedrock/src/__fixtures__/model-stream-error-exception.eventstream.base64.txt",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19034 REPRODUCED: modeled Bedrock event-stream exception was dropped instead of emitting an error part and finishReason \"error\"."
+  }
+}
