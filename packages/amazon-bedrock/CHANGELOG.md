@@ -1,5 +1,53 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.59
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- aabc617: fix (provider/amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API and replay it on subsequent turns
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/openai@4.0.44
+  - @ai-sdk/anthropic@4.0.40
+
+## 5.0.58
+
+### Patch Changes
+
+- 1ac9af8: Reject Amazon Bedrock event streams that end with an incomplete buffered frame instead of completing normally with partial output.
+- e0776b9: Surface Amazon Bedrock event stream frame decoding and processing failures instead of silently completing the stream.
+- Updated dependencies [a062795]
+  - @ai-sdk/openai@4.0.43
+
+## 5.0.57
+
+### Patch Changes
+
+- Updated dependencies [b6fff2e]
+  - @ai-sdk/openai@4.0.42
+
+## 5.0.56
+
+### Patch Changes
+
+- Updated dependencies [4579b08]
+  - @ai-sdk/anthropic@4.0.39
+
+## 5.0.55
+
+### Patch Changes
+
+- Updated dependencies [59d6def]
+  - @ai-sdk/openai@4.0.41
+
+## 5.0.54
+
+### Patch Changes
+
+- Updated dependencies [e19a4a6]
+  - @ai-sdk/openai@4.0.40
+
 ## 5.0.53
 
 ### Patch Changes

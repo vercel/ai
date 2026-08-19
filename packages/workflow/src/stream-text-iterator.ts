@@ -7,7 +7,6 @@ import type {
 import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
   type LanguageModel,
@@ -22,6 +21,7 @@ import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import {
   type DoStreamStepRawResult,
   doStreamStep,
+  type ModelCallStreamPart,
   type ModelStopCondition,
   type ParsedToolCall,
   type ProviderExecutedToolResult,
@@ -92,6 +92,16 @@ export interface StreamTextIteratorYieldValue {
   experimental_sandbox?: SandboxSession;
 }
 
+export interface StreamTextIteratorAbortedValue {
+  aborted: true;
+  messages: LanguageModelV4Prompt;
+}
+
+export interface StreamTextIteratorErrorValue {
+  error: unknown;
+  messages: LanguageModelV4Prompt;
+}
+
 // This runs in the workflow context
 export async function* streamTextIterator({
   prompt,
@@ -112,6 +122,7 @@ export async function* streamTextIterator({
   toolsContext,
   telemetry,
   includeRawChunks = false,
+  timeoutAt,
   repairToolCall,
   responseFormat,
   experimental_sandbox: sandbox,
@@ -135,12 +146,15 @@ export async function* streamTextIterator({
   toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions<Context, ToolSet>;
   includeRawChunks?: boolean;
+  timeoutAt?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   experimental_sandbox?: SandboxSession;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV4Prompt,
+  | LanguageModelV4Prompt
+  | StreamTextIteratorAbortedValue
+  | StreamTextIteratorErrorValue,
   LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
@@ -158,6 +172,9 @@ export async function* streamTextIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
+  let wasAborted = false;
+  let terminalError: unknown;
+  let hasTerminalError = false;
 
   // TODO(#12164): replace this AI-core telemetry bridge with a
   // WorkflowAgent-specific typed dispatcher. `streamTextIterator` widens
@@ -319,20 +336,33 @@ export async function* streamTextIterator({
         headers: currentGenerationSettings.headers,
       } as never);
 
+      const streamStepResult = await doStreamStep(
+        conversationPrompt,
+        currentModel,
+        writable,
+        serializedTools,
+        {
+          ...currentGenerationSettings,
+          toolChoice: currentToolChoice,
+          includeRawChunks,
+          timeoutAt,
+          repairToolCall,
+          responseFormat,
+        },
+      );
+
+      if (streamStepResult.aborted) {
+        wasAborted = true;
+        break;
+      }
+
+      if ('terminalError' in streamStepResult) {
+        terminalError = streamStepResult.terminalError;
+        hasTerminalError = true;
+      }
+
       const { toolCalls, finish, raw, providerExecutedToolResults } =
-        await doStreamStep(
-          conversationPrompt,
-          currentModel,
-          writable,
-          serializedTools,
-          {
-            ...currentGenerationSettings,
-            toolChoice: currentToolChoice,
-            includeRawChunks,
-            repairToolCall,
-            responseFormat,
-          },
-        );
+        streamStepResult;
       // Reconstruct the full StepResult outside the step boundary so the
       // durable event log doesn't carry StepResult's redundant copies (or the
       // per-chunk snapshot the step used to return).
@@ -363,7 +393,12 @@ export async function* streamTextIterator({
 
       const finishReason = finish?.finishReason;
 
-      if (finishReason === 'tool-calls') {
+      if (hasTerminalError) {
+        // The error crossed the durable step boundary as data. End the loop
+        // without throwing so WorkflowAgent can preserve the existing
+        // resolved-result contract and expose the original value.
+        done = true;
+      } else if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
         const textContent = step.content.filter(
@@ -486,6 +521,14 @@ export async function* streamTextIterator({
       toolsContext: currentToolsContext,
       experimental_sandbox: sandbox,
     };
+  }
+
+  if (wasAborted) {
+    return { aborted: true, messages: conversationPrompt };
+  }
+
+  if (hasTerminalError) {
+    return { error: terminalError, messages: conversationPrompt };
   }
 
   return conversationPrompt;

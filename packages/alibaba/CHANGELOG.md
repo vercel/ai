@@ -1,5 +1,19 @@
 # @ai-sdk/alibaba
 
+## 2.0.33
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 2.0.32
+
+### Patch Changes
+
+- 0d96385: fix(alibaba): omit historical reasoning from assistant content in multi-turn requests
+
 ## 2.0.31
 
 ### Patch Changes

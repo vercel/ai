@@ -1,5 +1,21 @@
 # @ai-sdk/open-responses
 
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 2.0.28
+
+### Patch Changes
+
+- 3b9f025: Add a provider-native `reasoningEffort` option for Open Responses endpoints.
+- 1c1a9d1: Preserve Open Responses output item order, text annotations, reasoning state, and reasoning part boundaries when replaying manually managed history.
+- 6fe187f: fix(open-responses): close unfinished reasoning stream parts with their original IDs
+- 1d0bdaa: Warn when provider-defined tools are unsupported instead of silently dropping them.
+
 ## 2.0.27
 
 ### Patch Changes

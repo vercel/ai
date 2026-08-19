@@ -1,5 +1,26 @@
 # @ai-sdk/mcp
 
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 2.0.33
+
+### Patch Changes
+
+- 1f29230: feat(mcp): harden oauth client registration according to latest protocol
+- 0c60a40: feat(mcp): add mcp 2026 streamable HTTP support
+- e6a9927: feat(mcp): add the latest 2026 protocol discovery foundation
+
+## 2.0.32
+
+### Patch Changes
+
+- 1011e33: Select MCP OAuth authorization scopes from `WWW-Authenticate` challenges or Protected Resource Metadata.
+
 ## 2.0.31
 
 ### Patch Changes

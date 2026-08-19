@@ -3878,6 +3878,32 @@ describe('AnthropicLanguageModel', () => {
         it('should include web fetch 20260209 tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
         });
+
+        it('should preserve dynamic filtering callers', async () => {
+          const codeExecutionCall = result.content.find(
+            part =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          const webFetchCall = result.content.find(
+            part => part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          const webFetchResult = result.content.find(
+            part =>
+              part.type === 'tool-result' && part.toolName === 'web_fetch',
+          );
+
+          expect(
+            codeExecutionCall?.providerMetadata?.anthropic?.caller,
+          ).toEqual({ type: 'direct', toolId: undefined });
+          expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_015CSHH7X69AhdK9gNzotEeh',
+          });
+          expect(webFetchResult?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_015CSHH7X69AhdK9gNzotEeh',
+          });
+        });
       });
 
       describe('text response without title', () => {
@@ -10296,6 +10322,36 @@ describe('AnthropicLanguageModel', () => {
           expect(
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();
+        });
+
+        it('should preserve dynamic filtering callers', async () => {
+          const streamArray = await convertReadableStreamToArray(result.stream);
+          const codeExecutionCall = streamArray.find(
+            (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          const webFetchCall = streamArray.find(
+            (part): part is LanguageModelV4StreamPart & { type: 'tool-call' } =>
+              part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          const webFetchResult = streamArray.find(
+            (
+              part,
+            ): part is LanguageModelV4StreamPart & { type: 'tool-result' } =>
+              part.type === 'tool-result' && part.toolName === 'web_fetch',
+          );
+
+          expect(
+            codeExecutionCall?.providerMetadata?.anthropic?.caller,
+          ).toEqual({ type: 'direct', toolId: undefined });
+          expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+          });
+          expect(webFetchResult?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+          });
         });
       });
     });

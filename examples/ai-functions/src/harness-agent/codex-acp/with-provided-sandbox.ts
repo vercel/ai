@@ -1,7 +1,7 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -13,12 +13,13 @@ run(async () => {
   });
   const agent = new HarnessAgent({
     harness: createCodexACP(),
-    sandbox: createVercelSandbox({ sandbox }),
   });
+  const sandboxProvider = createVercelSandbox({ sandbox });
+  const sandboxSession = await sandboxProvider.createSession();
 
   let session: Awaited<ReturnType<typeof agent.createSession>> | undefined;
   try {
-    session = await agent.createSession();
+    session = await agent.createSession({ sandboxSession });
     const result = await agent.stream({
       session,
       prompt: 'In one sentence, what is the capital of France?',

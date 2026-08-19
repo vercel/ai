@@ -1,5 +1,89 @@
 # @ai-sdk/workflow
 
+## 2.0.0
+
+### Major Changes
+
+- 3238c04: Upgrade to Workflow 5 and drop Workflow 4 support. Applications must now install Workflow 5, which is currently available under the `beta` tag.
+
+### Patch Changes
+
+- d3cc3fe: Clear partial UI message parts when a WorkflowAgent model-call step is retried.
+- Updated dependencies [e6087c9]
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - @ai-sdk/provider-utils@5.0.28
+  - ai@7.0.70
+
+## 1.0.70
+
+### Patch Changes
+
+- ai@7.0.69
+
+## 1.0.69
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 1.0.68
+
+### Patch Changes
+
+- e6064c5: Honor `WorkflowAgent` model-call retry settings without stacking workflow step retries.
+- 83f9b12: Expose the original value from model stream error parts on resolved WorkflowAgent results without retrying the durable model step.
+  - ai@7.0.67
+
+## 1.0.67
+
+### Patch Changes
+
+- e3325bd: Fix `WorkflowAgent` timeout handling by enforcing absolute deadlines inside durable model-call steps and routing timeouts through abort handling.
+
+## 1.0.66
+
+### Patch Changes
+
+- c661693: Fix the Workflow integration test harness by aligning `@workflow/vitest` with the installed Workflow runtime.
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 1.0.64
+
+### Patch Changes
+
+- ai@7.0.64
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 1.0.62
+
+### Patch Changes
+
+- 419adc7: Honor `maxRetries` and `abortSignal` overrides returned from `prepareCall`.
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
 ## 1.0.61
 
 ### Patch Changes

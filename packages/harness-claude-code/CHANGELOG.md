@@ -1,5 +1,90 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
+## 1.0.79
+
+### Patch Changes
+
+- 54686d6: fix(harness-claude-code): allow bootstrap in sandboxes that require explicit dependency build approval
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+
+## 1.0.77
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+
+## 1.0.76
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- a5ddbb0: fix(harness-claude-code): preserve general `anyOf` and `oneOf` constraints when registering custom tools with the MCP bridge
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness@1.0.73
+
+## 1.0.75
+
+### Patch Changes
+
+- 69bb613: feat(harness): support request transformations in network sandbox abstraction and use it to apply credential brokering when available
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- 4cd4989: chore(harness): decouple bridge based harness bootstrap recipe logic from dynamic params and enforce unique harnesses in `prepareSandboxForHarness()` helper
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness@1.0.72
+
+## 1.0.74
+
+### Patch Changes
+
+- 83fe754: chore(harness): simplify the `auth` param to be a simple string to choose the auth method
+- Updated dependencies [8d717b3]
+  - @ai-sdk/harness@1.0.71
+
+## 1.0.73
+
+### Patch Changes
+
+- 616730a: fix(harness): fix missing reasoning controls
+
+## 1.0.72
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.70
+
+## 1.0.71
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.69
+
+## 1.0.70
+
+### Patch Changes
+
+- 5cc654f: fix(harness-claude-code): fix bridge WebSocket startup so an immediate `bridge-hello` frame cannot be missed before the listener is attached
+- f133c4c: fix(harness-claude-code): exclude subagent messages from parent step usage and tool-call tracking
+  - @ai-sdk/harness@1.0.68
+
 ## 1.0.69
 
 ### Patch Changes

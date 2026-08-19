@@ -1,13 +1,10 @@
 import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   commonTool,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
-  type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
@@ -16,6 +13,7 @@ import {
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1Skill,
@@ -23,18 +21,22 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   markBridgeStarting,
+  maskSandboxCredentials,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
+  safeParseJSON,
   tool,
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession,
@@ -42,6 +44,13 @@ import {
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
+  getOpenCodeBootstrap,
+  OPENCODE_BOOTSTRAP_DIR as BOOTSTRAP_DIR,
+} from './opencode-bootstrap';
+import {
+  createOpenCodeRequestTransformations,
+  OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  resolveOpenCodeAuthenticationMode,
   resolveOpenCodeEnv,
   splitOpenCodeModel,
   type OpenCodeAuthOptions,
@@ -192,8 +201,6 @@ const OPENCODE_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
-const BOOTSTRAP_DIR = '.harness-bootstrap/opencode';
-
 const openCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
@@ -219,48 +226,44 @@ export function createOpenCode(
       'OpenCode MCP server name "harness-tools" is reserved for HarnessAgent tools.',
     );
   }
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
-
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'opencode',
     builtinTools: OPENCODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
     lifecycleStateSchema: openCodeResumeStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
-        readBridgeAsset('package.json'),
-        readBridgeAsset('pnpm-lock.yaml'),
-        readBridgeAsset('index.mjs'),
-        readBridgeAsset('host-tool-mcp.mjs'),
-      ]);
-      cachedBootstrap = {
-        harnessId: 'opencode',
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
-          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-          {
-            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
-            content: hostToolMcp,
-          },
-        ],
-        commands: [
-          {
-            command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-          },
-          {
-            command:
-              'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
+      const authenticationMode = resolveOpenCodeAuthenticationMode({
+        auth: settings.auth,
+        model: settings.model,
+        provider: settings.provider,
+      });
+      const resolvedAuthEnvironment = resolveOpenCodeEnv({
+        auth: settings.auth,
+        model: settings.model,
+        provider: settings.provider,
+      });
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      if (sandboxSession.addRequestTransformations != null) {
+        const requestTransformations = createOpenCodeRequestTransformations(
+          resolvedAuthEnvironment,
+          authenticationMode,
+        );
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        sandboxAuthEnvironment = maskSandboxCredentials({
+          environment: resolvedAuthEnvironment,
+          credentialEnvironmentVariables:
+            OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      } else {
+        warnCredentialBrokeringUnavailable();
+      }
       const session = sandboxSession.restricted();
       const sandboxId = sandboxSession.id;
       const bootstrapDir = path.posix.resolve(
@@ -307,13 +310,24 @@ export function createOpenCode(
 
       if (coords) {
         try {
-          const attachUrl =
-            (await sandboxSession.getPortUrl({
-              port: coords.port,
-              protocol: 'ws',
-            })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+          const endpoint = await sandboxSession.getPortEndpoint({
+            port: coords.port,
+            protocol: 'ws',
+          });
+          const attachEndpoint = withBridgeToken({
+            endpoint,
+            token: coords.token,
+          });
+          let supportsUserMessageResponses = false;
           const attachChannel: OpenCodeChannel = new SandboxChannel({
-            connect: () => openWebSocket(attachUrl),
+            connect: () =>
+              openWebSocket({
+                endpoint: attachEndpoint,
+                helloTimeoutMs: Math.min(timeoutMs, 5_000),
+                onHello: supported => {
+                  supportsUserMessageResponses = supported;
+                },
+              }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -338,6 +352,7 @@ export function createOpenCode(
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
+            supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {}
       }
@@ -380,11 +395,7 @@ export function createOpenCode(
             })
           : undefined;
       const env = {
-        ...resolveOpenCodeEnv({
-          auth: settings.auth,
-          model: settings.model,
-          provider: settings.provider,
-        }),
+        ...sandboxAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
@@ -452,14 +463,22 @@ export function createOpenCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const wsUrl =
-        (await sandboxSession.getPortUrl({
-          port: boundPort,
-          protocol: 'ws',
-        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
+      const endpoint = await sandboxSession.getPortEndpoint({
+        port: boundPort,
+        protocol: 'ws',
+      });
+      const bridgeEndpoint = withBridgeToken({ endpoint, token });
+      let supportsUserMessageResponses = false;
 
       const channel: OpenCodeChannel = new SandboxChannel({
-        connect: () => openWebSocket(wsUrl),
+        connect: () =>
+          openWebSocket({
+            endpoint: bridgeEndpoint,
+            helloTimeoutMs: Math.min(timeoutMs, 5_000),
+            onHello: supported => {
+              supportsUserMessageResponses = supported;
+            },
+          }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -489,6 +508,7 @@ export function createOpenCode(
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
+        supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
   };
@@ -506,24 +526,6 @@ function resolveBridgePort(
       'The OpenCode harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createOpenCode({ port })`.',
   });
-}
-
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }
 
 async function writeOpenCodeSkills({
@@ -552,20 +554,116 @@ async function writeOpenCodeSkills({
   return { skillsDir };
 }
 
-function openWebSocket(url: string): Promise<WebSocket> {
+function openWebSocket({
+  endpoint,
+  helloTimeoutMs,
+  onHello,
+}: {
+  endpoint: HarnessV1PortEndpoint;
+  helloTimeoutMs: number;
+  onHello(supportsUserMessageResponses: boolean): void;
+}): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
-    const onOpen = () => {
-      ws.off('error', onError);
-      resolve(ws);
-    };
-    const onError = (err: Error) => {
+    const ws = new WebSocket(endpoint.url, {
+      headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
+    });
+    let opened = false;
+    let receivedHello = false;
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(helloTimer);
       ws.off('open', onOpen);
-      reject(err);
+      ws.off('message', onMessage);
+      ws.off('close', onClose);
+      ws.off('error', onError);
     };
-    ws.once('open', onOpen);
-    ws.once('error', onError);
+    const settle = (error?: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error == null) {
+        resolve(ws);
+      } else {
+        reject(error);
+      }
+    };
+    const tryResolve = () => {
+      if (opened && receivedHello) settle();
+    };
+    const onOpen = () => {
+      opened = true;
+      tryResolve();
+    };
+    const onMessage = (raw: unknown) => {
+      void (async () => {
+        const parsed = await safeParseJSON({
+          text: webSocketMessageToString(raw),
+        });
+        if (!parsed.success) return;
+        const value = parsed.value;
+        if (
+          typeof value !== 'object' ||
+          value == null ||
+          Array.isArray(value) ||
+          (value as { type?: unknown }).type !== 'bridge-hello'
+        ) {
+          return;
+        }
+        const capabilities = (
+          value as {
+            capabilities?: { experimental_userMessageResponses?: unknown };
+          }
+        ).capabilities;
+        onHello(capabilities?.experimental_userMessageResponses === true);
+        receivedHello = true;
+        tryResolve();
+      })();
+    };
+    const onClose = () =>
+      settle(new Error('OpenCode bridge closed before sending bridge-hello.'));
+    const onError = (err: Error) => {
+      settle(err);
+    };
+    ws.on('open', onOpen);
+    ws.on('message', onMessage);
+    ws.on('close', onClose);
+    ws.on('error', onError);
+    const helloTimer = setTimeout(
+      () =>
+        settle(
+          new Error(
+            `OpenCode bridge did not send bridge-hello within ${helloTimeoutMs}ms.`,
+          ),
+        ),
+      helloTimeoutMs,
+    );
+    helloTimer.unref?.();
   });
+}
+
+function webSocketMessageToString(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
+  if (ArrayBuffer.isView(raw)) {
+    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
+      'utf8',
+    );
+  }
+  return String(raw);
+}
+
+function withBridgeToken({
+  endpoint,
+  token,
+}: {
+  endpoint: HarnessV1PortEndpoint;
+  token: string;
+}): HarnessV1PortEndpoint {
+  const bridgeUrl = new URL(endpoint.url);
+  bridgeUrl.searchParams.set('agent_bridge_token', token);
+  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function createSession({
@@ -586,6 +684,7 @@ function createSession({
   debug,
   permissionMode,
   builtinToolFiltering,
+  supportsUserMessageResponses,
 }: {
   sessionId: string;
   channel: OpenCodeChannel;
@@ -604,6 +703,7 @@ function createSession({
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
+  supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -617,7 +717,6 @@ function createSession({
   channel.on('bridge-thread', msg => {
     latestOpenCodeSessionId = msg.threadId;
   });
-
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
@@ -629,6 +728,13 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? experimental_createBridgeUserMessageSubmitter({
+          send: message => channel.send(message),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
 
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
@@ -658,6 +764,7 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       activeTurn = false;
+      userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
     };
@@ -665,6 +772,7 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       activeTurn = false;
+      userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -742,9 +850,13 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
+      ...(userMessageSubmitter == null
+        ? {}
+        : {
+            submitUserMessage: async (text: string) => {
+              await userMessageSubmitter.submit(text);
+            },
+          }),
       done,
     };
   };
@@ -769,6 +881,16 @@ function createSession({
     isResume,
     modelId: model,
     doPromptTurn: async promptOpts => {
+      if (
+        promptOpts.responseFormat?.type === 'json' &&
+        promptOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'opencode' requires a JSON schema for structured output.",
+          harnessId: 'opencode',
+        });
+      }
       const control = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
@@ -782,6 +904,9 @@ function createSession({
           description: t.description,
           inputSchema: t.inputSchema,
         })),
+        ...(promptOpts.responseFormat == null
+          ? {}
+          : { responseFormat: promptOpts.responseFormat }),
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
@@ -791,6 +916,16 @@ function createSession({
       return control;
     },
     doContinueTurn: async continueOpts => {
+      if (
+        continueOpts.responseFormat?.type === 'json' &&
+        continueOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'opencode' requires a JSON schema for structured output.",
+          harnessId: 'opencode',
+        });
+      }
       const control = wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
@@ -805,6 +940,9 @@ function createSession({
             description: t.description,
             inputSchema: t.inputSchema,
           })),
+          ...(continueOpts.responseFormat == null
+            ? {}
+            : { responseFormat: continueOpts.responseFormat }),
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
             : {}),

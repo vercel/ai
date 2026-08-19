@@ -5,7 +5,7 @@ WorkflowAgent is a class for building durable AI agents that can maintain state 
 ## Installation
 
 ```bash
-npm install @ai-sdk/workflow ai
+npm install @ai-sdk/workflow ai workflow@beta
 ```
 
 ## Usage
