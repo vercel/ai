@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 19062,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-redacted-content.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/amazon-bedrock-redacted-content.ts",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-redacted-content.json",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-redacted-content.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19062_REPRODUCED: valid Bedrock redactedContent breaks AI SDK tool calls"
+  }
+}

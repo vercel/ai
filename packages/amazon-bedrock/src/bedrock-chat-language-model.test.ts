@@ -250,7 +250,7 @@ describe('doStream', () => {
   vi.mock('./bedrock-event-stream-response-handler', () => ({
     createBedrockEventStreamResponseHandler: (schema: any) => {
       return async ({ response }: { response: Response }) => {
-        let chunks: { success: boolean; value: any }[] = [];
+        let chunks: any[] = [];
         if (mockOptions.success) {
           const text = await response.text();
           chunks = text
@@ -258,11 +258,17 @@ describe('doStream', () => {
             .filter(Boolean)
             .map(chunk => {
               const parsedChunk = JSON.parse(chunk);
-              return {
-                success: true,
-                value: parsedChunk,
-                rawValue: parsedChunk,
-              };
+              const result = schema.safeParse(parsedChunk);
+              return result.success
+                ? {
+                    success: true,
+                    value: result.data,
+                    rawValue: parsedChunk,
+                  }
+                : {
+                    success: false,
+                    error: result.error,
+                  };
             });
         }
         const headers = Object.fromEntries<string>([...response.headers]);
@@ -1546,6 +1552,31 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should accept and surface live reasoningContent.redactedContent deltas', async () => {
+    setupMockEventStreamHandler();
+    prepareChunksFixtureResponse('amazon-bedrock-redacted-content');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const errorPart = parts.find(part => part.type === 'error');
+    const reasoningPart = parts.find(
+      part =>
+        (part.type === 'reasoning-start' ||
+          part.type === 'reasoning-delta' ||
+          part.type === 'reasoning-end') &&
+        part.providerMetadata?.bedrock?.redactedContent ===
+          'cnNuX3BVUGgxNnRvNFZLWURnSkFQeW1iRUFJRmVK',
+    );
+
+    expect(errorPart).toBeUndefined();
+    expect(reasoningPart).toBeDefined();
+    expect(parts.some(part => part.type === 'tool-call')).toBe(true);
   });
 
   it('should include raw chunks when includeRawChunks is true', async () => {
@@ -3788,6 +3819,30 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should accept and surface live reasoningContent.redactedContent responses', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-redacted-content');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toContainEqual({
+      type: 'reasoning',
+      text: '',
+      providerMetadata: {
+        bedrock: {
+          redactedContent: 'cnNuX3BVUGgxNnRvNFZLWURnSkFQeW1iRUFJRmVD',
+        },
+      },
+    });
+    expect(result.content).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-call',
+        toolName: 'propose',
+      }),
+    );
   });
 
   it('should handle multiple reasoning blocks', async () => {
