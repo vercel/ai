@@ -2,7 +2,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createStitchableStream } from './create-stitchable-stream';
 
 describe('createStitchableStream', () => {
@@ -131,6 +131,24 @@ describe('createStitchableStream', () => {
       await expect(convertReadableStreamToArray(stream)).rejects.toThrow(
         'Test error',
       );
+    });
+
+    it('should call the inner stream error callback', async () => {
+      const { stream, addStream } = createStitchableStream<number>();
+      const onError = vi.fn();
+      const error = new Error('Test error');
+
+      addStream(
+        new ReadableStream({
+          start(controller) {
+            controller.error(error);
+          },
+        }),
+        { onError },
+      );
+
+      await expect(convertReadableStreamToArray(stream)).rejects.toBe(error);
+      expect(onError).toHaveBeenCalledWith(error);
     });
   });
 
