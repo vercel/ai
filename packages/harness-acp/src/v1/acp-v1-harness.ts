@@ -15,7 +15,6 @@ import {
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
   createBridgeErrorHandler,
-  experimental_createBridgeUserMessageSubmitter,
   createBridgeStartupError,
   classifyDiskLog,
   drainBridgeProcessStream,
@@ -947,17 +946,12 @@ function createSession({
   let initialGuidanceApplied = initialGuidanceAppliedAtStart;
   let latestACPSessionId = acpSessionIdAtStart;
   let latestTurnStartConfig = turnStartConfigAtStart;
-  let supportsUserMessageResponses = false;
 
   const markTurnFinished = () => {
     turnInFlight = false;
   };
   channel.on('bridge-thread', event => {
     latestACPSessionId = event.threadId;
-  });
-  channel.on('bridge-hello', event => {
-    supportsUserMessageResponses =
-      event.capabilities?.experimental_userMessageResponses === true;
   });
   channel.on('finish', markTurnFinished);
   channel.on('error', markTurnFinished);
@@ -988,15 +982,6 @@ function createSession({
     const dynamicToolCalls = new Map<string, boolean>();
     const toolCallClassificationErrors = new Map<string, unknown>();
     const subscriptions: Array<() => void> = [];
-    const userMessageSubmitter =
-      harnessId === 'grok-build' && supportsUserMessageResponses
-        ? experimental_createBridgeUserMessageSubmitter({
-            send: message => channel.send(message),
-            onResponse: listener =>
-              channel.on('user-message-response', listener),
-            onReconnect: listener => channel.onReconnect(listener),
-          })
-        : undefined;
     const forward = (event: HarnessV1StreamPart) => {
       if (event.type === 'text-start' || event.type === 'reasoning-start') {
         openBlock = {
@@ -1036,7 +1021,6 @@ function createSession({
       'raw',
     ] as const;
     const cleanup = () => {
-      userMessageSubmitter?.close();
       for (const unsubscribe of subscriptions) unsubscribe();
       if (abortListenerAttached) {
         abortSignal?.removeEventListener('abort', onAbort);
@@ -1162,13 +1146,6 @@ function createSession({
           isError: input.isError,
         });
       },
-      ...(userMessageSubmitter == null
-        ? {}
-        : {
-            submitUserMessage: async (text: string) => {
-              await userMessageSubmitter.submit(text);
-            },
-          }),
       done,
     };
   };

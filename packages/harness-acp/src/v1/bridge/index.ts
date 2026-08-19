@@ -260,14 +260,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       emitStreamEvent.removeHostToolCorrelationInvocation,
   };
   hostToolRelay?.bindTurn({ turn: relayTurn });
-  const userMessageTask =
-    bridgeType === 'grok-build'
-      ? submitGrokBuildUserMessages({
-          turn,
-          agent: connection!.agent,
-          sessionId: activeSession.sessionId,
-        })
-      : undefined;
   try {
     const promptMeta = createOutputSchemaPromptMeta({ start });
     void promptActiveSession({
@@ -318,46 +310,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       for (const rawValue of streamCapture?.drainRawValues() ?? []) {
         emitStreamEvent.raw({ rawValue });
       }
-      if (emitStreamEvent.message({ message })) {
-        turn.experimental_userMessages.close(
-          new Error(
-            'The ACP prompt turn finished before steering was accepted.',
-          ),
-        );
-        await userMessageTask;
-        return;
-      }
+      if (emitStreamEvent.message({ message })) return;
     }
   } finally {
-    turn.experimental_userMessages.close(
-      new Error('The ACP prompt turn ended before steering was accepted.'),
-    );
-    await userMessageTask;
     permissionController.cancelAll();
     activePermissionController = undefined;
     hostToolRelay?.unbindTurn({ turn: relayTurn });
-  }
-}
-
-async function submitGrokBuildUserMessages({
-  turn,
-  agent,
-  sessionId,
-}: {
-  turn: BridgeTurn;
-  agent: acp.ClientContext;
-  sessionId: string;
-}): Promise<void> {
-  for await (const message of turn.experimental_userMessages) {
-    try {
-      await agent.request('_x.ai/interject', {
-        sessionId,
-        text: message.text,
-      });
-      message.accept();
-    } catch (error) {
-      message.reject(error);
-    }
   }
 }
 

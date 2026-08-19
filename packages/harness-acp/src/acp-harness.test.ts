@@ -104,9 +104,6 @@ const harnessUtilsMocks = vi.hoisted(() => {
     onClose(handler: (code: number, reason: string) => void): void {
       this.closeHandlers.add(handler);
     }
-    onReconnect(): () => void {
-      return () => {};
-    }
     send(message: unknown): void {
       this.sent.push(message);
       if (message == null || typeof message !== 'object') return;
@@ -442,87 +439,6 @@ describe('createACP', () => {
         ...agentSettings,
       }).specificationVersion,
     ).toBe('harness-v1');
-  });
-
-  it('exposes acknowledged steering only for the Grok Build profile', async () => {
-    const grokHarness = createACP({
-      harnessId: 'grok-build',
-      ...agentSettings,
-    });
-    const grokSession = await grokHarness.doStart({
-      sessionId: 'session-grok',
-      sandboxSession: fakeSandbox({
-        runs: [],
-        spawns: [],
-        stop: async () => {},
-      }),
-      sessionWorkDir: '/workspace/user-project',
-    });
-    const grokChannel = harnessUtilsMocks.channels[0]!;
-    grokChannel.emit({
-      type: 'bridge-hello',
-      capabilities: { experimental_userMessageResponses: true },
-    });
-    const grokControl = await grokSession.doPromptTurn({
-      prompt: 'Weather in Paris?',
-      emit: () => {},
-    });
-    const steering = grokControl.submitUserMessage?.('Actually, Paris, Texas.');
-    const steeringRequest = grokChannel.sent.find(
-      (message): message is Record<string, unknown> =>
-        message != null &&
-        typeof message === 'object' &&
-        Reflect.get(message, 'type') === 'user-message',
-    );
-    expect(steeringRequest).toMatchObject({
-      type: 'user-message',
-      messageId: expect.any(String),
-      text: 'Actually, Paris, Texas.',
-    });
-    grokChannel.emit({
-      type: 'user-message-response',
-      messageId: steeringRequest!.messageId,
-      accepted: true,
-    });
-    await expect(steering).resolves.toBeUndefined();
-    grokChannel.emit({
-      type: 'finish',
-      finishReason: { unified: 'stop', raw: 'end_turn' },
-      totalUsage: unknownUsage(),
-    });
-    await grokControl.done;
-    await grokSession.doDestroy();
-
-    const genericHarness = createACP({
-      harnessId: 'codex-acp',
-      ...agentSettings,
-    });
-    const genericSession = await genericHarness.doStart({
-      sessionId: 'session-generic',
-      sandboxSession: fakeSandbox({
-        runs: [],
-        spawns: [],
-        stop: async () => {},
-      }),
-      sessionWorkDir: '/workspace/user-project',
-    });
-    const genericChannel = harnessUtilsMocks.channels[1]!;
-    genericChannel.emit({
-      type: 'bridge-hello',
-      capabilities: { experimental_userMessageResponses: true },
-    });
-    const genericControl = await genericSession.doPromptTurn({
-      prompt: 'Weather in Paris?',
-      emit: () => {},
-    });
-    expect(genericControl.submitUserMessage).toBeUndefined();
-    genericChannel.emit({
-      type: 'finish',
-      finishReason: { unified: 'stop', raw: 'end_turn' },
-      totalUsage: unknownUsage(),
-    });
-    await genericControl.done;
-    await genericSession.doDestroy();
   });
 
   it('requires credential environment and brokering settings together', () => {
