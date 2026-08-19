@@ -357,7 +357,7 @@ export class HarnessAgentSession {
    * The runtime accepts the message for its next safe input boundary. Output
    * caused by the message remains part of the active turn's result stream.
    */
-  async steerTurn(text: string): Promise<void> {
+  async experimental_steerTurn(text: string): Promise<void> {
     this.requireReusableSession();
     const activePromptControl = this.activePromptControl;
     if (

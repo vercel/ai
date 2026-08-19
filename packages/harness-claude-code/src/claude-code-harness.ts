@@ -21,7 +21,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
-  createBridgeUserMessageSubmitter,
+  experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
@@ -34,7 +34,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
-  type BridgeUserMessageSubmitter,
+  type Experimental_BridgeUserMessageSubmitter,
 } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
@@ -1268,10 +1268,10 @@ function openWebSocketAndWaitForBridgeHello({
         ) {
           const capabilities = (
             value as {
-              capabilities?: { userMessageResponses?: unknown };
+              capabilities?: { experimental_userMessageResponses?: unknown };
             }
           ).capabilities;
-          onHello(capabilities?.userMessageResponses === true);
+          onHello(capabilities?.experimental_userMessageResponses === true);
           sawBridgeHello = true;
           tryResolve();
         }
@@ -1416,7 +1416,9 @@ function createSession({
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
-  let activeUserMessageSubmitter: BridgeUserMessageSubmitter | undefined;
+  let activeUserMessageSubmitter:
+    | Experimental_BridgeUserMessageSubmitter
+    | undefined;
   /*
    * Force the Claude SDK's `continue: true` on the first prompt only when the
    * bridge was respawned (rerun/replay): a fresh bridge process treats its
@@ -1443,7 +1445,7 @@ function createSession({
       pendingReject = reject;
     });
     const userMessageSubmitter = supportsUserMessageResponses()
-      ? createBridgeUserMessageSubmitter({
+      ? experimental_createBridgeUserMessageSubmitter({
           send: message => channel.send(message),
           onResponse: listener => channel.on('user-message-response', listener),
           onReconnect: listener => channel.onReconnect(listener),

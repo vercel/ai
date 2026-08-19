@@ -8,8 +8,8 @@ import {
   runBridge,
   type BridgeEvent,
   type BridgeTurn,
-  type BridgeUserMessage,
-  type BridgeUserMessageQueue,
+  type Experimental_BridgeUserMessage,
+  type Experimental_BridgeUserMessageQueue,
 } from '@ai-sdk/harness/bridge';
 import { createCompactionLatch } from './compaction-latch';
 import type { StartMessage } from '../claude-code-bridge-protocol';
@@ -316,7 +316,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const queryInput = createQueryInput({
     initialUserMessage: start.prompt,
-    userMessages: turn.userMessages,
+    userMessages: turn.experimental_userMessages,
     abortSignal: abortCtl.signal,
   });
   const skillsOption = toClaudeSkillsOption(start.skills);
@@ -510,7 +510,7 @@ function createQueryInput({
   abortSignal,
 }: {
   initialUserMessage: string;
-  userMessages: BridgeUserMessageQueue;
+  userMessages: Experimental_BridgeUserMessageQueue;
   abortSignal: AbortSignal;
 }): {
   input: AsyncIterable<unknown>;
@@ -522,7 +522,7 @@ function createQueryInput({
 } {
   let closed = false;
   let observedResult = false;
-  const submittedMessages = new Map<string, BridgeUserMessage>();
+  const submittedMessages = new Map<string, Experimental_BridgeUserMessage>();
   const close = (error?: unknown): void => {
     if (closed) return;
     closed = true;

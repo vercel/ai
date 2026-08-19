@@ -135,12 +135,12 @@ export const harnessV1BridgeHelloSchema = z.object({
   lastSeq: z.number().optional(),
   capabilities: z
     .object({
-      userMessageResponses: z.boolean().optional(),
+      experimental_userMessageResponses: z.boolean().optional(),
     })
     .optional(),
 });
 
-export const harnessV1BridgeUserMessageResponseSchema = z.object({
+export const experimental_harnessV1BridgeUserMessageResponseSchema = z.object({
   type: z.literal('user-message-response'),
   messageId: z.string(),
   accepted: z.boolean(),
@@ -223,7 +223,7 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1ErrorPartSchema,
     harnessV1RawPartSchema,
     harnessV1BridgeHelloSchema,
-    harnessV1BridgeUserMessageResponseSchema,
+    experimental_harnessV1BridgeUserMessageResponseSchema,
     harnessV1BridgeStopSchema,
     harnessV1BridgeThreadSchema,
     harnessV1BridgeSandboxLogSchema,
@@ -235,8 +235,8 @@ export type HarnessV1BridgeOutboundMessage = z.infer<
   typeof harnessV1BridgeOutboundMessageSchema
 >;
 
-export type HarnessV1BridgeUserMessageResponse = z.infer<
-  typeof harnessV1BridgeUserMessageResponseSchema
+export type Experimental_HarnessV1BridgeUserMessageResponse = z.infer<
+  typeof experimental_harnessV1BridgeUserMessageResponseSchema
 >;
 
 export type HarnessV1BridgeSandboxLog = z.infer<
@@ -298,7 +298,7 @@ export const harnessV1BridgeToolApprovalResponseInboundSchema = z.object({
   reason: z.string().optional(),
 });
 
-export const harnessV1BridgeUserMessageInboundSchema = z.object({
+export const experimental_harnessV1BridgeUserMessageInboundSchema = z.object({
   type: z.literal('user-message'),
   messageId: z.string(),
   text: z.string(),
@@ -337,7 +337,7 @@ export const harnessV1BridgeStopInboundSchema = z.object({
 export const harnessV1BridgeInboundCommandSchemas = [
   harnessV1BridgeToolResultInboundSchema,
   harnessV1BridgeToolApprovalResponseInboundSchema,
-  harnessV1BridgeUserMessageInboundSchema,
+  experimental_harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeAbortInboundSchema,
   harnessV1BridgeDestroyInboundSchema,
   harnessV1BridgeResumeInboundSchema,

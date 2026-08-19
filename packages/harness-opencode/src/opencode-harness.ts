@@ -21,7 +21,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
-  createBridgeUserMessageSubmitter,
+  experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
@@ -620,7 +620,7 @@ function createSession({
   });
   channel.on('bridge-hello', msg => {
     supportsUserMessageResponses =
-      msg.capabilities?.userMessageResponses === true;
+      msg.capabilities?.experimental_userMessageResponses === true;
   });
 
   const wireTurn = (turnOpts: {
@@ -635,7 +635,7 @@ function createSession({
       pendingReject = reject;
     });
     const userMessageSubmitter = supportsUserMessageResponses
-      ? createBridgeUserMessageSubmitter({
+      ? experimental_createBridgeUserMessageSubmitter({
           send: message => channel.send(message),
           onResponse: listener => channel.on('user-message-response', listener),
           onReconnect: listener => channel.onReconnect(listener),

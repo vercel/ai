@@ -122,7 +122,7 @@ describe('runBridge', () => {
     expect(hello).toMatchObject({
       type: 'bridge-hello',
       state: 'waiting',
-      capabilities: { userMessageResponses: true },
+      capabilities: { experimental_userMessageResponses: true },
     });
 
     client.send({ type: 'start' });
@@ -212,7 +212,7 @@ describe('runBridge', () => {
     });
     const handle = await startBridge({
       onStart: async (_start, turn) => {
-        for await (const message of turn.userMessages) {
+        for await (const message of turn.experimental_userMessages) {
           turn.emit({ type: 'user-message-observed', text: message.text });
           message.accept();
           await turnReleased;
@@ -250,7 +250,7 @@ describe('runBridge', () => {
     let observedCount = 0;
     const handle = await startBridge({
       onStart: async (_start, turn) => {
-        for await (const message of turn.userMessages) {
+        for await (const message of turn.experimental_userMessages) {
           observedCount++;
           message.accept();
           await turnReleased;

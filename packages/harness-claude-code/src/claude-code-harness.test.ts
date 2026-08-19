@@ -878,7 +878,7 @@ describe('createClaudeCode adapter', () => {
             'message',
             JSON.stringify({
               type: 'bridge-hello',
-              capabilities: { userMessageResponses: true },
+              capabilities: { experimental_userMessageResponses: true },
             }),
           );
         });

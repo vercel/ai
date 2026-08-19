@@ -1,19 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  createBridgeUserMessageSubmitter,
-  type BridgeUserMessageRequest,
-  type BridgeUserMessageResponse,
+  experimental_createBridgeUserMessageSubmitter,
+  type Experimental_BridgeUserMessageRequest,
+  type Experimental_BridgeUserMessageResponse,
 } from './bridge-user-message-submitter';
 
 function setup() {
-  const sent: BridgeUserMessageRequest[] = [];
+  const sent: Experimental_BridgeUserMessageRequest[] = [];
   let responseListener:
-    | ((response: BridgeUserMessageResponse) => void)
+    | ((response: Experimental_BridgeUserMessageResponse) => void)
     | undefined;
   let reconnectListener: (() => void) | undefined;
   const unsubscribeResponse = vi.fn();
   const unsubscribeReconnect = vi.fn();
-  const submitter = createBridgeUserMessageSubmitter({
+  const submitter = experimental_createBridgeUserMessageSubmitter({
     send: message => sent.push(message),
     onResponse: listener => {
       responseListener = listener;
@@ -27,7 +27,7 @@ function setup() {
   return {
     submitter,
     sent,
-    respond: (response: BridgeUserMessageResponse) =>
+    respond: (response: Experimental_BridgeUserMessageResponse) =>
       responseListener?.(response),
     reconnect: () => reconnectListener?.(),
     unsubscribeResponse,
@@ -35,7 +35,7 @@ function setup() {
   };
 }
 
-describe('createBridgeUserMessageSubmitter', () => {
+describe('experimental_createBridgeUserMessageSubmitter', () => {
   it('resolves only after the matching acceptance response', async () => {
     const { submitter, sent, respond } = setup();
     const steering = submitter.submit('Change course.');

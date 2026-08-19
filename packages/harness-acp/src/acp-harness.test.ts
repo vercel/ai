@@ -461,7 +461,7 @@ describe('createACP', () => {
     const grokChannel = harnessUtilsMocks.channels[0]!;
     grokChannel.emit({
       type: 'bridge-hello',
-      capabilities: { userMessageResponses: true },
+      capabilities: { experimental_userMessageResponses: true },
     });
     const grokControl = await grokSession.doPromptTurn({
       prompt: 'Weather in Paris?',
@@ -509,7 +509,7 @@ describe('createACP', () => {
     const genericChannel = harnessUtilsMocks.channels[1]!;
     genericChannel.emit({
       type: 'bridge-hello',
-      capabilities: { userMessageResponses: true },
+      capabilities: { experimental_userMessageResponses: true },
     });
     const genericControl = await genericSession.doPromptTurn({
       prompt: 'Weather in Paris?',

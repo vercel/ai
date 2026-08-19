@@ -1,39 +1,39 @@
-export type BridgeUserMessageRequest = {
+export type Experimental_BridgeUserMessageRequest = {
   type: 'user-message';
   messageId: string;
   text: string;
 };
 
-export type BridgeUserMessageResponse = {
+export type Experimental_BridgeUserMessageResponse = {
   type: 'user-message-response';
   messageId: string;
   accepted: boolean;
   error?: { message: string };
 };
 
-export type BridgeUserMessageSubmitter = {
+export type Experimental_BridgeUserMessageSubmitter = {
   submit(text: string): Promise<void>;
   close(error?: unknown): void;
 };
 
-export function createBridgeUserMessageSubmitter(options: {
-  send(message: BridgeUserMessageRequest): void;
+export function experimental_createBridgeUserMessageSubmitter(options: {
+  send(message: Experimental_BridgeUserMessageRequest): void;
   onResponse(
-    listener: (response: BridgeUserMessageResponse) => void,
+    listener: (response: Experimental_BridgeUserMessageResponse) => void,
   ): () => void;
   onReconnect(listener: () => void): () => void;
-}): BridgeUserMessageSubmitter {
+}): Experimental_BridgeUserMessageSubmitter {
   const pending = new Map<
     string,
     {
-      request: BridgeUserMessageRequest;
+      request: Experimental_BridgeUserMessageRequest;
       resolve(): void;
       reject(error: unknown): void;
     }
   >();
   let closed = false;
 
-  const send = (request: BridgeUserMessageRequest): void => {
+  const send = (request: Experimental_BridgeUserMessageRequest): void => {
     try {
       options.send(request);
     } catch (error) {
@@ -70,7 +70,7 @@ export function createBridgeUserMessageSubmitter(options: {
         );
       }
       const messageId = crypto.randomUUID();
-      const request: BridgeUserMessageRequest = {
+      const request: Experimental_BridgeUserMessageRequest = {
         type: 'user-message',
         messageId,
         text,

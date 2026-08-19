@@ -149,7 +149,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   } catch (err) {
     turn.emitError({ error: err, message: 'OpenCode turn failed' });
   } finally {
-    turn.userMessages.close();
+    turn.experimental_userMessages.close();
     emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'stop' },
@@ -636,7 +636,7 @@ async function runPrompt({
       if (isStepSettlementEvent(event)) {
         if (event.type === 'session.error') {
           terminalError = formatError(event.properties?.error ?? event);
-          turn.userMessages.close(new Error(terminalError));
+          turn.experimental_userMessages.close(new Error(terminalError));
           turnSettled.resolve();
           return true;
         }
@@ -651,10 +651,10 @@ async function runPrompt({
         sawBusy = false;
         if (
           !submittingUserMessage &&
-          turn.userMessages.pendingCount === 0 &&
+          turn.experimental_userMessages.pendingCount === 0 &&
           (start.responseFormat?.type !== 'json' || sawStructuredOutput)
         ) {
-          turn.userMessages.close();
+          turn.experimental_userMessages.close();
           turnSettled.resolve();
           return true;
         }
@@ -662,14 +662,14 @@ async function runPrompt({
     },
   }).finally(() => {
     eventsReady.resolve(undefined);
-    turn.userMessages.close(
+    turn.experimental_userMessages.close(
       new Error('OpenCode event stream ended before the turn settled.'),
     );
     turnSettled.resolve();
   });
   await eventsReady.promise;
   const userMessageLoop = (async () => {
-    for await (const message of turn.userMessages) {
+    for await (const message of turn.experimental_userMessages) {
       submittingUserMessage = true;
       try {
         const prompted = await legacySessionPrompt({
@@ -699,7 +699,7 @@ async function runPrompt({
   });
   if (prompted.error) {
     eventsAbort.abort();
-    turn.userMessages.close(
+    turn.experimental_userMessages.close(
       new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
     );
     throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);

@@ -21,19 +21,19 @@ export type BridgeEvent = Record<string, unknown> & { type: string };
 
 export type BridgeDebugLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
-export interface BridgeUserMessage {
+export interface Experimental_BridgeUserMessage {
   readonly messageId: string;
   readonly text: string;
   accept(): void;
   reject(error: unknown): void;
 }
 
-export interface BridgeUserMessageQueue extends AsyncIterable<BridgeUserMessage> {
+export interface Experimental_BridgeUserMessageQueue extends AsyncIterable<Experimental_BridgeUserMessage> {
   readonly pendingCount: number;
   close(error?: unknown): void;
 }
 
-type InternalBridgeUserMessageQueue = BridgeUserMessageQueue & {
+type InternalBridgeUserMessageQueue = Experimental_BridgeUserMessageQueue & {
   enqueue(input: { messageId: string; text: string }): void;
 };
 
@@ -97,9 +97,10 @@ function formatBridgeError(err: unknown): {
 function createBridgeUserMessageQueue(options: {
   respond(response: BridgeUserMessageResponse): void;
 }): InternalBridgeUserMessageQueue {
-  const messages: BridgeUserMessage[] = [];
-  const waiters: Array<(result: IteratorResult<BridgeUserMessage>) => void> =
-    [];
+  const messages: Experimental_BridgeUserMessage[] = [];
+  const waiters: Array<
+    (result: IteratorResult<Experimental_BridgeUserMessage>) => void
+  > = [];
   const entries = new Map<
     string,
     {
@@ -126,7 +127,7 @@ function createBridgeUserMessageQueue(options: {
       if (entry != null) entry.response = response;
       options.respond(response);
     };
-    const message: BridgeUserMessage = {
+    const message: Experimental_BridgeUserMessage = {
       messageId: input.messageId,
       text: input.text,
       accept: () => {
@@ -202,9 +203,11 @@ function createBridgeUserMessageQueue(options: {
               value: undefined,
             });
           }
-          return new Promise<IteratorResult<BridgeUserMessage>>(resolve => {
-            waiters.push(resolve);
-          });
+          return new Promise<IteratorResult<Experimental_BridgeUserMessage>>(
+            resolve => {
+              waiters.push(resolve);
+            },
+          );
         },
       };
     },
@@ -253,7 +256,7 @@ export interface BridgeTurn {
     approvalId: string,
   ): Promise<{ approved: boolean; reason?: string }>;
 
-  readonly userMessages: BridgeUserMessageQueue;
+  readonly experimental_userMessages: Experimental_BridgeUserMessageQueue;
 
   /** Aborts when the host sends `abort`. */
   readonly abortSignal: AbortSignal;
@@ -694,7 +697,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
             new Promise(resolve => {
               pendingToolApprovals.set(approvalId, resolve);
             }),
-          userMessages,
+          experimental_userMessages: userMessages,
           abortSignal: turnAbort.signal,
           firstTurn,
           bridgeLog: input => {
@@ -848,7 +851,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
       type: 'bridge-hello',
       state: currentTurnState,
       lastSeq: seqCounter,
-      capabilities: { userMessageResponses: true },
+      capabilities: { experimental_userMessageResponses: true },
     });
 
     ws.on('message', (raw: ArrayBufferLike | string) => {

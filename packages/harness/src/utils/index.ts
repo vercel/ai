@@ -5,10 +5,10 @@ export {
   type SandboxChannelReconnectOptions,
 } from './sandbox-channel';
 export {
-  createBridgeUserMessageSubmitter,
-  type BridgeUserMessageRequest,
-  type BridgeUserMessageResponse,
-  type BridgeUserMessageSubmitter,
+  experimental_createBridgeUserMessageSubmitter,
+  type Experimental_BridgeUserMessageRequest,
+  type Experimental_BridgeUserMessageResponse,
+  type Experimental_BridgeUserMessageSubmitter,
 } from './bridge-user-message-submitter';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';

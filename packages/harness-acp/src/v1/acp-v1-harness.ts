@@ -15,7 +15,7 @@ import {
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
   createBridgeErrorHandler,
-  createBridgeUserMessageSubmitter,
+  experimental_createBridgeUserMessageSubmitter,
   createBridgeStartupError,
   classifyDiskLog,
   drainBridgeProcessStream,
@@ -957,7 +957,7 @@ function createSession({
   });
   channel.on('bridge-hello', event => {
     supportsUserMessageResponses =
-      event.capabilities?.userMessageResponses === true;
+      event.capabilities?.experimental_userMessageResponses === true;
   });
   channel.on('finish', markTurnFinished);
   channel.on('error', markTurnFinished);
@@ -990,7 +990,7 @@ function createSession({
     const subscriptions: Array<() => void> = [];
     const userMessageSubmitter =
       harnessId === 'grok-build' && supportsUserMessageResponses
-        ? createBridgeUserMessageSubmitter({
+        ? experimental_createBridgeUserMessageSubmitter({
             send: message => channel.send(message),
             onResponse: listener =>
               channel.on('user-message-response', listener),

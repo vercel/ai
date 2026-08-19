@@ -92,7 +92,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
       ) {
         listener({
           type: 'bridge-hello',
-          capabilities: { userMessageResponses: true },
+          capabilities: { experimental_userMessageResponses: true },
         });
       }
       return () => listeners.delete(listener);

@@ -86,15 +86,15 @@ export {
   harnessV1BridgeToolResultInboundSchema,
   harnessV1BridgePermissionModeSchema,
   harnessV1BridgeToolWireSchema,
-  harnessV1BridgeUserMessageInboundSchema,
-  harnessV1BridgeUserMessageResponseSchema,
+  experimental_harnessV1BridgeUserMessageInboundSchema,
+  experimental_harnessV1BridgeUserMessageResponseSchema,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1BridgeDebugEvent,
   type HarnessV1BridgeOutboundMessage,
   type HarnessV1BridgeReady,
   type HarnessV1BridgeSandboxLog,
   type HarnessV1BridgeToolWire,
-  type HarnessV1BridgeUserMessageResponse,
+  type Experimental_HarnessV1BridgeUserMessageResponse,
 } from './harness-v1-bridge-protocol';
 export {
   harnessV1DebugConfigSchema,

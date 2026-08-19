@@ -74,7 +74,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
   }) => {
     await onStart(state.start, {
       abortSignal: new AbortController().signal,
-      userMessages: {
+      experimental_userMessages: {
         pendingCount: state.steering ? 1 : 0,
         close: () => {},
         [Symbol.asyncIterator]: async function* () {

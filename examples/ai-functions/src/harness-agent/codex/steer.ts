@@ -49,7 +49,7 @@ run(async () => {
 
         steered = true;
         console.log('\nSTEER: Actually, I meant Paris, Texas.');
-        await agent.steer({
+        await agent.experimental_steer({
           session,
           text: 'Actually, I meant Paris, Texas.',
         });

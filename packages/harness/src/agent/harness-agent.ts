@@ -533,11 +533,11 @@ export class HarnessAgent<
    * for its next safe input boundary. Output caused by the message remains in
    * the current turn's stream.
    */
-  async steer(options: {
+  async experimental_steer(options: {
     session: HarnessAgentSession;
     text: string;
   }): Promise<void> {
-    await options.session.steerTurn(options.text);
+    await options.session.experimental_steerTurn(options.text);
   }
 
   // ─── Internals ──────────────────────────────────────────────────────
