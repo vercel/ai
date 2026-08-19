@@ -34,7 +34,6 @@ async function main() {
     '@ai-sdk/replicate',
     '@ai-sdk/revai',
     '@ai-sdk/togetherai',
-    '@ai-sdk/vercel',
     '@ai-sdk/xai',
 
     'ollama-ai-provider',

@@ -914,6 +914,46 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should replay reasoning redacted as `redactedContent`', async () => {
+    const redactedContent = 'encrypted-reasoning-payload';
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: { bedrock: { redactedContent } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedContent,
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
@@ -1091,25 +1131,42 @@ describe('assistant messages', () => {
     `);
   });
 
+<<<<<<< HEAD
   it('should omit assistant messages that only contain unsigned reasoning', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'First question' }],
+=======
+  it('should omit an assistant message when unsigned reasoning is its only content', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+>>>>>>> origin/main
       },
       {
         role: 'assistant',
         content: [
           {
             type: 'reasoning',
+<<<<<<< HEAD
             text: 'Unsigned reasoning',
           },
           { type: 'text', text: '' },
+=======
+            text: 'Let me consider the options',
+          },
+>>>>>>> origin/main
         ],
       },
       {
         role: 'user',
+<<<<<<< HEAD
         content: [{ type: 'text', text: 'Follow-up question' }],
+=======
+        content: [{ type: 'text', text: 'Hello?' }],
+>>>>>>> origin/main
       },
     ]);
 
@@ -1117,7 +1174,15 @@ describe('assistant messages', () => {
       messages: [
         {
           role: 'user',
+<<<<<<< HEAD
           content: [{ text: 'First question' }, { text: 'Follow-up question' }],
+=======
+          content: [{ text: 'Think hard then answer' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Hello?' }],
+>>>>>>> origin/main
         },
       ],
       system: [],

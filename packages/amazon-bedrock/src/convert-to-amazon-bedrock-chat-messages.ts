@@ -532,7 +532,17 @@ export async function convertToAmazonBedrockChatMessages(
                       },
                     },
                   });
+<<<<<<< HEAD
                 } else if (metadata?.redactedData != null) {
+=======
+                } else if (reasoningMetadata?.redactedContent != null) {
+                  amazonBedrockContent.push({
+                    reasoningContent: {
+                      redactedContent: reasoningMetadata.redactedContent,
+                    },
+                  });
+                } else if (reasoningMetadata?.redactedData != null) {
+>>>>>>> origin/main
                   amazonBedrockContent.push({
                     reasoningContent: {
                       redactedReasoning: {

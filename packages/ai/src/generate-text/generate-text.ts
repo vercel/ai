@@ -30,6 +30,8 @@ import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import type { Prompt } from '../prompt/prompt';
 import {
+  getChunkTimeoutMs,
+  getFirstChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
   type RequestOptions,
@@ -43,6 +45,7 @@ import type {
   LanguageModel,
   LanguageModelRequestMetadata,
   ToolChoice,
+  Warning,
 } from '../types';
 import {
   addLanguageModelUsage,
@@ -76,6 +79,7 @@ import type {
 } from './generate-text-events';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
@@ -588,6 +592,33 @@ export async function generateText<
     onToolExecutionEnd ?? experimental_onToolCallFinish;
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
 
+  const unsupportedTimeoutWarnings: Warning[] = [];
+
+  if (getFirstChunkTimeoutMs(timeout) != null) {
+    unsupportedTimeoutWarnings.push({
+      type: 'unsupported',
+      feature: 'timeout.firstChunkMs',
+      details:
+        'The firstChunkMs timeout is only supported by streaming functions.',
+    });
+  }
+
+  if (getChunkTimeoutMs(timeout) != null) {
+    unsupportedTimeoutWarnings.push({
+      type: 'unsupported',
+      feature: 'timeout.chunkMs',
+      details: 'The chunkMs timeout is only supported by streaming functions.',
+    });
+  }
+
+  if (unsupportedTimeoutWarnings.length > 0) {
+    logWarnings({
+      warnings: unsupportedTimeoutWarnings,
+      provider: model.provider,
+      model: model.modelId,
+    });
+  }
+
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const stepAbortController =
@@ -1055,6 +1086,11 @@ export async function generateText<
                   usage: stepUsage,
                   content: modelCallContent,
                   responseId: currentModelResponse.response.id,
+                  ...(currentModelResponse.providerMetadata != null
+                    ? {
+                        providerMetadata: currentModelResponse.providerMetadata,
+                      }
+                    : {}),
                   performance: {
                     responseTimeMs,
                     effectiveOutputTokensPerSecond: calculateTokensPerSecond({
@@ -1224,7 +1260,12 @@ export async function generateText<
               );
               const toolExecutionMs: Record<string, number> = {};
 
-              if (stepExecutionTools != null) {
+              if (
+                stepExecutionTools != null &&
+                isToolExecutionAllowedFinishReason(
+                  currentModelResponse.finishReason.unified,
+                )
+              ) {
                 const toolExecutionResults = await executeTools({
                   toolCalls: clientToolCalls.filter(
                     toolCall =>
@@ -1397,13 +1438,11 @@ export async function generateText<
           }
         }
       } while (
-        // Continue if:
-        // 1. There are client tool calls that have all been executed or denied, OR
-        // 2. There are pending deferred results from provider-executed tools
-        ((clientToolCalls.length > 0 &&
-          clientToolOutputs.length + deniedToolApprovalResponses.length ===
-            clientToolCalls.length) ||
-          pendingDeferredToolCalls.size > 0) &&
+        // Continue only after all client tool calls have been executed or denied,
+        // and if there are client results or pending deferred provider results.
+        clientToolOutputs.length + deniedToolApprovalResponses.length ===
+          clientToolCalls.length &&
+        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
         // continue until a stop condition is met:
         !(await isStopConditionMet({ stopConditions, steps }))
       );

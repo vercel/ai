@@ -308,7 +308,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     // Validate priority processing support
     if (
-      openaiOptions.serviceTier === 'priority' &&
+      (openaiOptions.serviceTier === 'priority' ||
+        openaiOptions.serviceTier === 'fast') &&
       !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
@@ -376,7 +377,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     for (const toolCall of choice.message.tool_calls ?? []) {
       content.push({
         type: 'tool-call' as const,
-        toolCallId: toolCall.id ?? generateId(),
+        toolCallId: toolCall.id || generateId(),
         toolName: toolCall.function.name,
         input: toolCall.function.arguments!,
       });

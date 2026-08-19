@@ -1439,6 +1439,12 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The provider-returned response ID for this model call.',
             },
             {
+              name: 'providerMetadata',
+              type: 'ProviderMetadata | undefined',
+              description:
+                'Provider-specific metadata for this model call, when returned by the provider.',
+            },
+            {
               name: 'performance',
               type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputMs: number | undefined; timeBetweenOutputChunksMs?: OutputChunkTimingStats }',
               description: 'Performance metrics for the model call.',
@@ -2822,10 +2828,9 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'output',
-      type: 'Output',
-      isOptional: true,
+      type: 'InferCompleteOutput<OUTPUT>',
       description:
-        'The generated structured output. It uses the `output` specification.',
+        'The generated output according to the `output` specification. Accessing this property throws `NoOutputGeneratedError` when no output is available, for example when the final step does not finish with a `stop` reason.',
     },
     {
       name: 'steps',

@@ -57,6 +57,20 @@ const { text } = await generateText({
 });
 ```
 
+## Video Generation Example
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: minimax.video('MiniMax-H3'),
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  aspectRatio: '16:9',
+  duration: 5,
+});
+```
+
 ## Documentation
 
 Please check out the **[MiniMax provider](https://ai-sdk.dev/providers/ai-sdk-providers/minimax)** for more information.

@@ -2,8 +2,6 @@ import type { ProviderOptions } from './provider-options';
 import type { Tool } from './tool';
 import type { ToolSet } from './tool-set';
 
-const toolCallerSymbol = Symbol.for('vercel.ai.experimental.toolCaller');
-
 export type ToolCallerDefinition =
   | {
       type: 'local';
@@ -17,14 +15,14 @@ export type ToolCallerDefinition =
     };
 
 export type ToolCallerTool<TOOL extends Tool = Tool> = TOOL & {
-  readonly [toolCallerSymbol]: ToolCallerDefinition;
+  readonly experimental_toolCaller: ToolCallerDefinition;
 };
 
 export function toolCaller<TOOL extends Tool>(
   tool: TOOL,
   definition: ToolCallerDefinition,
 ): ToolCallerTool<TOOL> {
-  return Object.defineProperty({ ...tool }, toolCallerSymbol, {
+  return Object.defineProperty({ ...tool }, 'experimental_toolCaller', {
     value: definition,
   }) as ToolCallerTool<TOOL>;
 }
@@ -32,5 +30,5 @@ export function toolCaller<TOOL extends Tool>(
 export function getToolCaller(
   tool: Tool | undefined,
 ): ToolCallerDefinition | undefined {
-  return (tool as ToolCallerTool | undefined)?.[toolCallerSymbol];
+  return (tool as ToolCallerTool | undefined)?.experimental_toolCaller;
 }
