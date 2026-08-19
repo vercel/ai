@@ -258,6 +258,12 @@ export interface AmazonBedrockRedactedReasoningContentBlock {
   };
 }
 
+export interface AmazonBedrockRedactedContentBlock {
+  reasoningContent: {
+    redactedContent: string;
+  };
+}
+
 export type AmazonBedrockContentBlock =
   | AmazonBedrockDocumentBlock
   | AmazonBedrockGuardrailConverseContentBlock
@@ -268,4 +274,5 @@ export type AmazonBedrockContentBlock =
   | AmazonBedrockToolUseBlock
   | AmazonBedrockReasoningContentBlock
   | AmazonBedrockRedactedReasoningContentBlock
+  | AmazonBedrockRedactedContentBlock
   | AmazonBedrockCachePoint;
