@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 19063,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19063-unsafe-finish-reason-tool-execution.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-19063-unsafe-finish-reason-tool-execution.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19063_REPRODUCED: unsafe finish reasons executed tools: generateText:length, streamText:length, generateText:error, streamText:error, generateText:content-filter, streamText:content-filter, generateText:other, streamText:other"
+  }
+}
