@@ -17,7 +17,6 @@ import {
   createTranslationState,
   emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
-  isStepSettlementEvent,
   type TranslationState,
   unwrapOpenCodeEvent,
 } from './opencode-events';
@@ -633,13 +632,17 @@ async function runPrompt({
         latestSessionTokens =
           extractSessionTokens(event.properties) ?? latestSessionTokens;
       }
-      if (isStepSettlementEvent(event)) {
+      if (
+        event.type === 'session.next.step.failed' ||
+        event.type === 'session.error'
+      ) {
+        const error = formatError(event.properties?.error ?? event);
         if (event.type === 'session.error') {
-          terminalError = formatError(event.properties?.error ?? event);
-          turn.experimental_userMessages.close(new Error(terminalError));
-          turnSettled.resolve();
-          return true;
+          terminalError = error;
         }
+        turn.experimental_userMessages.close(new Error(error));
+        turnSettled.resolve();
+        return true;
       }
       const status = legacyStatusType(event);
       if (status === 'busy') {
