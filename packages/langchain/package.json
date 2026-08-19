@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/langchain",
-  "version": "2.0.266",
+  "version": "2.0.267",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
