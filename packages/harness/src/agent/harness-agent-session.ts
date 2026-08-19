@@ -13,8 +13,10 @@ import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-sett
 import type {
   HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PromptControl,
   HarnessV1ResponseFormat,
 } from '../v1';
+import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
   HarnessAgentAdapter,
   HarnessAgentAdapterSession,
@@ -48,6 +50,13 @@ type HarnessAgentTurnState =
   | 'awaiting-approval'
   | 'awaiting-tool-result'
   | 'suspended';
+
+type ActivePromptControl = {
+  readonly turnId: number;
+  readonly promise: Promise<HarnessV1PromptControl | undefined>;
+  resolve(control: HarnessV1PromptControl | undefined): void;
+  settled: boolean;
+};
 
 /**
  * Live harness session held by the caller.
@@ -92,6 +101,7 @@ export class HarnessAgentSession {
   private turnState: HarnessAgentTurnState;
   private turnSequence = 0;
   private activeTurnSequence = 0;
+  private activePromptControl: ActivePromptControl | undefined;
   private suspendedTurnState:
     | Promise<HarnessAgentContinueTurnState>
     | undefined;
@@ -228,6 +238,9 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onPromptControlAvailable: control => {
+          this.setPromptControl({ turnId, control });
+        },
         isTurnSuspending: () =>
           this.activeTurnSequence === turnId && this.suspendedTurnState != null,
         onStopConditionMet: () =>
@@ -310,6 +323,9 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onPromptControlAvailable: control => {
+          this.setPromptControl({ turnId, control });
+        },
         isTurnSuspending: () =>
           this.activeTurnSequence === turnId && this.suspendedTurnState != null,
         onStopConditionMet: () =>
@@ -334,6 +350,49 @@ export class HarnessAgentSession {
    */
   async compact(customInstructions?: string): Promise<void> {
     await this.requireReusableSession().doCompact(customInstructions);
+  }
+
+  /**
+   * Submit another user message to the active turn.
+   *
+   * The runtime accepts the message for its next safe input boundary. Output
+   * caused by the message remains part of the active turn's result stream.
+   */
+  async experimental_steerTurn(text: string): Promise<void> {
+    this.requireReusableSession();
+    const activePromptControl = this.activePromptControl;
+    if (
+      this.turnState !== 'running' ||
+      this.suspendedTurnState != null ||
+      activePromptControl == null
+    ) {
+      throw new Error(
+        `Harness session ${this.sessionId} has no running turn to steer.`,
+      );
+    }
+
+    const control = await activePromptControl.promise;
+    if (
+      control == null ||
+      this.sessionState !== 'active' ||
+      this.turnState !== 'running' ||
+      this.suspendedTurnState != null ||
+      this.activePromptControl !== activePromptControl ||
+      this.activeTurnSequence !== activePromptControl.turnId
+    ) {
+      throw new Error(
+        `Harness session ${this.sessionId} no longer has the running turn targeted for steering.`,
+      );
+    }
+
+    if (control.submitUserMessage == null) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness '${this.harness.harnessId}' does not support steering active turns.`,
+        harnessId: this.harness.harnessId,
+      });
+    }
+
+    await control.submitUserMessage(text);
   }
 
   /**
@@ -484,6 +543,7 @@ export class HarnessAgentSession {
   private async suspendCurrentTurn(options: {
     session: HarnessAgentAdapterSession;
   }): Promise<HarnessAgentContinueTurnState> {
+    this.clearActivePromptControl();
     this.suspendedTurnState ??= (async () => {
       const raw = await options.session.doSuspendTurn();
       const validated = await validateLifecycleStateData({
@@ -556,12 +616,14 @@ export class HarnessAgentSession {
 
   private markAwaitingApprovalIfActive(): void {
     if (this.sessionState === 'active') {
+      this.clearActivePromptControl();
       this.turnState = 'awaiting-approval';
     }
   }
 
   private markAwaitingToolResultIfActive(): void {
     if (this.sessionState === 'active') {
+      this.clearActivePromptControl();
       this.turnState = 'awaiting-tool-result';
     }
   }
@@ -571,12 +633,63 @@ export class HarnessAgentSession {
     this.activeTurnSequence = turnId;
     this.suspendedTurnState = undefined;
     this.turnState = 'running';
+    this.clearActivePromptControl();
+    let resolve!: (control: HarnessV1PromptControl | undefined) => void;
+    const promise = new Promise<HarnessV1PromptControl | undefined>(
+      resolvePromise => {
+        resolve = resolvePromise;
+      },
+    );
+    this.activePromptControl = {
+      turnId,
+      promise,
+      resolve,
+      settled: false,
+    };
     return turnId;
+  }
+
+  private setPromptControl(options: {
+    turnId: number;
+    control: HarnessV1PromptControl;
+  }): void {
+    const activePromptControl = this.activePromptControl;
+    if (
+      this.sessionState !== 'active' ||
+      this.turnState !== 'running' ||
+      this.activeTurnSequence !== options.turnId ||
+      activePromptControl?.turnId !== options.turnId
+    ) {
+      return;
+    }
+    this.settleActivePromptControl(options.control);
+  }
+
+  private settleActivePromptControl(
+    control: HarnessV1PromptControl | undefined,
+  ): void {
+    const activePromptControl = this.activePromptControl;
+    if (activePromptControl == null || activePromptControl.settled) return;
+    activePromptControl.settled = true;
+    activePromptControl.resolve(control);
+  }
+
+  private clearActivePromptControl(turnId?: number): void {
+    if (
+      turnId != null &&
+      this.activePromptControl != null &&
+      this.activePromptControl.turnId !== turnId
+    ) {
+      return;
+    }
+    this.settleActivePromptControl(undefined);
+    this.activePromptControl = undefined;
   }
 
   private finishTrackedTurn(options: { turnId: number }): void {
     if (this.sessionState !== 'active') return;
     if (this.activeTurnSequence !== options.turnId) return;
+    this.clearActivePromptControl(options.turnId);
     this.pendingToolApprovals.clear();
     this.pendingToolResults.clear();
     this.suspendedTurnState = undefined;
@@ -586,6 +699,7 @@ export class HarnessAgentSession {
   private endLocalHandle(options: {
     sessionState: Exclude<HarnessAgentSessionState, 'active'>;
   }): void {
+    this.clearActivePromptControl();
     this.sessionState = options.sessionState;
     this.underlyingSession = undefined;
     this.sandboxSession = undefined;

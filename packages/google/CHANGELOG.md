@@ -1,5 +1,19 @@
 # @ai-sdk/google
 
+## 4.0.47
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.46
+
+### Patch Changes
+
+- f69920a: fix(google): use low as the minimum reasoning level for full Gemini Flash 3.7 and later
+
 ## 4.0.45
 
 ### Patch Changes

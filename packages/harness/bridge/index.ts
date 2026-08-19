@@ -10,4 +10,6 @@ export type {
   BridgeHandle,
   BridgeDebugConfig,
   BridgeDebugLevel,
+  Experimental_BridgeUserMessage,
+  Experimental_BridgeUserMessageQueue,
 } from '../src/bridge';

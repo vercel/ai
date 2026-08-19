@@ -900,7 +900,10 @@ export async function createPiSession(
         });
       },
       async submitUserMessage(text) {
-        await piSession?.steer(text);
+        if (piSession == null) {
+          throw new Error('Pi has no active runtime session to steer.');
+        }
+        await piSession.steer(text);
       },
       done: input.done,
     };

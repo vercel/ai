@@ -21,6 +21,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
@@ -37,6 +38,7 @@ import {
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
+  safeParseJSON,
   tool,
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession as SandboxSession,
@@ -345,8 +347,16 @@ export function createOpenCode(
             endpoint,
             token: coords.token,
           });
+          let supportsUserMessageResponses = false;
           const attachChannel: OpenCodeChannel = new SandboxChannel({
-            connect: () => openWebSocket(attachEndpoint),
+            connect: () =>
+              openWebSocket({
+                endpoint: attachEndpoint,
+                helloTimeoutMs: Math.min(timeoutMs, 5_000),
+                onHello: supported => {
+                  supportsUserMessageResponses = supported;
+                },
+              }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -371,6 +381,7 @@ export function createOpenCode(
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
+            supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {}
       }
@@ -490,9 +501,17 @@ export function createOpenCode(
         port: boundPort,
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
+      let supportsUserMessageResponses = false;
 
       const channel: OpenCodeChannel = new SandboxChannel({
-        connect: () => openWebSocket(bridgeEndpoint),
+        connect: () =>
+          openWebSocket({
+            endpoint: bridgeEndpoint,
+            helloTimeoutMs: Math.min(timeoutMs, 5_000),
+            onHello: supported => {
+              supportsUserMessageResponses = supported;
+            },
+          }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -522,6 +541,7 @@ export function createOpenCode(
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
+        supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
   };
@@ -619,24 +639,103 @@ async function writeOpenCodeSkills({
 }
 
 function openWebSocket({
-  url,
-  headers,
-}: HarnessV1PortEndpoint): Promise<WebSocket> {
+  endpoint,
+  helloTimeoutMs,
+  onHello,
+}: {
+  endpoint: HarnessV1PortEndpoint;
+  helloTimeoutMs: number;
+  onHello(supportsUserMessageResponses: boolean): void;
+}): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url, {
-      headers: headers == null ? undefined : { ...headers },
+    const ws = new WebSocket(endpoint.url, {
+      headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
     });
-    const onOpen = () => {
-      ws.off('error', onError);
-      resolve(ws);
-    };
-    const onError = (err: Error) => {
+    let opened = false;
+    let receivedHello = false;
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(helloTimer);
       ws.off('open', onOpen);
-      reject(err);
+      ws.off('message', onMessage);
+      ws.off('close', onClose);
+      ws.off('error', onError);
     };
-    ws.once('open', onOpen);
-    ws.once('error', onError);
+    const settle = (error?: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error == null) {
+        resolve(ws);
+      } else {
+        reject(error);
+      }
+    };
+    const tryResolve = () => {
+      if (opened && receivedHello) settle();
+    };
+    const onOpen = () => {
+      opened = true;
+      tryResolve();
+    };
+    const onMessage = (raw: unknown) => {
+      void (async () => {
+        const parsed = await safeParseJSON({
+          text: webSocketMessageToString(raw),
+        });
+        if (!parsed.success) return;
+        const value = parsed.value;
+        if (
+          typeof value !== 'object' ||
+          value == null ||
+          Array.isArray(value) ||
+          (value as { type?: unknown }).type !== 'bridge-hello'
+        ) {
+          return;
+        }
+        const capabilities = (
+          value as {
+            capabilities?: { experimental_userMessageResponses?: unknown };
+          }
+        ).capabilities;
+        onHello(capabilities?.experimental_userMessageResponses === true);
+        receivedHello = true;
+        tryResolve();
+      })();
+    };
+    const onClose = () =>
+      settle(new Error('OpenCode bridge closed before sending bridge-hello.'));
+    const onError = (err: Error) => {
+      settle(err);
+    };
+    ws.on('open', onOpen);
+    ws.on('message', onMessage);
+    ws.on('close', onClose);
+    ws.on('error', onError);
+    const helloTimer = setTimeout(
+      () =>
+        settle(
+          new Error(
+            `OpenCode bridge did not send bridge-hello within ${helloTimeoutMs}ms.`,
+          ),
+        ),
+      helloTimeoutMs,
+    );
+    helloTimer.unref?.();
   });
+}
+
+function webSocketMessageToString(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
+  if (ArrayBuffer.isView(raw)) {
+    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
+      'utf8',
+    );
+  }
+  return String(raw);
 }
 
 function withBridgeToken({
@@ -669,6 +768,7 @@ function createSession({
   debug,
   permissionMode,
   builtinToolFiltering,
+  supportsUserMessageResponses,
 }: {
   sessionId: string;
   channel: OpenCodeChannel;
@@ -687,6 +787,7 @@ function createSession({
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
+  supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -700,7 +801,6 @@ function createSession({
   channel.on('bridge-thread', msg => {
     latestOpenCodeSessionId = msg.threadId;
   });
-
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
@@ -712,6 +812,13 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? experimental_createBridgeUserMessageSubmitter({
+          send: message => channel.send(message),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
 
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
@@ -741,6 +848,7 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       activeTurn = false;
+      userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
     };
@@ -748,6 +856,7 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       activeTurn = false;
+      userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -825,9 +934,13 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
+      ...(userMessageSubmitter == null
+        ? {}
+        : {
+            submitUserMessage: async (text: string) => {
+              await userMessageSubmitter.submit(text);
+            },
+          }),
       done,
     };
   };

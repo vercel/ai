@@ -291,7 +291,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments ?? '',
         });

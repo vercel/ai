@@ -466,7 +466,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: part.functionCall.id ?? this.config.generateId(),
+          toolCallId: part.functionCall.id || this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -489,7 +489,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             : undefined,
         });
       } else if ('toolCall' in part && part.toolCall) {
-        const toolCallId = part.toolCall.id ?? this.config.generateId();
+        const toolCallId = part.toolCall.id || this.config.generateId();
         lastServerToolCallId = toolCallId;
         content.push({
           type: 'tool-call',
@@ -511,8 +511,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         });
       } else if ('toolResponse' in part && part.toolResponse) {
         const responseToolCallId =
-          lastServerToolCallId ??
-          part.toolResponse.id ??
+          lastServerToolCallId ||
+          part.toolResponse.id ||
           this.config.generateId();
         content.push({
           type: 'tool-result',
@@ -876,7 +876,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     providerMetadata: fileMeta,
                   });
                 } else if ('toolCall' in part && part.toolCall) {
-                  const toolCallId = part.toolCall.id ?? generateId();
+                  const toolCallId = part.toolCall.id || generateId();
                   lastServerToolCallId = toolCallId;
                   const serverMeta = wrapProviderMetadata({
                     ...(part.thoughtSignature
@@ -897,8 +897,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   });
                 } else if ('toolResponse' in part && part.toolResponse) {
                   const responseToolCallId =
-                    lastServerToolCallId ??
-                    part.toolResponse.id ??
+                    lastServerToolCallId ||
+                    part.toolResponse.id ||
                     generateId();
                   const serverMeta = wrapProviderMetadata({
                     ...(part.thoughtSignature
@@ -952,7 +952,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                 if (isStreamingChunk) {
                   if (part.functionCall.name != null) {
-                    const toolCallId = part.functionCall.id ?? generateId();
+                    const toolCallId = part.functionCall.id || generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
@@ -1021,7 +1021,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 ) {
                   finishActiveStreamingToolCall(controller);
                 } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
                   const args =
                     typeof part.functionCall.args === 'string'
@@ -1058,7 +1058,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                   hasToolCalls = true;
                 } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
 
                   controller.enqueue({

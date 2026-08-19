@@ -21,6 +21,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   classifyDiskLog,
+  experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
@@ -908,13 +909,20 @@ export function createClaudeCode(
         harnessId: 'claude-code',
         sessionId: startOpts.sessionId,
       });
+      let supportsUserMessageResponses = false;
 
       // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
       // (re)connect: open the socket, then wait for `bridge-hello` so the
       // end-to-end link is proven live before any frame is sent.
       const buildConnect =
         (endpoint: HarnessV1PortEndpoint) => async (): Promise<WebSocket> => {
-          return openBridgeWebSocket({ endpoint, timeoutMs });
+          return openBridgeWebSocket({
+            endpoint,
+            timeoutMs,
+            onHello: supportsResponses => {
+              supportsUserMessageResponses = supportsResponses;
+            },
+          });
         };
 
       /*
@@ -967,6 +975,7 @@ export function createClaudeCode(
             builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
             mcpServers: settings.mcpServers,
+            supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -1146,6 +1155,7 @@ export function createClaudeCode(
         builtinToolFiltering: startOpts.builtinToolFiltering,
         skills: startOpts.skills ?? [],
         mcpServers: settings.mcpServers,
+        supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
   };
@@ -1262,10 +1272,12 @@ function openWebSocketAndWaitForBridgeHello({
   endpoint,
   openTimeoutMs,
   getHelloTimeoutMs,
+  onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   openTimeoutMs: number;
   getHelloTimeoutMs: () => number;
+  onHello: (supportsUserMessageResponses: boolean) => void;
 }): Promise<WebSocket> {
   return new Promise<WebSocket>((resolve, reject) => {
     const ws = new WebSocket(endpoint.url, {
@@ -1337,6 +1349,12 @@ function openWebSocketAndWaitForBridgeHello({
           !Array.isArray(value) &&
           (value as { type?: unknown }).type === 'bridge-hello'
         ) {
+          const capabilities = (
+            value as {
+              capabilities?: { experimental_userMessageResponses?: unknown };
+            }
+          ).capabilities;
+          onHello(capabilities?.experimental_userMessageResponses === true);
           sawBridgeHello = true;
           tryResolve();
         }
@@ -1364,9 +1382,11 @@ function openWebSocketAndWaitForBridgeHello({
 async function openBridgeWebSocket({
   endpoint,
   timeoutMs,
+  onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   timeoutMs: number;
+  onHello: (supportsUserMessageResponses: boolean) => void;
 }): Promise<WebSocket> {
   const deadline = Date.now() + timeoutMs;
   let attempt = 0;
@@ -1381,6 +1401,7 @@ async function openBridgeWebSocket({
         openTimeoutMs: Math.min(10_000, remaining),
         getHelloTimeoutMs: () =>
           Math.min(5_000, Math.max(1, deadline - Date.now())),
+        onHello,
       });
     } catch (err) {
       lastError = err;
@@ -1452,6 +1473,7 @@ function createSession({
   builtinToolFiltering,
   skills,
   mcpServers,
+  supportsUserMessageResponses,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -1473,6 +1495,7 @@ function createSession({
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   skills: ReadonlyArray<HarnessV1Skill>;
   mcpServers: Record<string, unknown> | undefined;
+  supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1501,7 +1524,13 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
-
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? experimental_createBridgeUserMessageSubmitter({
+          send: message => channel.send(message),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
       try {
@@ -1513,12 +1542,14 @@ function createSession({
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
     };
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -1612,9 +1643,13 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
+      ...(userMessageSubmitter == null
+        ? {}
+        : {
+            submitUserMessage: async (text: string) => {
+              await userMessageSubmitter.submit(text);
+            },
+          }),
       done,
     };
   };

@@ -86,6 +86,9 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     on(): () => void {
       return () => {};
     }
+    onReconnect(): () => void {
+      return () => {};
+    }
     onClose(): void {}
     send(msg: Record<string, unknown>): void {
       sentMessages.push(msg);
@@ -870,6 +873,48 @@ describe('createClaudeCode adapter', () => {
 
       expect(wsMock.sockets).toHaveLength(1);
       expect(wsMock.sockets[0].terminated).toBe(false);
+      await session.doDestroy();
+    });
+
+    it('exposes steering when the bridge advertises acknowledged user messages', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit(
+            'message',
+            JSON.stringify({
+              type: 'bridge-hello',
+              capabilities: { experimental_userMessageResponses: true },
+            }),
+          );
+        });
+      });
+
+      const session = await startWithFakeBridgeSocket();
+      const control = await session.doPromptTurn({
+        prompt: 'Weather in Paris?',
+        emit: () => {},
+      });
+
+      expect(control.submitUserMessage).toBeTypeOf('function');
+      await session.doDestroy();
+    });
+
+    it('submits compaction without requiring an active acknowledged turn', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+
+      const session = await startWithFakeBridgeSocket();
+      await session.doCompact?.('keep the error trace');
+
+      expect(sentMessages).toContainEqual({
+        type: 'user-message',
+        text: '/compact keep the error trace',
+      });
       await session.doDestroy();
     });
 

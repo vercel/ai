@@ -45,6 +45,7 @@ function mockHarness(options: {
   onDoStart?: (options: Parameters<HarnessV1['doStart']>[0]) => void;
   onPromptTurn?: (options: HarnessV1PromptTurnOptions) => void;
   promptDone?: (options: HarnessV1PromptTurnOptions) => Promise<void>;
+  supportsSteering?: boolean;
   onSuspendTurn?: () => void | Promise<void>;
   continueScript?: (
     submitToolResult: (input: {
@@ -61,6 +62,7 @@ function mockHarness(options: {
     approved: boolean;
     reason?: string;
   }[];
+  userMessages: string[];
   doStart: ReturnType<typeof vi.fn>;
   doDetach: ReturnType<typeof vi.fn>;
   doContinueTurn: ReturnType<typeof vi.fn>;
@@ -76,6 +78,7 @@ function mockHarness(options: {
     approved: boolean;
     reason?: string;
   }[] = [];
+  const userMessages: string[] = [];
   const resumeState = {
     type: 'resume-session' as const,
     harnessId: 'mock',
@@ -104,6 +107,13 @@ function mockHarness(options: {
       submitToolApproval: async input => {
         toolApprovals.push(input);
       },
+      ...(options.supportsSteering
+        ? {
+            submitUserMessage: async (text: string) => {
+              userMessages.push(text);
+            },
+          }
+        : {}),
       done: Promise.resolve(),
     };
     const events =
@@ -134,6 +144,13 @@ function mockHarness(options: {
         submitToolApproval: async input => {
           toolApprovals.push(input);
         },
+        ...(options.supportsSteering
+          ? {
+              submitUserMessage: async (text: string) => {
+                userMessages.push(text);
+              },
+            }
+          : {}),
         done: options.promptDone?.(opts) ?? Promise.resolve(),
       };
       const events = options.script(async input => {
@@ -171,6 +188,7 @@ function mockHarness(options: {
     prompts,
     toolResults,
     toolApprovals,
+    userMessages,
     doStart,
     doDetach,
     doContinueTurn,
@@ -349,6 +367,187 @@ describe('HarnessAgent', () => {
     expect(agent.id).toBe('a1');
     expect(agent.harnessId).toBe('mock');
     expect(agent.tools).toEqual({});
+  });
+
+  test('experimental_steer() submits a message to the running turn', async () => {
+    let finishPrompt!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      finishPrompt = resolve;
+    });
+    const { harness, userMessages } = mockHarness({
+      script: () => [],
+      supportsSteering: true,
+      promptDone: () => promptDone,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'Start.' });
+
+    await agent.experimental_steer({ session, text: 'Change course.' });
+
+    expect(userMessages).toEqual(['Change course.']);
+    finishPrompt();
+    await result.consumeStream();
+    await session.destroy();
+  });
+
+  test('experimental_steerTurn() exposes the session-level steering API', async () => {
+    let finishPrompt!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      finishPrompt = resolve;
+    });
+    const { harness, userMessages } = mockHarness({
+      script: () => [],
+      supportsSteering: true,
+      promptDone: () => promptDone,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'Start.' });
+
+    await session.experimental_steerTurn('Change course.');
+
+    expect(userMessages).toEqual(['Change course.']);
+    finishPrompt();
+    await result.consumeStream();
+    await session.destroy();
+  });
+
+  test('experimental_steer() reports an unsupported harness capability', async () => {
+    let finishPrompt!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      finishPrompt = resolve;
+    });
+    const { harness } = mockHarness({
+      script: () => [],
+      promptDone: () => promptDone,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'Start.' });
+
+    await expect(
+      agent.experimental_steer({ session, text: 'Change course.' }),
+    ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
+
+    finishPrompt();
+    await result.consumeStream();
+    await session.destroy();
+  });
+
+  test('experimental_steer() rejects when the session has no running turn', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+
+    await expect(
+      agent.experimental_steer({ session, text: 'Change course.' }),
+    ).rejects.toThrow('has no running turn to steer');
+
+    await session.destroy();
+  });
+
+  test('experimental_steer() rejects while the turn awaits tool approval', async () => {
+    const { harness, userMessages } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'Paris' }),
+        },
+      ],
+      supportsSteering: true,
+    });
+    const weather = tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city }),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      tools: { weather },
+      toolApproval: { weather: 'user-approval' },
+    });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'Start.' });
+    await result.consumeStream();
+
+    await expect(
+      agent.experimental_steer({ session, text: 'Change course.' }),
+    ).rejects.toThrow('has no running turn to steer');
+    expect(userMessages).toEqual([]);
+
+    await session.destroy();
+  });
+
+  test('experimental_steer() rejects after the active turn is suspended', async () => {
+    let finishPrompt!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      finishPrompt = resolve;
+    });
+    const { harness, userMessages } = mockHarness({
+      script: () => [],
+      supportsSteering: true,
+      promptDone: () => promptDone,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+    const result = await agent.stream({ session, prompt: 'Start.' });
+
+    await session.suspendTurn();
+    await expect(
+      agent.experimental_steer({ session, text: 'Change course.' }),
+    ).rejects.toThrow('has ended and cannot be reused');
+    expect(userMessages).toEqual([]);
+
+    finishPrompt();
+    await result.consumeStream();
+  });
+
+  test('experimental_steer() targets the current turn when a session is reused', async () => {
+    const finishPrompts: Array<() => void> = [];
+    const { harness, userMessages } = mockHarness({
+      script: () => [],
+      supportsSteering: true,
+      promptDone: () =>
+        new Promise<void>(resolve => {
+          finishPrompts.push(resolve);
+        }),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+    const session = await agent.createSession();
+
+    const first = await agent.stream({ session, prompt: 'First.' });
+    await agent.experimental_steer({ session, text: 'Steer first.' });
+    finishPrompts.shift()!();
+    await first.consumeStream();
+
+    const second = await agent.stream({ session, prompt: 'Second.' });
+    await agent.experimental_steer({ session, text: 'Steer second.' });
+    finishPrompts.shift()!();
+    await second.consumeStream();
+
+    expect(userMessages).toEqual(['Steer first.', 'Steer second.']);
+    await session.destroy();
   });
 
   test('does not limit steps when stopWhen is omitted', async () => {

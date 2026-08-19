@@ -729,9 +729,6 @@ function createSession({
           isError: input.isError,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
       submitToolApproval: async input => {
         channel.send({
           type: 'tool-approval-response',
