@@ -22,13 +22,6 @@ import { MockTracer } from '../test/mock-tracer';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import type { StreamObjectResult } from './stream-object-result';
-<<<<<<< HEAD
-=======
-import {
-  asLanguageModelUsage,
-  createNullLanguageModelUsage,
-} from '../types/usage';
->>>>>>> b181020cdb (fix: settle streamObject results and report provider stream failures without unhandled rejections (#18934))
 
 const testUsage = {
   inputTokens: 3,
@@ -846,7 +839,7 @@ describe('streamObject', () => {
       it('should reject pending result promises when doStream throws', async () => {
         const error = new Error('test error');
         const result = streamObject({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV2({
             doStream: async () => {
               throw error;
             },
@@ -880,7 +873,7 @@ describe('streamObject', () => {
 
         try {
           const result = streamObject({
-            model: new MockLanguageModelV4({
+            model: new MockLanguageModelV2({
               doStream: async () => {
                 throw error;
               },
@@ -904,10 +897,10 @@ describe('streamObject', () => {
       it('should reject pending result promises and report failure for an error stream part', async () => {
         const error = new Error('test error');
         const onError = vitest.fn();
-        const onStepFinish = vitest.fn();
         const onFinish = vitest.fn();
+        const tracer = new MockTracer();
         const result = streamObject({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([{ type: 'error', error }]),
             }),
@@ -915,8 +908,8 @@ describe('streamObject', () => {
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
           onError,
-          onStepFinish,
           onFinish,
+          experimental_telemetry: { isEnabled: true, tracer },
         });
 
         expect(
@@ -924,18 +917,24 @@ describe('streamObject', () => {
         ).toStrictEqual([{ type: 'error', error }]);
 
         expect(onError).toHaveBeenCalledWith({ error });
-        expect(onStepFinish).toHaveBeenCalledWith(
-          expect.objectContaining({
-            finishReason: 'error',
-            usage: createNullLanguageModelUsage(),
-          }),
-        );
         expect(onFinish).toHaveBeenCalledWith(
           expect.objectContaining({
             object: undefined,
             error,
-            finishReason: 'error',
-            usage: createNullLanguageModelUsage(),
+            usage: {
+              inputTokens: undefined,
+              outputTokens: undefined,
+              totalTokens: undefined,
+            },
+          }),
+        );
+        expect(
+          tracer.spans.find(span => span.name === 'ai.streamObject.doStream')
+            ?.attributes,
+        ).toEqual(
+          expect.objectContaining({
+            'ai.response.finishReason': 'error',
+            'gen_ai.response.finish_reasons': ['error'],
           }),
         );
 
@@ -956,7 +955,7 @@ describe('streamObject', () => {
         const error = new Error('test error');
         const onError = vitest.fn();
         const result = streamObject({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: new ReadableStream({
                 start(controller) {
