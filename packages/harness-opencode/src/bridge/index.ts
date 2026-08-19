@@ -21,6 +21,11 @@ import {
   type TranslationState,
   unwrapOpenCodeEvent,
 } from './opencode-events';
+import {
+  createAssistantSnapshotBaseline,
+  isAssistantSnapshotAfterBaseline,
+  type AssistantSnapshotBaseline,
+} from './opencode-context-fallback';
 import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
@@ -560,7 +565,7 @@ async function runPrompt({
   emit: Emit;
 }): Promise<HarnessUsage | undefined> {
   const eventsAbort = new AbortController();
-  const turnSettled = createDeferred<void>();
+  const turnSettled = createDeferred<'event' | 'stream-ended'>();
   let sawContent = false;
   let sawFinishStep = false;
   let sawBusy = false;
@@ -570,6 +575,9 @@ async function runPrompt({
     client,
     sessionId,
   }).catch(() => undefined);
+  const assistantBaseline = createAssistantSnapshotBaseline(
+    await latestAssistantSnapshot({ client, sessionId }),
+  );
   const eventsReady = createDeferred<void>();
   let stepUsage: HarnessUsage | undefined;
   let latestSessionTokens: OpenCodeTokenUsage | undefined;
@@ -621,7 +629,7 @@ async function runPrompt({
             usage: defaultUsage(),
           });
           sawFinishStep = true;
-          turnSettled.resolve();
+          turnSettled.resolve('event');
           return true;
         }
       }
@@ -639,7 +647,7 @@ async function runPrompt({
         ) {
           return;
         }
-        turnSettled.resolve();
+        turnSettled.resolve('event');
         return true;
       }
       const status = legacyStatusType(event);
@@ -650,14 +658,14 @@ async function runPrompt({
         turn.emitWarning({ message: legacyRetryStatusMessage(event) });
       } else if (sawBusy && status === 'idle') {
         if (start.responseFormat?.type !== 'json') {
-          turnSettled.resolve();
+          turnSettled.resolve('event');
           return true;
         }
       }
     },
   }).finally(() => {
     eventsReady.resolve(undefined);
-    turnSettled.resolve();
+    turnSettled.resolve('stream-ended');
   });
   await eventsReady.promise;
   const prompted = await legacySessionPrompt({
@@ -669,25 +677,26 @@ async function runPrompt({
     eventsAbort.abort();
     throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);
   }
-  await turnSettled.promise;
+  const settlement = await turnSettled.promise;
   eventsAbort.abort();
   await eventLoop.catch(() => {});
+  if (settlement === 'stream-ended') {
+    throw new Error('OpenCode event stream ended before the turn settled.');
+  }
   if (terminalError) throw new Error(terminalError);
   if (!sawFinishStep) {
     const emittedFallback = await emitContextFallback({
       client,
       sessionId,
+      assistantBaseline,
       state,
       emit,
       emitContent: !sawContent,
     }).catch(() => false);
     if (!emittedFallback) {
-      emit({
-        type: 'finish-step',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: defaultUsage(),
-        harnessMetadata: { opencode: { fallback: true, missingContext: true } },
-      });
+      throw new Error(
+        'OpenCode turn settled without a correlated assistant response.',
+      );
     }
   }
   const finalSessionTokens =
@@ -1121,18 +1130,28 @@ function authorizeHostToolCall({
 async function emitContextFallback({
   client,
   sessionId,
+  assistantBaseline,
   state,
   emit,
   emitContent,
 }: {
   client: OpenCodeClient;
   sessionId: string;
+  assistantBaseline: AssistantSnapshotBaseline;
   state: TranslationState;
   emit: Emit;
   emitContent: boolean;
 }): Promise<boolean> {
   const assistant = await latestAssistantSnapshot({ client, sessionId });
-  if (!assistant) return false;
+  if (
+    !assistant ||
+    !isAssistantSnapshotAfterBaseline({
+      assistant,
+      baseline: assistantBaseline,
+    })
+  ) {
+    return false;
+  }
   emitOpenCodeStreamStart({ info: assistant, state, emit });
   if (emitContent && Array.isArray(assistant.contentParts)) {
     for (const part of assistant.contentParts) {
@@ -1176,6 +1195,7 @@ async function readSessionTokens({
 }
 
 type AssistantSnapshot = {
+  id?: unknown;
   contentParts?: unknown[];
   metadata?: unknown;
   model?: unknown;
