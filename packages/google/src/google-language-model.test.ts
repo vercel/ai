@@ -1243,6 +1243,44 @@ describe('doGenerate', () => {
         },
       ]);
     });
+
+    it('should generate an ID when the function call ID is empty', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [
+                  {
+                    functionCall: { id: '', name: 'read_theme', args: {} },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.content).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolName: 'read_theme',
+        input: '{}',
+        providerMetadata: undefined,
+      });
+    });
   });
 
   it('should expose the raw response headers', async () => {
