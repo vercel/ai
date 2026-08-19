@@ -89,6 +89,7 @@ const harness = createCodex({
 Settings:
 
 - `auth`: authentication mode: `auto`, `direct`, or `ai-gateway`.
+- `codexPath`: path to a Codex executable installed inside the sandbox.
 - `codexConfig`: additional native Codex configuration. Values pass through as
   provided, so use the snake_case keys from Codex's `config.toml` reference.
   The adapter's managed values take precedence over conflicting entries.

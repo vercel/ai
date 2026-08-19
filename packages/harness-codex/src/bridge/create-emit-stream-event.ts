@@ -71,7 +71,7 @@ export function createEmitStreamEvent({
   emitWarning: BridgeTurn['emitWarning'];
   emitError: BridgeTurn['emitError'];
 }): (event: CodexEvent) => void {
-  const textByItem = new Map<string, string>();
+  let finalText: string | undefined;
   const reasoningByItem = new Map<string, string>();
 
   return event => {
@@ -85,6 +85,12 @@ export function createEmitStreamEvent({
     }
     if (event.type === 'turn.completed') {
       if (event.usage) setTurnUsage(mapUsage(event.usage));
+      if (finalText !== undefined) {
+        const id = 'codex-final-message';
+        send({ type: 'text-start', id });
+        send({ type: 'text-delta', id, delta: finalText });
+        send({ type: 'text-end', id });
+      }
       stepTracker.finishTurn();
       return;
     }
@@ -110,25 +116,10 @@ export function createEmitStreamEvent({
     };
 
     if (item.type === 'agent_message' && typeof item.text === 'string') {
-      /*
-       * The presence of `id` in `textByItem` — not the `item.started` event —
-       * marks the text part as opened. Codex does not guarantee an
-       * `item.started` event carrying text precedes the first `item.updated`
-       * with text, so keying the `text-start` off the event type can emit a
-       * `text-delta` for a part that was never opened. Opening lazily on the
-       * first event with text keeps `text-start` before any `text-delta`.
-       */
-      if (!textByItem.has(id)) {
-        send({ type: 'text-start', id });
-        textByItem.set(id, '');
+      if (event.type === 'item.completed') {
+        finalText = item.text;
+        send({ type: 'raw', rawValue: event });
       }
-      const last = textByItem.get(id) ?? '';
-      const next = item.text;
-      if (next.length > last.length) {
-        send({ type: 'text-delta', id, delta: next.slice(last.length) });
-        textByItem.set(id, next);
-      }
-      if (event.type === 'item.completed') send({ type: 'text-end', id });
       observeStep();
       return;
     }

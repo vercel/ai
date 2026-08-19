@@ -1,15 +1,21 @@
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { delimiter, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 type CodexOptions = {
+  codexPathOverride?: string;
   config?: Record<string, unknown>;
 };
 type ThreadOptions = { model?: string };
 type TurnOptions = { outputSchema?: Record<string, unknown> };
-const CODEX_ENV_KEYS = [
+const ENV_KEYS = [
   'AI_GATEWAY_API_KEY',
   'AI_GATEWAY_BASE_URL',
   'OPENAI_BASE_URL',
   'CODEX_API_KEY',
+  'CODEX_PATH',
+  'PATH',
 ] as const;
 
 const state = vi.hoisted(() => ({
@@ -24,10 +30,7 @@ const state = vi.hoisted(() => ({
   startCodexConfig: undefined as Record<string, unknown> | undefined,
   startMcpServers: undefined as Record<string, unknown> | undefined,
   originalArgv: [] as string[],
-  originalEnv: {} as Record<
-    (typeof CODEX_ENV_KEYS)[number],
-    string | undefined
-  >,
+  originalEnv: {} as Record<(typeof ENV_KEYS)[number], string | undefined>,
 }));
 
 vi.mock('@openai/codex-sdk', () => ({
@@ -91,6 +94,8 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
 }));
 
 describe('Codex bridge config', () => {
+  const tempDirs: string[] = [];
+
   beforeEach(() => {
     state.codexOptions = [];
     state.threadOptions = [];
@@ -102,9 +107,9 @@ describe('Codex bridge config', () => {
     state.startMcpServers = undefined;
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
-      CODEX_ENV_KEYS.map(key => [key, process.env[key]]),
-    ) as Record<(typeof CODEX_ENV_KEYS)[number], string | undefined>;
-    for (const key of CODEX_ENV_KEYS) {
+      ENV_KEYS.map(key => [key, process.env[key]]),
+    ) as Record<(typeof ENV_KEYS)[number], string | undefined>;
+    for (const key of ENV_KEYS) {
       delete process.env[key];
     }
     process.argv.splice(
@@ -121,9 +126,9 @@ describe('Codex bridge config', () => {
     );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.argv.splice(0, process.argv.length, ...state.originalArgv);
-    for (const key of CODEX_ENV_KEYS) {
+    for (const key of ENV_KEYS) {
       const value = state.originalEnv[key];
       if (value === undefined) {
         delete process.env[key];
@@ -131,6 +136,11 @@ describe('Codex bridge config', () => {
         process.env[key] = value;
       }
     }
+    await Promise.all(
+      tempDirs
+        .splice(0)
+        .map(path => rm(path, { recursive: true, force: true })),
+    );
     vi.resetModules();
   });
 
@@ -283,5 +293,37 @@ describe('Codex bridge config', () => {
     expect(state.turnOptions[0]?.outputSchema).toEqual(
       state.startResponseFormat.schema,
     );
+  });
+
+  test('passes CODEX_PATH as codexPathOverride', async () => {
+    process.env.CODEX_PATH = ' /opt/codex/custom ';
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.codexPathOverride).toBe('/opt/codex/custom');
+  });
+
+  test('uses an executable codex on PATH', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'harness-codex-'));
+    tempDirs.push(dir);
+    const executable = join(
+      dir,
+      process.platform === 'win32' ? 'codex.exe' : 'codex',
+    );
+    await writeFile(executable, '');
+    await chmod(executable, 0o755);
+    process.env.PATH = [dir, '/not-a-real-bin'].join(delimiter);
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.codexPathOverride).toBe(executable);
+  });
+
+  test('leaves the SDK bundled executable as the fallback', async () => {
+    process.env.PATH = '/not-a-real-bin';
+
+    await import('./index');
+
+    expect(state.codexOptions[0]).not.toHaveProperty('codexPathOverride');
   });
 });
