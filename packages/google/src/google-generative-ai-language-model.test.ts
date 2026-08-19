@@ -1,4 +1,5 @@
 import type {
+  JSONSchema7,
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
@@ -1005,6 +1006,50 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should inline local JSON Schema references in tool requests', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'format-date',
+          description: 'Format a date',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              locale: {
+                $ref: '#/$defs/Locale',
+                description: 'Locale for formatting',
+              },
+            },
+            required: ['locale'],
+            additionalProperties: false,
+            $defs: {
+              Locale: { type: 'string', enum: ['de', 'en'] },
+            },
+          } as JSONSchema7,
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0]
+        .parameters,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        locale: {
+          type: 'string',
+          enum: ['de', 'en'],
+          description: 'Locale for formatting',
+        },
+      },
+      required: ['locale'],
+    });
+  });
+
   it('should set response mime type with responseFormat', async () => {
     prepareJsonResponse({});
 
@@ -1037,6 +1082,37 @@ describe('doGenerate', () => {
           },
         },
       },
+    });
+  });
+
+  it('should inline local JSON Schema references in response schemas', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            locale: { $ref: '#/$defs/Locale' },
+          },
+          required: ['locale'],
+          $defs: {
+            Locale: { type: 'string', enum: ['de', 'en'] },
+          },
+        } as JSONSchema7,
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig.responseSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        locale: { type: 'string', enum: ['de', 'en'] },
+      },
+      required: ['locale'],
     });
   });
 
