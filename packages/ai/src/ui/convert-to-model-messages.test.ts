@@ -1,13 +1,7 @@
 import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-<<<<<<< HEAD
-import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
-import { z } from 'zod/v4';
-=======
-import { describe, expect, it } from 'vitest';
 import z from 'zod/v4';
->>>>>>> origin/release-v6.0
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { convertToModelMessages } from './convert-to-model-messages';
@@ -1231,14 +1225,10 @@ describe('convertToModelMessages', () => {
 
   describe('when ignoring incomplete tool calls', () => {
     it('should ignore preliminary tool outputs', async () => {
-<<<<<<< HEAD
       const toModelOutput = vi.fn(() => ({
         type: 'text' as const,
         value: 'converted preliminary output',
       }));
-=======
-      let toModelOutputCalls = 0;
->>>>>>> origin/release-v6.0
 
       const result = await convertToModelMessages(
         [
@@ -1246,19 +1236,11 @@ describe('convertToModelMessages', () => {
             role: 'assistant',
             parts: [
               {
-<<<<<<< HEAD
-                type: 'tool-progress',
-                state: 'output-available',
-                toolCallId: 'call-1',
-                input: { task: 'report' },
-                output: { phase: 'working' },
-=======
                 type: 'tool-streamingTool',
                 state: 'output-available',
                 toolCallId: 'call-preliminary',
                 input: { task: 'finish the work' },
                 output: { complete: false, progress: 'half finished' },
->>>>>>> origin/release-v6.0
                 preliminary: true,
               },
             ],
@@ -1271,28 +1253,15 @@ describe('convertToModelMessages', () => {
         {
           ignoreIncompleteToolCalls: true,
           tools: {
-<<<<<<< HEAD
-            progress: tool({
-              inputSchema: z.object({ task: z.string() }),
-              toModelOutput,
-=======
             streamingTool: tool({
               inputSchema: z.object({ task: z.string() }),
-              toModelOutput: ({ output }) => {
-                toModelOutputCalls++;
-                return { type: 'json', value: output };
-              },
->>>>>>> origin/release-v6.0
+              toModelOutput,
             }),
           },
         },
       );
 
-<<<<<<< HEAD
       expect(toModelOutput).not.toHaveBeenCalled();
-=======
-      expect(toModelOutputCalls).toBe(0);
->>>>>>> origin/release-v6.0
       expect(result).toEqual([
         {
           role: 'user',
