@@ -6655,6 +6655,137 @@ describe('OpenAIResponsesLanguageModel', () => {
       ]);
     });
 
+    it('should replay streamed wrapper input when expansion fails', async () => {
+      const inputDeltas = [
+        '{"tool_uses":[',
+        '{"recipient_name":"functions.weather","parameters":{}}]',
+      ];
+      const input = inputDeltas.join('');
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_parallel_malformed',
+              call_id: 'call_parallel_malformed',
+              name: 'parallel',
+              arguments: '',
+              status: 'in_progress',
+            },
+          })}\n\n`,
+          ...inputDeltas.map(
+            delta =>
+              `data:${JSON.stringify({
+                type: 'response.function_call_arguments.delta',
+                item_id: 'fc_parallel_malformed',
+                output_index: 0,
+                delta,
+              })}\n\n`,
+          ),
+          `data:${JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_parallel_malformed',
+              call_id: 'call_parallel_malformed',
+              name: 'parallel',
+              arguments: input,
+              status: 'completed',
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.4').doStream({
+        tools: TEST_TOOLS,
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type.startsWith('tool-'))).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'call_parallel_malformed',
+          toolName: 'parallel',
+        },
+        ...inputDeltas.map(delta => ({
+          type: 'tool-input-delta' as const,
+          id: 'call_parallel_malformed',
+          delta,
+        })),
+        {
+          type: 'tool-input-end',
+          id: 'call_parallel_malformed',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_malformed',
+          toolName: 'parallel',
+          input,
+          providerMetadata: {
+            openai: { itemId: 'fc_parallel_malformed' },
+          },
+        },
+      ]);
+    });
+
+    it('should flush streamed wrapper input when the stream ends early', async () => {
+      const inputDeltas = ['{"tool_uses":[', '{"recipient_name":'];
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_parallel_truncated',
+              call_id: 'call_parallel_truncated',
+              name: 'parallel',
+              arguments: '',
+              status: 'in_progress',
+            },
+          })}\n\n`,
+          ...inputDeltas.map(
+            delta =>
+              `data:${JSON.stringify({
+                type: 'response.function_call_arguments.delta',
+                item_id: 'fc_parallel_truncated',
+                output_index: 0,
+                delta,
+              })}\n\n`,
+          ),
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.4').doStream({
+        tools: TEST_TOOLS,
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type.startsWith('tool-'))).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'call_parallel_truncated',
+          toolName: 'parallel',
+        },
+        ...inputDeltas.map(delta => ({
+          type: 'tool-input-delta' as const,
+          id: 'call_parallel_truncated',
+          delta,
+        })),
+      ]);
+    });
+
     it('should preserve namespace on streaming function_call output', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
