@@ -314,7 +314,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(prompt, {
+          providerOptionsKey: metadataKey,
+        }),
 
         // tools:
         tools: openaiTools,
@@ -377,7 +379,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           toolCall.extra_content?.google?.thought_signature;
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
           ...(thoughtSignature

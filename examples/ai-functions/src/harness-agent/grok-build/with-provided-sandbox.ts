@@ -16,10 +16,11 @@ run(async () => {
 
   const agent = new HarnessAgent({
     harness: grokBuild,
-    sandbox: createVercelSandbox({ sandbox }),
   });
 
-  const session = await agent.createSession();
+  const sandboxProvider = createVercelSandbox({ sandbox });
+  const sandboxSession = await sandboxProvider.createSession();
+  const session = await agent.createSession({ sandboxSession });
   try {
     const result = await agent.stream({
       session,

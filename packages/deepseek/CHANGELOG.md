@@ -1,5 +1,13 @@
 # @ai-sdk/deepseek
 
+## 3.0.29
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
 ## 3.0.28
 
 ### Patch Changes

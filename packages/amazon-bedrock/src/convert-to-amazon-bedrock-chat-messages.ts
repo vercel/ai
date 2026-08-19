@@ -520,6 +520,12 @@ export async function convertToAmazonBedrockChatMessages(
                       },
                     },
                   });
+                } else if (reasoningMetadata?.redactedContent != null) {
+                  amazonBedrockContent.push({
+                    reasoningContent: {
+                      redactedContent: reasoningMetadata.redactedContent,
+                    },
+                  });
                 } else if (reasoningMetadata?.redactedData != null) {
                   amazonBedrockContent.push({
                     reasoningContent: {

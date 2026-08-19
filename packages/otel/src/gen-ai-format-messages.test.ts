@@ -476,6 +476,36 @@ describe('formatOutputMessages', () => {
     `);
   });
 
+  it('should format output with tool results', () => {
+    expect(
+      formatOutputMessages({
+        toolResults: [
+          {
+            toolCallId: 'call_abc',
+            output: { temperature: 21 },
+          },
+        ],
+        finishReason: 'stop',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "stop",
+          "parts": [
+            {
+              "id": "call_abc",
+              "response": {
+                "temperature": 21,
+              },
+              "type": "tool_call_response",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
   it('should format output with files', () => {
     expect(
       formatOutputMessages({

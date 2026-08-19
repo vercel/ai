@@ -22,6 +22,9 @@ const clineMock = vi.hoisted(() => ({
     headers?: Record<string, string>;
   }>,
   runInputs: [] as AgentRunInput[],
+  runGate: undefined as Promise<void> | undefined,
+  runStatus: 'completed' as AgentRunResult['status'],
+  runError: undefined as Error | undefined,
   outputText: '',
 }));
 
@@ -48,6 +51,7 @@ vi.mock('@cline/agents', () => ({
 
     async run(input: AgentRunInput): Promise<AgentRunResult> {
       clineMock.runInputs.push(input);
+      await clineMock.runGate;
       return this.result();
     }
 
@@ -63,7 +67,7 @@ vi.mock('@cline/agents', () => ({
       return {
         agentId: 'agent-1',
         runId: 'run-1',
-        status: 'completed',
+        status: clineMock.runStatus,
         iterations: 1,
         outputText: clineMock.outputText,
         messages: this.messages,
@@ -73,6 +77,7 @@ vi.mock('@cline/agents', () => ({
           cacheReadTokens: 0,
           cacheWriteTokens: 0,
         },
+        ...(clineMock.runError ? { error: clineMock.runError } : {}),
       };
     }
   },
@@ -119,6 +124,9 @@ describe('createClineSession instructions', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
     clineMock.outputText = '';
   });
 
@@ -243,6 +251,61 @@ describe('createClineSession instructions', () => {
       await session.doDestroy();
     }
   });
+
+  it('continues the active turn with queued steering messages', async () => {
+    let releaseRun!: () => void;
+    clineMock.runGate = new Promise<void>(resolve => {
+      releaseRun = resolve;
+    });
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Weather in Paris?',
+        emit: vi.fn(),
+      });
+      const steering = control.submitUserMessage?.('Actually, Paris, Texas.');
+      releaseRun();
+      await steering;
+      await control.done;
+
+      expect(clineMock.runInputs).toEqual(['Weather in Paris?']);
+      expect(clineMock.continueInputs).toEqual(['Actually, Paris, Texas.']);
+      await expect(control.submitUserMessage?.('Too late.')).rejects.toThrow(
+        'no running turn',
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rejects queued steering messages when the turn fails before consuming them', async () => {
+    let releaseRun!: () => void;
+    clineMock.runGate = new Promise<void>(resolve => {
+      releaseRun = resolve;
+    });
+    clineMock.runStatus = 'failed';
+    clineMock.runError = new Error('Cline failed');
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Weather in Paris?',
+        emit: vi.fn(),
+      });
+      const steering = expect(
+        control.submitUserMessage?.('Actually, Paris, Texas.'),
+      ).rejects.toThrow('turn ended before accepting');
+
+      releaseRun();
+
+      await steering;
+      await control.done;
+      expect(clineMock.continueInputs).toEqual([]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
 });
 
 describe('createClineSession model configuration', () => {
@@ -253,6 +316,9 @@ describe('createClineSession model configuration', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
     clineMock.outputText = '';
   });
 
@@ -431,6 +497,9 @@ describe('createClineSession tool results', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
     clineMock.outputText = '';
   });
 
@@ -623,6 +692,9 @@ describe('createClineSession tool execution', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
     clineMock.outputText = '';
   });
 

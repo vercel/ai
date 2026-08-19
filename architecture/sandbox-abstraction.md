@@ -122,7 +122,6 @@ classDiagram
     class HarnessV1SandboxProvider {
       specificationVersion
       providerId
-      bridgePorts
       createSession(options)
       resumeSession(options)
     }

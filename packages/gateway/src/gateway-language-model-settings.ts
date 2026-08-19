@@ -231,5 +231,6 @@ export type GatewayModelId =
   | 'zai/glm-5.1'
   | 'zai/glm-5.2'
   | 'zai/glm-5.2-fast'
+  | 'zai/glm-5.3'
   | 'zai/glm-5v-turbo'
   | (string & {});

@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.28
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+
 ## 5.0.27
 
 ### Patch Changes

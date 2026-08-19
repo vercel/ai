@@ -1,5 +1,25 @@
 # @ai-sdk/harness
 
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - @ai-sdk/provider-utils@5.0.28
+  - ai@7.0.70
+
+## 1.0.76
+
+### Patch Changes
+
+- fc1970b: feat(harness): allow passing caller-owned `sandboxSession` to `HarnessAgent.createSession()` and in that case allow omitting the then unnecessary `sandbox` arg from `HarnessAgent` constructor
+  - ai@7.0.69
+
 ## 1.0.75
 
 ### Patch Changes
