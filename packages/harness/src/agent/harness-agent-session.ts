@@ -11,7 +11,6 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1PromptControl,
   HarnessV1ResponseFormat,
-  HarnessV1SandboxProvider,
 } from '../v1';
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
@@ -26,7 +25,6 @@ import type {
 } from './harness-agent-types';
 import type { HarnessAgentToolApprovalContinuation } from './harness-agent-tool-approval-continuation';
 import type { HarnessAgentToolResultContinuation } from './harness-agent-tool-result-continuation';
-import { releaseBridgePort } from './internal/bridge-port-registry';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
 
@@ -59,9 +57,7 @@ type ActivePromptControl = {
  * Live harness session held by the caller.
  *
  * Created by {@link import('./harness-agent').HarnessAgent.createSession}.
- * Owns the underlying adapter session, the network sandbox session, and the
- * bridge-port lease (when the provider wraps a caller-provided sandbox with a
- * port pool).
+ * Owns the underlying adapter session and the network sandbox session.
  *
  * Pass the instance back to `agent.generate` / `agent.stream` on every
  * call; end the local handle with `detach()`, `stop()`, or `destroy()`.
@@ -78,11 +74,10 @@ export class HarnessAgentSession {
   readonly sessionId: string;
 
   private readonly harness: HarnessAgentAdapter;
-  private readonly sandboxProvider: HarnessV1SandboxProvider;
   private readonly sessionWorkDir: string;
+  private readonly ownsSandboxLifecycle: boolean;
   private underlyingSession: HarnessAgentAdapterSession | undefined;
   private sandboxSession: HarnessV1NetworkSandboxSession | undefined;
-  private leasedBridgePort: number | undefined;
   private readonly toolApproval:
     | HarnessAgentToolApprovalConfiguration
     | undefined;
@@ -114,8 +109,7 @@ export class HarnessAgentSession {
     harness: HarnessAgentAdapter;
     underlyingSession: HarnessAgentAdapterSession;
     sandboxSession: HarnessV1NetworkSandboxSession;
-    sandboxProvider: HarnessV1SandboxProvider;
-    leasedBridgePort?: number;
+    ownsSandboxLifecycle?: boolean;
     sessionWorkDir: string;
     toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
     pendingToolApprovals?: readonly HarnessAgentPendingToolApproval[];
@@ -126,8 +120,7 @@ export class HarnessAgentSession {
     this.harness = options.harness;
     this.underlyingSession = options.underlyingSession;
     this.sandboxSession = options.sandboxSession;
-    this.sandboxProvider = options.sandboxProvider;
-    this.leasedBridgePort = options.leasedBridgePort;
+    this.ownsSandboxLifecycle = options.ownsSandboxLifecycle ?? true;
     this.sessionWorkDir = options.sessionWorkDir;
     this.toolApproval = options.toolApproval;
     for (const approval of options.pendingToolApprovals ?? []) {
@@ -421,15 +414,13 @@ export class HarnessAgentSession {
       });
       return validated;
     } finally {
-      this.endLocalHandle({
-        sessionState: 'detached',
-        releasePortLease: false,
-      });
+      this.endLocalHandle({ sessionState: 'detached' });
     }
   }
 
   /**
-   * Persist enough state to resume later, then stop the runtime and sandbox.
+   * Persist enough state to resume later, then stop the runtime and any
+   * harness-owned sandbox.
    * Returns the resume state for a future
    * `agent.createSession({ sessionId, resumeFrom })` call.
    */
@@ -455,26 +446,26 @@ export class HarnessAgentSession {
       });
       return validated;
     } finally {
-      this.endLocalHandle({
-        sessionState: 'stopped',
-        releasePortLease: true,
-      });
-      await Promise.resolve(sandboxSession.stop()).catch(() => {});
+      this.endLocalHandle({ sessionState: 'stopped' });
+      if (this.ownsSandboxLifecycle) {
+        await Promise.resolve(sandboxSession.stop()).catch(() => {});
+      }
     }
   }
 
   /**
-   * Stop the runtime and discard resumability. The sandbox is destroyed when
-   * the provider supports destruction; otherwise it is stopped.
+   * Stop the runtime and discard resumability. A harness-owned sandbox is
+   * destroyed when supported; otherwise it is stopped.
    */
   async destroy(): Promise<void> {
     if (this.sessionState !== 'active') return;
     const session = this.underlyingSession;
     const sandboxSession = this.getSandboxSession();
-    this.endLocalHandle({ sessionState: 'destroyed', releasePortLease: true });
+    this.endLocalHandle({ sessionState: 'destroyed' });
     if (session != null) {
       await Promise.resolve(session.doDestroy()).catch(() => {});
     }
+    if (!this.ownsSandboxLifecycle) return;
     await Promise.resolve(
       sandboxSession.destroy?.() ?? sandboxSession.stop(),
     ).catch(() => {});
@@ -489,9 +480,8 @@ export class HarnessAgentSession {
    *
    * After this call the session is detached. This in-process handle no
    * longer drives turns; a future slice creates a fresh session from the
-   * returned state. The sandbox is **not** stopped and no port lease is
-   * released, because bridge-backed adapters may still have a live bridge on
-   * that port.
+   * returned state. The sandbox is **not** stopped because bridge-backed
+   * adapters may still have a live bridge.
    */
   async suspendTurn(): Promise<HarnessAgentContinueTurnState> {
     if (this.sessionState !== 'active' || this.underlyingSession == null) {
@@ -508,10 +498,7 @@ export class HarnessAgentSession {
     try {
       return await this.suspendCurrentTurn({ session });
     } finally {
-      this.endLocalHandle({
-        sessionState: 'detached',
-        releasePortLease: false,
-      });
+      this.endLocalHandle({ sessionState: 'detached' });
     }
   }
 
@@ -701,24 +688,11 @@ export class HarnessAgentSession {
 
   private endLocalHandle(options: {
     sessionState: Exclude<HarnessAgentSessionState, 'active'>;
-    releasePortLease: boolean;
   }): void {
     this.clearActivePromptControl();
     this.sessionState = options.sessionState;
     this.underlyingSession = undefined;
     this.sandboxSession = undefined;
-    if (options.releasePortLease) {
-      this.releasePortLease();
-    }
-  }
-
-  private releasePortLease(): void {
-    if (this.leasedBridgePort == null) return;
-    releaseBridgePort({
-      poolKey: this.sandboxProvider,
-      sessionId: this.sessionId,
-    });
-    this.leasedBridgePort = undefined;
   }
 
   private requireReusableSession(): HarnessAgentAdapterSession {

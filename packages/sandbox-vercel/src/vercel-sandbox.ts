@@ -44,8 +44,7 @@ type VercelSandboxCreateParams = DistributiveOmit<
  *
  * - `{ sandbox }` — wrap an already-created `@vercel/sandbox` `Sandbox`. The
  *   caller owns its lifecycle; the provider's `stop()` and `destroy()` are
- *   no-ops. Optionally declare `bridgePorts` to give the harness a port pool to
- *   lease from for concurrent sessions on the same provided sandbox.
+ *   no-ops.
  * - {@link VercelSandboxCreateParams} fields — provider creates the underlying
  *   sandbox. When the adapter declares a bootstrap recipe the provider uses
  *   `Sandbox.getOrCreate` to maintain a persistent named template snapshot
@@ -53,10 +52,7 @@ type VercelSandboxCreateParams = DistributiveOmit<
  *   from the snapshot. Use `name` to override the auto-derived template name.
  */
 export type VercelSandboxSettings =
-  | {
-      sandbox: Sandbox;
-      bridgePorts?: ReadonlyArray<number>;
-    }
+  | { sandbox: Sandbox }
   | (VercelSandboxCreateParams & {
       sandbox?: never;
       name?: string;
@@ -93,18 +89,8 @@ export function createVercelSandbox(
 export class VercelSandboxProvider implements HarnessV1SandboxProvider {
   readonly specificationVersion = 'harness-sandbox-v1' as const;
   readonly providerId = VERCEL_PROVIDER_ID;
-  readonly bridgePorts?: ReadonlyArray<number>;
 
-  constructor(private readonly settings: VercelSandboxSettings) {
-    if (
-      'sandbox' in settings &&
-      settings.sandbox != null &&
-      settings.bridgePorts != null &&
-      settings.bridgePorts.length > 0
-    ) {
-      this.bridgePorts = [...settings.bridgePorts];
-    }
-  }
+  constructor(private readonly settings: VercelSandboxSettings) {}
 
   createSession = async (options?: {
     sessionId?: string;

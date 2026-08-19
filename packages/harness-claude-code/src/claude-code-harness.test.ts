@@ -117,6 +117,8 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
+      if (path.endsWith('/bridge/pnpm-workspace.yaml'))
+        return "allowBuilds:\n  '@anthropic-ai/claude-code@2.1.213': true\n";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
     }),
@@ -961,7 +963,7 @@ describe('createClaudeCode adapter', () => {
       expect(recipe.bootstrapDir).toBe('.harness-bootstrap/claude-code');
     });
 
-    it('includes bridge.mjs, package.json, and pnpm-lock.yaml under the bootstrap dir', async () => {
+    it('includes bridge and package-manager assets under the bootstrap dir', async () => {
       const harness = createClaudeCode();
       const recipe = await harness.getBootstrap!();
       const paths = recipe.files.map(f => f.path).sort();
@@ -969,22 +971,28 @@ describe('createClaudeCode adapter', () => {
         '.harness-bootstrap/claude-code/bridge.mjs',
         '.harness-bootstrap/claude-code/package.json',
         '.harness-bootstrap/claude-code/pnpm-lock.yaml',
+        '.harness-bootstrap/claude-code/pnpm-workspace.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
     });
 
-    it('declares pnpm install and claude post-install commands for the bootstrap cwd', async () => {
+    it('allows the pinned Claude Code build and verifies the installed CLI', async () => {
       const harness = createClaudeCode();
       const recipe = await harness.getBootstrap!();
       const commands = recipe.commands.map(c => c.command);
+      const workspace = recipe.files.find(file =>
+        file.path.endsWith('/pnpm-workspace.yaml'),
+      );
       expect(commands).toHaveLength(2);
       expect(commands[0]).toBe(
         'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       );
-      expect(commands[1]).toContain('claude --version');
-      expect(commands[1]).not.toContain('cd ');
+      expect(commands[1]).toBe('./node_modules/.bin/claude --version');
+      expect(workspace?.content).toContain(
+        "'@anthropic-ai/claude-code@2.1.213': true",
+      );
     });
 
     it('caches the recipe across calls', async () => {

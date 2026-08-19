@@ -849,6 +849,82 @@ describe('OpenTelemetry', () => {
       `);
     });
 
+    it('records provider-executed tool results and observed definitions', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          tools: [{ type: 'provider', name: 'mcp', id: 'openai.mcp' }],
+        }),
+      );
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'mcp.ask_question',
+              input: { question: 'What is this repository?' },
+              providerExecuted: true,
+              dynamic: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tc1',
+              toolName: 'mcp.ask_question',
+              input: { question: 'What is this repository?' },
+              output: { answer: 'An AI SDK repository.' },
+              providerExecuted: true,
+              dynamic: true,
+            },
+          ],
+        }),
+      );
+
+      const chatSpan = tracer.spans[2];
+      expect({
+        ...parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'),
+        ...parseJsonAttributes(chatSpan.attributes, 'gen_ai.tool.definitions'),
+      }).toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "arguments": {
+                    "question": "What is this repository?",
+                  },
+                  "id": "tc1",
+                  "name": "mcp.ask_question",
+                  "type": "tool_call",
+                },
+                {
+                  "id": "tc1",
+                  "response": {
+                    "answer": "An AI SDK repository.",
+                  },
+                  "type": "tool_call_response",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "gen_ai.tool.definitions": [
+            {
+              "id": "openai.mcp",
+              "name": "mcp",
+              "type": "provider",
+            },
+            {
+              "name": "mcp.ask_question",
+              "type": "extension",
+            },
+          ],
+        }
+      `);
+    });
+
     it('sets cache token attributes when available', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
@@ -930,6 +1006,27 @@ describe('OpenTelemetry', () => {
           "runtimeAttributes": {},
         }
       `);
+    });
+
+    it('uses extension type for provider-executed tools', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onToolExecutionStart!(
+        makeToolCallStartEvent({
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'tool-call-1',
+            toolName: 'mcp.ask_question',
+            input: { question: 'What is this repository?' },
+            providerExecuted: true,
+            dynamic: true,
+          },
+        }),
+      );
+
+      expect(
+        getSpanStartAttributes(tracer, tracer.spans[2])['gen_ai.tool.type'],
+      ).toBe('extension');
     });
 
     it('parents chat and execute_tool spans under the same step span', () => {
