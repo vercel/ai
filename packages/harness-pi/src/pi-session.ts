@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
 import {
+  HarnessCapabilityUnsupportedError,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnOptions,
   type HarnessV1ContinueTurnState,
@@ -1311,6 +1312,12 @@ export async function createPiSession(
     doPromptTurn: async (
       promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
+      if (promptOpts.responseFormat?.type === 'json') {
+        throw new HarnessCapabilityUnsupportedError({
+          message: "Harness 'pi' does not support structured output.",
+          harnessId: HARNESS_ID,
+        });
+      }
       return runTurn({
         text: extractUserText(promptOpts.prompt),
         tools: promptOpts.tools ?? [],
@@ -1323,6 +1330,12 @@ export async function createPiSession(
     doContinueTurn: async (
       continueOpts: HarnessV1ContinueTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
+      if (continueOpts.responseFormat?.type === 'json') {
+        throw new HarnessCapabilityUnsupportedError({
+          message: "Harness 'pi' does not support structured output.",
+          harnessId: HARNESS_ID,
+        });
+      }
       if (activeTurn != null) {
         currentEmit = continueOpts.emit;
         return createPromptControl({

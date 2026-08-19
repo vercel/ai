@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 4.0.46
+
+### Patch Changes
+
+- f69920a: fix(google): use low as the minimum reasoning level for full Gemini Flash 3.7 and later
+
+## 4.0.45
+
+### Patch Changes
+
+- bb0cf2e: fix(google): coerce minimal reasoning to low for Gemini 3.7 Flash
+
 ## 4.0.44
 
 ### Patch Changes

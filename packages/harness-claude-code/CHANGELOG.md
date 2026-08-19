@@ -1,5 +1,36 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.79
+
+### Patch Changes
+
+- 54686d6: fix(harness-claude-code): allow bootstrap in sandboxes that require explicit dependency build approval
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+
+## 1.0.77
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+
+## 1.0.76
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- a5ddbb0: fix(harness-claude-code): preserve general `anyOf` and `oneOf` constraints when registering custom tools with the MCP bridge
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness@1.0.73
+
 ## 1.0.75
 
 ### Patch Changes
