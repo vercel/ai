@@ -207,6 +207,33 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should generate distinct IDs for parallel tool calls with empty IDs', async () => {
+    prepareJsonResponse({
+      finish_reason: 'tool_calls',
+      tool_calls: [
+        {
+          id: '',
+          type: 'function',
+          function: { name: 'first', arguments: '{"value":1}' },
+        },
+        {
+          id: '',
+          type: 'function',
+          function: { name: 'second', arguments: '{"value":2}' },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+    const toolCallIds = result.content
+      .filter(part => part.type === 'tool-call')
+      .map(part => part.toolCallId);
+
+    expect(toolCallIds).toHaveLength(2);
+    expect(toolCallIds.every(id => id.length > 0)).toBe(true);
+    expect(new Set(toolCallIds).size).toBe(2);
+  });
+
   it('should extract usage', async () => {
     prepareJsonFixtureResponse('xai-text');
 

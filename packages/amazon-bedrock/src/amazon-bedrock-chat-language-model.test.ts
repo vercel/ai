@@ -3514,6 +3514,40 @@ describe('doStream', () => {
 });
 
 describe('doGenerate', () => {
+  it('should generate an ID when toolUseId is empty', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: '',
+                  name: 'test-tool',
+                  input: { value: 'test' },
+                },
+              },
+            ],
+          },
+        },
+        stopReason: 'tool_use',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.content).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'test-id',
+      toolName: 'test-tool',
+      input: '{"value":"test"}',
+      providerMetadata: undefined,
+    });
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('amazon-bedrock-text');

@@ -126,3 +126,47 @@ describe('buildGoogleInteractionsStreamTransform — usage modality', () => {
     });
   });
 });
+
+describe('buildGoogleInteractionsStreamTransform — tool call IDs', () => {
+  it('uses the generated block ID when a function call ID is empty', async () => {
+    const parts = await runTransform([
+      {
+        event_type: 'interaction.created',
+        interaction: { id: 'interaction-1', status: 'in_progress' },
+      },
+      {
+        event_type: 'step.start',
+        index: 0,
+        step: {
+          type: 'function_call',
+          id: '',
+          name: 'get_weather',
+          arguments: {},
+        },
+      },
+      { event_type: 'step.stop', index: 0 },
+      {
+        event_type: 'interaction.completed',
+        interaction: { id: 'interaction-1', status: 'completed' },
+      },
+    ] as Array<GoogleInteractionsEvent>);
+
+    expect(parts.filter(part => part.type.startsWith('tool-'))).toEqual([
+      {
+        type: 'tool-input-start',
+        id: 'interaction-1:0',
+        toolName: 'get_weather',
+      },
+      { type: 'tool-input-end', id: 'interaction-1:0' },
+      {
+        type: 'tool-call',
+        toolCallId: 'interaction-1:0',
+        toolName: 'get_weather',
+        input: '{}',
+        providerMetadata: {
+          google: { interactionId: 'interaction-1' },
+        },
+      },
+    ]);
+  });
+});
