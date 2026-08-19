@@ -5603,6 +5603,58 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should expose reasoning redacted as `redactedContent` for replay', async () => {
+    // `redactedContent` is a member of the ReasoningContentBlock union
+    // in the Converse API. OpenAI models on Bedrock (e.g. `us.openai.gpt-5.6-luna`)
+    // return their encrypted reasoning in this shape. It is surfaced as provider
+    // metadata so that it can be replayed on subsequent turns.
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  redactedContent: 'encrypted-reasoning-payload',
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "amazonBedrock": {
+              "redactedContent": "encrypted-reasoning-payload",
+            },
+            "bedrock": {
+              "redactedContent": "encrypted-reasoning-payload",
+            },
+          },
+          "text": "",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
   it('should handle multiple reasoning blocks', async () => {
     server.urls[generateUrl].response = {
       type: 'json-value',

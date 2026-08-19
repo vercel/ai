@@ -1,5 +1,38 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+  - @ai-sdk/harness-acp@1.0.14
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+  - @ai-sdk/harness-acp@1.0.13
+
+## 1.0.11
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+- @ai-sdk/harness-acp@1.0.12
+
+## 1.0.10
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness-acp@1.0.11
+  - @ai-sdk/harness@1.0.73
+
 ## 1.0.9
 
 ### Patch Changes

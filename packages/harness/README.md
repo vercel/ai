@@ -98,9 +98,9 @@ const agent = new HarnessAgent({
 });
 ```
 
-Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters such as Claude Code, Codex, OpenCode, and DeepAgents require a sandbox provider that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for host-runtime or otherwise non-bridge flows, such as Pi.
+Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters such as Claude Code, Codex, OpenCode, and DeepAgents require a network sandbox session that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for host-runtime or otherwise non-bridge flows, such as Pi.
 
-`sandbox` is a required `HarnessV1SandboxProvider` — the agent calls `provider.createSession()` when a session starts. Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
+`sandbox` is an optional `HarnessV1SandboxProvider`. When omitted, pass a `HarnessV1NetworkSandboxSession` to every `agent.createSession({ sandboxSession })` call. Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
 
 - Use `sandboxConfig.onSession` to prepare the acquired sandbox before the harness adapter starts. The hook runs for fresh and resumed sessions, so keep it idempotent.
 - Use `sandboxConfig.onBootstrap` for expensive sandbox setup that should be baked into a reusable snapshot, such as installing tools or cloning a large repository. Provide `sandboxConfig.bootstrapHash` with it and change that value whenever the bootstrap output should invalidate the cached snapshot.
@@ -116,9 +116,9 @@ bootstrap recipes and `sandboxConfig.onBootstrap`, returns the computed
 preparation identity and per-harness recipe identities, and leaves snapshotting
 or stopping the sandbox to your code. Later, create a sandbox from that snapshot
 and pass the native sandbox object to `createVercelSandbox({ sandbox })` for the
-`HarnessAgent`. When you reuse a caller-provided sandbox with a bridge-backed
-harness, declare the available port pool, for example
-`createVercelSandbox({ sandbox, bridgePorts: [4000] })`.
+`HarnessAgent`. When several bridge-backed harnesses share a caller-provided
+sandbox, create that sandbox with one exposed port for each harness. Then pass
+each harness's assigned port to that harness's `create*` function.
 
 ### Available harnesses
 
@@ -126,7 +126,7 @@ See the [harness adapters documentation](https://ai-sdk.dev/v7/docs/ai-sdk-harne
 
 ## Implementing a harness
 
-Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. Read `startOpts.sandboxSession` for the network sandbox session the agent created and will stop on cleanup. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
+Implement the `HarnessV1` factory and a `HarnessV1Session` whose `doPromptTurn` emits events; the agent surface, streaming, tool execution, and multi-turn state are handled for you. Read `startOpts.sandboxSession` for the selected network sandbox session. The harness layer stops or destroys sessions it acquires from the provider, while a session passed to `agent.createSession({ sandboxSession })` remains caller-owned. Call `sandboxSession.restricted()` for the tool-safe file-IO/exec/spawn surface.
 
 Each prompt and continuation receives an optional `responseFormat`. JSON
 formats carry a caller-provided JSON Schema plus optional name and description;

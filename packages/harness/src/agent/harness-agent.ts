@@ -5,7 +5,6 @@ import type {
   HarnessV1JSONSchema,
   HarnessV1NetworkSandboxSession,
   HarnessV1ResponseFormat,
-  HarnessV1SandboxProvider,
 } from '../v1';
 import {
   asArray,
@@ -48,17 +47,15 @@ import {
   collectHarnessAgentToolResultContinuations,
   type HarnessAgentToolResultContinuation,
 } from './harness-agent-tool-result-continuation';
-import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
 import {
-  acquireBridgePort,
-  releaseBridgePort,
-} from './internal/bridge-port-registry';
+  applyBootstrapRecipe,
+  hashHarnessBootstrap,
+} from './internal/bootstrap-recipe';
 import {
   createSandboxBootstrapPlan,
   ensureSandboxDirectory,
   resolveSessionWorkDir,
   validateSandboxBootstrapSettings,
-  type SandboxBootstrapPlan,
 } from './internal/sandbox-bootstrap';
 import { buildObservability } from './internal/resolve-observability';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
@@ -110,12 +107,13 @@ export interface HarnessAgentCallExtensions {
  *    the result is fed back to the harness via `submitToolResult`.
  *    Adapter builtin tools (e.g. Claude Code's `Bash`) pass through
  *    untouched.
- *  - **Sandbox propagation.** `settings.sandbox` is a sandbox provider.
- *    On `createSession`, the agent calls `provider.createSession()` (or
- *    `resumeSession()`) and passes the resulting network sandbox session into
- *    `doStart`. Its `restricted()` view (a tool-safe
+ *  - **Sandbox propagation.** On `createSession`, the agent uses a
+ *    caller-provided network sandbox session when present; otherwise it calls
+ *    the configured provider's `createSession()` (or `resumeSession()`). It
+ *    passes the selected session into `doStart`. Its `restricted()` view (a tool-safe
  *    `Experimental_SandboxSession`) is handed to user-tool `execute()` calls
- *    via `experimental_sandbox`.
+ *    via `experimental_sandbox`. Caller-provided sandboxes remain owned by the
+ *    caller and are not stopped or destroyed by the harness layer.
  */
 export class HarnessAgent<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
@@ -235,14 +233,21 @@ export class HarnessAgent<
      * handing it to the adapter.
      */
     continueFrom?: HarnessAgentContinueTurnState;
+    /**
+     * Existing network sandbox session to run the harness in. When provided,
+     * the caller retains ownership of the sandbox lifecycle.
+     */
+    sandboxSession?: HarnessV1NetworkSandboxSession;
     abortSignal?: AbortSignal;
   }): Promise<HarnessAgentSession> {
     const sessionId = options?.sessionId ?? generateId();
     const resumeFrom = options?.resumeFrom;
     const continueFrom = options?.continueFrom;
+    const providedSandboxSession = options?.sandboxSession;
     const abortSignal = options?.abortSignal;
     const harness = this.settings.harness;
     const sandboxProvider = this.settings.sandbox;
+    const ownsSandboxLifecycle = providedSandboxSession == null;
 
     if (resumeFrom != null && continueFrom != null) {
       throw new Error(
@@ -273,61 +278,121 @@ export class HarnessAgent<
     const isResumedSession =
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
-    let recipe: HarnessV1Bootstrap | undefined;
-    if (harness.getBootstrap != null) {
-      recipe = await harness.getBootstrap({ abortSignal });
-    }
-
-    // Defines the hashes based on both harness bootstrap recipe and
-    // consumer-defined onBootstrap callback.
-    const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
-      recipe,
-      settings: this.sandboxConfig,
-    });
-
     // Acquires the concrete sandbox session, either by starting fresh and then
     // creating a post-bootstrap snapshot, or by reusing a previously created
     // snapshot based on the bootstrap-based hashes.
-    const acquiredSandboxSession = await this._acquireSandbox({
-      sandboxProvider,
-      sessionId,
-      isResume: isResumedSession,
-      bootstrapPlan: sandboxBootstrapPlan,
-      abortSignal,
-    });
+    let sandboxSession: HarnessV1NetworkSandboxSession;
+    let sessionWorkDir: string;
+    if (providedSandboxSession != null) {
+      sandboxSession = providedSandboxSession;
+      sessionWorkDir = resolveSessionWorkDir({
+        defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+        harnessId: harness.harnessId,
+        sessionId,
+        workDir: this.sandboxConfig.workDir,
+      });
 
-    const leased = applyPortLease({
-      provider: sandboxProvider,
-      sandboxSession: acquiredSandboxSession,
-      sessionId,
-    });
-    const sandboxSession = leased.sandboxSession;
-    const leasedBridgePort = leased.port;
-    const sessionWorkDir = resolveSessionWorkDir({
-      defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
-      harnessId: harness.harnessId,
-      sessionId,
-      workDir: sandboxBootstrapPlan.workDir,
-    });
+      const recipe = await harness.getBootstrap?.({ abortSignal });
+      if (recipe != null) {
+        const recipeIdentity = await hashHarnessBootstrap(recipe);
+        try {
+          await applyBootstrapRecipe({
+            session: sandboxSession.restricted(),
+            recipe,
+            identity: recipeIdentity,
+            defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+            abortSignal,
+          });
+        } catch (err) {
+          await cleanupAfterStartFailure({
+            sandboxSession,
+            ownsSandboxLifecycle,
+          });
+          throw err;
+        }
+      }
+    } else {
+      if (sandboxProvider == null) {
+        throw new Error(
+          'HarnessAgent.createSession: configure `sandbox` on HarnessAgent or pass `sandboxSession` to createSession().',
+        );
+      }
 
-    try {
-      // In case the sandbox session was created with a custom sandbox, or in
-      // case the sandbox provider doesn't respect `onFirstCreate`, we still
-      // have to ensure the harness bootstrap recipe has run. In the common
-      // scenario, this will be a cheap no-op based on just a marker check.
-      if (
-        !isResumedSession &&
-        sandboxBootstrapPlan.recipe != null &&
-        sandboxBootstrapPlan.recipeIdentity != null
-      ) {
-        await applyBootstrapRecipe({
-          session: sandboxSession.restricted(),
-          recipe: sandboxBootstrapPlan.recipe,
-          identity: sandboxBootstrapPlan.recipeIdentity,
-          defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+      if (isResumedSession) {
+        if (sandboxProvider.resumeSession == null) {
+          throw new HarnessCapabilityUnsupportedError({
+            message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
+            harnessId: harness.harnessId,
+          });
+        }
+        sandboxSession = await sandboxProvider.resumeSession({
+          sessionId,
           abortSignal,
         });
+        sessionWorkDir = resolveSessionWorkDir({
+          defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+          harnessId: harness.harnessId,
+          sessionId,
+          workDir: this.sandboxConfig.workDir,
+        });
+      } else {
+        // The logic in this clause applies the bootstrap plan, including both the harness
+        // bootstrap recipe and agent specific sandbox configuration.
+        // The logic matches largely what `prepareHarnessSandboxTemplate()` and
+        // `prepareSandboxForHarness()` do, so they will have to remain aligned.
+        let recipe: HarnessV1Bootstrap | undefined;
+        if (harness.getBootstrap != null) {
+          recipe = await harness.getBootstrap({ abortSignal });
+        }
+
+        // Defines the hashes based on both harness bootstrap recipe and
+        // consumer-defined onBootstrap callback.
+        const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
+          recipe,
+          settings: this.sandboxConfig,
+        });
+
+        sandboxSession = await sandboxProvider.createSession({
+          sessionId,
+          abortSignal,
+          identity: sandboxBootstrapPlan.identity,
+          onFirstCreate: sandboxBootstrapPlan.onFirstCreate,
+        });
+        sessionWorkDir = resolveSessionWorkDir({
+          defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+          harnessId: harness.harnessId,
+          sessionId,
+          workDir: sandboxBootstrapPlan.workDir,
+        });
+
+        // In case the sandbox session was created with a custom sandbox, or in
+        // case the sandbox provider doesn't respect `onFirstCreate`, we still
+        // have to ensure the harness bootstrap recipe has run. In the common
+        // scenario, this will be a cheap no-op based on just a marker check.
+        if (
+          sandboxBootstrapPlan.recipe != null &&
+          sandboxBootstrapPlan.recipeIdentity != null
+        ) {
+          try {
+            await applyBootstrapRecipe({
+              session: sandboxSession.restricted(),
+              recipe: sandboxBootstrapPlan.recipe,
+              identity: sandboxBootstrapPlan.recipeIdentity,
+              defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+              abortSignal,
+            });
+          } catch (err) {
+            await cleanupAfterStartFailure({
+              sandboxSession,
+              ownsSandboxLifecycle,
+            });
+            throw err;
+          }
+        }
       }
+    }
+
+    try {
       await ensureSandboxDirectory({
         session: sandboxSession,
         workDir: sessionWorkDir,
@@ -342,10 +407,8 @@ export class HarnessAgent<
       }
     } catch (err) {
       await cleanupAfterStartFailure({
-        sandboxProvider,
         sandboxSession,
-        sessionId,
-        leasedBridgePort,
+        ownsSandboxLifecycle,
       });
       throw err;
     }
@@ -371,8 +434,7 @@ export class HarnessAgent<
         harness,
         underlyingSession,
         sandboxSession,
-        sandboxProvider,
-        leasedBridgePort,
+        ownsSandboxLifecycle,
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
@@ -390,10 +452,8 @@ export class HarnessAgent<
       });
     } catch (error) {
       await cleanupAfterStartFailure({
-        sandboxProvider,
         sandboxSession,
-        sessionId,
-        leasedBridgePort,
+        ownsSandboxLifecycle,
       });
       throw error;
     }
@@ -587,34 +647,6 @@ export class HarnessAgent<
       output: this.settings.output,
       telemetry: this.settings.telemetry,
       stopConditions: this.stopConditions,
-    });
-  }
-
-  private async _acquireSandbox(input: {
-    sandboxProvider: HarnessV1SandboxProvider;
-    sessionId: string;
-    isResume: boolean;
-    bootstrapPlan: SandboxBootstrapPlan;
-    abortSignal: AbortSignal | undefined;
-  }): Promise<HarnessV1NetworkSandboxSession> {
-    const { sandboxProvider } = input;
-    if (input.isResume) {
-      if (sandboxProvider.resumeSession == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
-          harnessId: this.settings.harness.harnessId,
-        });
-      }
-      return sandboxProvider.resumeSession({
-        sessionId: input.sessionId,
-        abortSignal: input.abortSignal,
-      });
-    }
-    return sandboxProvider.createSession({
-      sessionId: input.sessionId,
-      abortSignal: input.abortSignal,
-      identity: input.bootstrapPlan.identity,
-      onFirstCreate: input.bootstrapPlan.onFirstCreate,
     });
   }
 
@@ -890,64 +922,10 @@ function resolveSandboxConfig(
   };
 }
 
-/*
- * Bridge-port leasing helper. Returns the port-narrowed network sandbox session
- * plus the leased port (or `undefined` when the provider has no port pool). Kept here
- * rather than on the session so the lease is established as part of session
- * start — the session only needs to release it on close/detach.
- */
-function applyPortLease(input: {
-  provider: HarnessV1SandboxProvider;
-  sandboxSession: HarnessV1NetworkSandboxSession;
-  sessionId: string;
-}): {
-  sandboxSession: HarnessV1NetworkSandboxSession;
-  port: number | undefined;
-} {
-  const pool = input.provider.bridgePorts;
-  if (pool == null || pool.length === 0) {
-    return { sandboxSession: input.sandboxSession, port: undefined };
-  }
-  const port = acquireBridgePort({
-    poolKey: input.provider,
-    pool,
-    sessionId: input.sessionId,
-  });
-  return {
-    sandboxSession: narrowNetworkSessionPorts(input.sandboxSession, port),
-    port,
-  };
-}
-
-/*
- * Derive a view of the network sandbox session that reports only the leased
- * port. Implemented as a prototype-delegating overlay so every other member
- * (file I/O, exec, spawn, lifecycle, `restricted`) forwards to the same live
- * instance — only `ports` is shadowed.
- */
-function narrowNetworkSessionPorts(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  leasedPort: number,
-): HarnessV1NetworkSandboxSession {
-  return Object.create(sandboxSession, {
-    ports: {
-      value: [leasedPort] as ReadonlyArray<number>,
-      enumerable: true,
-    },
-  }) as HarnessV1NetworkSandboxSession;
-}
-
 async function cleanupAfterStartFailure(input: {
-  sandboxProvider: HarnessV1SandboxProvider;
   sandboxSession: HarnessV1NetworkSandboxSession;
-  sessionId: string;
-  leasedBridgePort: number | undefined;
+  ownsSandboxLifecycle: boolean;
 }): Promise<void> {
+  if (!input.ownsSandboxLifecycle) return;
   await Promise.resolve(input.sandboxSession.stop()).catch(() => {});
-  if (input.leasedBridgePort != null) {
-    releaseBridgePort({
-      poolKey: input.sandboxProvider,
-      sessionId: input.sessionId,
-    });
-  }
 }
