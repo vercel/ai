@@ -78,6 +78,28 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('accepts a start message naming the exact conversation to resume', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        resumeSessionId: 'claude-session-1',
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a non-string resumeSessionId', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        resumeSessionId: 7,
+      }),
+    ).toThrow();
+  });
+
   it('rejects non-string environment values', () => {
     expect(() =>
       inboundMessageSchema.parse({
