@@ -1,5 +1,12 @@
 # @ai-sdk/otel
 
+## 1.0.69
+
+### Patch Changes
+
+- 5ad6abf: fix(otel): record provider-executed tool results and defs
+  - ai@7.0.69
+
 ## 1.0.68
 
 ### Patch Changes

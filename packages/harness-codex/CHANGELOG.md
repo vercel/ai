@@ -1,5 +1,12 @@
 # @ai-sdk/harness-codex
 
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
 ## 1.0.77
 
 ### Patch Changes
