@@ -144,6 +144,15 @@ describe('buildGoogleInteractionsStreamTransform — tool call IDs', () => {
           arguments: {},
         },
       },
+      {
+        event_type: 'step.delta',
+        index: 0,
+        delta: {
+          type: 'arguments_delta',
+          id: '',
+          arguments: '{}',
+        },
+      },
       { event_type: 'step.stop', index: 0 },
       {
         event_type: 'interaction.completed',
@@ -157,6 +166,11 @@ describe('buildGoogleInteractionsStreamTransform — tool call IDs', () => {
         id: 'interaction-1:0',
         toolName: 'get_weather',
       },
+      {
+        type: 'tool-input-delta',
+        id: 'interaction-1:0',
+        delta: '{}',
+      },
       { type: 'tool-input-end', id: 'interaction-1:0' },
       {
         type: 'tool-call',
@@ -166,6 +180,73 @@ describe('buildGoogleInteractionsStreamTransform — tool call IDs', () => {
         providerMetadata: {
           google: { interactionId: 'interaction-1' },
         },
+      },
+    ]);
+  });
+
+  it('preserves generated block IDs when built-in tool deltas contain empty IDs', async () => {
+    const parts = await runTransform([
+      {
+        event_type: 'interaction.created',
+        interaction: { id: 'interaction-1', status: 'in_progress' },
+      },
+      {
+        event_type: 'step.start',
+        index: 0,
+        step: {
+          type: 'google_search_call',
+          id: '',
+          arguments: {},
+        },
+      },
+      {
+        event_type: 'step.delta',
+        index: 0,
+        delta: {
+          type: 'google_search_call',
+          id: '',
+          arguments: { queries: ['weather'] },
+        },
+      },
+      { event_type: 'step.stop', index: 0 },
+      {
+        event_type: 'step.start',
+        index: 1,
+        step: {
+          type: 'google_search_result',
+          call_id: '',
+          result: null,
+        },
+      },
+      {
+        event_type: 'step.delta',
+        index: 1,
+        delta: {
+          type: 'google_search_result',
+          call_id: '',
+          result: [],
+        },
+      },
+      { event_type: 'step.stop', index: 1 },
+      {
+        event_type: 'interaction.completed',
+        interaction: { id: 'interaction-1', status: 'completed' },
+      },
+    ] as Array<GoogleInteractionsEvent>);
+
+    expect(parts.filter(part => part.type.startsWith('tool-'))).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'interaction-1:0',
+        toolName: 'google_search',
+        input: '{"queries":["weather"]}',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'interaction-1:1',
+        toolName: 'google_search',
+        result: [],
       },
     ]);
   });

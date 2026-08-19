@@ -608,7 +608,7 @@ export function buildGoogleInteractionsStreamTransform({
                 delta: slice,
               });
             }
-            if (delta.id != null) {
+            if (delta.id != null && delta.id.length > 0) {
               open.toolCallId = delta.id;
             }
             if (delta.signature != null) {
@@ -619,7 +619,9 @@ export function buildGoogleInteractionsStreamTransform({
             open.kind === 'builtin_tool_call' &&
             delta?.type === open.blockType
           ) {
-            if (delta.id != null) open.toolCallId = delta.id;
+            if (delta.id != null && delta.id.length > 0) {
+              open.toolCallId = delta.id;
+            }
             if (
               delta.arguments != null &&
               typeof delta.arguments === 'object'
@@ -636,7 +638,9 @@ export function buildGoogleInteractionsStreamTransform({
             open.kind === 'builtin_tool_result' &&
             delta?.type === open.blockType
           ) {
-            if (delta.call_id != null) open.callId = delta.call_id;
+            if (delta.call_id != null && delta.call_id.length > 0) {
+              open.callId = delta.call_id;
+            }
             if (delta.result !== undefined) open.result = delta.result;
             if (delta.is_error != null) open.isError = delta.is_error;
             if (
