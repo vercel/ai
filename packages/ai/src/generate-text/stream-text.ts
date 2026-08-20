@@ -1233,19 +1233,15 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
-<<<<<<< HEAD
         const callbacksHandledForStreamRetry =
           part.type === 'error' && errorsHandledForStreamRetry.has(part.error);
 
         if (!callbacksHandledForStreamRetry) {
-          await onChunk?.({ chunk: part });
+          await notify({
+            event: { chunk: part },
+            callbacks: onChunk,
+          });
         }
-=======
-        await notify({
-          event: { chunk: part },
-          callbacks: onChunk,
-        });
->>>>>>> origin/main
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
@@ -1254,18 +1250,16 @@ class DefaultStreamTextResult<
             recordedNoOutputError = error;
           }
 
-<<<<<<< HEAD
           if (callbacksHandledForStreamRetry) {
             errorsHandledForStreamRetry.delete(part.error);
           } else {
-            await onError({ error });
+            await notify({
+              event: { error },
+              callbacks: async event => {
+                await onError(event);
+              },
+            });
           }
-=======
-          await notify({
-            event: { error },
-            callbacks: onError,
-          });
->>>>>>> origin/main
         }
 
         if (
@@ -2253,9 +2247,15 @@ class DefaultStreamTextResult<
                   return;
                 }
 
-                await onChunk?.({ chunk: value });
+                await notify({
+                  event: { chunk: value },
+                  callbacks: onChunk,
+                });
                 const error = wrapGatewayError(value.error);
-                const onErrorResult = await onError({ error });
+                let onErrorResult: void | StreamTextOnErrorResult = undefined;
+                try {
+                  onErrorResult = await onError({ error });
+                } catch {}
                 const callbackRequestedRetry =
                   canRetryStreamViaOnError &&
                   typeof onErrorResult === 'object' &&
