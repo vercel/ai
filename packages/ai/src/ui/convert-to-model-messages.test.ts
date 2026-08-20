@@ -1,5 +1,6 @@
-import type { ModelMessage } from '@ai-sdk/provider-utils';
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import z from 'zod/v4';
 import { convertToModelMessages } from './convert-to-model-messages';
 import type { UIMessage } from './ui-messages';
 
@@ -1230,6 +1231,56 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when ignoring incomplete tool calls', () => {
+    it('should ignore preliminary tool outputs', () => {
+      let toModelOutputCalls = 0;
+
+      const result = convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-streamingTool',
+                state: 'output-available',
+                toolCallId: 'call-preliminary',
+                input: { task: 'finish the work' },
+                output: { complete: false, progress: 'half finished' },
+                preliminary: true,
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        {
+          ignoreIncompleteToolCalls: true,
+          tools: {
+            streamingTool: tool({
+              inputSchema: z.object({ task: z.string() }),
+              async *execute() {
+                yield { complete: false, progress: 'half finished' };
+                yield { complete: true, progress: 'finished' };
+              },
+              toModelOutput: output => {
+                toModelOutputCalls++;
+                return { type: 'json', value: output };
+              },
+            }),
+          },
+        },
+      );
+
+      expect(toModelOutputCalls).toBe(0);
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
     it('should handle conversation with multiple tool invocations and user message at the end', () => {
       const result = convertToModelMessages(
         [
