@@ -107,10 +107,10 @@
       "path": "../../packages/rsc"
     },
     {
-      "path": "../../packages/valibot"
+      "path": "../../packages/spacexai"
     },
     {
-      "path": "../../packages/xai"
+      "path": "../../packages/valibot"
     }
   ]
 }
