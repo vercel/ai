@@ -66,7 +66,7 @@ export default function Chat() {
       type: 'number',
       isOptional: true,
       description:
-        'Default chunk index to start from when reconnecting. Negative values read from the end of the stream (e.g., -50 fetches the last 50 chunks), useful for resuming after a page refresh without replaying the full conversation. Can be overridden per-call via reconnectToStream options. Default: 0.',
+        'Default chunk index to start from when reconnecting. Negative values read from the end of a durable UIMessageChunk stream (e.g., -50 fetches the last 50 chunks), useful for resuming after a page refresh without replaying the full conversation. Raw ModelCallStreamPart streams do not support negative UI chunk indexes. Can be overridden per-call via reconnectToStream options. Default: 0.',
     },
     {
       name: 'onChatSendMessage',
@@ -182,7 +182,7 @@ const stream = await transport.reconnectToStream({
       type: 'number',
       isOptional: true,
       description:
-        "Override the start index for this reconnection. Negative values read from the end of the stream. When omitted, falls back to the constructor's initialStartIndex.",
+        "Override the start index for this reconnection. Negative values read from the end when the server's durable stream and tail-index header use the same UIMessageChunk index space. When omitted, falls back to the constructor's initialStartIndex.",
     },
   ]}
 />
@@ -265,7 +265,7 @@ export default function Chat() {
 }
 ```
 
-### With Callbacks and Page Refresh Recovery
+### With Callbacks
 
 ```tsx
 'use client';
@@ -320,6 +320,7 @@ export async function POST(request: Request) {
 
 ```ts filename="app/api/chat/[runId]/stream/route.ts"
 import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
+import { createUIMessageStreamResponse } from 'ai';
 import type { NextRequest } from 'next/server';
 import { getRun } from 'workflow/api';
 
@@ -331,6 +332,12 @@ export async function GET(
   const startIndex = Number(
     new URL(request.url).searchParams.get('startIndex') ?? '0',
   );
+  if (!Number.isSafeInteger(startIndex) || startIndex < 0) {
+    return Response.json(
+      { error: 'startIndex must be a non-negative safe integer' },
+      { status: 400 },
+    );
+  }
 
   const run = await getRun(runId);
   const readable = run
@@ -339,11 +346,9 @@ export async function GET(
       createModelCallToUIChunkTransform({ uiStartIndex: startIndex }),
     );
 
-  return new Response(readable, {
+  return createUIMessageStreamResponse({
+    stream: readable,
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
       'x-workflow-run-id': runId,
     },
   });

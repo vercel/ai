@@ -15,6 +15,12 @@ export async function GET(
   const startIndex = Number(
     new URL(request.url).searchParams.get('startIndex') ?? '0',
   );
+  if (!Number.isSafeInteger(startIndex) || startIndex < 0) {
+    return Response.json(
+      { error: 'startIndex must be a non-negative safe integer' },
+      { status: 400 },
+    );
+  }
   const telemetryRunId = getTelemetryRunIdForWorkflowRun(runId);
 
   if (telemetryRunId != null) {

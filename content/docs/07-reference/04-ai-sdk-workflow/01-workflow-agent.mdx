@@ -696,7 +696,7 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
 
 ## Utilities
 
-### `createModelCallToUIChunkTransform()`
+### `createModelCallToUIChunkTransform(options?)`
 
 Creates a `TransformStream` that converts raw `ModelCallStreamPart` chunks (written by the agent to the `writable` stream) into `UIMessageChunk` objects suitable for client consumption.
 
@@ -708,9 +708,19 @@ return createUIMessageStreamResponse({
 });
 ```
 
-Pass a non-negative `uiStartIndex` to omit that many transformed UI chunks.
-This lets a reconnect endpoint replay a raw workflow stream from index `0`
-while resuming at the UI chunk cursor reported by `WorkflowChatTransport`.
+When resuming with a `WorkflowChatTransport` cursor, replay the raw workflow
+stream from index `0` and pass the non-negative UI chunk index to the transform:
+
+```ts
+const readable = run
+  .getReadable({ startIndex: 0 })
+  .pipeThrough(createModelCallToUIChunkTransform({ uiStartIndex: startIndex }));
+```
+
+`uiStartIndex` must be a non-negative safe integer. Raw model stream parts and
+UI message chunks are not one-to-one, so do not pass a UI chunk index to
+`getReadable`. Negative tail indexes require a durable stream that already
+stores `UIMessageChunk` objects.
 
 ### `toUIMessageChunk()`
 

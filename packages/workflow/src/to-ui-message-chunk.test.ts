@@ -118,6 +118,24 @@ const resumeFixtures: Array<{
 ];
 
 describe('createModelCallToUIChunkTransform', () => {
+  it('preserves the existing output when options are omitted', async () => {
+    await expect(
+      transform([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', text: 'Hello' },
+        { type: 'text-end', id: 'text-1' },
+      ] as ModelCallStreamPart[]),
+    ).resolves.toEqual([
+      { type: 'start' },
+      { type: 'start-step' },
+      { type: 'text-start', id: 'text-1' },
+      { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+      { type: 'text-end', id: 'text-1' },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+  });
+
   it('resumes in UI chunk index space', async () => {
     const canonical = await transform(rawToolTurn);
 
@@ -151,11 +169,13 @@ describe('createModelCallToUIChunkTransform', () => {
     ).resolves.toEqual([]);
   });
 
-  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 53])(
+  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 53, null])(
     'rejects invalid UI start index %s',
     uiStartIndex => {
       expect(() =>
-        createModelCallToUIChunkTransform({ uiStartIndex }),
+        createModelCallToUIChunkTransform({
+          uiStartIndex: uiStartIndex as number,
+        }),
       ).toThrowError('uiStartIndex must be a non-negative safe integer');
     },
   );

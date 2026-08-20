@@ -215,15 +215,21 @@ export function toUIMessageChunk(
  * Create a TransformStream that converts ModelCallStreamPart to UIMessageChunk.
  * Wraps toUIMessageChunk with start/start-step/finish-step lifecycle chunks.
  *
- * @param options.uiStartIndex - Number of UIMessageChunks to omit from the
- * transformed stream. This is useful when replaying a raw workflow stream from
- * the beginning to resume at a UIMessageChunk cursor.
+ * When resuming a stream, provide `uiStartIndex` and replay the source
+ * ModelCallStreamPart stream from index 0. The transform will omit the UI
+ * chunks that the client has already received. Raw model stream parts and UI
+ * message chunks do not have a one-to-one relationship, so a UI chunk index
+ * must not be used as the source stream's start index.
  */
-export function createModelCallToUIChunkTransform(
-  options: { uiStartIndex?: number } = {},
-): TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk> {
-  const uiStartIndex = options.uiStartIndex ?? 0;
-
+export function createModelCallToUIChunkTransform({
+  uiStartIndex = 0,
+}: {
+  /**
+   * Number of transformed UIMessageChunks to omit from the output.
+   * Must be a non-negative safe integer.
+   */
+  uiStartIndex?: number;
+} = {}): TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk> {
   if (!Number.isSafeInteger(uiStartIndex) || uiStartIndex < 0) {
     throw new RangeError('uiStartIndex must be a non-negative safe integer');
   }

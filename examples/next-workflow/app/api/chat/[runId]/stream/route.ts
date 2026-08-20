@@ -1,4 +1,5 @@
 import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
+import { createUIMessageStreamResponse } from 'ai';
 import type { NextRequest } from 'next/server';
 import { getRun } from 'workflow/api';
 
@@ -11,6 +12,12 @@ export async function GET(
     const startIndex = Number(
       new URL(request.url).searchParams.get('startIndex') ?? '0',
     );
+    if (!Number.isSafeInteger(startIndex) || startIndex < 0) {
+      return Response.json(
+        { error: 'startIndex must be a non-negative safe integer' },
+        { status: 400 },
+      );
+    }
 
     const run = await getRun(runId);
     const readable = run
@@ -19,12 +26,10 @@ export async function GET(
         createModelCallToUIChunkTransform({ uiStartIndex: startIndex }),
       );
 
-    return new Response(readable, {
+    return createUIMessageStreamResponse({
+      stream: readable,
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-        'X-Workflow-Run-Id': runId,
+        'x-workflow-run-id': runId,
       },
     });
   } catch (error) {
