@@ -1,0 +1,91 @@
+---
+title: Parasail
+description: Learn how to use Parasail's models with the AI SDK.
+---
+
+# Parasail Provider
+
+The [Parasail](https://www.parasail.io) provider offers access to popular open-weight language models through Parasail's serverless inference platform, over an OpenAI-compatible API.
+
+API keys can be obtained from the [Parasail console](https://www.saas.parasail.io/keys).
+
+## Setup
+
+The Parasail provider is available via the `@ai-sdk/parasail` module. You can install it with:
+
+<InstallPackages packages="@ai-sdk/parasail" />
+
+## Provider Instance
+
+You can import the default provider instance `parasail` from `@ai-sdk/parasail`:
+
+```ts
+import { parasail } from '@ai-sdk/parasail';
+```
+
+For custom configuration, you can import `createParasail` and create a provider instance with your settings:
+
+```ts
+import { createParasail } from '@ai-sdk/parasail';
+
+const parasail = createParasail({
+  apiKey: process.env.PARASAIL_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the Parasail provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://api.parasail.io/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `PARASAIL_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _FetchFunction_
+
+  Custom fetch implementation.
+
+## Language Models
+
+```ts
+import { parasail } from '@ai-sdk/parasail';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: parasail('parasail-deepseek-r1'),
+  prompt: 'What is the capital of France?',
+});
+```
+
+Serverless model IDs are prefixed with `parasail-`. Availability changes frequently, so list the models currently available to your account with the models endpoint:
+
+```bash
+curl https://api.parasail.io/v1/models \
+  -H "Authorization: Bearer $PARASAIL_API_KEY"
+```
+
+Dedicated deployments use the deployment name as the model ID, and the batch/dedicated tiers also accept Hugging Face model IDs (for example `NousResearch/DeepHermes-3-Mistral-24B-Preview`). Embedding and image models are not supported by this provider.
+
+## Streaming
+
+```ts
+import { parasail } from '@ai-sdk/parasail';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: parasail('parasail-deepseek-r1'),
+  prompt: 'Write a short poem about the ocean.',
+});
+
+for await (const delta of result.textStream) {
+  process.stdout.write(delta);
+}
+```

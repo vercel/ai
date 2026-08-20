@@ -163,6 +163,9 @@
       "path": "packages/otel"
     },
     {
+      "path": "packages/parasail"
+    },
+    {
       "path": "packages/perplexity"
     },
     {
