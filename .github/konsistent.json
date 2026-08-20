@@ -63,6 +63,7 @@
         "!packages/react",
         "!packages/rsc",
         "!packages/sandbox-*",
+        "!packages/spacexai",
         "!packages/svelte",
         "!packages/test-server",
         "!packages/tui",
