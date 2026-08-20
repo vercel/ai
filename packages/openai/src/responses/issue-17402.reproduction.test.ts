@@ -44,6 +44,19 @@ const server = createTestServer({
   'https://api.openai.com/v1/responses': {},
 });
 
+const expectedFunctionCall = {
+  type: 'function_call',
+  call_id: 'call_123',
+  name: 'tool_search',
+  arguments: '{"query":"synthetic query","limit":10}',
+};
+
+const expectedFunctionOutput = {
+  type: 'function_call_output',
+  call_id: 'call_123',
+  output: '{"tools":[]}',
+};
+
 it('replays a regular function named tool_search as a function call', async () => {
   const liveErrorFixture = fs.readFileSync(
     'src/responses/__fixtures__/openai-issue-17402-error.1.json',
@@ -94,15 +107,19 @@ it('replays a regular function named tool_search as a function call', async () =
     name: 'tool_search',
   });
 
-  const replayedCall = requestBody.input.find(
+  const nativeCall = requestBody.input.find(
     (item: { type?: string }) => item.type === 'tool_search_call',
+  );
+  const nativeOutput = requestBody.input.find(
+    (item: { type?: string }) => item.type === 'tool_search_output',
   );
   const errorMessage =
     apiError instanceof Error ? apiError.message : String(apiError);
 
   if (
-    replayedCall != null &&
-    !('arguments' in replayedCall) &&
+    nativeCall != null &&
+    !('arguments' in nativeCall) &&
+    nativeOutput != null &&
     errorMessage.includes('Missing required parameter') &&
     errorMessage.includes('arguments')
   ) {
@@ -111,10 +128,27 @@ it('replays a regular function named tool_search as a function call', async () =
     );
   }
 
-  expect(replayedCall).toEqual({
-    type: 'function_call',
-    call_id: 'call_123',
-    name: 'tool_search',
-    arguments: '{"query":"synthetic query","limit":10}',
+  const functionCall = requestBody.input.find(
+    (item: { type?: string }) => item.type === 'function_call',
+  );
+  const functionOutput = requestBody.input.find(
+    (item: { type?: string }) => item.type === 'function_call_output',
+  );
+
+  expect(functionCall).toMatchObject({
+    type: expectedFunctionCall.type,
+    call_id: expectedFunctionCall.call_id,
+    name: expectedFunctionCall.name,
   });
+  expect(JSON.parse(functionCall.arguments)).toEqual({
+    query: 'synthetic query',
+    limit: 10,
+  });
+  expect(functionOutput).toMatchObject({
+    type: expectedFunctionOutput.type,
+    call_id: expectedFunctionOutput.call_id,
+  });
+  expect(JSON.parse(functionOutput.output)).toEqual({ tools: [] });
+  expect(nativeCall).toBeUndefined();
+  expect(nativeOutput).toBeUndefined();
 });
