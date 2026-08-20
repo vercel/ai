@@ -4,9 +4,10 @@
 import { tool } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
+import { retryingModel } from './retrying-model.js';
 import { createTestSandbox } from './test-sandbox.js';
 import { FatalError, getWritable } from 'workflow';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // ============================================================================
 // Tool step functions
@@ -44,6 +45,46 @@ export async function agentBasicE2e(prompt: string) {
   return {
     stepCount: result.steps.length,
     lastStepText: result.steps[result.steps.length - 1]?.text,
+  };
+}
+
+export async function agentModelRetriesE2e() {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: retryingModel(),
+    maxRetries: 2,
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'retry the model call' }],
+    writable: getWritable(),
+  });
+  return result.steps.at(-1)?.text;
+}
+
+export async function agentStreamErrorE2e() {
+  'use workflow';
+  const terminal = {
+    type: 'credential',
+    code: 'safe-terminal-classification',
+  };
+  const callbackErrors: unknown[] = [];
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([{ type: 'error', error: terminal }]),
+  });
+
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'trigger the terminal error' }],
+    writable: getWritable(),
+    onError: async ({ error }) => {
+      callbackErrors.push(error);
+    },
+  });
+
+  return {
+    error: result.error,
+    finishReason: result.finishReason,
+    stepCount: result.steps.length,
+    callbackErrors,
   };
 }
 
@@ -143,7 +184,7 @@ export async function agentErrorToolE2e() {
 }
 
 // ============================================================================
-// experimental_repairToolCall serialization
+// repairToolCall serialization
 // ============================================================================
 
 async function repairToolCall({
@@ -179,7 +220,7 @@ export async function agentRepairToolCallE2e() {
   const result = await agent.stream({
     messages: [{ role: 'user', content: 'add 3 and 7' }],
     writable: getWritable(),
-    experimental_repairToolCall: repairToolCall as any,
+    repairToolCall: repairToolCall as any,
   });
   return {
     stepCount: result.steps.length,

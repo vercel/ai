@@ -1,0 +1,17 @@
+data: {"id":"msg_sanitized","object":"chat.completion.chunk","created":0,"model":"claude-haiku-4-5-20251001","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}
+
+data: {"id":"msg_sanitized","object":"chat.completion.chunk","created":0,"model":"claude-haiku-4-5-20251001","choices":[{"index":0,"delta":{"content":"Reading"},"finish_reason":null}]}
+
+data: {"id":"msg_sanitized","object":"chat.completion.chunk","created":0,"model":"claude-haiku-4-5-20251001","choices":[{"index":0,"delta":{"content":" it."},"finish_reason":null}]}
+
+data: {"id":"msg_sanitized","object":"chat.completion.chunk","created":0,"model":"claude-haiku-4-5-20251001","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"id":"toolu_sanitized","type":"function","function":{"name":"read_file","arguments":""}}]},"finish_reason":null}]}
+
+data: {"id":"msg_sanitized","object":"chat.completion.chunk","created":0,"model":"claude-haiku-4-5-20251001","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":""}}]},"finish_reason":null}]}
+
+data: {"id":"msg_sanitized","object":"chat.completion.chunk","created":0,"model":"claude-haiku-4-5-20251001","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"{\"pa"}}]},"finish_reason":null}]}
+
+data: {"id":"msg_sanitized","object":"chat.completion.chunk","created":0,"model":"claude-haiku-4-5-20251001","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"th\": \"a.txt\"}"}}]},"finish_reason":null}]}
+
+data: {"id":"msg_sanitized","object":"chat.completion.chunk","created":0,"model":"claude-haiku-4-5-20251001","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}
+
+data: [DONE]

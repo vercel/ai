@@ -46,6 +46,16 @@ export async function validateLifecycleStateData<
         'Resume session state cannot contain pending tool approvals; unfinished turns must be stored as `continueFrom`.',
     });
   }
+  if (
+    state.type === 'resume-session' &&
+    'pendingToolResults' in state &&
+    state.pendingToolResults !== undefined
+  ) {
+    throw new HarnessError({
+      message:
+        'Resume session state cannot contain pending tool results; unfinished turns must be stored as `continueFrom`.',
+    });
+  }
 
   const data =
     harness.lifecycleStateSchema == null
@@ -90,6 +100,9 @@ export async function validateLifecycleStateData<
     data,
     ...(state.pendingToolApprovals !== undefined
       ? { pendingToolApprovals: state.pendingToolApprovals }
+      : {}),
+    ...(state.pendingToolResults !== undefined
+      ? { pendingToolResults: state.pendingToolResults }
       : {}),
   } as STATE;
 }

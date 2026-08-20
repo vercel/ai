@@ -30,6 +30,8 @@ import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import type { Prompt } from '../prompt/prompt';
 import {
+  getChunkTimeoutMs,
+  getFirstChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
   type RequestOptions,
@@ -43,6 +45,7 @@ import type {
   LanguageModel,
   LanguageModelRequestMetadata,
   ToolChoice,
+  Warning,
 } from '../types';
 import {
   addLanguageModelUsage,
@@ -76,6 +79,7 @@ import type {
 } from './generate-text-events';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
@@ -84,6 +88,7 @@ import { text, type Output } from './output';
 import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
+import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { convertToReasoningOutputs } from './reasoning-output';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { ResponseMessage } from './response-message';
@@ -103,6 +108,11 @@ import { toResponseMessages } from './to-response-messages';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
+import {
+  prepareToolsForToolCallers,
+  resolveToolCallerConfiguration,
+  type Experimental_ToolCallers,
+} from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { TypedToolError } from './tool-error';
@@ -241,6 +251,7 @@ export async function generateText<
   experimental_sandbox: sandbox,
   output,
   toolApproval,
+  experimental_toolCallers,
   experimental_toolApprovalSecret,
   experimental_telemetry,
   telemetry = experimental_telemetry,
@@ -248,7 +259,8 @@ export async function generateText<
   activeTools,
   toolOrder,
   prepareStep,
-  experimental_repairToolCall: repairToolCall,
+  experimental_repairToolCall,
+  repairToolCall = experimental_repairToolCall,
   experimental_refineToolInput: refineToolInput,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
@@ -357,6 +369,11 @@ export async function generateText<
     toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
 
     /**
+     * Configures which caller tools may invoke each tool.
+     */
+    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
+
+    /**
      * Secret for HMAC-signing tool approval requests. When set, the server
      * signs each approval request at issuance and verifies the signature when
      * the approval is replayed, preventing client-forged approvals.
@@ -377,6 +394,13 @@ export async function generateText<
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
+     */
+    repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * A function that attempts to repair a tool call that failed to parse.
+     *
+     * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
@@ -551,6 +575,10 @@ export async function generateText<
   };
 
   const model = resolveLanguageModel(modelArg);
+  const resolvedToolCallers = resolveToolCallerConfiguration({
+    tools,
+    toolCallers: experimental_toolCallers,
+  });
   const stopConditions = asArray(stopWhen);
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
@@ -563,6 +591,33 @@ export async function generateText<
   const resolvedOnToolExecutionEnd =
     onToolExecutionEnd ?? experimental_onToolCallFinish;
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
+
+  const unsupportedTimeoutWarnings: Warning[] = [];
+
+  if (getFirstChunkTimeoutMs(timeout) != null) {
+    unsupportedTimeoutWarnings.push({
+      type: 'unsupported',
+      feature: 'timeout.firstChunkMs',
+      details:
+        'The firstChunkMs timeout is only supported by streaming functions.',
+    });
+  }
+
+  if (getChunkTimeoutMs(timeout) != null) {
+    unsupportedTimeoutWarnings.push({
+      type: 'unsupported',
+      feature: 'timeout.chunkMs',
+      details: 'The chunkMs timeout is only supported by streaming functions.',
+    });
+  }
+
+  if (unsupportedTimeoutWarnings.length > 0) {
+    logWarnings({
+      warnings: unsupportedTimeoutWarnings,
+      provider: model.provider,
+      model: model.modelId,
+    });
+  }
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
@@ -674,9 +729,12 @@ export async function generateText<
         ...collectedDeniedToolApprovals,
         ...revalidationDeniedToolApprovals,
       ];
+      const deniedToolApprovalsWithoutResults = deniedToolApprovals.filter(
+        toolApproval => toolApproval.existingToolResult == null,
+      );
 
       if (
-        deniedToolApprovals.length > 0 ||
+        deniedToolApprovalsWithoutResults.length > 0 ||
         localApprovedToolApprovals.length > 0
       ) {
         const toolResults = await executeTools({
@@ -733,7 +791,7 @@ export async function generateText<
         }
 
         // add execution denied tool results for all denied tool approvals:
-        for (const toolApproval of deniedToolApprovals) {
+        for (const toolApproval of deniedToolApprovalsWithoutResults) {
           toolContent.push({
             type: 'tool-result' as const,
             toolCallId: toolApproval.toolCall.toolCallId,
@@ -784,6 +842,10 @@ export async function generateText<
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
       do {
+        if (steps.length > 0) {
+          mergedAbortSignal?.throwIfAborted();
+        }
+
         // Set up step timeout if configured
         const stepTimeoutId = setAbortTimeout({
           abortController: stepAbortController,
@@ -847,10 +909,20 @@ export async function generateText<
                 tools,
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
+              const {
+                executionTools: stepExecutionTools,
+                modelTools: stepModelTools,
+              } = prepareToolsForToolCallers({
+                tools: stepActiveTools,
+                toolCallers: resolvedToolCallers,
+              });
               const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
               const stepTools = await prepareTools({
-                tools: stepActiveTools,
+                tools: stepModelTools as ActiveToolSubset<
+                  TOOLS,
+                  ActiveTools<NoInfer<TOOLS>>
+                >,
                 toolOrder: stepToolOrder as ToolOrder<
                   ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
                 >,
@@ -872,6 +944,11 @@ export async function generateText<
                 providerOptions,
                 prepareStepResult?.providerOptions,
               );
+
+              const stepCallSettings = prepareStepCallSettings({
+                callSettings,
+                stepSettings: prepareStepResult,
+              });
 
               await notify({
                 event: {
@@ -906,7 +983,7 @@ export async function generateText<
                 instructions: stepInstructions,
                 messages: stepMessages,
                 tools: stepTools,
-                ...callSettings,
+                ...stepCallSettings,
               };
               const languageModelCallStartEvent = {
                 callId,
@@ -936,7 +1013,7 @@ export async function generateText<
                     ...languageModelCallStartEvent,
                     execute: async () =>
                       await stepModel.doGenerate({
-                        ...callSettings,
+                        ...stepCallSettings,
                         tools: stepTools,
                         toolChoice: stepToolChoice,
                         responseFormat: await output?.responseFormat,
@@ -973,7 +1050,7 @@ export async function generateText<
                   .map(toolCall =>
                     parseToolCall({
                       toolCall,
-                      tools,
+                      tools: stepExecutionTools as TOOLS,
                       repairToolCall,
                       refineToolInput,
                       instructions: stepInstructions,
@@ -1004,11 +1081,16 @@ export async function generateText<
                 event: {
                   callId,
                   provider: stepModel.provider,
-                  modelId: stepModel.modelId,
+                  modelId: currentModelResponse.response.modelId,
                   finishReason: currentModelResponse.finishReason.unified,
                   usage: stepUsage,
                   content: modelCallContent,
                   responseId: currentModelResponse.response.id,
+                  ...(currentModelResponse.providerMetadata != null
+                    ? {
+                        providerMetadata: currentModelResponse.providerMetadata,
+                      }
+                    : {}),
                   performance: {
                     responseTimeMs,
                     effectiveOutputTokensPerSecond: calculateTokensPerSecond({
@@ -1041,12 +1123,21 @@ export async function generateText<
                   continue; // ignore invalid tool calls
                 }
 
-                const tool = getOwn(tools, toolCall.toolName);
+                const tool = getOwn(stepExecutionTools, toolCall.toolName);
 
                 if (tool == null) {
                   // ignore tool calls for tools that are not available,
                   // e.g. provider-executed dynamic tools
                   continue;
+                }
+
+                if (tool.onInputStart != null) {
+                  await tool.onInputStart({
+                    toolCallId: toolCall.toolCallId,
+                    messages: stepMessages,
+                    abortSignal: mergedAbortSignal,
+                    context: runtimeContext,
+                  });
                 }
 
                 if (tool?.onInputAvailable != null) {
@@ -1060,7 +1151,7 @@ export async function generateText<
                 }
 
                 const toolApprovalStatus = await resolveToolApproval({
-                  tools,
+                  tools: stepExecutionTools as TOOLS,
                   toolApproval,
                   toolCall,
                   messages: stepMessages,
@@ -1140,7 +1231,10 @@ export async function generateText<
               // insert error tool outputs for invalid tool calls:
               // TODO AI SDK 6: invalid inputs should not require output parts
               const invalidToolCalls = stepToolCalls.filter(
-                toolCall => toolCall.invalid && toolCall.dynamic,
+                toolCall =>
+                  toolCall.invalid &&
+                  toolCall.dynamic &&
+                  !toolCall.providerExecuted,
               );
 
               clientToolOutputs = [];
@@ -1166,14 +1260,19 @@ export async function generateText<
               );
               const toolExecutionMs: Record<string, number> = {};
 
-              if (tools != null) {
+              if (
+                stepExecutionTools != null &&
+                isToolExecutionAllowedFinishReason(
+                  currentModelResponse.finishReason.unified,
+                )
+              ) {
                 const toolExecutionResults = await executeTools({
                   toolCalls: clientToolCalls.filter(
                     toolCall =>
                       !toolCall.invalid &&
                       !blockedToolCallIds.has(toolCall.toolCallId),
                   ),
-                  tools,
+                  tools: stepExecutionTools as TOOLS,
                   callId,
                   messages: stepMessages,
                   abortSignal: mergedAbortSignal,
@@ -1235,7 +1334,7 @@ export async function generateText<
               // the client tool's result is sent back.
               for (const toolCall of stepToolCalls) {
                 if (!toolCall.providerExecuted) continue;
-                const tool = getOwn(tools, toolCall.toolName);
+                const tool = getOwn(stepExecutionTools, toolCall.toolName);
                 if (tool?.type === 'provider' && tool.supportsDeferredResults) {
                   // Check if this tool call already has a result in the current response
                   const hasResultInResponse = currentModelResponse.content.some(
@@ -1339,13 +1438,11 @@ export async function generateText<
           }
         }
       } while (
-        // Continue if:
-        // 1. There are client tool calls that have all been executed or denied, OR
-        // 2. There are pending deferred results from provider-executed tools
-        ((clientToolCalls.length > 0 &&
-          clientToolOutputs.length + deniedToolApprovalResponses.length ===
-            clientToolCalls.length) ||
-          pendingDeferredToolCalls.size > 0) &&
+        // Continue only after all client tool calls have been executed or denied,
+        // and if there are client results or pending deferred provider results.
+        clientToolOutputs.length + deniedToolApprovalResponses.length ===
+          clientToolCalls.length &&
+        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
         // continue until a stop condition is met:
         !(await isStopConditionMet({ stopConditions, steps }))
       );

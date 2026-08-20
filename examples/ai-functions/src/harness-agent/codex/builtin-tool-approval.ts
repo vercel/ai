@@ -1,7 +1,9 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { codex } from '@ai-sdk/harness-codex';
+import { createCodex } from './_create';
 import { run } from '../../lib/run';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+
+const codex = createCodex();
 
 run(async () => {
   const sandbox = createVercelSandbox({

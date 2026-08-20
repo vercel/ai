@@ -1,3 +1,8 @@
+import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import { asOpenCodeObject } from './opencode-types';
+
+type FinishStepEvent = Extract<HarnessV1StreamPart, { type: 'finish-step' }>;
+
 export type OpenCodeTokenUsage = {
   readonly input: number;
   readonly output: number;
@@ -8,7 +13,7 @@ export type OpenCodeTokenUsage = {
   };
 };
 
-export type HarnessUsage = Record<string, unknown>;
+export type HarnessUsage = FinishStepEvent['usage'];
 
 export function mapUsage(tokens: unknown): HarnessUsage {
   const value = extractOpenCodeTokens(tokens) ?? zeroOpenCodeTokens();
@@ -35,13 +40,13 @@ export function defaultUsage(): HarnessUsage {
 export function extractSessionTokens(
   value: unknown,
 ): OpenCodeTokenUsage | undefined {
-  const record = asRecord(value);
+  const record = asOpenCodeObject(value) as SessionTokenEnvelope | undefined;
   if (!record) return undefined;
   const tokens =
     extractOpenCodeTokens(record.tokens) ??
-    extractOpenCodeTokens(asRecord(record.info)?.tokens) ??
-    extractOpenCodeTokens(asRecord(record.data)?.tokens) ??
-    extractOpenCodeTokens(asRecord(asRecord(record.data)?.data)?.tokens);
+    extractOpenCodeTokens(record.info?.tokens) ??
+    extractOpenCodeTokens(record.data?.tokens) ??
+    extractOpenCodeTokens(record.data?.data?.tokens);
   return tokens;
 }
 
@@ -100,8 +105,8 @@ export function addUsage({
 }
 
 function extractOpenCodeTokens(value: unknown): OpenCodeTokenUsage | undefined {
-  const record = asRecord(value);
-  const cache = asRecord(record?.cache);
+  const record = asOpenCodeObject(value);
+  const cache = asOpenCodeObject(record?.cache);
   if (!record || !cache) return undefined;
   return {
     input: numberValue(record.input),
@@ -124,13 +129,11 @@ function zeroOpenCodeTokens(): OpenCodeTokenUsage {
 }
 
 function asTokenGroup(value: unknown): Record<string, number | undefined> {
-  return asRecord(value) ?? {};
-}
-
-function asRecord(value: unknown): Record<string, any> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    return undefined;
-  return value as Record<string, any>;
+  return (
+    (asOpenCodeObject(value) as
+      | Record<string, number | undefined>
+      | undefined) ?? {}
+  );
 }
 
 function numberValue(value: unknown): number {
@@ -154,3 +157,12 @@ function add({
     ? undefined
     : (leftNumber ?? 0) + (rightNumber ?? 0);
 }
+
+type SessionTokenEnvelope = {
+  tokens?: unknown;
+  info?: { tokens?: unknown };
+  data?: {
+    tokens?: unknown;
+    data?: { tokens?: unknown };
+  };
+};
