@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -774,200 +775,6 @@ describe('doStream', () => {
     server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
       type: 'stream-chunks',
       headers,
-<<<<<<< HEAD
-=======
-      chunks,
-    };
-  }
-
-  describe('text', () => {
-    beforeEach(() => {
-      prepareChunksFixtureResponse('mistral-text');
-    });
-
-    it('should stream text', async () => {
-      const result = await model.doStream({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(
-        await convertReadableStreamToArray(result.stream),
-      ).toMatchSnapshot();
-    });
-  });
-
-  describe('tool call', () => {
-    it('should stream tool call', async () => {
-      prepareChunksFixtureResponse('mistral-tool-call');
-
-      const result = await model.doStream({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(
-        await convertReadableStreamToArray(result.stream),
-      ).toMatchSnapshot();
-    });
-
-    it('should accumulate incremental tool call arguments', async () => {
-      prepareChunksFixtureResponse('mistral-incremental-tool-call');
-
-      const result = await model.doStream({
-        prompt: TEST_PROMPT,
-      });
-
-      const parts = await convertReadableStreamToArray(result.stream);
-
-      expect(
-        parts.filter(
-          part => part.type === 'error' || part.type.startsWith('tool-'),
-        ),
-      ).toStrictEqual([
-        {
-          type: 'tool-input-start',
-          id: 'chatcmpl-tool-9f149c74c42f265b',
-          toolName: 'webSearchTool',
-        },
-        {
-          type: 'tool-input-delta',
-          id: 'chatcmpl-tool-9f149c74c42f265b',
-          delta: '{"query": "current Berlin weather"}',
-        },
-        {
-          type: 'tool-input-end',
-          id: 'chatcmpl-tool-9f149c74c42f265b',
-        },
-        {
-          type: 'tool-call',
-          toolCallId: 'chatcmpl-tool-9f149c74c42f265b',
-          toolName: 'webSearchTool',
-          input: '{"query": "current Berlin weather"}',
-        },
-      ]);
-    });
-  });
-
-  describe('reasoning', () => {
-    beforeEach(() => {
-      prepareChunksFixtureResponse('mistral-reasoning');
-    });
-
-    it('should stream reasoning', async () => {
-      const result = await model.doStream({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(
-        await convertReadableStreamToArray(result.stream),
-      ).toMatchSnapshot();
-    });
-  });
-
-  it('should pass the messages', async () => {
-    prepareChunksFixtureResponse('mistral-text');
-
-    await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      stream: true,
-      model: 'mistral-small-latest',
-      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-    });
-  });
-
-  it('should pass headers', async () => {
-    prepareChunksFixtureResponse('mistral-text');
-
-    const provider = createMistral({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Provider-Header': 'provider-header-value',
-      },
-    });
-
-    await provider.chat('mistral-small-latest').doStream({
-      prompt: TEST_PROMPT,
-      headers: {
-        'Custom-Request-Header': 'request-header-value',
-      },
-    });
-
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
-    expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/mistral/0.0.0-test`,
-    );
-  });
-
-  it('should expose the raw response headers', async () => {
-    prepareChunksFixtureResponse('mistral-text', {
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response?.headers).toMatchInlineSnapshot(`
-      {
-        "cache-control": "no-cache",
-        "connection": "keep-alive",
-        "content-type": "text/event-stream",
-        "test-header": "test-value",
-      }
-    `);
-  });
-
-  it('should send request body', async () => {
-    prepareChunksFixtureResponse('mistral-text');
-
-    const { request } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(request).toMatchInlineSnapshot(`
-      {
-        "body": {
-          "document_image_limit": undefined,
-          "document_page_limit": undefined,
-          "max_tokens": undefined,
-          "messages": [
-            {
-              "content": [
-                {
-                  "text": "Hello",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-          ],
-          "model": "mistral-small-latest",
-          "random_seed": undefined,
-          "reasoning_effort": undefined,
-          "response_format": undefined,
-          "safe_prompt": undefined,
-          "stop": undefined,
-          "stream": true,
-          "temperature": undefined,
-          "tool_choice": undefined,
-          "tools": undefined,
-          "top_p": undefined,
-        },
-      }
-    `);
-  });
-
-  it('should avoid duplication when trailing assistant message', async () => {
-    server.urls[CHAT_COMPLETIONS_URL].response = {
-      type: 'stream-chunks',
->>>>>>> b8100f3369 (fix: @ai-sdk/mistral rejects incremental streaming tool-call arguments (#19181))
       chunks: [
         `data:  {"id":"53ff663126294946a6b7a4747b70597e","object":"chat.completion.chunk",` +
           `"created":1750537996,"model":"mistral-small-latest","choices":[{"index":0,` +
@@ -1185,6 +992,57 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should accumulate incremental tool call arguments', async () => {
+    const chunks = fs
+      .readFileSync(
+        'src/__fixtures__/mistral-incremental-tool-call.chunks.txt',
+        'utf8',
+      )
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks,
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(
+      parts.filter(
+        part => part.type === 'error' || part.type.startsWith('tool-'),
+      ),
+    ).toStrictEqual([
+      {
+        type: 'tool-input-start',
+        id: 'chatcmpl-tool-9f149c74c42f265b',
+        toolName: 'webSearchTool',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'chatcmpl-tool-9f149c74c42f265b',
+        delta: '{"query": "current Berlin weather"}',
+      },
+      {
+        type: 'tool-input-end',
+        id: 'chatcmpl-tool-9f149c74c42f265b',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'chatcmpl-tool-9f149c74c42f265b',
+        toolName: 'webSearchTool',
+        input: '{"query": "current Berlin weather"}',
+      },
+    ]);
   });
 
   it('should expose the raw response headers', async () => {
