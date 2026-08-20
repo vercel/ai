@@ -962,10 +962,9 @@ describe('streamObject', () => {
 
       it('should preserve error parts and finish callbacks when onError throws', async () => {
         const error = new Error('provider error');
-        const onStepFinish = vitest.fn();
         const onFinish = vitest.fn();
         const result = streamObject({
-          model: new MockLanguageModelV4({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([{ type: 'error', error }]),
             }),
@@ -975,14 +974,12 @@ describe('streamObject', () => {
           onError() {
             throw new Error('callback error');
           },
-          onStepFinish,
           onFinish,
         });
 
         await expect(
           convertAsyncIterableToArray(result.fullStream),
         ).resolves.toStrictEqual([{ type: 'error', error }]);
-        expect(onStepFinish).toHaveBeenCalledOnce();
         expect(onFinish).toHaveBeenCalledOnce();
       });
 

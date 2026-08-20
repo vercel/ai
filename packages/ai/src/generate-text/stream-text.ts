@@ -925,7 +925,6 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
-<<<<<<< HEAD
         if (
           part.type === 'text-delta' ||
           part.type === 'reasoning-delta' ||
@@ -936,14 +935,11 @@ class DefaultStreamTextResult<
           part.type === 'tool-input-delta' ||
           part.type === 'raw'
         ) {
-          await onChunk?.({ chunk: part });
+          await notify({
+            event: { chunk: part },
+            callbacks: onChunk,
+          });
         }
-=======
-        await notify({
-          event: { chunk: part },
-          callbacks: onChunk,
-        });
->>>>>>> 9a37469a92 (fix: contain streaming callback exceptions without interrupting consumers or masking provider errors (#19187))
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
