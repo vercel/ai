@@ -39,9 +39,11 @@ export function toUIMessageStream<
   InferUIMessageChunk<UI_MESSAGE>
 > {
   let outcome: UIMessageStreamOutcome = { status: 'unknown' };
+  let hasFatalFailure = false;
 
-  const setOutcome = (newOutcome: UIMessageStreamOutcome) => {
+  const setSourceOutcome = (newOutcome: UIMessageStreamOutcome) => {
     if (
+      !hasFatalFailure &&
       outcome.status !== 'completed' &&
       outcome.status !== 'aborted' &&
       newOutcome.status !== 'unknown' &&
@@ -49,6 +51,11 @@ export function toUIMessageStream<
     ) {
       outcome = newOutcome;
     }
+  };
+
+  const failOutcome = (error: unknown) => {
+    hasFatalFailure = true;
+    outcome = { status: 'failed', error };
   };
 
   const responseMessageId =
@@ -71,7 +78,7 @@ export function toUIMessageStream<
           controller.enqueue(value);
         }
       } catch (error) {
-        setOutcome({ status: 'failed', error });
+        failOutcome(error);
         controller.error(error);
       }
     },
@@ -84,42 +91,47 @@ export function toUIMessageStream<
   const uiMessageChunkStream = sourceStream.pipeThrough(
     new TransformStream({
       transform: async (part, controller) => {
-        if (part.type === 'finish') {
-          setOutcome({ status: 'completed' });
-        } else if (part.type === 'abort') {
-          setOutcome({ status: 'aborted' });
-        } else if (part.type === 'error') {
-          setOutcome({ status: 'failed', error: part.error });
-        }
+        try {
+          const messageMetadataValue = messageMetadata?.({ part });
 
-        const messageMetadataValue = messageMetadata?.({ part });
-
-        const uiMessageChunk = toUIMessageChunk(part, {
-          tools,
-          sendReasoning,
-          sendSources,
-          sendStart,
-          sendFinish,
-          onError,
-          messageMetadata: messageMetadataValue,
-          responseMessageId,
-        });
-
-        if (uiMessageChunk != null) {
-          controller.enqueue(uiMessageChunk);
-        }
-
-        // start and finish events already include metadata in the converted
-        // chunk; for other part types emit a separate message-metadata chunk
-        if (
-          messageMetadataValue != null &&
-          part.type !== 'start' &&
-          part.type !== 'finish'
-        ) {
-          controller.enqueue({
-            type: 'message-metadata',
+          const uiMessageChunk = toUIMessageChunk(part, {
+            tools,
+            sendReasoning,
+            sendSources,
+            sendStart,
+            sendFinish,
+            onError,
             messageMetadata: messageMetadataValue,
+            responseMessageId,
           });
+
+          if (uiMessageChunk != null) {
+            controller.enqueue(uiMessageChunk);
+          }
+
+          // start and finish events already include metadata in the converted
+          // chunk; for other part types emit a separate message-metadata chunk
+          if (
+            messageMetadataValue != null &&
+            part.type !== 'start' &&
+            part.type !== 'finish'
+          ) {
+            controller.enqueue({
+              type: 'message-metadata',
+              messageMetadata: messageMetadataValue,
+            });
+          }
+
+          if (part.type === 'finish') {
+            setSourceOutcome({ status: 'completed' });
+          } else if (part.type === 'abort') {
+            setSourceOutcome({ status: 'aborted' });
+          } else if (part.type === 'error') {
+            setSourceOutcome({ status: 'failed', error: part.error });
+          }
+        } catch (error) {
+          failOutcome(error);
+          throw error;
         }
       },
     }),

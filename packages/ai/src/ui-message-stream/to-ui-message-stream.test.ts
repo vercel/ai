@@ -391,4 +391,96 @@ describe('toUIMessageStream', () => {
       error: sourceError,
     });
   });
+
+  it('does not let an earlier finish part hide a source stream failure', async () => {
+    const sourceError = new Error('source stream failed after finish');
+    const onEnd = vi.fn();
+    let pullCount = 0;
+
+    const stream = toUIMessageStream({
+      stream: new ReadableStream({
+        pull(controller) {
+          if (pullCount++ === 0) {
+            controller.enqueue({
+              type: 'finish',
+              finishReason: 'stop',
+              rawFinishReason: 'stop',
+              totalUsage: testUsage,
+            });
+          } else {
+            controller.error(sourceError);
+          }
+        },
+      }),
+      tools: undefined,
+      onEnd,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+      sourceError,
+    );
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: sourceError,
+    });
+  });
+
+  it('reports message metadata failures as failed exactly once', async () => {
+    const metadataError = new Error('message metadata failed');
+    const onEnd = vi.fn();
+
+    const stream = toUIMessageStream({
+      stream: convertArrayToReadableStream([
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          rawFinishReason: 'stop',
+          totalUsage: testUsage,
+        },
+      ] satisfies TextStreamPart<{}>[]),
+      tools: undefined,
+      messageMetadata: () => {
+        throw metadataError;
+      },
+      onEnd,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+      metadataError,
+    );
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: metadataError,
+    });
+  });
+
+  it('reports UI chunk conversion failures as failed exactly once', async () => {
+    const conversionError = new Error('UI chunk conversion failed');
+    const onEnd = vi.fn();
+
+    const stream = toUIMessageStream({
+      stream: convertArrayToReadableStream([
+        { type: 'error', error: new Error('generation failed') },
+      ] satisfies TextStreamPart<{}>[]),
+      tools: undefined,
+      onError: () => {
+        throw conversionError;
+      },
+      onEnd,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+      conversionError,
+    );
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: conversionError,
+    });
+  });
 });
