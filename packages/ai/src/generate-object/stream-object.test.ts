@@ -983,9 +983,11 @@ describe('streamObject', () => {
         expect(onFinish).toHaveBeenCalledOnce();
       });
 
-      it('should reject pending result promises and invoke onError when the raw stream errors', async () => {
+      it('should preserve raw stream errors when onError throws', async () => {
         const error = new Error('test error');
-        const onError = vitest.fn();
+        const onError = vitest.fn(() => {
+          throw new Error('callback error');
+        });
         const result = streamObject({
           model: new MockLanguageModelV3({
             doStream: async () => ({
