@@ -35,6 +35,7 @@ async function main() {
     '@ai-sdk/revai',
     '@ai-sdk/togetherai',
     '@ai-sdk/xai',
+    '@ai-sdk/spacexai',
 
     'ollama-ai-provider',
     '@portkey-ai/vercel-provider',

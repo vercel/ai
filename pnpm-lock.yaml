@@ -1685,6 +1685,15 @@ importers:
         specifier: 4.5.0
         version: 4.5.0(vue@3.5.13(typescript@5.9.3))
 
+  examples/spacexai-tts-demo:
+    dependencies:
+      '@ai-sdk/xai':
+        specifier: workspace:*
+        version: link:../../packages/xai
+      ai:
+        specifier: workspace:*
+        version: link:../../packages/ai
+
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
@@ -1747,15 +1756,6 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
-
-  examples/xai-tts-demo:
-    dependencies:
-      '@ai-sdk/xai':
-        specifier: workspace:*
-        version: link:../../packages/xai
-      ai:
-        specifier: workspace:*
-        version: link:../../packages/ai
 
   packages/ai:
     dependencies:

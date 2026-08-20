@@ -350,7 +350,7 @@ You may want to pre-configure model settings, provide model name aliases, limit 
 Here is an example that implements the following concepts:
 
 - pass through gateway with a namespace prefix (here: `gateway > *`)
-- pass through a full provider with a namespace prefix (here: `xai > *`)
+- pass through a full provider with a namespace prefix (here: `spacexai > *`)
 - setup an OpenAI-compatible provider with custom api key and base URL (here: `custom > *`)
 - setup model name aliases (here: `anthropic > fast`, `anthropic > writing`, `anthropic > reasoning`)
 - pre-configure model settings (here: `anthropic > reasoning`)
@@ -362,7 +362,7 @@ Here is an example that implements the following concepts:
 ```ts
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { groq } from '@ai-sdk/groq';
 import {
   createProviderRegistry,
@@ -378,7 +378,7 @@ export const registry = createProviderRegistry(
     gateway,
 
     // pass through full providers with namespace prefixes
-    xai,
+    spacexai,
 
     // access an OpenAI-compatible provider with custom setup
     custom: createOpenAICompatible({
