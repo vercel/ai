@@ -295,7 +295,7 @@ try {
 
 Under the hood this is an MCP server, so you can also wire it with [`createMCPClient`](/docs/reference/ai-sdk-core/create-mcp-client) directly. The package adds project scoping, process lifecycle, and a launcher fix for Windows, where `npx` resolves to `npx.cmd` and cannot be spawned without a shell.
 
-**When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
+**When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service, except where the provider runs locally.
 
 ## Custom Tool
 
