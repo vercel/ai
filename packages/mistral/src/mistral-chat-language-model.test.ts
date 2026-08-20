@@ -915,6 +915,23 @@ describe('doStream', () => {
     });
   });
 
+  it('should accumulate incremental tool call argument chunks', async () => {
+    prepareChunksFixtureResponse('mistral-incremental-tool-call');
+
+    const { stream } = await provider.chat('zai-glm-5-2').doStream({
+      prompt: TEST_PROMPT,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'chatcmpl-tool-987f5c2c8969e4a2',
+      toolName: 'webSearchTool',
+      input: '{"query": "current Berlin weather"}',
+    });
+  });
+
   describe('reasoning', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('mistral-reasoning');
