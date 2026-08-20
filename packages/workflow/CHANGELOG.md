@@ -1,5 +1,13 @@
 # @ai-sdk/workflow
 
+## 2.0.1
+
+### Patch Changes
+
+- 4233a40: Resume transformed WorkflowAgent streams using UI message chunk indexes.
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
 ## 2.0.0
 
 ### Major Changes
