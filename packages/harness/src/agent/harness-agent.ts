@@ -11,6 +11,7 @@ import {
   asSchema,
   generateId,
   type Context,
+  type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -64,6 +65,8 @@ import {
   resolvePermissionMode,
 } from './internal/permission-mode';
 import { resolveHarnessAgentToolFiltering } from './internal/tool-filtering';
+import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
+import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
 
 export type { HarnessAllTools } from './harness-agent-tool-types';
 
@@ -108,12 +111,13 @@ export interface HarnessAgentCallExtensions {
  *    Adapter builtin tools (e.g. Claude Code's `Bash`) pass through
  *    untouched.
  *  - **Sandbox propagation.** On `createSession`, the agent uses a
- *    caller-provided network sandbox session when present; otherwise it calls
- *    the configured provider's `createSession()` (or `resumeSession()`). It
- *    passes the selected session into `doStart`. Its `restricted()` view (a tool-safe
- *    `Experimental_SandboxSession`) is handed to user-tool `execute()` calls
- *    via `experimental_sandbox`. Caller-provided sandboxes remain owned by the
- *    caller and are not stopped or destroyed by the harness layer.
+ *    caller-provided network or basic sandbox session when present; otherwise
+ *    it calls the configured provider's `createSession()` (or
+ *    `resumeSession()`). It passes the selected session into `doStart`. A
+ *    tool-safe `SandboxSession` is handed to user-tool
+ *    `execute()` calls via `experimental_sandbox`. Caller-provided sandboxes
+ *    remain owned by the caller and are not stopped or destroyed by the
+ *    harness layer.
  */
 export class HarnessAgent<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
@@ -234,10 +238,10 @@ export class HarnessAgent<
      */
     continueFrom?: HarnessAgentContinueTurnState;
     /**
-     * Existing network sandbox session to run the harness in. When provided,
-     * the caller retains ownership of the sandbox lifecycle.
+     * Existing sandbox session to run the harness in. When provided, the
+     * caller retains ownership of the sandbox lifecycle.
      */
-    sandboxSession?: HarnessV1NetworkSandboxSession;
+    sandboxSession?: HarnessV1NetworkSandboxSession | SandboxSession;
     abortSignal?: AbortSignal;
   }): Promise<HarnessAgentSession> {
     const sessionId = options?.sessionId ?? generateId();
@@ -281,12 +285,19 @@ export class HarnessAgent<
     // Acquires the concrete sandbox session, either by starting fresh and then
     // creating a post-bootstrap snapshot, or by reusing a previously created
     // snapshot based on the bootstrap-based hashes.
-    let sandboxSession: HarnessV1NetworkSandboxSession;
+    let sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
     let sessionWorkDir: string;
     if (providedSandboxSession != null) {
       sandboxSession = providedSandboxSession;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal,
+        });
       sessionWorkDir = resolveSessionWorkDir({
-        defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+        defaultWorkingDirectory,
         harnessId: harness.harnessId,
         sessionId,
         workDir: this.sandboxConfig.workDir,
@@ -297,10 +308,10 @@ export class HarnessAgent<
         const recipeIdentity = await hashHarnessBootstrap(recipe);
         try {
           await applyBootstrapRecipe({
-            session: sandboxSession.restricted(),
+            session: toolSafeSandboxSession,
             recipe,
             identity: recipeIdentity,
-            defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+            defaultWorkingDirectory,
             abortSignal,
           });
         } catch (err) {
@@ -325,12 +336,14 @@ export class HarnessAgent<
             harnessId: harness.harnessId,
           });
         }
-        sandboxSession = await sandboxProvider.resumeSession({
+        const resumedSandboxSession = await sandboxProvider.resumeSession({
           sessionId,
           abortSignal,
         });
+        sandboxSession = resumedSandboxSession;
         sessionWorkDir = resolveSessionWorkDir({
-          defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+          defaultWorkingDirectory:
+            resumedSandboxSession.defaultWorkingDirectory,
           harnessId: harness.harnessId,
           sessionId,
           workDir: this.sandboxConfig.workDir,
@@ -352,14 +365,16 @@ export class HarnessAgent<
           settings: this.sandboxConfig,
         });
 
-        sandboxSession = await sandboxProvider.createSession({
+        const createdSandboxSession = await sandboxProvider.createSession({
           sessionId,
           abortSignal,
           identity: sandboxBootstrapPlan.identity,
           onFirstCreate: sandboxBootstrapPlan.onFirstCreate,
         });
+        sandboxSession = createdSandboxSession;
         sessionWorkDir = resolveSessionWorkDir({
-          defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+          defaultWorkingDirectory:
+            createdSandboxSession.defaultWorkingDirectory,
           harnessId: harness.harnessId,
           sessionId,
           workDir: sandboxBootstrapPlan.workDir,
@@ -375,10 +390,11 @@ export class HarnessAgent<
         ) {
           try {
             await applyBootstrapRecipe({
-              session: sandboxSession.restricted(),
+              session: createdSandboxSession.restricted(),
               recipe: sandboxBootstrapPlan.recipe,
               identity: sandboxBootstrapPlan.recipeIdentity,
-              defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+              defaultWorkingDirectory:
+                createdSandboxSession.defaultWorkingDirectory,
               abortSignal,
             });
           } catch (err) {
@@ -400,7 +416,7 @@ export class HarnessAgent<
       });
       if (this.sandboxConfig.onSession != null) {
         await this.sandboxConfig.onSession({
-          session: sandboxSession.restricted(),
+          session: getRestrictedSandboxSession(sandboxSession),
           sessionWorkDir,
           abortSignal,
         });
@@ -584,6 +600,20 @@ export class HarnessAgent<
       responseFormat,
     });
     return result;
+  }
+
+  /**
+   * Submit another user message to a currently running session turn.
+   *
+   * The returned promise resolves after the runtime has accepted the message
+   * for its next safe input boundary. Output caused by the message remains in
+   * the current turn's stream.
+   */
+  async experimental_steer(options: {
+    session: HarnessAgentSession;
+    text: string;
+  }): Promise<void> {
+    await options.session.experimental_steerTurn(options.text);
   }
 
   // ─── Internals ──────────────────────────────────────────────────────
@@ -923,9 +953,11 @@ function resolveSandboxConfig(
 }
 
 async function cleanupAfterStartFailure(input: {
-  sandboxSession: HarnessV1NetworkSandboxSession;
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   ownsSandboxLifecycle: boolean;
 }): Promise<void> {
   if (!input.ownsSandboxLifecycle) return;
-  await Promise.resolve(input.sandboxSession.stop()).catch(() => {});
+  if ('stop' in input.sandboxSession) {
+    await Promise.resolve(input.sandboxSession.stop()).catch(() => {});
+  }
 }

@@ -1,13 +1,13 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
 import type { HarnessAgentAdapter } from './harness-agent-types';
+import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
 import {
   applyBootstrapRecipe,
   hashHarnessBootstrap,
 } from './internal/bootstrap-recipe';
 import {
   normalizeSandboxWorkDir,
-  resolveDefaultWorkingDirectory,
   runSandboxBootstrap,
   validateSandboxBootstrapSettings,
 } from './internal/sandbox-bootstrap';
@@ -80,8 +80,8 @@ export async function prepareSandboxForHarness(options: {
 
     const recipeIdentity = await hashHarnessBootstrap(recipe);
     recipeIdentities[harness.harnessId] = recipeIdentity;
-    defaultWorkingDirectory ??= await resolveDefaultWorkingDirectory({
-      session: options.session,
+    defaultWorkingDirectory ??= await resolveSandboxDefaultWorkingDirectory({
+      sandboxSession: options.session,
       abortSignal: options.abortSignal,
     });
     await applyBootstrapRecipe({

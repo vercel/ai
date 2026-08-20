@@ -9,6 +9,7 @@
 
 import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { env as procEnv, pid, stdout } from 'node:process';
 import { WebSocketServer, type WebSocket } from 'ws';
 
@@ -20,6 +21,29 @@ export type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
 export type BridgeEvent = Record<string, unknown> & { type: string };
 
 export type BridgeDebugLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace';
+
+export interface Experimental_BridgeUserMessage {
+  readonly messageId: string;
+  readonly text: string;
+  accept(): void;
+  reject(error: unknown): void;
+}
+
+export interface Experimental_BridgeUserMessageQueue extends AsyncIterable<Experimental_BridgeUserMessage> {
+  readonly pendingCount: number;
+  close(error?: unknown): void;
+}
+
+type InternalBridgeUserMessageQueue = Experimental_BridgeUserMessageQueue & {
+  enqueue(input: { messageId: string; text: string }): void;
+};
+
+type BridgeUserMessageResponse = {
+  type: 'user-message-response';
+  messageId: string;
+  accepted: boolean;
+  error?: { message: string };
+};
 
 /**
  * Per-session diagnostics config. The host resolves it from settings +
@@ -71,6 +95,125 @@ function formatBridgeError(err: unknown): {
   return { message: String(err) };
 }
 
+function createBridgeUserMessageQueue(options: {
+  respond(response: BridgeUserMessageResponse): void;
+}): InternalBridgeUserMessageQueue {
+  const messages: Experimental_BridgeUserMessage[] = [];
+  const waiters: Array<
+    (result: IteratorResult<Experimental_BridgeUserMessage>) => void
+  > = [];
+  const entries = new Map<
+    string,
+    {
+      response?: BridgeUserMessageResponse;
+      reject(error: unknown): void;
+    }
+  >();
+  let closed = false;
+  let pendingCount = 0;
+
+  const enqueue = (input: { messageId: string; text: string }): void => {
+    const existing = entries.get(input.messageId);
+    if (existing != null) {
+      if (existing.response != null) {
+        options.respond(existing.response);
+      }
+      return;
+    }
+
+    let settled = false;
+    const settle = (response: BridgeUserMessageResponse): void => {
+      if (settled) return;
+      settled = true;
+      pendingCount--;
+      const entry = entries.get(input.messageId);
+      if (entry != null) entry.response = response;
+      options.respond(response);
+    };
+    const message: Experimental_BridgeUserMessage = {
+      messageId: input.messageId,
+      text: input.text,
+      accept: () => {
+        settle({
+          type: 'user-message-response',
+          messageId: input.messageId,
+          accepted: true,
+        });
+      },
+      reject: error => {
+        settle({
+          type: 'user-message-response',
+          messageId: input.messageId,
+          accepted: false,
+          error: { message: formatBridgeError(error).message },
+        });
+      },
+    };
+    entries.set(input.messageId, {
+      reject: message.reject,
+    });
+    pendingCount++;
+
+    if (closed) {
+      message.reject(
+        new Error('The bridge turn is no longer accepting user messages.'),
+      );
+      return;
+    }
+
+    const waiter = waiters.shift();
+    if (waiter != null) {
+      waiter({ done: false, value: message });
+    } else {
+      messages.push(message);
+    }
+  };
+
+  const close = (error?: unknown): void => {
+    if (closed) return;
+    closed = true;
+    const reason =
+      error ??
+      new Error('The bridge turn ended before accepting the user message.');
+    for (const entry of entries.values()) {
+      if (entry.response == null) entry.reject(reason);
+    }
+    messages.length = 0;
+    while (waiters.length > 0) {
+      waiters.shift()!({ done: true, value: undefined });
+    }
+  };
+
+  return {
+    get pendingCount() {
+      return pendingCount;
+    },
+    enqueue,
+    close,
+    [Symbol.asyncIterator]() {
+      return {
+        next: () => {
+          const message = messages.shift();
+          if (message != null) {
+            return Promise.resolve({ done: false as const, value: message });
+          }
+          if (closed) {
+            return Promise.resolve({
+              done: true as const,
+              value: undefined,
+            });
+          }
+          return new Promise<IteratorResult<Experimental_BridgeUserMessage>>(
+            resolve => {
+              waiters.push(resolve);
+            },
+          );
+        },
+      };
+    },
+  };
+}
+
 function parseEnvList(value: string | undefined): string[] | undefined {
   if (!value) return undefined;
   const items = value
@@ -113,12 +256,7 @@ export interface BridgeTurn {
     approvalId: string,
   ): Promise<{ approved: boolean; reason?: string }>;
 
-  /**
-   * Live queue of mid-turn user messages. The runtime pushes inbound
-   * `user-message` text here; the adapter drains it as its runtime accepts
-   * interactive input.
-   */
-  readonly pendingUserMessages: string[];
+  readonly experimental_userMessages: Experimental_BridgeUserMessageQueue;
 
   /** Aborts when the host sends `abort`. */
   readonly abortSignal: AbortSignal;
@@ -192,7 +330,7 @@ type InboundControl =
       approved: boolean;
       reason?: string;
     }
-  | { type: 'user-message'; text: string }
+  | { type: 'user-message'; messageId?: string; text: string }
   | { type: 'abort' }
   | { type: 'stop' }
   | { type: 'destroy' }
@@ -245,7 +383,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
   let activeSocket: WebSocket | undefined;
   let isFirstTurn = true;
   let turnAbort: AbortController | undefined;
-  let currentUserMessages: string[] | undefined;
+  let currentUserMessages: InternalBridgeUserMessageQueue | undefined;
 
   // Diagnostics. Resolved per turn from `start.debug` with a sandbox-side
   // env fallback; gates console capture + structured `debug-event`s.
@@ -521,6 +659,9 @@ export async function runBridge<TStart extends { type: 'start' }>(
     switch (msg.type) {
       case 'start': {
         activeSocket = ws; // asking for a turn claims the event stream
+        currentUserMessages?.close(
+          new Error('A new bridge turn replaced the active turn.'),
+        );
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
@@ -545,6 +686,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         if (debugConfig.enabled) {
           installConsoleCapture();
         }
+        const userMessages = createBridgeUserMessageQueue({ respond: emit });
         const turn: BridgeTurn = {
           emit,
           requestToolResult: toolCallId =>
@@ -555,7 +697,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
             new Promise(resolve => {
               pendingToolApprovals.set(approvalId, resolve);
             }),
-          pendingUserMessages: [],
+          experimental_userMessages: userMessages,
           abortSignal: turnAbort.signal,
           firstTurn,
           bridgeLog: input => {
@@ -575,12 +717,16 @@ export async function runBridge<TStart extends { type: 'start' }>(
           emitWarning,
           emitError,
         };
-        currentUserMessages = turn.pendingUserMessages;
+        currentUserMessages = userMessages;
         try {
           await onStart(msg as TStart, turn);
         } catch (err) {
           emitError({ error: err, message: 'bridge turn failed' });
         } finally {
+          userMessages.close();
+          if (currentUserMessages === userMessages) {
+            currentUserMessages = undefined;
+          }
           currentTurnState = 'waiting';
           void writeBridgeMeta('waiting');
         }
@@ -602,9 +748,34 @@ export async function runBridge<TStart extends { type: 'start' }>(
         }
         return;
       }
-      case 'user-message':
-        currentUserMessages?.push(msg.text);
+      case 'user-message': {
+        const messageId = msg.messageId ?? randomUUID();
+        if (currentUserMessages == null) {
+          sendControl(ws, {
+            type: 'user-message-response',
+            messageId,
+            accepted: false,
+            error: { message: 'The bridge has no active turn to steer.' },
+          });
+          return;
+        }
+        if (ws !== activeSocket) {
+          sendControl(ws, {
+            type: 'user-message-response',
+            messageId,
+            accepted: false,
+            error: {
+              message: 'The connection does not own the active bridge turn.',
+            },
+          });
+          return;
+        }
+        currentUserMessages.enqueue({
+          messageId,
+          text: msg.text,
+        });
         return;
+      }
       case 'abort':
         turnAbort?.abort();
         return;
@@ -693,6 +864,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
       type: 'bridge-hello',
       state: currentTurnState,
       lastSeq: seqCounter,
+      capabilities: { experimental_userMessageResponses: true },
     });
 
     ws.on('message', (raw: ArrayBufferLike | string) => {
