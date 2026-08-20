@@ -1233,12 +1233,19 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
+<<<<<<< HEAD
         const callbacksHandledForStreamRetry =
           part.type === 'error' && errorsHandledForStreamRetry.has(part.error);
 
         if (!callbacksHandledForStreamRetry) {
           await onChunk?.({ chunk: part });
         }
+=======
+        await notify({
+          event: { chunk: part },
+          callbacks: onChunk,
+        });
+>>>>>>> origin/main
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
@@ -1247,11 +1254,18 @@ class DefaultStreamTextResult<
             recordedNoOutputError = error;
           }
 
+<<<<<<< HEAD
           if (callbacksHandledForStreamRetry) {
             errorsHandledForStreamRetry.delete(part.error);
           } else {
             await onError({ error });
           }
+=======
+          await notify({
+            event: { error },
+            callbacks: onError,
+          });
+>>>>>>> origin/main
         }
 
         if (

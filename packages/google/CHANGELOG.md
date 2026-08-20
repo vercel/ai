@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.48
+
+### Patch Changes
+
+- 6c5a1ed: Inline local JSON Schema references in Google tool and structured-output schemas.
+
 ## 4.0.47
 
 ### Patch Changes

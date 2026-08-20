@@ -134,7 +134,11 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   const session = {
     run: async ({ command }: { command: string }) => {
       runs.push(command);
-      return { exitCode: 0, stdout: '', stderr: '' };
+      return {
+        exitCode: 0,
+        stdout: command === 'pwd' ? '/vercel/sandbox\n' : '',
+        stderr: '',
+      };
     },
     readTextFile: async () => null,
     writeTextFile: async ({
@@ -246,6 +250,92 @@ describe('createCodex adapter', () => {
         sessionWorkDir: '/vercel/sandbox/codex-s1',
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
+  it('requires explicit bridge settings for a basic sandbox session', async () => {
+    const networkSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:4319',
+      runs: [],
+      spawns: [],
+      writes: [],
+    });
+    const sandboxSession = networkSession.restricted();
+
+    await expect(
+      createCodex({
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+      }).doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+      }),
+    ).rejects.toThrow(/explicit `port`/);
+
+    await expect(
+      createCodex({ port: 4319 }).doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+      }),
+    ).rejects.toThrow(/explicit `portEndpoint`/);
+  });
+
+  it('uses a basic sandbox session with explicit bridge settings', async () => {
+    channelMocks.connectOnOpen = true;
+    const runs: string[] = [];
+    const networkSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://unused.example',
+      runs,
+      spawns: [],
+      writes: [],
+    });
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge',
+      headers: { authorization: 'endpoint-token' },
+    };
+    const session = await createCodex({
+      port: 4319,
+      portEndpoint,
+    }).doStart({
+      sessionId: 's1',
+      sandboxSession: networkSession.restricted(),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(runs).toContain('pwd');
+    expect(webSocketMocks.calls.at(-1)).toEqual({
+      url: expect.stringContaining('wss://sandbox.example/bridge'),
+      headers: portEndpoint.headers,
+    });
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toEqual({
+      bridge: {
+        port: 4319,
+        token: expect.any(String),
+        lastSeenEventId: 0,
+      },
+    });
+  });
+
+  it('requires a sandbox id for custom bridge token minting', async () => {
+    const networkSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:4319',
+      runs: [],
+      spawns: [],
+      writes: [],
+    });
+
+    await expect(
+      createCodex({
+        port: 4319,
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+        mintBridgeToken: sandboxId => sandboxId,
+      }).doStart({
+        sessionId: 's1',
+        sandboxSession: networkSession.restricted(),
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+      }),
+    ).rejects.toThrow(/does not expose an id/);
   });
 
   it('quotes dynamic startup paths in shell commands', async () => {

@@ -26,8 +26,10 @@ import {
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
   markBridgeStarting,
   maskSandboxCredentials,
+  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -38,7 +40,7 @@ import {
 import {
   safeParseJSON,
   tool,
-  type Experimental_SandboxSession,
+  type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
@@ -109,6 +111,11 @@ export type ClaudeCodeHarnessSettings = {
    * is reserved for something else.
    */
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
@@ -814,13 +821,36 @@ export function createClaudeCode(
     getBootstrap: getClaudeCodeBootstrap,
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: settings.port,
+        portEndpoint: settings.portEndpoint,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'claude-code',
+          message:
+            'The Claude Code harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
+        });
+      }
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal: startOpts.abortSignal,
+        });
       const authenticationMode = resolveClaudeCodeAuthenticationMode(
         settings.auth,
       );
       const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
       let authEnv = resolvedAuthEnvironment;
       let sandboxTurnEnvironment = settings.env;
-      if (sandboxSession.addRequestTransformations != null) {
+      if (
+        'addRequestTransformations' in sandboxSession &&
+        sandboxSession.addRequestTransformations != null
+      ) {
         const requestTransformations = createClaudeCodeRequestTransformations(
           {
             ...resolvedAuthEnvironment,
@@ -846,10 +876,8 @@ export function createClaudeCode(
       } else {
         warnCredentialBrokeringUnavailable();
       }
-      const session = sandboxSession.restricted();
-      const sandboxId = sandboxSession.id;
       const bootstrapDir = posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
+        defaultWorkingDirectory,
         BOOTSTRAP_DIR,
       );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
@@ -860,7 +888,7 @@ export function createClaudeCode(
         : undefined;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -907,9 +935,10 @@ export function createClaudeCode(
        */
       if (coords) {
         try {
-          const endpoint = await sandboxSession.getPortEndpoint({
+          const endpoint = await resolveBridgeEndpoint({
+            sandboxSession,
+            override: settings.portEndpoint,
             port: coords.port,
-            protocol: 'ws',
           });
           const attachEndpoint = withBridgeToken({
             endpoint,
@@ -967,7 +996,7 @@ export function createClaudeCode(
         : undefined;
       if (coords && isContinue) {
         const logRaw = await Promise.resolve(
-          session.readTextFile({
+          toolSafeSandboxSession.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
             abortSignal: startOpts.abortSignal,
           }),
@@ -980,15 +1009,18 @@ export function createClaudeCode(
       const sandboxHomeDir =
         startOpts.skills && startOpts.skills.length > 0
           ? await resolveSandboxHomeDir({
-              sandbox: session,
+              sandbox: toolSafeSandboxSession,
               abortSignal: startOpts.abortSignal,
             })
           : undefined;
-      const port = resolveBridgePort(sandboxSession, settings.port);
+      const port = resolveBridgePort({
+        sandboxSession,
+        override: settings.port,
+      });
       const token =
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
-          : settings.mintBridgeToken(sandboxId);
+          : settings.mintBridgeToken(sandboxId!);
       const env = {
         ...authEnv,
         /*
@@ -1015,7 +1047,7 @@ export function createClaudeCode(
        * spawn — `BRIDGE_CHANNEL_TOKEN` rotates per start.
        */
       if (respawnStrategy === undefined) {
-        await session.run({
+        await toolSafeSandboxSession.run({
           command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
@@ -1025,7 +1057,7 @@ export function createClaudeCode(
             throw new Error('Unable to resolve sandbox HOME directory.');
           }
           await writeClaudeCodeSkills({
-            sandbox: session,
+            sandbox: toolSafeSandboxSession,
             homeDir: sandboxHomeDir,
             skills: startOpts.skills,
             abortSignal: startOpts.abortSignal,
@@ -1034,13 +1066,13 @@ export function createClaudeCode(
       }
 
       await markBridgeStarting({
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'claude-code',
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await session.spawn({
+      const proc = await toolSafeSandboxSession.spawn({
         command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
@@ -1056,7 +1088,7 @@ export function createClaudeCode(
       void bridgeStartupStderrDone;
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'claude-code',
         timeoutMs,
@@ -1080,9 +1112,10 @@ export function createClaudeCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await sandboxSession.getPortEndpoint({
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: settings.portEndpoint,
         port: boundPort,
-        protocol: 'ws',
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
@@ -1128,17 +1161,68 @@ export function createClaudeCode(
   };
 }
 
-function resolveBridgePort(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  override: number | undefined,
-): number {
+function resolveBridgePort({
+  sandboxSession,
+  override,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: number | undefined;
+}): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'claude-code',
     message:
       'The claude-code harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createClaudeCode({ port })`.',
+  });
+}
+
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'claude-code',
+      message:
+        'The Claude Code harness requires an explicit `port` when using a basic sandbox session.',
+    });
+  }
+  if (portEndpoint == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'claude-code',
+      message:
+        'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+    });
+  }
+}
+
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'claude-code',
+    message:
+      'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
   });
 }
 
@@ -1155,7 +1239,7 @@ async function writeClaudeCodeSkills({
   skills,
   abortSignal,
 }: {
-  sandbox: Experimental_SandboxSession;
+  sandbox: SandboxSession;
   homeDir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
@@ -1405,7 +1489,7 @@ function createSession({
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
-  sandboxId: string;
+  sandboxId: string | undefined;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -1724,7 +1808,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };
@@ -1862,7 +1946,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };

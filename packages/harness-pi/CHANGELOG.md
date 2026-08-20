@@ -1,5 +1,21 @@
 # @ai-sdk/harness-pi
 
+## 1.0.81
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.79
+
+## 1.0.80
+
+### Patch Changes
+
+- eace6fb: feat(harness): add experimental support for steering agent conversations mid-turn
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness@1.0.78
+
 ## 1.0.79
 
 ### Patch Changes
