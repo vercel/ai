@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-=======
-import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
-import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
->>>>>>> origin/main
+import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
@@ -13,7 +8,6 @@ const testToolNameMapping: ToolNameMapping = {
   toCustomToolName: (providerToolName: string) => providerToolName,
 };
 
-<<<<<<< HEAD
 const convertToOpenAIResponsesInput = (
   options: Parameters<typeof convertToOpenAIResponsesInputBase>[0],
 ) =>
@@ -22,7 +16,6 @@ const convertToOpenAIResponsesInput = (
     ...options,
   });
 
-=======
 const parallelToolCallInput =
   '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
 
@@ -84,7 +77,6 @@ function createExpandedParallelToolCallPrompt(): LanguageModelV4Prompt {
 
 const parallelToolCallOutput = '{"temperature":72}\nColosseum';
 
->>>>>>> origin/main
 describe('convertToOpenAIResponsesInput', () => {
   describe('system messages', () => {
     it('should convert system messages to system role', async () => {
