@@ -7,6 +7,6 @@
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "Issue #17871 reproduced: AI SDK erased schema-valued additionalProperties for z.record() and object catchall"
+    "signal": "Issue #17871: AI SDK must preserve schema-valued additionalProperties for z.record() and object catchalls"
   }
 }

@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { asSchema, jsonSchema } from 'ai';
 import * as z from 'zod/v4';
 
@@ -24,10 +25,6 @@ function getAdditionalProperties(
   );
 }
 
-function sameJson(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
 async function inspectConversion({
   name,
   inputSchema,
@@ -36,7 +33,7 @@ async function inspectConversion({
   name: string;
   inputSchema: z.core.$ZodType;
   propertyName?: string;
-}): Promise<boolean> {
+}) {
   const zodJsonSchema = z.toJSONSchema(inputSchema, {
     target: 'draft-7',
     io: 'input',
@@ -54,7 +51,13 @@ async function inspectConversion({
   console.log(`${name} asSchema(Zod):`, JSON.stringify(actual));
   console.log(`${name} asSchema(jsonSchema(...)):`, JSON.stringify(wrapped));
 
-  return !sameJson(actual, expected) && sameJson(wrapped, expected);
+  assert.deepStrictEqual(
+    wrapped,
+    expected,
+    `${name}: jsonSchema() control must preserve additionalProperties`,
+  );
+
+  return { actual, expected };
 }
 
 async function main() {
@@ -65,26 +68,15 @@ async function main() {
     .object({ known: z.string() })
     .catchall(z.number());
 
-  const changedCases: string[] = [];
-
-  if (
-    await inspectConversion({
-      name: 'z.record()',
-      inputSchema: recordInputSchema,
-      propertyName: 'values',
-    })
-  ) {
-    changedCases.push('z.record()');
-  }
-
-  if (
-    await inspectConversion({
-      name: 'object catchall',
-      inputSchema: catchallInputSchema,
-    })
-  ) {
-    changedCases.push('object catchall');
-  }
+  const record = await inspectConversion({
+    name: 'z.record()',
+    inputSchema: recordInputSchema,
+    propertyName: 'values',
+  });
+  const catchall = await inspectConversion({
+    name: 'object catchall',
+    inputSchema: catchallInputSchema,
+  });
 
   const validationResult = await asSchema(recordInputSchema).validate?.({
     values: { example: 'accepted by Zod' },
@@ -93,16 +85,26 @@ async function main() {
     'original Zod validation accepts a populated record:',
     validationResult?.success,
   );
+  assert.equal(
+    validationResult?.success,
+    true,
+    'Zod validation must accept the populated record used by the reproduction',
+  );
 
-  if (changedCases.length === 2 && validationResult?.success === true) {
-    throw new Error(
-      'Issue #17871 reproduced: AI SDK erased schema-valued additionalProperties for z.record() and object catchall',
-    );
-  }
-
-  throw new Error(
-    `Issue #17871 not reproduced as reported; changed cases: ${changedCases.join(', ')}`,
+  assert.deepStrictEqual(
+    {
+      record: record.actual,
+      catchall: catchall.actual,
+    },
+    {
+      record: record.expected,
+      catchall: catchall.expected,
+    },
+    'Issue #17871: AI SDK must preserve schema-valued additionalProperties for z.record() and object catchalls',
   );
 }
 
-main();
+main().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
