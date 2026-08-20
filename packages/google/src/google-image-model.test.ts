@@ -1,6 +1,7 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { GoogleImageModel } from './google-image-model';
+import type { GoogleImageModelOptions } from './google-image-model-options';
 
 const TEST_URL =
   'https://api.example.com/v1beta/models/gemini-2.5-flash-image:generateContent';
@@ -84,6 +85,35 @@ describe('GoogleImageModel', () => {
   });
 
   describe('doGenerate', () => {
+    it('should reject non-Gemini model IDs before sending a request', async () => {
+      const nonGeminiModel = new GoogleImageModel(
+        'legacy-image-model',
+        {},
+        {
+          provider: 'google.generative-ai',
+          baseURL: 'https://api.example.com/v1beta',
+          headers: () => ({ 'api-key': 'test-api-key' }),
+        },
+      );
+
+      await expect(
+        nonGeminiModel.doGenerate({
+          prompt: 'A beautiful sunset',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
+      );
+
+      expect(server.calls).toHaveLength(0);
+    });
+
     it('should use the language model endpoint and extract generated images', async () => {
       prepareJsonResponse({});
 
@@ -145,7 +175,11 @@ describe('GoogleImageModel', () => {
         size: undefined,
         aspectRatio: '21:9',
         seed: 12345,
-        providerOptions: {},
+        providerOptions: {
+          google: {
+            imageConfig: { imageSize: '4K' },
+          } satisfies GoogleImageModelOptions,
+        },
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
@@ -171,6 +205,7 @@ describe('GoogleImageModel', () => {
           "generationConfig": {
             "imageConfig": {
               "aspectRatio": "21:9",
+              "imageSize": "4K",
             },
             "responseModalities": [
               "IMAGE",

@@ -69,6 +69,12 @@ export class GoogleImageModel implements ImageModelV4 {
   async doGenerate(
     options: Parameters<ImageModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
+    if (!this.modelId.startsWith('gemini-')) {
+      throw new Error(
+        'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
+      );
+    }
+
     const {
       prompt,
       n,
@@ -158,8 +164,12 @@ export class GoogleImageModel implements ImageModelV4 {
       schema: googleImageModelOptionsSchema,
     });
 
-    const { googleSearch: _strippedGoogleSearch, ...passthroughGoogleOptions } =
-      providerOptions?.google ?? {};
+    const {
+      googleSearch: _strippedGoogleSearch,
+      responseModalities: _strippedResponseModalities,
+      imageConfig: userImageConfig,
+      ...passthroughGoogleOptions
+    } = providerOptions?.google ?? {};
 
     // Instantiate language model
     const languageModel = new GoogleLanguageModel(this.modelId, {
@@ -176,18 +186,26 @@ export class GoogleImageModel implements ImageModelV4 {
       seed,
       providerOptions: {
         google: {
-          responseModalities: ['IMAGE'],
-          imageConfig: aspectRatio
-            ? {
-                aspectRatio: aspectRatio as NonNullable<
-                  GoogleLanguageModelOptions['imageConfig']
-                >['aspectRatio'],
-              }
-            : undefined,
           ...(passthroughGoogleOptions as Omit<
             GoogleLanguageModelOptions,
             'responseModalities' | 'imageConfig'
           >),
+          responseModalities: ['IMAGE'],
+          imageConfig:
+            aspectRatio != null || userImageConfig != null
+              ? {
+                  ...(userImageConfig as NonNullable<
+                    GoogleLanguageModelOptions['imageConfig']
+                  >),
+                  ...(aspectRatio != null
+                    ? {
+                        aspectRatio: aspectRatio as NonNullable<
+                          GoogleLanguageModelOptions['imageConfig']
+                        >['aspectRatio'],
+                      }
+                    : {}),
+                }
+              : undefined,
         } satisfies GoogleLanguageModelOptions,
       },
       tools:

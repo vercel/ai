@@ -1034,20 +1034,11 @@ const { image } = await generateImage({
 });
 ```
 
-You can also use URLs (including `gs://` Cloud Storage URIs) for input images:
-
-```ts
-import { googleVertex } from '@ai-sdk/google-vertex';
-import { generateImage } from 'ai';
-
-const { image } = await generateImage({
-  model: googleVertex.image('gemini-2.5-flash-image'),
-  prompt: {
-    text: 'Add a small wizard hat to this cat',
-    images: ['https://example.com/cat.png'],
-  },
-});
-```
+<Note>
+  Input images must be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. URL inputs, including HTTP and `gs://` URLs, are not
+  supported by `generateImage()` with Google Vertex image models.
+</Note>
 
 <Note>
   Gemini image models do not support the `size` or `n` parameters. Use
@@ -1072,8 +1063,8 @@ const { image } = await generateImage({
 <Note>
   `gemini-3-pro-image-preview` supports additional features including up to 14
   reference images for editing (6 objects, 5 humans), resolution options (1K,
-  2K, 4K via `providerOptions.vertex.imageConfig.imageSize`), and Google Search
-  grounding.
+  2K, 4K via `providerOptions.vertex.imageConfig.imageSize`). Use the
+  `GoogleVertexImageModelOptions` type to validate Gemini provider options.
 </Note>
 
 ### Video Models

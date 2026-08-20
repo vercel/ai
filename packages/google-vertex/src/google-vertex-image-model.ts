@@ -57,6 +57,12 @@ export class GoogleVertexImageModel implements ImageModelV4 {
   async doGenerate(
     options: Parameters<ImageModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
+    if (!this.modelId.startsWith('gemini-')) {
+      throw new Error(
+        'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
+      );
+    }
+
     const {
       prompt,
       n,
@@ -146,20 +152,29 @@ export class GoogleVertexImageModel implements ImageModelV4 {
       }),
     });
 
-    const userVertexOptions = (providerOptions?.googleVertex ??
-      providerOptions?.vertex) as
-      | Omit<GoogleLanguageModelOptions, 'responseModalities' | 'imageConfig'>
-      | undefined;
+    const {
+      responseModalities: _strippedResponseModalities,
+      imageConfig: userImageConfig,
+      ...userVertexOptions
+    } = ((providerOptions?.googleVertex ?? providerOptions?.vertex) as
+      | GoogleLanguageModelOptions
+      | undefined) ?? {};
     const innerVertexOptions: GoogleLanguageModelOptions = {
+      ...userVertexOptions,
       responseModalities: ['IMAGE'],
-      imageConfig: aspectRatio
-        ? {
-            aspectRatio: aspectRatio as NonNullable<
-              GoogleLanguageModelOptions['imageConfig']
-            >['aspectRatio'],
-          }
-        : undefined,
-      ...(userVertexOptions ?? {}),
+      imageConfig:
+        aspectRatio != null || userImageConfig != null
+          ? {
+              ...userImageConfig,
+              ...(aspectRatio != null
+                ? {
+                    aspectRatio: aspectRatio as NonNullable<
+                      GoogleLanguageModelOptions['imageConfig']
+                    >['aspectRatio'],
+                  }
+                : {}),
+            }
+          : undefined,
     };
     const result = await languageModel.doGenerate({
       prompt: languageModelPrompt,

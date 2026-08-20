@@ -1,7 +1,7 @@
-import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
+import type { GoogleVertexImageModelOptions } from './google-vertex-image-model-options';
 
 const TEST_URL =
   'https://api.example.com/models/gemini-2.5-flash-image:generateContent';
@@ -62,6 +62,31 @@ describe('GoogleVertexImageModel', () => {
   });
 
   describe('doGenerate', () => {
+    it('should reject non-Gemini model IDs before sending a request', async () => {
+      const nonGeminiModel = new GoogleVertexImageModel('legacy-image-model', {
+        provider: 'google.vertex.image',
+        baseURL: 'https://api.example.com',
+        headers: { 'api-key': 'test-key' },
+      });
+
+      await expect(
+        nonGeminiModel.doGenerate({
+          prompt: 'A beautiful sunset',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
+      );
+
+      expect(server.calls).toHaveLength(0);
+    });
+
     it('should use the language model endpoint and extract generated images', async () => {
       prepareJsonResponse({});
 
@@ -149,21 +174,21 @@ describe('GoogleVertexImageModel', () => {
         mask: undefined,
         n: 1,
         size: undefined,
-        aspectRatio: undefined,
+        aspectRatio: '16:9',
         seed: undefined,
         providerOptions: {
           googleVertex: {
             imageConfig: { imageSize: '4K' },
-          } satisfies GoogleLanguageModelOptions,
+          } satisfies GoogleVertexImageModelOptions,
           vertex: {
             imageConfig: { imageSize: '2K' },
-          } satisfies GoogleLanguageModelOptions,
+          } satisfies GoogleVertexImageModelOptions,
         },
       });
 
       expect(
         (await server.calls[0].requestBodyJson).generationConfig.imageConfig,
-      ).toStrictEqual({ imageSize: '4K' });
+      ).toStrictEqual({ aspectRatio: '16:9', imageSize: '4K' });
 
       prepareJsonResponse({});
       await model.doGenerate({
@@ -177,7 +202,7 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {
           vertex: {
             imageConfig: { imageSize: '2K' },
-          } satisfies GoogleLanguageModelOptions,
+          } satisfies GoogleVertexImageModelOptions,
         },
       });
 
