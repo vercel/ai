@@ -5040,7 +5040,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
+              finishReason: 'stop',
               usage: testUsage,
             },
           ]),
@@ -5100,7 +5100,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: { unified: 'error', raw: 'error' },
+              finishReason: 'error',
               usage: testUsage,
             },
           ]),
