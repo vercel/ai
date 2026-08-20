@@ -874,7 +874,10 @@ class DefaultStreamObjectResult<
           onError(error) {
             const wrappedError = wrapGatewayError(error);
             self.rejectResultPromises(wrappedError);
-            void onError({ error: wrappedError });
+            void notify({
+              event: { error: wrappedError },
+              callbacks: onError,
+            });
           },
         });
       },

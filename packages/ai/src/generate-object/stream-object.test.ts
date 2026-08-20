@@ -1010,6 +1010,42 @@ describe('streamObject', () => {
         await expect(result.request).resolves.toStrictEqual({});
       });
 
+      it('should preserve the provider error when onError throws for a raw stream error', async () => {
+        const error = new Error('provider error');
+        const result = streamObject({
+          model: new MockLanguageModelV2({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  controller.error(error);
+                },
+              }),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError() {
+            throw new Error('callback error');
+          },
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.fullStream),
+        ).rejects.toBe(error);
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+        await expect(result.request).resolves.toStrictEqual({});
+      });
+
       it('should throw NoObjectGeneratedError when schema validation fails', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
