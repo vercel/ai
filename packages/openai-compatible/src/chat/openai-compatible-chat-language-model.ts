@@ -430,10 +430,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       }
     >();
 
-    let finishReason: LanguageModelV3FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV3FinishReason | undefined;
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
@@ -749,6 +746,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                       },
                     }
                   : {}),
+              });
+            }
+
+            if (finishReason == null) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error: new InvalidResponseDataError({
+                  data: undefined,
+                  message: 'Response stream ended without a finish reason.',
+                }),
               });
             }
 

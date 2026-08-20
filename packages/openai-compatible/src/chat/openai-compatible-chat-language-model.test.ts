@@ -1,6 +1,9 @@
 import fs from 'fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV3Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -1773,6 +1776,59 @@ describe('doStream', () => {
       }
     `);
   });
+
+  it.each([
+    {
+      scenario: 'the connection closes',
+      finalChunks: [],
+    },
+    {
+      scenario: '[DONE] is received',
+      finalChunks: ['data: [DONE]\n\n'],
+    },
+  ])(
+    'should report an error when $scenario without a finish reason',
+    async ({ finalChunks }) => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"content":" World"},"finish_reason":null}]}\n\n`,
+          ...finalChunks,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type === 'text-delta')).toStrictEqual(
+        [
+          { type: 'text-delta', delta: 'Hello', id: 'txt-0' },
+          { type: 'text-delta', delta: ' World', id: 'txt-0' },
+        ],
+      );
+
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+      expect(errors[0].error).toMatchObject({
+        message: 'Response stream ended without a finish reason.',
+      });
+
+      expect(events.filter(event => event.type === 'finish')).toStrictEqual([
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        }),
+      ]);
+    },
+  );
 
   it('should handle empty string role in delta chunks', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
