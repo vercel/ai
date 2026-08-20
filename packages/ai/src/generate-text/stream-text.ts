@@ -700,6 +700,27 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
+<<<<<<< HEAD
+=======
+        await notify({
+          event: { chunk: part },
+          callbacks: onChunk,
+        });
+
+        if (part.type === 'error') {
+          const error = wrapGatewayError(part.error);
+
+          if (NoOutputGeneratedError.isInstance(error)) {
+            recordedNoOutputError = error;
+          }
+
+          await notify({
+            event: { error },
+            callbacks: onError,
+          });
+        }
+
+>>>>>>> 9a37469a92 (fix: contain streaming callback exceptions without interrupting consumers or masking provider errors (#19187))
         if (
           part.type === 'text-delta' ||
           part.type === 'reasoning-delta' ||
