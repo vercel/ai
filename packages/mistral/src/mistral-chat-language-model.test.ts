@@ -790,6 +790,33 @@ describe('doStream', () => {
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
     });
+
+    it('should accumulate incremental tool call arguments', async () => {
+      prepareChunksFixtureResponse('mistral-incremental-tool-call');
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+      const expectedInput = '{"query": "current Berlin weather"}';
+
+      expect(parts.filter(part => part.type === 'error')).toStrictEqual([]);
+      expect(parts.filter(part => part.type === 'tool-call')).toStrictEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'chatcmpl-tool-bbc76f5d295ddef1',
+          toolName: 'webSearchTool',
+          input: expectedInput,
+        },
+      ]);
+      expect(
+        parts
+          .filter(part => part.type === 'tool-input-delta')
+          .map(part => part.delta)
+          .join(''),
+      ).toBe(expectedInput);
+    });
   });
 
   describe('reasoning', () => {
