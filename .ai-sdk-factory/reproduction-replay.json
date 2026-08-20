@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 8578,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8578-stream-text-on-finish-tool-information.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-8578-stream-text-on-finish-tool-information.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #8578: onFinish omitted earlier-step tool information from toolCalls, dynamicToolCalls, toolResults, dynamicToolResults."
+  }
+}

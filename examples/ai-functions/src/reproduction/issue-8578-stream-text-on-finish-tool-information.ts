@@ -5,6 +5,8 @@ import { z } from 'zod';
 async function main() {
   let step = 0;
   let capturedFinishEvent: unknown;
+  const stepFinishToolCallIds: string[] = [];
+  const stepFinishToolResultIds: string[] = [];
 
   const result = streamText({
     model: new MockLanguageModelV3({
@@ -88,6 +90,14 @@ async function main() {
       }),
     },
     stopWhen: stepCountIs(2),
+    onStepFinish: event => {
+      stepFinishToolCallIds.push(
+        ...event.toolCalls.map(call => call.toolCallId),
+      );
+      stepFinishToolResultIds.push(
+        ...event.toolResults.map(result => result.toolCallId),
+      );
+    },
     onFinish: event => {
       capturedFinishEvent = event;
     },
@@ -123,6 +133,8 @@ async function main() {
       finishEvent.steps[finishEvent.steps.length - 1].toolCalls.length,
     allStepToolCallIds: allStepToolCalls.map(call => call.toolCallId),
     allStepToolResultIds: allStepToolResults.map(result => result.toolCallId),
+    onStepFinishToolCallIds: stepFinishToolCallIds,
+    onStepFinishToolResultIds: stepFinishToolResultIds,
     onFinishToolCallIds: finishEvent.toolCalls.map(call => call.toolCallId),
     onFinishDynamicToolCallIds: finishEvent.dynamicToolCalls.map(
       call => call.toolCallId,
@@ -137,23 +149,38 @@ async function main() {
 
   console.log(JSON.stringify(observation, null, 2));
 
+  const expectedToolCallId = 'call-list-my-issues';
+
   if (
-    allStepToolCalls.length !== 1 ||
-    allStepToolResults.length !== 1 ||
-    allStepToolCalls[0].toolCallId !== 'call-list-my-issues' ||
-    allStepToolResults[0].toolCallId !== 'call-list-my-issues'
+    !allStepToolCalls.some(call => call.toolCallId === expectedToolCallId) ||
+    !allStepToolResults.some(
+      result => result.toolCallId === expectedToolCallId,
+    ) ||
+    !stepFinishToolCallIds.includes(expectedToolCallId) ||
+    !stepFinishToolResultIds.includes(expectedToolCallId)
   ) {
     throw new Error(
-      'Reproduction setup failed: the tool call and result were not recorded in the completed steps.',
+      'Reproduction setup failed: the completed tool call and result were not available through steps and onStepFinish.',
     );
   }
 
-  if (
-    finishEvent.toolCalls.length === 0 &&
-    finishEvent.toolResults.length === 0
-  ) {
+  const onFinishFields: Array<
+    [field: string, values: Array<{ toolCallId: string }>]
+  > = [
+    ['toolCalls', finishEvent.toolCalls],
+    ['dynamicToolCalls', finishEvent.dynamicToolCalls],
+    ['toolResults', finishEvent.toolResults],
+    ['dynamicToolResults', finishEvent.dynamicToolResults],
+  ];
+  const missingOnFinishFields = onFinishFields
+    .filter(([, values]) =>
+      values.every(value => value.toolCallId !== expectedToolCallId),
+    )
+    .map(([field]) => field);
+
+  if (missingOnFinishFields.length > 0) {
     throw new Error(
-      'Reproduced issue #8578: onFinish omitted tool information from an earlier completed step.',
+      `Reproduced issue #8578: onFinish omitted earlier-step tool information from ${missingOnFinishFields.join(', ')}.`,
     );
   }
 }
