@@ -34,7 +34,10 @@ Define your tools in one tool set and use `experimental_toolCallers` to select
 which tools code mode can call:
 
 ```ts
-import { experimental_codeModeTool as codeModeTool } from '@ai-sdk/code-mode';
+import {
+  DIRECT_TOOL_CALL,
+  experimental_codeModeTool as codeModeTool,
+} from '@ai-sdk/code-mode';
 import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 
@@ -81,25 +84,25 @@ const tools = {
 const result = await generateText({
   model: __MODEL__,
   tools,
-  experimental_toolCallers: ({ code_mode }) => ({
-    getInventory: [code_mode],
-    getDemand: [code_mode],
-  }),
+  experimental_toolCallers: {
+    getInventory: ['code_mode'],
+    getDemand: ['code_mode'],
+  },
   stopWhen: isStepCount(10),
   prompt: 'Compare inventory and demand for product sku_123.',
 });
 ```
 
-The keys returned by `experimental_toolCallers` are the tools being governed.
+The keys in `experimental_toolCallers` are the tools being governed.
 The values identify their allowed callers. In this example, `getInventory` and
 `getDemand` are available through `code_mode`, but they are not exposed to the
-model as directly callable tools. Include `'direct'` when a tool should also be
-callable directly:
+model as directly callable tools. Include `DIRECT_TOOL_CALL` when a tool should
+also be callable directly:
 
 ```ts
-experimental_toolCallers: ({ code_mode }) => ({
-  getInventory: ['direct', code_mode],
-});
+experimental_toolCallers: {
+  getInventory: ['code_mode', DIRECT_TOOL_CALL],
+};
 ```
 
 Tools without an `experimental_toolCallers` entry keep their existing direct
@@ -177,6 +180,17 @@ const result = await runCodeMode({
 `runCodeMode` returns the value returned by the program. It uses the same
 sandbox and execution limits as the AI SDK tool.
 
+## Tool Approval
+
+Code mode does not currently integrate with AI SDK tool approval flows. Tool
+calls made by generated code are nested inside the code mode invocation, so
+they cannot pause the generation and surface a tool approval request to your
+application.
+
+Do not expose tools that rely on user approval to code mode. Keep those tools
+directly callable by the model instead. If a nested tool requires approval,
+the call is rejected rather than executed.
+
 ## Execution Limits
 
 Every invocation has limits for runtime, memory, source size, results, tool
@@ -241,6 +255,3 @@ to code mode.
 
 Tool input schemas are validated before their `execute` functions run. Abort
 signals and AI SDK tool execution context are forwarded to nested tool calls.
-
-Code mode does not currently support approval flows for nested tool calls.
-Tools that require approval are rejected instead of being executed.

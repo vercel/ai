@@ -372,7 +372,13 @@ describe('validateUIMessages', () => {
           {
             id: '1',
             role: 'assistant',
-            parts: [{ type: 'reasoning', text: 'Hello, world!' }],
+            parts: [
+              {
+                type: 'reasoning',
+                id: 'reasoning-1',
+                text: 'Hello, world!',
+              },
+            ],
           },
         ],
       });
@@ -385,6 +391,7 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
+                "id": "reasoning-1",
                 "text": "Hello, world!",
                 "type": "reasoning",
               },
@@ -1135,7 +1142,7 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should validate tool input and output when state is output-available', async () => {
+    it('should not re-validate tool input when state is output-available', async () => {
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -1146,7 +1153,7 @@ describe('validateUIMessages', () => {
                 type: 'tool-foo',
                 toolCallId: '1',
                 state: 'output-available',
-                input: { foo: 'bar' },
+                input: {} as { foo: string },
                 output: { result: 'success' },
               },
             ],
@@ -1164,9 +1171,7 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
-                "input": {
-                  "foo": "bar",
-                },
+                "input": {},
                 "output": {
                   "result": "success",
                 },
@@ -1179,6 +1184,33 @@ describe('validateUIMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should validate tool output when state is output-available', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: {} as { foo: string },
+                  output: {} as { result: string },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Type validation failed for messages[0].parts[0].output',
+      );
     });
 
     it('should preserve result provider metadata when state is output-available', async () => {

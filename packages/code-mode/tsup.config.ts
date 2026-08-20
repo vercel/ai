@@ -16,10 +16,7 @@ export default defineConfig([
     bundle: false,
   },
   {
-    entry: {
-      index: 'src/index.ts',
-      'runtime/worker-source': 'src/runtime/worker-source.ts',
-    },
+    entry: { index: 'src/index.ts' },
     format: ['esm'],
     dts: {
       only: true,

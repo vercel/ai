@@ -219,7 +219,7 @@ export class ToolLoopAgent<
     });
     const callbackArgs = {
       abortSignal,
-      timeout,
+      timeout: timeout ?? preparedCall.timeout,
       experimental_sandbox: sandbox,
       onStart: mergeCallbacks(
         this.settings.onStart ?? this.settings.experimental_onStart,
@@ -284,7 +284,7 @@ export class ToolLoopAgent<
     });
     const callbackArgs = {
       abortSignal,
-      timeout,
+      timeout: timeout ?? preparedCall.timeout,
       experimental_sandbox: sandbox,
       experimental_transform,
       onStart: mergeCallbacks(

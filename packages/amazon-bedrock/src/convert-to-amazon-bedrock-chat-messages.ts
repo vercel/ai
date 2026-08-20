@@ -520,6 +520,12 @@ export async function convertToAmazonBedrockChatMessages(
                       },
                     },
                   });
+                } else if (reasoningMetadata?.redactedContent != null) {
+                  amazonBedrockContent.push({
+                    reasoningContent: {
+                      redactedContent: reasoningMetadata.redactedContent,
+                    },
+                  });
                 } else if (reasoningMetadata?.redactedData != null) {
                   amazonBedrockContent.push({
                     reasoningContent: {
@@ -553,7 +559,9 @@ export async function convertToAmazonBedrockChatMessages(
           pushCachePoint(amazonBedrockContent, message.providerOptions);
         }
 
-        messages.push({ role: 'assistant', content: amazonBedrockContent });
+        if (amazonBedrockContent.length > 0) {
+          messages.push({ role: 'assistant', content: amazonBedrockContent });
+        }
 
         break;
       }
