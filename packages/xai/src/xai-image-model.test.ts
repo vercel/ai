@@ -290,6 +290,9 @@ describe('XaiImageModel', () => {
     });
 
     it('should throw when an image is blocked by moderation', async () => {
+      // xAI documents that a moderated image sets `respect_moderation` to
+      // false and replaces the image with a placeholder:
+      // https://github.com/xai-org/xai-proto/blob/723dd2aa22d17be35617463837dc47cda008d90e/proto/xai/api/v1/image.proto#L148-L151
       server.urls['https://api.example.com/images/generations'].response = {
         type: 'json-value',
         body: {
