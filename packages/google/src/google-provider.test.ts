@@ -149,10 +149,10 @@ describe('google-provider', () => {
     const provider = createGoogle({
       apiKey: 'test-api-key',
     });
-    provider.image('imagen-3.0-generate-002');
+    provider.image('gemini-2.5-flash-image');
 
     expect(GoogleImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       {},
       expect.objectContaining({
         provider: 'google.generative-ai',
@@ -169,10 +169,10 @@ describe('google-provider', () => {
     const imageSettings = {
       maxImagesPerCall: 3,
     };
-    provider.image('imagen-3.0-generate-002', imageSettings);
+    provider.image('gemini-2.5-flash-image', imageSettings);
 
     expect(GoogleImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       imageSettings,
       expect.objectContaining({
         provider: 'google.generative-ai',

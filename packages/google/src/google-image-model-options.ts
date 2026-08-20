@@ -6,8 +6,6 @@ import {
 import { z } from 'zod/v4';
 import { googleSearchToolArgsBaseSchema } from './tool/google-search';
 
-// Note: For the initial GA launch of Imagen 3, safety filters are not configurable.
-// https://ai.google.dev/gemini-api/docs/imagen#imagen-model
 export const googleImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
