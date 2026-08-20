@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.118
+
+### Patch Changes
+
+- 44081a8: fix (provider/amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API and replay it on subsequent turns
+
 ## 3.0.117
 
 ### Patch Changes
