@@ -211,6 +211,86 @@ it('should correctly prepare file search tool for gemini-3 models', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
+it('should use newest tool support for an unknown future Gemini model', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get the weather',
+        inputSchema: {
+          type: 'object',
+          properties: { location: { type: 'string' } },
+        },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.enterprise_web_search',
+        name: 'enterprise_web_search',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.url_context',
+        name: 'url_context',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.code_execution',
+        name: 'code_execution',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.file_search',
+        name: 'file_search',
+        args: {
+          fileSearchStoreNames: ['fileSearchStores/example-store'],
+        },
+      },
+    ],
+    modelId: 'gemini-99-pro-preview',
+  });
+
+  expect(result).toEqual({
+    tools: [
+      { googleSearch: {} },
+      { enterpriseWebSearch: {} },
+      { urlContext: {} },
+      { codeExecution: {} },
+      {
+        fileSearch: {
+          fileSearchStoreNames: ['fileSearchStores/example-store'],
+        },
+      },
+      {
+        functionDeclarations: [
+          {
+            name: 'getWeather',
+            description: 'Get the weather',
+            parameters: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+            },
+          },
+        ],
+      },
+    ],
+    toolConfig: {
+      functionCallingConfig: { mode: 'VALIDATED' },
+      includeServerSideToolInvocations: true,
+    },
+    toolWarnings: [],
+  });
+});
+
 it('should handle tool choice "auto"', () => {
   const result = prepareTools({
     tools: [
@@ -852,7 +932,7 @@ it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
   });
 });
 
-it('should use VALIDATED mode with toolChoice required when strict: true', () => {
+it('should use ANY mode with toolChoice required when strict: true', () => {
   const result = prepareTools({
     tools: [
       {
@@ -872,7 +952,45 @@ it('should use VALIDATED mode with toolChoice required when strict: true', () =>
     modelId: 'gemini-3-flash-preview',
   });
   expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'VALIDATED' },
+    functionCallingConfig: { mode: 'ANY' },
+  });
+});
+
+it('should use ANY mode with named toolChoice when another tool has strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'createMeeting',
+        description: 'Create meeting',
+        inputSchema: {
+          type: 'object',
+          properties: { title: { type: 'string' } },
+          required: ['title'],
+          additionalProperties: false,
+        },
+      },
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'tool', toolName: 'createMeeting' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'ANY',
+      allowedFunctionNames: ['createMeeting'],
+    },
   });
 });
 

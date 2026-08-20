@@ -103,7 +103,6 @@ export class GoogleFiles implements FilesV4 {
     const uploadResponse = await fetchFn(uploadUrl, {
       method: 'POST',
       headers: {
-        'Content-Length': String(fileBytes.length),
         'X-Goog-Upload-Offset': '0',
         'X-Goog-Upload-Command': 'upload, finalize',
       },
