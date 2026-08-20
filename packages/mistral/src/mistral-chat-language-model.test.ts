@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -24,6 +26,20 @@ const model = provider.chat('mistral-small-latest');
 const server = createTestServer({
   'https://api.mistral.ai/v1/chat/completions': {},
 });
+
+function prepareChunksFixtureResponse(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .trim()
+    .split('\n')
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
 
 describe('doGenerate', () => {
   function prepareJsonResponse({
@@ -991,6 +1007,51 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should accumulate incremental tool-call argument deltas', async () => {
+    prepareChunksFixtureResponse('mistral-incremental-tool-call');
+
+    const { stream } = await createMistral({
+      apiKey: 'test-api-key',
+    })
+      .chat('zai-glm-5-2')
+      .doStream({
+        tools: [
+          {
+            type: 'function',
+            name: 'webSearchTool',
+            description: 'Search the web',
+            inputSchema: {
+              type: 'object',
+              properties: { query: { type: 'string' } },
+              required: ['query'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const errors = parts.filter(part => part.type === 'error');
+    const toolCalls = parts.filter(part => part.type === 'tool-call');
+    const toolInput = parts
+      .filter(part => part.type === 'tool-input-delta')
+      .map(part => part.delta)
+      .join('');
+
+    expect(errors).toEqual([]);
+    expect(toolInput).toBe('{"query": "current Berlin weather"}');
+    expect(toolCalls).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'chatcmpl-tool-90879831ae6504ce',
+        toolName: 'webSearchTool',
+        input: '{"query": "current Berlin weather"}',
+      },
+    ]);
   });
 
   it('should expose the raw response headers', async () => {
