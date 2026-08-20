@@ -57,7 +57,7 @@ const mcpServerToolFactory = createProviderExecutedToolFactory<
     authorization?: string;
   }
 >({
-  id: 'xai.mcp',
+  id: 'spacexai.mcp',
   inputSchema: lazySchema(() => zodSchema(z.object({}))),
   outputSchema: mcpServerOutputSchema,
 });

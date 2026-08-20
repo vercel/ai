@@ -224,7 +224,7 @@ const OFFICIAL_MODELS: ModelCardData[] = [
   {
     title: 'xAI Grok',
     logo: { src: '/images/icons/xai-black.svg', invert: true },
-    href: '/providers/ai-sdk-providers/xai',
+    href: '/providers/ai-sdk-providers/spacexai',
     color: '2a3275',
     features: {
       image: true,

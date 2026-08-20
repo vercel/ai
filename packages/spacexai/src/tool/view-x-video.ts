@@ -8,7 +8,7 @@ const viewXVideoOutputSchema = z.object({
 });
 
 const viewXVideoToolFactory = createProviderExecutedToolFactory({
-  id: 'xai.view_x_video',
+  id: 'spacexai.view_x_video',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: viewXVideoOutputSchema,
 });

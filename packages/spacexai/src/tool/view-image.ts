@@ -10,7 +10,7 @@ const viewImageOutputSchema = z.object({
 });
 
 const viewImageToolFactory = createProviderExecutedToolFactory({
-  id: 'xai.view_image',
+  id: 'spacexai.view_image',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: viewImageOutputSchema,
 });

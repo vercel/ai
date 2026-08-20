@@ -78,6 +78,18 @@ describe('mapProviderName', () => {
     `);
   });
 
+  it('should map xai and spacexai providers to x_ai', () => {
+    expect({
+      xaiChat: mapProviderName('xai.chat'),
+      spacexaiChat: mapProviderName('spacexai.chat'),
+      spacexaiResponses: mapProviderName('spacexai.responses'),
+    }).toEqual({
+      xaiChat: 'x_ai',
+      spacexaiChat: 'x_ai',
+      spacexaiResponses: 'x_ai',
+    });
+  });
+
   it('should return the original string for unknown providers', () => {
     expect(mapProviderName('custom-provider.chat')).toMatchInlineSnapshot(
       `"custom-provider.chat"`,

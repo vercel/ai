@@ -84,7 +84,7 @@ const fileSearchToolFactory = createProviderExecutedToolFactory<
     maxNumResults?: number;
   }
 >({
-  id: 'xai.file_search',
+  id: 'spacexai.file_search',
   inputSchema: lazySchema(() => zodSchema(z.object({}))),
   outputSchema: fileSearchOutputSchema,
 });

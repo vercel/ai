@@ -1,6 +1,6 @@
 'use client';
 
-import type { XaiImageGenerationMessage } from '@/agent/xai/image-generation-agent';
+import type { XaiImageGenerationMessage } from '@/agent/spacexai/image-generation-agent';
 import ChatInput from '@/components/chat-input';
 import XaiImageGenerationView from '@/components/tool/xai-image-generation-view';
 import { useChat } from '@ai-sdk/react';
