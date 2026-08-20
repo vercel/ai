@@ -28,7 +28,8 @@ const clineMock = vi.hoisted(() => ({
   outputText: '',
 }));
 
-vi.mock('@ai-sdk/harness/utils', () => ({
+vi.mock('@ai-sdk/harness/utils', async importOriginal => ({
+  ...(await importOriginal()),
   resolveSandboxHomeDir: vi.fn(async () => '/sandbox/home'),
   shellQuote: vi.fn((value: string) => value),
 }));

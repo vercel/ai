@@ -1,4 +1,5 @@
 import type { HarnessV1NetworkSandboxSession } from './harness-v1-network-sandbox-session';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { HarnessV1Observability } from './harness-v1-observability';
 import type { HarnessV1PermissionMode } from './harness-v1-permission-mode';
 import type { HarnessV1Prompt } from './harness-v1-prompt';
@@ -76,21 +77,17 @@ export type HarnessV1StartOptions = {
    */
   readonly observability?: HarnessV1Observability;
   /**
-   * Network sandbox session the adapter operates against. It is owned and
-   * lifecycled by `HarnessAgent`. Adapters call `restricted()` for the
-   * tool-safe filesystem/exec/spawn surface, and use the infra methods
-   * (`getPortEndpoint`, `ports`, `setNetworkPolicy`,
-   * `setRequestTransformations`, `addRequestTransformations`) for bridge
-   * wiring. Adapters must not call `stop()` themselves; the agent does that
-   * during cleanup.
+   * Sandbox session the adapter operates against. Network sandbox sessions
+   * expose optional infrastructure capabilities for bridge wiring; caller-
+   * provided basic sandbox sessions expose only filesystem and process APIs.
+   * Adapters must not stop or destroy the sandbox themselves.
    */
-  readonly sandboxSession: HarnessV1NetworkSandboxSession;
+  readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
 
   /**
-   * Absolute path the adapter runs the agent in for this session. Composed by
-   * the framework as `<sandboxSession.defaultWorkingDirectory>/<harnessId>-<sessionId>`
-   * and created before `doStart`, so the adapter uses it directly instead of
-   * deriving its own provider-specific path.
+   * Absolute path the adapter runs the agent in for this session. Composed
+   * underneath the sandbox's resolved default working directory and created
+   * before `doStart`.
    */
   readonly sessionWorkDir: string;
 };
