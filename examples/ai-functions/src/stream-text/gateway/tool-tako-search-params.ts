@@ -4,7 +4,8 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: 'openai/gpt-5-nano',
-    prompt: 'Find recent US inflation coverage from trusted news sources.',
+    prompt:
+      'Who leads the Premier League, and how did the top teams do this weekend?',
     tools: {
       tako_search: gateway.tools.takoSearch({
         effort: 'fast',
@@ -13,11 +14,11 @@ async function main() {
           web: {
             category: 'news',
             count: 5,
-            includeDomains: ['reuters.com', 'wsj.com'],
+            includeDomains: ['bbc.com', 'theguardian.com'],
             publishedAfter: '2026-01-01',
           },
         },
-        countryCode: 'US',
+        countryCode: 'GB',
       }),
     },
   });

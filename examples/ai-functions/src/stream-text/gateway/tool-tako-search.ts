@@ -4,7 +4,8 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: 'openai/gpt-5-nano',
-    prompt: 'What is the latest US inflation rate?',
+    prompt:
+      'Compare Nvidia and AMD employee counts since 2013 with source-grounded data.',
     tools: {
       tako_search: gateway.tools.takoSearch(),
     },

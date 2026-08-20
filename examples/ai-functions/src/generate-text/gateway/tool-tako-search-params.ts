@@ -4,8 +4,7 @@ import 'dotenv/config';
 async function main() {
   const result = await generateText({
     model: 'openai/gpt-5-nano',
-    prompt:
-      'Compare Nvidia and AMD employee counts since 2013 with source-grounded data.',
+    prompt: 'United States vs China inflation rate',
     tools: {
       tako_search: gateway.tools.takoSearch({
         effort: 'fast',
@@ -17,7 +16,6 @@ async function main() {
           },
           web: {
             count: 3,
-            includeDomains: ['nvidia.com', 'amd.com'],
           },
         },
         countryCode: 'US',
@@ -31,7 +29,27 @@ async function main() {
   console.log('Reasoning:', result.reasoning);
   console.log();
   console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
-  console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+
+  for (const toolResult of result.toolResults) {
+    if (toolResult.dynamic) continue;
+
+    const { output } = toolResult;
+    if ('error' in output) continue;
+
+    for (const web of output.web_results ?? []) {
+      console.log(`[${web.citation_number}] ${web.source_name} - ${web.url}`);
+    }
+
+    for (const card of output.cards ?? []) {
+      const dataset = card.content?.dataset;
+      if (!dataset) continue;
+      console.log(
+        card.title,
+        dataset.columns.map(c => (c.unit ? `${c.name} (${c.unit})` : c.name)),
+        `${dataset.rows.length} of ${dataset.total_rows} rows`,
+      );
+    }
+  }
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);

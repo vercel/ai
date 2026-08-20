@@ -36,10 +36,11 @@ export const gatewayTools = {
   perplexitySearch,
 
   /**
-   * Search curated Tako knowledge cards and live web results for source-grounded
-   * data, visualizations, and citations.
+   * Search the web and Tako's curated knowledge graph in one call for
+   * token-efficient web excerpts and structured data results grounded in
+   * premium sources, each with an embed-ready visualization.
    *
-   * Supports effort, per-source data and web controls, localization, and inline
+   * Supports effort, per-source web and data controls, localization, and inline
    * contents for agents that need to reason over underlying data.
    */
   takoSearch,

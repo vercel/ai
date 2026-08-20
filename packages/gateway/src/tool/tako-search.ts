@@ -43,7 +43,7 @@ export interface TakoWebSourceConfig {
   excludeDomains?: string[];
   /** Maximum characters in each web-result snippet. */
   snippetMaxChars?: number;
-  /** Include highlighted passages in web results. */
+  /** Include highlighted passages in web results. Defaults to true in AI Gateway. */
   highlights?: boolean;
   /** Maximum extracted characters per web page when including contents. */
   articleContentMaxChars?: number;
@@ -313,7 +313,9 @@ const takoWebSourceInputSchema = z.object({
   highlights: z
     .boolean()
     .optional()
-    .describe('Include highlighted passages in web results.'),
+    .describe(
+      'Include highlighted passages in web results. Defaults to true in AI Gateway.',
+    ),
   article_content_max_chars: z
     .number()
     .optional()
