@@ -4,6 +4,7 @@
   "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9101-bedrock-stream-citations.ts",
   "artifactPaths": [
     "examples/ai-functions/src/reproduction/issue-9101-bedrock-stream-citations.ts",
+    "examples/ai-functions/data/ai.pdf",
     "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-document-citations.chunks.txt",
     "packages/amazon-bedrock/src/amazon-bedrock-chat-language-model-citations.test.ts"
   ],

@@ -6,6 +6,8 @@ import { streamText, TypeValidationError } from 'ai';
 async function main() {
   const result = streamText({
     model: amazonBedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
+    include: { rawChunks: true },
+    onError: () => {},
     messages: [
       {
         role: 'user',
@@ -30,22 +32,45 @@ async function main() {
     ],
   });
 
+  let citationDeltaCount = 0;
+  let citationValidationErrorCount = 0;
+
   for await (const part of result.fullStream) {
+    if (
+      part.type === 'raw' &&
+      typeof part.rawValue === 'object' &&
+      part.rawValue != null &&
+      'contentBlockDelta' in part.rawValue &&
+      JSON.stringify(part.rawValue).includes('"citation"')
+    ) {
+      citationDeltaCount++;
+    }
+
     if (
       part.type === 'error' &&
       TypeValidationError.isInstance(part.error) &&
       JSON.stringify(part.error.value).includes('"citation"')
     ) {
-      console.error(
-        'ISSUE_9101_REPRODUCED: valid Bedrock citation delta failed AI SDK validation',
-      );
-      process.exitCode = 1;
-      return;
+      citationValidationErrorCount++;
     }
   }
 
-  throw new Error(
-    'ISSUE_9101_NOT_REPRODUCED: stream completed without a citation validation error',
+  if (citationValidationErrorCount > 0) {
+    console.error(
+      'ISSUE_9101_REPRODUCED: valid Bedrock citation delta failed AI SDK validation',
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (citationDeltaCount === 0) {
+    throw new Error(
+      'ISSUE_9101_INCONCLUSIVE: Bedrock returned no citation deltas',
+    );
+  }
+
+  console.log(
+    `ISSUE_9101_FIXED: accepted ${citationDeltaCount} Bedrock citation deltas without validation errors`,
   );
 }
 
