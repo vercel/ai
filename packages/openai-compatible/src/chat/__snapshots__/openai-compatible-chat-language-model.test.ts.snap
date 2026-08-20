@@ -131,13 +131,14 @@ So, my response will be: Grok",
     },
     "outputTokens": {
       "reasoning": 320,
-      "text": -318,
+      "text": 0,
       "total": 2,
     },
     "raw": {
       "completion_tokens": 2,
       "completion_tokens_details": {
         "accepted_prediction_tokens": 0,
+        "audio_tokens": 0,
         "reasoning_tokens": 320,
         "rejected_prediction_tokens": 0,
       },
@@ -145,7 +146,10 @@ So, my response will be: Grok",
       "num_sources_used": 0,
       "prompt_tokens": 12,
       "prompt_tokens_details": {
+        "audio_tokens": 0,
         "cached_tokens": 2,
+        "image_tokens": 0,
+        "text_tokens": 12,
       },
       "total_tokens": 334,
     },
@@ -275,13 +279,14 @@ Finally, structure it as: <function_call>{"action": "weather", "action_input": {
     },
     "outputTokens": {
       "reasoning": 255,
-      "text": -229,
+      "text": 0,
       "total": 26,
     },
     "raw": {
       "completion_tokens": 26,
       "completion_tokens_details": {
         "accepted_prediction_tokens": 0,
+        "audio_tokens": 0,
         "reasoning_tokens": 255,
         "rejected_prediction_tokens": 0,
       },
@@ -289,7 +294,10 @@ Finally, structure it as: <function_call>{"action": "weather", "action_input": {
       "num_sources_used": 0,
       "prompt_tokens": 307,
       "prompt_tokens_details": {
+        "audio_tokens": 0,
         "cached_tokens": 244,
+        "image_tokens": 0,
+        "text_tokens": 307,
       },
       "total_tokens": 588,
     },
@@ -2087,13 +2095,14 @@ exports[`doStream > text (fixture) > should stream text content 1`] = `
       },
       "outputTokens": {
         "reasoning": 340,
-        "text": -338,
+        "text": 0,
         "total": 2,
       },
       "raw": {
         "completion_tokens": 2,
         "completion_tokens_details": {
           "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
           "reasoning_tokens": 340,
           "rejected_prediction_tokens": 0,
         },
@@ -2101,7 +2110,10 @@ exports[`doStream > text (fixture) > should stream text content 1`] = `
         "num_sources_used": 0,
         "prompt_tokens": 12,
         "prompt_tokens_details": {
+          "audio_tokens": 0,
           "cached_tokens": 11,
+          "image_tokens": 0,
+          "text_tokens": 12,
         },
         "total_tokens": 354,
       },
@@ -3316,13 +3328,14 @@ exports[`doStream > tool call (fixture) > should stream tool call content 1`] = 
       },
       "outputTokens": {
         "reasoning": 227,
-        "text": -201,
+        "text": 0,
         "total": 26,
       },
       "raw": {
         "completion_tokens": 26,
         "completion_tokens_details": {
           "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
           "reasoning_tokens": 227,
           "rejected_prediction_tokens": 0,
         },
@@ -3330,7 +3343,10 @@ exports[`doStream > tool call (fixture) > should stream tool call content 1`] = 
         "num_sources_used": 0,
         "prompt_tokens": 307,
         "prompt_tokens_details": {
+          "audio_tokens": 0,
           "cached_tokens": 306,
+          "image_tokens": 0,
+          "text_tokens": 307,
         },
         "total_tokens": 560,
       },

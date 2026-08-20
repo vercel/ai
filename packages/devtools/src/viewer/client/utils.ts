@@ -13,6 +13,7 @@ import type {
   ParsedUsage,
   ContentPart,
   ToolCallContentPart,
+  ToolResultContentPart,
   PromptMessage,
   ParseJson,
 } from './types';
@@ -58,6 +59,49 @@ export function summarizeToolCalls(toolCalls: ToolCallContentPart[]): {
 export function truncateText(text: string, maxLength: number = 30): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength).trim() + '…';
+}
+
+function getToolResultsFromMessages(
+  messages: PromptMessage[] | undefined,
+): ToolResultContentPart[] {
+  return (
+    messages
+      ?.filter(message => message.role === 'tool')
+      .flatMap(message =>
+        Array.isArray(message.content)
+          ? message.content.filter(
+              (part): part is ToolResultContentPart =>
+                part.type === 'tool-result',
+            )
+          : [],
+      ) ?? []
+  );
+}
+
+export function getOutputToolResults(
+  output: ParsedOutput | null,
+  fallbackToolResults: ContentPart[] = [],
+): ToolResultContentPart[] {
+  const candidates = [
+    ...getToolResultsFromMessages(output?.response?.messages),
+    // Retain compatibility with captures created by the initial media-preview
+    // implementation, which persisted transformed results separately.
+    ...(output?.toolResults ?? []),
+    ...fallbackToolResults.filter(
+      (part): part is ToolResultContentPart => part.type === 'tool-result',
+    ),
+    ...(output?.content?.filter(
+      (part): part is ToolResultContentPart => part.type === 'tool-result',
+    ) ?? []),
+  ];
+  const seenToolCallIds = new Set<string>();
+
+  return candidates.filter(result => {
+    if (result.toolCallId == null) return true;
+    if (seenToolCallIds.has(result.toolCallId)) return false;
+    seenToolCallIds.add(result.toolCallId);
+    return true;
+  });
 }
 
 function extractTextFromMessage(message: PromptMessage): string | null {
@@ -389,21 +433,21 @@ export function formatResultPreview(result: unknown): string {
 }
 
 export const SPAN_COLORS: Record<SpanKind, string> = {
-  step: 'bg-blue-500',
-  'child-run': 'bg-cyan-500',
-  thinking: 'bg-amber-500',
-  'tool-call': 'bg-purple-500',
-  text: 'bg-emerald-500',
-  error: 'bg-red-500',
+  step: 'bg-info',
+  'child-run': 'bg-agent',
+  thinking: 'bg-warning',
+  'tool-call': 'bg-tool',
+  text: 'bg-success',
+  error: 'bg-danger',
 };
 
 export const SPAN_COLORS_MUTED: Record<SpanKind, string> = {
-  step: 'bg-blue-500/20',
-  'child-run': 'bg-cyan-500/20',
-  thinking: 'bg-amber-500/20',
-  'tool-call': 'bg-purple-500/20',
-  text: 'bg-emerald-500/20',
-  error: 'bg-red-500/20',
+  step: 'bg-info/20',
+  'child-run': 'bg-agent/20',
+  thinking: 'bg-warning/20',
+  'tool-call': 'bg-tool/20',
+  text: 'bg-success/20',
+  error: 'bg-danger/20',
 };
 
 export function buildTraceSpans(

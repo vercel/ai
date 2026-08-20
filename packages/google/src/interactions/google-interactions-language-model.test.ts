@@ -175,6 +175,61 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
+  describe('text ProviderReference file', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('basic');
+    });
+
+    it('forwards the uploaded text document to the model', async () => {
+      const result = await provider
+        .interactions('gemini-3.5-flash')
+        .doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Return only the secret verification code from the attached text document.',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'text/plain',
+                  data: {
+                    type: 'reference',
+                    reference: {
+                      google:
+                        'https://generativelanguage.googleapis.com/v1beta/files/gzed1s6hqcsn',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        input: [
+          {
+            type: 'user_input',
+            content: [
+              {
+                type: 'text',
+                text: 'Return only the secret verification code from the attached text document.',
+              },
+              {
+                type: 'document',
+                uri: 'https://generativelanguage.googleapis.com/v1beta/files/gzed1s6hqcsn',
+                mime_type: 'text/plain',
+              },
+            ],
+          },
+        ],
+      });
+      expect(result.warnings).toEqual([]);
+    });
+  });
+
   describe('multi-turn input', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('basic');
@@ -637,6 +692,35 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       };
       expect(body.generation_config?.thinking_level).toBe('high');
       expect(body.generation_config?.thinking_summaries).toBe('auto');
+    });
+
+    it('forwards topK and warns for unsupported penalties', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      });
+      const body = (await server.calls[0].requestBodyJson) as {
+        generation_config?: {
+          top_k?: number;
+          frequency_penalty?: number;
+          presence_penalty?: number;
+        };
+      };
+      expect(body.generation_config).toEqual({
+        top_k: 10,
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+        },
+        {
+          type: 'unsupported',
+          feature: 'presencePenalty',
+        },
+      ]);
     });
 
     it('returns interactionId for turn 1 from a captured fixture', async () => {
@@ -1406,42 +1490,50 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.agent_config).toEqual({ type: 'dynamic' });
     });
 
-    it('emits a warning and drops tools when an agent is set', async () => {
+    it('emits file_search tools when an agent is set', async () => {
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       const result = await agentModel.doGenerate({
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'function',
-            name: 'getWeather',
-            description: 'Get the current weather in a location',
-            inputSchema: {
-              type: 'object',
-              properties: { location: { type: 'string' } },
-              required: ['location'],
+            type: 'provider',
+            id: 'google.file_search',
+            name: 'file_search',
+            args: {
+              fileSearchStoreNames: ['fileSearchStores/x'],
             },
           },
         ],
+        providerOptions: { google: { background: true } },
       });
       const body = (await server.calls[0].requestBodyJson) as Record<
         string,
         unknown
       >;
-      expect(body.tools).toBeUndefined();
+      expect(body.tools).toEqual([
+        {
+          type: 'file_search',
+          file_search_store_names: ['fileSearchStores/x'],
+        },
+      ]);
+      expect(body.background).toBe(true);
       const warning = result.warnings.find(
         w =>
           w.type === 'other' &&
           (w as { message?: string }).message?.includes('tools'),
       );
-      expect(warning).toBeDefined();
+      expect(warning).toBeUndefined();
     });
 
-    it('emits a warning and drops generation-config fields (temperature, topP, thinkingLevel) when an agent is set', async () => {
+    it('emits a warning listing every dropped generation-config field when an agent is set', async () => {
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       const result = await agentModel.doGenerate({
         prompt: TEST_PROMPT,
         temperature: 0.5,
         topP: 0.9,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
         providerOptions: {
           google: { thinkingLevel: 'high' },
         },
@@ -1456,6 +1548,9 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           w.type === 'other' &&
           (w as { message?: string }).message?.includes('temperature') &&
           (w as { message?: string }).message?.includes('topP') &&
+          (w as { message?: string }).message?.includes('topK') &&
+          (w as { message?: string }).message?.includes('frequencyPenalty') &&
+          (w as { message?: string }).message?.includes('presencePenalty') &&
           (w as { message?: string }).message?.includes('thinkingLevel'),
       );
       expect(warning).toBeDefined();

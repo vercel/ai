@@ -65,15 +65,38 @@ describe('inboundMessageSchema', () => {
       inboundMessageSchema.parse({
         type: 'start',
         prompt: 'hi',
+        instructions: 'Be concise.',
         tools: [{ name: 'deploy' }],
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
-        thinking: 'adaptive',
+        env: { DEPLOYMENT_ENV: 'staging' },
+        thinking: { type: 'adaptive', display: 'summarized' },
         skills: ['weather-forecast', 'weather-codes'],
         permissionMode: 'allow-edits',
         builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).not.toThrow();
+  });
+
+  it('rejects non-string environment values', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        env: { RETRY_COUNT: 3 },
+      }),
+    ).toThrow();
+  });
+
+  it('rejects legacy string thinking values', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: 'adaptive',
+      }),
+    ).toThrow();
   });
 
   it('accepts a tool-result message', () => {
@@ -96,11 +119,12 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
-  it('accepts user-message, abort, shutdown', () => {
+  it('accepts user-message, abort, stop, and destroy', () => {
     for (const sample of [
-      { type: 'user-message', text: 'hi' },
+      { type: 'user-message', messageId: 'message-1', text: 'hi' },
       { type: 'abort' },
-      { type: 'shutdown' },
+      { type: 'stop' },
+      { type: 'destroy' },
     ]) {
       expect(() => inboundMessageSchema.parse(sample)).not.toThrow();
     }

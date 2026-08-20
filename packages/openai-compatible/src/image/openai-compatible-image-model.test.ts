@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
+import type { OpenAICompatibleImageModelOptions } from './openai-compatible-image-model-options';
 import { z } from 'zod/v4';
 import type { ProviderErrorStructure } from '../openai-compatible-error';
 import type { ImageModelV4CallOptions } from '@ai-sdk/provider';
@@ -96,7 +97,11 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           n: 2,
-          providerOptions: { openaiCompatible: { quality: 'hd' } },
+          providerOptions: {
+            openaiCompatible: {
+              quality: 'hd',
+            } satisfies OpenAICompatibleImageModelOptions,
+          },
         }),
       );
 
@@ -106,7 +111,6 @@ describe('OpenAICompatibleImageModel', () => {
         n: 2,
         size: '1024x1024',
         quality: 'hd',
-        response_format: 'b64_json',
       });
     });
 
@@ -120,7 +124,11 @@ describe('OpenAICompatibleImageModel', () => {
       await recraftModel.doGenerate(
         createDefaultGenerateParams({
           prompt: 'A beautiful sunset',
-          providerOptions: { recraft: { style: 'vector_illustration' } },
+          providerOptions: {
+            recraft: {
+              style: 'vector_illustration',
+            } satisfies OpenAICompatibleImageModelOptions,
+          },
         }),
       );
 
@@ -130,7 +138,35 @@ describe('OpenAICompatibleImageModel', () => {
         n: 1,
         size: '1024x1024',
         style: 'vector_illustration',
-        response_format: 'b64_json',
+      });
+    });
+
+    it('should pass typed image output options', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate(
+        createDefaultGenerateParams({
+          providerOptions: {
+            openaiCompatible: {
+              size: 'auto',
+              quality: 'high',
+              output_format: 'jpeg',
+              output_compression: 80,
+              background: 'opaque',
+            } satisfies OpenAICompatibleImageModelOptions,
+          },
+        }),
+      );
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'dall-e-3',
+        prompt,
+        n: 1,
+        size: 'auto',
+        quality: 'high',
+        output_format: 'jpeg',
+        output_compression: 80,
+        background: 'opaque',
       });
     });
 
@@ -364,7 +400,6 @@ describe('OpenAICompatibleImageModel', () => {
         n: 1,
         size: '1024x1024',
         user: 'test-user-id',
-        response_format: 'b64_json',
       });
     });
 
@@ -385,7 +420,6 @@ describe('OpenAICompatibleImageModel', () => {
         prompt,
         n: 1,
         size: '1024x1024',
-        response_format: 'b64_json',
       });
       expect(requestBody).not.toHaveProperty('user');
     });

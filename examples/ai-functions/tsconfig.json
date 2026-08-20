@@ -55,7 +55,13 @@
       "path": "../../packages/bytedance"
     },
     {
+      "path": "../../packages/cartesia"
+    },
+    {
       "path": "../../packages/cerebras"
+    },
+    {
+      "path": "../../packages/code-mode"
     },
     {
       "path": "../../packages/cohere"
@@ -88,6 +94,9 @@
       "path": "../../packages/gladia"
     },
     {
+      "path": "../../packages/gmicloud"
+    },
+    {
       "path": "../../packages/google"
     },
     {
@@ -100,13 +109,22 @@
       "path": "../../packages/harness"
     },
     {
+      "path": "../../packages/harness-acp"
+    },
+    {
       "path": "../../packages/harness-claude-code"
+    },
+    {
+      "path": "../../packages/harness-cline"
     },
     {
       "path": "../../packages/harness-codex"
     },
     {
       "path": "../../packages/harness-deepagents"
+    },
+    {
+      "path": "../../packages/harness-grok-build"
     },
     {
       "path": "../../packages/harness-opencode"
@@ -122,6 +140,9 @@
     },
     {
       "path": "../../packages/klingai"
+    },
+    {
+      "path": "../../packages/langchain"
     },
     {
       "path": "../../packages/lmnt"
@@ -185,9 +206,6 @@
     },
     {
       "path": "../../packages/valibot"
-    },
-    {
-      "path": "../../packages/vercel"
     },
     {
       "path": "../../packages/voyage"

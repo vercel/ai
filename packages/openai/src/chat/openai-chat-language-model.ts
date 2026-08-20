@@ -196,6 +196,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
+      prompt_cache_options: openaiOptions.promptCacheOptions,
       prompt_cache_retention: openaiOptions.promptCacheRetention,
       safety_identifier: openaiOptions.safetyIdentifier,
 
@@ -307,7 +308,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     // Validate priority processing support
     if (
-      openaiOptions.serviceTier === 'priority' &&
+      (openaiOptions.serviceTier === 'priority' ||
+        openaiOptions.serviceTier === 'fast') &&
       !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
@@ -375,7 +377,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     for (const toolCall of choice.message.tool_calls ?? []) {
       content.push({
         type: 'tool-call' as const,
-        toolCallId: toolCall.id ?? generateId(),
+        toolCallId: toolCall.id || generateId(),
         toolName: toolCall.function.name,
         input: toolCall.function.arguments!,
       });

@@ -1,9 +1,14 @@
-import { tool, type Context } from '@ai-sdk/provider-utils';
+import {
+  experimental_toolCaller,
+  tool,
+  type Context,
+} from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   Output,
   type GenerateTextOnEndCallback,
+  type Experimental_ToolCallers,
   type ToolApprovalConfiguration,
   type ToolInputRefinement,
 } from '../generate-text';
@@ -12,6 +17,7 @@ import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';
 import type { AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
+import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {
@@ -130,6 +136,48 @@ describe('ToolLoopAgent', () => {
           >();
           expectTypeOf(options.experimental_refineToolInput).toEqualTypeOf<
             ToolInputRefinement<typeof tools> | undefined
+          >();
+
+          return {
+            ...options,
+            prompt: 'Hello, world!',
+          };
+        },
+      });
+    });
+
+    it('should type experimental_toolCallers in settings and prepareCall', () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+        },
+      );
+      const tools = {
+        code_mode: codeMode,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku }),
+        }),
+      };
+
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools,
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
+        prepareCall: options => {
+          expectTypeOf(options.experimental_toolCallers).toEqualTypeOf<
+            Experimental_ToolCallers<typeof tools> | undefined
           >();
 
           return {
@@ -464,9 +512,115 @@ describe('ToolLoopAgent', () => {
           },
         });
       });
+
+      it('should accept model call setting overrides', () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          prepareStep: () => ({
+            maxOutputTokens: 100,
+            temperature: 0,
+            topP: 0.9,
+            topK: 40,
+            presencePenalty: 0,
+            frequencyPenalty: 0,
+            stopSequences: ['stop'],
+            seed: 0,
+            reasoning: 'high',
+          }),
+        });
+      });
     });
 
     describe('prepareCall', () => {
+      it('should match the runtime input and override settings', () => {
+        const tools = {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        };
+
+        type Settings = ToolLoopAgentSettings<never, typeof tools>;
+        type PrepareCall = NonNullable<Settings['prepareCall']>;
+        type PrepareCallOptions = Parameters<PrepareCall>[0];
+        type PrepareCallResult = Awaited<ReturnType<PrepareCall>>;
+
+        expectTypeOf<PrepareCallOptions['toolChoice']>().toEqualTypeOf<
+          Settings['toolChoice']
+        >();
+        expectTypeOf<PrepareCallOptions['maxRetries']>().toEqualTypeOf<
+          Settings['maxRetries']
+        >();
+        expectTypeOf<PrepareCallOptions['prepareStep']>().toEqualTypeOf<
+          Settings['prepareStep']
+        >();
+        expectTypeOf<PrepareCallOptions['repairToolCall']>().toEqualTypeOf<
+          Settings['repairToolCall']
+        >();
+        expectTypeOf<
+          PrepareCallOptions['experimental_repairToolCall']
+        >().toEqualTypeOf<Settings['experimental_repairToolCall']>();
+
+        expectTypeOf<PrepareCallResult['toolChoice']>().toEqualTypeOf<
+          Settings['toolChoice']
+        >();
+        expectTypeOf<PrepareCallResult['maxRetries']>().toEqualTypeOf<
+          Settings['maxRetries']
+        >();
+        expectTypeOf<PrepareCallResult['prepareStep']>().toEqualTypeOf<
+          Settings['prepareStep']
+        >();
+        expectTypeOf<PrepareCallResult['repairToolCall']>().toEqualTypeOf<
+          Settings['repairToolCall']
+        >();
+        expectTypeOf<
+          PrepareCallResult['experimental_repairToolCall']
+        >().toEqualTypeOf<Settings['experimental_repairToolCall']>();
+
+        type RemovedCallField =
+          | 'abortSignal'
+          | 'timeout'
+          | 'onStart'
+          | 'experimental_onStart'
+          | 'onStepStart'
+          | 'experimental_onStepStart'
+          | 'onToolExecutionStart'
+          | 'onToolExecutionEnd'
+          | 'onStepEnd'
+          | 'onStepFinish'
+          | 'onEnd'
+          | 'onFinish';
+
+        expectTypeOf<
+          Extract<RemovedCallField, keyof PrepareCallOptions>
+        >().toEqualTypeOf<never>();
+      });
+
+      it('should type reasoning in input and return values', () => {
+        type PrepareCallResult = Awaited<
+          ReturnType<NonNullable<ToolLoopAgentSettings['prepareCall']>>
+        >;
+
+        const preparedOverride = {
+          reasoning: 'high',
+        } satisfies Partial<PrepareCallResult>;
+
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          reasoning: 'medium',
+          prepareCall: options => {
+            expectTypeOf(options.reasoning).toEqualTypeOf<
+              ToolLoopAgentSettings['reasoning']
+            >();
+
+            return {
+              ...options,
+              reasoning: preparedOverride.reasoning,
+              prompt: 'Hello, world!',
+            };
+          },
+        });
+      });
+
       it('should expose includeRuntimeContext type', async () => {
         new ToolLoopAgent<never, {}, { userId: string; requestId: string }>({
           model: new MockLanguageModelV4(),

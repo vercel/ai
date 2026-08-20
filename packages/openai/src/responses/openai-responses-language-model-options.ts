@@ -53,6 +53,10 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.4-pro-2026-03-05',
   'gpt-5.5',
   'gpt-5.5-2026-04-23',
+  'gpt-5.6',
+  'gpt-5.6-luna',
+  'gpt-5.6-sol',
+  'gpt-5.6-terra',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -121,6 +125,10 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.4-pro-2026-03-05'
   | 'gpt-5.5'
   | 'gpt-5.5-2026-04-23'
+  | 'gpt-5.6'
+  | 'gpt-5.6-luna'
+  | 'gpt-5.6-sol'
+  | 'gpt-5.6-terra'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
@@ -223,10 +231,24 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       promptCacheKey: z.string().nullish(),
 
       /**
+       * Prompt cache behavior for GPT-5.6 and later models.
+       * `mode` controls whether OpenAI also places an implicit breakpoint.
+       * `ttl` sets the minimum cache lifetime and currently only supports 30 minutes.
+       */
+      promptCacheOptions: z
+        .object({
+          mode: z.enum(['implicit', 'explicit']).optional(),
+          ttl: z.literal('30m').optional(),
+        })
+        .optional(),
+
+      /**
        * The retention policy for the prompt cache.
        * - 'in_memory': Default. Standard prompt caching behavior.
        * - '24h': Extended prompt caching that keeps cached prefixes active for up to 24 hours.
-       *          Currently only available for 5.1 series models.
+       *          Available for models before GPT-5.6 that support extended caching.
+       *
+       * @deprecated For GPT-5.6 and later models, use `promptCacheOptions.ttl`.
        *
        * @default 'in_memory'
        */
@@ -235,14 +257,25 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`. If you use
        * `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
-       * Valid values: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
-       *
-       * The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
-       * models. Also, the 'xhigh' type for `reasoningEffort` is only available for
-       * OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or 'xhigh' with unsupported models will result in
-       * an error.
+       * GPT-5.6 supports 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
+       * Supported values vary by model.
        */
       reasoningEffort: z.string().nullish(),
+
+      /**
+       * Controls how much model work GPT-5.6 performs before returning a final answer.
+       * `standard` is the default. `pro` increases quality, latency, and token usage.
+       */
+      reasoningMode: z.enum(['standard', 'pro']).optional(),
+
+      /**
+       * Controls which available reasoning items GPT-5.6 can use.
+       * `auto` uses the model default, `current_turn` excludes reasoning from earlier
+       * turns, and `all_turns` makes compatible earlier reasoning available.
+       */
+      reasoningContext: z
+        .enum(['auto', 'current_turn', 'all_turns'])
+        .optional(),
 
       /**
        * Controls reasoning summary output from the model.
@@ -260,10 +293,13 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * Service tier for the request.
        * Set to 'flex' for 50% cheaper processing at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
        * Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+       * Set to 'fast' for the same tier as 'priority' (OpenAI's newer name for it).
        *
        * Defaults to 'auto'.
        */
-      serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).nullish(),
+      serviceTier: z
+        .enum(['auto', 'flex', 'priority', 'fast', 'default'])
+        .nullish(),
 
       /**
        * Whether to store the generation. Defaults to `true`.
@@ -338,6 +374,12 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
           }),
         )
         .nullish(),
+
+      /**
+       * Request explicit server-side compaction by appending a
+       * `compaction_trigger` item to the Responses input.
+       */
+      compactionTrigger: z.boolean().optional(),
 
       /**
        * Restrict the callable tools to a subset while keeping the full tools

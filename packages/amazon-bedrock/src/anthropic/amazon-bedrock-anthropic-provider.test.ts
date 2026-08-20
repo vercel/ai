@@ -79,6 +79,7 @@ describe('amazon-bedrock-anthropic-provider', () => {
         transformRequestBody: expect.any(Function),
         supportedUrls: expect.any(Function),
         supportsNativeStructuredOutput: true,
+        supportsStrictTools: true,
       }),
     );
   });
@@ -90,6 +91,9 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-opus-4-8',
     'us.anthropic.claude-opus-4-8',
     'eu.anthropic.claude-opus-4-8',
+    'anthropic.claude-opus-5',
+    'us.anthropic.claude-opus-5',
+    'eu.anthropic.claude-opus-5',
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
@@ -114,6 +118,60 @@ describe('amazon-bedrock-anthropic-provider', () => {
       );
     },
   );
+
+  it.each([
+    'anthropic.claude-opus-4-7',
+    'us.anthropic.claude-opus-4-7',
+    'eu.anthropic.claude-opus-4-7',
+    'anthropic.claude-opus-4-8',
+    'us.anthropic.claude-opus-4-8',
+    'eu.anthropic.claude-opus-4-8',
+    'anthropic.claude-opus-5',
+    'us.anthropic.claude-opus-5',
+    'eu.anthropic.claude-opus-5',
+    'anthropic.claude-fable-5',
+    'us.anthropic.claude-fable-5',
+    'eu.anthropic.claude-fable-5',
+    'anthropic.claude-sonnet-5',
+    'us.anthropic.claude-sonnet-5',
+    'eu.anthropic.claude-sonnet-5',
+  ])(
+    'should disable strict tools for %s (Bedrock rejects tools[].strict)',
+    modelId => {
+      const provider = createAmazonBedrockAnthropic({
+        region: 'us-east-1',
+        accessKeyId: 'test-key',
+        secretAccessKey: 'test-secret',
+      });
+      provider(modelId as Parameters<typeof provider>[0]);
+
+      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          supportsStrictTools: false,
+        }),
+      );
+    },
+  );
+
+  it.each([
+    'anthropic.claude-sonnet-4-6',
+    'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+  ])('should keep strict tools enabled for %s', modelId => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider(modelId as Parameters<typeof provider>[0]);
+
+    expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+      modelId,
+      expect.objectContaining({
+        supportsStrictTools: true,
+      }),
+    );
+  });
 
   it('should throw an error when using new keyword', () => {
     const provider = createAmazonBedrockAnthropic({
@@ -494,6 +552,121 @@ describe('amazon-bedrock-anthropic-provider', () => {
     );
 
     expect(transformedBody?.anthropic_beta).toBeUndefined();
+  });
+
+  it('should translate eager_input_streaming on tools into the fine-grained-tool-streaming beta', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tools: [
+          {
+            name: 'get_weather',
+            input_schema: { type: 'object', properties: {} },
+            eager_input_streaming: true,
+          },
+          {
+            name: 'get_time',
+            input_schema: { type: 'object', properties: {} },
+          },
+        ],
+      },
+      new Set(),
+    );
+
+    expect(transformedBody?.tools).toEqual([
+      { name: 'get_weather', input_schema: { type: 'object', properties: {} } },
+      { name: 'get_time', input_schema: { type: 'object', properties: {} } },
+    ]);
+    expect(transformedBody?.anthropic_beta).toEqual([
+      'fine-grained-tool-streaming-2025-05-14',
+    ]);
+  });
+
+  it('should not add the fine-grained-tool-streaming beta when no tool has eager_input_streaming', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tools: [
+          {
+            name: 'get_weather',
+            input_schema: { type: 'object', properties: {} },
+          },
+        ],
+      },
+      new Set(),
+    );
+
+    expect(transformedBody?.anthropic_beta).toBeUndefined();
+  });
+
+  it('should strip eager_input_streaming from tools that also get version remapped', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tools: [
+          {
+            name: 'get_weather',
+            input_schema: { type: 'object', properties: {} },
+            eager_input_streaming: true,
+          },
+          { type: 'bash_20241022', name: 'bash' },
+        ],
+      },
+      new Set(),
+    );
+
+    expect(transformedBody?.tools).toEqual([
+      { name: 'get_weather', input_schema: { type: 'object', properties: {} } },
+      { type: 'bash_20250124', name: 'bash' },
+    ]);
+    expect(transformedBody?.anthropic_beta).toEqual(
+      expect.arrayContaining([
+        'fine-grained-tool-streaming-2025-05-14',
+        'computer-use-2025-01-24',
+      ]),
+    );
   });
 
   it('should not support URL sources to force base64 conversion', () => {

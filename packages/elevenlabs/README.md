@@ -1,7 +1,7 @@
 # AI SDK - ElevenLabs Provider
 
 The **[ElevenLabs provider](https://ai-sdk.dev/providers/ai-sdk-providers/elevenlabs)** for the [AI SDK](https://ai-sdk.dev/docs)
-contains language model support for the ElevenLabs chat and completion APIs and embedding model support for the ElevenLabs embeddings API.
+contains speech generation plus batch and realtime transcription support for the ElevenLabs APIs.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access ElevenLabs (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
