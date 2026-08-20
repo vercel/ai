@@ -1,5 +1,325 @@
 # @ai-sdk/gateway
 
+## 4.0.57
+
+### Patch Changes
+
+- 936719b: add experimental batch API support (startTextBatch/getBatchStatus/getBatchResults) via the AI Gateway batch routes
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.55
+
+### Patch Changes
+
+- 1f7a464: chore(provider/gateway): update gateway model settings files
+
+## 4.0.54
+
+### Patch Changes
+
+- 257632b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.53
+
+### Patch Changes
+
+- a0b1ffc: chore(provider/gateway): update gateway model settings files
+
+## 4.0.52
+
+### Patch Changes
+
+- 16650e9: feat(google): add `gemini-3.7-flash` model
+
+## 4.0.51
+
+### Patch Changes
+
+- ea75787: Serialize structured Gateway error responses in nested API call error messages.
+- b20de9e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.50
+
+### Patch Changes
+
+- a4d386d: feat(xai): add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.48
+
+### Patch Changes
+
+- 3cc1bb6: chore(provider/gateway): update gateway model settings files
+
+## 4.0.47
+
+### Patch Changes
+
+- 7af9646: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.46
+
+### Patch Changes
+
+- c477556: chore(provider/gateway): update gateway model settings files
+- 81cd026: Reduce bundle size by making internal Zod v4 imports tree-shakeable.
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.44
+
+### Patch Changes
+
+- 89080c8: feat (provider/gateway): support the async video operation flow (doStart/doStatus) on the v4 video model
+- 89080c8: fix (ai/gateway): make retried `doStart` calls idempotent
+
+  `generateVideo` retries `doStart`, which creates a billable generation, so a
+  retry after a lost response could start a second one. It now mints one
+  idempotency token per logical start — outside the retry closure — and forwards it
+  as an `idempotency-key` header, so a provider that deduplicates (the Vercel AI
+  Gateway does) sees the same key on every attempt. `GatewayVideoModel` simply
+  forwards the caller's headers rather than inferring retry identity from an
+  options object, which would collide across unrelated calls.
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.42
+
+### Patch Changes
+
+- 7aeab10: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.41
+
+### Patch Changes
+
+- 53c326e: chore(provider/gateway): update gateway model settings files
+- d765f82: Export the Gateway embedding and image model ID types.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.38
+
+### Patch Changes
+
+- fb6d2f8: chore(provider/gateway): update gateway model settings files
+
+## 4.0.37
+
+### Patch Changes
+
+- bdd5e28: feat(provider/gateway): support `'vision'` (image input) in the `has` provider option
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.35
+
+### Patch Changes
+
+- 4f2e064: chore(provider/gateway): update gateway model settings files
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.33
+
+### Patch Changes
+
+- af3f400: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.32
+
+### Patch Changes
+
+- 0012529: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.31
+
+### Patch Changes
+
+- bf216b3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.29
+
+### Patch Changes
+
+- d9d2a11: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.28
+
+### Patch Changes
+
+- 0a7c7f4: chore(provider/gateway): update gateway model settings files
+
+## 4.0.27
+
+### Patch Changes
+
+- 2112ff1: chore(provider/gateway): update gateway model settings files
+
+## 4.0.26
+
+### Patch Changes
+
+- 7c16f21: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.24
+
+### Patch Changes
+
+- cefa3b1: chore(provider/gateway): remove `hipaaCompliant` provider option
+- 8fbb89c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.22
+
+### Patch Changes
+
+- 341616a: feat: add kimi-k3 model and `reasoningEffort` provider option
+- 70fc45c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.21
+
+### Patch Changes
+
+- 7069785: chore(provider/gateway): update gateway model settings files
+- 4bf9ac2: feat (provider/gateway): add `gateway.experimental_transcription.getToken` for minting transcription-bound client secrets
+
+## 4.0.20
+
+### Patch Changes
+
+- 4d096f6: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 4.0.19
+
+### Patch Changes
+
+- 4be62c1: fix(provider-utils): validate provider-response URLs in `getFromApi`
+
+  `getFromApi` now has a `validateUrl` flag. It is optional so existing callers keep compiling (omitting it behaves like `false`, i.e. no validation), but all AI SDK provider packages set it explicitly at every call site so each one makes a visible trust decision. When `true`, the URL is routed through `fetchWithValidatedRedirects` — the same guard used by `downloadBlob` — which rejects private/loopback/link-local targets, re-validates every redirect hop, strips proxy/metadata/cookie request headers, and drops all caller headers except the user-agent on cross-origin redirects (custom API-key headers must not follow a redirect off-origin any more than `Authorization` may); blocked URLs throw `DownloadError`. It is enabled at the image/video/audio download and polling call sites where the URL comes from a provider response body; URLs built from developer-configured endpoints pass `validateUrl: false` and are unaffected.
+
+  A new optional `credentialedOrigin` withholds caller headers unless the URL is same-origin with it, so the API key is not sent to a response-supplied host on a different origin.
+
+  A new optional `trustedOrigin` exempts URLs (and redirect hops) that are same-origin with the developer-configured provider endpoint from target validation, so self-hosted and localhost deployments whose response URLs point back at the configured host keep working; all other hops are still validated.
+
+  Also closes range gaps in `validateDownloadUrl` (IPv4 `224.0.0.0/4` multicast and the TEST-NET documentation ranges `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`; IPv6 documentation ranges `2001:db8::/32` and `3fff::/20`), and follows only the fetch-spec redirect status codes (301/302/303/307/308) — a `Location` header on any other status is not followed. This guard performs string/literal checks only and does not resolve DNS; hostnames that resolve to private addresses and DNS rebinding remain out of scope and must be constrained at the network layer (or by injecting a Node `fetch` that pins the resolved IP at connect time) for server deployments handling untrusted URLs. See `contributing/secure-url-handling.md`.
+
+- f8e82fd: Add experimental streaming transcription support to the gateway provider (`GatewayTranscriptionModel.doStream`), speaking the shared transcription-stream WebSocket envelope from `@ai-sdk/provider-utils`. `experimental_streamTranscribe` now works with gateway string model IDs, e.g. `experimental_streamTranscribe({ model: 'openai/gpt-realtime-whisper', ... })`.
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
+## 4.0.17
+
+### Patch Changes
+
+- 867f80a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.16
+
+### Patch Changes
+
+- 308a519: chore: enforce consistent imports from `zod/v4` instead of `zod`
+- 7fe53d2: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.15
 
 ### Patch Changes

@@ -4,12 +4,16 @@ import { run } from '../../lib/run';
 
 run(async () => {
   // Using default Model APIs - works with hosted models on Baseten
-  const { text, usage } = await generateText({
-    model: baseten('deepseek-ai/DeepSeek-V3-0324'),
+  const result = await generateText({
+    model: baseten('zai-org/GLM-5.2'),
     prompt: 'What is the meaning of life? Answer in one sentence.',
   });
 
-  console.log(text);
+  console.log(result.text);
   console.log();
-  console.log('Usage:', usage);
+  console.log('Usage:', result.usage);
+  console.log(
+    'Provider metadata:',
+    JSON.stringify(result.finalStep.providerMetadata, null, 2),
+  );
 });

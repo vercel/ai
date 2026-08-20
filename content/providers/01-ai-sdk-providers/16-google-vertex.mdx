@@ -26,6 +26,14 @@ The Google Vertex, Google Vertex Anthropic, Google Vertex xAI, and Google Vertex
 
 The Google Vertex provider instance is used to create model instances that call the Vertex AI API. The models available with this provider include [Google's Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models). If you're looking to use [Anthropic's Claude models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude), see the [Google Vertex Anthropic Provider](#google-vertex-anthropic-provider-usage) section below.
 
+<Note>
+  Vertex Gemini models share the Google provider's forward-compatible model
+  classification. Unrecognized `gemini-*` IDs and `-latest` aliases use the
+  newest supported Gemini request behavior, while known legacy IDs keep their
+  generation-specific tool, reasoning, function-response, and thought-signature
+  handling. The selected Vertex model must still support each requested feature.
+</Note>
+
 ### Provider Instance
 
 You can import the default provider instance `googleVertex` from `@ai-sdk/google-vertex`:
@@ -130,8 +138,7 @@ You can use the following optional settings to customize the provider instance:
 <a id="google-vertex-edge-runtime"></a>
 #### Edge Runtime
 
-Edge runtimes (like Vercel Edge Functions and Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge.
-They only provide a subset of the standard Node.js APIs.
+Edge runtimes (like Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge. They only provide a subset of the standard Node.js APIs.
 For example, direct file system access is not available, and many Node.js-specific libraries
 (including the standard Google Auth library) are not compatible.
 
@@ -231,10 +238,10 @@ const googleVertex = createGoogleVertex({
 ### Language Models
 
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-2.5-pro`.
+The first argument is the model id, e.g. `gemini-3.7-flash`.
 
 ```ts
-const model = googleVertex('gemini-2.5-pro');
+const model = googleVertex('gemini-3.7-flash');
 ```
 
 <Note>
@@ -251,7 +258,7 @@ an options argument:
 import { googleVertex } from '@ai-sdk/google-vertex';
 import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 
-const model = googleVertex('gemini-2.5-pro');
+const model = googleVertex('gemini-3.1-pro-preview');
 
 await generateText({
   model,
@@ -321,6 +328,51 @@ The following optional provider options are available for Google Vertex models:
 
   Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls) for usage details.
 
+- **imageConfig** _object_
+
+  Optional. Configuration for image generation. Only supported by Gemini image models.
+
+  See [Google's GenerationConfig documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerationConfig) for usage details.
+  - **aspectRatio** _string_
+
+    Optional. The aspect ratio of generated images. Defaults to 1:1 squares, or to matching the output image size to that of an input image. Can be one of the following:
+    - 1:1
+    - 2:3
+    - 3:2
+    - 3:4
+    - 4:3
+    - 4:5
+    - 5:4
+    - 9:16
+    - 16:9
+    - 21:9
+
+  - **imageSize** _string_
+
+    Optional. Controls the output image resolution. Defaults to 1K. Can be one of the following:
+    - 1K
+    - 2K
+    - 4K
+
+  - **personGeneration** _string_
+
+    Optional. Controls the generation of people in images. Can be one of the following:
+    - `PERSON_GENERATION_UNSPECIFIED`
+    - `ALLOW_ALL`
+    - `ALLOW_ADULT`
+    - `ALLOW_NONE`
+
+  - **prominentPeople** _string_
+
+    Optional. Controls whether generation of prominent people (celebrities) is allowed. When set together with `personGeneration`, `personGeneration` takes precedence. Can be one of the following:
+    - `PROMINENT_PEOPLE_UNSPECIFIED`
+    - `ALLOW_PROMINENT_PEOPLE`
+    - `BLOCK_PROMINENT_PEOPLE`
+
+  - **imageOutputOptions** _\{ mimeType?: 'image/jpeg' | 'image/png', compressionQuality?: number \}_
+
+    Optional. The image output format for generated images.
+
 - **streamFunctionCallArguments** _boolean_
 
   Optional. When set to true, function call arguments will be streamed
@@ -366,7 +418,7 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -416,7 +468,7 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   tools: { code_execution: googleVertex.tools.codeExecution({}) },
   prompt:
     'Use python to calculate 20th fibonacci number. Then find the nearest palindrome to it.',
@@ -434,7 +486,7 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   tools: { url_context: googleVertex.tools.urlContext({}) },
   prompt: 'What are the key points from https://example.com/article?',
 });
@@ -449,7 +501,7 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   tools: { google_search: googleVertex.tools.googleSearch({}) },
   prompt: 'What are the latest developments in AI?',
 });
@@ -464,7 +516,7 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-2.5-flash'),
+  model: googleVertex('gemini-3.7-flash'),
   tools: {
     enterprise_web_search: googleVertex.tools.enterpriseWebSearch({}),
   },
@@ -482,7 +534,7 @@ import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-2.5-flash'),
+  model: googleVertex('gemini-3.7-flash'),
   tools: {
     google_maps: googleVertex.tools.googleMaps({}),
   },
@@ -624,7 +676,7 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   messages: [
     {
       role: 'user',
@@ -667,13 +719,13 @@ const baseContext =
   'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
 
 const { text: veggieLasagna } = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   prompt: `${baseContext}\n\nWrite a vegetarian lasagna recipe for 4 people.`,
 });
 
 // Second request with same prefix - eligible for cache hit
 const { text: meatLasagna, providerMetadata } = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
 });
 
@@ -736,7 +788,7 @@ import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text: veggieLasagnaRecipe } = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   providerOptions: {
     vertex: {
@@ -746,7 +798,7 @@ const { text: veggieLasagnaRecipe } = await generateText({
 });
 
 const { text: meatLasagnaRecipe } = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   prompt: 'Write a meat lasagna recipe for 12 people.',
   providerOptions: {
     vertex: {
@@ -820,7 +872,7 @@ import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText, Output } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-2.5-pro'),
+  model: googleVertex('gemini-3.1-pro-preview'),
   providerOptions: {
     vertex: {
       structuredOutputs: false,
@@ -853,13 +905,16 @@ The following Zod features are known to not work with Google Vertex:
 
 ### Model Capabilities
 
-| Model                  | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ---------------------- | ----------- | ----------------- | ---------- | -------------- |
-| `gemini-3.5-flash`     | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3-pro-preview` | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-2.5-pro`       | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-2.5-flash`     | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-2.0-flash-001` | <Check />   | <Check />         | <Check />  | <Check />      |
+| Model                   | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ----------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `gemini-3.7-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.6-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.5-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.5-flash-lite` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3-pro-preview`  | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-pro`        | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.0-flash-001`  | <Check />   | <Check />         | <Check />  | <Check />      |
 
 <Note>
   The table above lists popular models. Please see the [Google Vertex AI
@@ -1572,8 +1627,7 @@ You can use the following optional settings to customize the Google Vertex Anthr
 <a id="google-vertex-anthropic-edge-runtime"></a>
 #### Edge Runtime
 
-Edge runtimes (like Vercel Edge Functions and Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge.
-They only provide a subset of the standard Node.js APIs.
+Edge runtimes (like Cloudflare Workers) are lightweight JavaScript environments that run closer to users at the network edge. They only provide a subset of the standard Node.js APIs.
 For example, direct file system access is not available, and many Node.js-specific libraries
 (including the standard Google Auth library) are not compatible.
 

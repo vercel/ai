@@ -1,0 +1,147 @@
+import type {
+  HarnessV1PermissionMode,
+  HarnessV1RequestTransformation,
+} from '@ai-sdk/harness';
+import type { ACPToolCall } from '../acp-tool-call';
+
+export type ACPSerializablePrimitive = string | number | boolean | null;
+
+export type ACPSerializableValue =
+  | ACPSerializablePrimitive
+  | ReadonlyArray<ACPSerializableValue>
+  | { readonly [key: string]: ACPSerializableValue };
+
+export type ACPValueSource = {
+  readonly $source:
+    | 'gateway-api-key'
+    | 'gateway-base-url'
+    | 'gateway-authorization'
+    | 'client-app'
+    | 'client-app-name'
+    | 'client-app-version';
+  readonly prefix?: string;
+  readonly suffix?: string;
+  readonly ensureSuffix?: string;
+};
+
+export type ACPProfileValue =
+  | ACPSerializablePrimitive
+  | ACPValueSource
+  | ReadonlyArray<ACPProfileValue>
+  | { readonly [key: string]: ACPProfileValue };
+
+export type ACPNpmSimpleSource = {
+  readonly type: 'npm-simple';
+  readonly packageName: string;
+  /**
+   * Exact version to install. When omitted, the package's `latest` dist-tag is
+   * installed and no version takes part in the implementation identity, so a
+   * new upstream release does not invalidate existing lifecycle state.
+   */
+  readonly packageVersion?: string;
+};
+
+export type ACPNpmLockedSource = {
+  readonly type: 'npm-locked';
+  readonly packageJson: string;
+  readonly pnpmLockYaml: string;
+};
+
+export type ACPSource = ACPNpmSimpleSource | ACPNpmLockedSource;
+
+export type ACPAuthentication = {
+  readonly methodId: string;
+  readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
+  readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
+};
+
+export type ACPProviderAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+
+export type ACPProviderAuthentication = {
+  readonly gateway: {
+    readonly env: Readonly<Record<string, ACPProfileValue>>;
+  };
+};
+
+export type ACPCredentialBrokering = ({
+  env,
+}: {
+  env: Readonly<Record<string, string>>;
+}) => ReadonlyArray<HarnessV1RequestTransformation>;
+
+export type ACPPermissionModeTarget =
+  | {
+      readonly type: 'session-mode';
+      readonly modeId: string;
+    }
+  | {
+      readonly type: 'session-config-option';
+      readonly configId: string;
+      readonly value: string | boolean;
+    };
+
+export type ACPPermissionModeMapping = Readonly<
+  Record<HarnessV1PermissionMode, ACPPermissionModeTarget | null>
+>;
+
+/**
+ * Describes where an ACP implementation accepts native session instructions.
+ * Session metadata paths are relative to `_meta`; launch environment paths are
+ * relative to the parsed JSON object stored in `variable`.
+ */
+export type ACPInstructionMapping =
+  | {
+      readonly type: 'session-meta';
+      readonly path: ReadonlyArray<string>;
+    }
+  | {
+      readonly type: 'launch-env-json';
+      readonly variable: string;
+      readonly path: ReadonlyArray<string>;
+    };
+
+export type ACPOutputSchemaMapping = {
+  readonly type: 'session-prompt-meta';
+  readonly path: ReadonlyArray<string>;
+};
+
+export type ACPV1Settings = {
+  readonly version?: 'v1';
+  readonly harnessId: string;
+  readonly mcpServers?: Record<string, unknown>;
+  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
+  readonly auth?: ACPProviderAuthenticationMode;
+  readonly source: ACPSource;
+  readonly executable: string;
+  readonly args?: ReadonlyArray<string>;
+  readonly forwardEnv?: ReadonlyArray<string>;
+  readonly credentialEnv?: ReadonlyArray<string>;
+  readonly credentialBrokering?: ACPCredentialBrokering;
+  /**
+   * Runtime environment values that are safe to persist in bootstrap and
+   * lifecycle compatibility identity.
+   */
+  readonly env?: Readonly<Record<string, string>>;
+  readonly authentication?: ACPAuthentication;
+  readonly providerAuthentication?: ACPProviderAuthentication;
+  readonly modelId?: string;
+  /**
+   * Routes HarnessAgent instructions to a runtime-native system or developer
+   * prompt. When omitted, instructions are prepended to the first user prompt.
+   */
+  readonly instructionMapping?: ACPInstructionMapping;
+  /**
+   * Maps structured output JSON Schema to an implementation-specific path
+   * below the ACP session prompt's `_meta` field.
+   */
+  readonly outputSchemaMapping?: ACPOutputSchemaMapping;
+  readonly permissionModeMapping?: ACPPermissionModeMapping;
+  readonly session?: {
+    readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
+  };
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
+};
