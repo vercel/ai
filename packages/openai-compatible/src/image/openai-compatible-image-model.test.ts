@@ -359,6 +359,102 @@ describe('OpenAICompatibleImageModel', () => {
       });
     });
 
+    describe('provider metadata', () => {
+      it('should expose response fields alongside data as siblings of images', async () => {
+        server.urls[
+          'https://api.example.com/dall-e-3/images/generations'
+        ].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }],
+            style_id: '095b9f9d-f06f-4b4e-9bb2-d4f823203427',
+            created: 1234567890,
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.providerMetadata).toStrictEqual({
+          'openai-compatible': {
+            images: [{}],
+            style_id: '095b9f9d-f06f-4b4e-9bb2-d4f823203427',
+            created: 1234567890,
+          },
+        });
+      });
+
+      it('should expose per-image fields alongside b64_json in images', async () => {
+        server.urls[
+          'https://api.example.com/dall-e-3/images/generations'
+        ].response = {
+          type: 'json-value',
+          body: {
+            data: [
+              { b64_json: 'test1234', revised_prompt: 'a revised prompt' },
+              { b64_json: 'test5678' },
+            ],
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(
+          createDefaultGenerateParams({ n: 2 }),
+        );
+
+        expect(result.providerMetadata).toStrictEqual({
+          'openai-compatible': {
+            images: [{ revised_prompt: 'a revised prompt' }, {}],
+          },
+        });
+      });
+
+      it('should not leak base64 image data into provider metadata', async () => {
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(JSON.stringify(result.providerMetadata)).not.toContain(
+          'test1234',
+        );
+      });
+
+      it('should not let a provider-returned images field overwrite per-image metadata', async () => {
+        server.urls[
+          'https://api.example.com/dall-e-3/images/generations'
+        ].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234', index: 0 }],
+            images: 'not-an-array',
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.providerMetadata).toStrictEqual({
+          'openai-compatible': {
+            images: [{ index: 0 }],
+          },
+        });
+      });
+
+      it('should key provider metadata by the provider options key', async () => {
+        const model = new OpenAICompatibleImageModel('dall-e-3', {
+          provider: 'example.image',
+          headers: () => ({ Authorization: 'Bearer test-key' }),
+          url: ({ modelId, path }) =>
+            `https://api.example.com/${modelId}${path}`,
+        });
+
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+          'example',
+        ]);
+      });
+    });
+
     it('should use real date when no custom date provider is specified', async () => {
       const beforeDate = new Date();
 
