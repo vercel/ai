@@ -1,12 +1,13 @@
-import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+import {
+  InvalidResponseDataError,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -16,16 +17,8 @@ import {
   injectJsonInstructionIntoMessages,
   parseProviderOptions,
   postJsonToApi,
-<<<<<<< HEAD
-=======
-  serializeModelOptions,
-  StreamingToolCallTracker,
-  WORKFLOW_SERIALIZE,
-  WORKFLOW_DESERIALIZE,
->>>>>>> b8100f3369 (fix: @ai-sdk/mistral rejects incremental streaming tool-call arguments (#19181))
   type FetchFunction,
   type ParseResult,
-  type StreamingToolCallDelta,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -286,7 +279,20 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     let isFirstChunk = true;
     let activeText = false;
     let activeReasoningId: string | null = null;
-    let toolCallTracker: StreamingToolCallTracker<StreamingToolCallDelta>;
+    const toolCalls = new Set<{
+      id: string;
+      name: string;
+      input: string;
+    }>();
+    const toolCallsById = new Map<
+      string,
+      { id: string; name: string; input: string }
+    >();
+    const toolCallsByIndex = new Map<
+      number,
+      { id: string; name: string; input: string }
+    >();
+    let latestToolCall: { id: string; name: string; input: string } | undefined;
 
     const generateId = this.generateId;
 
@@ -297,9 +303,6 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
           LanguageModelV3StreamPart
         >({
           start(controller) {
-            toolCallTracker = new StreamingToolCallTracker(controller, {
-              generateId,
-            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -384,8 +387,66 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta?.tool_calls != null) {
-              for (const toolCall of delta.tool_calls) {
-                toolCallTracker.processDelta(toolCall);
+              for (const toolCallDelta of delta.tool_calls) {
+                const { id, index } = toolCallDelta;
+                let toolCall =
+                  id != null && id.length > 0
+                    ? toolCallsById.get(id)
+                    : index != null
+                      ? toolCallsByIndex.get(index)
+                      : latestToolCall;
+
+                if (toolCall == null) {
+                  if (id == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'id' to be a string.`,
+                    });
+                  }
+
+                  if (toolCallDelta.function.name == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'function.name' to be a string.`,
+                    });
+                  }
+
+                  toolCall = {
+                    id,
+                    name: toolCallDelta.function.name,
+                    input: toolCallDelta.function.arguments ?? '',
+                  };
+                  toolCalls.add(toolCall);
+                  if (id.length > 0) {
+                    toolCallsById.set(id, toolCall);
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id,
+                    toolName: toolCall.name,
+                  });
+
+                  if (toolCall.input.length > 0) {
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id,
+                      delta: toolCall.input,
+                    });
+                  }
+                } else if (toolCallDelta.function.arguments != null) {
+                  toolCall.input += toolCallDelta.function.arguments;
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.id,
+                    delta: toolCallDelta.function.arguments,
+                  });
+                }
+
+                if (index != null) {
+                  toolCallsByIndex.set(index, toolCall);
+                }
+                latestToolCall = toolCall;
               }
             }
 
@@ -408,7 +469,18 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
-            toolCallTracker.flush();
+            for (const toolCall of toolCalls) {
+              controller.enqueue({
+                type: 'tool-input-end',
+                id: toolCall.id,
+              });
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                input: toolCall.input,
+              });
+            }
 
             controller.enqueue({
               type: 'finish',
