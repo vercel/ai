@@ -144,9 +144,19 @@ export interface SpaceXAIProviderSettings {
 /** @deprecated Use `SpaceXAIProviderSettings` instead. */
 export type XaiProviderSettings = SpaceXAIProviderSettings;
 
-export function createSpaceXAI(
-  options: SpaceXAIProviderSettings = {},
-): SpaceXAIProvider {
+export interface SpaceXAIProviderConfig {
+  options?: SpaceXAIProviderSettings;
+  providerName: string;
+  tools: typeof spacexaiTools;
+  userAgent: string;
+}
+
+export function createSpaceXAIProvider({
+  options = {},
+  providerName,
+  tools,
+  userAgent,
+}: SpaceXAIProviderConfig): SpaceXAIProvider {
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.x.ai/v1',
   );
@@ -160,12 +170,12 @@ export function createSpaceXAI(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/spacexai/${VERSION}`,
+      userAgent,
     );
 
   const createChatLanguageModel = (modelId: SpaceXAIChatModelId) => {
     return new SpaceXAIChatLanguageModel(modelId, {
-      provider: 'spacexai.chat',
+      provider: `${providerName}.chat`,
       baseURL,
       headers: getHeaders,
       generateId,
@@ -175,7 +185,7 @@ export function createSpaceXAI(
 
   const createResponsesLanguageModel = (modelId: SpaceXAIResponsesModelId) => {
     return new SpaceXAIResponsesLanguageModel(modelId, {
-      provider: 'spacexai.responses',
+      provider: `${providerName}.responses`,
       baseURL,
       headers: getHeaders,
       generateId,
@@ -185,7 +195,7 @@ export function createSpaceXAI(
 
   const createImageModel = (modelId: SpaceXAIImageModelId) => {
     return new SpaceXAIImageModel(modelId, {
-      provider: 'spacexai.image',
+      provider: `${providerName}.image`,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -194,7 +204,7 @@ export function createSpaceXAI(
 
   const createVideoModel = (modelId: SpaceXAIVideoModelId) => {
     return new SpaceXAIVideoModel(modelId, {
-      provider: 'spacexai.video',
+      provider: `${providerName}.video`,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -203,7 +213,7 @@ export function createSpaceXAI(
 
   const createRealtimeModel = (modelId: string) => {
     return new SpaceXAIRealtimeModel(modelId, {
-      provider: 'spacexai.realtime',
+      provider: `${providerName}.realtime`,
       baseURL: baseURL ?? 'https://api.x.ai/v1',
       headers: getHeaders,
       fetch: options.fetch,
@@ -212,7 +222,7 @@ export function createSpaceXAI(
 
   const createSpeechModel = () => {
     return new SpaceXAISpeechModel('', {
-      provider: 'spacexai.speech',
+      provider: `${providerName}.speech`,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -221,7 +231,7 @@ export function createSpaceXAI(
 
   const createTranscriptionModel = () => {
     return new SpaceXAITranscriptionModel('', {
-      provider: 'spacexai.transcription',
+      provider: `${providerName}.transcription`,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -250,7 +260,7 @@ export function createSpaceXAI(
 
   const createFiles = () =>
     new SpaceXAIFiles({
-      provider: 'spacexai.files',
+      provider: `${providerName}.files`,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -277,9 +287,20 @@ export function createSpaceXAI(
   provider.transcriptionModel = createTranscriptionModel;
   provider.transcription = createTranscriptionModel;
   provider.files = createFiles;
-  provider.tools = spacexaiTools;
+  provider.tools = tools;
 
   return provider;
+}
+
+export function createSpaceXAI(
+  options: SpaceXAIProviderSettings = {},
+): SpaceXAIProvider {
+  return createSpaceXAIProvider({
+    options,
+    providerName: 'spacexai',
+    tools: spacexaiTools,
+    userAgent: `ai-sdk/spacexai/${VERSION}`,
+  });
 }
 
 /** @deprecated Use `createSpaceXAI` instead. */
