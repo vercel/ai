@@ -51,6 +51,7 @@ import {
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
+import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { getOutputStrategy, type OutputStrategy } from './output-strategy';
@@ -462,7 +463,10 @@ class DefaultStreamObjectResult<
         controller.enqueue(chunk);
 
         if (chunk.type === 'error') {
-          onError({ error: wrapGatewayError(chunk.error) });
+          void notify({
+            event: { error: wrapGatewayError(chunk.error) },
+            callbacks: onError,
+          });
         }
       },
     });
@@ -877,7 +881,10 @@ class DefaultStreamObjectResult<
           onError(error) {
             const wrappedError = wrapGatewayError(error);
             self.rejectResultPromises(wrappedError);
-            void onError({ error: wrappedError });
+            void notify({
+              event: { error: wrappedError },
+              callbacks: onError,
+            });
           },
         });
       },
