@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 11348,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11348-generate-text-output-object-undefined-finish-reason.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-11348-generate-text-output-object-undefined-finish-reason.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #11348: result.output threw NoOutputGeneratedError despite valid schema-matching JSON in result.text."
+  }
+}
