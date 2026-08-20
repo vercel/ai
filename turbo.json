@@ -22,6 +22,7 @@
         "BASETEN_API_KEY",
         "CEREBRAS_API_KEY",
         "COHERE_API_KEY",
+        "CONCENTRATE_API_KEY",
         "DEEPINFRA_API_KEY",
         "DEEPSEEK_API_KEY",
         "ELEVENLABS_API_KEY",

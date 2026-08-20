@@ -17,6 +17,7 @@
     "@ai-sdk/cerebras": "workspace:*",
     "@ai-sdk/code-mode": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",
+    "@ai-sdk/concentrate": "workspace:*",
     "@ai-sdk/deepgram": "workspace:*",
     "@ai-sdk/deepinfra": "workspace:*",
     "@ai-sdk/deepseek": "workspace:*",

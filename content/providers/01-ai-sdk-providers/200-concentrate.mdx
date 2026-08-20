@@ -1,0 +1,45 @@
+---
+title: Concentrate AI
+description: Learn how to use Concentrate AI models with the AI SDK.
+---
+
+# Concentrate AI Provider
+
+The [Concentrate AI](https://concentrate.ai) provider gives the AI SDK access to models from multiple providers through Concentrate's unified Responses API and OpenAI-compatible Chat Completions API.
+
+## Setup
+
+The provider is available through `@ai-sdk/concentrate`:
+
+<InstallPackages packages="@ai-sdk/concentrate" />
+
+API keys are read from `CONCENTRATE_API_KEY` by default.
+
+```ts
+import { concentrate } from '@ai-sdk/concentrate';
+```
+
+## Language Models
+
+The default model uses the Responses API:
+
+```ts
+import { concentrate } from '@ai-sdk/concentrate';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: concentrate('glm-4.7-flash'),
+  prompt: 'What is the capital of France?',
+});
+```
+
+Use Chat Completions explicitly with `concentrate.chat(modelId)`.
+
+Concentrate model IDs are typed as `string` because the model catalog is evolving. Embedding and image models are not supported by this provider.
+
+## Configuration
+
+- **baseURL** _string_: Defaults to `https://api.concentrate.ai/v1`.
+- **apiKey** _string_: Defaults to `CONCENTRATE_API_KEY`.
+- **headers** _Record&lt;string,string&gt;_: Custom request headers.
+- **fetch** _FetchFunction_: Custom fetch implementation.

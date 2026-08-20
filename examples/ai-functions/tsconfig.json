@@ -67,6 +67,9 @@
       "path": "../../packages/cohere"
     },
     {
+      "path": "../../packages/concentrate"
+    },
+    {
       "path": "../../packages/deepgram"
     },
     {
