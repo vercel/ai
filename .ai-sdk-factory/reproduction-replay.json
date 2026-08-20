@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19178,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19178-mistral-incremental-tool-call.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-19178-mistral-incremental-tool-call.ts",
+    "packages/mistral/src/__fixtures__/mistral-incremental-tool-call.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19178_REPRODUCED: streaming tool call was not executed with accumulated arguments"
+  }
+}
