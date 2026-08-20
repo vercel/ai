@@ -1,7 +1,6 @@
 import {
   InvalidResponseDataError,
   type APICallError,
-<<<<<<< HEAD
   type LanguageModelV3,
   type LanguageModelV3CallOptions,
   type LanguageModelV3Content,
@@ -12,18 +11,6 @@ import {
   type LanguageModelV3Usage,
   type SharedV3ProviderMetadata,
   type SharedV3Warning,
-=======
-  type LanguageModelV4,
-  type LanguageModelV4CallOptions,
-  type LanguageModelV4Content,
-  type LanguageModelV4FinishReason,
-  type LanguageModelV4GenerateResult,
-  type LanguageModelV4StreamPart,
-  type LanguageModelV4StreamResult,
-  type LanguageModelV4Usage,
-  type SharedV4ProviderMetadata,
-  type SharedV4Warning,
->>>>>>> d68139c3bb (fix: report OpenAI-compatible chat streams without a finish reason as errors (#19169))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -443,56 +430,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       }
     >();
 
-<<<<<<< HEAD
-    let finishReason: LanguageModelV3FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
-=======
-      let pending = pendingToolCalls.get(index);
-      if (pending == null) {
-        pending = {
-          id: toolCallDelta.id ?? null,
-          bufferedArguments: '',
-          extraContent: toolCallDelta.extra_content ?? null,
-        };
-        pendingToolCalls.set(index, pending);
-      } else {
-        if (pending.id == null && toolCallDelta.id != null) {
-          pending.id = toolCallDelta.id;
-        }
-        if (
-          pending.extraContent == null &&
-          toolCallDelta.extra_content != null
-        ) {
-          pending.extraContent = toolCallDelta.extra_content;
-        }
-      }
-
-      const argumentsDelta = toolCallDelta.function?.arguments;
-      if (argumentsDelta != null) {
-        pending.bufferedArguments += argumentsDelta;
-      }
-
-      const name = toolCallDelta.function?.name;
-      if (name != null) {
-        const forwardDelta: OpenAICompatibleStreamingToolCallDelta = {
-          index,
-          id: pending.id,
-          function: {
-            name,
-            arguments: pending.bufferedArguments,
-          },
-          extra_content: pending.extraContent ?? undefined,
-        };
-        toolCallTracker.processDelta(forwardDelta);
-        pendingToolCalls.delete(index);
-        forwardedToolCallIndices.add(index);
-      }
-    };
-
-    let finishReason: LanguageModelV4FinishReason | undefined;
->>>>>>> d68139c3bb (fix: report OpenAI-compatible chat streams without a finish reason as errors (#19169))
+    let finishReason: LanguageModelV3FinishReason | undefined;
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
@@ -794,7 +732,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                 id: toolCall.id,
               });
 
-<<<<<<< HEAD
               controller.enqueue({
                 type: 'tool-call',
                 toolCallId: toolCall.id ?? generateId(),
@@ -812,8 +749,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            const providerMetadata: SharedV3ProviderMetadata = {
-=======
             if (finishReason == null) {
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
@@ -825,8 +760,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            const providerMetadata: SharedV4ProviderMetadata = {
->>>>>>> d68139c3bb (fix: report OpenAI-compatible chat streams without a finish reason as errors (#19169))
+            const providerMetadata: SharedV3ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
             };

@@ -1,13 +1,9 @@
 import fs from 'fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-<<<<<<< HEAD
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
-=======
 import {
   InvalidResponseDataError,
-  type LanguageModelV4Prompt,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
->>>>>>> d68139c3bb (fix: report OpenAI-compatible chat streams without a finish reason as errors (#19169))
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
