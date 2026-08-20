@@ -465,4 +465,205 @@ describe('createEmitStreamEvent', () => {
       ]
     `);
   });
+
+  it('keeps scalar MCP results as strings', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'mcp-number',
+            name: 'mcp__context7__count',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'mcp-boolean',
+            name: 'mcp__context7__count',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'mcp-null',
+            name: 'mcp__context7__count',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-number',
+            content: '42',
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-boolean',
+            content: 'true',
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-null',
+            content: 'null',
+          },
+        ],
+      },
+    });
+
+    expect(emitted.filter(event => event.type === 'tool-result'))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "isError": false,
+          "result": "42",
+          "toolCallId": "mcp-number",
+          "toolName": "mcp__context7__count",
+          "type": "tool-result",
+        },
+        {
+          "dynamic": true,
+          "isError": false,
+          "result": "true",
+          "toolCallId": "mcp-boolean",
+          "toolName": "mcp__context7__count",
+          "type": "tool-result",
+        },
+        {
+          "dynamic": true,
+          "isError": false,
+          "result": "null",
+          "toolCallId": "mcp-null",
+          "toolName": "mcp__context7__count",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('passes non-text tool result content through unparsed', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    const imageContent = [
+      { type: 'text', text: 'chart for 2026' },
+      {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: 'iVBORw0KGgo',
+        },
+      },
+    ];
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'mcp-image',
+            name: 'mcp__charts__render',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'native-image',
+            name: 'Read',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-image',
+            content: imageContent,
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'native-image',
+            content: imageContent,
+          },
+        ],
+      },
+    });
+
+    // The content array reaches consumers as-is, not flattened to base64 text.
+    expect(emitted.filter(event => event.type === 'tool-result'))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "isError": false,
+          "result": [
+            {
+              "text": "chart for 2026",
+              "type": "text",
+            },
+            {
+              "source": {
+                "data": "iVBORw0KGgo",
+                "media_type": "image/png",
+                "type": "base64",
+              },
+              "type": "image",
+            },
+          ],
+          "toolCallId": "mcp-image",
+          "toolName": "mcp__charts__render",
+          "type": "tool-result",
+        },
+        {
+          "isError": false,
+          "result": [
+            {
+              "text": "chart for 2026",
+              "type": "text",
+            },
+            {
+              "source": {
+                "data": "iVBORw0KGgo",
+                "media_type": "image/png",
+                "type": "base64",
+              },
+              "type": "image",
+            },
+          ],
+          "toolCallId": "native-image",
+          "toolName": "Read",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
 });
