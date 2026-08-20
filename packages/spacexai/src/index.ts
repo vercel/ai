@@ -1,61 +1,61 @@
 export type {
-  XaiLanguageModelChatOptions as SpaceXAILanguageModelChatOptions,
+  SpaceXAILanguageModelChatOptions,
   /** @deprecated Use `SpaceXAILanguageModelChatOptions` instead. */
-  XaiLanguageModelChatOptions,
+  SpaceXAILanguageModelChatOptions as XaiLanguageModelChatOptions,
   /** @deprecated Use `SpaceXAILanguageModelChatOptions` instead. */
-  XaiLanguageModelChatOptions as XaiProviderOptions,
-} from './xai-chat-language-model-options';
+  SpaceXAILanguageModelChatOptions as XaiProviderOptions,
+} from './spacexai-chat-language-model-options';
 export type {
-  XaiErrorData as SpaceXAIErrorData,
+  SpaceXAIErrorData,
   /** @deprecated Use `SpaceXAIErrorData` instead. */
-  XaiErrorData,
-} from './xai-error';
+  SpaceXAIErrorData as XaiErrorData,
+} from './spacexai-error';
 export type {
-  XaiFilePartProviderOptions as SpaceXAIFilePartProviderOptions,
+  SpaceXAIFilePartProviderOptions,
   /** @deprecated Use `SpaceXAIFilePartProviderOptions` instead. */
-  XaiFilePartProviderOptions,
-} from './xai-file-part-options';
+  SpaceXAIFilePartProviderOptions as XaiFilePartProviderOptions,
+} from './spacexai-file-part-options';
 export type {
-  XaiLanguageModelResponsesOptions as SpaceXAILanguageModelResponsesOptions,
+  SpaceXAILanguageModelResponsesOptions,
   /** @deprecated Use `SpaceXAILanguageModelResponsesOptions` instead. */
-  XaiLanguageModelResponsesOptions,
+  SpaceXAILanguageModelResponsesOptions as XaiLanguageModelResponsesOptions,
   /** @deprecated Use `SpaceXAILanguageModelResponsesOptions` instead. */
-  XaiLanguageModelResponsesOptions as XaiResponsesProviderOptions,
-} from './responses/xai-responses-language-model-options';
+  SpaceXAILanguageModelResponsesOptions as XaiResponsesProviderOptions,
+} from './responses/spacexai-responses-language-model-options';
 export type {
-  XaiImageModelOptions as SpaceXAIImageModelOptions,
+  SpaceXAIImageModelOptions,
   /** @deprecated Use `SpaceXAIImageModelOptions` instead. */
-  XaiImageModelOptions,
+  SpaceXAIImageModelOptions as XaiImageModelOptions,
   /** @deprecated Use `SpaceXAIImageModelOptions` instead. */
-  XaiImageModelOptions as XaiImageProviderOptions,
-} from './xai-image-model-options';
+  SpaceXAIImageModelOptions as XaiImageProviderOptions,
+} from './spacexai-image-model-options';
 export type {
-  XaiVideoModelId as SpaceXAIVideoModelId,
+  SpaceXAIVideoModelId,
   /** @deprecated Use `SpaceXAIVideoModelId` instead. */
-  XaiVideoModelId,
-} from './xai-video-settings';
+  SpaceXAIVideoModelId as XaiVideoModelId,
+} from './spacexai-video-settings';
 export type {
-  XaiVideoModelOptions as SpaceXAIVideoModelOptions,
+  SpaceXAIVideoModelOptions,
   /** @deprecated Use `SpaceXAIVideoModelOptions` instead. */
-  XaiVideoModelOptions,
+  SpaceXAIVideoModelOptions as XaiVideoModelOptions,
   /** @deprecated Use `SpaceXAIVideoModelOptions` instead. */
-  XaiVideoModelOptions as XaiVideoProviderOptions,
-} from './xai-video-model-options';
+  SpaceXAIVideoModelOptions as XaiVideoProviderOptions,
+} from './spacexai-video-model-options';
 export type {
-  XaiSpeechModelOptions as SpaceXAISpeechModelOptions,
+  SpaceXAISpeechModelOptions,
   /** @deprecated Use `SpaceXAISpeechModelOptions` instead. */
-  XaiSpeechModelOptions,
-} from './xai-speech-model-options';
+  SpaceXAISpeechModelOptions as XaiSpeechModelOptions,
+} from './spacexai-speech-model-options';
 export type {
-  XaiTranscriptionModelOptions as SpaceXAITranscriptionModelOptions,
+  SpaceXAITranscriptionModelOptions,
   /** @deprecated Use `SpaceXAITranscriptionModelOptions` instead. */
-  XaiTranscriptionModelOptions,
-} from './xai-transcription-model-options';
+  SpaceXAITranscriptionModelOptions as XaiTranscriptionModelOptions,
+} from './spacexai-transcription-model-options';
 export type {
-  XaiFilesOptions as SpaceXAIFilesOptions,
+  SpaceXAIFilesOptions,
   /** @deprecated Use `SpaceXAIFilesOptions` instead. */
-  XaiFilesOptions,
-} from './files/xai-files-options';
+  SpaceXAIFilesOptions as XaiFilesOptions,
+} from './files/spacexai-files-options';
 export {
   createSpaceXAI,
   spacexai,
@@ -63,7 +63,7 @@ export {
   createXai,
   /** @deprecated Use `spacexai` instead. */
   xai,
-} from './xai-provider';
+} from './spacexai-provider';
 export type {
   SpaceXAIProvider,
   SpaceXAIProviderSettings,
@@ -71,13 +71,13 @@ export type {
   XaiProvider,
   /** @deprecated Use `SpaceXAIProviderSettings` instead. */
   XaiProviderSettings,
-} from './xai-provider';
-export { XaiRealtimeModel as Experimental_SpaceXAIRealtimeModel } from './realtime/xai-realtime-model';
-export type { XaiRealtimeModelConfig as Experimental_SpaceXAIRealtimeModelConfig } from './realtime/xai-realtime-model';
+} from './spacexai-provider';
+export { SpaceXAIRealtimeModel as Experimental_SpaceXAIRealtimeModel } from './realtime/spacexai-realtime-model';
+export type { SpaceXAIRealtimeModelConfig as Experimental_SpaceXAIRealtimeModelConfig } from './realtime/spacexai-realtime-model';
 /** @deprecated Use `Experimental_SpaceXAIRealtimeModel` instead. */
-export { XaiRealtimeModel as Experimental_XaiRealtimeModel } from './realtime/xai-realtime-model';
+export { SpaceXAIRealtimeModel as Experimental_XaiRealtimeModel } from './realtime/spacexai-realtime-model';
 /** @deprecated Use `Experimental_SpaceXAIRealtimeModelConfig` instead. */
-export type { XaiRealtimeModelConfig as Experimental_XaiRealtimeModelConfig } from './realtime/xai-realtime-model';
+export type { SpaceXAIRealtimeModelConfig as Experimental_XaiRealtimeModelConfig } from './realtime/spacexai-realtime-model';
 export {
   codeExecution,
   imageGeneration,

@@ -52,7 +52,7 @@ const imageGenerationToolFactory = createProviderExecutedToolFactory<
     action?: 'auto' | 'generate' | 'edit';
   }
 >({
-  id: 'xai.image_generation',
+  id: 'spacexai.image_generation',
   inputSchema: imageGenerationInputSchema,
   outputSchema: imageGenerationOutputSchema,
 });

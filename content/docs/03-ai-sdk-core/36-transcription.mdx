@@ -103,20 +103,20 @@ OpenAI streaming transcription uses `openai.transcription('gpt-realtime-whisper'
 Cartesia uses `cartesia.transcription('ink-2')` for streaming-only Ink 2
 transcription. ElevenLabs uses
 `elevenLabs.transcription('scribe_v2_realtime')` for Scribe v2 Realtime. xAI
-uses the same `xai.transcription()` model for request/response and streaming
+uses the same `spacexai.transcription()` model for request/response and streaming
 transcription; `experimental_streamTranscribe` selects the provider's
 WebSocket STT transport.
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { experimental_streamTranscribe as streamTranscribe } from 'ai';
 
 const result = streamTranscribe({
-  model: xai.transcription(),
+  model: spacexai.transcription(),
   audio: audioStream,
   inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
   providerOptions: {
-    xai: {
+    spacexai: {
       language: 'en',
       keyterm: ['AI SDK', 'Grok'],
       streaming: {
@@ -324,7 +324,7 @@ try {
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#transcription-models)     | `chirp_2`                |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#transcription-models)     | `chirp_3`                |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#transcription-models)     | `telephony`              |
-| [xAI](/providers/ai-sdk-providers/xai#transcription-models)                         | `default`                |
+| [xAI](/providers/ai-sdk-providers/spacexai#transcription-models)                    | `default`                |
 | [Cartesia](/providers/ai-sdk-providers/cartesia#transcription-models)               | `ink-whisper`            |
 | [Cartesia](/providers/ai-sdk-providers/cartesia#streaming-transcription-models)     | `ink-2`                  |
 | [Fish Audio](/providers/ai-sdk-providers/fish-audio#transcription-models)           | `transcribe-1`           |
