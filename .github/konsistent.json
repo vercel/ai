@@ -19,8 +19,7 @@
           "excludeFiles": ["packages/codemod"]
         },
         {
-          "use": "aisdk/package-must-have-changelog",
-          "excludeFiles": ["packages/xai"]
+          "use": "aisdk/package-must-have-changelog"
         },
         {
           "use": "aisdk/package-must-have-tsup-config",
@@ -64,7 +63,6 @@
         "!packages/react",
         "!packages/rsc",
         "!packages/sandbox-*",
-        "!packages/spacexai",
         "!packages/svelte",
         "!packages/test-server",
         "!packages/tui",
