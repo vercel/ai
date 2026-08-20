@@ -8,6 +8,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import {
+  createOpenResponsesExtensionRegistry,
+  type OpenResponsesExtension,
+} from './open-responses-extension';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
 import { VERSION } from './version';
 
@@ -41,12 +45,21 @@ export interface OpenResponsesProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Explicitly registered codecs for implementation-specific, namespaced Open
+   * Responses tools, items, and streaming events.
+   */
+  extensions?: readonly OpenResponsesExtension[];
 }
 
 export function createOpenResponses(
   options: OpenResponsesProviderSettings,
 ): OpenResponsesProvider {
   const providerName = options.name;
+  const extensionRegistry = createOpenResponsesExtensionRegistry(
+    options.extensions,
+  );
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -69,6 +82,7 @@ export function createOpenResponses(
       url: options.url,
       fetch: options.fetch,
       generateId: () => generateId(),
+      extensionRegistry,
     });
   };
 

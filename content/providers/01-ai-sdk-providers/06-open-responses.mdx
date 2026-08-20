@@ -239,10 +239,130 @@ file's media type. Provider file references, such as OpenAI file IDs, and
 file data in `{ type: 'text', text: '...' }` format are not supported by this
 provider.
 
+## Registered Extensions
+
+Open Responses implementations can add namespaced tools, items, and streaming
+events. Register an `OpenResponsesExtension` when an endpoint documents these
+wire formats and you want the generic adapter to encode and decode them.
+Extensions are opt-in; unregistered provider tools continue to produce
+`unsupported` warnings and are omitted from the request.
+
+The AI SDK provider-tool ID uses dot notation (`acme.document_search`), while
+the Open Responses wire types use the matching colon-prefixed namespace
+(`acme:document_search`). All `toolType`, `itemTypes`, and `eventTypes` values
+in an extension must use the same implementor namespace as its `id`.
+
+```ts
+import {
+  createOpenResponses,
+  type OpenResponsesExtension,
+} from '@ai-sdk/open-responses';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const documentSearchExtension: OpenResponsesExtension = {
+  id: 'acme.document_search',
+  toolType: 'acme:document_search',
+  itemTypes: ['acme:document_search_receipt'],
+  providerExecuted: true,
+
+  encodeTool: ({ name, args }) => ({
+    name,
+    index: args.index as string,
+  }),
+
+  decodeItem: ({ item }) => [
+    {
+      type: 'tool-call',
+      toolCallId: item.call_id as string,
+      toolName: item.name as string,
+      input: JSON.stringify(item.query),
+    },
+    {
+      type: 'tool-result',
+      toolCallId: item.call_id as string,
+      toolName: item.name as string,
+      result: item.result!,
+    },
+  ],
+};
+
+const acme = createOpenResponses({
+  name: 'acme',
+  url: 'https://api.acme.example/v1/responses',
+  extensions: [documentSearchExtension],
+});
+
+const documentSearch = tool({
+  type: 'provider',
+  id: 'acme.document_search',
+  args: { index: 'documentation' },
+  isProviderExecuted: true,
+  inputSchema: z.object({ text: z.string() }),
+  outputSchema: z.object({
+    documents: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+      }),
+    ),
+  }),
+});
+
+const result = await generateText({
+  model: acme('your-model-id'),
+  prompt: 'Find the extension documentation.',
+  tools: { documentSearch },
+});
+```
+
+Set `providerExecuted: true` for hosted tools that the endpoint executes, or
+`false` for tools that the application executes. The adapter applies this
+value to decoded tool calls.
+
+An extension codec can define:
+
+- `encodeTool` to encode the registered provider tool. Return `undefined` when
+  its arguments cannot be encoded; the provider emits an `unsupported` warning
+  and omits that tool. A specific `toolChoice` selecting the omitted tool is
+  also omitted rather than being encoded as a function-tool choice.
+- `encodeToolChoice` to customize a specific `toolChoice` object. By default,
+  the adapter sends `{ type: toolType }`.
+- `decodeItem` to map completed registered items to AI SDK tool, custom, file,
+  or source parts. The `mode` argument is either `'generate'` or `'stream'`.
+- `encodeInputItem` to encode newly created tool-call or tool-result history
+  when no original wire item is available. Returned items must include `id`,
+  `status`, and a registered namespaced `type`.
+- `decodeEvent` to map registered namespaced streaming events to AI SDK stream
+  parts. Its `state` map is unique to the current response stream and can
+  accumulate extension-specific deltas.
+
+For every decoded item, the provider adds an
+`open-responses.extension-replay` custom part that stores the original JSON
+item in provider metadata. Decoded parts carry only a lightweight reference to
+that replay part, so the opaque item is not duplicated for every mapped part.
+When you append `result.response.messages` to a later request, the replay part
+survives even when the codec mapped the item only to response-only source
+parts. The item is then replayed once, in its original position and with all
+opaque fields preserved. This enables lossless manual-history round trips for
+hosted-tool receipts.
+
+Only the top-level extension discriminator fields are checked by the adapter.
+Treat all other item and event fields as untrusted endpoint data and validate
+them in the codec before returning AI SDK parts. Opaque item data is retained
+once per decoded item in replay-part provider metadata and can therefore reach
+persisted messages, telemetry, logs, or UI payloads.
+
+Registered codecs are callback-based and are not serializable across workflow
+step boundaries. Create the Open Responses provider with its extensions inside
+the workflow step; attempting to serialize such a model throws a
+`SerializationError`.
+
 ## Limitations
 
 - Stop sequences, `topK`, and `seed` are not supported and are ignored with warnings.
 - The provider supports language models only. It does not provide embedding or
   image generation models.
-- AI SDK function tools are supported. Provider-specific built-in tools and
-  options require a dedicated provider implementation.
+- AI SDK function tools and explicitly registered namespaced extensions are
+  supported. Unregistered provider-specific tools and options require a
+  dedicated provider implementation.
