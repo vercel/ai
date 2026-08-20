@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19205,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19205-mcp-sse-non-2xx-hang.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19205-mcp-sse-non-2xx-hang.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE 19205 REPRODUCED: SSE tools() and callTool() remained pending after non-2xx POST responses"
+  }
+}
