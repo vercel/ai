@@ -1,8 +1,8 @@
-import type { LanguageModelV4FunctionTool } from '@ai-sdk/provider';
+import type { LanguageModelV3FunctionTool } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { expandParallelToolCall } from './expand-parallel-tool-call';
 
-const tools: Array<LanguageModelV4FunctionTool> = [
+const tools: Array<LanguageModelV3FunctionTool> = [
   {
     type: 'function',
     name: 'weather',

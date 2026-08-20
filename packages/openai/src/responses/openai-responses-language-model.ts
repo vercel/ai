@@ -1,12 +1,12 @@
 import {
   APICallError,
   type JSONValue,
-<<<<<<< HEAD
   type LanguageModelV3,
   type LanguageModelV3Prompt,
   type LanguageModelV3CallOptions,
   type LanguageModelV3Content,
   type LanguageModelV3FinishReason,
+  type LanguageModelV3FunctionTool,
   type LanguageModelV3GenerateResult,
   type LanguageModelV3ProviderTool,
   type LanguageModelV3StreamPart,
@@ -14,21 +14,6 @@ import {
   type LanguageModelV3ToolApprovalRequest,
   type SharedV3ProviderMetadata,
   type SharedV3Warning,
-=======
-  type LanguageModelV4,
-  type LanguageModelV4Prompt,
-  type LanguageModelV4CallOptions,
-  type LanguageModelV4Content,
-  type LanguageModelV4FinishReason,
-  type LanguageModelV4FunctionTool,
-  type LanguageModelV4GenerateResult,
-  type LanguageModelV4ProviderTool,
-  type LanguageModelV4StreamPart,
-  type LanguageModelV4StreamResult,
-  type LanguageModelV4ToolApprovalRequest,
-  type SharedV4ProviderMetadata,
-  type SharedV4Warning,
->>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -560,7 +545,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
     const functionTools =
       options.tools?.filter(
-        (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
+        (tool): tool is LanguageModelV3FunctionTool => tool.type === 'function',
       ) ?? [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
@@ -1147,7 +1132,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     const functionTools =
       options.tools?.filter(
-        (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
+        (tool): tool is LanguageModelV3FunctionTool => tool.type === 'function',
       ) ?? [];
 
     const approvalRequestIdToDummyToolCallIdFromStream = new Map<
@@ -1558,33 +1543,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         ...(item.namespace != null && {
                           namespace: item.namespace,
                         }),
-                        ...(item.caller != null && {
-                          caller:
-                            item.caller.type === 'program'
-                              ? {
-                                  type: 'program',
-                                  callerId: item.caller.caller_id,
-                                }
-                              : item.caller,
-                        }),
                       },
                     },
                   });
                 };
 
-<<<<<<< HEAD
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.call_id,
-                  toolName: value.item.name,
-                  input: value.item.arguments,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item.id,
-                      ...(value.item.namespace != null && {
-                        namespace: value.item.namespace,
-                      }),
-=======
                 if (!suppressInputStreaming) {
                   enqueueUnexpandedToolCall();
                   return;
@@ -1622,46 +1585,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     });
                     controller.enqueue(toolCall);
                   }
-                });
-              } else if (value.item.type === 'program') {
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.call_id,
-                  toolName: toolNameMapping.toCustomToolName(
-                    'programmatic_tool_calling',
-                  ),
-                  input: JSON.stringify({
-                    code: value.item.code,
-                    fingerprint: value.item.fingerprint,
-                  } satisfies InferSchema<
-                    typeof programmaticToolCallingInputSchema
-                  >),
-                  providerExecuted: true,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item.id,
-                    },
-                  },
-                });
-              } else if (value.item.type === 'program_output') {
-                controller.enqueue({
-                  type: 'tool-result',
-                  toolCallId: value.item.call_id,
-                  toolName: toolNameMapping.toCustomToolName(
-                    'programmatic_tool_calling',
-                  ),
-                  result: {
-                    result: value.item.result,
-                    status: value.item.status,
-                  } satisfies InferSchema<
-                    typeof programmaticToolCallingOutputSchema
-                  >,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item.id,
->>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
-                    },
-                  },
                 });
               } else if (value.item.type === 'custom_tool_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -2388,9 +2311,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-<<<<<<< HEAD
-            const providerMetadata: SharedV3ProviderMetadata = {
-=======
             for (const toolCall of Object.values(ongoingToolCalls)) {
               if (!toolCall?.suppressInputStreaming) {
                 continue;
@@ -2411,8 +2331,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               }
             }
 
-            const providerMetadata: SharedV4ProviderMetadata = {
->>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
+            const providerMetadata: SharedV3ProviderMetadata = {
               [providerOptionsName]: {
                 responseId: responseId,
                 ...(logprobs.length > 0 ? { logprobs } : {}),

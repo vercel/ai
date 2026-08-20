@@ -2787,8 +2787,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
-<<<<<<< HEAD
-=======
       it('should expand an internal parallel tool call wrapper', async () => {
         prepareJsonFixtureResponse('parallel-tool-call-wrapper.1');
 
@@ -2815,76 +2813,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         ]);
       });
 
-      it('should JSON-encode error outputs for tools with an output schema', async () => {
-        const outputSchema = {
-          type: 'object' as const,
-          properties: {
-            temperature: { type: 'number' as const },
-          },
-          required: ['temperature'],
-          additionalProperties: false,
-        };
-
-        await createModel('gpt-4o').doGenerate({
-          prompt: [
-            {
-              role: 'assistant',
-              content: [
-                {
-                  type: 'tool-call',
-                  toolCallId: 'call_123',
-                  toolName: 'weather',
-                  input: { location: 'San Francisco' },
-                },
-              ],
-            },
-            {
-              role: 'tool',
-              content: [
-                {
-                  type: 'tool-result',
-                  toolCallId: 'call_123',
-                  toolName: 'weather',
-                  output: { type: 'error-text', value: 'Error: boom' },
-                },
-              ],
-            },
-          ],
-          tools: [
-            {
-              ...TEST_TOOLS[0],
-              providerOptions: {
-                openai: { outputSchema },
-              },
-            },
-          ],
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          input: [
-            {
-              type: 'function_call',
-              call_id: 'call_123',
-              name: 'weather',
-              arguments: '{"location":"San Francisco"}',
-            },
-            {
-              type: 'function_call_output',
-              call_id: 'call_123',
-              output: '"Error: boom"',
-            },
-          ],
-          tools: [
-            {
-              type: 'function',
-              name: 'weather',
-              output_schema: outputSchema,
-            },
-          ],
-        });
-      });
-
->>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
       it('should have tool-calls finish reason', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,

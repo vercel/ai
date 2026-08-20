@@ -1,8 +1,8 @@
 import {
   isJSONObject,
-  type LanguageModelV4FunctionTool,
-  type LanguageModelV4ToolCall,
-  type SharedV4ProviderOptions,
+  type LanguageModelV3FunctionTool,
+  type LanguageModelV3ToolCall,
+  type SharedV3ProviderOptions,
 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 
@@ -26,7 +26,7 @@ export function getParallelToolCallMetadata({
   providerOptions,
   providerOptionsName,
 }: {
-  providerOptions: SharedV4ProviderOptions | undefined;
+  providerOptions: SharedV3ProviderOptions | undefined;
   providerOptionsName: string;
 }): ParallelToolCallMetadata | undefined {
   const metadata = providerOptions?.[providerOptionsName]?.parallelToolCall;
@@ -55,7 +55,7 @@ export function isUndeclaredParallelToolCall({
   tools,
 }: {
   toolName: string;
-  tools: Array<LanguageModelV4FunctionTool>;
+  tools: Array<LanguageModelV3FunctionTool>;
 }): boolean {
   return (
     toolName === parallelToolName &&
@@ -74,11 +74,11 @@ export async function expandParallelToolCall({
   providerOptionsName,
   itemId,
 }: {
-  toolCall: Pick<LanguageModelV4ToolCall, 'toolCallId' | 'toolName' | 'input'>;
-  tools: Array<LanguageModelV4FunctionTool>;
+  toolCall: Pick<LanguageModelV3ToolCall, 'toolCallId' | 'toolName' | 'input'>;
+  tools: Array<LanguageModelV3FunctionTool>;
   providerOptionsName: string;
   itemId: string;
-}): Promise<Array<LanguageModelV4ToolCall> | undefined> {
+}): Promise<Array<LanguageModelV3ToolCall> | undefined> {
   if (!isUndeclaredParallelToolCall({ toolName: toolCall.toolName, tools })) {
     return undefined;
   }
@@ -95,7 +95,7 @@ export async function expandParallelToolCall({
   }
 
   const availableToolNames = new Set(tools.map(tool => tool.name));
-  const expandedToolCalls: Array<LanguageModelV4ToolCall> = [];
+  const expandedToolCalls: Array<LanguageModelV3ToolCall> = [];
 
   for (const [index, toolUse] of toolUses.entries()) {
     if (!isJSONObject(toolUse)) {

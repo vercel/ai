@@ -1,5 +1,5 @@
 import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { describe, it, expect } from 'vitest';
 
@@ -11,7 +11,7 @@ const testToolNameMapping: ToolNameMapping = {
 const parallelToolCallInput =
   '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
 
-function createExpandedParallelToolCallPrompt(): LanguageModelV4Prompt {
+function createExpandedParallelToolCallPrompt(): LanguageModelV3Prompt {
   const providerOptions = (index: number) => ({
     openai: {
       parallelToolCall: {
