@@ -184,6 +184,7 @@ export function toUIMessageChunk<
         type: 'tool-input-start',
         toolCallId: part.id,
         toolName: part.toolName,
+        inputFormat: part.inputFormat ?? 'json',
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),

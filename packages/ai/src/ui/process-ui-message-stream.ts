@@ -41,6 +41,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
       text: string;
       index: number;
       toolName: string;
+      inputFormat?: 'json' | 'text';
       dynamic?: boolean;
       title?: string;
       toolMetadata?: JSONObject;
@@ -588,6 +589,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 text: '',
                 toolName: chunk.toolName,
                 index: toolInvocations.length,
+                inputFormat: chunk.inputFormat,
                 dynamic: chunk.dynamic,
                 title: chunk.title,
                 toolMetadata: chunk.toolMetadata,
@@ -635,16 +637,17 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               partialToolCall.text += chunk.inputTextDelta;
 
-              const { value: partialArgs } = await parsePartialJson(
-                partialToolCall.text,
-              );
+              const partialInput =
+                partialToolCall.inputFormat === 'text'
+                  ? partialToolCall.text
+                  : (await parsePartialJson(partialToolCall.text)).value;
 
               if (partialToolCall.dynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
-                  input: partialArgs,
+                  input: partialInput,
                   title: partialToolCall.title,
                   toolMetadata: partialToolCall.toolMetadata,
                 });
@@ -653,7 +656,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
-                  input: partialArgs,
+                  input: partialInput,
                   title: partialToolCall.title,
                   toolMetadata: partialToolCall.toolMetadata,
                 });

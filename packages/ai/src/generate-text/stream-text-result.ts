@@ -475,6 +475,7 @@ export type TextStreamToolInputStartPart = {
   type: 'tool-input-start';
   id: string;
   toolName: string;
+  inputFormat?: 'json' | 'text';
   providerMetadata?: ProviderMetadata;
   toolMetadata?: JSONObject;
   providerExecuted?: boolean;
