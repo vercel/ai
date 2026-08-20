@@ -10182,6 +10182,42 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should continue stream processing when onChunk throws', async () => {
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onChunk({ chunk }) {
+          if (chunk.type === 'text-delta') {
+            throw new Error('callback error');
+          }
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.textStream),
+      ).resolves.toStrictEqual(['Hello']);
+      await expect(resultObject.finishReason).resolves.toBe('stop');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
+    });
   });
 
   describe('options.onError', () => {
@@ -10203,6 +10239,42 @@ describe('streamText', () => {
       await resultObject.consumeStream();
 
       expect(result).toStrictEqual([{ error: new Error('test error') }]);
+    });
+
+    it('should preserve error parts and finish callbacks when onError throws', async () => {
+      const error = new Error('provider error');
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'error', raw: 'error' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError() {
+          throw new Error('callback error');
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.fullStream),
+      ).resolves.toContainEqual({ type: 'error', error });
+      await expect(resultObject.finishReason).resolves.toBe('error');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
     });
   });
 

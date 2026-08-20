@@ -1467,7 +1467,7 @@ Function tools work the same way as on the standard provider:
 
 ```ts
 import { google } from '@ai-sdk/google';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 
 const weatherTool = tool({
@@ -1479,7 +1479,7 @@ const weatherTool = tool({
 const { text, toolCalls } = await generateText({
   model: google.interactions('gemini-3.7-flash'),
   tools: { getWeather: weatherTool },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco right now?',
 });
 ```
@@ -1804,7 +1804,7 @@ import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: google('gemma-3-27b-it'),
-  system: 'You are a helpful assistant that responds concisely.',
+  instructions: 'You are a helpful assistant that responds concisely.',
   prompt: 'What is machine learning?',
 });
 ```

@@ -1220,7 +1220,10 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
-        await onChunk?.({ chunk: part });
+        await notify({
+          event: { chunk: part },
+          callbacks: onChunk,
+        });
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
@@ -1229,7 +1232,10 @@ class DefaultStreamTextResult<
             recordedNoOutputError = error;
           }
 
-          await onError({ error });
+          await notify({
+            event: { error },
+            callbacks: onError,
+          });
         }
 
         if (

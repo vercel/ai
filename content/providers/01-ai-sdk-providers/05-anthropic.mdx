@@ -1110,7 +1110,7 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-6'),
-  system:
+  instructions:
     'You have access to an `advisor` tool backed by a stronger reviewer model.',
   prompt:
     'Build a concurrent worker pool in Go with graceful shutdown. Outline the design first.',
