@@ -8,7 +8,7 @@ run(async () => {
   const largeContext = errorMessage.repeat(100);
 
   const result = streamText({
-    model: moonshotai('kimi-k2-thinking'),
+    model: moonshotai('kimi-k2.6'),
     messages: [
       {
         role: 'user',

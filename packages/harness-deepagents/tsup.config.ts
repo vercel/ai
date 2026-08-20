@@ -33,6 +33,7 @@ export default defineConfig([
       '@langchain/anthropic',
       '@langchain/core',
       '@langchain/langgraph',
+      '@langchain/mcp-adapters',
       'ws',
       'zod',
     ],

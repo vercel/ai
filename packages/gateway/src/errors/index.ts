@@ -14,6 +14,7 @@ export {
   GatewayModelNotFoundError,
   modelNotFoundParamSchema,
 } from './gateway-model-not-found-error';
+export { GatewayNotFoundError } from './gateway-not-found-error';
 export { GatewayRateLimitError } from './gateway-rate-limit-error';
 export { GatewayResponseError } from './gateway-response-error';
 export { GatewayTimeoutError } from './gateway-timeout-error';

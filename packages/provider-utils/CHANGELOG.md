@@ -1,5 +1,156 @@
 # @ai-sdk/provider-utils
 
+## 5.0.28
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+
+## 5.0.27
+
+### Patch Changes
+
+- 7fbfc6d: Preserve streamed download size-limit errors when response cancellation fails.
+
+## 5.0.26
+
+### Patch Changes
+
+- 401a4ba: fix(provider-utils): allow imports in runtimes without a global fetch function
+
+## 5.0.25
+
+### Patch Changes
+
+- 81cd026: Reduce bundle size by making internal Zod v4 imports tree-shakeable.
+- Updated dependencies [ad6a650]
+  - @ai-sdk/provider@4.0.7
+
+## 5.0.24
+
+### Patch Changes
+
+- 1937bef: fix(provider-utils): make URL regex checks stateless
+
+## 5.0.23
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+
+## 5.0.22
+
+### Patch Changes
+
+- 2b60826: feat(provider-utils): support Blob request bodies in postToApi
+
+## 5.0.21
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+
+## 5.0.20
+
+### Patch Changes
+
+- 160ccdb: Reduce bundle size by removing the runtime Zod 3 dependency.
+
+## 5.0.19
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+
+## 5.0.18
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+
+## 5.0.17
+
+### Patch Changes
+
+- fa95504: feat(ai): support experimental tool callers in ToolLoopAgent
+
+## 5.0.16
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+
+## 5.0.15
+
+### Patch Changes
+
+- 1659cd5: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 6a5bdff: Fix validated Node.js downloads when the HTTP connector requests a single DNS address.
+
+## 5.0.14
+
+### Patch Changes
+
+- 0c464d9: feat(provider-utils): add a typed serialization error
+- c49380c: feat: add experimental streaming speech translation models (`openai.translation('gpt-realtime-translate')` over the OpenAI Realtime translations WebSocket and `google.translation('gemini-3.5-live-translate-preview')` over the Gemini Live API). `connectToWebSocket` in `@ai-sdk/provider-utils` now passes close code and reason to `onClose` (additive, optional parameter).
+
+## 5.0.13
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+
+## 5.0.12
+
+### Patch Changes
+
+- 02ffdcb: fix(provider-utils): bound media-type sniffing decode for ID3-prefixed input
+
+  Media-type detection stripped ID3 tags before the ~18-byte prefix cap, decoding the entire base64 attachment (plus a full-size copy) whenever the data began with `ID3`/`SUQz`. This turned the intended O(1) sniff into an O(N) decode of the whole attachment. Detection now decodes at most a bounded prefix and skips the ID3 tag within that bound, keeping cost O(1) in input size on all paths (image, audio, and combined).
+
+- 76cb673: fix: detect MP4 audio from its ftyp box during transcription
+
+## 5.0.11
+
+### Patch Changes
+
+- cd06458: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+
+## 5.0.10
+
+### Patch Changes
+
+- 31c7be8: Accept callable Standard Schema validators that do not provide JSON Schema conversion.
+
+## 5.0.9
+
+### Patch Changes
+
+- 4be62c1: fix(provider-utils): validate provider-response URLs in `getFromApi`
+
+  `getFromApi` now has a `validateUrl` flag. It is optional so existing callers keep compiling (omitting it behaves like `false`, i.e. no validation), but all AI SDK provider packages set it explicitly at every call site so each one makes a visible trust decision. When `true`, the URL is routed through `fetchWithValidatedRedirects` — the same guard used by `downloadBlob` — which rejects private/loopback/link-local targets, re-validates every redirect hop, strips proxy/metadata/cookie request headers, and drops all caller headers except the user-agent on cross-origin redirects (custom API-key headers must not follow a redirect off-origin any more than `Authorization` may); blocked URLs throw `DownloadError`. It is enabled at the image/video/audio download and polling call sites where the URL comes from a provider response body; URLs built from developer-configured endpoints pass `validateUrl: false` and are unaffected.
+
+  A new optional `credentialedOrigin` withholds caller headers unless the URL is same-origin with it, so the API key is not sent to a response-supplied host on a different origin.
+
+  A new optional `trustedOrigin` exempts URLs (and redirect hops) that are same-origin with the developer-configured provider endpoint from target validation, so self-hosted and localhost deployments whose response URLs point back at the configured host keep working; all other hops are still validated.
+
+  Also closes range gaps in `validateDownloadUrl` (IPv4 `224.0.0.0/4` multicast and the TEST-NET documentation ranges `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`; IPv6 documentation ranges `2001:db8::/32` and `3fff::/20`), and follows only the fetch-spec redirect status codes (301/302/303/307/308) — a `Location` header on any other status is not followed. This guard performs string/literal checks only and does not resolve DNS; hostnames that resolve to private addresses and DNS rebinding remain out of scope and must be constrained at the network layer (or by injecting a Node `fetch` that pins the resolved IP at connect time) for server deployments handling untrusted URLs. See `contributing/secure-url-handling.md`.
+
+- 7805e4a: Add experimental transcription-stream WebSocket envelope (standard doStream-over-WebSocket serialization): frame type constants, `experimental_parseTranscriptionStreamClientFrame`, `experimental_serializeTranscriptionStreamPart`, and `experimental_parseTranscriptionStreamPart` (all APIs are exported with experimental prefixes). `serializeTranscriptionStreamPart` returns `undefined` for payloads that are not JSON-serializable (callers drop the frame) and serializes cross-realm `Error` payloads by brand check.
+- cd12954: Reject empty OpenAI, Anthropic, and Replicate base URLs with a helpful AI SDK
+  invalid argument error.
+
+## 5.0.8
+
+### Patch Changes
+
+- e193290: Add `connectToWebSocket` to `@ai-sdk/provider-utils`: a shared WebSocket connect layer (constructor resolution, header hygiene, abort wiring, message decoding) analogous to `postToApi` for HTTP. The openai and xai streaming transcription models now use it instead of hand-rolled connects. For openai and xai this also means WebSocket constructor failures now surface as stream errors instead of throwing synchronously from `doStream`, an already-aborted signal no longer constructs a socket, and the caller's audio stream is cancelled on pre-open failures. Messages are processed in order with close handling deferred behind pending frames, audio send loops apply backpressure via the socket's bufferedAmount, and failed sends cancel the caller's audio stream.
+
 ## 5.0.7
 
 ### Patch Changes

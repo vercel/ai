@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { resolveDeepAgentsEnv } from './deepagents-auth';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  createDeepAgentsRequestTransformations,
+  resolveDeepAgentsAuthenticationMode,
+  resolveDeepAgentsEnv,
+} from './deepagents-auth';
 
 describe('resolveDeepAgentsEnv', () => {
   it('pins explicit anthropic auth', () => {
@@ -73,5 +77,112 @@ describe('resolveDeepAgentsEnv', () => {
       processEnv: { ANTHROPIC_API_KEY: 'ambient-ant' },
     });
     expect(env).toEqual({ ANTHROPIC_API_KEY: 'ambient-ant' });
+  });
+
+  it('supports string authentication modes', () => {
+    expect(
+      resolveDeepAgentsEnv({
+        auth: 'anthropic',
+        processEnv: { ANTHROPIC_API_KEY: 'sk-anthropic' },
+      }),
+    ).toEqual({ ANTHROPIC_API_KEY: 'sk-anthropic' });
+
+    expect(
+      resolveDeepAgentsEnv({
+        auth: 'ai-gateway',
+        processEnv: { AI_GATEWAY_API_KEY: 'gw-mode' },
+      }),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'gw-mode',
+      ANTHROPIC_API_KEY: 'gw-mode',
+      ANTHROPIC_BASE_URL: 'https://ai-gateway.vercel.sh',
+    });
+  });
+
+  it('warns when passing a legacy object shape', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    resolveDeepAgentsEnv({
+      auth: { anthropic: {} },
+      processEnv: {},
+    });
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Passing an object to auth options is deprecated',
+      ),
+    );
+    spy.mockRestore();
+  });
+});
+
+describe('resolveDeepAgentsAuthenticationMode', () => {
+  it('preserves explicit Anthropic auth despite ambient Gateway credentials', () => {
+    expect(
+      resolveDeepAgentsAuthenticationMode({
+        auth: { anthropic: {} },
+        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+      }),
+    ).toBe('anthropic');
+  });
+
+  it('resolves ambient Gateway credentials to Gateway auth', () => {
+    expect(
+      resolveDeepAgentsAuthenticationMode({
+        processEnv: { VERCEL_OIDC_TOKEN: 'oidc-token' },
+      }),
+    ).toBe('ai-gateway');
+  });
+});
+
+describe('createDeepAgentsRequestTransformations', () => {
+  it('injects the Anthropic API key at the configured endpoint', () => {
+    expect(
+      createDeepAgentsRequestTransformations(
+        {
+          ANTHROPIC_API_KEY: 'api-secret',
+          ANTHROPIC_BASE_URL: 'https://anthropic.example',
+        },
+        'anthropic',
+      ),
+    ).toEqual([
+      {
+        match: { host: 'anthropic.example' },
+        transform: { headers: { 'x-api-key': 'api-secret' } },
+      },
+    ]);
+  });
+
+  it('injects the Anthropic auth token as a bearer credential', () => {
+    expect(
+      createDeepAgentsRequestTransformations(
+        {
+          ANTHROPIC_AUTH_TOKEN: 'token-secret',
+        },
+        'anthropic',
+      ),
+    ).toEqual([
+      {
+        match: { host: 'api.anthropic.com' },
+        transform: {
+          headers: { Authorization: 'Bearer token-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('uses the resolved Gateway route', () => {
+    expect(
+      createDeepAgentsRequestTransformations(
+        {
+          ANTHROPIC_API_KEY: 'gateway-secret',
+          ANTHROPIC_BASE_URL: 'https://gateway.example',
+        },
+        'ai-gateway',
+      ),
+    ).toEqual([
+      {
+        match: { host: 'gateway.example' },
+        transform: { headers: { 'x-api-key': 'gateway-secret' } },
+      },
+    ]);
   });
 });

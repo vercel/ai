@@ -1,5 +1,384 @@
 # @ai-sdk/langchain
 
+## 3.0.71
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 3.0.70
+
+### Patch Changes
+
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - ai@7.0.70
+
+## 3.0.69
+
+### Patch Changes
+
+- ai@7.0.69
+
+## 3.0.68
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 3.0.67
+
+### Patch Changes
+
+- 404a9d9: Preserve tool input lifecycles when LangGraph steps reuse a provider tool call ID.
+  - ai@7.0.67
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 3.0.64
+
+### Patch Changes
+
+- ai@7.0.64
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 3.0.62
+
+### Patch Changes
+
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+  - ai@7.0.61
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
+## 3.0.59
+
+### Patch Changes
+
+- ai@7.0.59
+
+## 3.0.58
+
+### Patch Changes
+
+- Updated dependencies [72ad23f]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - ai@7.0.58
+
+## 3.0.57
+
+### Patch Changes
+
+- a771719: Preserve LangGraph subgraph namespaces and step lifecycles without letting concurrent namespace counters split active text or reasoning streams.
+  - ai@7.0.57
+
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - ai@7.0.55
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 3.0.53
+
+### Patch Changes
+
+- Updated dependencies [cd0177b]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [3836a85]
+  - ai@7.0.52
+
+## 3.0.51
+
+### Patch Changes
+
+- ai@7.0.51
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+- Updated dependencies [da64b51]
+  - ai@7.0.50
+
+## 3.0.49
+
+### Patch Changes
+
+- ai@7.0.49
+
+## 3.0.48
+
+### Patch Changes
+
+- ai@7.0.48
+
+## 3.0.47
+
+### Patch Changes
+
+- ai@7.0.47
+
+## 3.0.46
+
+### Patch Changes
+
+- ai@7.0.46
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [d6ce0ee]
+- Updated dependencies [fa95504]
+- Updated dependencies [349afe7]
+  - ai@7.0.45
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [b192878]
+  - ai@7.0.43
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - ai@7.0.42
+
+## 3.0.41
+
+### Patch Changes
+
+- 092928a: Fix missing text deltas when LangChain AI message chunks come from a different module build.
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [09a52cb]
+  - ai@7.0.39
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+
+## 3.0.37
+
+### Patch Changes
+
+- ai@7.0.37
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
+## 3.0.35
+
+### Patch Changes
+
+- 48ec036: Emit canonical LangChain image content blocks when converting user messages.
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
+## 3.0.34
+
+### Patch Changes
+
+- ai@7.0.34
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - ai@7.0.33
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
+## 3.0.31
+
+### Patch Changes
+
+- 223b5c3: feat(langchain): allow suppressing outer start and finish UI message chunks
+- e864c10: fix(langchain): close LangGraph reasoning before starting text
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+  - ai@7.0.31
+
+## 3.0.30
+
+### Patch Changes
+
+- ai@7.0.30
+
+## 3.0.29
+
+### Patch Changes
+
+- ai@7.0.29
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [0bc8d4f]
+  - ai@7.0.28
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [ac01b79]
+- Updated dependencies [2696562]
+  - ai@7.0.27
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [27d294d]
+  - ai@7.0.26
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [7805e4a]
+- Updated dependencies [f8e82fd]
+  - ai@7.0.25
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - ai@7.0.24
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [930f949]
+  - ai@7.0.23
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [8f89c25]
+  - ai@7.0.22
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [308a519]
+  - ai@7.0.21
+
 ## 3.0.20
 
 ### Patch Changes

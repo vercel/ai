@@ -442,6 +442,22 @@ data: {"type":"finish-step"}
 
 ```
 
+### Reset Step Part
+
+Removes all message parts received since the most recent `start-step` part. If
+there is no step boundary, it removes all parts from the current message. This
+is useful when a streamed step is retried and partial output from the failed
+attempt must be invalidated before replacement output is sent.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"reset-step"}
+
+```
+
 ### Finish Message Part
 
 A part indicating the completion of a message.

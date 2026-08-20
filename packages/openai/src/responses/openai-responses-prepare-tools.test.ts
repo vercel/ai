@@ -637,6 +637,7 @@ describe('prepareResponsesTools', () => {
               externalWebAccess: true,
               filters: {
                 allowedDomains: ['example.com', 'test.org'],
+                blockedDomains: ['blocked.example', 'blocked.test'],
               },
               searchContextSize: 'high',
               userLocation: {
@@ -664,6 +665,10 @@ describe('prepareResponsesTools', () => {
                   "example.com",
                   "test.org",
                 ],
+                "blocked_domains": [
+                  "blocked.example",
+                  "blocked.test",
+                ],
               },
               "search_context_size": "high",
               "type": "web_search",
@@ -680,7 +685,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare web_search tool with filters but no externalWebAccess', async () => {
+    it('should prepare web_search tool with blocked domains', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -689,7 +694,7 @@ describe('prepareResponsesTools', () => {
             name: 'web_search',
             args: {
               filters: {
-                allowedDomains: ['example.com'],
+                blockedDomains: ['example.com'],
               },
             },
           },
@@ -705,7 +710,8 @@ describe('prepareResponsesTools', () => {
             {
               "external_web_access": undefined,
               "filters": {
-                "allowed_domains": [
+                "allowed_domains": undefined,
+                "blocked_domains": [
                   "example.com",
                 ],
               },
@@ -1541,6 +1547,44 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('computer', () => {
+    it('should prepare computer tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.computer',
+            name: 'computer',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toEqual({
+        tools: [{ type: 'computer' }],
+        toolChoice: undefined,
+        toolWarnings: [],
+      });
+    });
+
+    it('should handle computer tool choice', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.computer',
+            name: 'computer',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'computer' },
+      });
+
+      expect(result.toolChoice).toEqual({ type: 'computer' });
+    });
+  });
+
   describe('apply_patch', () => {
     it('should prepare apply_patch tool', async () => {
       const result = await prepareResponsesTools({
@@ -1916,22 +1960,56 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('allowedTools provider option', () => {
+    const functionTool = {
+      type: 'function',
+      name: 'get_weather',
+      description: 'Get weather',
+      inputSchema: { type: 'object', properties: {} },
+    } as const;
+
+    const timeTool = {
+      type: 'function',
+      name: 'get_time',
+      description: 'Get time',
+      inputSchema: { type: 'object', properties: {} },
+    } as const;
+
+    const webSearchTool = {
+      type: 'provider',
+      id: 'openai.web_search',
+      name: 'search',
+      args: {},
+    } as const;
+
+    // mirrors the mapping the language model builds from its providerToolNames
+    // registry, so canonical provider names resolve as they do in a request:
+    const webSearchNameMapping = {
+      toProviderToolName: (name: string) =>
+        name === 'search' ? 'web_search' : name,
+      toCustomToolName: (name: string) =>
+        name === 'web_search' ? 'search' : name,
+    };
+
+    const mcpTool = (name: string, serverLabel: string) =>
+      ({
+        type: 'provider',
+        id: 'openai.mcp',
+        name,
+        args: {
+          serverLabel,
+          serverUrl: `https://${serverLabel}.example.com/mcp`,
+        },
+      }) as const;
+
+    const mcpNameMapping = {
+      toProviderToolName: (name: string) =>
+        name === 'alpha' || name === 'beta' ? 'mcp' : name,
+      toCustomToolName: (name: string) => name,
+    };
+
     it('should emit allowed_tools with default auto mode', async () => {
       const result = await prepareResponsesTools({
-        tools: [
-          {
-            type: 'function',
-            name: 'get_weather',
-            description: 'Get weather',
-            inputSchema: { type: 'object', properties: {} },
-          },
-          {
-            type: 'function',
-            name: 'get_time',
-            description: 'Get time',
-            inputSchema: { type: 'object', properties: {} },
-          },
-        ],
+        tools: [functionTool, timeTool],
         toolChoice: undefined,
         allowedTools: { toolNames: ['get_weather'] },
       });
@@ -1946,20 +2024,7 @@ describe('prepareResponsesTools', () => {
 
     it('should emit allowed_tools with required mode', async () => {
       const result = await prepareResponsesTools({
-        tools: [
-          {
-            type: 'function',
-            name: 'get_weather',
-            description: 'Get weather',
-            inputSchema: { type: 'object', properties: {} },
-          },
-          {
-            type: 'function',
-            name: 'get_time',
-            description: 'Get time',
-            inputSchema: { type: 'object', properties: {} },
-          },
-        ],
+        tools: [functionTool, timeTool],
         toolChoice: undefined,
         allowedTools: {
           toolNames: ['get_weather', 'get_time'],
@@ -1980,14 +2045,7 @@ describe('prepareResponsesTools', () => {
 
     it('should override request-level toolChoice when allowedTools is set', async () => {
       const result = await prepareResponsesTools({
-        tools: [
-          {
-            type: 'function',
-            name: 'get_weather',
-            description: 'Get weather',
-            inputSchema: { type: 'object', properties: {} },
-          },
-        ],
+        tools: [functionTool],
         toolChoice: { type: 'required' },
         allowedTools: { toolNames: ['get_weather'] },
       });
@@ -1996,6 +2054,522 @@ describe('prepareResponsesTools', () => {
         type: 'allowed_tools',
         mode: 'auto',
         tools: [{ type: 'function', name: 'get_weather' }],
+      });
+    });
+
+    describe('entry shapes', () => {
+      it.each([
+        [
+          'web search',
+          {
+            type: 'provider',
+            id: 'openai.web_search',
+            name: 'search',
+            args: {},
+          },
+          'search',
+          { type: 'web_search' },
+        ],
+        [
+          'file search',
+          {
+            type: 'provider',
+            id: 'openai.file_search',
+            name: 'file_search',
+            args: { vectorStoreIds: ['vs-1'] },
+          },
+          'file_search',
+          { type: 'file_search' },
+        ],
+        [
+          'web search preview',
+          {
+            type: 'provider',
+            id: 'openai.web_search_preview',
+            name: 'web_search_preview',
+            args: {},
+          },
+          'web_search_preview',
+          { type: 'web_search_preview' },
+        ],
+        [
+          'image generation',
+          {
+            type: 'provider',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {},
+          },
+          'image_generation',
+          { type: 'image_generation' },
+        ],
+        [
+          'code interpreter',
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {},
+          },
+          'code_interpreter',
+          { type: 'code_interpreter' },
+        ],
+        [
+          'apply patch',
+          {
+            type: 'provider',
+            id: 'openai.apply_patch',
+            name: 'apply_patch',
+            args: {},
+          },
+          'apply_patch',
+          { type: 'apply_patch' },
+        ],
+        [
+          'shell',
+          { type: 'provider', id: 'openai.shell', name: 'shell', args: {} },
+          'shell',
+          { type: 'shell' },
+        ],
+        [
+          'computer',
+          {
+            type: 'provider',
+            id: 'openai.computer',
+            name: 'computer',
+            args: {},
+          },
+          'computer',
+          { type: 'computer' },
+        ],
+        [
+          'mcp (carries its server label)',
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'deepwiki',
+            args: {
+              serverLabel: 'deepwiki',
+              serverUrl: 'https://mcp.deepwiki.com/mcp',
+            },
+          },
+          'deepwiki',
+          { type: 'mcp', server_label: 'deepwiki' },
+        ],
+        [
+          'custom (carries its name)',
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: { description: 'Write a SQL SELECT query.' },
+          },
+          'write_sql',
+          { type: 'custom', name: 'write_sql' },
+        ],
+      ])(
+        'should emit the correct allowed_tools entry for %s',
+        async (_label, tool, allowedName, expectedEntry) => {
+          const result = await prepareResponsesTools({
+            tools: [tool as any],
+            toolChoice: undefined,
+            allowedTools: { toolNames: [allowedName as string] },
+          });
+
+          expect(result.toolChoice).toEqual({
+            type: 'allowed_tools',
+            mode: 'auto',
+            tools: [expectedEntry],
+          });
+          expect(result.toolWarnings).toEqual([]);
+        },
+      );
+    });
+
+    it('should preserve the order of mixed function and built-in entries without deduplicating', async () => {
+      const result = await prepareResponsesTools({
+        tools: [functionTool, webSearchTool],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['search', 'get_weather', 'search'] },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [
+          { type: 'web_search' },
+          { type: 'function', name: 'get_weather' },
+          { type: 'web_search' },
+        ],
+      });
+    });
+
+    it('should resolve a built-in tool by its canonical provider name', async () => {
+      const result = await prepareResponsesTools({
+        tools: [webSearchTool],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['web_search'] },
+        toolNameMapping: webSearchNameMapping,
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'web_search' }],
+      });
+    });
+
+    it('should prefer the user tool name over a canonical name alias on collision', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'web_search',
+            description: 'A function that happens to be named web_search',
+            inputSchema: { type: 'object', properties: {} },
+          },
+          webSearchTool,
+        ],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['web_search'] },
+        toolNameMapping: webSearchNameMapping,
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'web_search' }],
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'allowedTools entry "web_search"',
+          details:
+            'this name is both a tool name and the provider tool name of another tool in this request; the tool with this name is allowed',
+        },
+      ]);
+    });
+
+    it('should not resolve a function tool by the literal name "function"', async () => {
+      const result = await prepareResponsesTools({
+        tools: [functionTool],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['function'] },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'function' }],
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'allowedTools entry "function"',
+          details:
+            'the tool is not part of the tools for this request and is sent as a function tool',
+        },
+      ]);
+    });
+
+    describe('tools that cannot be allow-listed', () => {
+      it.each([
+        [
+          'a deferred tool',
+          {
+            type: 'function',
+            name: 'problem_tool',
+            description: 'Deferred',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: { openai: { deferLoading: true } },
+          },
+          'problem_tool',
+          'deferred tools are not visible to tool_choice.allowed_tools; the tool is removed from the allowed tools',
+        ],
+        [
+          'a namespaced tool',
+          {
+            type: 'function',
+            name: 'problem_tool',
+            description: 'Namespaced',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openai: { namespace: { name: 'crm', description: 'CRM tools' } },
+            },
+          },
+          'problem_tool',
+          'tools inside an OpenAI tool namespace are not visible to tool_choice.allowed_tools; the tool is removed from the allowed tools',
+        ],
+        [
+          'the tool search tool',
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'problem_tool',
+            args: {},
+          },
+          'problem_tool',
+          'OpenAI does not support tool_search tools in tool_choice.allowed_tools; the tool is removed from the allowed tools',
+        ],
+      ])(
+        'should drop %s from the allow-list and warn',
+        async (_label, problemTool, allowedName, expectedDetails) => {
+          const result = await prepareResponsesTools({
+            tools: [functionTool, problemTool as any],
+            toolChoice: undefined,
+            allowedTools: {
+              toolNames: ['get_weather', allowedName as string],
+            },
+          });
+
+          expect(result.toolChoice).toEqual({
+            type: 'allowed_tools',
+            mode: 'auto',
+            tools: [{ type: 'function', name: 'get_weather' }],
+          });
+          expect(result.toolWarnings).toEqual([
+            {
+              type: 'unsupported',
+              feature: `allowedTools entry "${allowedName}"`,
+              details: expectedDetails,
+            },
+          ]);
+        },
+      );
+
+      it('should drop an unlistable provider tool referenced by its canonical name', async () => {
+        const result = await prepareResponsesTools({
+          tools: [
+            functionTool,
+            {
+              type: 'provider',
+              id: 'openai.tool_search',
+              name: 'my_search',
+              args: {},
+            },
+          ],
+          toolChoice: undefined,
+          allowedTools: { toolNames: ['get_weather', 'tool_search'] },
+          toolNameMapping: {
+            toProviderToolName: name =>
+              name === 'my_search' ? 'tool_search' : name,
+            toCustomToolName: name => name,
+          },
+        });
+
+        expect(result.toolChoice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [{ type: 'function', name: 'get_weather' }],
+        });
+        expect(result.toolWarnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'allowedTools entry "tool_search"',
+            details:
+              'OpenAI does not support tool_search tools in tool_choice.allowed_tools; the tool is removed from the allowed tools',
+          },
+        ]);
+      });
+
+      it('should drop an ambiguous canonical name when several tools share it', async () => {
+        const result = await prepareResponsesTools({
+          tools: [
+            functionTool,
+            mcpTool('alpha', 'alpha'),
+            mcpTool('beta', 'beta'),
+          ],
+          toolChoice: undefined,
+          allowedTools: { toolNames: ['get_weather', 'mcp'] },
+          toolNameMapping: mcpNameMapping,
+        });
+
+        expect(result.toolChoice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [{ type: 'function', name: 'get_weather' }],
+        });
+        expect(result.toolWarnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'allowedTools entry "mcp"',
+            details:
+              'several tools in this request share this provider tool name; use the tool name from the tools for this request instead',
+          },
+        ]);
+      });
+
+      it('should still resolve each mcp server by its own tool name', async () => {
+        const result = await prepareResponsesTools({
+          tools: [mcpTool('alpha', 'alpha'), mcpTool('beta', 'beta')],
+          toolChoice: undefined,
+          allowedTools: { toolNames: ['beta'] },
+          toolNameMapping: mcpNameMapping,
+        });
+
+        expect(result.toolChoice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [{ type: 'mcp', server_label: 'beta' }],
+        });
+        expect(result.toolWarnings).toEqual([]);
+      });
+
+      it('should throw when no allowed tool can be expressed', async () => {
+        await expect(
+          prepareResponsesTools({
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.tool_search',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'deferred_tool',
+                description: 'Deferred',
+                inputSchema: { type: 'object', properties: {} },
+                providerOptions: { openai: { deferLoading: true } },
+              },
+            ],
+            toolChoice: undefined,
+            allowedTools: { toolNames: ['tool_search', 'deferred_tool'] },
+          }),
+        ).rejects.toThrow(
+          'allowedTools with only tools that cannot be allow-listed (tool_search, deferred_tool)',
+        );
+      });
+    });
+
+    it('should warn and still send an entry for a tool that is not part of the request', async () => {
+      const result = await prepareResponsesTools({
+        tools: [functionTool],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['get_weather', 'typo_tool'] },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [
+          { type: 'function', name: 'get_weather' },
+          { type: 'function', name: 'typo_tool' },
+        ],
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'allowedTools entry "typo_tool"',
+          details:
+            'the tool is not part of the tools for this request and is sent as a function tool',
+        },
+      ]);
+    });
+
+    it('should apply the tool name mapping for a tool that is not part of the request', async () => {
+      const result = await prepareResponsesTools({
+        tools: [functionTool],
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['my_tool'] },
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'my_tool' ? 'mapped_tool' : name,
+          toCustomToolName: name => name,
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'mapped_tool' }],
+      });
+    });
+  });
+  describe('programmatic tool calling', () => {
+    it('should serialize the hosted tool and function tool options', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_inventory',
+            description: 'Get inventory',
+            inputSchema: {
+              type: 'object',
+              properties: { sku: { type: 'string' } },
+              required: ['sku'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: {
+                allowedCallers: ['programmatic'],
+                outputSchema: {
+                  type: 'object',
+                  properties: {
+                    sku: { type: 'string' },
+                    availableUnits: { type: 'number' },
+                  },
+                  required: ['sku', 'availableUnits'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        { type: 'programmatic_tool_calling' },
+        {
+          type: 'function',
+          name: 'get_inventory',
+          description: 'Get inventory',
+          parameters: {
+            type: 'object',
+            properties: { sku: { type: 'string' } },
+            required: ['sku'],
+            additionalProperties: false,
+          },
+          allowed_callers: ['programmatic'],
+          output_schema: {
+            type: 'object',
+            properties: {
+              sku: { type: 'string' },
+              availableUnits: { type: 'number' },
+            },
+            required: ['sku', 'availableUnits'],
+            additionalProperties: false,
+          },
+        },
+      ]);
+    });
+
+    it('should support forcing the hosted tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.programmatic_tool_calling',
+            name: 'program',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'program' },
+        toolNameMapping: {
+          toProviderToolName: () => 'programmatic_tool_calling',
+          toCustomToolName: () => 'program',
+        },
+      });
+
+      expect(result.toolChoice).toEqual({
+        type: 'programmatic_tool_calling',
       });
     });
   });
