@@ -1,5 +1,141 @@
 # ai
 
+## 5.0.241
+
+### Patch Changes
+
+- 9d0b84c: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- 05df123: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- e532644: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+
+## 5.0.240
+
+### Patch Changes
+
+- Updated dependencies [bef36a6]
+  - @ai-sdk/gateway@2.0.137
+
+## 5.0.239
+
+### Patch Changes
+
+- Updated dependencies [05d5b6c]
+  - @ai-sdk/gateway@2.0.136
+
+## 5.0.238
+
+### Patch Changes
+
+- Updated dependencies [b484978]
+  - @ai-sdk/gateway@2.0.135
+
+## 5.0.237
+
+### Patch Changes
+
+- bf11412: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 7ec6b69: Fix declaration emit for exported values that infer an `Output` type.
+
+## 5.0.236
+
+### Patch Changes
+
+- c425210: Propagate errors thrown by chat `onFinish` callbacks.
+- eb7f2ac: Keep chat status submitted until response content begins streaming.
+- Updated dependencies [df0cbe9]
+  - @ai-sdk/gateway@2.0.134
+
+## 5.0.235
+
+### Patch Changes
+
+- Updated dependencies [91e93fa]
+- Updated dependencies [de0921d]
+  - @ai-sdk/gateway@2.0.133
+
+## 5.0.234
+
+### Patch Changes
+
+- 412c15e: Preserve reasoning part IDs when processing UI message streams.
+- Updated dependencies [1e632f7]
+  - @ai-sdk/gateway@2.0.132
+
+## 5.0.233
+
+### Patch Changes
+
+- 2604cb6: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+
+## 5.0.232
+
+### Patch Changes
+
+- 66dd974: Prevent streaming telemetry spans from ending twice or remaining unfinished when model calls fail.
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/gateway@2.0.131
+
+## 5.0.231
+
+### Patch Changes
+
+- 2709314: Stop pending and active resumed chat streams after cancellation, and prevent overlapping resumptions from applying stale updates.
+- Updated dependencies [b474448]
+  - @ai-sdk/gateway@2.0.130
+
+## 5.0.230
+
+### Patch Changes
+
+- Updated dependencies [c524e57]
+  - @ai-sdk/gateway@2.0.129
+
+## 5.0.229
+
+### Patch Changes
+
+- Updated dependencies [bd09b8e]
+  - @ai-sdk/gateway@2.0.128
+
+## 5.0.228
+
+### Patch Changes
+
+- Updated dependencies [b74765f]
+  - @ai-sdk/gateway@2.0.127
+
+## 5.0.227
+
+### Patch Changes
+
+- 212d793: Skip re-validating tool input for terminal output-available UI message parts.
+- Updated dependencies [1ce55ef]
+- Updated dependencies [f50dc31]
+  - @ai-sdk/gateway@2.0.126
+
+## 5.0.226
+
+### Patch Changes
+
+- Updated dependencies [ecd9c1c]
+  - @ai-sdk/gateway@2.0.125
+
+## 5.0.225
+
+### Patch Changes
+
+- Updated dependencies [8ea0ce4]
+  - @ai-sdk/gateway@2.0.124
+
+## 5.0.224
+
+### Patch Changes
+
+- Updated dependencies [d27b3c3]
+  - @ai-sdk/gateway@2.0.123
+
 ## 5.0.223
 
 ### Patch Changes

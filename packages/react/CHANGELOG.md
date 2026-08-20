@@ -1,5 +1,135 @@
 # @ai-sdk/react
 
+## 2.0.244
+
+### Patch Changes
+
+- Updated dependencies [9d0b84c]
+- Updated dependencies [05df123]
+- Updated dependencies [e532644]
+  - ai@5.0.241
+
+## 2.0.243
+
+### Patch Changes
+
+- ai@5.0.240
+
+## 2.0.242
+
+### Patch Changes
+
+- ai@5.0.239
+
+## 2.0.241
+
+### Patch Changes
+
+- ai@5.0.238
+
+## 2.0.240
+
+### Patch Changes
+
+- Updated dependencies [bf11412]
+- Updated dependencies [7ec6b69]
+  - ai@5.0.237
+
+## 2.0.239
+
+### Patch Changes
+
+- 2ad80e6: Preserve the generated `useObject` value when the API URL changes.
+- Updated dependencies [c425210]
+- Updated dependencies [eb7f2ac]
+  - ai@5.0.236
+
+## 2.0.238
+
+### Patch Changes
+
+- ai@5.0.235
+
+## 2.0.237
+
+### Patch Changes
+
+- Updated dependencies [412c15e]
+  - ai@5.0.234
+
+## 2.0.236
+
+### Patch Changes
+
+- 4f4627b: Reset the useCompletion input after submitting a prompt.
+- Updated dependencies [2604cb6]
+  - ai@5.0.233
+
+## 2.0.235
+
+### Patch Changes
+
+- Updated dependencies [66dd974]
+- Updated dependencies [0e51b7b]
+  - ai@5.0.232
+  - @ai-sdk/provider-utils@3.0.32
+
+## 2.0.234
+
+### Patch Changes
+
+- Updated dependencies [2709314]
+  - ai@5.0.231
+
+## 2.0.233
+
+### Patch Changes
+
+- ai@5.0.230
+
+## 2.0.232
+
+### Patch Changes
+
+- ai@5.0.229
+
+## 2.0.231
+
+### Patch Changes
+
+- e642a50: Fix `useChat` throttling so unrelated React renders cannot publish message snapshots ahead of the configured throttle cadence.
+
+## 2.0.230
+
+### Patch Changes
+
+- ai@5.0.228
+
+## 2.0.229
+
+### Patch Changes
+
+- Updated dependencies [212d793]
+  - ai@5.0.227
+
+## 2.0.228
+
+### Patch Changes
+
+- ai@5.0.226
+
+## 2.0.227
+
+### Patch Changes
+
+- ai@5.0.225
+
+## 2.0.226
+
+### Patch Changes
+
+- ai@5.0.224
+
 ## 2.0.225
 
 ### Patch Changes

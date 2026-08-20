@@ -5,8 +5,9 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  getErrorMessage,
   postJsonToApi,
   resolve,
   type Resolvable,
@@ -70,7 +71,7 @@ export class GatewayImageModel implements ImageModelV2 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

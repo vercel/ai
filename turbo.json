@@ -31,6 +31,7 @@
         "GOOGLE_PRIVATE_KEY_ID",
         "GOOGLE_VERTEX_LOCATION",
         "GOOGLE_VERTEX_PROJECT",
+        "GMI_CLOUD_APIKEY",
         "GROQ_API_KEY",
         "HUGGINGFACE_API_KEY",
         "LUMA_API_KEY",

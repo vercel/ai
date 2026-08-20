@@ -73,10 +73,10 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-4.5`.
+first argument is the model id, e.g. `grok-4.6`.
 
 ```ts
-const model = xai('grok-4.5');
+const model = xai('grok-4.6');
 ```
 
 By default, `xai(modelId)` uses the Chat API. To use the Responses API with server-side agentic tools, explicitly use `xai.responses(modelId)`.
@@ -90,7 +90,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.5'),
+  model: xai('grok-4.6'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -118,9 +118,10 @@ await generateText({
 
 The following optional provider options are available for xAI chat models:
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'low' | 'medium' | 'high' | 'xhigh'_
 
-  Reasoning effort for reasoning models.
+  Reasoning effort for reasoning models. `xhigh` is supported by `grok-4.6`.
+  Defaults to `high` for models that support reasoning effort.
 
 - **store** _boolean_
 
@@ -153,7 +154,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-4.5'),
+  model: xai.responses('grok-4.6'),
   messages: [
     {
       role: 'user',
@@ -343,9 +344,9 @@ const result = await generateText({
 
 The following provider options are available:
 
-- **reasoningEffort** _'low' | 'high'_
+- **reasoningEffort** _'low' | 'medium' | 'high' | 'xhigh'_
 
-  Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage.
+  Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage. `xhigh` is supported by `grok-4.6`. Defaults to `high` for models that support reasoning effort.
 
 <Note>
   The Responses API only supports server-side tools. You cannot mix server-side
@@ -628,6 +629,7 @@ console.log('Sources:', await result.sources);
 
 | Model                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
 | --------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-4.6`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-4.5`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-4-fast-non-reasoning` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-4-fast-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

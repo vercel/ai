@@ -1,5 +1,46 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.118
+
+### Patch Changes
+
+- 44081a8: fix (provider/amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API and replay it on subsequent turns
+
+## 3.0.117
+
+### Patch Changes
+
+- 834f16b: Reject Amazon Bedrock event streams that end with an incomplete buffered frame instead of completing normally with partial output.
+- e108d16: Surface Amazon Bedrock event stream frame decoding and processing failures instead of silently completing the stream.
+
+## 3.0.116
+
+### Patch Changes
+
+- 0ecface: fix(bedrock): wrap invalid tool input in object
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/anthropic@2.0.95
+
+## 3.0.114
+
+### Patch Changes
+
+- Updated dependencies [e7afc18]
+  - @ai-sdk/anthropic@2.0.94
+
+## 3.0.113
+
+### Patch Changes
+
+- Updated dependencies [950eec8]
+  - @ai-sdk/anthropic@2.0.93
+
 ## 3.0.112
 
 ### Patch Changes
