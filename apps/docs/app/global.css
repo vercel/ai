@@ -1,0 +1,48 @@
+@import "@vercel/geistdocs/styles.css";
+
+@source "../content/**/*.mdx";
+
+/* App-layer override matching the geistdocs template: use the 200 surface as
+   the page background. Since @vercel/geistdocs 1.15 the package defaults the
+   body to background-100, which leaves white gutters around the docs
+   container (it uses bg-background-200). */
+@layer base {
+  body {
+    @apply bg-background-200 text-gray-1000;
+  }
+}
+
+/* Input caret for the <ChatGeneration> MDX component (ported from
+   ai-sdk.dev). */
+@keyframes blink {
+  0%,
+  49.9% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@utility animate-blink {
+  animation: blink 1s steps(1, start) infinite;
+}
+
+/* Step counters for the <Steps> MDX component (ported from ai-sdk.dev). */
+.docs-steps {
+  counter-reset: step;
+}
+
+.docs-steps :is(h2, h3, h4) {
+  counter-increment: step;
+}
+
+.docs-steps :is(h2, h3, h4)::before {
+  content: counter(step);
+  @apply -ml-[41px] mt-[3px] absolute inline-flex size-8 items-center justify-center rounded-full bg-gray-100 text-gray-1000 text-sm font-normal;
+}
+
+.docs-steps :is(h2, h3, h4) {
+  @apply relative;
+}

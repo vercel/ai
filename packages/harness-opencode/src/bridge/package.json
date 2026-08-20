@@ -5,8 +5,8 @@
   "type": "module",
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
-    "@opencode-ai/sdk": "1.17.6",
-    "opencode-ai": "1.17.6",
+    "@opencode-ai/sdk": "1.18.3",
+    "opencode-ai": "1.18.3",
     "ws": "8.21.0",
     "zod": "3.25.76"
   }

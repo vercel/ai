@@ -13,6 +13,29 @@ describe('asSchema', () => {
       additionalProperties: false,
     });
   });
+
+  it('should validate with callable standard schemas', async () => {
+    class CallableStandardSchema {
+      static readonly '~standard' = {
+        version: 1 as const,
+        vendor: 'effect',
+        validate: (value: unknown) =>
+          typeof value === 'object' &&
+          value !== null &&
+          'model' in value &&
+          typeof value.model === 'string'
+            ? { value: { model: value.model } }
+            : { issues: [{ message: 'model must be a string' }] },
+      };
+    }
+
+    const schema = asSchema(CallableStandardSchema);
+
+    await expect(schema.validate?.({ model: 'test-model' })).resolves.toEqual({
+      success: true,
+      value: { model: 'test-model' },
+    });
+  });
 });
 
 describe('zodSchema', () => {
@@ -186,6 +209,28 @@ describe('zodSchema', () => {
     });
 
     describe('output validation', () => {
+      it('should return a classic ZodError for invalid output', async () => {
+        const schema = zodSchema(
+          z4.object({
+            text: z4.string(),
+          }),
+        );
+
+        const result = await schema.validate?.({ text: 123 });
+
+        expect(result?.success).toBe(false);
+
+        if (result?.success !== false) {
+          throw new Error('Expected validation to fail');
+        }
+
+        expect(result.error).toBeInstanceOf(z4.ZodError);
+        const error = result.error as z4.ZodError;
+        expect(error.name).toBe('ZodError');
+        expect(typeof error.format).toBe('function');
+        expect(typeof error.flatten).toBe('function');
+      });
+
       it('should validate output with transform', async () => {
         const schema = zodSchema(
           z4.object({

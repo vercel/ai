@@ -2501,8 +2501,8 @@ describe('LegacyOpenTelemetry integration with embed', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    await embed({
+  it('should omit usage attributes when the provider does not return usage', async () => {
+    const result = await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding]),
       }),
@@ -2512,6 +2512,10 @@ describe('LegacyOpenTelemetry integration with embed', () => {
       },
     });
 
+    expect(result.usage.tokens).toBeNaN();
+    for (const span of tracer.jsonSpans) {
+      expect('ai.usage.tokens' in span.attributes).toBe(false);
+    }
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 

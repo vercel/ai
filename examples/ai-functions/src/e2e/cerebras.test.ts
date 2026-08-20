@@ -19,9 +19,14 @@ createFeatureTestSuite({
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      createChatModel('llama3.1-8b'),
-      createChatModel('llama3.1-70b'),
-      createChatModel('llama-3.3-70b'),
+      createChatModel('gpt-oss-120b'),
+      createChatModel('zai-glm-4.7'),
+      createLanguageModelWithCapabilities(provider.chat('gemma-4-31b'), [
+        'imageInput',
+        'objectGeneration',
+        'textCompletion',
+        'toolCalls',
+      ]),
     ],
   },
   timeout: 30000,

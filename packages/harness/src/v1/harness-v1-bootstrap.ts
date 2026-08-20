@@ -1,6 +1,8 @@
 /**
  * One file to write into the sandbox as part of an adapter's bootstrap recipe.
- * Paths should live under {@link HarnessV1Bootstrap.bootstrapDir}.
+ * Absolute paths are used as-is. Relative paths are resolved against the
+ * sandbox's default working directory. Paths should live under
+ * {@link HarnessV1Bootstrap.bootstrapDir}.
  */
 export interface HarnessV1BootstrapFile {
   readonly path: string;
@@ -14,7 +16,6 @@ export interface HarnessV1BootstrapFile {
  */
 export interface HarnessV1BootstrapCommand {
   readonly command: string;
-  readonly workingDirectory?: string;
 }
 
 /**
@@ -31,16 +32,17 @@ export interface HarnessV1Bootstrap {
   readonly harnessId: string;
 
   /**
-   * Absolute path inside the sandbox where this recipe writes its state.
-   * The marker file lives directly under it. Files declared in {@link files}
-   * should also use this prefix so an adapter upgrade can sweep stale state
-   * by clearing the directory.
+   * Path inside the sandbox where this recipe writes its state. Absolute paths
+   * are used as-is. Relative paths are resolved against the sandbox's default
+   * working directory. The marker file lives directly under it. Files
+   * declared in {@link files} should also use this prefix so an adapter upgrade
+   * can sweep stale state by clearing the directory.
    */
   readonly bootstrapDir: string;
 
   /** Files to write into the sandbox before any command runs. */
   readonly files: ReadonlyArray<HarnessV1BootstrapFile>;
 
-  /** Commands to run after files are written, in order. */
+  /** Commands to run from the bootstrap directory after files are written. */
   readonly commands: ReadonlyArray<HarnessV1BootstrapCommand>;
 }

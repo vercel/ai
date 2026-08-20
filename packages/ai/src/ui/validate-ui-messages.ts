@@ -6,11 +6,11 @@ import {
   type FlexibleSchema,
   type Tool,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
 import { getOwn } from '../util/get-own';
 import { providerMetadataSchema } from '../types/provider-metadata';
+import { z, type ZodType } from '../util/zod';
 import type {
   DataUIPart,
   InferUIMessageData,
@@ -19,7 +19,7 @@ import type {
   UIMessage,
 } from './ui-messages';
 
-const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
+const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
   jsonValueSchema.optional(),
 );
@@ -30,12 +30,12 @@ const uiMessagesSchema = lazySchema(() =>
   zodSchema(
     z
       .array(
-        z.object({
-          id: z.string(),
-          role: z.enum(['system', 'user', 'assistant']),
-          metadata: z.unknown().optional(),
-          parts: z
-            .array(
+        z
+          .object({
+            id: z.string(),
+            role: z.enum(['system', 'user', 'assistant']),
+            metadata: z.unknown().optional(),
+            parts: z.array(
               z.union([
                 z.object({
                   type: z.literal('text'),
@@ -45,6 +45,7 @@ const uiMessagesSchema = lazySchema(() =>
                 }),
                 z.object({
                   type: z.literal('reasoning'),
+                  id: z.string().optional(),
                   text: z.string(),
                   state: z.enum(['streaming', 'done']).optional(),
                   providerMetadata: providerMetadataSchema.optional(),
@@ -343,9 +344,21 @@ const uiMessagesSchema = lazySchema(() =>
                   }),
                 }),
               ]),
-            )
-            .nonempty('Message must contain at least one part'),
-        }),
+            ),
+          })
+          .superRefine((message, context) => {
+            if (message.role !== 'assistant' && message.parts.length === 0) {
+              context.addIssue({
+                origin: 'array',
+                code: 'too_small',
+                minimum: 1,
+                inclusive: true,
+                input: message.parts,
+                path: ['parts'],
+                message: 'Message must contain at least one part',
+              });
+            }
+          }),
       )
       .nonempty('Messages array must not be empty'),
   ),
@@ -485,14 +498,10 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             }
 
             // Tool input validation
-            // Note: input is intentionally not re-validated for `output-error`
-            // states. A tool call that failed with an invalid-input error keeps
-            // its (invalid) input, and re-validating it on replay would throw a
-            // TypeValidationError that crashes follow-up messages.
-            if (
-              toolPart.state === 'input-available' ||
-              toolPart.state === 'output-available'
-            ) {
+            // Note: input is intentionally not re-validated for terminal states.
+            // Terminal tool calls can keep invalid or incomplete input, and
+            // re-validating it on replay would crash follow-up messages.
+            if (toolPart.state === 'input-available') {
               await validateTypes({
                 value: toolPart.input,
                 schema: tool.inputSchema,
