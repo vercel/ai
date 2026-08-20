@@ -995,7 +995,7 @@ class DefaultStreamTextResult<
   private readonly _onEndCompleted = new DelayedPromise<void>();
 
   private outputPromise: Promise<InferCompleteOutput<OUTPUT>> | undefined;
-  private isOnEndCallbackExecuting = false;
+  private isOnEndCallbackBeingInvoked = false;
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
@@ -1493,15 +1493,20 @@ class DefaultStreamTextResult<
                       ? undefined
                       : await self.getOutputPromise().catch(() => undefined);
 
-                  self.isOnEndCallbackExecuting = true;
+                  // Allow result.output to be obtained synchronously from the
+                  // callback without letting concurrent external reads bypass
+                  // callback completion.
+                  let callbackResult: PromiseLike<void> | void;
+                  self.isOnEndCallbackBeingInvoked = true;
                   try {
-                    await onEnd({
+                    callbackResult = onEnd({
                       ...event,
                       ...(output != null ? { output: parsedOutput } : {}),
                     });
                   } finally {
-                    self.isOnEndCallbackExecuting = false;
+                    self.isOnEndCallbackBeingInvoked = false;
                   }
+                  await callbackResult;
                 };
 
           const onEndEvent = {
@@ -2736,6 +2741,10 @@ class DefaultStreamTextResult<
       delayedPromise: this._initialResponseMessages,
       error,
     });
+    this.rejectResultPromise({
+      delayedPromise: this._onEndCompleted,
+      error,
+    });
   }
 
   private rejectResultPromise<T>({
@@ -2822,10 +2831,11 @@ class DefaultStreamTextResult<
   }
 
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
-    const outputPromise = this.getOutputPromise();
-    return this.isOnEndCallbackExecuting
-      ? outputPromise
-      : this._onEndCompleted.promise.then(() => outputPromise);
+    this.consumeStream();
+
+    return this.isOnEndCallbackBeingInvoked
+      ? this.getOutputPromise()
+      : this._onEndCompleted.promise.then(() => this.getOutputPromise());
   }
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
