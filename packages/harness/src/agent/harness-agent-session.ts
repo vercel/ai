@@ -25,11 +25,15 @@ import type {
   HarnessAgentPendingToolResult,
   HarnessAgentPrompt,
   HarnessAgentResumeSessionState,
+  HarnessAgentSessionExport,
   HarnessAgentToolSpec,
 } from './harness-agent-types';
 import type { HarnessAgentToolApprovalContinuation } from './harness-agent-tool-approval-continuation';
 import type { HarnessAgentToolResultContinuation } from './harness-agent-tool-result-continuation';
-import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
+import {
+  validateLifecycleStateData,
+  validateSessionExportData,
+} from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
 import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
 
@@ -107,8 +111,8 @@ export class HarnessAgentSession {
     | undefined;
 
   /**
-   * Whether this session was created from `resumeFrom` or `continueFrom`.
-   * Captured at construction so it survives lifecycle cleanup.
+   * Whether this session was created from `resumeFrom`, `continueFrom`, or
+   * `importFrom`. Captured at construction so it survives lifecycle cleanup.
    */
   readonly isResume: boolean;
 
@@ -393,6 +397,37 @@ export class HarnessAgentSession {
     }
 
     await control.submitUserMessage(text);
+  }
+
+  /**
+   * Export the complete conversation state as a payload that survives the
+   * sandbox, for a later `agent.createSession({ sessionId, importFrom })` in a
+   * fresh sandbox. Non-destructive: the session stays active afterwards.
+   *
+   * Throws `HarnessCapabilityUnsupportedError` when the harness adapter does
+   * not implement `doExportSession`, and when a turn is currently active.
+   */
+  async exportSession(): Promise<HarnessAgentSessionExport> {
+    if (this.sessionState !== 'active' || this.underlyingSession == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} is not active and cannot be exported.`,
+      );
+    }
+    if (this.underlyingSession.doExportSession == null) {
+      throw new HarnessCapabilityUnsupportedError({
+        harnessId: this.harness.harnessId,
+        message: `Harness '${this.harness.harnessId}' does not support session export.`,
+      });
+    }
+    if (this.turnState !== 'idle') {
+      throw new Error(
+        `Harness session ${this.sessionId} cannot export during an active turn.`,
+      );
+    }
+    return validateSessionExportData({
+      harness: this.harness,
+      state: await this.underlyingSession.doExportSession(),
+    });
   }
 
   /**

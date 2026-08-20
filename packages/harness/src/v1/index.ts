@@ -39,6 +39,7 @@ export type {
   HarnessV1PendingToolApproval,
   HarnessV1PendingToolResult,
   HarnessV1ResumeSessionState,
+  HarnessV1SessionExport,
 } from './harness-v1-lifecycle-state';
 export type {
   HarnessV1NetworkPolicy,

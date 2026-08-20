@@ -16,6 +16,7 @@ import {
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
+  type HarnessV1SessionExport,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
@@ -58,8 +59,10 @@ import {
   type OpenCodeAuthOptions,
 } from './opencode-auth';
 import {
+  openCodeSyncEventSchema,
   outboundMessageSchema,
   type InboundMessage,
+  type OpenCodeSyncEvent,
   type OutboundMessage,
 } from './opencode-bridge-protocol';
 import { VERSION } from './version';
@@ -220,6 +223,11 @@ const openCodeResumeStateSchema = z.object({
   bridge: openCodeBridgeCoordsSchema.optional(),
 });
 
+const openCodeSessionExportDataSchema = z.object({
+  openCodeSessionId: z.string().optional(),
+  syncEvents: z.array(openCodeSyncEventSchema).optional(),
+});
+
 type OpenCodeBridgeCoords = z.infer<typeof openCodeBridgeCoordsSchema>;
 
 export function createOpenCode(
@@ -315,6 +323,33 @@ export function createOpenCode(
           : undefined;
       const coords = resumeData?.bridge;
 
+      const importFrom = startOpts.importFrom;
+      let importSessionId: string | undefined;
+      let importEvents: ReadonlyArray<OpenCodeSyncEvent> | undefined;
+      if (importFrom != null) {
+        if (importFrom.harnessId !== 'opencode') {
+          throw new HarnessCapabilityUnsupportedError({
+            harnessId: 'opencode',
+            message: `The OpenCode harness cannot import a session export produced by harness '${importFrom.harnessId}'.`,
+          });
+        }
+        const parsed = openCodeSessionExportDataSchema.safeParse(
+          importFrom.data,
+        );
+        if (
+          !parsed.success ||
+          parsed.data.syncEvents == null ||
+          parsed.data.syncEvents.length === 0
+        ) {
+          throw new Error(
+            'The OpenCode harness received a malformed session export payload.',
+          );
+        }
+        importSessionId = parsed.data.openCodeSessionId;
+        importEvents = parsed.data.syncEvents;
+      }
+      const isImport = importEvents != null;
+
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
@@ -382,6 +417,7 @@ export function createOpenCode(
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
+            importEvents: undefined,
           });
         } catch {}
       }
@@ -531,9 +567,10 @@ export function createOpenCode(
         provider: settings.provider,
         reasoningVariant: settings.reasoningVariant,
         mcpServers: settings.mcpServers,
-        openCodeSessionId: resumeSessionId,
-        isResume: respawnStrategy !== undefined,
-        seedResumeSessionOnFirstPrompt: respawnStrategy !== undefined,
+        openCodeSessionId: resumeSessionId ?? importSessionId,
+        isResume: respawnStrategy !== undefined || isImport,
+        seedResumeSessionOnFirstPrompt:
+          respawnStrategy !== undefined || isImport,
         rerunContinue: respawnStrategy === 'rerun',
         bridgePort: boundPort,
         bridgeToken: token,
@@ -542,6 +579,7 @@ export function createOpenCode(
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
+        importEvents,
       });
     },
   };
@@ -769,6 +807,7 @@ function createSession({
   permissionMode,
   builtinToolFiltering,
   supportsUserMessageResponses,
+  importEvents,
 }: {
   sessionId: string;
   channel: OpenCodeChannel;
@@ -788,6 +827,7 @@ function createSession({
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   supportsUserMessageResponses: () => boolean;
+  importEvents: ReadonlyArray<OpenCodeSyncEvent> | undefined;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -795,6 +835,9 @@ function createSession({
   let pendingResumeSessionId = seedResumeSessionOnFirstPrompt
     ? openCodeSessionId
     : undefined;
+  // One-shot: rides only the first `start` message, which replays the exported
+  // conversation into the fresh OpenCode server before the session resolves.
+  let pendingImportEvents = importEvents;
   let activeTurn = false;
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
 
@@ -960,6 +1003,14 @@ function createSession({
     ...(debug ? { debug } : {}),
   });
 
+  const takePendingImportEvents = ():
+    | ReadonlyArray<OpenCodeSyncEvent>
+    | undefined => {
+    const events = pendingImportEvents;
+    pendingImportEvents = undefined;
+    return events;
+  };
+
   return {
     sessionId,
     isResume,
@@ -979,6 +1030,7 @@ function createSession({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
+      const importEventsForStart = takePendingImportEvents();
       channel.send({
         type: 'start',
         operation: 'prompt',
@@ -993,6 +1045,9 @@ function createSession({
           : { responseFormat: promptOpts.responseFormat }),
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
+          : {}),
+        ...(importEventsForStart
+          ? { importEvents: [...importEventsForStart] }
           : {}),
         ...startBase(),
       });
@@ -1015,6 +1070,7 @@ function createSession({
         abortSignal: continueOpts.abortSignal,
       });
       if (rerunContinue) {
+        const importEventsForStart = takePendingImportEvents();
         channel.send({
           type: 'start',
           operation: 'prompt',
@@ -1029,6 +1085,9 @@ function createSession({
             : { responseFormat: continueOpts.responseFormat }),
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
+            : {}),
+          ...(importEventsForStart
+            ? { importEvents: [...importEventsForStart] }
             : {}),
           ...startBase(),
         });
@@ -1059,6 +1118,7 @@ function createSession({
         debug,
         mcpServers,
         resumeSessionId: latestOpenCodeSessionId,
+        importEvents: takePendingImportEvents(),
         onCompaction: part => pendingCompactionParts.push(part),
       });
     },
@@ -1205,6 +1265,73 @@ function createSession({
       };
       return payload;
     },
+    doExportSession: async (): Promise<HarnessV1SessionExport> => {
+      if (stopped) {
+        throw new Error(
+          `OpenCode session ${sessionId} is already stopped; cannot export.`,
+        );
+      }
+      if (activeTurn) {
+        throw new Error(
+          `OpenCode session ${sessionId} cannot export during an active turn.`,
+        );
+      }
+      if (latestOpenCodeSessionId == null) {
+        throw new Error(
+          `OpenCode session ${sessionId} has no OpenCode session to export yet; run a prompt turn first.`,
+        );
+      }
+      const reply = await new Promise<{
+        data?: unknown;
+        error?: { message: string };
+      }>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          unsub();
+          reject(
+            new Error(
+              `OpenCode session ${sessionId} did not reply to export-session within 30s.`,
+            ),
+          );
+        }, 30_000);
+        timer.unref?.();
+        const unsub = channel.on('bridge-export', msg => {
+          clearTimeout(timer);
+          unsub();
+          resolve(msg);
+        });
+        try {
+          channel.send({ type: 'export-session' });
+        } catch (err) {
+          clearTimeout(timer);
+          unsub();
+          reject(err);
+        }
+      });
+      if (reply.error != null) {
+        throw new Error(
+          `OpenCode session export failed: ${reply.error.message}`,
+        );
+      }
+      const parsed = openCodeSessionExportDataSchema.safeParse(reply.data);
+      if (
+        !parsed.success ||
+        parsed.data.openCodeSessionId == null ||
+        parsed.data.syncEvents == null
+      ) {
+        throw new Error(
+          'The OpenCode bridge returned a malformed session export payload.',
+        );
+      }
+      return {
+        type: 'session-export',
+        harnessId: 'opencode',
+        specificationVersion: 'harness-v1',
+        data: {
+          openCodeSessionId: parsed.data.openCodeSessionId,
+          syncEvents: parsed.data.syncEvents,
+        } as HarnessV1SessionExport['data'],
+      };
+    },
   };
 }
 
@@ -1216,6 +1343,7 @@ async function runCompactOperation({
   debug,
   mcpServers,
   resumeSessionId,
+  importEvents,
   onCompaction,
 }: {
   channel: OpenCodeChannel;
@@ -1225,6 +1353,7 @@ async function runCompactOperation({
   debug: HarnessV1DebugConfig | undefined;
   mcpServers: Record<string, unknown> | undefined;
   resumeSessionId: string | undefined;
+  importEvents: ReadonlyArray<OpenCodeSyncEvent> | undefined;
   onCompaction: (part: HarnessV1StreamPart) => void;
 }): Promise<void> {
   let pendingResolve: (() => void) | undefined;
@@ -1254,6 +1383,9 @@ async function runCompactOperation({
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(resumeSessionId ? { resumeSessionId } : {}),
+    ...(importEvents && importEvents.length > 0
+      ? { importEvents: [...importEvents] }
+      : {}),
     ...(debug ? { debug } : {}),
   });
   await done;

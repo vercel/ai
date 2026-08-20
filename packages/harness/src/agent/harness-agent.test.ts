@@ -8,6 +8,7 @@ import type {
   HarnessV1PromptTurnOptions,
   HarnessV1ResumeSessionState,
   HarnessV1SandboxProvider,
+  HarnessV1SessionExport,
   HarnessV1Session,
   HarnessV1StreamPart,
   HarnessV1ToolSpec,
@@ -46,6 +47,7 @@ function mockHarness(options: {
   onPromptTurn?: (options: HarnessV1PromptTurnOptions) => void;
   promptDone?: (options: HarnessV1PromptTurnOptions) => Promise<void>;
   supportsSteering?: boolean;
+  sessionExport?: () => HarnessV1SessionExport;
   onSuspendTurn?: () => void | Promise<void>;
   continueScript?: (
     submitToolResult: (input: {
@@ -70,6 +72,7 @@ function mockHarness(options: {
   doStop: ReturnType<typeof vi.fn>;
   doDestroy: ReturnType<typeof vi.fn>;
   doCompact: ReturnType<typeof vi.fn>;
+  doExportSession: ReturnType<typeof vi.fn>;
 } {
   const prompts: HarnessV1PromptTurnOptions['prompt'][] = [];
   const toolResults: { toolCallId: string; output: unknown }[] = [];
@@ -95,6 +98,16 @@ function mockHarness(options: {
   const doDestroy = vi.fn(async () => {});
   const doCompact = vi.fn(async (_customInstructions?: string) => {});
   const doDetach = vi.fn(async () => resumeState);
+  const doExportSession = vi.fn(async () =>
+    options.sessionExport
+      ? options.sessionExport()
+      : {
+          type: 'session-export' as const,
+          harnessId: 'mock',
+          specificationVersion: 'harness-v1' as const,
+          data: {},
+        },
+  );
   const doSuspendTurn = vi.fn(async () => {
     await options.onSuspendTurn?.();
     return continueState;
@@ -168,6 +181,7 @@ function mockHarness(options: {
     doDestroy,
     doContinueTurn,
     doSuspendTurn,
+    ...(options.sessionExport ? { doExportSession } : {}),
   };
 
   return {
@@ -193,6 +207,7 @@ function mockHarness(options: {
     doDetach,
     doContinueTurn,
     doSuspendTurn,
+    doExportSession,
     doStop,
     doDestroy,
     doCompact,
@@ -1977,6 +1992,116 @@ describe('HarnessAgent', () => {
         } as HarnessV1ResumeSessionState,
       }),
     ).rejects.toThrow(/cannot contain pending tool results/);
+  });
+
+  test('exportSession() returns the adapter export and keeps the session usable', async () => {
+    const sessionExport: HarnessV1SessionExport = {
+      type: 'session-export',
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: { events: [] },
+    };
+    const { harness, doExportSession } = mockHarness({
+      script: () => [],
+      sessionExport: () => sessionExport,
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    await expect(session.exportSession()).resolves.toEqual(sessionExport);
+    expect(doExportSession).toHaveBeenCalledTimes(1);
+    // Non-destructive: the session remains active.
+    await expect(session.exportSession()).resolves.toEqual(sessionExport);
+
+    await session.destroy();
+    await expect(session.exportSession()).rejects.toThrow(/cannot be exported/);
+  });
+
+  test('exportSession() throws HarnessCapabilityUnsupportedError when the adapter omits doExportSession', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    await expect(session.exportSession()).rejects.toBeInstanceOf(
+      HarnessCapabilityUnsupportedError,
+    );
+    await session.destroy();
+  });
+
+  test('createSession({ importFrom }) hands the export to a fresh-sandbox doStart', async () => {
+    const sessionExport: HarnessV1SessionExport = {
+      type: 'session-export',
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1',
+      data: { events: [] },
+    };
+    const startOptions: Array<Parameters<HarnessV1['doStart']>[0]> = [];
+    const { harness } = mockHarness({
+      script: () => [],
+      sessionExport: () => sessionExport,
+      onDoStart: opts => startOptions.push(opts),
+    });
+    const sandboxSession = makeSandboxSession();
+    const createSession = vi.fn(async () => sandboxSession);
+    const resumeSession = vi.fn(async () => sandboxSession);
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: {
+        specificationVersion: 'harness-sandbox-v1',
+        providerId: 'mock-sandbox',
+        createSession,
+        resumeSession,
+      },
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      importFrom: sessionExport,
+    });
+
+    expect(startOptions.at(0)?.importFrom).toEqual(sessionExport);
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(resumeSession).not.toHaveBeenCalled();
+
+    await session.destroy();
+  });
+
+  test('createSession() rejects importFrom combined with resumeFrom', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+
+    await expect(
+      agent.createSession({
+        importFrom: {
+          type: 'session-export',
+          harnessId: 'mock',
+          specificationVersion: 'harness-v1',
+          data: {},
+        },
+        resumeFrom: {
+          type: 'resume-session',
+          harnessId: 'mock',
+          specificationVersion: 'harness-v1',
+          data: {},
+        },
+      }),
+    ).rejects.toThrow(/cannot be combined with `resumeFrom`/);
+  });
+
+  test('createSession() rejects exports produced by another harness', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+
+    await expect(
+      agent.createSession({
+        importFrom: {
+          type: 'session-export',
+          harnessId: 'other-harness',
+          specificationVersion: 'harness-v1',
+          data: {},
+        },
+      }),
+    ).rejects.toThrow(/produced by harness 'other-harness'/);
   });
 
   test('host-side tools are executed and the result is submitted back', async () => {

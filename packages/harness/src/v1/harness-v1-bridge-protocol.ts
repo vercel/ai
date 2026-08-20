@@ -157,6 +157,17 @@ export const harnessV1BridgeStopSchema = z.object({
 });
 
 /**
+ * The bridge's reply to an inbound `export-session`: either the
+ * adapter-specific payload the host serializes into a session export, or an
+ * error when the bridge cannot export (unsupported, or export failed).
+ */
+export const harnessV1BridgeExportSchema = z.object({
+  type: z.literal('bridge-export'),
+  data: z.unknown().optional(),
+  error: z.object({ message: z.string() }).optional(),
+});
+
+/**
  * A resume coordinate the bridge proactively announces (e.g. Codex's thread id)
  * so the host can cache it for a later resume without waiting for `stop`.
  */
@@ -225,6 +236,7 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1BridgeHelloSchema,
     experimental_harnessV1BridgeUserMessageResponseSchema,
     harnessV1BridgeStopSchema,
+    harnessV1BridgeExportSchema,
     harnessV1BridgeThreadSchema,
     harnessV1BridgeSandboxLogSchema,
     harnessV1BridgeDebugEventSchema,
@@ -335,6 +347,16 @@ export const harnessV1BridgeStopInboundSchema = z.object({
 });
 
 /**
+ * Ask the bridge to export the complete session state as a payload that
+ * survives the sandbox. The bridge replies with `bridge-export` — a control
+ * frame answered on the requesting socket, so it neither claims the event
+ * stream nor disturbs an idle bridge.
+ */
+export const harnessV1BridgeExportSessionInboundSchema = z.object({
+  type: z.literal('export-session'),
+});
+
+/**
  * The inbound command members shared by every bridge adapter. Spread these
  * alongside the adapter's own `start` schema to build the final inbound union:
  * `z.discriminatedUnion('type', [adapterStartSchema, ...harnessV1BridgeInboundCommandSchemas])`.
@@ -347,6 +369,7 @@ export const harnessV1BridgeInboundCommandSchemas = [
   harnessV1BridgeDestroyInboundSchema,
   harnessV1BridgeResumeInboundSchema,
   harnessV1BridgeStopInboundSchema,
+  harnessV1BridgeExportSessionInboundSchema,
 ] as const;
 
 /**
