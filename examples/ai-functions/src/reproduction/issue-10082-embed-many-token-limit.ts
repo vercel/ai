@@ -3,6 +3,13 @@ import { APICallError, embedMany } from 'ai';
 
 const chunkCount = 2178;
 const chunk = 'token '.repeat(400).trim();
+const expectedAggregateLimitErrorCode = 'max_tokens_per_request';
+
+type OpenAIErrorData = {
+  error?: {
+    code?: unknown;
+  };
+};
 
 async function main() {
   const requestValueCounts: number[] = [];
@@ -27,6 +34,12 @@ async function main() {
       maxParallelCalls: 4,
     });
 
+    if (result.embeddings.length !== values.length) {
+      throw new Error(
+        `Expected ${values.length} embeddings, received ${result.embeddings.length}.`,
+      );
+    }
+
     console.log(
       JSON.stringify(
         {
@@ -40,7 +53,12 @@ async function main() {
       ),
     );
   } catch (error) {
-    if (!APICallError.isInstance(error)) {
+    if (
+      !APICallError.isInstance(error) ||
+      error.statusCode !== 400 ||
+      (error.data as OpenAIErrorData | undefined)?.error?.code !==
+        expectedAggregateLimitErrorCode
+    ) {
       throw error;
     }
 
