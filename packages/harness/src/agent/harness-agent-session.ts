@@ -1,11 +1,22 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import type { StopCondition, StreamTextResult, TelemetryOptions } from 'ai';
+import type {
+  Context,
+  Experimental_SandboxSession as SandboxSession,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type {
+  OutputInterface as Output,
+  StopCondition,
+  StreamTextResult,
+  TelemetryOptions,
+} from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
 import type {
   HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
-  HarnessV1SandboxProvider,
+  HarnessV1PromptControl,
+  HarnessV1ResponseFormat,
 } from '../v1';
+import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
   HarnessAgentAdapter,
   HarnessAgentAdapterSession,
@@ -18,15 +29,16 @@ import type {
 } from './harness-agent-types';
 import type { HarnessAgentToolApprovalContinuation } from './harness-agent-tool-approval-continuation';
 import type { HarnessAgentToolResultContinuation } from './harness-agent-tool-result-continuation';
-import { releaseBridgePort } from './internal/bridge-port-registry';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import { runPrompt } from './internal/run-prompt';
+import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
 
 type HarnessAgentTurnResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
 > = {
-  result: StreamTextResult<TOOLS, RUNTIME_CONTEXT, never>;
+  result: StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   done: Promise<void>;
 };
 
@@ -39,13 +51,18 @@ type HarnessAgentTurnState =
   | 'awaiting-tool-result'
   | 'suspended';
 
+type ActivePromptControl = {
+  readonly turnId: number;
+  readonly promise: Promise<HarnessV1PromptControl | undefined>;
+  resolve(control: HarnessV1PromptControl | undefined): void;
+  settled: boolean;
+};
+
 /**
  * Live harness session held by the caller.
  *
  * Created by {@link import('./harness-agent').HarnessAgent.createSession}.
- * Owns the underlying adapter session, the network sandbox session, and the
- * bridge-port lease (when the provider wraps a caller-provided sandbox with a
- * port pool).
+ * Owns the underlying adapter session and holds its sandbox session.
  *
  * Pass the instance back to `agent.generate` / `agent.stream` on every
  * call; end the local handle with `detach()`, `stop()`, or `destroy()`.
@@ -62,11 +79,13 @@ export class HarnessAgentSession {
   readonly sessionId: string;
 
   private readonly harness: HarnessAgentAdapter;
-  private readonly sandboxProvider: HarnessV1SandboxProvider;
   private readonly sessionWorkDir: string;
+  private readonly ownsSandboxLifecycle: boolean;
   private underlyingSession: HarnessAgentAdapterSession | undefined;
-  private sandboxSession: HarnessV1NetworkSandboxSession | undefined;
-  private leasedBridgePort: number | undefined;
+  private sandboxSession:
+    | HarnessV1NetworkSandboxSession
+    | SandboxSession
+    | undefined;
   private readonly toolApproval:
     | HarnessAgentToolApprovalConfiguration
     | undefined;
@@ -82,6 +101,7 @@ export class HarnessAgentSession {
   private turnState: HarnessAgentTurnState;
   private turnSequence = 0;
   private activeTurnSequence = 0;
+  private activePromptControl: ActivePromptControl | undefined;
   private suspendedTurnState:
     | Promise<HarnessAgentContinueTurnState>
     | undefined;
@@ -96,9 +116,8 @@ export class HarnessAgentSession {
     sessionId: string;
     harness: HarnessAgentAdapter;
     underlyingSession: HarnessAgentAdapterSession;
-    sandboxSession: HarnessV1NetworkSandboxSession;
-    sandboxProvider: HarnessV1SandboxProvider;
-    leasedBridgePort?: number;
+    sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+    ownsSandboxLifecycle?: boolean;
     sessionWorkDir: string;
     toolApproval: HarnessAgentToolApprovalConfiguration | undefined;
     pendingToolApprovals?: readonly HarnessAgentPendingToolApproval[];
@@ -109,8 +128,7 @@ export class HarnessAgentSession {
     this.harness = options.harness;
     this.underlyingSession = options.underlyingSession;
     this.sandboxSession = options.sandboxSession;
-    this.sandboxProvider = options.sandboxProvider;
-    this.leasedBridgePort = options.leasedBridgePort;
+    this.ownsSandboxLifecycle = options.ownsSandboxLifecycle ?? true;
     this.sessionWorkDir = options.sessionWorkDir;
     this.toolApproval = options.toolApproval;
     for (const approval of options.pendingToolApprovals ?? []) {
@@ -130,11 +148,11 @@ export class HarnessAgentSession {
   }
 
   /**
-   * Active network sandbox session.
+   * Active sandbox session.
    *
    * @internal — accessed by session turn and lifecycle drivers.
    */
-  getSandboxSession(): HarnessV1NetworkSandboxSession {
+  getSandboxSession(): HarnessV1NetworkSandboxSession | SandboxSession {
     if (this.sessionState !== 'active' || this.sandboxSession == null) {
       throw new Error(
         `Harness session ${this.sessionId} has ended and cannot be reused.`,
@@ -157,7 +175,11 @@ export class HarnessAgentSession {
     return this.turnState !== 'idle';
   }
 
-  promptTurn<TOOLS extends ToolSet, RUNTIME_CONTEXT extends Context>(options: {
+  promptTurn<
+    TOOLS extends ToolSet,
+    RUNTIME_CONTEXT extends Context,
+    OUTPUT extends Output,
+  >(options: {
     prompt: HarnessAgentPrompt;
     instructions: string | undefined;
     tools: TOOLS;
@@ -166,15 +188,17 @@ export class HarnessAgentSession {
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
+    responseFormat: HarnessV1ResponseFormat | undefined;
+    output: OUTPUT | undefined;
     telemetry: TelemetryOptions | undefined;
     stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
-  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
+  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
     const session = this.requireReusableSession();
     this.requirePromptableTurn();
     const sandboxSession = this.getSandboxSession();
     const turnId = this.startTrackedTurn();
     try {
-      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT>({
+      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
         harness: this.harness,
         session,
         prompt: options.prompt,
@@ -183,10 +207,12 @@ export class HarnessAgentSession {
         activeTools: options.activeTools,
         toolSpecs: options.toolSpecs,
         builtinToolFiltering: options.builtinToolFiltering,
-        sandboxSession: sandboxSession.restricted(),
+        sandboxSession: getRestrictedSandboxSession(sandboxSession),
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
+        responseFormat: options.responseFormat,
+        output: options.output,
         telemetry: options.telemetry,
         stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
@@ -212,6 +238,9 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onPromptControlAvailable: control => {
+          this.setPromptControl({ turnId, control });
+        },
         isTurnSuspending: () =>
           this.activeTurnSequence === turnId && this.suspendedTurnState != null,
         onStopConditionMet: () =>
@@ -227,6 +256,7 @@ export class HarnessAgentSession {
   continueTurn<
     TOOLS extends ToolSet,
     RUNTIME_CONTEXT extends Context,
+    OUTPUT extends Output,
   >(options: {
     instructions: string | undefined;
     tools: TOOLS;
@@ -235,6 +265,8 @@ export class HarnessAgentSession {
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
+    responseFormat: HarnessV1ResponseFormat | undefined;
+    output: OUTPUT | undefined;
     telemetry: TelemetryOptions | undefined;
     stopConditions: ReadonlyArray<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
     toolApprovalContinuations?:
@@ -243,13 +275,13 @@ export class HarnessAgentSession {
     toolResultContinuations?:
       | readonly HarnessAgentToolResultContinuation[]
       | undefined;
-  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT> {
+  }): HarnessAgentTurnResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
     const session = this.requireReusableSession();
     this.requireContinuableTurn();
     const sandboxSession = this.getSandboxSession();
     const turnId = this.startTrackedTurn();
     try {
-      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT>({
+      const turn = runPrompt<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
         harness: this.harness,
         session,
         mode: 'continue',
@@ -258,10 +290,12 @@ export class HarnessAgentSession {
         activeTools: options.activeTools,
         toolSpecs: options.toolSpecs,
         builtinToolFiltering: options.builtinToolFiltering,
-        sandboxSession: sandboxSession.restricted(),
+        sandboxSession: getRestrictedSandboxSession(sandboxSession),
         sessionWorkDir: this.sessionWorkDir,
         runtimeContext: options.runtimeContext,
         abortSignal: options.abortSignal,
+        responseFormat: options.responseFormat,
+        output: options.output,
         telemetry: options.telemetry,
         stopConditions: options.stopConditions,
         toolApproval: this.toolApproval,
@@ -289,6 +323,9 @@ export class HarnessAgentSession {
         onTurnFailed: () => {
           this.finishTrackedTurn({ turnId });
         },
+        onPromptControlAvailable: control => {
+          this.setPromptControl({ turnId, control });
+        },
         isTurnSuspending: () =>
           this.activeTurnSequence === turnId && this.suspendedTurnState != null,
         onStopConditionMet: () =>
@@ -313,6 +350,49 @@ export class HarnessAgentSession {
    */
   async compact(customInstructions?: string): Promise<void> {
     await this.requireReusableSession().doCompact(customInstructions);
+  }
+
+  /**
+   * Submit another user message to the active turn.
+   *
+   * The runtime accepts the message for its next safe input boundary. Output
+   * caused by the message remains part of the active turn's result stream.
+   */
+  async experimental_steerTurn(text: string): Promise<void> {
+    this.requireReusableSession();
+    const activePromptControl = this.activePromptControl;
+    if (
+      this.turnState !== 'running' ||
+      this.suspendedTurnState != null ||
+      activePromptControl == null
+    ) {
+      throw new Error(
+        `Harness session ${this.sessionId} has no running turn to steer.`,
+      );
+    }
+
+    const control = await activePromptControl.promise;
+    if (
+      control == null ||
+      this.sessionState !== 'active' ||
+      this.turnState !== 'running' ||
+      this.suspendedTurnState != null ||
+      this.activePromptControl !== activePromptControl ||
+      this.activeTurnSequence !== activePromptControl.turnId
+    ) {
+      throw new Error(
+        `Harness session ${this.sessionId} no longer has the running turn targeted for steering.`,
+      );
+    }
+
+    if (control.submitUserMessage == null) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness '${this.harness.harnessId}' does not support steering active turns.`,
+        harnessId: this.harness.harnessId,
+      });
+    }
+
+    await control.submitUserMessage(text);
   }
 
   /**
@@ -342,15 +422,13 @@ export class HarnessAgentSession {
       });
       return validated;
     } finally {
-      this.endLocalHandle({
-        sessionState: 'detached',
-        releasePortLease: false,
-      });
+      this.endLocalHandle({ sessionState: 'detached' });
     }
   }
 
   /**
-   * Persist enough state to resume later, then stop the runtime and sandbox.
+   * Persist enough state to resume later, then stop the runtime and any
+   * harness-owned sandbox.
    * Returns the resume state for a future
    * `agent.createSession({ sessionId, resumeFrom })` call.
    */
@@ -376,29 +454,31 @@ export class HarnessAgentSession {
       });
       return validated;
     } finally {
-      this.endLocalHandle({
-        sessionState: 'stopped',
-        releasePortLease: true,
-      });
-      await Promise.resolve(sandboxSession.stop()).catch(() => {});
+      this.endLocalHandle({ sessionState: 'stopped' });
+      if (this.ownsSandboxLifecycle && 'stop' in sandboxSession) {
+        await Promise.resolve(sandboxSession.stop()).catch(() => {});
+      }
     }
   }
 
   /**
-   * Stop the runtime and discard resumability. The sandbox is destroyed when
-   * the provider supports destruction; otherwise it is stopped.
+   * Stop the runtime and discard resumability. A harness-owned sandbox is
+   * destroyed when supported; otherwise it is stopped.
    */
   async destroy(): Promise<void> {
     if (this.sessionState !== 'active') return;
     const session = this.underlyingSession;
     const sandboxSession = this.getSandboxSession();
-    this.endLocalHandle({ sessionState: 'destroyed', releasePortLease: true });
+    this.endLocalHandle({ sessionState: 'destroyed' });
     if (session != null) {
       await Promise.resolve(session.doDestroy()).catch(() => {});
     }
-    await Promise.resolve(
-      sandboxSession.destroy?.() ?? sandboxSession.stop(),
-    ).catch(() => {});
+    if (!this.ownsSandboxLifecycle) return;
+    if ('stop' in sandboxSession) {
+      await Promise.resolve(
+        sandboxSession.destroy?.() ?? sandboxSession.stop(),
+      ).catch(() => {});
+    }
   }
 
   /**
@@ -410,9 +490,8 @@ export class HarnessAgentSession {
    *
    * After this call the session is detached. This in-process handle no
    * longer drives turns; a future slice creates a fresh session from the
-   * returned state. The sandbox is **not** stopped and no port lease is
-   * released, because bridge-backed adapters may still have a live bridge on
-   * that port.
+   * returned state. The sandbox is **not** stopped because bridge-backed
+   * adapters may still have a live bridge.
    */
   async suspendTurn(): Promise<HarnessAgentContinueTurnState> {
     if (this.sessionState !== 'active' || this.underlyingSession == null) {
@@ -429,10 +508,7 @@ export class HarnessAgentSession {
     try {
       return await this.suspendCurrentTurn({ session });
     } finally {
-      this.endLocalHandle({
-        sessionState: 'detached',
-        releasePortLease: false,
-      });
+      this.endLocalHandle({ sessionState: 'detached' });
     }
   }
 
@@ -467,6 +543,7 @@ export class HarnessAgentSession {
   private async suspendCurrentTurn(options: {
     session: HarnessAgentAdapterSession;
   }): Promise<HarnessAgentContinueTurnState> {
+    this.clearActivePromptControl();
     this.suspendedTurnState ??= (async () => {
       const raw = await options.session.doSuspendTurn();
       const validated = await validateLifecycleStateData({
@@ -539,12 +616,14 @@ export class HarnessAgentSession {
 
   private markAwaitingApprovalIfActive(): void {
     if (this.sessionState === 'active') {
+      this.clearActivePromptControl();
       this.turnState = 'awaiting-approval';
     }
   }
 
   private markAwaitingToolResultIfActive(): void {
     if (this.sessionState === 'active') {
+      this.clearActivePromptControl();
       this.turnState = 'awaiting-tool-result';
     }
   }
@@ -554,12 +633,63 @@ export class HarnessAgentSession {
     this.activeTurnSequence = turnId;
     this.suspendedTurnState = undefined;
     this.turnState = 'running';
+    this.clearActivePromptControl();
+    let resolve!: (control: HarnessV1PromptControl | undefined) => void;
+    const promise = new Promise<HarnessV1PromptControl | undefined>(
+      resolvePromise => {
+        resolve = resolvePromise;
+      },
+    );
+    this.activePromptControl = {
+      turnId,
+      promise,
+      resolve,
+      settled: false,
+    };
     return turnId;
+  }
+
+  private setPromptControl(options: {
+    turnId: number;
+    control: HarnessV1PromptControl;
+  }): void {
+    const activePromptControl = this.activePromptControl;
+    if (
+      this.sessionState !== 'active' ||
+      this.turnState !== 'running' ||
+      this.activeTurnSequence !== options.turnId ||
+      activePromptControl?.turnId !== options.turnId
+    ) {
+      return;
+    }
+    this.settleActivePromptControl(options.control);
+  }
+
+  private settleActivePromptControl(
+    control: HarnessV1PromptControl | undefined,
+  ): void {
+    const activePromptControl = this.activePromptControl;
+    if (activePromptControl == null || activePromptControl.settled) return;
+    activePromptControl.settled = true;
+    activePromptControl.resolve(control);
+  }
+
+  private clearActivePromptControl(turnId?: number): void {
+    if (
+      turnId != null &&
+      this.activePromptControl != null &&
+      this.activePromptControl.turnId !== turnId
+    ) {
+      return;
+    }
+    this.settleActivePromptControl(undefined);
+    this.activePromptControl = undefined;
   }
 
   private finishTrackedTurn(options: { turnId: number }): void {
     if (this.sessionState !== 'active') return;
     if (this.activeTurnSequence !== options.turnId) return;
+    this.clearActivePromptControl(options.turnId);
     this.pendingToolApprovals.clear();
     this.pendingToolResults.clear();
     this.suspendedTurnState = undefined;
@@ -568,23 +698,11 @@ export class HarnessAgentSession {
 
   private endLocalHandle(options: {
     sessionState: Exclude<HarnessAgentSessionState, 'active'>;
-    releasePortLease: boolean;
   }): void {
+    this.clearActivePromptControl();
     this.sessionState = options.sessionState;
     this.underlyingSession = undefined;
     this.sandboxSession = undefined;
-    if (options.releasePortLease) {
-      this.releasePortLease();
-    }
-  }
-
-  private releasePortLease(): void {
-    if (this.leasedBridgePort == null) return;
-    releaseBridgePort({
-      poolKey: this.sandboxProvider,
-      sessionId: this.sessionId,
-    });
-    this.leasedBridgePort = undefined;
   }
 
   private requireReusableSession(): HarnessAgentAdapterSession {

@@ -1,5 +1,6 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import {
+  experimental_toolCaller,
   tool,
   type Context,
   type ModelMessage,
@@ -17,13 +18,73 @@ import {
 } from '../generate-text';
 import type { Instructions, Prompt } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import type { LanguageModelRequestMetadata } from '../types';
+import type { LanguageModelRequestMetadata, ProviderMetadata } from '../types';
 import type { LanguageModelUsage } from '../types/usage';
 import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  describe('onLanguageModelCallEnd', () => {
+    it('should expose provider metadata', async () => {
+      await generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onLanguageModelCallEnd: event => {
+          expectTypeOf(event.providerMetadata).toEqualTypeOf<
+            ProviderMetadata | undefined
+          >();
+        },
+      });
+    });
+  });
+
+  describe('experimental_toolCallers', () => {
+    it('should accept caller-capable tool names', () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: () =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => undefined,
+            }),
+        },
+      );
+      const tools = {
+        code_mode: codeMode,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute: async ({ sku }) => ({ sku }),
+        }),
+      } as const;
+      const toolCallers = {
+        getInventory: ['AI_SDK_DIRECT_TOOL_CALL', 'code_mode'],
+      } as const;
+
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools,
+        experimental_toolCallers: toolCallers,
+      });
+
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools,
+        experimental_toolCallers: {
+          // @ts-expect-error regular tools are not caller-capable
+          getInventory: ['getInventory'],
+        },
+      });
+    });
+  });
+
   describe('onEnd', () => {
     it('should expose end event properties', async () => {
       await generateText({
@@ -522,6 +583,24 @@ describe('generateText types', () => {
                 kill: async () => {},
               }),
             },
+          }),
+        });
+      });
+
+      it('should accept model call setting overrides', async () => {
+        generateText({
+          model: new MockLanguageModelV4(),
+          prompt: 'Hello',
+          prepareStep: () => ({
+            maxOutputTokens: 100,
+            temperature: 0,
+            topP: 0.9,
+            topK: 40,
+            presencePenalty: 0,
+            frequencyPenalty: 0,
+            stopSequences: ['stop'],
+            seed: 0,
+            reasoning: 'high',
           }),
         });
       });

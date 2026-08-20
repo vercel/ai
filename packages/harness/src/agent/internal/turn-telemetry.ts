@@ -271,6 +271,7 @@ export function createTurnTelemetry(opts: {
     finishReason: unknown;
     usage: unknown;
     content: TurnContentPart[];
+    providerMetadata?: unknown;
   }): Promise<void> => {
     const finishReason = normalizeFinishReason(info.finishReason);
     const usage = normalizeUsage(info.usage);
@@ -282,6 +283,9 @@ export function createTurnTelemetry(opts: {
         responseId: callId,
         usage,
         content: info.content,
+        ...(info.providerMetadata != null
+          ? { providerMetadata: info.providerMetadata }
+          : {}),
         performance: {
           responseTimeMs: undefined,
           timeToFirstOutputMs: undefined,
@@ -344,6 +348,7 @@ export function createTurnTelemetry(opts: {
         finishReason,
         usage,
         content,
+        providerMetadata: info.providerMetadata,
       });
       await dispatcher.onStepEnd?.(
         cast<'onStepEnd'>({
