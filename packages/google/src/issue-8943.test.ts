@@ -12,29 +12,54 @@ const TEST_PROMPT = [
   },
 ];
 
+const SUCCESS_RESPONSE = {
+  candidates: [
+    {
+      content: {
+        role: 'model',
+        parts: [{ text: 'OK' }],
+      },
+      finishReason: 'STOP',
+    },
+  ],
+  usageMetadata: {
+    promptTokenCount: 1,
+    candidatesTokenCount: 1,
+    totalTokenCount: 2,
+  },
+};
+
 describe('issue #8943', () => {
   it.each([
-    ['gemini-2.5-flash', 'frequencyPenalty'],
-    ['gemini-2.5-flash', 'presencePenalty'],
-    ['gemini-2.5-flash-lite', 'frequencyPenalty'],
-    ['gemini-2.5-flash-lite', 'presencePenalty'],
-    ['gemini-2.5-pro', 'frequencyPenalty'],
-    ['gemini-2.5-pro', 'presencePenalty'],
+    ['frequencyPenalty', 'gemini-2.5-flash'],
+    ['presencePenalty', 'gemini-2.5-flash'],
+    ['frequencyPenalty', 'gemini-2.5-flash-lite'],
+    ['presencePenalty', 'gemini-2.5-flash-lite'],
+    ['frequencyPenalty', 'gemini-2.5-pro'],
+    ['presencePenalty', 'gemini-2.5-pro'],
   ] as const)(
-    'strips %s %s and returns an unsupported warning',
-    async (modelId: ModelId, penalty: Penalty) => {
+    'strips %s for %s and returns an unsupported warning',
+    async (penalty: Penalty, modelId: ModelId) => {
       const errorFixture = JSON.parse(
         fs.readFileSync(
           `src/__fixtures__/issue-8943-${modelId}-error.json`,
           'utf8',
         ),
       );
+      let requestBody:
+        | {
+            generationConfig?: Record<string, unknown>;
+          }
+        | undefined;
 
       const google = createGoogle({
         apiKey: 'test-api-key',
         fetch: async (_input, init) => {
-          const requestBody = JSON.parse(String(init?.body));
-          const generationConfig = requestBody.generationConfig ?? {};
+          const parsedRequestBody = JSON.parse(String(init?.body)) as {
+            generationConfig?: Record<string, unknown>;
+          };
+          requestBody = parsedRequestBody;
+          const generationConfig = parsedRequestBody.generationConfig ?? {};
 
           if (
             generationConfig.frequencyPenalty != null ||
@@ -43,22 +68,7 @@ describe('issue #8943', () => {
             return Response.json(errorFixture, { status: 400 });
           }
 
-          return Response.json({
-            candidates: [
-              {
-                content: {
-                  role: 'model',
-                  parts: [{ text: 'OK' }],
-                },
-                finishReason: 'STOP',
-              },
-            ],
-            usageMetadata: {
-              promptTokenCount: 1,
-              candidatesTokenCount: 1,
-              totalTokenCount: 2,
-            },
-          });
+          return Response.json(SUCCESS_RESPONSE);
         },
       });
 
@@ -67,6 +77,7 @@ describe('issue #8943', () => {
         [penalty]: 0.5,
       });
 
+      expect(requestBody?.generationConfig).not.toHaveProperty(penalty);
       expect(result.content).toContainEqual({ type: 'text', text: 'OK' });
       expect(result.warnings).toContainEqual({
         type: 'unsupported',
@@ -74,4 +85,32 @@ describe('issue #8943', () => {
       });
     },
   );
+
+  it('continues forwarding both penalties for Gemini 2.0', async () => {
+    let requestBody:
+      | {
+          generationConfig?: Record<string, unknown>;
+        }
+      | undefined;
+
+    const google = createGoogle({
+      apiKey: 'test-api-key',
+      fetch: async (_input, init) => {
+        requestBody = JSON.parse(String(init?.body));
+        return Response.json(SUCCESS_RESPONSE);
+      },
+    });
+
+    const result = await google('gemini-2.0-flash').doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(requestBody?.generationConfig).toMatchObject({
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+    expect(result.warnings).toEqual([]);
+  });
 });

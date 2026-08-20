@@ -7,6 +7,6 @@
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "Reproduced issue #8943: Gemini 2.5 Flash, Flash-Lite, and Pro reject AI SDK frequencyPenalty and presencePenalty requests."
+    "signal": "ISSUE_8943_REPRODUCED: 6/6 Gemini 2.5 penalty calls failed with HTTP 400 INVALID_ARGUMENT"
   }
 }
