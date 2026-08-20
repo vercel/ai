@@ -10218,6 +10218,49 @@ describe('streamText', () => {
       expect(onStepFinish).toHaveBeenCalledOnce();
       expect(onFinish).toHaveBeenCalledOnce();
     });
+
+    it('should isolate onChunk throws from the stream', async () => {
+      const onFinish = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onChunk() {
+          throw new Error('chunk callback failed');
+        },
+        onFinish,
+      });
+
+      const [textChunks, parts, steps] = await Promise.all([
+        convertAsyncIterableToArray(result.textStream),
+        convertAsyncIterableToArray(result.fullStream),
+        result.steps,
+      ]);
+
+      expect(textChunks).toStrictEqual(['Hello']);
+      expect(parts.map(part => part.type)).toStrictEqual([
+        'start',
+        'start-step',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'finish-step',
+        'finish',
+      ]);
+      expect(steps).toHaveLength(1);
+      expect(onFinish).toHaveBeenCalled();
+    });
   });
 
   describe('options.onError', () => {
@@ -10275,6 +10318,77 @@ describe('streamText', () => {
       await expect(resultObject.steps).resolves.toHaveLength(1);
       expect(onStepFinish).toHaveBeenCalledOnce();
       expect(onFinish).toHaveBeenCalledOnce();
+    });
+
+    it('should isolate onError throws from the stream and preserve the provider error', async () => {
+      const onFinish = vi.fn();
+      const providerError = new Error('provider api failure');
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error: providerError },
+            {
+              type: 'finish',
+              finishReason: { unified: 'error', raw: undefined },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError() {
+          throw new Error('my rethrow');
+        },
+        onFinish,
+      });
+
+      const [textChunks, parts, steps] = await Promise.all([
+        convertAsyncIterableToArray(result.textStream),
+        convertAsyncIterableToArray(result.fullStream),
+        result.steps,
+      ]);
+
+      expect(textChunks).toStrictEqual(['Hello']);
+      expect(parts.filter(part => part.type === 'error')).toStrictEqual([
+        { type: 'error', error: providerError },
+      ]);
+      expect(steps).toHaveLength(1);
+      expect(steps[0].finishReason).toBe('error');
+      expect(onFinish).toHaveBeenCalled();
+    });
+
+    it('should not reject result promises with an onError throw when doStream fails', async () => {
+      const providerError = new Error('provider api failure');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw providerError;
+          },
+        }),
+        prompt: 'test-input',
+        onError() {
+          throw new Error('my rethrow');
+        },
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(parts.filter(part => part.type === 'error')).toStrictEqual([
+        { type: 'error', error: providerError },
+      ]);
+
+      await expect(result.steps).rejects.toThrow(
+        'No output generated. Check the stream for errors.',
+      );
     });
   });
 
