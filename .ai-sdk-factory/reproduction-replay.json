@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19178,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19178-mistral-incremental-tool-call.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19178-mistral-incremental-tool-call.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19178_REPRODUCED: incremental Mistral tool-call arguments were rejected before the tool could execute"
+  }
+}
