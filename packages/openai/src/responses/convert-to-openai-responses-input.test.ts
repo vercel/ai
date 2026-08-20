@@ -1,4 +1,5 @@
 import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { describe, it, expect } from 'vitest';
 
@@ -6,6 +7,67 @@ const testToolNameMapping: ToolNameMapping = {
   toProviderToolName: (customToolName: string) => customToolName,
   toCustomToolName: (providerToolName: string) => providerToolName,
 };
+
+const parallelToolCallInput =
+  '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
+
+function createExpandedParallelToolCallPrompt(): LanguageModelV4Prompt {
+  const providerOptions = (index: number) => ({
+    openai: {
+      parallelToolCall: {
+        itemId: 'fc_parallel',
+        toolCallId: 'call_parallel',
+        toolName: 'parallel',
+        input: parallelToolCallInput,
+        index,
+        count: 2,
+      },
+    },
+  });
+
+  return [
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          input: { location: 'San Francisco' },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          input: { city: 'Rome' },
+          providerOptions: providerOptions(1),
+        },
+      ],
+    },
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          output: { type: 'json', value: { temperature: 72 } },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          output: { type: 'text', value: 'Colosseum' },
+          providerOptions: providerOptions(1),
+        },
+      ],
+    },
+  ];
+}
+
+const parallelToolCallOutput = '{"temperature":72}\nColosseum';
 
 describe('convertToOpenAIResponsesInput', () => {
   describe('system messages', () => {
@@ -4597,6 +4659,26 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should send expanded parallel tool results back to the stored wrapper call', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should include assistant messages without item IDs when hasConversation is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4738,6 +4820,32 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('hasPreviousResponseId', () => {
+    it('should reconstruct expanded parallel tool calls with one wrapper output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_parallel',
+          name: 'parallel',
+          arguments: parallelToolCallInput,
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should keep client-executed function calls paired with their outputs when hasPreviousResponseId is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,

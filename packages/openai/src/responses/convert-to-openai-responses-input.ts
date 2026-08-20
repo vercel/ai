@@ -1,9 +1,18 @@
 import {
   UnsupportedFunctionalityError,
+<<<<<<< HEAD
   type LanguageModelV3Prompt,
   type LanguageModelV3ToolApprovalResponsePart,
   type SharedV3ProviderOptions,
   type SharedV3Warning,
+=======
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultOutput,
+  type LanguageModelV4ToolResultPart,
+  type SharedV4ProviderOptions,
+  type LanguageModelV4ToolApprovalResponsePart,
+  type SharedV4Warning,
+>>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
@@ -27,17 +36,255 @@ import {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
+<<<<<<< HEAD
 import type {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
+=======
+import {
+  programmaticToolCallingInputSchema,
+  programmaticToolCallingOutputSchema,
+} from '../tool/programmatic-tool-calling';
+import {
+  getParallelToolCallMetadata,
+  type ParallelToolCallMetadata,
+} from './expand-parallel-tool-call';
+>>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
 
 function serializeToolCallArguments(input: unknown): string {
   return JSON.stringify(input === undefined ? {} : input);
 }
 
+<<<<<<< HEAD
+=======
+function mapToolCaller(
+  caller:
+    | { type: 'direct' }
+    | { type: 'program'; callerId: string }
+    | undefined,
+): OpenAIResponsesToolCaller | undefined {
+  return caller == null
+    ? undefined
+    : caller.type === 'program'
+      ? { type: 'program', caller_id: caller.callerId }
+      : caller;
+}
+
+async function convertFunctionToolResultOutput({
+  output,
+  toolName,
+  outputSchemaToolNames,
+  providerOptionsName,
+  warnings,
+}: {
+  output: LanguageModelV4ToolResultOutput;
+  toolName: string;
+  outputSchemaToolNames: Set<string> | undefined;
+  providerOptionsName: string;
+  warnings: Array<SharedV4Warning>;
+}): Promise<OpenAIResponsesFunctionCallOutput['output']> {
+  // `output` is always a string, but for functions with output_schema OpenAI
+  // parses the contents of that string as JSON. Text-like results therefore
+  // need JSON.stringify to become valid JSON string literals.
+  const hasOutputSchema = outputSchemaToolNames?.has(toolName);
+
+  switch (output.type) {
+    case 'text':
+    case 'error-text':
+      return hasOutputSchema ? JSON.stringify(output.value) : output.value;
+    case 'execution-denied': {
+      const reason = output.reason ?? 'Tool call execution denied.';
+      return hasOutputSchema ? JSON.stringify(reason) : reason;
+    }
+    case 'json':
+    case 'error-json':
+      return JSON.stringify(output.value);
+    case 'content':
+      return output.value
+        .map(item => {
+          const promptCacheBreakpoint = getPromptCacheBreakpoint(
+            item.providerOptions,
+            providerOptionsName,
+          );
+          switch (item.type) {
+            case 'text': {
+              return {
+                type: 'input_text' as const,
+                text: item.text,
+                ...(promptCacheBreakpoint != null && {
+                  prompt_cache_breakpoint: promptCacheBreakpoint,
+                }),
+              };
+            }
+
+            case 'file': {
+              const topLevel = getTopLevelMediaType(item.mediaType);
+              const imageDetail =
+                item.providerOptions?.[providerOptionsName]?.imageDetail;
+
+              if (item.data.type === 'data') {
+                const fullMediaType = resolveFullMediaType({ part: item });
+                if (topLevel === 'image') {
+                  return {
+                    type: 'input_image' as const,
+                    image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                    detail: imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
+                  };
+                }
+                return {
+                  type: 'input_file' as const,
+                  filename: item.filename ?? 'data',
+                  file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
+              }
+
+              if (item.data.type === 'url') {
+                if (topLevel === 'image') {
+                  return {
+                    type: 'input_image' as const,
+                    image_url: item.data.url.toString(),
+                    detail: imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
+                  };
+                }
+                return {
+                  type: 'input_file' as const,
+                  file_url: item.data.url.toString(),
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
+              }
+
+              warnings.push({
+                type: 'other',
+                message: `unsupported tool content part type: ${item.type} with data type: ${item.data.type}`,
+              });
+              return undefined;
+            }
+
+            default: {
+              warnings.push({
+                type: 'other',
+                message: `unsupported tool content part type: ${item.type}`,
+              });
+              return undefined;
+            }
+          }
+        })
+        .filter(isNonNullable);
+  }
+}
+
+type ParallelToolResultGroup = {
+  metadata: ParallelToolCallMetadata;
+  results: Array<LanguageModelV4ToolResultPart>;
+};
+
+function hasSameParallelToolCall(
+  first: ParallelToolCallMetadata,
+  second: ParallelToolCallMetadata,
+): boolean {
+  return (
+    first.itemId === second.itemId &&
+    first.toolCallId === second.toolCallId &&
+    first.toolName === second.toolName &&
+    first.input === second.input &&
+    first.count === second.count
+  );
+}
+
+function collectCompleteParallelToolResultGroups({
+  prompt,
+  providerOptionsName,
+}: {
+  prompt: LanguageModelV4Prompt;
+  providerOptionsName: string;
+}): Map<string, ParallelToolResultGroup> {
+  const pendingGroups = new Map<
+    string,
+    {
+      metadata: ParallelToolCallMetadata;
+      results: Map<number, LanguageModelV4ToolResultPart>;
+      invalid: boolean;
+    }
+  >();
+
+  for (const message of prompt) {
+    if (message.role !== 'tool') {
+      continue;
+    }
+
+    for (const part of message.content) {
+      if (part.type !== 'tool-result') {
+        continue;
+      }
+
+      const metadata = getParallelToolCallMetadata({
+        providerOptions: part.providerOptions,
+        providerOptionsName,
+      });
+
+      if (metadata == null) {
+        continue;
+      }
+
+      const existing = pendingGroups.get(metadata.toolCallId);
+      if (existing == null) {
+        pendingGroups.set(metadata.toolCallId, {
+          metadata,
+          results: new Map([[metadata.index, part]]),
+          invalid: false,
+        });
+        continue;
+      }
+
+      if (
+        !hasSameParallelToolCall(existing.metadata, metadata) ||
+        existing.results.has(metadata.index)
+      ) {
+        existing.invalid = true;
+        continue;
+      }
+
+      existing.results.set(metadata.index, part);
+    }
+  }
+
+  const completeGroups = new Map<string, ParallelToolResultGroup>();
+
+  for (const [toolCallId, group] of pendingGroups) {
+    if (group.invalid || group.results.size !== group.metadata.count) {
+      continue;
+    }
+
+    const results = Array.from({ length: group.metadata.count }, (_, index) =>
+      group.results.get(index),
+    );
+
+    if (results.every(isNonNullable)) {
+      completeGroups.set(toolCallId, {
+        metadata: group.metadata,
+        results,
+      });
+    }
+  }
+
+  return completeGroups;
+}
+
+>>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
 
 function getPromptCacheBreakpoint(
@@ -93,6 +340,15 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV3Warning> = [];
   const processedApprovalIds = new Set<string>();
+  const parallelToolResultGroups =
+    hasConversation || hasPreviousResponseId
+      ? collectCompleteParallelToolResultGroups({
+          prompt,
+          providerOptionsName,
+        })
+      : new Map<string, ParallelToolResultGroup>();
+  const emittedParallelToolCalls = new Set<string>();
+  const emittedParallelToolResults = new Set<string>();
 
   for (const { role, content, providerOptions } of prompt) {
     switch (role) {
@@ -279,6 +535,49 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
+              const parallelToolCallMetadata = getParallelToolCallMetadata({
+                providerOptions: part.providerOptions,
+                providerOptionsName,
+              });
+              const parallelToolResultGroup =
+                parallelToolCallMetadata == null
+                  ? undefined
+                  : parallelToolResultGroups.get(
+                      parallelToolCallMetadata.toolCallId,
+                    );
+
+              if (
+                parallelToolCallMetadata != null &&
+                parallelToolResultGroup != null &&
+                hasSameParallelToolCall(
+                  parallelToolResultGroup.metadata,
+                  parallelToolCallMetadata,
+                )
+              ) {
+                if (
+                  !emittedParallelToolCalls.has(
+                    parallelToolResultGroup.metadata.toolCallId,
+                  )
+                ) {
+                  emittedParallelToolCalls.add(
+                    parallelToolResultGroup.metadata.toolCallId,
+                  );
+
+                  // Conversations already contain the original wrapper item.
+                  // previousResponseId chains require plain client function
+                  // calls to be reconstructed in full.
+                  if (!hasConversation) {
+                    input.push({
+                      type: 'function_call',
+                      call_id: parallelToolResultGroup.metadata.toolCallId,
+                      name: parallelToolResultGroup.metadata.toolName,
+                      arguments: parallelToolResultGroup.metadata.input,
+                    });
+                  }
+                }
+                break;
+              }
+
               const id = (part.providerOptions?.[providerOptionsName]?.itemId ??
                 (
                   part as {
@@ -709,6 +1008,63 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
+          const parallelToolCallMetadata = getParallelToolCallMetadata({
+            providerOptions: part.providerOptions,
+            providerOptionsName,
+          });
+          const parallelToolResultGroup =
+            parallelToolCallMetadata == null
+              ? undefined
+              : parallelToolResultGroups.get(
+                  parallelToolCallMetadata.toolCallId,
+                );
+
+          if (
+            parallelToolCallMetadata != null &&
+            parallelToolResultGroup != null &&
+            hasSameParallelToolCall(
+              parallelToolResultGroup.metadata,
+              parallelToolCallMetadata,
+            )
+          ) {
+            if (
+              !emittedParallelToolResults.has(
+                parallelToolResultGroup.metadata.toolCallId,
+              )
+            ) {
+              emittedParallelToolResults.add(
+                parallelToolResultGroup.metadata.toolCallId,
+              );
+
+              const toolOutputs = await Promise.all(
+                parallelToolResultGroup.results.map(async result =>
+                  convertFunctionToolResultOutput({
+                    output: result.output,
+                    toolName: result.toolName,
+                    outputSchemaToolNames,
+                    providerOptionsName,
+                    warnings,
+                  }),
+                ),
+              );
+
+              input.push({
+                type: 'function_call_output',
+                call_id: parallelToolResultGroup.metadata.toolCallId,
+                // The internal wrapper returns one output containing the child
+                // results in the same order as the original tool_uses array.
+                output: toolOutputs
+                  .map(output =>
+                    typeof output === 'string'
+                      ? output
+                      : JSON.stringify(output),
+                  )
+                  .join('\n'),
+              });
+            }
+            continue;
+          }
+
           const output = part.output;
 
           // Skip execution-denied with approvalId - already handled via tool-approval-response
@@ -897,6 +1253,7 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
+<<<<<<< HEAD
           let contentValue: OpenAIResponsesFunctionCallOutput['output'];
           switch (output.type) {
             case 'text':
@@ -987,6 +1344,15 @@ export async function convertToOpenAIResponsesInput({
                 .filter(isNonNullable);
               break;
           }
+=======
+          const contentValue = await convertFunctionToolResultOutput({
+            output,
+            toolName: part.toolName,
+            outputSchemaToolNames,
+            providerOptionsName,
+            warnings,
+          });
+>>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
 
           input.push({
             type: 'function_call_output',

@@ -1,6 +1,7 @@
 import {
   APICallError,
   type JSONValue,
+<<<<<<< HEAD
   type LanguageModelV3,
   type LanguageModelV3Prompt,
   type LanguageModelV3CallOptions,
@@ -13,6 +14,21 @@ import {
   type LanguageModelV3ToolApprovalRequest,
   type SharedV3ProviderMetadata,
   type SharedV3Warning,
+=======
+  type LanguageModelV4,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4ProviderTool,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4ToolApprovalRequest,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
+>>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -49,6 +65,10 @@ import {
   type OpenAIResponsesUsage,
 } from './convert-openai-responses-usage';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
+import {
+  expandParallelToolCall,
+  isUndeclaredParallelToolCall,
+} from './expand-parallel-tool-call';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
   openaiResponsesChunkSchema,
@@ -538,6 +558,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
+    const functionTools =
+      options.tools?.filter(
+        (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
+      ) ?? [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -797,6 +821,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
         case 'function_call': {
           hasFunctionCall = true;
+
+          const expandedToolCalls = await expandParallelToolCall({
+            toolCall: {
+              toolCallId: part.call_id,
+              toolName: part.name,
+              input: part.arguments,
+            },
+            tools: functionTools,
+            providerOptionsName,
+            itemId: part.id,
+          });
+
+          if (expandedToolCalls != null) {
+            content.push(...expandedToolCalls);
+            break;
+          }
 
           content.push({
             type: 'tool-call',
@@ -1105,6 +1145,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const approvalRequestIdToDummyToolCallIdFromPrompt =
       extractApprovalRequestIdToToolCallIdMapping(options.prompt);
 
+    const functionTools =
+      options.tools?.filter(
+        (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
+      ) ?? [];
+
     const approvalRequestIdToDummyToolCallIdFromStream = new Map<
       string,
       string
@@ -1131,6 +1176,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             endEmitted: boolean;
           };
           toolSearchExecution?: 'server' | 'client';
+          suppressInputStreaming?: boolean;
+          bufferedInputDeltas?: string[];
         }
       | undefined
     > = {};
@@ -1199,16 +1246,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
             if (isResponseOutputItemAddedChunk(value)) {
               if (value.item.type === 'function_call') {
+                const suppressInputStreaming = isUndeclaredParallelToolCall({
+                  toolName: value.item.name,
+                  tools: functionTools,
+                });
+
                 ongoingToolCalls[value.output_index] = {
                   toolName: value.item.name,
                   toolCallId: value.item.call_id,
+                  suppressInputStreaming,
+                  bufferedInputDeltas: suppressInputStreaming ? [] : undefined,
                 };
 
-                controller.enqueue({
-                  type: 'tool-input-start',
-                  id: value.item.call_id,
-                  toolName: value.item.name,
-                });
+                if (!suppressInputStreaming) {
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: value.item.call_id,
+                    toolName: value.item.name,
+                  });
+                }
               } else if (value.item.type === 'custom_tool_call') {
                 const toolName = toolNameMapping.toCustomToolName(
                   value.item.name,
@@ -1439,21 +1495,84 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               } else if (value.item.type === 'function_call') {
+                const item = value.item;
+                const ongoingToolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.call_id,
-                  ...(value.item.namespace != null && {
+                const suppressInputStreaming =
+                  ongoingToolCall?.suppressInputStreaming ??
+                  isUndeclaredParallelToolCall({
+                    toolName: item.name,
+                    tools: functionTools,
+                  });
+
+                const enqueueUnexpandedToolCall = () => {
+                  if (suppressInputStreaming) {
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: item.call_id,
+                      toolName: item.name,
+                    });
+
+                    const bufferedInputDeltas =
+                      ongoingToolCall?.bufferedInputDeltas ?? [];
+
+                    if (bufferedInputDeltas.length > 0) {
+                      for (const delta of bufferedInputDeltas) {
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: item.call_id,
+                          delta,
+                        });
+                      }
+                    } else if (item.arguments.length > 0) {
+                      controller.enqueue({
+                        type: 'tool-input-delta',
+                        id: item.call_id,
+                        delta: item.arguments,
+                      });
+                    }
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: item.call_id,
+                    ...(item.namespace != null && {
+                      providerMetadata: {
+                        [providerOptionsName]: {
+                          namespace: item.namespace,
+                        },
+                      },
+                    }),
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: item.call_id,
+                    toolName: item.name,
+                    input: item.arguments,
                     providerMetadata: {
                       [providerOptionsName]: {
-                        namespace: value.item.namespace,
+                        itemId: item.id,
+                        ...(item.namespace != null && {
+                          namespace: item.namespace,
+                        }),
+                        ...(item.caller != null && {
+                          caller:
+                            item.caller.type === 'program'
+                              ? {
+                                  type: 'program',
+                                  callerId: item.caller.caller_id,
+                                }
+                              : item.caller,
+                        }),
                       },
                     },
-                  }),
-                });
+                  });
+                };
 
+<<<<<<< HEAD
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.call_id,
@@ -1465,6 +1584,82 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       ...(value.item.namespace != null && {
                         namespace: value.item.namespace,
                       }),
+=======
+                if (!suppressInputStreaming) {
+                  enqueueUnexpandedToolCall();
+                  return;
+                }
+
+                return expandParallelToolCall({
+                  toolCall: {
+                    toolCallId: item.call_id,
+                    toolName: item.name,
+                    input: item.arguments,
+                  },
+                  tools: functionTools,
+                  providerOptionsName,
+                  itemId: item.id,
+                }).then(expandedToolCalls => {
+                  if (expandedToolCalls == null) {
+                    enqueueUnexpandedToolCall();
+                    return;
+                  }
+
+                  for (const toolCall of expandedToolCalls) {
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                    });
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCall.toolCallId,
+                      delta: toolCall.input,
+                    });
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCall.toolCallId,
+                    });
+                    controller.enqueue(toolCall);
+                  }
+                });
+              } else if (value.item.type === 'program') {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName(
+                    'programmatic_tool_calling',
+                  ),
+                  input: JSON.stringify({
+                    code: value.item.code,
+                    fingerprint: value.item.fingerprint,
+                  } satisfies InferSchema<
+                    typeof programmaticToolCallingInputSchema
+                  >),
+                  providerExecuted: true,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
+              } else if (value.item.type === 'program_output') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName(
+                    'programmatic_tool_calling',
+                  ),
+                  result: {
+                    result: value.item.result,
+                    status: value.item.status,
+                  } satisfies InferSchema<
+                    typeof programmaticToolCallingOutputSchema
+                  >,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+>>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
                     },
                   },
                 });
@@ -1863,11 +2058,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               const toolCall = ongoingToolCalls[value.output_index];
 
               if (toolCall != null) {
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.toolCallId,
-                  delta: value.delta,
-                });
+                if (toolCall.suppressInputStreaming) {
+                  toolCall.bufferedInputDeltas?.push(value.delta);
+                } else {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.toolCallId,
+                    delta: value.delta,
+                  });
+                }
               }
             } else if (isResponseCustomToolCallInputDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
@@ -2189,7 +2388,31 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
+<<<<<<< HEAD
             const providerMetadata: SharedV3ProviderMetadata = {
+=======
+            for (const toolCall of Object.values(ongoingToolCalls)) {
+              if (!toolCall?.suppressInputStreaming) {
+                continue;
+              }
+
+              controller.enqueue({
+                type: 'tool-input-start',
+                id: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+              });
+
+              for (const delta of toolCall.bufferedInputDeltas ?? []) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta,
+                });
+              }
+            }
+
+            const providerMetadata: SharedV4ProviderMetadata = {
+>>>>>>> 6be0f51d08 (fix(openai): expand Responses API parallel tool call wrappers (#19098))
               [providerOptionsName]: {
                 responseId: responseId,
                 ...(logprobs.length > 0 ? { logprobs } : {}),
