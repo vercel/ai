@@ -168,18 +168,22 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
     );
   });
 
-  it('surfaces modeled exception frames as stream errors', async () => {
+  it.each([
+    'internalServerException',
+    'modelStreamErrorException',
+    'serviceUnavailableException',
+    'throttlingException',
+    'validationException',
+  ])('surfaces %s frames as stream errors', async exceptionType => {
     const exception = {
-      message: 'An error occurred while streaming the response.',
-      originalMessage: 'The model stream failed.',
-      originalStatusCode: 424,
+      message: `Modeled exception: ${exceptionType}`,
     };
     const exceptionFrame = codec.encode({
       headers: {
         ':message-type': { type: 'string', value: 'exception' },
         ':exception-type': {
           type: 'string',
-          value: 'modelStreamErrorException',
+          value: exceptionType,
         },
         ':content-type': { type: 'string', value: 'application/json' },
       },
