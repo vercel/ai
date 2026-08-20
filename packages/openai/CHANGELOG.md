@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.99
+
+### Patch Changes
+
+- f40afcf: fix(openai): expand internal parallel tool call wrappers from the Responses API while preserving stateful continuation and streaming fallbacks
+
 ## 3.0.98
 
 ### Patch Changes

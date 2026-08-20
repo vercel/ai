@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.159
+
+### Patch Changes
+
+- 46e063a: fix(amazon-bedrock): surface modeled event-stream exceptions
+- Updated dependencies [f40afcf]
+  - @ai-sdk/openai@3.0.99
+
 ## 4.0.158
 
 ### Patch Changes
