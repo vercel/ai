@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.242
+
+### Patch Changes
+
+- e88bc9f: Fix array-backed language model mocks to return configured results in order from the first call.
+
 ## 5.0.241
 
 ### Patch Changes
