@@ -1,5 +1,52 @@
 # @ai-sdk/harness-acp
 
+## 1.0.16
+
+### Patch Changes
+
+- eace6fb: feat(harness): add experimental support for steering agent conversations mid-turn
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness@1.0.78
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+
+## 1.0.12
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+
+## 1.0.11
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness@1.0.73
+
 ## 1.0.10
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/moonshotai
 
+## 3.0.36
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
 ## 3.0.35
 
 ### Patch Changes

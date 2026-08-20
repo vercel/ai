@@ -271,6 +271,7 @@
                   "properties": {
                     "mintBridgeToken": {},
                     "port": { "type": "number" },
+                    "portEndpoint": {},
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
@@ -301,6 +302,7 @@
                   "properties": {
                     "mintBridgeToken": {},
                     "port": { "type": "number" },
+                    "portEndpoint": {},
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }

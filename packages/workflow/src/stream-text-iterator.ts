@@ -7,7 +7,6 @@ import type {
 import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
   type LanguageModel,
@@ -22,6 +21,7 @@ import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import {
   type DoStreamStepRawResult,
   doStreamStep,
+  type ModelCallStreamPart,
   type ModelStopCondition,
   type ParsedToolCall,
   type ProviderExecutedToolResult,
@@ -97,6 +97,11 @@ export interface StreamTextIteratorAbortedValue {
   messages: LanguageModelV4Prompt;
 }
 
+export interface StreamTextIteratorErrorValue {
+  error: unknown;
+  messages: LanguageModelV4Prompt;
+}
+
 // This runs in the workflow context
 export async function* streamTextIterator({
   prompt,
@@ -147,7 +152,9 @@ export async function* streamTextIterator({
   experimental_sandbox?: SandboxSession;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV4Prompt | StreamTextIteratorAbortedValue,
+  | LanguageModelV4Prompt
+  | StreamTextIteratorAbortedValue
+  | StreamTextIteratorErrorValue,
   LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
@@ -166,6 +173,8 @@ export async function* streamTextIterator({
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
   let wasAborted = false;
+  let terminalError: unknown;
+  let hasTerminalError = false;
 
   // TODO(#12164): replace this AI-core telemetry bridge with a
   // WorkflowAgent-specific typed dispatcher. `streamTextIterator` widens
@@ -347,6 +356,11 @@ export async function* streamTextIterator({
         break;
       }
 
+      if ('terminalError' in streamStepResult) {
+        terminalError = streamStepResult.terminalError;
+        hasTerminalError = true;
+      }
+
       const { toolCalls, finish, raw, providerExecutedToolResults } =
         streamStepResult;
       // Reconstruct the full StepResult outside the step boundary so the
@@ -379,7 +393,12 @@ export async function* streamTextIterator({
 
       const finishReason = finish?.finishReason;
 
-      if (finishReason === 'tool-calls') {
+      if (hasTerminalError) {
+        // The error crossed the durable step boundary as data. End the loop
+        // without throwing so WorkflowAgent can preserve the existing
+        // resolved-result contract and expose the original value.
+        done = true;
+      } else if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
         const textContent = step.content.filter(
@@ -506,6 +525,10 @@ export async function* streamTextIterator({
 
   if (wasAborted) {
     return { aborted: true, messages: conversationPrompt };
+  }
+
+  if (hasTerminalError) {
+    return { error: terminalError, messages: conversationPrompt };
   }
 
   return conversationPrompt;
