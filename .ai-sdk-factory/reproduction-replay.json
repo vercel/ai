@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19165,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19165-truncated-openai-compatible-sse.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19165-truncated-openai-compatible-sse.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #19165: truncated OpenAI-compatible SSE was reported as a successful 'other' finish without an error event."
+  }
+}
