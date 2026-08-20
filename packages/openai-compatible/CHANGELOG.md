@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.33
+
+### Patch Changes
+
+- d68139c: fix(openai-compatible): report truncated chat streams as errors
+
 ## 3.0.32
 
 ### Patch Changes

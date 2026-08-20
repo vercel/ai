@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 4.0.31
+
+### Patch Changes
+
+- b8100f3: fix(mistral): support incremental streaming tool calls
+
 ## 4.0.30
 
 ### Patch Changes
