@@ -314,7 +314,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(prompt, {
+          providerOptionsKey: metadataKey,
+        }),
 
         // tools:
         tools: openaiTools,
@@ -377,7 +379,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           toolCall.extra_content?.google?.thought_signature;
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
           ...(thoughtSignature
@@ -732,18 +734,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   }
 }
 
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
 const openaiCompatibleTokenUsageSchema = z
   .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
     prompt_tokens_details: z
-      .object({
+      .looseObject({
         cached_tokens: z.number().nullish(),
       })
       .nullish(),
     completion_tokens_details: z
-      .object({
+      .looseObject({
         reasoning_tokens: z.number().nullish(),
         accepted_prediction_tokens: z.number().nullish(),
         rejected_prediction_tokens: z.number().nullish(),

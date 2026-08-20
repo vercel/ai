@@ -5,6 +5,7 @@ import {
   serializeToolSet,
   resolveSerializableTools,
 } from './serializable-schema';
+import { createTestSandbox } from './test/test-sandbox';
 
 describe('serializeToolSet', () => {
   it('serializes function tools with description and inputSchema', () => {
@@ -64,6 +65,38 @@ describe('serializeToolSet', () => {
         allowedDomains: ['vercel.com', 'nextjs.org'],
       },
     });
+  });
+
+  it('resolves descriptions from tool context and sandbox', () => {
+    const sandbox = createTestSandbox({
+      description: 'request sandbox',
+    });
+    const tools = {
+      getWeather: tool({
+        description: ({ context, experimental_sandbox }) =>
+          `${context.city} via ${experimental_sandbox?.description}`,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: {},
+        }),
+        contextSchema: jsonSchema<{ city: string }>({
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        }),
+      }),
+    };
+
+    const serialized = serializeToolSet(tools, {
+      toolsContext: {
+        getWeather: { city: 'Berlin' },
+      },
+      experimental_sandbox: sandbox,
+    });
+
+    expect(serialized.getWeather.description).toBe(
+      'Berlin via request sandbox',
+    );
   });
 });
 

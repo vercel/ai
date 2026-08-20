@@ -1,5 +1,284 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.59
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- aabc617: fix (provider/amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API and replay it on subsequent turns
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/openai@4.0.44
+  - @ai-sdk/anthropic@4.0.40
+
+## 5.0.58
+
+### Patch Changes
+
+- 1ac9af8: Reject Amazon Bedrock event streams that end with an incomplete buffered frame instead of completing normally with partial output.
+- e0776b9: Surface Amazon Bedrock event stream frame decoding and processing failures instead of silently completing the stream.
+- Updated dependencies [a062795]
+  - @ai-sdk/openai@4.0.43
+
+## 5.0.57
+
+### Patch Changes
+
+- Updated dependencies [b6fff2e]
+  - @ai-sdk/openai@4.0.42
+
+## 5.0.56
+
+### Patch Changes
+
+- Updated dependencies [4579b08]
+  - @ai-sdk/anthropic@4.0.39
+
+## 5.0.55
+
+### Patch Changes
+
+- Updated dependencies [59d6def]
+  - @ai-sdk/openai@4.0.41
+
+## 5.0.54
+
+### Patch Changes
+
+- Updated dependencies [e19a4a6]
+  - @ai-sdk/openai@4.0.40
+
+## 5.0.53
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/anthropic@4.0.38
+  - @ai-sdk/openai@4.0.39
+
+## 5.0.52
+
+### Patch Changes
+
+- Updated dependencies [d302134]
+  - @ai-sdk/openai@4.0.38
+
+## 5.0.51
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/anthropic@4.0.37
+  - @ai-sdk/openai@4.0.37
+
+## 5.0.50
+
+### Patch Changes
+
+- Updated dependencies [6157098]
+- Updated dependencies [4cd4548]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/openai@4.0.36
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/anthropic@4.0.36
+
+## 5.0.49
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/anthropic@4.0.35
+  - @ai-sdk/openai@4.0.35
+
+## 5.0.48
+
+### Patch Changes
+
+- Updated dependencies [e6415bd]
+- Updated dependencies [73d48d0]
+- Updated dependencies [bbd9b31]
+  - @ai-sdk/anthropic@4.0.34
+  - @ai-sdk/openai@4.0.34
+
+## 5.0.47
+
+### Patch Changes
+
+- Updated dependencies [e6a93c4]
+  - @ai-sdk/openai@4.0.33
+
+## 5.0.46
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/anthropic@4.0.33
+  - @ai-sdk/openai@4.0.32
+  - @ai-sdk/provider-utils@5.0.23
+
+## 5.0.45
+
+### Patch Changes
+
+- Updated dependencies [8b96941]
+  - @ai-sdk/anthropic@4.0.32
+
+## 5.0.44
+
+### Patch Changes
+
+- a4ecd1c: Omit assistant messages that become empty after unsigned reasoning is filtered.
+- Updated dependencies [2b60826]
+- Updated dependencies [7a9da75]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/anthropic@4.0.31
+  - @ai-sdk/openai@4.0.31
+
+## 5.0.43
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/openai@4.0.30
+  - @ai-sdk/anthropic@4.0.30
+
+## 5.0.42
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/anthropic@4.0.29
+  - @ai-sdk/openai@4.0.29
+
+## 5.0.41
+
+### Patch Changes
+
+- Updated dependencies [9337ecd]
+- Updated dependencies [79e133c]
+  - @ai-sdk/anthropic@4.0.28
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/openai@4.0.28
+  - @ai-sdk/provider-utils@5.0.19
+
+## 5.0.40
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/openai@4.0.27
+  - @ai-sdk/anthropic@4.0.27
+
+## 5.0.39
+
+### Patch Changes
+
+- Updated dependencies [dc0c28e]
+- Updated dependencies [f7c4a38]
+- Updated dependencies [fa95504]
+  - @ai-sdk/anthropic@4.0.26
+  - @ai-sdk/openai@4.0.26
+  - @ai-sdk/provider-utils@5.0.17
+
+## 5.0.38
+
+### Patch Changes
+
+- 52e22a7: feat(bedrock): support video inputs in Converse messages
+
+## 5.0.37
+
+### Patch Changes
+
+- ebd31b8: fix(amazon-bedrock): warn when unsupported strict tools are omitted and align structured output fallback routing
+- Updated dependencies [d8210b6]
+- Updated dependencies [beaecb3]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/anthropic@4.0.25
+  - @ai-sdk/openai@4.0.25
+
+## 5.0.36
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/anthropic@4.0.24
+  - @ai-sdk/openai@4.0.24
+
+## 5.0.35
+
+### Patch Changes
+
+- Updated dependencies [96a237d]
+  - @ai-sdk/openai@4.0.23
+
+## 5.0.34
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/openai@4.0.22
+  - @ai-sdk/anthropic@4.0.23
+
+## 5.0.33
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/anthropic@4.0.22
+  - @ai-sdk/openai@4.0.21
+  - @ai-sdk/provider-utils@5.0.13
+
+## 5.0.32
+
+### Patch Changes
+
+- eb16508: fix(provider/amazon-bedrock): omit tool `strict` and `output_config.format` for Claude models Bedrock rejects them on
+- Updated dependencies [e29788d]
+  - @ai-sdk/anthropic@4.0.21
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [cbdc990]
+- Updated dependencies [cbdc990]
+- Updated dependencies [cbdc990]
+  - @ai-sdk/anthropic@4.0.20
+
+## 5.0.30
+
+### Patch Changes
+
+- Updated dependencies [1f6dd3a]
+- Updated dependencies [01a596a]
+  - @ai-sdk/openai@4.0.20
+  - @ai-sdk/anthropic@4.0.19
+
+## 5.0.29
+
+### Patch Changes
+
+- Updated dependencies [34c53c0]
+  - @ai-sdk/openai@4.0.19
+
 ## 5.0.28
 
 ### Patch Changes

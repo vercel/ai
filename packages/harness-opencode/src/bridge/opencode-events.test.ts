@@ -59,6 +59,14 @@ describe('OpenCode event helpers', () => {
     });
   });
 
+  it('rejects malformed event envelopes at the raw event boundary', () => {
+    expect(unwrapOpenCodeEvent(null)).toBeUndefined();
+    expect(unwrapOpenCodeEvent([])).toBeUndefined();
+    expect(
+      unwrapOpenCodeEvent({ type: 'sync', syncEvent: 'not-an-event' }),
+    ).toBeUndefined();
+  });
+
   it('finds legacy tool part session ids', () => {
     expect(
       getOpenCodeEventSessionId({
@@ -237,5 +245,21 @@ describe('legacy reasoning part translation', () => {
       { type: 'text-delta', id: 'p2', delta: 'hello world' },
     ]);
     expect(out.some(msg => msg.type === 'reasoning-delta')).toBe(false);
+  });
+
+  it('does not treat a malformed time payload as a completed part', () => {
+    const state = createTranslationState();
+    const out: Array<Record<string, unknown>> = [];
+
+    emitLegacyTextPartUpdate({
+      part: { id: 'p3', type: 'text', text: 'hello', time: 'invalid' },
+      state,
+      emit: msg => out.push(msg),
+    });
+
+    expect(out).toEqual([
+      { type: 'text-start', id: 'p3' },
+      { type: 'text-delta', id: 'p3', delta: 'hello' },
+    ]);
   });
 });

@@ -266,6 +266,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       onWarning: warning => warnings.push(warning),
       providerOptionsNames,
       supportsFunctionResponseParts: usesGemini3Features,
+      includeFunctionCallIds: !isVertexProvider,
     });
 
     const {
@@ -465,7 +466,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: part.functionCall.id ?? this.config.generateId(),
+          toolCallId: part.functionCall.id || this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -488,7 +489,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             : undefined,
         });
       } else if ('toolCall' in part && part.toolCall) {
-        const toolCallId = part.toolCall.id ?? this.config.generateId();
+        const toolCallId = part.toolCall.id || this.config.generateId();
         lastServerToolCallId = toolCallId;
         content.push({
           type: 'tool-call',
@@ -510,8 +511,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         });
       } else if ('toolResponse' in part && part.toolResponse) {
         const responseToolCallId =
-          lastServerToolCallId ??
-          part.toolResponse.id ??
+          lastServerToolCallId ||
+          part.toolResponse.id ||
           this.config.generateId();
         content.push({
           type: 'tool-result',
@@ -875,7 +876,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     providerMetadata: fileMeta,
                   });
                 } else if ('toolCall' in part && part.toolCall) {
-                  const toolCallId = part.toolCall.id ?? generateId();
+                  const toolCallId = part.toolCall.id || generateId();
                   lastServerToolCallId = toolCallId;
                   const serverMeta = wrapProviderMetadata({
                     ...(part.thoughtSignature
@@ -896,8 +897,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   });
                 } else if ('toolResponse' in part && part.toolResponse) {
                   const responseToolCallId =
-                    lastServerToolCallId ??
-                    part.toolResponse.id ??
+                    lastServerToolCallId ||
+                    part.toolResponse.id ||
                     generateId();
                   const serverMeta = wrapProviderMetadata({
                     ...(part.thoughtSignature
@@ -951,7 +952,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                 if (isStreamingChunk) {
                   if (part.functionCall.name != null) {
-                    const toolCallId = part.functionCall.id ?? generateId();
+                    const toolCallId = part.functionCall.id || generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
@@ -1020,7 +1021,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 ) {
                   finishActiveStreamingToolCall(controller);
                 } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
                   const args =
                     typeof part.functionCall.args === 'string'
@@ -1057,7 +1058,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                   hasToolCalls = true;
                 } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
 
                   controller.enqueue({
@@ -1169,7 +1170,7 @@ function resolveThinkingConfig({
     getGoogleModelCapabilities(modelId).usesGemini3Features &&
     !modelId.includes('gemini-3-pro-image')
   ) {
-    return resolveGemini3ThinkingConfig({ reasoning, warnings });
+    return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
   }
 
   return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
@@ -1177,23 +1178,27 @@ function resolveThinkingConfig({
 
 function resolveGemini3ThinkingConfig({
   reasoning,
+  modelId,
   warnings,
 }: {
   reasoning: Exclude<
     LanguageModelV4CallOptions['reasoning'],
     'provider-default' | undefined
   >;
+  modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
+  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+
   if (reasoning === 'none') {
     // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: 'minimal' };
+    return { thinkingLevel: minimumThinkingLevel };
   }
 
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      minimal: 'minimal',
+      minimal: minimumThinkingLevel,
       low: 'low',
       medium: 'medium',
       high: 'high',
@@ -1207,6 +1212,31 @@ function resolveGemini3ThinkingConfig({
   }
 
   return { thinkingLevel };
+}
+
+function getMinimumThinkingLevelForGemini3Model(
+  modelId: string,
+): 'minimal' | 'low' {
+  const modelName = modelId.split('/').at(-1)?.toLowerCase();
+
+  if (modelName === 'gemini-flash-latest') {
+    return 'low';
+  }
+
+  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
+    modelName ?? '',
+  );
+
+  if (versionMatch == null) {
+    return 'minimal';
+  }
+
+  const majorVersion = Number(versionMatch[1]);
+  const minorVersion = Number(versionMatch[2]);
+
+  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
+    ? 'low'
+    : 'minimal';
 }
 
 function resolveGemini25ThinkingConfig({

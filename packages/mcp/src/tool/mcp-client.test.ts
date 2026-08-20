@@ -7,6 +7,7 @@ import { MockMCPTransport } from './mock-mcp-transport';
 import {
   ListToolsResult,
   ElicitationRequestSchema,
+  LATEST_LEGACY_PROTOCOL_VERSION,
   LATEST_PROTOCOL_VERSION,
   type CallToolResult,
   type CompleteResult,
@@ -70,6 +71,110 @@ class GetterOnlyProtocolVersionTransport implements MCPTransport {
 
   async close(): Promise<void> {
     await this.transport.close();
+  }
+}
+
+class ProtocolDiscoveryTransport implements MCPTransport {
+  readonly supportsProtocolVersionDiscovery = true;
+  readonly sentMessages: JSONRPCMessage[] = [];
+  protocolVersion?: string;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(
+    private readonly discoveryBehavior:
+      | 'modern'
+      | 'legacy'
+      | 'unsupported' = 'modern',
+    private readonly includeToolListResultType = true,
+  ) {}
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  setProtocolVersion(version: string): void {
+    this.protocolVersion = version;
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.sentMessages.push(message);
+
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'server/discover') {
+      if (this.discoveryBehavior === 'legacy') {
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: { code: -32601, message: 'Method not found' },
+        });
+        return;
+      }
+
+      if (this.discoveryBehavior === 'unsupported') {
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: -32022,
+            message: 'Unsupported protocol version',
+            data: {
+              requested: LATEST_PROTOCOL_VERSION,
+              supported: ['2099-01-01'],
+            },
+          },
+        });
+        return;
+      }
+
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          resultType: 'complete',
+          supportedVersions: [LATEST_PROTOCOL_VERSION],
+          capabilities: { tools: {} },
+          _meta: {
+            'io.modelcontextprotocol/serverInfo': {
+              name: 'modern-test-server',
+              version: '1.0.0',
+            },
+          },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+          serverInfo: { name: 'legacy-test-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          ...(this.includeToolListResultType ? { resultType: 'complete' } : {}),
+          tools: [],
+        },
+      });
+    }
   }
 }
 
@@ -241,6 +346,74 @@ class HangingToolCallTransport implements MCPTransport {
       return;
     }
   }
+}
+
+class SignalAwareHangingRequestTransport implements MCPTransport {
+  requestSignal?: AbortSignal;
+  requestAborted = false;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(
+    message: JSONRPCMessage,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_PROTOCOL_VERSION,
+          serverInfo: { name: 'signal-aware-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.requestSignal = options?.signal;
+      await new Promise<void>((_, reject) => {
+        options?.signal?.addEventListener(
+          'abort',
+          () => {
+            this.requestAborted = true;
+            reject(options.signal?.reason);
+          },
+          { once: true },
+        );
+      });
+    }
+  }
+}
+
+class HangingInitializationTransport implements MCPTransport {
+  closeCalled = false;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.closeCalled = true;
+    this.onclose?.();
+  }
+
+  async send(_message: JSONRPCMessage): Promise<void> {}
 }
 
 vi.mock('./mcp-transport.ts', async importOriginal => {
@@ -1677,6 +1850,91 @@ describe('MCPClient', () => {
     expect(closeSpy).toHaveBeenCalled();
   });
 
+  it('should time out initialization and close the transport', async () => {
+    vi.useFakeTimers();
+    const transport = new HangingInitializationTransport();
+    const clientPromise = createMCPClient({
+      transport,
+      initializationOptions: { timeout: 100 },
+    });
+    const rejection = expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization timed out after 100ms',
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(transport.closeCalled).toBe(true);
+  });
+
+  it('should abort initialization and close the transport', async () => {
+    const transport = new HangingInitializationTransport();
+    const abortController = new AbortController();
+    const abortReason = new Error('stop initialization');
+    const clientPromise = createMCPClient({
+      transport,
+      initializationOptions: { signal: abortController.signal },
+    });
+
+    abortController.abort(abortReason);
+
+    await expect(clientPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'MCP client initialization was aborted' &&
+        error.cause === abortReason,
+    );
+    expect(transport.closeCalled).toBe(true);
+  });
+
+  it.each([
+    ['timeout', { timeout: 100 }],
+    ['maximum total timeout', { maxTotalTimeout: 100 }],
+  ])('should reject a request at its %s', async (_, options) => {
+    vi.useFakeTimers();
+    const transport = new HangingToolCallTransport();
+    client = await createMCPClient({ transport });
+    const requestPromise = client.listTools({ options });
+    const rejection = expect(requestPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'Request timed out after 100ms',
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(
+      (
+        client as unknown as {
+          responseHandlers: Map<number, unknown>;
+        }
+      ).responseHandlers.size,
+    ).toBe(0);
+  });
+
+  it('should pass request deadline signals to custom transports', async () => {
+    vi.useFakeTimers();
+    const transport = new SignalAwareHangingRequestTransport();
+    client = await createMCPClient({ transport });
+    const requestPromise = client.listTools({ options: { timeout: 100 } });
+    const rejection = expect(requestPromise).rejects.toSatisfy(
+      error =>
+        MCPClientError.isInstance(error) &&
+        error.message === 'Request timed out after 100ms',
+    );
+
+    expect(transport.requestSignal).toBeDefined();
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await rejection;
+    expect(transport.requestSignal?.aborted).toBe(true);
+    expect(transport.requestAborted).toBe(true);
+  });
+
   it('should throw Abort Error if tool call request is aborted', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
@@ -2787,9 +3045,8 @@ describe('MCPClient', () => {
         transport: mockTransport,
       });
 
-      // The mock transport returns LATEST_PROTOCOL_VERSION by default
       expect(mockTransport.protocolVersion).toBe(
-        (await import('./types')).LATEST_PROTOCOL_VERSION,
+        LATEST_LEGACY_PROTOCOL_VERSION,
       );
     });
 
@@ -2817,6 +3074,94 @@ describe('MCPClient', () => {
       });
 
       expect(transport.protocolVersion).toBe('2025-06-18');
+    });
+
+    it('should discover a modern server and add metadata to requests', async () => {
+      const transport = new ProtocolDiscoveryTransport();
+
+      client = await createMCPClient({ transport });
+      await client.listTools();
+
+      expect(transport.protocolVersion).toBe(LATEST_PROTOCOL_VERSION);
+      expect(client.serverInfo).toEqual({
+        name: 'modern-test-server',
+        version: '1.0.0',
+      });
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual(['server/discover', 'tools/list']);
+
+      for (const message of transport.sentMessages) {
+        if (!('method' in message) || !('id' in message)) {
+          continue;
+        }
+
+        expect(message.params?._meta).toMatchObject({
+          'io.modelcontextprotocol/protocolVersion': LATEST_PROTOCOL_VERSION,
+          'io.modelcontextprotocol/clientCapabilities': {},
+          'io.modelcontextprotocol/clientInfo': {
+            name: 'ai-sdk-mcp-client',
+            version: '1.0.0',
+          },
+        });
+      }
+    });
+
+    it('should fall back to legacy initialization for a legacy server', async () => {
+      const transport = new ProtocolDiscoveryTransport('legacy');
+
+      client = await createMCPClient({ transport });
+      await client.listTools();
+
+      expect(transport.protocolVersion).toBe(LATEST_LEGACY_PROTOCOL_VERSION);
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual([
+        'server/discover',
+        'initialize',
+        'notifications/initialized',
+        'tools/list',
+      ]);
+
+      const toolListRequest = transport.sentMessages.find(
+        message => 'method' in message && message.method === 'tools/list',
+      );
+      expect(
+        toolListRequest != null && 'params' in toolListRequest
+          ? toolListRequest.params?._meta
+          : undefined,
+      ).toBeUndefined();
+    });
+
+    it('should not fall back for a recognized modern protocol error', async () => {
+      const transport = new ProtocolDiscoveryTransport('unsupported');
+
+      await expect(createMCPClient({ transport })).rejects.toMatchObject({
+        code: -32022,
+        data: {
+          requested: LATEST_PROTOCOL_VERSION,
+          supported: ['2099-01-01'],
+        },
+      });
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual(['server/discover']);
+    });
+
+    it('should require resultType from modern servers', async () => {
+      const transport = new ProtocolDiscoveryTransport('modern', false);
+
+      client = await createMCPClient({ transport });
+
+      await expect(client.listTools()).rejects.toThrow(
+        'Modern MCP result is missing resultType',
+      );
     });
   });
 });

@@ -133,6 +133,7 @@ export class SandboxChannel<
   private readonly onCloseHandlers = new Set<
     (code: number, reason: string) => void
   >();
+  private readonly onReconnectHandlers = new Set<() => void>();
 
   private readonly connectThunk: () => Promise<WebSocket>;
   private readonly outboundSchema: FlexibleSchema<TOut>;
@@ -247,6 +248,13 @@ export class SandboxChannel<
     this.onCloseHandlers.add(handler);
   }
 
+  onReconnect(handler: () => void): () => void {
+    this.onReconnectHandlers.add(handler);
+    return () => {
+      this.onReconnectHandlers.delete(handler);
+    };
+  }
+
   send(message: TIn): void {
     if (this.terminal) {
       throw new Error(
@@ -259,8 +267,8 @@ export class SandboxChannel<
   /**
    * Mark that the host is tearing the session down. The next socket close is
    * then treated as terminal rather than triggering a reconnect. Call before
-   * sending a `shutdown` / `detach` message whose ack the bridge follows with a
-   * socket close.
+   * sending a `stop` / `destroy` message whose completion closes the bridge
+   * socket.
    */
   beginClose(): void {
     this.closing = true;
@@ -275,62 +283,6 @@ export class SandboxChannel<
       // best-effort
     }
     this.enqueue(() => this.finalizeClose(1000, 'closed'));
-  }
-
-  interrupt(options?: { timeoutMs?: number }): Promise<void> {
-    if (this.pinnedSuspensionCursor != null) {
-      return Promise.resolve();
-    }
-    const timeoutMs = options?.timeoutMs ?? 5000;
-    return new Promise<void>((resolve, reject) => {
-      let settled = false;
-      let unsub = (): void => {};
-      const timer = setTimeout(() => {
-        complete(
-          new Error(
-            `SandboxChannel: interrupt was not acknowledged within ${timeoutMs}ms.`,
-          ),
-        );
-      }, timeoutMs);
-      timer.unref?.();
-
-      const complete = (error?: unknown): void => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        unsub();
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      };
-
-      unsub = this.on('bridge-interrupted' as EventTypeOf<TOut>, event => {
-        const response = event as unknown as {
-          type: 'bridge-interrupted';
-          ok: boolean;
-          error?: unknown;
-        };
-        if (response.ok) {
-          complete();
-          return;
-        }
-        complete(
-          new Error(
-            `SandboxChannel: interrupt failed: ${formatControlError(
-              response.error,
-            )}`,
-          ),
-        );
-      });
-
-      try {
-        this.send({ type: 'interrupt' } as TIn);
-      } catch (err) {
-        complete(err);
-      }
-    });
   }
 
   /**
@@ -442,6 +394,7 @@ export class SandboxChannel<
           }),
         );
         this.flushPending();
+        for (const handler of this.onReconnectHandlers) handler();
         this.onDebug?.({
           event: 'reconnected',
           attempt,
@@ -570,14 +523,4 @@ export class SandboxChannel<
     this.connected = false;
     for (const h of this.onCloseHandlers) h(code, reason);
   }
-}
-
-function formatControlError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (error && typeof error === 'object') {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === 'string' && message.length > 0) return message;
-  }
-  if (typeof error === 'string' && error.length > 0) return error;
-  return 'unknown error';
 }

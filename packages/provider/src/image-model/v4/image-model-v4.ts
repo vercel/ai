@@ -6,7 +6,7 @@ type GetMaxImagesPerCallFunction = (options: {
 }) => PromiseLike<number | undefined> | number | undefined;
 
 /**
- * Image generation model specification version 3.
+ * Image generation model specification version 4.
  */
 export type ImageModelV4 = {
   /**
