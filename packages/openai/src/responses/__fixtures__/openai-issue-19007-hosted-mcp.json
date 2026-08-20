@@ -1,0 +1,212 @@
+{
+  "id": "resp_069a2ae5b737f481006a845bd922b081a18f6a9c0cf5d202c7",
+  "object": "response",
+  "created_at": 1787059161,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1787059189,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-5.5-2026-04-23",
+  "moderation": null,
+  "output": [
+    {
+      "id": "mcpl_069a2ae5b737f481006a845bd93da881a1828483db6eb5b4ff",
+      "type": "mcp_list_tools",
+      "server_label": "deepwiki",
+      "tools": [
+        {
+          "annotations": {
+            "read_only": false
+          },
+          "description": "Ask any question about a GitHub repository and get an AI-powered, context-grounded response.",
+          "input_schema": {
+            "properties": {
+              "repoName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ],
+                "description": "GitHub repository or list of repositories (max 10) in owner/repo format."
+              },
+              "question": {
+                "description": "The question to ask about the repository.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "repoName",
+              "question"
+            ],
+            "type": "object"
+          },
+          "name": "ask_question"
+        },
+        {
+          "annotations": {
+            "read_only": false
+          },
+          "description": "View documentation about a GitHub repository.",
+          "input_schema": {
+            "properties": {
+              "repoName": {
+                "description": "GitHub repository in owner/repo format (e.g. \"facebook/react\").",
+                "type": "string"
+              }
+            },
+            "required": [
+              "repoName"
+            ],
+            "type": "object"
+          },
+          "name": "read_wiki_contents"
+        },
+        {
+          "annotations": {
+            "read_only": false
+          },
+          "description": "Get a list of documentation topics for a GitHub repository.",
+          "input_schema": {
+            "properties": {
+              "repoName": {
+                "description": "GitHub repository in owner/repo format (e.g. \"facebook/react\").",
+                "type": "string"
+              }
+            },
+            "required": [
+              "repoName"
+            ],
+            "type": "object"
+          },
+          "name": "read_wiki_structure"
+        }
+      ]
+    },
+    {
+      "id": "rs_069a2ae5b737f481006a845bdb9aec81a18ade90868f564ed3",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABqhFv1QZnxmdfzVqdSLQWGLGhJqH1OWIHN0U9VXst3n618JmmqRu6HiYtIgcaA5hLL6MY7hQxj3gQjIQYeU_0SFakMXx35KzZvNtAAHPYXx2GiWESuRalecTLoshj9rmb_5i42NLrNs-QoktO4uoLSVUu8brQUhf9XUs2H7NkoXkOGHEerl9BSZebexsyv8Igh--kPzUt3XjaSU6tRp3dLkcPyBD4E6UXUOWIWGmgL8MLsY_6kK667BjztctPUMvn7394AtdywRLFso92eu9l62aZUb0___050WnuQURLX76HAL7TDAzOEDJ6j1-jvSjJLYH60Giu-0BOSCkV9DM6uRX467g6nV70VcTmvCTecHw9O_4tyeJnmcde6D0wKcKGxLyJE9Gwbnx-TU7mofc9UK6CzpMa5ixuGcHkLSNRsLqxdDY7DRkooJZFZgp7yK7KK1h2pnIFFP7pxWS-t07qUh5dR1WWZPHurOldpnUqKdiLrUVMsciamIdlQr5mb-f1gUzNA6hNmfTSZ7_bb1ilIbIAwPgsacIqAU18mqqPNIW_B-RHx1ye2kAZkqPnHVqe0zHYKe1hKlr4qFQhWBtankfxPRLrDiS1_7PLkBudEv0qCluXpFcumTpRaGRS_ZAR5it1HdJrYqaNeRh_Re0f_wa0nXdTcgwwrWoBcCzGoowxoL-aEaMp3bE5BE8zeIWJE051SoXncWNxNN1YgYWHJXXr-9xo15YfBntoFjMv_turWKTwf0dajgc37pp9jh8J3vzU7S4YP0L7HloAs7AE_1S6TITlYBL7n6aUOIZOp251Ze0HzSTMu1yvxtExnyXRVjLpzn7qlEyskCyisIBP_vu31MGO_GLn6j1O9fE0n9qSSQEJBlqiva3YYPrGesB2uhsHThx7mqpz59NzfhXgCbEiHjzQ5ZudV0weJRNRFEx8LL38hKJW1TV71GyEFYi9tWnXjgBngIubPYZ4PP192wUIrOv7VsBbg18p2iqVkjJCP1DY-5eKJMQGgxtppNXyQfdOBHOeeMyluf7V5I4lYmGx8BezgH0am9nddOHvTrvfdr0GhAdUAZi2FPPU3XKREgrKzykOsRNV1kD6TYGLg-1NL6JO3LFGOGnCXzvew_NX2vZhG4Vl4Ces3pILLNayLA-_E-LgJomNytbKeuFNsyd_CmjfL5IxXvbH9mxML6L8ERDIjUMxcGOr8jjgIRkoQPLfA3MLJIdHQZ4gUR4psWZvRamSX_sbdFj-vuEny0L2zysw=",
+      "summary": []
+    },
+    {
+      "id": "mcp_069a2ae5b737f481006a845bdbf4f081a1b58826bd6f2770d8",
+      "type": "mcp_call",
+      "status": "completed",
+      "approval_request_id": null,
+      "arguments": "{\"repoName\":\"vercel/ai\"}",
+      "error": null,
+      "name": "read_wiki_structure",
+      "output": "Available pages for vercel/ai:\n\n- 1 Overview\n  - 1.1 Architecture and Design Principles\n  - 1.2 Package Structure and Organization\n- 2 Core SDK Functionality\n  - 2.1 Text Generation (generateText and streamText)\n  - 2.2 Structured Output (Output API)\n  - 2.3 Tool Calling and Multi-Step Agents\n  - 2.4 Message Processing and Content Types\n  - 2.5 Observability and Telemetry\n  - 2.6 Middleware System\n  - 2.7 Image, Video, Speech, and Transcription\n  - 2.8 Code Mode Tool\n- 3 Provider Ecosystem\n  - 3.1 Provider Architecture and V4 Specification\n  - 3.2 OpenAI Provider - Responses API\n  - 3.3 OpenAI Provider - Chat Completions API\n  - 3.4 Anthropic Provider\n  - 3.5 Google AI Providers (Generative AI and Vertex AI)\n  - 3.6 Azure OpenAI Provider\n  - 3.7 OpenAI-Compatible Providers (xAI, Fireworks, Cerebras, TogetherAI, DeepInfra, DeepSeek)\n  - 3.8 Mistral, Cohere, Amazon Bedrock, and Additional Providers\n  - 3.9 Provider-Utils and Common Infrastructure\n  - 3.10 LangChain and LlamaIndex Adapters\n  - 3.11 Vercel AI Gateway\n  - 3.12 Observability Integrations\n- 4 UI Framework Integrations\n  - 4.1 Framework-Agnostic Chat Architecture\n  - 4.2 React Integration (@ai-sdk/react)\n  - 4.3 Vue and Svelte Integrations\n  - 4.4 Angular and Solid Integrations\n  - 4.5 React Server Components (@ai-sdk/rsc)\n- 5 AI SDK Harnesses\n  - 5.1 Harness Architecture and HarnessAgent\n  - 5.2 Harness Adapters (Claude Code, Codex, Pi, DeepAgents, OpenCode, Grok Build, ACP)\n  - 5.3 Sandbox Providers and Terminal UI\n  - 5.4 Policy-Based Tool Approvals (@ai-sdk/policy-opa)\n- 6 Examples and Getting Started\n  - 6.1 Next.js Examples\n  - 6.2 SvelteKit, Nuxt, and Other Frontend Examples\n  - 6.3 Server Framework Examples (Express, Fastify, Hono, NestJS)\n  - 6.4 Production Feature Examples\n- 7 Development and Contribution\n  - 7.1 Monorepo Structure and Workspace Management\n  - 7.2 Build, Test, and Quality Infrastructure\n  - 7.3 Release Process and Version Management\n  - 7.4 Migration Guides\n- 8 Glossary",
+      "server_label": "deepwiki"
+    },
+    {
+      "id": "mcp_069a2ae5b737f481006a845bdd61c881a1856669099319a44e",
+      "type": "mcp_call",
+      "status": "completed",
+      "approval_request_id": null,
+      "arguments": "{\"repoName\":\"vercel/ai\",\"question\":\"What is the vercel/ai repository for? Provide a concise explanation of its purpose, main capabilities, package ecosystem, and typical use cases.\"}",
+      "error": null,
+      "name": "ask_question",
+      "output": "The `vercel/ai` repository provides the AI SDK, a TypeScript toolkit for building AI-powered applications and agents  . Its main purpose is to offer a unified interface for interacting with various Large Language Models (LLMs) from different providers and integrating them into diverse frontend frameworks and backend environments . The SDK simplifies the development of AI applications by abstracting away provider-specific complexities, enabling developers to focus on building features like text generation, structured output, and tool calling .\n\n## Purpose and Main Capabilities\n\nThe core purpose of the `vercel/ai` repository is to provide a standardized and unified API for building AI applications . It aims to simplify the integration of LLMs into applications by offering a consistent interface across various AI model providers .\n\nKey capabilities include:\n*   **Text Generation and Streaming**: Functions like `generateText` and `streamText` allow for generating and streaming text completions from LLMs  .\n*   **Structured Output**: The SDK supports generating structured data (e.g., JSON objects) from LLMs using `generateObject` and `streamObject`, often with schema validation using `zod`  .\n*   **Tool Calling**: LLMs can be enhanced with \"tools\" to perform discrete tasks (e.g., fetching weather data, performing calculations) and interact with external systems  .\n*   **Embeddings**: The SDK provides `embed` and `embedMany` functions for generating embeddings .\n*   **UI Integrations**: It offers framework-specific hooks and components for building chat and generative user interfaces, such as `useChat` for React, Svelte, and Vue  .\n*   **Provider Agnostic**: The SDK supports a wide range of AI model providers (e.g., OpenAI, Anthropic, Google, Mistral) through dedicated packages or the Vercel AI Gateway  .\n\n## Package Ecosystem\n\nThe `vercel/ai` repository is structured as a monorepo using pnpm workspaces and Turborepo . Its package ecosystem is organized into several categories:\n\n*   **Core SDK (`ai`)**: This is the main package providing core functionalities like `generateText`, `streamText`, `generateObject`, `tool`, and schema utilities  .\n*   **Provider Implementations (`@ai-sdk/<provider>`)**: These packages offer integrations with specific AI model providers, such as `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`, and `@ai-sdk/cerebras`    . The `@ai-sdk/openai-compatible` package provides a foundation for implementing providers that expose an OpenAI-compatible API .\n*   **UI Framework Integrations (`@ai-sdk/<framework>`)**: Packages like `@ai-sdk/react`, `@ai-sdk/svelte`, `@ai-sdk/vue`, and `@ai-sdk/angular` provide framework-specific hooks and components for building AI-powered UIs  .\n*   **Harnesses and Sandboxes**: Packages such as `@ai-sdk/harness` and `@ai-sdk/sandbox-vercel` provide APIs for using established agent harnesses and sandboxes  .\n*   **Utilities**: Shared utilities for providers and core functionalities are found in packages like `@ai-sdk/provider` and `@ai-sdk/provider-utils` .\n\nThe Vercel AI Gateway is a central component, allowing access to models from multiple providers through a single interface without requiring additional provider modules or API keys  .\n\n## Typical Use Cases\n\nThe AI SDK is designed for a variety of AI-powered application development scenarios:\n\n*   **Chatbots and Conversational AI**: Building streaming chat user interfaces is a common use case, demonstrated in quickstart guides for Node.js, Next.js, SvelteKit, and Nuxt   .\n*   **Agentic Applications**: Developing AI agents that can perform complex tasks, often involving tool calling to interact with external systems or perform discrete computations  .\n*   **Generative UI**: Creating dynamic user interfaces where AI models generate UI components or content, often integrated with frameworks like React, Svelte, and Vue .\n*   **Structured Data Generation**: Generating type-safe structured outputs (e.g., JSON) from natural language prompts, useful for data extraction or content creation .\n*   **Multi-modal Agents**: Building agents capable of processing and understanding various input types, such as images and PDFs .\n*   **Backend AI Services**: Integrating AI capabilities into server-side applications using frameworks like Express, Fastify, Hono, and NestJS .\n*   **Production-ready AI Applications**: The repository includes examples demonstrating how to incorporate production concerns like rate limiting, bot protection, and OpenTelemetry for observability .\n\n## Notes\n\nThe `vercel/ai` repository is a comprehensive toolkit for AI development, emphasizing a unified API and broad compatibility across providers and frameworks. The `AGENTS.md` file  and `skills/use-ai-sdk/SKILL.md`  provide specific guidance for AI coding assistants working within the repository, highlighting the importance of using up-to-date documentation due to frequent API changes. The `package.json` for the `ai` package  explicitly states its purpose as building apps like ChatGPT, Claude, and Gemini with a single interface.\n\nWiki pages you might want to explore:\n- [Examples and Getting Started (vercel/ai)](/wiki/vercel/ai#6)\n- [Monorepo Structure and Workspace Management (vercel/ai)](/wiki/vercel/ai#7.1)\n\nView this search on DeepWiki: https://deepwiki.com/search/what-is-the-vercelai-repositor_8a7cf411-3276-4290-b5e0-b96167a71076\n",
+      "server_label": "deepwiki"
+    },
+    {
+      "id": "msg_069a2ae5b737f481006a845bf0f38081a19b546699569f72db",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "I used both requested DeepWiki MCP tools.\n\nThe `vercel/ai` repository is the home of the **Vercel AI SDK**, a TypeScript toolkit for building AI-powered applications and agents.\n\nIt provides a unified API for working with many different AI model providers, so developers can build features without tightly coupling their app to one vendor’s SDK. It supports providers such as OpenAI, Anthropic, Google, Mistral, Azure OpenAI, Amazon Bedrock, and OpenAI-compatible services, as well as the Vercel AI Gateway.\n\nMain capabilities include:\n\n- **Text generation and streaming** via APIs like `generateText` and `streamText`\n- **Structured output generation**, including JSON/object generation with schemas\n- **Tool calling and agent workflows**, allowing models to call functions or interact with external systems\n- **Embeddings**\n- **Multimodal functionality**, including image, video, speech, and transcription support\n- **Middleware, telemetry, and observability**\n- **Frontend integrations** for frameworks such as React, Vue, Svelte, Angular, Solid, and React Server Components\n- **Backend examples and integrations** for frameworks like Express, Fastify, Hono, NestJS, Next.js, SvelteKit, and Nuxt\n\nThe repository is organized as a monorepo containing:\n\n- The core `ai` package\n- Provider packages like `@ai-sdk/openai`, `@ai-sdk/anthropic`, and `@ai-sdk/google`\n- UI framework packages like `@ai-sdk/react`, `@ai-sdk/vue`, and `@ai-sdk/svelte`\n- Provider utility packages\n- Harnesses, sandbox tooling, examples, and development infrastructure\n\nTypical use cases include building ChatGPT-style applications, streaming chat UIs, AI agents with tool use, structured data extraction, generative UI, multimodal apps, and production AI services with observability and provider flexibility."
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "current_turn",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [
+    {
+      "type": "mcp",
+      "allowed_tools": null,
+      "headers": null,
+      "require_approval": "never",
+      "server_description": null,
+      "server_label": "deepwiki",
+      "server_url": "https://mcp.deepwiki.com/mcp"
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 2223,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 492,
+    "output_tokens_details": {
+      "reasoning_tokens": 13
+    },
+    "total_tokens": 2715
+  },
+  "user": null,
+  "metadata": {}
+}
