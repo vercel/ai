@@ -5,11 +5,32 @@ import type {
 import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { createCerebras } from './cerebras-provider';
+import type { CerebrasLanguageModelChatOptions } from './cerebras-chat-language-model-options';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 const JSON_RESPONSE_FORMAT = { type: 'json' as const };
+
+it('exposes Cerebras request options', () => {
+  const options: CerebrasLanguageModelChatOptions = {
+    max_completion_tokens: 64,
+    parallel_tool_calls: false,
+    logprobs: true,
+    top_logprobs: 2,
+    logit_bias: { '42': 1 },
+    service_tier: 'priority',
+    reasoningEffort: 'none',
+    reasoning_format: 'parsed',
+    prediction: { type: 'content', content: 'expected' },
+    prompt_cache_key: 'cache-key',
+  };
+
+  expect(options).toMatchObject({
+    max_completion_tokens: 64,
+    reasoningEffort: 'none',
+  });
+});
 
 async function convertStreamToArray(
   stream: ReadableStream<LanguageModelV4StreamPart>,
