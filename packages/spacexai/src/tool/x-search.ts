@@ -54,7 +54,7 @@ const xSearchToolFactory = createProviderExecutedToolFactory<
     enableVideoUnderstanding?: boolean;
   }
 >({
-  id: 'xai.x_search',
+  id: 'spacexai.x_search',
   inputSchema: lazySchema(() => zodSchema(z.object({}))),
   outputSchema: xSearchOutputSchema,
 });

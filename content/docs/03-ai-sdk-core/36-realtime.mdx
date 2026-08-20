@@ -251,13 +251,13 @@ Realtime models are available on providers that expose realtime WebSocket APIs:
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 
 const openaiModel = openai.experimental_realtime('gpt-realtime');
 const googleModel = google.experimental_realtime(
   'gemini-3.1-flash-live-preview',
 );
-const xaiModel = xai.experimental_realtime('grok-voice-latest');
+const spacexaiModel = spacexai.experimental_realtime('grok-voice-latest');
 ```
 
 You can also route realtime through the [AI Gateway](/providers/ai-sdk-providers/ai-gateway#realtime), which normalizes the

@@ -24,7 +24,7 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist docs *.tsbuildinfo",
-    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/01-xai.mdx ./docs/",
+    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/01-spacexai.mdx ./docs/",
     "postpack": "del-cli docs",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",

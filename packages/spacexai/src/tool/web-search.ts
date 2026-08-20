@@ -48,7 +48,7 @@ const webSearchToolFactory = createProviderExecutedToolFactory<
     enableImageUnderstanding?: boolean;
   }
 >({
-  id: 'xai.web_search',
+  id: 'spacexai.web_search',
   inputSchema: lazySchema(() => zodSchema(z.object({}))),
   outputSchema: webSearchOutputSchema,
 });

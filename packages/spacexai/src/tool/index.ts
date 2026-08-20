@@ -18,7 +18,7 @@ export {
   xSearch,
 };
 
-export const xaiTools = {
+export const spacexaiTools = {
   codeExecution,
   fileSearch,
   imageGeneration,
@@ -28,3 +28,6 @@ export const xaiTools = {
   webSearch,
   xSearch,
 };
+
+/** @deprecated Use `spacexaiTools` instead. */
+export const xaiTools = spacexaiTools;
