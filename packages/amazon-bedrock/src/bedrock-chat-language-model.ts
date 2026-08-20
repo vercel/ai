@@ -720,7 +720,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           jsonText: string;
           isJsonResponseTool?: boolean;
         }
-<<<<<<< HEAD
       | {
           type: 'text';
           text?: string;
@@ -734,11 +733,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           isKimiToolCallCandidate?: boolean;
           reasoningStarted?: boolean;
           hasStreamedNonWhitespace?: boolean;
+          redactedContent?: string;
         }
-=======
-      | { type: 'text' }
-      | { type: 'reasoning'; redactedContent?: string }
->>>>>>> origin/release-v5.0
     > = {};
 
     return {
@@ -859,6 +855,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               controller.enqueue({
                 type: 'reasoning-end',
                 id: blockId,
+                ...(contentBlock.redactedContent != null
+                  ? {
+                      providerMetadata: {
+                        bedrock: {
+                          redactedContent: contentBlock.redactedContent,
+                        } satisfies BedrockReasoningMetadata,
+                      },
+                    }
+                  : {}),
               });
               contentBlock.reasoningStarted = false;
             }
@@ -1060,7 +1065,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
               if (contentBlock != null) {
                 if (contentBlock.type === 'reasoning') {
-<<<<<<< HEAD
                   if (contentBlock.text == null) {
                     endReasoning({
                       contentBlock,
@@ -1119,21 +1123,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                       });
                     }
                   }
-=======
-                  controller.enqueue({
-                    type: 'reasoning-end',
-                    id: String(blockIndex),
-                    ...(contentBlock.redactedContent != null
-                      ? {
-                          providerMetadata: {
-                            bedrock: {
-                              redactedContent: contentBlock.redactedContent,
-                            } satisfies BedrockReasoningMetadata,
-                          },
-                        }
-                      : {}),
-                  });
->>>>>>> origin/release-v5.0
                 } else if (contentBlock.type === 'text') {
                   if (contentBlock.text == null) {
                     controller.enqueue({
@@ -1374,7 +1363,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 reasoningContent.redactedContent
               ) {
                 if (contentBlocks[blockIndex] == null) {
-                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  contentBlocks[blockIndex] = {
+                    type: 'reasoning',
+                    reasoningStarted: true,
+                  };
                   controller.enqueue({
                     type: 'reasoning-start',
                     id: String(blockIndex),
