@@ -110,7 +110,7 @@ function resolveReferences(
           feature: 'inputReferences',
           details: isVideoFile(reference)
             ? 'xAI reference-to-video accepts image references only. The ' +
-              'video reference was ignored. Use providerOptions.xai.mode ' +
+              'video reference was ignored. Use providerOptions.spacexai.mode ' +
               '"extend-video" to continue from a video.'
             : 'xAI reference-to-video accepts image references only. The ' +
               'non-image reference was ignored.',
@@ -312,7 +312,7 @@ export class SpaceXAIVideoModel implements VideoModelV4 {
           feature: 'resolution',
           details:
             `Unrecognized resolution "${options.resolution}". ` +
-            'Use providerOptions.xai.resolution with "480p", "720p", or ' +
+            'Use providerOptions.spacexai.resolution with "480p", "720p", or ' +
             '"1080p" instead.',
         });
       }
@@ -339,7 +339,7 @@ export class SpaceXAIVideoModel implements VideoModelV4 {
           feature: fromFrameImages ? 'frameImages' : 'image',
           details:
             'xAI does not accept a video as a start/frame image. The video ' +
-            'was ignored. Use providerOptions.xai.mode "extend-video" to ' +
+            'was ignored. Use providerOptions.spacexai.mode "extend-video" to ' +
             'continue from a video instead.',
         });
       } else {
@@ -355,10 +355,10 @@ export class SpaceXAIVideoModel implements VideoModelV4 {
         feature: 'frameImages',
         details: isVideoFile(lastFrameImage)
           ? 'xAI does not accept a video as a start/frame image. The video ' +
-            'last frame was ignored. Use providerOptions.xai.mode ' +
+            'last frame was ignored. Use providerOptions.spacexai.mode ' +
             '"extend-video" to continue from a video instead.'
           : 'xAI video models do not support last_frame. Use ' +
-            'providerOptions.xai.mode "extend-video" to continue from a ' +
+            'providerOptions.spacexai.mode "extend-video" to continue from a ' +
             "video's last frame. The last frame image was ignored.",
       });
     }

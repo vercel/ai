@@ -336,7 +336,7 @@ describe('doStream', () => {
       argument: 'providerOptions',
     });
     await expect(result).rejects.toThrow(
-      'providerOptions.xai.channels is required when providerOptions.xai.multichannel is true',
+      'providerOptions.spacexai.channels is required when providerOptions.spacexai.multichannel is true',
     );
 
     expect(MockWebSocket.instances).toHaveLength(0);

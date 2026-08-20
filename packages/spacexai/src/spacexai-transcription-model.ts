@@ -195,14 +195,14 @@ export class SpaceXAITranscriptionModel implements TranscriptionModelV4 {
       throw new InvalidArgumentError({
         argument: 'providerOptions',
         message:
-          'providerOptions.xai.channels is required when providerOptions.xai.multichannel is true',
+          'providerOptions.spacexai.channels is required when providerOptions.spacexai.multichannel is true',
       });
     }
 
     if (spacexaiOptions?.format != null) {
       warnings.push({
         type: 'unsupported',
-        feature: 'providerOptions.xai.format',
+        feature: 'providerOptions.spacexai.format',
         details: 'xAI streaming transcription does not support format.',
       });
     }
@@ -217,7 +217,7 @@ export class SpaceXAITranscriptionModel implements TranscriptionModelV4 {
           `Unrecognized inputAudioFormat.type "${options.inputAudioFormat.type}"; ` +
           `falling back to raw PCM encoding. ` +
           `Use audio/pcm, audio/pcmu, or audio/pcma, ` +
-          `or set providerOptions.xai.audioFormat explicitly.`,
+          `or set providerOptions.spacexai.audioFormat explicitly.`,
       });
     }
 
