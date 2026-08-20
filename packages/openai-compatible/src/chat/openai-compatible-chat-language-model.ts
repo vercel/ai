@@ -1,15 +1,16 @@
-import type {
-  APICallError,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  LanguageModelV4Usage,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type APICallError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4Usage,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -525,10 +526,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       }
     };
 
-    let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV4FinishReason | undefined;
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
@@ -699,6 +697,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             pendingToolCalls.clear();
 
             toolCallTracker.flush();
+
+            if (finishReason == null) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error: new InvalidResponseDataError({
+                  data: undefined,
+                  message: 'Response stream ended without a finish reason.',
+                }),
+              });
+            }
 
             const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {},
