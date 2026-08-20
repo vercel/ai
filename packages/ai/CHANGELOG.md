@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.260
+
+### Patch Changes
+
+- 98c656f: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- b253d52: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- 9e15cb4: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+
 ## 6.0.259
 
 ### Patch Changes
