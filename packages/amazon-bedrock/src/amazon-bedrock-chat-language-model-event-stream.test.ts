@@ -168,6 +168,59 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
     );
   });
 
+  it.each([
+    'internalServerException',
+    'modelStreamErrorException',
+    'serviceUnavailableException',
+    'throttlingException',
+    'validationException',
+  ])('surfaces %s frames as stream errors', async exceptionType => {
+    const exception = {
+      message: `Modeled exception: ${exceptionType}`,
+    };
+    const exceptionFrame = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+        ':exception-type': {
+          type: 'string',
+          value: exceptionType,
+        },
+        ':content-type': { type: 'string', value: 'application/json' },
+      },
+      body: fromUtf8(JSON.stringify(exception)),
+    });
+    const model = new AmazonBedrockChatLanguageModel(
+      'anthropic.claude-3-haiku-20240307-v1:0',
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: {},
+        fetch: async () =>
+          new Response(createStream([exceptionFrame]), {
+            status: 200,
+            headers: {
+              'content-type': 'application/vnd.amazon.eventstream',
+            },
+          }),
+        generateId: () => 'test-id',
+      },
+    );
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.at(-2)).toEqual({
+      type: 'error',
+      error: exception,
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'error' },
+    });
+  });
+
   it('streams reasoning redacted as `redactedContent` for replay', async () => {
     // `redactedContent` is a member of the ReasoningContentBlockDelta union in
     // the Converse API. OpenAI models on Bedrock (e.g. `us.openai.gpt-5.6-luna`)

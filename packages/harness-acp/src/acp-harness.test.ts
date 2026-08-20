@@ -274,6 +274,9 @@ function fakeSandbox({
       if (command === 'printf "%s" "$HOME"') {
         return { exitCode: 0, stdout: homeDir, stderr: '' };
       }
+      if (command === 'pwd') {
+        return { exitCode: 0, stdout: '/workspace\n', stderr: '' };
+      }
       return { exitCode: 0, stdout: '', stderr: '' };
     },
     spawn: async ({
@@ -1202,6 +1205,93 @@ describe('createACP', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  it('requires explicit bridge settings for a basic sandbox session', async () => {
+    const networkSession = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+    const sandboxSession = networkSession.restricted();
+
+    await expect(
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+      }).doStart({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(/explicit `port`/);
+
+    await expect(
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        port: 4319,
+      }).doStart({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(/explicit `portEndpoint`/);
+  });
+
+  it('uses a basic sandbox session with explicit bridge settings', async () => {
+    const runs: string[] = [];
+    const networkSession = fakeSandbox({
+      runs,
+      spawns: [],
+      stop: async () => {},
+    });
+    const session = await createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      port: 4319,
+      portEndpoint: { url: 'ws://127.0.0.1:4319' },
+    }).doStart({
+      sessionId: 'session-1',
+      sandboxSession: networkSession.restricted(),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(runs[0]).toBe('pwd');
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: {
+        port: 4319,
+        token: expect.any(String),
+        lastSeenEventId: 0,
+      },
+    });
+    expect(resumeFrom.data).not.toMatchObject({
+      bridge: { sandboxId: expect.anything() },
+    });
+  });
+
+  it('requires a sandbox id for custom bridge token minting', async () => {
+    const networkSession = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+
+    await expect(
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        port: 4319,
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+        mintBridgeToken: sandboxId => sandboxId,
+      }).doStart({
+        sessionId: 'session-1',
+        sandboxSession: networkSession.restricted(),
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(/does not expose an id/);
+  });
+
   it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
     harnessUtilsMocks.connectOnOpen = true;
     const spawns: Array<{
@@ -1211,19 +1301,21 @@ describe('createACP', () => {
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge?existing=value',
+      headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+    };
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
       mintBridgeToken,
+      portEndpoint,
     });
     const sandboxSession = fakeSandbox({
       runs: [],
       spawns,
       stop: async () => {},
-      bridgePortEndpoint: {
-        url: 'wss://sandbox.example/bridge?existing=value',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
-      },
+      bridgePortEndpoint: { url: 'ws://unused.example' },
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -1249,11 +1341,11 @@ describe('createACP', () => {
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
     ]);
     await attachedSession.doDetach();
