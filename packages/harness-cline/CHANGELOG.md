@@ -1,5 +1,12 @@
 # @ai-sdk/harness-cline
 
+## 1.0.8
+
+### Patch Changes
+
+- 016b944: fix(harness-cline): fix bug with reading and writing files
+  - @ai-sdk/harness@1.0.80
+
 ## 1.0.7
 
 ### Patch Changes
