@@ -25,16 +25,26 @@ export {
 } from './harness-v1-builtin-tool';
 export type { HarnessV1Metadata } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
+export type {
+  HarnessV1JSONSchema,
+  HarnessV1JSONArray,
+  HarnessV1JSONObject,
+  HarnessV1JSONValue,
+  HarnessV1ResponseFormat,
+} from './harness-v1-response-format';
 export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
 export type {
   HarnessV1ContinueTurnState,
   HarnessV1LifecycleState,
   HarnessV1PendingToolApproval,
+  HarnessV1PendingToolResult,
   HarnessV1ResumeSessionState,
 } from './harness-v1-lifecycle-state';
 export type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PortEndpoint,
+  HarnessV1RequestTransformation,
 } from './harness-v1-network-sandbox-session';
 export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
@@ -60,28 +70,32 @@ export {
   harnessV1BridgeAbortInboundSchema,
   harnessV1BridgeBuiltinToolFilteringSchema,
   harnessV1BridgeDebugEventSchema,
-  harnessV1BridgeDetachInboundSchema,
-  harnessV1BridgeDetachSchema,
+  harnessV1BridgeDestroyInboundSchema,
   harnessV1BridgeHelloSchema,
   harnessV1BridgeInboundCommandSchemas,
+  harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeOutboundMessageSchema,
   harnessV1BridgeReadySchema,
+  harnessV1BridgeResponseFormatSchema,
   harnessV1BridgeResumeInboundSchema,
   harnessV1BridgeSandboxLogSchema,
-  harnessV1BridgeShutdownInboundSchema,
+  harnessV1BridgeStopInboundSchema,
+  harnessV1BridgeStopSchema,
   harnessV1BridgeStartBaseSchema,
   harnessV1BridgeThreadSchema,
   harnessV1BridgeToolApprovalResponseInboundSchema,
   harnessV1BridgeToolResultInboundSchema,
   harnessV1BridgePermissionModeSchema,
   harnessV1BridgeToolWireSchema,
-  harnessV1BridgeUserMessageInboundSchema,
+  experimental_harnessV1BridgeUserMessageInboundSchema,
+  experimental_harnessV1BridgeUserMessageResponseSchema,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1BridgeDebugEvent,
   type HarnessV1BridgeOutboundMessage,
   type HarnessV1BridgeReady,
   type HarnessV1BridgeSandboxLog,
   type HarnessV1BridgeToolWire,
+  type Experimental_HarnessV1BridgeUserMessageResponse,
 } from './harness-v1-bridge-protocol';
 export {
   harnessV1DebugConfigSchema,

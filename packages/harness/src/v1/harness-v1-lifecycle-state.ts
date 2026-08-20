@@ -10,6 +10,12 @@ export type HarnessV1PendingToolApproval = {
   readonly nativeName?: string;
 };
 
+export type HarnessV1PendingToolResult = {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly input: string;
+};
+
 type HarnessV1LifecycleStateBase = {
   /**
    * Identifier of the harness that produced this state. Used by adapters to
@@ -47,7 +53,7 @@ export type HarnessV1ResumeSessionState = HarnessV1LifecycleStateBase & {
 /**
  * Opaque payload returned by `doSuspendTurn` and accepted by a future
  * `HarnessV1.doStart({ continueFrom })` to reconnect to the same session before
- * continuing the interrupted turn.
+ * continuing the suspended turn.
  */
 export type HarnessV1ContinueTurnState = HarnessV1LifecycleStateBase & {
   readonly type: 'continue-turn';
@@ -58,6 +64,12 @@ export type HarnessV1ContinueTurnState = HarnessV1LifecycleStateBase & {
    * without the harness framework owning storage.
    */
   readonly pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
+
+  /**
+   * Framework-owned client tool calls that are waiting for a caller-provided
+   * result before the underlying turn can continue.
+   */
+  readonly pendingToolResults?: readonly HarnessV1PendingToolResult[];
 };
 
 export type HarnessV1LifecycleState =

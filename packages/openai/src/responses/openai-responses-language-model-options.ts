@@ -293,10 +293,13 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * Service tier for the request.
        * Set to 'flex' for 50% cheaper processing at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
        * Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+       * Set to 'fast' for the same tier as 'priority' (OpenAI's newer name for it).
        *
        * Defaults to 'auto'.
        */
-      serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).nullish(),
+      serviceTier: z
+        .enum(['auto', 'flex', 'priority', 'fast', 'default'])
+        .nullish(),
 
       /**
        * Whether to store the generation. Defaults to `true`.
@@ -371,6 +374,12 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
           }),
         )
         .nullish(),
+
+      /**
+       * Request explicit server-side compaction by appending a
+       * `compaction_trigger` item to the Responses input.
+       */
+      compactionTrigger: z.boolean().optional(),
 
       /**
        * Restrict the callable tools to a subset while keeping the full tools

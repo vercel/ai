@@ -444,6 +444,29 @@ if (generationId) {
 }
 ```
 
+You can also capture the generation ID for every completed model call with
+`onLanguageModelCallEnd`. The callback runs before client-side tools execute,
+so the metadata remains available even if the operation is later aborted while
+a tool is running:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+await generateText({
+  model: gateway('anthropic/claude-sonnet-4'),
+  prompt: 'Explain quantum entanglement briefly',
+  onLanguageModelCallEnd({ providerMetadata }) {
+    const generationId = providerMetadata?.gateway?.generationId as
+      | string
+      | undefined;
+
+    if (generationId) {
+      console.log(`Completed Gateway generation: ${generationId}`);
+    }
+  },
+});
+```
+
 The `getGenerationInfo()` method accepts:
 
 - **id** _string_ - The generation ID to look up (format: `gen_<ulid>`, required)
@@ -506,12 +529,12 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: 'xai/grok-4.5',
+  model: 'xai/grok-4.6',
   prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({
       description: 'Get the current weather for a location',
-      parameters: z.object({
+      inputSchema: z.object({
         location: z.string().describe('The location to get weather for'),
       }),
       execute: async ({ location }) => {
@@ -1037,19 +1060,19 @@ The following gateway provider options are available:
 
   Restricts routing to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail.
 
-- **hipaaCompliant** _boolean_
-
-  Restricts routing to models and tools from providers that have signed a BAA with Vercel for the use of AI Gateway (requires Vercel HIPAA BAA add on). BYOK credentials are skipped when `hipaaCompliant` is set to `true` to ensure that requests are only routed to providers that support HIPAA compliance.
-
 - **quotaEntityId** _string_
 
   The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
-- **has** _Array&lt;'implicit-caching'&gt;_
+- **has** _Array&lt;'implicit-caching' | 'vision'&gt;_
 
-  Restricts routing to provider models that have all of the specified capabilities. Currently supports `'implicit-caching'`, which limits routing to models that perform automatic (implicit) prompt caching. Applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. If no provider model for the requested model satisfies the capabilities, the request fails. Unsupported values are rejected.
+  Restricts routing to provider models that have all of the specified capabilities. Applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. If no provider model for the requested model satisfies the capabilities, the request fails. Unsupported values are rejected.
 
-  Example: `has: ['implicit-caching']` will only route to models that support implicit caching.
+  Supported capabilities:
+  - `'implicit-caching'` — models that perform automatic (implicit) prompt caching.
+  - `'vision'` — models that accept image input.
+
+  Example: `has: ['implicit-caching']` will only route to models that support implicit caching. Example: `has: ['vision']` will only route to models that accept image input.
 
 - **providerTimeouts** _object_
 
@@ -1166,25 +1189,6 @@ const { text } = await generateText({
 });
 ```
 
-#### HIPAA Compliance Example
-
-Set `hipaaCompliant` to true to route requests only to models or tools by providers that have signed a BAA with Vercel for the use of AI Gateway. If the model or tool does not have a HIPAA-compliant provider, the request will fail. When `hipaaCompliant` is `false` or not specified, there is no enforcement of restricting routing. BYOK credentials are skipped when `hipaaCompliant` is set to `true` to ensure that requests are only routed to providers that support HIPAA compliance.
-
-```ts
-import type { GatewayProviderOptions } from '@ai-sdk/gateway';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.6',
-  prompt: 'Analyze this patient data...',
-  providerOptions: {
-    gateway: {
-      hipaaCompliant: true,
-    } satisfies GatewayProviderOptions,
-  },
-});
-```
-
 #### Quota Entity ID Example
 
 Set `quotaEntityId` to track and enforce quota against a specific entity. This is useful for multi-tenant applications where you need to manage quota at the entity level (e.g., per organization or team).
@@ -1206,7 +1210,7 @@ const { text } = await generateText({
 
 #### Filtering by Model Capability
 
-Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. Currently `'implicit-caching'` is supported, which limits routing to models that perform automatic prompt caching. If no provider model for the requested model satisfies the capabilities, the request fails.
+Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. `'implicit-caching'` limits routing to models that perform automatic prompt caching, and `'vision'` limits routing to models that accept image input. If no provider model for the requested model satisfies the capabilities, the request fails.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1218,6 +1222,37 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       has: ['implicit-caching'],
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+Use `'vision'` when the request sends image input, so the gateway only routes to
+provider models that can accept it:
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+import fs from 'node:fs';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.6',
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the image in detail.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: fs.readFileSync('./data/comic-cat.png'),
+        },
+      ],
+    },
+  ],
+  providerOptions: {
+    gateway: {
+      has: ['vision'],
     } satisfies GatewayProviderOptions,
   },
 });
