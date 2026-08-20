@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 2.0.245
+
+### Patch Changes
+
+- Updated dependencies [e88bc9f]
+  - ai@5.0.242
+
 ## 2.0.244
 
 ### Patch Changes

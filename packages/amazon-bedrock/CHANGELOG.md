@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.119
+
+### Patch Changes
+
+- 1cc3b4a: fix(amazon-bedrock): surface modeled event-stream exceptions
+
 ## 3.0.118
 
 ### Patch Changes
