@@ -7,6 +7,6 @@
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "Type validation failed: Value: {\"type\":\"finish\",\"finishReason\":\"stop\"}."
+    "signal": "ISSUE 11269 REPRODUCED: ai@5.0.53 rejected the stream finish chunk {\"type\":\"finish\",\"finishReason\":\"stop\"} with AI_TypeValidationError."
   }
 }
