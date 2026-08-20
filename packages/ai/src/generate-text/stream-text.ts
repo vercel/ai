@@ -64,6 +64,7 @@ import { consumeStream } from '../util/consume-stream';
 import { createIdMap } from '../util/create-id-map';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
+import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import type { ContentPart } from './content-part';
@@ -710,11 +711,17 @@ class DefaultStreamTextResult<
           part.type === 'tool-input-delta' ||
           part.type === 'raw'
         ) {
-          await onChunk?.({ chunk: part });
+          await notify({
+            event: { chunk: part },
+            callbacks: onChunk,
+          });
         }
 
         if (part.type === 'error') {
-          await onError({ error: wrapGatewayError(part.error) });
+          await notify({
+            event: { error: wrapGatewayError(part.error) },
+            callbacks: onError,
+          });
         }
 
         if (part.type === 'text-start') {
