@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.57
+
+### Patch Changes
+
+- 936719b: add experimental batch API support (startTextBatch/getBatchStatus/getBatchResults) via the AI Gateway batch routes
+
 ## 4.0.56
 
 ### Patch Changes

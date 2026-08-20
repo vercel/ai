@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.42
+
+### Patch Changes
+
+- ef05760: fix(provider/xai): report image moderation blocks as content policy errors
+
 ## 4.0.41
 
 ### Patch Changes

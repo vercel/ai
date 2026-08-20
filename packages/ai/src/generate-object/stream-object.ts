@@ -546,7 +546,10 @@ class DefaultStreamObjectResult<
         controller.enqueue(chunk);
 
         if (chunk.type === 'error') {
-          onError({ error: wrapGatewayError(chunk.error) });
+          void notify({
+            event: { error: wrapGatewayError(chunk.error) },
+            callbacks: onError,
+          });
         }
       },
     });
