@@ -2,14 +2,16 @@ import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-
 import type {
   HarnessV1Bootstrap,
   HarnessV1BuiltinToolFiltering,
+  HarnessV1JSONSchema,
   HarnessV1NetworkSandboxSession,
-  HarnessV1SandboxProvider,
+  HarnessV1ResponseFormat,
 } from '../v1';
 import {
   asArray,
   asSchema,
   generateId,
   type Context,
+  type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -18,6 +20,7 @@ import type {
   AgentCallParameters,
   AgentStreamParameters,
   GenerateTextResult,
+  OutputInterface as Output,
   ReasoningFileOutput,
   ReasoningOutput,
   StopCondition,
@@ -45,17 +48,15 @@ import {
   collectHarnessAgentToolResultContinuations,
   type HarnessAgentToolResultContinuation,
 } from './harness-agent-tool-result-continuation';
-import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
 import {
-  acquireBridgePort,
-  releaseBridgePort,
-} from './internal/bridge-port-registry';
+  applyBootstrapRecipe,
+  hashHarnessBootstrap,
+} from './internal/bootstrap-recipe';
 import {
   createSandboxBootstrapPlan,
   ensureSandboxDirectory,
   resolveSessionWorkDir,
   validateSandboxBootstrapSettings,
-  type SandboxBootstrapPlan,
 } from './internal/sandbox-bootstrap';
 import { buildObservability } from './internal/resolve-observability';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
@@ -64,6 +65,8 @@ import {
   resolvePermissionMode,
 } from './internal/permission-mode';
 import { resolveHarnessAgentToolFiltering } from './internal/tool-filtering';
+import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
+import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
 
 export type { HarnessAllTools } from './harness-agent-tool-types';
 
@@ -107,22 +110,25 @@ export interface HarnessAgentCallExtensions {
  *    the result is fed back to the harness via `submitToolResult`.
  *    Adapter builtin tools (e.g. Claude Code's `Bash`) pass through
  *    untouched.
- *  - **Sandbox propagation.** `settings.sandbox` is a sandbox provider.
- *    On `createSession`, the agent calls `provider.createSession()` (or
- *    `resumeSession()`) and passes the resulting network sandbox session into
- *    `doStart`. Its `restricted()` view (a tool-safe
- *    `Experimental_SandboxSession`) is handed to user-tool `execute()` calls
- *    via `experimental_sandbox`.
+ *  - **Sandbox propagation.** On `createSession`, the agent uses a
+ *    caller-provided network or basic sandbox session when present; otherwise
+ *    it calls the configured provider's `createSession()` (or
+ *    `resumeSession()`). It passes the selected session into `doStart`. A
+ *    tool-safe `SandboxSession` is handed to user-tool
+ *    `execute()` calls via `experimental_sandbox`. Caller-provided sandboxes
+ *    remain owned by the caller and are not stopped or destroyed by the
+ *    harness layer.
  */
 export class HarnessAgent<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = never,
 > implements Agent<
   never,
   HarnessAllTools<THarness, TUserTools>,
   RUNTIME_CONTEXT,
-  never
+  OUTPUT
 > {
   readonly version = 'agent-v1' as const;
   readonly id: string | undefined;
@@ -138,7 +144,8 @@ export class HarnessAgent<
   private readonly settings: HarnessAgentSettings<
     THarness,
     TUserTools,
-    RUNTIME_CONTEXT
+    RUNTIME_CONTEXT,
+    OUTPUT
   >;
   private readonly stopConditions: Array<
     StopCondition<HarnessAllTools<THarness, TUserTools>, RUNTIME_CONTEXT>
@@ -151,7 +158,12 @@ export class HarnessAgent<
   private readonly permissionMode: HarnessAgentPermissionMode;
 
   constructor(
-    settings: HarnessAgentSettings<THarness, TUserTools, RUNTIME_CONTEXT>,
+    settings: HarnessAgentSettings<
+      THarness,
+      TUserTools,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >,
   ) {
     const sandboxConfig = resolveSandboxConfig(settings);
     validateSandboxBootstrapSettings(sandboxConfig);
@@ -225,14 +237,21 @@ export class HarnessAgent<
      * handing it to the adapter.
      */
     continueFrom?: HarnessAgentContinueTurnState;
+    /**
+     * Existing sandbox session to run the harness in. When provided, the
+     * caller retains ownership of the sandbox lifecycle.
+     */
+    sandboxSession?: HarnessV1NetworkSandboxSession | SandboxSession;
     abortSignal?: AbortSignal;
   }): Promise<HarnessAgentSession> {
     const sessionId = options?.sessionId ?? generateId();
     const resumeFrom = options?.resumeFrom;
     const continueFrom = options?.continueFrom;
+    const providedSandboxSession = options?.sandboxSession;
     const abortSignal = options?.abortSignal;
     const harness = this.settings.harness;
     const sandboxProvider = this.settings.sandbox;
+    const ownsSandboxLifecycle = providedSandboxSession == null;
 
     if (resumeFrom != null && continueFrom != null) {
       throw new Error(
@@ -263,60 +282,133 @@ export class HarnessAgent<
     const isResumedSession =
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
-    let recipe: HarnessV1Bootstrap | undefined;
-    if (harness.getBootstrap != null) {
-      recipe = await harness.getBootstrap({ abortSignal });
-    }
-
-    // Defines the hashes based on both harness bootstrap recipe and
-    // consumer-defined onBootstrap callback.
-    const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
-      recipe,
-      settings: this.sandboxConfig,
-    });
-
     // Acquires the concrete sandbox session, either by starting fresh and then
     // creating a post-bootstrap snapshot, or by reusing a previously created
     // snapshot based on the bootstrap-based hashes.
-    const acquiredSandboxSession = await this._acquireSandbox({
-      sandboxProvider,
-      sessionId,
-      isResume: isResumedSession,
-      bootstrapPlan: sandboxBootstrapPlan,
-      abortSignal,
-    });
+    let sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+    let sessionWorkDir: string;
+    if (providedSandboxSession != null) {
+      sandboxSession = providedSandboxSession;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal,
+        });
+      sessionWorkDir = resolveSessionWorkDir({
+        defaultWorkingDirectory,
+        harnessId: harness.harnessId,
+        sessionId,
+        workDir: this.sandboxConfig.workDir,
+      });
 
-    const leased = applyPortLease({
-      provider: sandboxProvider,
-      sandboxSession: acquiredSandboxSession,
-      sessionId,
-    });
-    const sandboxSession = leased.sandboxSession;
-    const leasedBridgePort = leased.port;
-    const sessionWorkDir = resolveSessionWorkDir({
-      defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
-      harnessId: harness.harnessId,
-      sessionId,
-      workDir: sandboxBootstrapPlan.workDir,
-    });
-
-    try {
-      // In case the sandbox session was created with a custom sandbox, or in
-      // case the sandbox provider doesn't respect `onFirstCreate`, we still
-      // have to ensure the harness bootstrap recipe has run. In the common
-      // scenario, this will be a cheap no-op based on just a marker check.
-      if (
-        !isResumedSession &&
-        sandboxBootstrapPlan.recipe != null &&
-        sandboxBootstrapPlan.recipeIdentity != null
-      ) {
-        await applyBootstrapRecipe(
-          sandboxSession.restricted(),
-          sandboxBootstrapPlan.recipe,
-          sandboxBootstrapPlan.recipeIdentity,
-          { abortSignal },
+      const recipe = await harness.getBootstrap?.({ abortSignal });
+      if (recipe != null) {
+        const recipeIdentity = await hashHarnessBootstrap(recipe);
+        try {
+          await applyBootstrapRecipe({
+            session: toolSafeSandboxSession,
+            recipe,
+            identity: recipeIdentity,
+            defaultWorkingDirectory,
+            abortSignal,
+          });
+        } catch (err) {
+          await cleanupAfterStartFailure({
+            sandboxSession,
+            ownsSandboxLifecycle,
+          });
+          throw err;
+        }
+      }
+    } else {
+      if (sandboxProvider == null) {
+        throw new Error(
+          'HarnessAgent.createSession: configure `sandbox` on HarnessAgent or pass `sandboxSession` to createSession().',
         );
       }
+
+      if (isResumedSession) {
+        if (sandboxProvider.resumeSession == null) {
+          throw new HarnessCapabilityUnsupportedError({
+            message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
+            harnessId: harness.harnessId,
+          });
+        }
+        const resumedSandboxSession = await sandboxProvider.resumeSession({
+          sessionId,
+          abortSignal,
+        });
+        sandboxSession = resumedSandboxSession;
+        sessionWorkDir = resolveSessionWorkDir({
+          defaultWorkingDirectory:
+            resumedSandboxSession.defaultWorkingDirectory,
+          harnessId: harness.harnessId,
+          sessionId,
+          workDir: this.sandboxConfig.workDir,
+        });
+      } else {
+        // The logic in this clause applies the bootstrap plan, including both the harness
+        // bootstrap recipe and agent specific sandbox configuration.
+        // The logic matches largely what `prepareHarnessSandboxTemplate()` and
+        // `prepareSandboxForHarness()` do, so they will have to remain aligned.
+        let recipe: HarnessV1Bootstrap | undefined;
+        if (harness.getBootstrap != null) {
+          recipe = await harness.getBootstrap({ abortSignal });
+        }
+
+        // Defines the hashes based on both harness bootstrap recipe and
+        // consumer-defined onBootstrap callback.
+        const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
+          recipe,
+          settings: this.sandboxConfig,
+        });
+
+        const createdSandboxSession = await sandboxProvider.createSession({
+          sessionId,
+          abortSignal,
+          identity: sandboxBootstrapPlan.identity,
+          onFirstCreate: sandboxBootstrapPlan.onFirstCreate,
+        });
+        sandboxSession = createdSandboxSession;
+        sessionWorkDir = resolveSessionWorkDir({
+          defaultWorkingDirectory:
+            createdSandboxSession.defaultWorkingDirectory,
+          harnessId: harness.harnessId,
+          sessionId,
+          workDir: sandboxBootstrapPlan.workDir,
+        });
+
+        // In case the sandbox session was created with a custom sandbox, or in
+        // case the sandbox provider doesn't respect `onFirstCreate`, we still
+        // have to ensure the harness bootstrap recipe has run. In the common
+        // scenario, this will be a cheap no-op based on just a marker check.
+        if (
+          sandboxBootstrapPlan.recipe != null &&
+          sandboxBootstrapPlan.recipeIdentity != null
+        ) {
+          try {
+            await applyBootstrapRecipe({
+              session: createdSandboxSession.restricted(),
+              recipe: sandboxBootstrapPlan.recipe,
+              identity: sandboxBootstrapPlan.recipeIdentity,
+              defaultWorkingDirectory:
+                createdSandboxSession.defaultWorkingDirectory,
+              abortSignal,
+            });
+          } catch (err) {
+            await cleanupAfterStartFailure({
+              sandboxSession,
+              ownsSandboxLifecycle,
+            });
+            throw err;
+          }
+        }
+      }
+    }
+
+    try {
       await ensureSandboxDirectory({
         session: sandboxSession,
         workDir: sessionWorkDir,
@@ -324,17 +416,15 @@ export class HarnessAgent<
       });
       if (this.sandboxConfig.onSession != null) {
         await this.sandboxConfig.onSession({
-          session: sandboxSession.restricted(),
+          session: getRestrictedSandboxSession(sandboxSession),
           sessionWorkDir,
           abortSignal,
         });
       }
     } catch (err) {
       await cleanupAfterStartFailure({
-        sandboxProvider,
         sandboxSession,
-        sessionId,
-        leasedBridgePort,
+        ownsSandboxLifecycle,
       });
       throw err;
     }
@@ -360,8 +450,7 @@ export class HarnessAgent<
         harness,
         underlyingSession,
         sandboxSession,
-        sandboxProvider,
-        leasedBridgePort,
+        ownsSandboxLifecycle,
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
@@ -379,10 +468,8 @@ export class HarnessAgent<
       });
     } catch (error) {
       await cleanupAfterStartFailure({
-        sandboxProvider,
         sandboxSession,
-        sessionId,
-        leasedBridgePort,
+        ownsSandboxLifecycle,
       });
       throw error;
     }
@@ -399,16 +486,18 @@ export class HarnessAgent<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const turnInput = this._resolveTurnInput(options);
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const responseFormat = await this._resolveResponseFormat();
     const { result, done } = this._startTurn({
       session: options.session,
       turnInput,
       runtimeContext,
       abortSignal: options.abortSignal,
+      responseFormat,
     });
     await done;
     return this._toGenerateResult(result);
@@ -425,16 +514,18 @@ export class HarnessAgent<
     StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const turnInput = this._resolveTurnInput(options);
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const responseFormat = await this._resolveResponseFormat();
     const { result } = this._startTurn({
       session: options.session,
       turnInput,
       runtimeContext,
       abortSignal: options.abortSignal,
+      responseFormat,
     });
     return result;
   }
@@ -453,10 +544,11 @@ export class HarnessAgent<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const responseFormat = await this._resolveResponseFormat();
 
     const { result, done } = this._startTurn({
       session: options.session,
@@ -467,6 +559,7 @@ export class HarnessAgent<
       },
       runtimeContext,
       abortSignal: options.abortSignal,
+      responseFormat,
     });
     await done;
     return this._toGenerateResult(result);
@@ -489,10 +582,11 @@ export class HarnessAgent<
     StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     const runtimeContext = {} as RUNTIME_CONTEXT;
+    const responseFormat = await this._resolveResponseFormat();
 
     const { result } = this._startTurn({
       session: options.session,
@@ -503,8 +597,23 @@ export class HarnessAgent<
       },
       runtimeContext,
       abortSignal: options.abortSignal,
+      responseFormat,
     });
     return result;
+  }
+
+  /**
+   * Submit another user message to a currently running session turn.
+   *
+   * The returned promise resolves after the runtime has accepted the message
+   * for its next safe input boundary. Output caused by the message remains in
+   * the current turn's stream.
+   */
+  async experimental_steer(options: {
+    session: HarnessAgentSession;
+    text: string;
+  }): Promise<void> {
+    await options.session.experimental_steerTurn(options.text);
   }
 
   // ─── Internals ──────────────────────────────────────────────────────
@@ -520,18 +629,20 @@ export class HarnessAgent<
         };
     runtimeContext: RUNTIME_CONTEXT;
     abortSignal: AbortSignal | undefined;
+    responseFormat: HarnessV1ResponseFormat | undefined;
   }): {
     result: StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >;
     done: Promise<void>;
   } {
     if (input.turnInput.mode === 'continue') {
       return input.session.continueTurn<
         HarnessAllTools<THarness, TUserTools>,
-        RUNTIME_CONTEXT
+        RUNTIME_CONTEXT,
+        OUTPUT
       >({
         instructions: this.settings.instructions,
         tools: this.tools,
@@ -540,6 +651,8 @@ export class HarnessAgent<
         builtinToolFiltering: this.builtinToolFiltering,
         runtimeContext: input.runtimeContext,
         abortSignal: input.abortSignal,
+        responseFormat: input.responseFormat,
+        output: this.settings.output,
         telemetry: this.settings.telemetry,
         stopConditions: this.stopConditions,
         toolApprovalContinuations: input.turnInput.toolApprovalContinuations,
@@ -549,7 +662,8 @@ export class HarnessAgent<
 
     return input.session.promptTurn<
       HarnessAllTools<THarness, TUserTools>,
-      RUNTIME_CONTEXT
+      RUNTIME_CONTEXT,
+      OUTPUT
     >({
       prompt: input.turnInput.prompt,
       instructions: this.settings.instructions,
@@ -559,36 +673,10 @@ export class HarnessAgent<
       builtinToolFiltering: this.builtinToolFiltering,
       runtimeContext: input.runtimeContext,
       abortSignal: input.abortSignal,
+      responseFormat: input.responseFormat,
+      output: this.settings.output,
       telemetry: this.settings.telemetry,
       stopConditions: this.stopConditions,
-    });
-  }
-
-  private async _acquireSandbox(input: {
-    sandboxProvider: HarnessV1SandboxProvider;
-    sessionId: string;
-    isResume: boolean;
-    bootstrapPlan: SandboxBootstrapPlan;
-    abortSignal: AbortSignal | undefined;
-  }): Promise<HarnessV1NetworkSandboxSession> {
-    const { sandboxProvider } = input;
-    if (input.isResume) {
-      if (sandboxProvider.resumeSession == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          message: `Sandbox provider '${sandboxProvider.providerId}' does not support resume.`,
-          harnessId: this.settings.harness.harnessId,
-        });
-      }
-      return sandboxProvider.resumeSession({
-        sessionId: input.sessionId,
-        abortSignal: input.abortSignal,
-      });
-    }
-    return sandboxProvider.createSession({
-      sessionId: input.sessionId,
-      abortSignal: input.abortSignal,
-      identity: input.bootstrapPlan.identity,
-      onFirstCreate: input.bootstrapPlan.onFirstCreate,
     });
   }
 
@@ -676,28 +764,51 @@ export class HarnessAgent<
     streamResult: StreamTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >,
   ): Promise<
     GenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >
   > {
     // The stream is already drained by the time generate() calls this helper
     // (done has resolved). `steps` is the single source of truth the result
     // derives everything else from, mirroring core's `generateText` result.
-    const [steps, usage, responseMessages] = await Promise.all([
+    const [steps, usage, responseMessages, output] = await Promise.all([
       streamResult.steps,
       streamResult.usage,
       streamResult.responseMessages,
+      this.settings.output == null
+        ? Promise.resolve(undefined as never)
+        : streamResult.output,
     ]);
 
     return new HarnessGenerateTextResult<
       HarnessAllTools<THarness, TUserTools>,
-      RUNTIME_CONTEXT
-    >({ steps, usage, responseMessages });
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >({ steps, usage, responseMessages, output });
+  }
+
+  private async _resolveResponseFormat(): Promise<
+    HarnessV1ResponseFormat | undefined
+  > {
+    const responseFormat = await this.settings.output?.responseFormat;
+    if (responseFormat == null || responseFormat.type === 'text') {
+      return responseFormat == null ? undefined : { type: 'text' };
+    }
+    return {
+      type: 'json',
+      ...(responseFormat.schema == null
+        ? {}
+        : { schema: responseFormat.schema as HarnessV1JSONSchema }),
+      ...(responseFormat.name == null ? {} : { name: responseFormat.name }),
+      ...(responseFormat.description == null
+        ? {}
+        : { description: responseFormat.description }),
+    };
   }
 }
 
@@ -712,28 +823,31 @@ export class HarnessAgent<
 class HarnessGenerateTextResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
-> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never> {
-  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['steps'];
-  readonly usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['usage'];
+  OUTPUT extends Output,
+> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
+  readonly usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['usage'];
   readonly responseMessages: GenerateTextResult<
     TOOLS,
     RUNTIME_CONTEXT,
-    never
+    OUTPUT
   >['responseMessages'];
-  readonly output = undefined as never;
+  readonly output: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['output'];
 
   constructor(options: {
-    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['steps'];
-    usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, never>['usage'];
+    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
+    usage: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['usage'];
     responseMessages: GenerateTextResult<
       TOOLS,
       RUNTIME_CONTEXT,
-      never
+      OUTPUT
     >['responseMessages'];
+    output: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['output'];
   }) {
     this.steps = options.steps;
     this.usage = options.usage;
     this.responseMessages = options.responseMessages;
+    this.output = options.output;
   }
 
   get finalStep() {
@@ -838,64 +952,12 @@ function resolveSandboxConfig(
   };
 }
 
-/*
- * Bridge-port leasing helper. Returns the port-narrowed network sandbox session
- * plus the leased port (or `undefined` when the provider has no port pool). Kept here
- * rather than on the session so the lease is established as part of session
- * start — the session only needs to release it on close/detach.
- */
-function applyPortLease(input: {
-  provider: HarnessV1SandboxProvider;
-  sandboxSession: HarnessV1NetworkSandboxSession;
-  sessionId: string;
-}): {
-  sandboxSession: HarnessV1NetworkSandboxSession;
-  port: number | undefined;
-} {
-  const pool = input.provider.bridgePorts;
-  if (pool == null || pool.length === 0) {
-    return { sandboxSession: input.sandboxSession, port: undefined };
-  }
-  const port = acquireBridgePort({
-    poolKey: input.provider,
-    pool,
-    sessionId: input.sessionId,
-  });
-  return {
-    sandboxSession: narrowNetworkSessionPorts(input.sandboxSession, port),
-    port,
-  };
-}
-
-/*
- * Derive a view of the network sandbox session that reports only the leased
- * port. Implemented as a prototype-delegating overlay so every other member
- * (file I/O, exec, spawn, lifecycle, `restricted`) forwards to the same live
- * instance — only `ports` is shadowed.
- */
-function narrowNetworkSessionPorts(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  leasedPort: number,
-): HarnessV1NetworkSandboxSession {
-  return Object.create(sandboxSession, {
-    ports: {
-      value: [leasedPort] as ReadonlyArray<number>,
-      enumerable: true,
-    },
-  }) as HarnessV1NetworkSandboxSession;
-}
-
 async function cleanupAfterStartFailure(input: {
-  sandboxProvider: HarnessV1SandboxProvider;
-  sandboxSession: HarnessV1NetworkSandboxSession;
-  sessionId: string;
-  leasedBridgePort: number | undefined;
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  ownsSandboxLifecycle: boolean;
 }): Promise<void> {
-  await Promise.resolve(input.sandboxSession.stop()).catch(() => {});
-  if (input.leasedBridgePort != null) {
-    releaseBridgePort({
-      poolKey: input.sandboxProvider,
-      sessionId: input.sessionId,
-    });
+  if (!input.ownsSandboxLifecycle) return;
+  if ('stop' in input.sandboxSession) {
+    await Promise.resolve(input.sandboxSession.stop()).catch(() => {});
   }
 }
