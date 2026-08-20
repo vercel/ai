@@ -635,6 +635,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               enqueueError(value.modelStreamErrorException);
               return;
             }
+            if (value.serviceUnavailableException) {
+              enqueueError(value.serviceUnavailableException);
+              return;
+            }
             if (value.throttlingException) {
               enqueueError(value.throttlingException);
               return;
@@ -1123,6 +1127,7 @@ const BedrockStreamSchema = z.object({
     })
     .nullish(),
   modelStreamErrorException: z.record(z.string(), z.unknown()).nullish(),
+  serviceUnavailableException: z.record(z.string(), z.unknown()).nullish(),
   throttlingException: z.record(z.string(), z.unknown()).nullish(),
   validationException: z.record(z.string(), z.unknown()).nullish(),
 });
