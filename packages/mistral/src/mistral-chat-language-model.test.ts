@@ -777,11 +777,9 @@ describe('doStream', () => {
   });
 
   describe('tool call', () => {
-    beforeEach(() => {
-      prepareChunksFixtureResponse('mistral-tool-call');
-    });
-
     it('should stream tool call', async () => {
+      prepareChunksFixtureResponse('mistral-tool-call');
+
       const result = await model.doStream({
         prompt: TEST_PROMPT,
       });
@@ -799,6 +797,7 @@ describe('doStream', () => {
       });
 
       const parts = await convertReadableStreamToArray(result.stream);
+<<<<<<< HEAD
       const expectedInput = '{"query": "current Berlin weather"}';
 
       expect(parts.filter(part => part.type === 'error')).toStrictEqual([]);
@@ -816,6 +815,35 @@ describe('doStream', () => {
           .map(part => part.delta)
           .join(''),
       ).toBe(expectedInput);
+=======
+
+      expect(
+        parts.filter(
+          part => part.type === 'error' || part.type.startsWith('tool-'),
+        ),
+      ).toStrictEqual([
+        {
+          type: 'tool-input-start',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+          toolName: 'webSearchTool',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+          delta: '{"query": "current Berlin weather"}',
+        },
+        {
+          type: 'tool-input-end',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'chatcmpl-tool-9f149c74c42f265b',
+          toolName: 'webSearchTool',
+          input: '{"query": "current Berlin weather"}',
+        },
+      ]);
+>>>>>>> origin/release-v6.0
     });
   });
 

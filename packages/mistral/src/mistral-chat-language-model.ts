@@ -1,12 +1,13 @@
-import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+import {
+  InvalidResponseDataError,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -278,6 +279,20 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     let isFirstChunk = true;
     let activeText = false;
     let activeReasoningId: string | null = null;
+    const toolCalls = new Set<{
+      id: string;
+      name: string;
+      input: string;
+    }>();
+    const toolCallsById = new Map<
+      string,
+      { id: string; name: string; input: string }
+    >();
+    const toolCallsByIndex = new Map<
+      number,
+      { id: string; name: string; input: string }
+    >();
+    let latestToolCall: { id: string; name: string; input: string } | undefined;
 
     const generateId = this.generateId;
 
@@ -372,34 +387,66 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta?.tool_calls != null) {
-              for (const toolCall of delta.tool_calls) {
-                const toolCallId = toolCall.id;
-                const toolName = toolCall.function.name;
-                const input = toolCall.function.arguments;
+              for (const toolCallDelta of delta.tool_calls) {
+                const { id, index } = toolCallDelta;
+                let toolCall =
+                  id != null && id.length > 0
+                    ? toolCallsById.get(id)
+                    : index != null
+                      ? toolCallsByIndex.get(index)
+                      : latestToolCall;
 
-                controller.enqueue({
-                  type: 'tool-input-start',
-                  id: toolCallId,
-                  toolName,
-                });
+                if (toolCall == null) {
+                  if (id == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'id' to be a string.`,
+                    });
+                  }
 
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCallId,
-                  delta: input,
-                });
+                  if (toolCallDelta.function.name == null) {
+                    throw new InvalidResponseDataError({
+                      data: toolCallDelta,
+                      message: `Expected 'function.name' to be a string.`,
+                    });
+                  }
 
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCallId,
-                });
+                  toolCall = {
+                    id,
+                    name: toolCallDelta.function.name,
+                    input: toolCallDelta.function.arguments ?? '',
+                  };
+                  toolCalls.add(toolCall);
+                  if (id.length > 0) {
+                    toolCallsById.set(id, toolCall);
+                  }
 
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId,
-                  toolName,
-                  input,
-                });
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id,
+                    toolName: toolCall.name,
+                  });
+
+                  if (toolCall.input.length > 0) {
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id,
+                      delta: toolCall.input,
+                    });
+                  }
+                } else if (toolCallDelta.function.arguments != null) {
+                  toolCall.input += toolCallDelta.function.arguments;
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.id,
+                    delta: toolCallDelta.function.arguments,
+                  });
+                }
+
+                if (index != null) {
+                  toolCallsByIndex.set(index, toolCall);
+                }
+                latestToolCall = toolCall;
               }
             }
 
@@ -420,6 +467,19 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
             }
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
+            for (const toolCall of toolCalls) {
+              controller.enqueue({
+                type: 'tool-input-end',
+                id: toolCall.id,
+              });
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                input: toolCall.input,
+              });
             }
 
             controller.enqueue({
@@ -570,8 +630,12 @@ const mistralChatChunkSchema = z.object({
         tool_calls: z
           .array(
             z.object({
-              id: z.string(),
-              function: z.object({ name: z.string(), arguments: z.string() }),
+              index: z.number().nullish(),
+              id: z.string().nullish(),
+              function: z.object({
+                name: z.string().nullish(),
+                arguments: z.string().nullish(),
+              }),
             }),
           )
           .nullish(),
