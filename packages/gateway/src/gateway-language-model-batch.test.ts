@@ -6,6 +6,7 @@ import type { GatewayConfig } from './gateway-config';
 import {
   GatewayInvalidRequestError,
   GatewayModelNotFoundError,
+  GatewayNotFoundError,
 } from './errors';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -159,7 +160,7 @@ describe('GatewayBatchLanguageModel', () => {
       });
     });
 
-    it('should send the idempotency-key header from providerOptions.gateway.idempotencyKey', async () => {
+    it('should send the idempotency-key header from providerOptions.gateway.idempotencyKey without forwarding it in the body', async () => {
       prepareBatchStartResponse();
 
       await createTestModel().experimental_doStartBatch({
@@ -170,6 +171,30 @@ describe('GatewayBatchLanguageModel', () => {
       expect(server.calls[0].requestHeaders['idempotency-key']).toBe(
         'idem-abc',
       );
+      // Transport metadata stays out of the payload the Gateway digests for
+      // replay identity; an empty providerOptions is omitted entirely.
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        modelId: 'test-model',
+        requests: BATCH_PROMPT_REQUESTS,
+      });
+    });
+
+    it('should keep other gateway provider options in the body while stripping the idempotency key', async () => {
+      prepareBatchStartResponse();
+
+      await createTestModel().experimental_doStartBatch({
+        requests: BATCH_PROMPT_REQUESTS,
+        providerOptions: {
+          gateway: { idempotencyKey: 'idem-abc', order: ['openai'] },
+        },
+      });
+
+      expect(server.calls[0].requestHeaders['idempotency-key']).toBe(
+        'idem-abc',
+      );
+      expect((await server.calls[0].requestBodyJson).providerOptions).toEqual({
+        gateway: { order: ['openai'] },
+      });
     });
 
     it('should base64-encode Uint8Array file data in batch request prompts', async () => {
@@ -215,6 +240,24 @@ describe('GatewayBatchLanguageModel', () => {
       });
 
       expect(mockFetch.mock.calls[0][1].signal).toBe(controller.signal);
+    });
+
+    it('should preserve an AbortError instead of converting it to a retryable gateway error', async () => {
+      const abortError = new DOMException(
+        'The operation was aborted.',
+        'AbortError',
+      );
+      const mockFetch = vi.fn().mockRejectedValue(abortError);
+
+      // An aborted batch start may still have been accepted server-side;
+      // surfacing a retryable 500 would invite a duplicate submission.
+      await expect(
+        createTestModel({
+          fetch: mockFetch,
+        }).experimental_doStartBatch({
+          requests: BATCH_PROMPT_REQUESTS,
+        }),
+      ).rejects.toBe(abortError);
     });
 
     it('should convert HTTP errors via the gateway error path', async () => {
@@ -312,6 +355,42 @@ describe('GatewayBatchLanguageModel', () => {
       expect(status).toEqual({ status: 'pending' });
     });
 
+    it('should map a 404 not_found response to GatewayNotFoundError', async () => {
+      server.urls['https://api.test.com/batch/status'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          error: { message: 'Async job not found.', type: 'not_found' },
+        }),
+      };
+
+      try {
+        await createTestModel().experimental_doGetBatchStatus({
+          batchId: 'missing-job',
+        });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayNotFoundError.isInstance(error)).toBe(true);
+        const notFoundError = error as GatewayNotFoundError;
+        expect(notFoundError.message).toBe('Async job not found.');
+        expect(notFoundError.statusCode).toBe(404);
+      }
+    });
+
+    it('should preserve an AbortError instead of converting it to a retryable gateway error', async () => {
+      const abortError = new DOMException(
+        'The operation was aborted.',
+        'AbortError',
+      );
+      const mockFetch = vi.fn().mockRejectedValue(abortError);
+
+      await expect(
+        createTestModel({
+          fetch: mockFetch,
+        }).experimental_doGetBatchStatus({ batchId: 'job_123' }),
+      ).rejects.toBe(abortError);
+    });
+
     it('should pass abortSignal to fetch when provided', async () => {
       prepareBatchStatusResponse({ batchId: 'job_123', status: 'pending' });
       const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
@@ -339,7 +418,10 @@ describe('GatewayBatchLanguageModel', () => {
           modelId: 'openai/gpt-5.6-luna',
           timestamp: '2026-08-18T00:00:00.000Z',
         },
-        usage: { inputTokens: 4, outputTokens: 2 },
+        usage: {
+          inputTokens: { total: 4, noCache: 4 },
+          outputTokens: { total: 2, text: 2 },
+        },
         warnings: [],
       },
     };
@@ -376,6 +458,48 @@ describe('GatewayBatchLanguageModel', () => {
       expect(item.result.response?.timestamp?.toISOString()).toBe(
         '2026-08-18T00:00:00.000Z',
       );
+      // Nested V4 usage is the shape core dereferences
+      // (`usage.inputTokens.total` / `usage.outputTokens.total`).
+      expect(item.result.usage).toStrictEqual({
+        inputTokens: { total: 4, noCache: 4 },
+        outputTokens: { total: 2, text: 2 },
+      });
+    });
+
+    it('should map a 404 not_found response to GatewayNotFoundError', async () => {
+      server.urls['https://api.test.com/batch/results'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          error: { message: 'Async job not found.', type: 'not_found' },
+        }),
+      };
+
+      try {
+        await createTestModel().experimental_doGetBatchResults({
+          batchId: 'missing-job',
+        });
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(GatewayNotFoundError.isInstance(error)).toBe(true);
+        const notFoundError = error as GatewayNotFoundError;
+        expect(notFoundError.message).toBe('Async job not found.');
+        expect(notFoundError.statusCode).toBe(404);
+      }
+    });
+
+    it('should preserve an AbortError instead of converting it to a retryable gateway error', async () => {
+      const abortError = new DOMException(
+        'The operation was aborted.',
+        'AbortError',
+      );
+      const mockFetch = vi.fn().mockRejectedValue(abortError);
+
+      await expect(
+        createTestModel({
+          fetch: mockFetch,
+        }).experimental_doGetBatchResults({ batchId: 'job_123' }),
+      ).rejects.toBe(abortError);
     });
 
     it('should post the batchId with the correct headers', async () => {

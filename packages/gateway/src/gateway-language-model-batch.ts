@@ -69,6 +69,7 @@ export class GatewayBatchLanguageModel
       : undefined;
 
     const idempotencyKey = getGatewayBatchIdempotencyKey(providerOptions);
+    const forwardedProviderOptions = omitGatewayIdempotencyKey(providerOptions);
 
     try {
       const { value: responseBody } = await postJsonToApi({
@@ -88,7 +89,9 @@ export class GatewayBatchLanguageModel
             id: request.id,
             options: this.maybeEncodeFileParts(request.options),
           })),
-          ...(providerOptions != null && { providerOptions }),
+          ...(forwardedProviderOptions != null && {
+            providerOptions: forwardedProviderOptions,
+          }),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayBatchStartResponseSchema,
@@ -108,6 +111,11 @@ export class GatewayBatchLanguageModel
           []) as unknown as BatchV4StartResult['warnings'],
       };
     } catch (error) {
+      // Preserve cancellation: an aborted batch start may still have been
+      // accepted server-side, so it must not surface as a retryable 500.
+      if (isAbortOrTimeoutError(error)) {
+        throw error;
+      }
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
@@ -151,6 +159,9 @@ export class GatewayBatchLanguageModel
 
       return convertGatewayBatchStatus(responseBody);
     } catch (error) {
+      if (isAbortOrTimeoutError(error)) {
+        throw error;
+      }
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
@@ -220,6 +231,9 @@ export class GatewayBatchLanguageModel
         parseGatewayBatchResultLines(stream),
       );
     } catch (error) {
+      if (isAbortOrTimeoutError(error)) {
+        throw error;
+      }
       throw await asGatewayError(
         error,
         await parseAuthMethod(resolvedHeaders ?? {}),
@@ -242,7 +256,8 @@ export class GatewayBatchLanguageModel
  * Extracts the optional Gateway idempotency key from
  * `providerOptions.gateway.idempotencyKey`. It is sent as the
  * `idempotency-key` request header — the Gateway's replay contract for batch
- * starts — while the providerOptions body is forwarded unchanged.
+ * starts — and stripped from the forwarded body by
+ * `omitGatewayIdempotencyKey`.
  */
 function getGatewayBatchIdempotencyKey(
   providerOptions: SharedV4ProviderOptions | undefined,
@@ -257,6 +272,53 @@ function getGatewayBatchIdempotencyKey(
   }
   const key = (gatewayOptions as { idempotencyKey?: unknown }).idempotencyKey;
   return typeof key === 'string' && key.length > 0 ? key : undefined;
+}
+
+/**
+ * Removes `gateway.idempotencyKey` from the providerOptions forwarded in the
+ * request body. The key is transport metadata (it rides the `idempotency-key`
+ * header); the Gateway hashes the raw body for replay payload identity but
+ * normalizes the header separately, so keeping it out of the payload prevents
+ * equivalent retries from producing different digests (a false 422).
+ */
+function omitGatewayIdempotencyKey(
+  providerOptions: SharedV4ProviderOptions | undefined,
+): SharedV4ProviderOptions | undefined {
+  const gatewayOptions = providerOptions?.gateway;
+  if (
+    gatewayOptions == null ||
+    typeof gatewayOptions !== 'object' ||
+    Array.isArray(gatewayOptions) ||
+    !('idempotencyKey' in gatewayOptions)
+  ) {
+    return providerOptions;
+  }
+
+  const { idempotencyKey: _idempotencyKey, ...restGatewayOptions } =
+    gatewayOptions as Record<string, unknown>;
+  const restProviderOptions: Record<string, unknown> = { ...providerOptions };
+  if (Object.keys(restGatewayOptions).length === 0) {
+    delete restProviderOptions.gateway;
+  } else {
+    restProviderOptions.gateway = restGatewayOptions;
+  }
+  if (Object.keys(restProviderOptions).length === 0) {
+    return undefined;
+  }
+  return restProviderOptions as SharedV4ProviderOptions;
+}
+
+/**
+ * Matches cancellation errors (`AbortError`/`TimeoutError`), which
+ * `asGatewayError` would otherwise wrap into a retryable Gateway 500. Kept
+ * local because `isAbortError` is not exported from `@ai-sdk/provider-utils`;
+ * `DOMException` does not extend `Error`, so both must be checked.
+ */
+function isAbortOrTimeoutError(error: unknown): boolean {
+  if (!(error instanceof Error || error instanceof DOMException)) {
+    return false;
+  }
+  return error.name === 'AbortError' || error.name === 'TimeoutError';
 }
 
 function convertGatewayBatchStatus(body: {
