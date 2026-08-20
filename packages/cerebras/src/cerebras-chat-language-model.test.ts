@@ -3,13 +3,46 @@ import type {
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import fs from 'node:fs';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { createCerebras } from './cerebras-provider';
+import type { CerebrasLanguageModelChatOptions } from './index';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 const JSON_RESPONSE_FORMAT = { type: 'json' as const };
+
+it('exposes Cerebras request options', () => {
+  const options: CerebrasLanguageModelChatOptions = {
+    user: 'user-123',
+    textVerbosity: 'medium',
+    strictJsonSchema: true,
+    max_completion_tokens: 64,
+    parallel_tool_calls: false,
+    logprobs: true,
+    top_logprobs: 2,
+    logit_bias: { '42': 1 },
+    service_tier: 'priority',
+    reasoningEffort: 'none',
+    reasoning_format: 'parsed',
+    prediction: { type: 'content', content: 'expected' },
+    prompt_cache_key: 'cache-key',
+  };
+
+  expect(options).toMatchObject({
+    max_completion_tokens: 64,
+    reasoningEffort: 'none',
+  });
+  expectTypeOf<
+    NonNullable<CerebrasLanguageModelChatOptions['service_tier']>
+  >().toEqualTypeOf<'auto' | 'default' | 'flex' | 'priority'>();
+  expectTypeOf<
+    NonNullable<CerebrasLanguageModelChatOptions['reasoningEffort']>
+  >().toEqualTypeOf<'none' | 'low' | 'medium' | 'high'>();
+  expectTypeOf<
+    NonNullable<CerebrasLanguageModelChatOptions['reasoning_format']>
+  >().toEqualTypeOf<'none' | 'parsed' | 'text_parsed' | 'raw' | 'hidden'>();
+});
 
 async function convertStreamToArray(
   stream: ReadableStream<LanguageModelV4StreamPart>,
