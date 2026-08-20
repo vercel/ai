@@ -189,7 +189,7 @@ describe('BedrockChatLanguageModel doStream', () => {
       },
       body: fromUtf8(JSON.stringify(exception)),
     });
-    const model = new AmazonBedrockChatLanguageModel(
+    const model = new BedrockChatLanguageModel(
       'anthropic.claude-3-haiku-20240307-v1:0',
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
