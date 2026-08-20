@@ -1,5 +1,75 @@
 # @ai-sdk/mcp
 
+## 1.0.71
+
+### Patch Changes
+
+- b0e77c0: Select MCP OAuth authorization scopes from `WWW-Authenticate` challenges or Protected Resource Metadata.
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 1.0.70
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 1.0.68
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
+## 1.0.67
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+
+## 1.0.66
+
+### Patch Changes
+
+- e8d2654: Honor MCP request deadlines and support bounding or aborting client initialization.
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+
+## 1.0.64
+
+### Patch Changes
+
+- a3bc948: fix(mcp): accept OAuth metadata without code challenge methods
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 1.0.61
 
 ### Patch Changes

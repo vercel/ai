@@ -1,5 +1,135 @@
 # @ai-sdk/google
 
+## 3.0.111
+
+### Patch Changes
+
+- c715588: Inline local JSON Schema references in Google tool and structured-output schemas.
+
+## 3.0.110
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 3.0.109
+
+### Patch Changes
+
+- 71e94ad: feat(google): add `gemini-3.7-flash` model
+
+## 3.0.108
+
+### Patch Changes
+
+- dd7ecd7: Preserve forced tool calls when strict function tools are configured.
+
+## 3.0.107
+
+### Patch Changes
+
+- c29b64f: Preserve Google API error details in `APICallError.data`.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.106
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 3.0.105
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
+## 3.0.104
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+
+## 3.0.103
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+
+## 3.0.102
+
+### Patch Changes
+
+- e728a98: Forward `topK` through Google Interactions requests and warn when unsupported frequency or presence penalties are provided.
+
+## 3.0.101
+
+### Patch Changes
+
+- 326887b: fix(google): omit unsupported function call IDs
+
+## 3.0.100
+
+### Patch Changes
+
+- dae771a: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+
+## 3.0.99
+
+### Patch Changes
+
+- 2886d22: Avoid missing thought-signature warnings and skip-validator injection for valid unsigned Gemini 3 parallel function calls in the same model response.
+
+## 3.0.98
+
+### Patch Changes
+
+- a09f944: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 3.0.97
+
+### Patch Changes
+
+- a6cb3c1: fix(provider/google): surface Gemini `responseId` as `response-metadata` (stream) and `response.id` (generate)
+
+## 3.0.96
+
+### Patch Changes
+
+- 0d51472: fix(provider/google): associate multiple code execution results with their tool call
+
+## 3.0.95
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 3.0.94
+
+### Patch Changes
+
+- 020836c: fix(provider/google): forward Vertex-only imageConfig options (personGeneration, prominentPeople, imageOutputOptions)
+
+## 3.0.93
+
+### Patch Changes
+
+- cfba690: Allow google.interactions agent requests to include supported tools, including file_search.
+
+## 3.0.92
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 3.0.91
 
 ### Patch Changes

@@ -72,6 +72,114 @@ const dummyResponseValues = {
   warnings: [],
 };
 
+describe('abort signal handling', () => {
+  it('should reject when the abort signal fires during tool execution', async () => {
+    const abortController = new AbortController();
+    const abortError = new DOMException('tool execution aborted', 'AbortError');
+    let modelCallCount = 0;
+
+    const result = generateText({
+      model: new MockLanguageModelV3({
+        doGenerate: async () => {
+          modelCallCount++;
+
+          if (modelCallCount === 1) {
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+            };
+          }
+
+          return {
+            ...dummyResponseValues,
+            content: [],
+            finishReason: { unified: 'other', raw: 'unknown' },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async (_input, { abortSignal }) => {
+            abortController.abort(abortError);
+            abortSignal?.throwIfAborted();
+          },
+        },
+      },
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+      stopWhen: stepCountIs(10),
+      maxRetries: 0,
+    });
+
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[AbortError: tool execution aborted]`,
+    );
+    expect(modelCallCount).toBe(1);
+  });
+
+  it('should reject before another model call when a tool completes after cancellation', async () => {
+    const abortController = new AbortController();
+    const abortError = new DOMException('tool execution aborted', 'AbortError');
+    let modelCallCount = 0;
+
+    const result = generateText({
+      model: new MockLanguageModelV3({
+        doGenerate: async () => {
+          modelCallCount++;
+
+          if (modelCallCount === 1) {
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+            };
+          }
+
+          return {
+            ...dummyResponseValues,
+            content: [],
+            finishReason: { unified: 'other', raw: 'unknown' },
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => {
+            abortController.abort(abortError);
+            return 'tool result';
+          },
+        },
+      },
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+      stopWhen: stepCountIs(10),
+      maxRetries: 0,
+    });
+
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[AbortError: tool execution aborted]`,
+    );
+    expect(modelCallCount).toBe(1);
+  });
+});
+
 const modelWithSources = new MockLanguageModelV3({
   doGenerate: {
     ...dummyResponseValues,
@@ -157,6 +265,195 @@ describe('generateText', () => {
   afterEach(() => {
     vi.useRealTimers();
     logWarningsSpy.mockRestore();
+  });
+
+  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+    'should not execute tools when the finish reason is %s',
+    async finishReason => {
+      const execute = vi.fn(async () => 'tool-result');
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{"value":"test"}',
+              },
+            ],
+            finishReason: {
+              unified: finishReason,
+              raw: finishReason,
+            },
+            usage: testUsage,
+            warnings: [],
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          }),
+        },
+      });
+
+      expect(result.toolCalls).toHaveLength(1);
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should not synthesize a client tool error for an invalid provider-executed tool call', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV3({
+        doGenerate: async () => ({
+          warnings: [],
+          usage: testUsage,
+          finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'web_search',
+              input: '{}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'web_search',
+              result: {
+                type: 'web_search_tool_result_error',
+                errorCode: 'invalid_tool_input',
+              },
+              isError: true,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        web_search: {
+          type: 'provider',
+          id: 'test.web_search',
+          inputSchema: z.object({ query: z.string() }),
+          outputSchema: z.unknown(),
+          args: {},
+        },
+      },
+      prompt: 'Search the web.',
+    });
+
+    expect(result.content).toHaveLength(2);
+    expect(result.content[0]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'web_search',
+      input: {},
+      invalid: true,
+      providerExecuted: true,
+    });
+    expect(result.content[1]).toEqual({
+      type: 'tool-error',
+      toolCallId: 'call-1',
+      toolName: 'web_search',
+      input: {},
+      error: {
+        type: 'web_search_tool_result_error',
+        errorCode: 'invalid_tool_input',
+      },
+      providerExecuted: true,
+      dynamic: true,
+    });
+    expect(result.response.messages).toHaveLength(1);
+    expect(result.response.messages[0]).toMatchObject({
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'web_search',
+          input: {},
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'web_search',
+          output: {
+            type: 'error-json',
+            value: {
+              type: 'web_search_tool_result_error',
+              errorCode: 'invalid_tool_input',
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should reject calls to inactive tools without executing them', async () => {
+    const execute = vi.fn(async () => 'result');
+    let providerToolCount: number | undefined;
+
+    const result = await generateText({
+      model: new MockLanguageModelV3({
+        doGenerate: async ({ tools }) => {
+          providerToolCount = tools?.length;
+
+          return {
+            ...dummyResponseValues,
+            finishReason: {
+              unified: 'tool-calls' as const,
+              raw: 'tool-calls',
+            },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute,
+        }),
+      },
+      prompt: 'test-input',
+      activeTools: [],
+    });
+
+    const [toolCall] = result.toolCalls;
+
+    expect({
+      executeCallCount: execute.mock.calls.length,
+      providerToolCount,
+      toolCall: {
+        type: toolCall.type,
+        toolName: toolCall.toolName,
+        invalid: toolCall.invalid,
+        error: toolCall.invalid ? toolCall.error : undefined,
+      },
+      toolResults: result.toolResults,
+    }).toMatchInlineSnapshot(`
+      {
+        "executeCallCount": 0,
+        "providerToolCount": 0,
+        "toolCall": {
+          "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: .],
+          "invalid": true,
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        "toolResults": [],
+      }
+    `);
   });
 
   describe('result.content', () => {
@@ -1064,6 +1361,150 @@ describe('generateText', () => {
         provider: 'alternate-provider',
         modelId: 'alternate-model-id',
       });
+    });
+
+    it('should apply prepareStep model call settings only to the current step', async () => {
+      const modelCallOptions: Array<LanguageModelV3CallOptions> = [];
+      const tracer = new MockTracer();
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async options => {
+            modelCallOptions.push(options);
+            const currentResponse = responseCount++;
+
+            return currentResponse < 2
+              ? {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: `call-${currentResponse}`,
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: undefined,
+                  },
+                }
+              : {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final answer.' }],
+                };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        prepareStep: async ({ stepNumber }) =>
+          stepNumber === 1
+            ? {
+                maxOutputTokens: 50,
+                temperature: 0,
+                topP: 0.5,
+                topK: 10,
+                presencePenalty: 0,
+                frequencyPenalty: -0.2,
+                stopSequences: [],
+                seed: 0,
+              }
+            : stepNumber === 2
+              ? { temperature: undefined }
+              : undefined,
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+      });
+
+      const selectCallSettings = ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      }: LanguageModelV3CallOptions) => ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      });
+
+      expect(modelCallOptions.map(selectCallSettings)).toEqual([
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+        {
+          maxOutputTokens: 50,
+          temperature: 0,
+          topP: 0.5,
+          topK: 10,
+          presencePenalty: 0,
+          frequencyPenalty: -0.2,
+          stopSequences: [],
+          seed: 0,
+        },
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+      ]);
+      expect(
+        tracer.jsonSpans
+          .filter(span => span.name === 'ai.generateText.doGenerate')
+          .map(span => span.attributes['gen_ai.request.temperature']),
+      ).toEqual([1, 0, 1]);
+    });
+
+    it('should validate model call settings returned from prepareStep', async () => {
+      await expect(
+        generateText({
+          model: new MockLanguageModelV3(),
+          prompt: 'test-input',
+          prepareStep: async () => ({
+            maxOutputTokens: 0,
+          }),
+        }),
+      ).rejects.toThrow(
+        'Invalid argument for parameter maxOutputTokens: maxOutputTokens must be >= 1',
+      );
     });
 
     it('should provide empty steps array on first step', async () => {
@@ -4646,6 +5087,20 @@ describe('generateText', () => {
 
       expect(recordedCalls).toMatchInlineSnapshot(`
         [
+          {
+            "options": {
+              "abortSignal": undefined,
+              "experimental_context": undefined,
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputStart",
+          },
           {
             "options": {
               "abortSignal": undefined,

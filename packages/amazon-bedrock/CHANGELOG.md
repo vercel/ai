@@ -1,5 +1,213 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.159
+
+### Patch Changes
+
+- 46e063a: fix(amazon-bedrock): surface modeled event-stream exceptions
+- Updated dependencies [f40afcf]
+  - @ai-sdk/openai@3.0.99
+
+## 4.0.158
+
+### Patch Changes
+
+- 3fadddb: fix (provider/amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API and replay it on subsequent turns
+
+## 4.0.157
+
+### Patch Changes
+
+- 4c5e34f: Reject Amazon Bedrock event streams that end with an incomplete buffered frame instead of completing normally with partial output.
+- 50be36b: Surface Amazon Bedrock event stream frame decoding and processing failures instead of silently completing the stream.
+
+## 4.0.156
+
+### Patch Changes
+
+- Updated dependencies [91880b9]
+  - @ai-sdk/openai@3.0.98
+
+## 4.0.155
+
+### Patch Changes
+
+- 4b4dc23: fix(bedrock): wrap invalid tool input in object
+
+## 4.0.154
+
+### Patch Changes
+
+- Updated dependencies [8533108]
+- Updated dependencies [31205a4]
+  - @ai-sdk/anthropic@3.0.111
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/openai@3.0.97
+
+## 4.0.153
+
+### Patch Changes
+
+- Updated dependencies [64facff]
+  - @ai-sdk/openai@3.0.96
+
+## 4.0.152
+
+### Patch Changes
+
+- Updated dependencies [bdb46fe]
+  - @ai-sdk/openai@3.0.95
+
+## 4.0.151
+
+### Patch Changes
+
+- Updated dependencies [d3247d7]
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/openai@3.0.94
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/anthropic@3.0.110
+
+## 4.0.150
+
+### Patch Changes
+
+- Updated dependencies [f471a1c]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai@3.0.93
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/anthropic@3.0.109
+  - @ai-sdk/provider-utils@4.0.44
+
+## 4.0.149
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/anthropic@3.0.108
+  - @ai-sdk/openai@3.0.92
+
+## 4.0.148
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+  - @ai-sdk/anthropic@3.0.107
+  - @ai-sdk/openai@3.0.91
+
+## 4.0.147
+
+### Patch Changes
+
+- Updated dependencies [b74e654]
+  - @ai-sdk/anthropic@3.0.106
+
+## 4.0.146
+
+### Patch Changes
+
+- Updated dependencies [0a295e3]
+  - @ai-sdk/anthropic@3.0.105
+
+## 4.0.145
+
+### Patch Changes
+
+- 6077642: fix(amazon-bedrock): warn when unsupported strict tools are omitted and align structured output fallback routing
+
+## 4.0.144
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+  - @ai-sdk/anthropic@3.0.104
+  - @ai-sdk/openai@3.0.90
+
+## 4.0.143
+
+### Patch Changes
+
+- Updated dependencies [23632b1]
+  - @ai-sdk/openai@3.0.89
+
+## 4.0.142
+
+### Patch Changes
+
+- 13c9960: fix(provider/amazon-bedrock): omit tool `strict` and `output_config.format` for Claude models Bedrock rejects them on
+- Updated dependencies [7865a71]
+  - @ai-sdk/anthropic@3.0.103
+
+## 4.0.141
+
+### Patch Changes
+
+- Updated dependencies [b4c4426]
+- Updated dependencies [b4c4426]
+- Updated dependencies [b4c4426]
+  - @ai-sdk/anthropic@3.0.102
+
+## 4.0.140
+
+### Patch Changes
+
+- 0608dca: fix (provider/anthropic): use current-generation capability defaults for unrecognized Claude model IDs while retaining conservative defaults for legacy Claude and non-Claude models.
+- Updated dependencies [8100830]
+- Updated dependencies [0608dca]
+  - @ai-sdk/openai@3.0.88
+  - @ai-sdk/anthropic@3.0.101
+
+## 4.0.139
+
+### Patch Changes
+
+- 7d821cf: Pass through `s3://` image URLs to Amazon Bedrock Converse as S3 image sources instead of downloading them.
+- b52ca46: Sanitize invalid characters in replayed tool call names before sending conversation history to Amazon Bedrock.
+- Updated dependencies [2f11af1]
+- Updated dependencies [b7afc80]
+  - @ai-sdk/openai@3.0.87
+  - @ai-sdk/anthropic@3.0.100
+
+## 4.0.138
+
+### Patch Changes
+
+- db8cff6: fix(amazon-bedrock): sanitize unsupported JSON Schema constraints in native Anthropic structured output
+- 3c68a20: fix(amazon-bedrock): encode slashes in ARN model IDs for Converse requests
+- Updated dependencies [db8cff6]
+- Updated dependencies [94d0f86]
+  - @ai-sdk/anthropic@3.0.99
+
+## 4.0.137
+
+### Patch Changes
+
+- e5e532e: fix(bedrock): support application inference profile ARNs
+- Updated dependencies [19093fd]
+- Updated dependencies [10366a2]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/anthropic@3.0.98
+  - @ai-sdk/openai@3.0.86
+
+## 4.0.136
+
+### Patch Changes
+
+- 29513b0: Return Bedrock Converse request bodies from language model generation and streaming calls.
+
+## 4.0.135
+
+### Patch Changes
+
+- 7c05582: Avoid unreliable synthetic response tools when structured output is combined with tools on Bedrock Claude Opus 4.7 and 4.8.
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/anthropic@3.0.97
+  - @ai-sdk/openai@3.0.85
+
 ## 4.0.134
 
 ### Patch Changes

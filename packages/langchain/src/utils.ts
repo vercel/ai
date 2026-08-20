@@ -29,16 +29,104 @@ import {
 } from './types';
 
 /**
- * Parses a LangGraph event tuple into [type, data].
+ * Parses a LangGraph event tuple into [namespace, type, data].
  * Handles both 2-element [type, data] and 3-element [namespace, type, data] formats.
  *
  * @param event - The raw LangGraph event array.
- * @returns A tuple of [type, data].
+ * @returns A tuple of [namespace, type, data].
  */
 export function parseLangGraphEvent(
   event: unknown[],
-): [type: unknown, data: unknown] {
-  return event.length === 3 ? [event[1], event[2]] : [event[0], event[1]];
+): [namespace: unknown | undefined, type: unknown, data: unknown] {
+  return event.length === 3
+    ? [event[0], event[1], event[2]]
+    : [undefined, event[0], event[1]];
+}
+
+export function getLangGraphProviderMetadata(
+  namespace: string[] | undefined,
+): ProviderMetadata | undefined {
+  return namespace === undefined
+    ? undefined
+    : {
+        langchain: {
+          namespace,
+        },
+      };
+}
+
+function addLangGraphNamespace(
+  chunk: UIMessageChunk,
+  namespace: string[] | undefined,
+): UIMessageChunk {
+  if (namespace === undefined) {
+    return chunk;
+  }
+
+  switch (chunk.type) {
+    case 'text-start':
+    case 'text-delta':
+    case 'text-end':
+    case 'reasoning-start':
+    case 'reasoning-delta':
+    case 'reasoning-end':
+    case 'tool-input-start':
+    case 'tool-input-available':
+    case 'tool-input-error':
+    case 'tool-output-available':
+    case 'tool-output-error':
+    case 'source-url':
+    case 'source-document':
+    case 'file': {
+      return {
+        ...chunk,
+        providerMetadata: {
+          ...chunk.providerMetadata,
+          langchain: {
+            ...chunk.providerMetadata?.langchain,
+            namespace,
+          },
+        },
+      };
+    }
+    default:
+      return chunk;
+  }
+}
+
+function createLangGraphNamespaceController(
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+  state: LangGraphEventState,
+  eventNamespace: string[] | undefined,
+): ReadableStreamDefaultController<UIMessageChunk> {
+  return {
+    get desiredSize() {
+      return controller.desiredSize;
+    },
+    close: () => controller.close(),
+    error: reason => controller.error(reason),
+    enqueue: chunk => {
+      if (chunk === undefined) {
+        return;
+      }
+
+      let messageNamespace: string[] | undefined;
+      switch (chunk.type) {
+        case 'text-start':
+        case 'text-delta':
+        case 'text-end':
+        case 'reasoning-start':
+        case 'reasoning-delta':
+        case 'reasoning-end':
+          messageNamespace = state.messageNamespaces.get(chunk.id);
+          break;
+      }
+
+      controller.enqueue(
+        addLangGraphNamespace(chunk, messageNamespace ?? eventNamespace),
+      );
+    },
+  };
 }
 
 /**
@@ -122,25 +210,46 @@ function getDefaultFilename(
   return `${prefix}.${ext}`;
 }
 
-/**
- * OpenAI-native content block type for images.
- * This format is passed through directly by ChatOpenAI to OpenAI's API.
- */
-type OpenAIImageBlock = {
-  type: 'image_url';
-  image_url: {
-    url: string;
-    detail?: 'auto' | 'low' | 'high';
-  };
-};
+function convertImageToContentBlock(
+  data: string | Uint8Array | URL | ArrayBuffer,
+  mediaType: string = 'image/png',
+): ContentBlock.Multimodal.Image {
+  if (data instanceof URL) {
+    if (data.protocol !== 'data:') {
+      return { type: 'image', url: data.toString() };
+    }
 
-/**
- * Content block type for HumanMessage that supports both text and OpenAI images.
- */
-type HumanMessageContentBlock =
-  | { type: 'text'; text: string }
-  | OpenAIImageBlock
-  | ContentBlock;
+    data = data.toString();
+  }
+
+  if (typeof data === 'string') {
+    if (data.startsWith('http://') || data.startsWith('https://')) {
+      return { type: 'image', url: data };
+    }
+
+    if (data.startsWith('data:')) {
+      const matches = data.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches) {
+        return {
+          type: 'image',
+          data: matches[2],
+          mimeType: matches[1],
+        };
+      }
+
+      return { type: 'image', url: data };
+    }
+
+    return { type: 'image', data, mimeType: mediaType };
+  }
+
+  const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+  return {
+    type: 'image',
+    data: btoa(String.fromCharCode(...bytes)),
+    mimeType: mediaType,
+  };
+}
 
 /**
  * Converts UserContent to LangChain HumanMessage
@@ -152,7 +261,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
     return new HumanMessage({ content });
   }
 
-  const contentBlocks: HumanMessageContentBlock[] = [];
+  const contentBlocks: ContentBlock.Standard[] = [];
 
   for (const part of content) {
     if (part.type === 'text') {
@@ -164,64 +273,15 @@ export function convertUserContent(content: UserContent): HumanMessage {
         mediaType?: string;
       };
 
-      /**
-       * Use OpenAI's native image_url format which is passed through directly
-       * handle URL objects
-       */
-      if (imagePart.image instanceof URL) {
-        contentBlocks.push({
-          type: 'image_url',
-          image_url: { url: imagePart.image.toString() },
-        });
-      } else if (typeof imagePart.image === 'string') {
-        /**
-         * Handle string (could be URL or base64)
-         */
-        /**
-         * Check if it's a URL (including data: URLs)
-         */
-        if (
-          imagePart.image.startsWith('http://') ||
-          imagePart.image.startsWith('https://') ||
-          imagePart.image.startsWith('data:')
-        ) {
-          /**
-           * OpenAI accepts both http URLs and data URLs directly
-           */
-          contentBlocks.push({
-            type: 'image_url',
-            image_url: { url: imagePart.image },
-          });
-        } else {
-          /**
-           * Assume base64 encoded data - wrap in data URL
-           */
-          const mimeType = imagePart.mediaType || 'image/png';
-          contentBlocks.push({
-            type: 'image_url',
-            image_url: { url: `data:${mimeType};base64,${imagePart.image}` },
-          });
-        }
-      } else if (
-        /**
-         * Handle Uint8Array or ArrayBuffer (binary data)
-         */
+      if (
+        imagePart.image instanceof URL ||
+        typeof imagePart.image === 'string' ||
         imagePart.image instanceof Uint8Array ||
         imagePart.image instanceof ArrayBuffer
       ) {
-        const bytes =
-          imagePart.image instanceof ArrayBuffer
-            ? new Uint8Array(imagePart.image)
-            : imagePart.image;
-        /**
-         * Convert to base64 data URL
-         */
-        const base64 = btoa(String.fromCharCode(...bytes));
-        const mimeType = imagePart.mediaType || 'image/png';
-        contentBlocks.push({
-          type: 'image_url',
-          image_url: { url: `data:${mimeType};base64,${base64}` },
-        });
+        contentBlocks.push(
+          convertImageToContentBlock(imagePart.image, imagePart.mediaType),
+        );
       }
     } else if (part.type === 'file') {
       const filePart = part as {
@@ -231,58 +291,12 @@ export function convertUserContent(content: UserContent): HumanMessage {
         filename?: string;
       };
 
-      /**
-       * Check if this is an image file - if so, use OpenAI's image_url format
-       */
       const isImage = filePart.mediaType?.startsWith('image/');
 
       if (isImage) {
-        /**
-         * Handle image files using OpenAI's native image_url format
-         */
-        if (filePart.data instanceof URL) {
-          contentBlocks.push({
-            type: 'image_url',
-            image_url: { url: filePart.data.toString() },
-          });
-        } else if (typeof filePart.data === 'string') {
-          /**
-           * URLs (including data URLs) can be passed directly
-           */
-          if (
-            filePart.data.startsWith('http://') ||
-            filePart.data.startsWith('https://') ||
-            filePart.data.startsWith('data:')
-          ) {
-            contentBlocks.push({
-              type: 'image_url',
-              image_url: { url: filePart.data },
-            });
-          } else {
-            /**
-             * Assume base64 - wrap in data URL
-             */
-            contentBlocks.push({
-              type: 'image_url',
-              image_url: {
-                url: `data:${filePart.mediaType};base64,${filePart.data}`,
-              },
-            });
-          }
-        } else if (
-          filePart.data instanceof Uint8Array ||
-          filePart.data instanceof ArrayBuffer
-        ) {
-          const bytes =
-            filePart.data instanceof ArrayBuffer
-              ? new Uint8Array(filePart.data)
-              : filePart.data;
-          const base64 = btoa(String.fromCharCode(...bytes));
-          contentBlocks.push({
-            type: 'image_url',
-            image_url: { url: `data:${filePart.mediaType};base64,${base64}` },
-          });
-        }
+        contentBlocks.push(
+          convertImageToContentBlock(filePart.data, filePart.mediaType),
+        );
       } else {
         // Handle non-image files using LangChain's ContentBlock format
         const filename =
@@ -362,7 +376,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
     });
   }
 
-  return new HumanMessage({ content: contentBlocks });
+  return new HumanMessage({ contentBlocks });
 }
 
 /**
@@ -1152,6 +1166,106 @@ function getOrCreateToolCallInfoByIndex(
 }
 
 /**
+ * Normalizes legacy tuples without a namespace and explicit empty root
+ * namespaces to the same key.
+ */
+function getLangGraphNamespaceKey(namespace: string[] | undefined): string {
+  return JSON.stringify(namespace ?? []);
+}
+
+function getOrCreateNamespaceSet(
+  setsByNamespace: Map<string, Set<string>>,
+  namespace: string,
+): Set<string> {
+  let values = setsByNamespace.get(namespace);
+  if (!values) {
+    values = new Set();
+    setsByNamespace.set(namespace, values);
+  }
+  return values;
+}
+
+function hasEmittedToolCallInCurrentStep(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): boolean {
+  return !state.currentStepsByNamespace.has(namespace)
+    ? state.emittedToolCalls.has(toolCallId)
+    : state.emittedToolCallsInCurrentStepByNamespace
+        .get(namespace)
+        ?.has(toolCallId) === true;
+}
+
+function markToolCallEmitted(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): void {
+  state.emittedToolCalls.add(toolCallId);
+  if (state.currentStepsByNamespace.has(namespace)) {
+    getOrCreateNamespaceSet(
+      state.emittedToolCallsInCurrentStepByNamespace,
+      namespace,
+    ).add(toolCallId);
+  }
+}
+
+function findMessageCurrentStepNamespace(
+  state: LangGraphEventState,
+  messageId: string,
+): string | undefined {
+  for (const [
+    namespace,
+    messageIds,
+  ] of state.messageIdsInCurrentStepByNamespace) {
+    if (messageIds.has(messageId)) {
+      return namespace;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Ends and clears message state for an advancing namespace. Returns whether
+ * another namespace still has active text or reasoning that would be
+ * invalidated by a global finish-step chunk.
+ */
+function closeStepNamespaceMessages(
+  state: LangGraphEventState,
+  stepNamespace: string,
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): boolean {
+  let hasConcurrentMessageParts = false;
+
+  for (const [id, seen] of state.messageSeen) {
+    const messageNamespace = getLangGraphNamespaceKey(
+      state.messageNamespaces.get(id),
+    );
+
+    if (messageNamespace !== stepNamespace) {
+      if (seen.text || seen.reasoning) {
+        hasConcurrentMessageParts = true;
+      }
+      continue;
+    }
+
+    if (seen.text) {
+      controller.enqueue({ type: 'text-end', id });
+    }
+    if (seen.reasoning) {
+      controller.enqueue({ type: 'reasoning-end', id });
+    }
+    state.messageSeen.delete(id);
+    state.messageNamespaces.delete(id);
+    state.messageConcat.delete(id);
+    state.messageReasoningIds.delete(id);
+  }
+
+  return hasConcurrentMessageParts;
+}
+
+/**
  * Processes a LangGraph event and emits UI message chunks.
  *
  * @param event - The event to process.
@@ -1173,7 +1287,14 @@ export function processLangGraphEvent(
     toolCallInfoByIndex,
     emittedToolCallsByKey,
   } = state;
-  const [type, data] = parseLangGraphEvent(event);
+  const [rawNamespace, type, data] = parseLangGraphEvent(event);
+  const namespace =
+    Array.isArray(rawNamespace) &&
+    rawNamespace.every(segment => typeof segment === 'string')
+      ? rawNamespace
+      : undefined;
+  const eventNamespace = getLangGraphNamespaceKey(namespace);
+  controller = createLangGraphNamespaceController(controller, state, namespace);
 
   switch (type) {
     case 'custom': {
@@ -1221,33 +1342,70 @@ export function processLangGraphEvent(
 
       if (!msgId) return;
 
+      if (namespace !== undefined) {
+        state.messageNamespaces.set(msgId, namespace);
+      }
+
       /**
-       * Track LangGraph step changes and emit start-step/finish-step events.
-       * Before emitting finish-step, close any open text/reasoning parts so
-       * the client does not receive orphaned deltas after its
-       * activeReasoningParts / activeTextParts have been cleared.
+       * Each namespace has an independent LangGraph step counter. Advancing a
+       * namespace starts a new reducer scope so provider-scoped tool call IDs
+       * can be reused in that namespace. A finish-step chunk clears every
+       * active UI text/reasoning part, so omit it when another namespace is
+       * still active.
        */
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
           ? metadata.langgraph_step
           : null;
-      if (langgraphStep !== null && langgraphStep !== state.currentStep) {
-        if (state.currentStep !== null) {
-          for (const [id, seen] of messageSeen) {
-            if (seen.text) {
-              controller.enqueue({ type: 'text-end', id });
-            }
-            if (seen.reasoning) {
-              controller.enqueue({ type: 'reasoning-end', id });
-            }
-            messageSeen.delete(id);
-            messageConcat.delete(id);
-            messageReasoningIds.delete(id);
+      if (langgraphStep !== null) {
+        const currentStep =
+          state.currentStepsByNamespace.get(eventNamespace) ?? null;
+        if (currentStep === null) {
+          if (state.currentStepsByNamespace.size === 0) {
+            controller.enqueue({ type: 'start-step' });
           }
-          controller.enqueue({ type: 'finish-step' });
+          state.currentStepsByNamespace.set(eventNamespace, langgraphStep);
+          state.messageIdsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+          state.emittedToolCallsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+        } else if (langgraphStep !== currentStep) {
+          const hasConcurrentMessageParts = closeStepNamespaceMessages(
+            state,
+            eventNamespace,
+            controller,
+          );
+          if (!hasConcurrentMessageParts) {
+            controller.enqueue({ type: 'finish-step' });
+          }
+
+          /**
+           * A concurrent namespace prevents finish-step because it would close
+           * that namespace's active text/reasoning parts. Still emit start-step
+           * so tool calls in the advancing namespace have a distinct reducer
+           * scope while the concurrent message lifecycle remains active.
+           */
+          controller.enqueue({ type: 'start-step' });
+          state.currentStepsByNamespace.set(eventNamespace, langgraphStep);
+          state.messageIdsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+          state.emittedToolCallsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
         }
-        controller.enqueue({ type: 'start-step' });
-        state.currentStep = langgraphStep;
+      }
+      if (state.currentStepsByNamespace.has(eventNamespace)) {
+        getOrCreateNamespaceSet(
+          state.messageIdsInCurrentStepByNamespace,
+          eventNamespace,
+        ).add(msgId);
       }
 
       /**
@@ -1371,8 +1529,14 @@ export function processLangGraphEvent(
               updatedSeen.tool ??= new Set();
               updatedSeen.tool.add(toolCallId);
 
-              if (!emittedToolCalls.has(toolCallId)) {
-                emittedToolCalls.add(toolCallId);
+              if (
+                !hasEmittedToolCallInCurrentStep(
+                  state,
+                  toolCallId,
+                  eventNamespace,
+                )
+              ) {
+                markToolCallEmitted(state, toolCallId, eventNamespace);
                 controller.enqueue({
                   type: 'tool-input-start',
                   toolCallId: toolCallId,
@@ -1446,6 +1610,11 @@ export function processLangGraphEvent(
         const text = getMessageText(msg);
         if (text) {
           const seen = messageSeen.get(msgId);
+          if (seen?.reasoning && !seen.text) {
+            controller.enqueue({ type: 'reasoning-end', id: msgId });
+            seen.reasoning = false;
+          }
+
           if (!seen?.text) {
             controller.enqueue({ type: 'text-start', id: msgId });
             getOrCreateMessageSeen(messageSeen, msgId).text = true;
@@ -1510,6 +1679,9 @@ export function processLangGraphEvent(
        * Finalize all pending message chunks
        */
       for (const [id, seen] of messageSeen) {
+        const messageNamespace = getLangGraphNamespaceKey(
+          state.messageNamespaces.get(id),
+        );
         if (seen.text) controller.enqueue({ type: 'text-end', id });
         if (seen.tool) {
           for (const toolCallId of seen.tool) {
@@ -1519,7 +1691,7 @@ export function processLangGraphEvent(
             );
 
             if (toolCall) {
-              emittedToolCalls.add(toolCallId);
+              markToolCallEmitted(state, toolCallId, messageNamespace);
               // Store mapping for HITL interrupt lookup
               const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
               emittedToolCallsByKey.set(toolCallKey, toolCallId);
@@ -1539,6 +1711,7 @@ export function processLangGraphEvent(
         }
 
         messageSeen.delete(id);
+        state.messageNamespaces.delete(id);
         messageConcat.delete(id);
         messageReasoningIds.delete(id);
       }
@@ -1665,18 +1838,30 @@ export function processLangGraphEvent(
 
             if (toolCalls && toolCalls.length > 0) {
               for (const toolCall of toolCalls) {
+                const messageNamespace = findMessageCurrentStepNamespace(
+                  state,
+                  msgId,
+                );
+                const lifecycleNamespace = messageNamespace ?? eventNamespace;
+                const wasObservedInCurrentStep = messageNamespace !== undefined;
                 /**
-                 * Only emit if we haven't already processed this tool call
-                 * AND if it's not a historical tool call that already has a ToolMessage response.
-                 * Historical completed tool calls should not be re-emitted as this would create
-                 * orphaned tool parts in the UI without corresponding outputs.
+                 * Emit tool calls recovered from a message in the current step,
+                 * even when a prior step used the same provider-scoped ID.
+                 * Otherwise, preserve stream-wide suppression for historical
+                 * completed calls and values-only streams without step metadata.
                  */
                 if (
                   toolCall.id &&
-                  !emittedToolCalls.has(toolCall.id) &&
-                  !completedToolCallIds.has(toolCall.id)
+                  !hasEmittedToolCallInCurrentStep(
+                    state,
+                    toolCall.id,
+                    lifecycleNamespace,
+                  ) &&
+                  (wasObservedInCurrentStep ||
+                    (!emittedToolCalls.has(toolCall.id) &&
+                      !completedToolCallIds.has(toolCall.id)))
                 ) {
-                  emittedToolCalls.add(toolCall.id);
+                  markToolCallEmitted(state, toolCall.id, lifecycleNamespace);
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
@@ -1816,7 +2001,7 @@ export function processLangGraphEvent(
                * so the UI knows what tool is being called with proper lifecycle
                */
               if (!emittedToolCalls.has(toolCallId)) {
-                emittedToolCalls.add(toolCallId);
+                markToolCallEmitted(state, toolCallId, eventNamespace);
                 emittedToolCallsByKey.set(toolCallKey, toolCallId);
                 controller.enqueue({
                   type: 'tool-input-start',

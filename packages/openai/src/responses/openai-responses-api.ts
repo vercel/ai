@@ -337,6 +337,21 @@ export type OpenAIResponsesFunctionTool = {
   defer_loading?: boolean;
 };
 
+/**
+ * Entry in `tool_choice.allowed_tools.tools`. OpenAI identifies most built-in
+ * tools by type alone; only `function`, `custom` and `mcp` carry an identifier.
+ */
+export type OpenAIResponsesAllowedTool =
+  | { type: 'function'; name: string }
+  | { type: 'custom'; name: string }
+  | { type: 'mcp'; server_label: string }
+  | {
+      type: Exclude<
+        OpenAIResponsesTool['type'],
+        'function' | 'custom' | 'mcp' | 'namespace' | 'tool_search'
+      >;
+    };
+
 export type OpenAIResponsesTool =
   | OpenAIResponsesFunctionTool
   | {
@@ -351,7 +366,12 @@ export type OpenAIResponsesTool =
   | {
       type: 'web_search';
       external_web_access: boolean | undefined;
-      filters: { allowed_domains: string[] | undefined } | undefined;
+      filters:
+        | {
+            allowed_domains: string[] | undefined;
+            blocked_domains: string[] | undefined;
+          }
+        | undefined;
       search_context_size: 'low' | 'medium' | 'high' | undefined;
       user_location:
         | {

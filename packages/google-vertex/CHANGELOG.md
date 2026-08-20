@@ -1,5 +1,228 @@
 # @ai-sdk/google-vertex
 
+## 4.0.185
+
+### Patch Changes
+
+- Updated dependencies [c715588]
+  - @ai-sdk/google@3.0.111
+
+## 4.0.184
+
+### Patch Changes
+
+- Updated dependencies [7440d89]
+  - @ai-sdk/openai-compatible@2.0.69
+
+## 4.0.183
+
+### Patch Changes
+
+- Updated dependencies [8533108]
+- Updated dependencies [31205a4]
+  - @ai-sdk/anthropic@3.0.111
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/google@3.0.110
+  - @ai-sdk/openai-compatible@2.0.68
+
+## 4.0.182
+
+### Patch Changes
+
+- 71e94ad: feat(google): add `gemini-3.7-flash` model
+- Updated dependencies [71e94ad]
+  - @ai-sdk/google@3.0.109
+
+## 4.0.181
+
+### Patch Changes
+
+- Updated dependencies [dd7ecd7]
+  - @ai-sdk/google@3.0.108
+
+## 4.0.180
+
+### Patch Changes
+
+- Updated dependencies [c29b64f]
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/google@3.0.107
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/anthropic@3.0.110
+  - @ai-sdk/openai-compatible@2.0.67
+
+## 4.0.179
+
+### Patch Changes
+
+- Updated dependencies [de18066]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai-compatible@2.0.66
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/anthropic@3.0.109
+  - @ai-sdk/google@3.0.106
+  - @ai-sdk/provider-utils@4.0.44
+
+## 4.0.178
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/anthropic@3.0.108
+  - @ai-sdk/google@3.0.105
+  - @ai-sdk/openai-compatible@2.0.65
+
+## 4.0.177
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+  - @ai-sdk/anthropic@3.0.107
+  - @ai-sdk/google@3.0.104
+  - @ai-sdk/openai-compatible@2.0.64
+
+## 4.0.176
+
+### Patch Changes
+
+- Updated dependencies [b74e654]
+  - @ai-sdk/anthropic@3.0.106
+
+## 4.0.175
+
+### Patch Changes
+
+- Updated dependencies [0a295e3]
+  - @ai-sdk/anthropic@3.0.105
+
+## 4.0.174
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+  - @ai-sdk/anthropic@3.0.104
+  - @ai-sdk/google@3.0.103
+  - @ai-sdk/openai-compatible@2.0.63
+
+## 4.0.173
+
+### Patch Changes
+
+- Updated dependencies [e728a98]
+  - @ai-sdk/google@3.0.102
+
+## 4.0.172
+
+### Patch Changes
+
+- Updated dependencies [7865a71]
+  - @ai-sdk/anthropic@3.0.103
+
+## 4.0.171
+
+### Patch Changes
+
+- Updated dependencies [326887b]
+  - @ai-sdk/google@3.0.101
+
+## 4.0.170
+
+### Patch Changes
+
+- Updated dependencies [b4c4426]
+- Updated dependencies [b4c4426]
+- Updated dependencies [b4c4426]
+  - @ai-sdk/anthropic@3.0.102
+
+## 4.0.169
+
+### Patch Changes
+
+- dae771a: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+- Updated dependencies [dae771a]
+- Updated dependencies [0608dca]
+  - @ai-sdk/google@3.0.100
+  - @ai-sdk/anthropic@3.0.101
+
+## 4.0.168
+
+### Patch Changes
+
+- Updated dependencies [2886d22]
+- Updated dependencies [b7afc80]
+  - @ai-sdk/google@3.0.99
+  - @ai-sdk/anthropic@3.0.100
+
+## 4.0.167
+
+### Patch Changes
+
+- a09f944: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+- Updated dependencies [a09f944]
+  - @ai-sdk/google@3.0.98
+
+## 4.0.166
+
+### Patch Changes
+
+- Updated dependencies [db8cff6]
+- Updated dependencies [a6cb3c1]
+- Updated dependencies [94d0f86]
+  - @ai-sdk/anthropic@3.0.99
+  - @ai-sdk/google@3.0.97
+
+## 4.0.165
+
+### Patch Changes
+
+- Updated dependencies [0d51472]
+  - @ai-sdk/google@3.0.96
+
+## 4.0.164
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+- Updated dependencies [10366a2]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/anthropic@3.0.98
+  - @ai-sdk/google@3.0.95
+  - @ai-sdk/openai-compatible@2.0.62
+
+## 4.0.163
+
+### Patch Changes
+
+- Updated dependencies [020836c]
+  - @ai-sdk/google@3.0.94
+
+## 4.0.162
+
+### Patch Changes
+
+- Updated dependencies [94fda5c]
+  - @ai-sdk/openai-compatible@2.0.61
+
+## 4.0.161
+
+### Patch Changes
+
+- Updated dependencies [cfba690]
+  - @ai-sdk/google@3.0.93
+
+## 4.0.160
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/anthropic@3.0.97
+  - @ai-sdk/google@3.0.92
+  - @ai-sdk/openai-compatible@2.0.60
+
 ## 4.0.159
 
 ### Patch Changes

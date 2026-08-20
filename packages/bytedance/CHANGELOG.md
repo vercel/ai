@@ -1,5 +1,62 @@
 # @ai-sdk/bytedance
 
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 1.0.34
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 1.0.32
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+
+## 1.0.29
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 1.0.27
 
 ### Patch Changes

@@ -1,5 +1,97 @@
 # @ai-sdk/fireworks
 
+## 2.0.79
+
+### Patch Changes
+
+- ebdcd9c: fix(fireworks): enable structured outputs so response_format json_schema is forwarded instead of degrading to json_object
+
+## 2.0.78
+
+### Patch Changes
+
+- Updated dependencies [7440d89]
+  - @ai-sdk/openai-compatible@2.0.69
+
+## 2.0.77
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/openai-compatible@2.0.68
+
+## 2.0.76
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/openai-compatible@2.0.67
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [de18066]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai-compatible@2.0.66
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 2.0.74
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/openai-compatible@2.0.65
+
+## 2.0.73
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+  - @ai-sdk/openai-compatible@2.0.64
+
+## 2.0.72
+
+### Patch Changes
+
+- 422dc4f: Parse the object error envelope Fireworks actually returns (`{"error":{"object","type","code","message"}}`) instead of a bare string. The mismatched schema failed to parse, so error messages silently degraded to the HTTP reason phrase — `Bad Request` over HTTP/1.1, and an empty string over HTTP/2, which has no reason phrase. Fireworks' own message now reaches the caller, e.g. `Model not found, inaccessible, and/or not deployed` rather than `Not Found`.
+
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+  - @ai-sdk/openai-compatible@2.0.63
+
+## 2.0.70
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/openai-compatible@2.0.62
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [94fda5c]
+  - @ai-sdk/openai-compatible@2.0.61
+
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/openai-compatible@2.0.60
+
 ## 2.0.67
 
 ### Patch Changes

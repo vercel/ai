@@ -48,18 +48,34 @@ vi.mock('@ai-sdk/provider-utils', async () => {
   };
 });
 
-vi.mock('@basetenlabs/performance-client', () => ({
-  PerformanceClient: vi.fn(function () {
-    return {
-      embed: vi.fn(),
-      embedBatch: vi.fn(),
-    };
-  }),
-}));
-
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
+
+/**
+ * Stands in for `@basetenlabs/performance-client`'s `PerformanceClient`. The
+ * provider takes the constructor as an option, so tests inject a fake rather
+ * than mocking the native module — nothing here loads a `.node` binary, which
+ * is what lets these run under the edge environment too.
+ */
+function createFakePerformanceClient(
+  embedResponse: unknown = {
+    data: [{ embedding: [0.1, 0.2] }],
+    usage: { total_tokens: 7 },
+  },
+) {
+  const embed = vi.fn().mockResolvedValue(embedResponse);
+  const constructorCalls: Array<[string, string | undefined]> = [];
+  const FakePerformanceClient = vi.fn().mockImplementation(function (
+    this: any,
+    baseUrl: string,
+    apiKey?: string,
+  ) {
+    constructorCalls.push([baseUrl, apiKey]);
+    this.embed = embed;
+  });
+  return { FakePerformanceClient, embed, constructorCalls };
+}
 
 describe('BasetenProvider', () => {
   beforeEach(() => {
@@ -135,6 +151,102 @@ describe('BasetenProvider', () => {
           errorStructure: expect.any(Object),
         }),
       );
+    });
+
+    // An OpenAI-compatible server omits usage from streamed responses unless
+    // `stream_options.include_usage` is set, which is what `includeUsage`
+    // controls. Non-streaming responses carry usage regardless, so a miss here
+    // only shows up on streams.
+    describe('includeUsage', () => {
+      it('should be set for the default Model APIs path', () => {
+        createBaseten().chatModel('deepseek-ai/DeepSeek-V3-0324');
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.includeUsage).toBe(true);
+      });
+
+      it('should be set for a dedicated /sync/v1 deployment', () => {
+        createBaseten({
+          modelURL:
+            'https://model-123.api.baseten.co/environments/production/sync/v1',
+        }).chatModel();
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.includeUsage).toBe(true);
+      });
+    });
+
+    // Baseten sends a bare string from the Model APIs but lets dedicated
+    // deployments pass through their server's OpenAI-shaped object, so the
+    // schema has to accept both. A failed parse degrades the message to the
+    // HTTP reason phrase — "Not Found" over HTTP/1.1, "" over HTTP/2.
+    describe('errorStructure', () => {
+      const getErrorStructure = () => {
+        createBaseten().chatModel('test-model');
+        return OpenAICompatibleChatLanguageModelMock.mock.calls[0][1]
+          .errorStructure;
+      };
+
+      it('should parse the string envelope the Model APIs return', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: 'please check the model you provided',
+        });
+
+        expect(errorToMessage(parsed)).toBe(
+          'please check the model you provided',
+        );
+      });
+
+      it('should parse the object envelope a dedicated deployment returns', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: {
+            code: 404,
+            message: 'The model `not-a-real-model` does not exist.',
+            param: 'model',
+            type: 'NotFoundError',
+          },
+        });
+
+        expect(errorToMessage(parsed)).toBe(
+          'The model `not-a-real-model` does not exist.',
+        );
+      });
+
+      it('should parse an error object with a null param and string code', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: {
+            message: 'Invalid value for `temperature`.',
+            param: null,
+            code: 'invalid_request_error',
+            type: 'BadRequestError',
+          },
+        });
+
+        expect(errorToMessage(parsed)).toBe('Invalid value for `temperature`.');
+      });
+
+      it('should ignore unknown keys alongside the error', () => {
+        const { errorSchema, errorToMessage } = getErrorStructure();
+
+        const parsed = errorSchema.parse({
+          error: { message: 'Model not found' },
+          request_id: 'chatcmpl-abc123',
+        });
+
+        expect(errorToMessage(parsed)).toBe('Model not found');
+      });
+
+      it('should reject an error object without a message', () => {
+        const { errorSchema } = getErrorStructure();
+
+        expect(() => errorSchema.parse({ error: { code: 404 } })).toThrow();
+      });
     });
 
     it('should construct a chat model with optional modelId', () => {
@@ -297,6 +409,126 @@ describe('BasetenProvider', () => {
         'embeddings',
         expect.any(Object),
       );
+    });
+
+    // BEI embedding deployments are OpenAI-compatible, so plain HTTP is the
+    // default and the native performance client is opt-in.
+    describe('default (plain HTTP) path', () => {
+      const MODEL_URL =
+        'https://model-123.api.baseten.co/environments/production/sync';
+
+      it('should not replace doEmbed when no performanceClient is given', () => {
+        const provider = createBaseten({ modelURL: MODEL_URL });
+
+        const model = provider.embeddingModel() as any;
+
+        // The mocked base class installs doEmbed as a vi.fn(); an override
+        // would have replaced it with a plain async function.
+        expect(vi.isMockFunction(model.doEmbed)).toBe(true);
+      });
+
+      it('should cap embeddings per call at 128 so embedMany splits larger inputs', () => {
+        const provider = createBaseten({ modelURL: MODEL_URL });
+
+        provider.embeddingModel();
+
+        const config = OpenAICompatibleEmbeddingModelMock.mock.calls[0][1];
+        expect(config.maxEmbeddingsPerCall).toBe(128);
+      });
+    });
+
+    describe('opt-in performance client path', () => {
+      const MODEL_URL =
+        'https://model-123.api.baseten.co/environments/production/sync';
+
+      it('should construct the injected client with the /sync URL and api key', () => {
+        const { FakePerformanceClient, constructorCalls } =
+          createFakePerformanceClient();
+        const provider = createBaseten({
+          modelURL: MODEL_URL,
+          performanceClient: FakePerformanceClient,
+        });
+
+        provider.embeddingModel();
+
+        expect(constructorCalls).toEqual([[MODEL_URL, 'mock-api-key']]);
+      });
+
+      it('should strip /v1 from a /sync/v1 modelURL, since the client adds it back', () => {
+        const { FakePerformanceClient, constructorCalls } =
+          createFakePerformanceClient();
+        const provider = createBaseten({
+          modelURL: `${MODEL_URL}/v1`,
+          performanceClient: FakePerformanceClient,
+        });
+
+        provider.embeddingModel();
+
+        expect(constructorCalls[0][0]).toBe(MODEL_URL);
+      });
+
+      it('should let the client batch everything, rather than capping at 128', () => {
+        const { FakePerformanceClient } = createFakePerformanceClient();
+        const provider = createBaseten({
+          modelURL: MODEL_URL,
+          performanceClient: FakePerformanceClient,
+        });
+
+        provider.embeddingModel();
+
+        const config = OpenAICompatibleEmbeddingModelMock.mock.calls[0][1];
+        expect(config.maxEmbeddingsPerCall).toBe(Number.POSITIVE_INFINITY);
+      });
+
+      it('should route doEmbed through the client and map its response', async () => {
+        const { FakePerformanceClient, embed } = createFakePerformanceClient({
+          data: [{ embedding: [0.1, 0.2] }, { embedding: [0.3, 0.4] }],
+          usage: { total_tokens: 11 },
+        });
+        const provider = createBaseten({
+          modelURL: MODEL_URL,
+          performanceClient: FakePerformanceClient,
+        });
+
+        const model = provider.embeddingModel() as any;
+        const result = await model.doEmbed({ values: ['a', 'b'] });
+
+        expect(embed).toHaveBeenCalledWith(['a', 'b'], 'embeddings');
+        expect(result.embeddings).toEqual([
+          [0.1, 0.2],
+          [0.3, 0.4],
+        ]);
+        expect(result.usage).toEqual({ tokens: 11 });
+      });
+
+      it('should omit usage when the client reports no token count', async () => {
+        const { FakePerformanceClient } = createFakePerformanceClient({
+          data: [{ embedding: [0.1] }],
+        });
+        const provider = createBaseten({
+          modelURL: MODEL_URL,
+          performanceClient: FakePerformanceClient,
+        });
+
+        const model = provider.embeddingModel() as any;
+        const result = await model.doEmbed({ values: ['a'] });
+
+        expect(result.usage).toBeUndefined();
+      });
+
+      it('should reject a non-array values argument', async () => {
+        const { FakePerformanceClient } = createFakePerformanceClient();
+        const provider = createBaseten({
+          modelURL: MODEL_URL,
+          performanceClient: FakePerformanceClient,
+        });
+
+        const model = provider.embeddingModel() as any;
+
+        await expect(model.doEmbed({ values: 'not-an-array' })).rejects.toThrow(
+          'params.values must be an array of strings',
+        );
+      });
     });
   });
 

@@ -1,5 +1,303 @@
 # ai
 
+## 6.0.261
+
+### Patch Changes
+
+- f1afbf9: Fix array-backed language model mocks to return configured results in order from the first call.
+
+## 6.0.260
+
+### Patch Changes
+
+- 98c656f: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- b253d52: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- 9e15cb4: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+
+## 6.0.259
+
+### Patch Changes
+
+- Updated dependencies [def7999]
+  - @ai-sdk/gateway@3.0.177
+
+## 6.0.258
+
+### Patch Changes
+
+- Updated dependencies [96304fc]
+  - @ai-sdk/gateway@3.0.176
+
+## 6.0.257
+
+### Patch Changes
+
+- Updated dependencies [000b243]
+  - @ai-sdk/gateway@3.0.175
+
+## 6.0.256
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/gateway@3.0.174
+
+## 6.0.255
+
+### Patch Changes
+
+- 35a94b0: Keep chat status submitted until response content begins streaming.
+- 93d24c6: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 1bd1caf: Fix declaration emit for exported values that infer an `Output` type.
+
+## 6.0.254
+
+### Patch Changes
+
+- Updated dependencies [71e94ad]
+  - @ai-sdk/gateway@3.0.173
+
+## 6.0.253
+
+### Patch Changes
+
+- d91d30b: Preserve reasoning block IDs from UI message streams on reasoning UI parts.
+- Updated dependencies [0ec239b]
+  - @ai-sdk/gateway@3.0.172
+
+## 6.0.252
+
+### Patch Changes
+
+- 2f96d3f: Allow providers without reranking model support to satisfy the `Provider` type.
+- afb1965: Propagate errors thrown by the Chat `onFinish` callback to the initiating request.
+- Updated dependencies [18b0965]
+- Updated dependencies [451d2c3]
+  - @ai-sdk/gateway@3.0.171
+
+## 6.0.251
+
+### Patch Changes
+
+- d13c2e9: Respect ToolLoopAgent timeouts configured in agent settings.
+
+## 6.0.250
+
+### Patch Changes
+
+- a077695: Prevent streaming telemetry spans from ending twice when model calls fail.
+- 7ce3b8c: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/gateway@3.0.170
+
+## 6.0.249
+
+### Patch Changes
+
+- a774b7b: Stop pending and active resumed chat streams after cancellation, and prevent
+  overlapping resumptions from applying stale updates.
+- Updated dependencies [b39f987]
+- Updated dependencies [d79117b]
+  - @ai-sdk/gateway@3.0.169
+
+## 6.0.248
+
+### Patch Changes
+
+- 2171d15: feat(video): allow `aspectRatio: 'adaptive'` on `generateVideo`
+
+  Some video models derive the output ratio from the input and reject explicit
+  `{width}:{height}` values — BytePlus Seedance 2.5 does this for first-frame,
+  first-and-last-frame, editing, and extension tasks. `aspectRatio` on
+  `VideoModelV3CallOptions`, and
+  `experimental_generateVideo` is now `` `${number}:${number}` | 'adaptive' ``, so
+  those calls no longer need a type assertion. Support is provider-specific.
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/gateway@3.0.168
+  - @ai-sdk/provider-utils@4.0.44
+
+## 6.0.247
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/gateway@3.0.167
+
+## 6.0.246
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+  - @ai-sdk/gateway@3.0.166
+
+## 6.0.245
+
+### Patch Changes
+
+- 0de0715: Filter unresolved tool approval requests and tool parts without state when ignoring incomplete tool calls.
+
+## 6.0.244
+
+### Patch Changes
+
+- 79e58aa: Preserve preceding assistant messages when regenerating a response.
+
+## 6.0.243
+
+### Patch Changes
+
+- dd5d344: Skip re-validating tool input for terminal output-available UI message parts.
+- Updated dependencies [0cd92fa]
+  - @ai-sdk/gateway@3.0.165
+
+## 6.0.242
+
+### Patch Changes
+
+- Updated dependencies [f615718]
+- Updated dependencies [48d5dff]
+  - @ai-sdk/gateway@3.0.164
+
+## 6.0.241
+
+### Patch Changes
+
+- Updated dependencies [7e50c52]
+  - @ai-sdk/gateway@3.0.163
+
+## 6.0.240
+
+### Patch Changes
+
+- Updated dependencies [b28367e]
+  - @ai-sdk/gateway@3.0.162
+
+## 6.0.239
+
+### Patch Changes
+
+- Updated dependencies [d3d9e0b]
+  - @ai-sdk/gateway@3.0.161
+
+## 6.0.238
+
+### Patch Changes
+
+- 9ecdefe: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 26d10c0: support overriding model call settings for individual `prepareStep` invocations
+- 7767170: Preserve provider metadata from empty text deltas in `streamText`.
+- Updated dependencies [9ecdefe]
+- Updated dependencies [87fb433]
+  - @ai-sdk/provider-utils@4.0.41
+  - @ai-sdk/gateway@3.0.160
+
+## 6.0.237
+
+### Patch Changes
+
+- f6020d7: Avoid synthesizing client tool errors for invalid provider-executed tool calls.
+- Updated dependencies [de438f5]
+  - @ai-sdk/gateway@3.0.159
+
+## 6.0.236
+
+### Patch Changes
+
+- Updated dependencies [8418710]
+  - @ai-sdk/gateway@3.0.158
+
+## 6.0.235
+
+### Patch Changes
+
+- Updated dependencies [5d7b986]
+  - @ai-sdk/gateway@3.0.157
+
+## 6.0.234
+
+### Patch Changes
+
+- 1efdef8: fix(ai): bound media-type sniffing decode for ID3-prefixed input
+
+  Media-type detection stripped ID3 tags before the ~18-byte prefix cap, decoding the entire base64 attachment (plus a full-size copy) whenever the data began with `ID3`/`SUQz`. This turned the intended O(1) sniff into an O(N) decode of the whole attachment. Detection now decodes at most a bounded prefix and skips the ID3 tag within that bound, keeping cost O(1) in input size on all paths (image, audio, and combined).
+
+- 49414cf: Return response piping promises so callers can catch stream read and write errors.
+- Updated dependencies [e7d064f]
+  - @ai-sdk/gateway@3.0.156
+
+## 6.0.233
+
+### Patch Changes
+
+- fe410e7: fix: detect MP4 audio from its ftyp box during transcription
+- af7188c: fix(ai): preserve tool parts when tool call IDs repeat across steps
+- Updated dependencies [a09f944]
+  - @ai-sdk/gateway@3.0.155
+
+## 6.0.232
+
+### Patch Changes
+
+- 7644a61: Preserve provider options when combining consecutive tool messages.
+
+## 6.0.231
+
+### Patch Changes
+
+- 926f5a0: Allow UI message chunks to include fields added by newer server versions.
+- 4c5a22f: Propagate abort reasons when generation is cancelled during tool execution.
+- 842a383: Prevent tools excluded by `activeTools` from being parsed or executed.
+- Updated dependencies [2dd1aab]
+- Updated dependencies [e567091]
+  - @ai-sdk/gateway@3.0.154
+
+## 6.0.230
+
+### Patch Changes
+
+- 19093fd: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/gateway@3.0.153
+
+## 6.0.229
+
+### Patch Changes
+
+- Updated dependencies [49a3098]
+  - @ai-sdk/gateway@3.0.152
+
+## 6.0.228
+
+### Patch Changes
+
+- Updated dependencies [5e624ac]
+  - @ai-sdk/gateway@3.0.151
+
+## 6.0.227
+
+### Patch Changes
+
+- 6ace546: Fix chat `onFinish` handling when overlapping requests clear the active response before a resume stream finishes.
+
+## 6.0.226
+
+### Patch Changes
+
+- 94219a2: Allow validating assistant UI messages with empty parts so persisted errored responses remain loadable.
+- b1be847: Prevent pending tool executions from enqueueing results after a model stream error closes the result stream.
+- Updated dependencies [06fb54c]
+- Updated dependencies [bc46977]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/gateway@3.0.150
+
 ## 6.0.225
 
 ### Patch Changes

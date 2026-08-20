@@ -1,7 +1,32 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { XaiVideoModel } from './xai-video-model';
+
+// `json-value` forces status 200, so a 202 with a body must go through `error`.
+function pending202(body: unknown) {
+  return { type: 'error' as const, status: 202, body: JSON.stringify(body) };
+}
+
+// Tees the body and keeps the sibling alive, as `Response.clone()` does inside
+// fetch instrumentation. Explicit so the guard does not rely on msw internals.
+function teeingFetch(): FetchFunction {
+  const siblings: ReadableStream[] = [];
+  return async (input, init) => {
+    const response = await globalThis.fetch(input as string, init);
+    if (!response.body) {
+      return response;
+    }
+    const [caller, sibling] = response.body.tee();
+    siblings.push(sibling);
+    return new Response(caller, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  };
+}
 
 const prompt = 'A chicken flying into the sunset';
 
@@ -45,14 +70,19 @@ const defaultOptions = {
 function createModel({
   headers,
   currentDate,
+  fetch,
+  modelId = 'grok-imagine-video',
 }: {
   headers?: () => Record<string, string>;
   currentDate?: () => Date;
+  fetch?: FetchFunction;
+  modelId?: string;
 } = {}) {
-  return new XaiVideoModel('grok-imagine-video', {
+  return new XaiVideoModel(modelId, {
     provider: 'xai.video',
     baseURL: TEST_BASE_URL,
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+    fetch,
     _internal: {
       currentDate,
     },
@@ -112,6 +142,102 @@ describe('XaiVideoModel', () => {
         model: 'grok-imagine-video',
         prompt,
       });
+    });
+
+    it('should pass user unchanged to the video generation endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            user: 'tenant/user:123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-video',
+        prompt,
+        user: 'tenant/user:123',
+      });
+    });
+
+    it('should omit user when it is not configured', async () => {
+      const model = createModel();
+
+      await model.doGenerate({ ...defaultOptions });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty('user');
+    });
+
+    it('should pass user unchanged to the video editing endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'edit-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+            user: 'tenant/user:123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-video',
+        prompt,
+        video: { url: 'https://example.com/source-video.mp4' },
+        user: 'tenant/user:123',
+      });
+    });
+
+    it('should not pass user to the video extension endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'extend-video',
+            videoUrl: 'https://example.com/source-video.mp4',
+            user: 'tenant/user:123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/extensions`,
+      );
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty('user');
+    });
+
+    it('should reject non-string user values', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              user: 123,
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
     });
 
     it('should poll the correct status URL', async () => {
@@ -180,12 +306,94 @@ describe('XaiVideoModel', () => {
       expect(body).toMatchObject({ resolution: '480p' });
     });
 
-    it('should warn for unrecognized resolution format', async () => {
+    it('should map SDK resolution 1920x1080 to 1080p', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doGenerate({ ...defaultOptions, resolution: '1920x1080' });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+    });
+
+    it('should pass through provider option resolution 1080p', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            resolution: '1080p',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+    });
+
+    it('should warn when SDK resolution 1920x1080 is used with grok-imagine-video', async () => {
       const model = createModel();
 
       const result = await model.doGenerate({
         ...defaultOptions,
         resolution: '1920x1080',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+          details: expect.stringContaining('does not support 1080p'),
+        }),
+      );
+    });
+
+    it('should warn when provider resolution 1080p is used with grok-imagine-video', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            resolution: '1080p',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '1080p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+          details: expect.stringContaining('does not support 1080p'),
+        }),
+      );
+    });
+
+    it('should not warn about 1080p with grok-imagine-video-1.5', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1920x1080',
+      });
+
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should warn for unrecognized resolution format', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '2560x1440',
       });
 
       expect(result.warnings).toContainEqual(
@@ -194,6 +402,15 @@ describe('XaiVideoModel', () => {
           feature: 'resolution',
         }),
       );
+    });
+
+    it('should send the grok-imagine-video-1.5 model id in the request body', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doGenerate({ ...defaultOptions });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ model: 'grok-imagine-video-1.5' });
     });
 
     it('should send image object from URL-based image input', async () => {
@@ -666,6 +883,50 @@ describe('XaiVideoModel', () => {
   });
 
   describe('error handling', () => {
+    it('should preserve unsuccessful polling status handling', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'error',
+        status: 500,
+        body: JSON.stringify({
+          code: 'status_error',
+          error: 'status endpoint failed',
+        }),
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({ ...defaultOptions }),
+      ).rejects.toMatchObject({
+        message: 'status_error: status endpoint failed',
+        statusCode: 500,
+      });
+
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should preserve malformed HTTP 200 completion handling', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'error',
+        status: 200,
+        body: '{',
+      };
+
+      const model = createModel();
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        'Invalid JSON response',
+      );
+
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
     it('should throw when status is expired', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
@@ -879,6 +1140,356 @@ describe('XaiVideoModel', () => {
           },
         }),
       ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('should downgrade R2V 1080p to 720p with a warning', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            resolution: '1080p',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '720p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should downgrade R2V 1920x1080 from the SDK resolution to 720p', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1920x1080',
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '720p' });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should warn and exclude an audio inputReference from reference_images', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: 'https://example.com/ref1.jpg' },
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+      });
+      expect(body.reference_images).toHaveLength(1);
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should drop audio-only inputReferences with a warning', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should not send an empty reference_images array for video-only inputReferences', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/clip.mp4',
+            mediaType: 'video/mp4',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_images');
+    });
+
+    it('should keep image-to-video mode when an audio reference is supplied', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/start.jpg',
+          mediaType: 'image/jpeg',
+        },
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        image: { url: 'https://example.com/start.jpg' },
+      });
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+    });
+
+    it('should send no reference_images for explicit R2V without image references', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/voice.mp3',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_images');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'inputReferences',
+        }),
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceImages',
+          details: expect.stringContaining('without reference images'),
+        }),
+      );
+    });
+
+    it('should send reference_audios for preset reference voices', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: ['eve'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+        reference_audios: [{ voice_id: 'eve' }],
+      });
+    });
+
+    it('should send up to 3 preset reference voices in order', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: ['eve', 'leo', 'rex'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_audios: [
+          { voice_id: 'eve' },
+          { voice_id: 'leo' },
+          { voice_id: 'rex' },
+        ],
+      });
+    });
+
+    it('should reject more than 3 preset reference voices', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              mode: 'reference-to-video',
+              referenceImageUrls: ['https://example.com/ref1.jpg'],
+              referenceVoiceIds: ['ara', 'eve', 'leo', 'rex'],
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('should reject empty-string preset reference voice ids', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              mode: 'reference-to-video',
+              referenceImageUrls: ['https://example.com/ref1.jpg'],
+              referenceVoiceIds: [''],
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('should omit reference_audios for an empty referenceVoiceIds array', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: [],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'referenceVoiceIds' }),
+      );
+    });
+
+    it('should warn and omit referenceVoiceIds outside reference-to-video', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceVoiceIds: ['eve'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reference_audios');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'referenceVoiceIds',
+        }),
+      );
+    });
+
+    it('should never forward referenceVoiceIds as a raw body key', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            mode: 'reference-to-video',
+            referenceImageUrls: ['https://example.com/ref1.jpg'],
+            referenceVoiceIds: ['eve'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('referenceVoiceIds');
     });
   });
 
@@ -1347,6 +1958,198 @@ describe('XaiVideoModel', () => {
   });
 
   describe('polling behaviour', () => {
+    it.each([
+      {
+        mode: 'generation',
+        providerOptions: {
+          xai: { pollIntervalMs: 10, pollTimeoutMs: 5000 },
+        },
+      },
+      {
+        mode: 'editing',
+        providerOptions: {
+          xai: {
+            mode: 'edit-video' as const,
+            videoUrl: 'https://example.com/input.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      },
+    ])(
+      'should treat an empty HTTP 202 as pending for $mode',
+      async ({ providerOptions }) => {
+        server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+          callNumber,
+        }) =>
+          callNumber === 1
+            ? { type: 'empty', status: 202 }
+            : { type: 'json-value', body: doneStatusResponse };
+
+        const model = createModel();
+        const result = await model.doGenerate({
+          ...defaultOptions,
+          providerOptions,
+        });
+
+        expect(result.videos[0]).toMatchInlineSnapshot(`
+          {
+            "mediaType": "video/mp4",
+            "type": "url",
+            "url": "https://vidgen.x.ai/output/video-001.mp4",
+          }
+        `);
+        expect(server.calls).toHaveLength(3);
+      },
+    );
+
+    it('should treat an HTTP 202 carrying a status payload as pending', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? pending202({ status: 'pending', progress: 42 })
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.videos[0]).toMatchInlineSnapshot(`
+        {
+          "mediaType": "video/mp4",
+          "type": "url",
+          "url": "https://vidgen.x.ai/output/video-001.mp4",
+        }
+      `);
+      expect(server.calls).toHaveLength(3);
+    });
+
+    it('should complete when an HTTP 202 body already carries the video', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response =
+        pending202(doneStatusResponse);
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.videos[0]).toMatchInlineSnapshot(`
+        {
+          "mediaType": "video/mp4",
+          "type": "url",
+          "url": "https://vidgen.x.ai/output/video-001.mp4",
+        }
+      `);
+      expect(server.calls).toHaveLength(2);
+    });
+
+    it('should treat an HTTP 202 with an unparseable body as pending', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? { type: 'error' as const, status: 202, body: 'not json' }
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.videos[0]?.type).toBe('url');
+      expect(server.calls).toHaveLength(3);
+    });
+
+    // Body must be non-empty: an empty 202 has no stream to tee.
+    it('should keep polling past a 202 when the caller fetch tees the response body', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? pending202({ status: 'pending', progress: 10 })
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel({ fetch: teeingFetch() });
+
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.videos[0]?.type).toBe('url');
+    });
+
+    it('should reject an oversized HTTP 202 body without hanging', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) =>
+        callNumber === 1
+          ? pending202({ padding: 'x'.repeat(2 * 1024 * 1024) })
+          : { type: 'json-value', body: doneStatusResponse };
+
+      const model = createModel({ fetch: teeingFetch() });
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        /exceeded/,
+      );
+    });
+
+    it('should honor abort while reading an unfinished HTTP 202 body', async () => {
+      const abortController = new AbortController();
+      // A 202 whose body never finishes. Errors the stream on abort, as fetch
+      // implementations do for an aborted request body.
+      const unfinished202: FetchFunction = async (input, init) => {
+        if (!(input as string).includes('/videos/req-123')) {
+          return globalThis.fetch(input as string, init);
+        }
+        const body = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('{"status":'));
+            init?.signal?.addEventListener('abort', () => {
+              controller.error(new DOMException('Aborted', 'AbortError'));
+            });
+            queueMicrotask(() => abortController.abort());
+          },
+        });
+        return new Response(body, { status: 202 });
+      };
+
+      const model = createModel({ fetch: unfinished202 });
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow(/abort/i);
+    });
+
+    it('should time out while repeatedly receiving empty HTTP 202 responses', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'empty',
+        status: 202,
+      };
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: { pollIntervalMs: 10, pollTimeoutMs: 30 },
+          },
+        }),
+      ).rejects.toThrow('timed out');
+    });
+
+    it('should honor abort after an empty HTTP 202 response', async () => {
+      const abortController = new AbortController();
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = () => {
+        queueMicrotask(() => abortController.abort());
+        return { type: 'empty', status: 202 };
+      };
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow(/aborted/i);
+    });
+
     it('should retry polling on pending before resolving done', async () => {
       // callNumber is global across all URLs in the test.
       // Call 0 = POST /generations. Polls start at callNumber 1.

@@ -1,6 +1,7 @@
-import type {
-  LanguageModelV3Prompt,
-  LanguageModelV3FilePart,
+import {
+  APICallError,
+  type LanguageModelV3FilePart,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -495,6 +496,10 @@ describe('GatewayLanguageModel', () => {
         expect(serverError.message).toBe('Database connection failed');
         expect(serverError.statusCode).toBe(500);
         expect(serverError.type).toBe('internal_server_error');
+        expect(APICallError.isInstance(serverError.cause)).toBe(true);
+        expect((serverError.cause as APICallError).message).toContain(
+          'Database connection failed',
+        );
       }
     });
 
@@ -1573,47 +1578,6 @@ describe('GatewayLanguageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.providerOptions).toEqual({
         gateway: { disallowPromptTraining: true },
-      });
-    });
-
-    it('should pass hipaaCompliant option', async () => {
-      prepareJsonResponse({
-        content: { type: 'text', text: 'Test response' },
-      });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          gateway: {
-            hipaaCompliant: true,
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.providerOptions).toEqual({
-        gateway: { hipaaCompliant: true },
-      });
-    });
-
-    it('should pass both zeroDataRetention and hipaaCompliant options', async () => {
-      prepareJsonResponse({
-        content: { type: 'text', text: 'Test response' },
-      });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          gateway: {
-            zeroDataRetention: true,
-            hipaaCompliant: true,
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.providerOptions).toEqual({
-        gateway: { zeroDataRetention: true, hipaaCompliant: true },
       });
     });
 

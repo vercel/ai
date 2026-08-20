@@ -78,12 +78,6 @@ const gatewayProviderOptions = lazySchema(() =>
        */
       disallowPromptTraining: z.boolean().optional(),
       /**
-       * Whether to filter by only providers that are HIPAA compliant with
-       * Vercel AI Gateway. When enabled, only providers that have agreements
-       * with Vercel AI Gateway for HIPAA compliance will be used.
-       */
-      hipaaCompliant: z.boolean().optional(),
-      /**
        * The unique identifier for the entity against which quota is tracked.
        *
        * Used for quota management and enforcement purposes.
@@ -117,6 +111,19 @@ const gatewayProviderOptions = lazySchema(() =>
        * automatically. Leave unset to pass requests through unmodified.
        */
       caching: z.literal('auto').optional(),
+      /**
+       * Restrict routing to provider models that have all of the given
+       * capabilities:
+       *
+       * - `'implicit-caching'`: models that perform automatic (implicit)
+       *   prompt caching
+       * - `'vision'`: models that accept image input
+       *
+       * The capability is a property of the model, so the filter applies to
+       * both BYOK and system credentials. If no provider model for the
+       * requested model satisfies the capabilities, the request fails.
+       */
+      has: z.array(z.enum(['implicit-caching', 'vision'])).optional(),
     }),
   ),
 );

@@ -28,6 +28,7 @@ import {
   type GeneratedFile,
 } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { maybeSignApproval } from './tool-approval-signature';
 import { parseToolCall } from './parse-tool-call';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
@@ -160,16 +161,47 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   let toolResultsStreamController: ReadableStreamDefaultController<
     SingleRequestTextStreamPart<TOOLS>
   > | null = null;
+  let toolResultsStreamClosed = false;
   const toolResultsStream = new ReadableStream<
     SingleRequestTextStreamPart<TOOLS>
   >({
     start(controller) {
       toolResultsStreamController = controller;
     },
+    cancel() {
+      toolResultsStreamClosed = true;
+    },
   });
+
+  function enqueueToolResult(chunk?: SingleRequestTextStreamPart<TOOLS>) {
+    if (toolResultsStreamClosed) {
+      return;
+    }
+
+    try {
+      toolResultsStreamController!.enqueue(chunk);
+    } catch {
+      toolResultsStreamClosed = true;
+    }
+  }
+
+  function closeToolResultsStream() {
+    if (toolResultsStreamClosed) {
+      return;
+    }
+
+    toolResultsStreamClosed = true;
+
+    try {
+      toolResultsStreamController!.close();
+    } catch {
+      // suppress errors when the stream has been closed
+    }
+  }
 
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
+  const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
@@ -187,11 +219,46 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       // are received to ensure that the frontend receives tool results before a message
       // finish event arrives.
       if (finishChunk != null) {
-        toolResultsStreamController!.enqueue(finishChunk);
+        enqueueToolResult(finishChunk);
       }
 
-      toolResultsStreamController!.close();
+      closeToolResultsStream();
     }
+  }
+
+  function executeToolCallAfterFinish(toolCall: TypedToolCall<TOOLS>) {
+    const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
+    outstandingToolResults.add(toolExecutionId);
+
+    executeToolCall({
+      toolCall,
+      tools,
+      tracer,
+      telemetry,
+      messages,
+      abortSignal,
+      experimental_context,
+      stepNumber,
+      model,
+      onToolCallStart,
+      onToolCallFinish,
+      onPreliminaryToolResult: result => {
+        enqueueToolResult(result);
+      },
+    })
+      .then(result => {
+        enqueueToolResult(result);
+      })
+      .catch(error => {
+        enqueueToolResult({
+          type: 'error',
+          error,
+        });
+      })
+      .finally(() => {
+        outstandingToolResults.delete(toolExecutionId);
+        attemptClose();
+      });
   }
 
   // forward stream
@@ -249,13 +316,22 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };
+
+          if (isToolExecutionAllowedFinishReason(chunk.finishReason.unified)) {
+            for (const toolCall of toolCallsToExecute.splice(0)) {
+              executeToolCallAfterFinish(toolCall);
+            }
+          } else {
+            toolCallsToExecute.length = 0;
+          }
+
           break;
         }
 
         case 'tool-approval-request': {
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
           if (toolCall == null) {
-            toolResultsStreamController!.enqueue({
+            enqueueToolResult({
               type: 'error',
               error: new ToolCallNotFoundForApprovalError({
                 toolCallId: chunk.toolCallId,
@@ -285,21 +361,23 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
-            controller.enqueue(toolCall);
+            controller.enqueue({ ...toolCall });
 
             if (toolCall.invalid) {
-              toolResultsStreamController!.enqueue({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-                title: toolCall.title,
-                ...(toolCall.toolMetadata != null
-                  ? { toolMetadata: toolCall.toolMetadata }
-                  : {}),
-              });
+              if (!toolCall.providerExecuted) {
+                enqueueToolResult({
+                  type: 'tool-error',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: getErrorMessage(toolCall.error!),
+                  dynamic: true,
+                  title: toolCall.title,
+                  ...(toolCall.toolMetadata != null
+                    ? { toolMetadata: toolCall.toolMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 
@@ -338,7 +416,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 input: toolCall.input,
               });
 
-              toolResultsStreamController!.enqueue({
+              enqueueToolResult({
                 type: 'tool-approval-request',
                 approvalId,
                 toolCall,
@@ -349,44 +427,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
-              const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
-              outstandingToolResults.add(toolExecutionId);
-
-              // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
-              // because we want to process the next chunk as soon as possible.
-              // This is important for the case where the tool execution takes a long time.
-              executeToolCall({
-                toolCall,
-                tools,
-                tracer,
-                telemetry,
-                messages,
-                abortSignal,
-                experimental_context,
-                stepNumber,
-                model,
-                onToolCallStart,
-                onToolCallFinish,
-                onPreliminaryToolResult: result => {
-                  toolResultsStreamController!.enqueue(result);
-                },
-              })
-                .then(result => {
-                  toolResultsStreamController!.enqueue(result);
-                })
-                .catch(error => {
-                  toolResultsStreamController!.enqueue({
-                    type: 'error',
-                    error,
-                  });
-                })
-                .finally(() => {
-                  outstandingToolResults.delete(toolExecutionId);
-                  attemptClose();
-                });
+              toolCallsToExecute.push(toolCall);
             }
           } catch (error) {
-            toolResultsStreamController!.enqueue({ type: 'error', error });
+            enqueueToolResult({ type: 'error', error });
           }
 
           break;
@@ -397,7 +441,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
           if (chunk.isError) {
-            toolResultsStreamController!.enqueue({
+            enqueueToolResult({
               type: 'tool-error',
               toolCallId: chunk.toolCallId,
               toolName,

@@ -47,6 +47,24 @@ const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
   },
 ];
 
+const PARALLEL_TOOL_CALL_INPUT =
+  '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
+
+function parallelToolCallProviderMetadata(index: number) {
+  return {
+    openai: {
+      parallelToolCall: {
+        itemId: 'fc_parallel',
+        toolCallId: 'call_parallel',
+        toolName: 'parallel',
+        input: PARALLEL_TOOL_CALL_INPUT,
+        index,
+        count: 2,
+      },
+    },
+  };
+}
+
 const HOSTED_TOOL_SEARCH_TOOLS: Array<
   LanguageModelV3FunctionTool | LanguageModelV3ProviderTool
 > = [
@@ -961,7 +979,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should not send item references for function calls when previousResponseId is set', async () => {
+      it('should send client-executed function calls in full when previousResponseId is set', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: [
             {
@@ -1008,6 +1026,12 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               role: 'user',
               content: [{ type: 'input_text', text: 'What is the weather?' }],
+            },
+            {
+              type: 'function_call',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"San Francisco"}',
             },
             {
               type: 'function_call_output',
@@ -1515,6 +1539,51 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send serviceTier fast provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'fast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          service_tier: 'fast',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn and drop serviceTier fast for a model without priority processing', async () => {
+        const { warnings } = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              serviceTier: 'fast',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).service_tier,
+        ).toBeUndefined();
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'serviceTier',
+            details:
+              'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
+          },
+        ]);
       });
 
       it('should send truncation auto provider option', async () => {
@@ -2718,6 +2787,32 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
+      it('should expand an internal parallel tool call wrapper', async () => {
+        prepareJsonFixtureResponse('parallel-tool-call-wrapper.1');
+
+        const result = await createModel('gpt-5.4').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_parallel_0',
+            toolName: 'weather',
+            input: '{"location":"San Francisco"}',
+            providerMetadata: parallelToolCallProviderMetadata(0),
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call_parallel_1',
+            toolName: 'cityAttractions',
+            input: '{"city":"Rome"}',
+            providerMetadata: parallelToolCallProviderMetadata(1),
+          },
+        ]);
+      });
+
       it('should have tool-calls finish reason', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -2827,6 +2922,56 @@ describe('OpenAIResponsesLanguageModel', () => {
           type: 'allowed_tools',
           mode: 'auto',
           tools: [{ type: 'function', name: 'weather' }],
+        });
+      });
+
+      it('should send derived allowed_tools entries for function, built-in and mcp tools', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            ...TEST_TOOLS,
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'search',
+              args: {},
+            },
+            {
+              type: 'provider',
+              id: 'openai.mcp',
+              name: 'deepwiki',
+              args: {
+                serverLabel: 'deepwiki',
+                serverUrl: 'https://mcp.deepwiki.com/mcp',
+              },
+            },
+          ],
+          providerOptions: {
+            openai: {
+              allowedTools: { toolNames: ['weather', 'search', 'deepwiki'] },
+            },
+          },
+        });
+
+        const body = (await server.calls[0].requestBodyJson) as {
+          tools: Array<{ type: string; name?: string }>;
+          tool_choice: unknown;
+        };
+
+        expect(body.tools.map(t => t.name ?? t.type)).toEqual([
+          'weather',
+          'cityAttractions',
+          'web_search',
+          'mcp',
+        ]);
+        expect(body.tool_choice).toEqual({
+          type: 'allowed_tools',
+          mode: 'auto',
+          tools: [
+            { type: 'function', name: 'weather' },
+            { type: 'web_search' },
+            { type: 'mcp', server_label: 'deepwiki' },
+          ],
         });
       });
 
@@ -3264,7 +3409,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               type: 'provider',
               id: 'openai.web_search',
               name: 'webSearch',
-              args: {},
+              args: {
+                filters: {
+                  blockedDomains: ['example.com'],
+                },
+              },
             },
           ],
           prompt: TEST_PROMPT,
@@ -3291,6 +3440,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-5-nano",
             "tools": [
               {
+                "filters": {
+                  "blocked_domains": [
+                    "example.com",
+                  ],
+                },
                 "type": "web_search",
               },
             ],
@@ -6072,6 +6226,193 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should expand a streamed internal parallel tool call wrapper', async () => {
+      prepareChunksFixtureResponse('parallel-tool-call-wrapper.1');
+
+      const { stream } = await createModel('gpt-5.4').doStream({
+        tools: TEST_TOOLS,
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type.startsWith('tool-'))).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'call_parallel_0',
+          toolName: 'weather',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'call_parallel_0',
+          delta: '{"location":"San Francisco"}',
+        },
+        {
+          type: 'tool-input-end',
+          id: 'call_parallel_0',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          input: '{"location":"San Francisco"}',
+          providerMetadata: parallelToolCallProviderMetadata(0),
+        },
+        {
+          type: 'tool-input-start',
+          id: 'call_parallel_1',
+          toolName: 'cityAttractions',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'call_parallel_1',
+          delta: '{"city":"Rome"}',
+        },
+        {
+          type: 'tool-input-end',
+          id: 'call_parallel_1',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          input: '{"city":"Rome"}',
+          providerMetadata: parallelToolCallProviderMetadata(1),
+        },
+      ]);
+    });
+
+    it('should replay streamed wrapper input when expansion fails', async () => {
+      const inputDeltas = [
+        '{"tool_uses":[',
+        '{"recipient_name":"functions.weather","parameters":{}}]',
+      ];
+      const input = inputDeltas.join('');
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_parallel_malformed',
+              call_id: 'call_parallel_malformed',
+              name: 'parallel',
+              arguments: '',
+              status: 'in_progress',
+            },
+          })}\n\n`,
+          ...inputDeltas.map(
+            delta =>
+              `data:${JSON.stringify({
+                type: 'response.function_call_arguments.delta',
+                item_id: 'fc_parallel_malformed',
+                output_index: 0,
+                delta,
+              })}\n\n`,
+          ),
+          `data:${JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_parallel_malformed',
+              call_id: 'call_parallel_malformed',
+              name: 'parallel',
+              arguments: input,
+              status: 'completed',
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.4').doStream({
+        tools: TEST_TOOLS,
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type.startsWith('tool-'))).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'call_parallel_malformed',
+          toolName: 'parallel',
+        },
+        ...inputDeltas.map(delta => ({
+          type: 'tool-input-delta' as const,
+          id: 'call_parallel_malformed',
+          delta,
+        })),
+        {
+          type: 'tool-input-end',
+          id: 'call_parallel_malformed',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_malformed',
+          toolName: 'parallel',
+          input,
+          providerMetadata: {
+            openai: { itemId: 'fc_parallel_malformed' },
+          },
+        },
+      ]);
+    });
+
+    it('should flush streamed wrapper input when the stream ends early', async () => {
+      const inputDeltas = ['{"tool_uses":[', '{"recipient_name":'];
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_parallel_truncated',
+              call_id: 'call_parallel_truncated',
+              name: 'parallel',
+              arguments: '',
+              status: 'in_progress',
+            },
+          })}\n\n`,
+          ...inputDeltas.map(
+            delta =>
+              `data:${JSON.stringify({
+                type: 'response.function_call_arguments.delta',
+                item_id: 'fc_parallel_truncated',
+                output_index: 0,
+                delta,
+              })}\n\n`,
+          ),
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.4').doStream({
+        tools: TEST_TOOLS,
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type.startsWith('tool-'))).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'call_parallel_truncated',
+          toolName: 'parallel',
+        },
+        ...inputDeltas.map(delta => ({
+          type: 'tool-input-delta' as const,
+          id: 'call_parallel_truncated',
+          delta,
+        })),
+      ]);
     });
 
     it('should preserve namespace on streaming function_call output', async () => {

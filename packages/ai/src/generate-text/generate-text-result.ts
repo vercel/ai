@@ -36,7 +36,9 @@ export interface GenerateTextResult<
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The text that was generated in the last step.
+   * The concatenation of all text parts generated in the final step.
+   * It is an empty string if the final step contains no text parts.
+   * Inspect `content` for a text part to distinguish that case.
    */
   readonly text: string;
 
@@ -165,8 +167,10 @@ export interface GenerateTextResult<
   readonly experimental_output: InferCompleteOutput<OUTPUT>;
 
   /**
-   * The generated structured output. It uses the `output` specification.
+   * The generated output according to the `output` specification.
    *
+   * @throws {NoOutputGeneratedError} When no output is available, for example
+   * when the final step does not finish with a `stop` reason.
    */
   readonly output: InferCompleteOutput<OUTPUT>;
 }

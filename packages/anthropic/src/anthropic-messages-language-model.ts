@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidResponseDataError,
   type JSONObject,
   type LanguageModelV3,
   type LanguageModelV3CallOptions,
@@ -43,6 +44,7 @@ import {
   type AnthropicResponseContextManagement,
   type AnthropicStopDetails,
   type AnthropicTool,
+  type AnthropicToolCallCaller,
   type Citation,
 } from './anthropic-messages-api';
 import {
@@ -116,6 +118,24 @@ function createCitationSource(
             },
     } satisfies SharedV3ProviderMetadata,
   };
+}
+
+function getAnthropicCallerInfo(caller: AnthropicToolCallCaller | undefined) {
+  return caller == null
+    ? undefined
+    : {
+        type: caller.type,
+        toolId: 'tool_id' in caller ? caller.tool_id : undefined,
+      };
+}
+
+function getAnthropicCallerMetadata(
+  caller: AnthropicToolCallCaller | undefined,
+) {
+  const callerInfo = getAnthropicCallerInfo(caller);
+  return callerInfo == null
+    ? {}
+    : { providerMetadata: { anthropic: { caller: callerInfo } } };
 }
 
 type AnthropicMessagesConfig = {
@@ -276,8 +296,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsSamplingParameters,
+      rejectsThinkingDisabledAboveHighEffort,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
+
+    if (!isKnownModel && maxOutputTokens == null) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'maxOutputTokens',
+        details:
+          `The model "${this.modelId}" is unknown. ` +
+          `The max output tokens have been limited to ${maxOutputTokensForModel}. ` +
+          `Set maxOutputTokens explicitly to override this limit.`,
+      });
+    }
 
     if (rejectsSamplingParameters) {
       if (temperature != null) {
@@ -306,7 +338,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
     }
 
-    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
+    const isAnthropicModel = isKnownModel || this.modelId.includes('claude-');
 
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
@@ -333,6 +365,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             inputSchema: responseFormat.schema,
           }
         : undefined;
+
+    if (
+      jsonResponseTool != null &&
+      anthropicOptions?.disableParallelToolUse === false
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.disableParallelToolUse',
+        details:
+          '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+          'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+      });
+    }
 
     const contextManagement = anthropicOptions?.contextManagement;
 
@@ -372,6 +417,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         cacheControlValidator,
         toolNameMapping,
       });
+
+    // Newer models only allow disabling thinking at effort levels up to and
+    // including `high`; at `xhigh` and `max` the API returns a 400. Lower
+    // the effort to `high` to preserve the explicit request to run without
+    // thinking.
+    if (
+      rejectsThinkingDisabledAboveHighEffort &&
+      anthropicOptions?.thinking?.type === 'disabled' &&
+      (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.effort',
+        details:
+          `effort '${anthropicOptions.effort}' is not supported by ${this.modelId} when thinking is disabled. ` +
+          `The effort has been lowered to 'high'.`,
+      });
+      anthropicOptions.effort = 'high';
+    }
 
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
@@ -444,8 +508,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
       }),
-      ...(anthropicOptions?.fallbacks &&
-        anthropicOptions.fallbacks.length > 0 && {
+      ...(anthropicOptions?.fallbacks != null &&
+        (anthropicOptions.fallbacks === 'default' ||
+          anthropicOptions.fallbacks.length > 0) && {
           fallbacks: anthropicOptions.fallbacks,
         }),
       ...(anthropicOptions?.cacheControl && {
@@ -674,7 +739,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('fast-mode-2026-02-01');
     }
 
-    if (anthropicOptions?.fallbacks && anthropicOptions.fallbacks.length > 0) {
+    if (anthropicOptions?.fallbacks === 'default') {
+      betas.add('server-side-fallback-2026-07-01');
+    } else if (
+      anthropicOptions?.fallbacks &&
+      anthropicOptions.fallbacks.length > 0
+    ) {
       betas.add('server-side-fallback-2026-06-01');
     }
 
@@ -873,7 +943,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       switch (part.type) {
         case 'text': {
           if (!usesJsonResponseTool) {
-            content.push({ type: 'text', text: part.text });
+            const webSearchCitations = part.citations?.filter(
+              citation => citation.type === 'web_search_result_location',
+            );
+
+            content.push({
+              type: 'text',
+              text: part.text,
+              ...(webSearchCitations != null &&
+                webSearchCitations.length > 0 && {
+                  providerMetadata: {
+                    anthropic: {
+                      citations: webSearchCitations,
+                    },
+                  },
+                }),
+            });
 
             // Process citations if present
             if (part.citations) {
@@ -941,26 +1026,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               text: JSON.stringify(part.input),
             });
           } else {
-            const caller = part.caller;
-            const callerInfo = caller
-              ? {
-                  type: caller.type,
-                  toolId: 'tool_id' in caller ? caller.tool_id : undefined,
-                }
-              : undefined;
-
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
               toolName: part.name,
               input: JSON.stringify(part.input),
-              ...(callerInfo && {
-                providerMetadata: {
-                  anthropic: {
-                    caller: callerInfo,
-                  },
-                },
-              }),
+              ...getAnthropicCallerMetadata(part.caller),
             });
           }
 
@@ -989,6 +1060,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               providerToolName === 'code_execution'
                 ? { dynamic: true }
                 : {}),
+              ...getAnthropicCallerMetadata(part.caller),
             });
           } else if (
             part.name === 'web_search' ||
@@ -1018,6 +1090,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               ...(markCodeExecutionDynamic && part.name === 'code_execution'
                 ? { dynamic: true }
                 : {}),
+              ...getAnthropicCallerMetadata(part.caller),
             });
           } else if (
             part.name === 'tool_search_tool_regex' ||
@@ -1030,6 +1103,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               toolName: toolNameMapping.toCustomToolName(part.name),
               input: JSON.stringify(part.input),
               providerExecuted: true,
+              ...getAnthropicCallerMetadata(part.caller),
             });
           } else if (part.name === 'advisor') {
             content.push({
@@ -1038,6 +1112,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               toolName: toolNameMapping.toCustomToolName('advisor'),
               input: JSON.stringify(part.input),
               providerExecuted: true,
+              ...getAnthropicCallerMetadata(part.caller),
             });
           }
 
@@ -1098,6 +1173,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   },
                 },
               },
+              ...getAnthropicCallerMetadata(part.caller),
             });
           } else if (part.content.type === 'web_fetch_tool_result_error') {
             content.push({
@@ -1109,6 +1185,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: 'web_fetch_tool_result_error',
                 errorCode: part.content.error_code,
               },
+              ...getAnthropicCallerMetadata(part.caller),
             });
           }
           break;
@@ -1126,6 +1203,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 encryptedContent: result.encrypted_content,
                 type: result.type,
               })),
+              ...getAnthropicCallerMetadata(part.caller),
             });
 
             for (const result of part.content) {
@@ -1152,6 +1230,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: 'web_search_tool_result_error',
                 errorCode: part.content.error_code,
               },
+              ...getAnthropicCallerMetadata(part.caller),
             });
           }
           break;
@@ -1456,7 +1535,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             toolId?: string;
           };
         }
-      | { type: 'text' | 'reasoning' }
+      | { type: 'text'; citations: Citation[] }
+      | { type: 'reasoning' }
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
@@ -1470,6 +1550,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
+    let isMessageOpen = false;
+    let activeMessageId: string | null | undefined;
+    let hasInvalidMessageSequence = false;
 
     let blockType:
       | 'text'
@@ -1501,6 +1584,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         },
 
         transform(chunk, controller) {
+          if (hasInvalidMessageSequence) {
+            return;
+          }
+
           if (options.includeRawChunks) {
             controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
           }
@@ -1538,7 +1625,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     return;
                   }
 
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1570,7 +1660,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 }
 
                 case 'compaction': {
-                  contentBlocks[value.index] = { type: 'text' };
+                  contentBlocks[value.index] = {
+                    type: 'text',
+                    citations: [],
+                  };
                   controller.enqueue({
                     type: 'text-start',
                     id: String(value.index),
@@ -1590,22 +1683,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   if (isJsonResponseTool) {
                     isJsonResponseFromTool = true;
 
-                    contentBlocks[value.index] = { type: 'text' };
+                    contentBlocks[value.index] = {
+                      type: 'text',
+                      citations: [],
+                    };
 
                     controller.enqueue({
                       type: 'text-start',
                       id: String(value.index),
                     });
                   } else {
-                    // Extract caller info for type-safe access
-                    const caller = part.caller;
-                    const callerInfo = caller
-                      ? {
-                          type: caller.type,
-                          toolId:
-                            'tool_id' in caller ? caller.tool_id : undefined,
-                        }
-                      : undefined;
+                    const callerInfo = getAnthropicCallerInfo(part.caller);
 
                     // Programmatic tool calling: for deferred tool calls from code_execution,
                     // input may be present directly in content_block_start.
@@ -1635,6 +1723,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 }
 
                 case 'server_tool_use': {
+                  const callerInfo = getAnthropicCallerInfo(part.caller);
+
                   if (
                     [
                       'web_fetch',
@@ -1691,6 +1781,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       firstDelta: finalInput.length === 0,
                       providerToolName,
                       providerToolInputType,
+                      ...(callerInfo && { caller: callerInfo }),
                     };
 
                     controller.enqueue({
@@ -1724,6 +1815,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       providerExecuted: true,
                       firstDelta: true,
                       providerToolName: part.name,
+                      ...(callerInfo && { caller: callerInfo }),
                     };
 
                     controller.enqueue({
@@ -1744,6 +1836,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       providerExecuted: true,
                       firstDelta: true,
                       providerToolName: part.name,
+                      ...(callerInfo && { caller: callerInfo }),
                     };
 
                     controller.enqueue({
@@ -1782,6 +1875,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           },
                         },
                       },
+                      ...getAnthropicCallerMetadata(part.caller),
                     });
                   } else if (
                     part.content.type === 'web_fetch_tool_result_error'
@@ -1795,6 +1889,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         type: 'web_fetch_tool_result_error',
                         errorCode: part.content.error_code,
                       },
+                      ...getAnthropicCallerMetadata(part.caller),
                     });
                   }
 
@@ -1814,6 +1909,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         encryptedContent: result.encrypted_content,
                         type: result.type,
                       })),
+                      ...getAnthropicCallerMetadata(part.caller),
                     });
 
                     for (const result of part.content) {
@@ -1840,6 +1936,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         type: 'web_search_tool_result_error',
                         errorCode: part.content.error_code,
                       },
+                      ...getAnthropicCallerMetadata(part.caller),
                     });
                   }
                   return;
@@ -2049,6 +2146,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'text-end',
                       id: String(value.index),
+                      ...(contentBlock.citations.length > 0 && {
+                        providerMetadata: {
+                          anthropic: {
+                            citations: contentBlock.citations,
+                          },
+                        },
+                      }),
                     });
                     break;
                   }
@@ -2239,6 +2343,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 case 'citations_delta': {
                   const citation = value.delta.citation;
+                  const contentBlock = contentBlocks[value.index];
+
+                  if (
+                    contentBlock?.type === 'text' &&
+                    citation.type === 'web_search_result_location'
+                  ) {
+                    contentBlock.citations.push(citation);
+                  }
+
                   const source = createCitationSource(
                     citation,
                     citationDocuments,
@@ -2262,6 +2375,27 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             }
 
             case 'message_start': {
+              if (isMessageOpen) {
+                if (activeMessageId === value.message.id) {
+                  return;
+                }
+
+                hasInvalidMessageSequence = true;
+                controller.enqueue({
+                  type: 'error',
+                  error: new InvalidResponseDataError({
+                    data: value,
+                    message:
+                      `Received message_start for message ${JSON.stringify(value.message.id)} ` +
+                      `while message ${JSON.stringify(activeMessageId)} is still open.`,
+                  }),
+                });
+                return;
+              }
+
+              isMessageOpen = true;
+              activeMessageId = value.message.id;
+
               usage.input_tokens = value.message.usage.input_tokens;
               usage.cache_read_input_tokens =
                 value.message.usage.cache_read_input_tokens ?? 0;
@@ -2309,14 +2443,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 ) {
                   const part = value.message.content[contentIndex];
                   if (part.type === 'tool_use') {
-                    const caller = part.caller;
-                    const callerInfo = caller
-                      ? {
-                          type: caller.type,
-                          toolId:
-                            'tool_id' in caller ? caller.tool_id : undefined,
-                        }
-                      : undefined;
+                    const callerInfo = getAnthropicCallerInfo(part.caller);
 
                     controller.enqueue({
                       type: 'tool-input-start',
@@ -2364,6 +2491,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 usage.input_tokens = value.usage.input_tokens;
               }
               usage.output_tokens = value.usage.output_tokens;
+              if (value.usage.output_tokens_details != null) {
+                usage.output_tokens_details = value.usage.output_tokens_details;
+              }
 
               if (value.usage.cache_read_input_tokens != null) {
                 usage.cache_read_input_tokens =
@@ -2418,6 +2548,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             }
 
             case 'message_stop': {
+              isMessageOpen = false;
+              activeMessageId = undefined;
+
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 cacheCreationInputTokens,
@@ -2533,13 +2666,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
  * @see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
  * @see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
  */
-function getModelCapabilities(modelId: string): {
+export function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
   rejectsSamplingParameters: boolean;
+  rejectsThinkingDisabledAboveHighEffort: boolean;
   isKnownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-opus-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-opus-4-8') ||
     modelId.includes('claude-opus-4-7') ||
     modelId.includes('claude-fable-5') ||
@@ -2549,6 +2691,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2559,6 +2702,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2570,6 +2714,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
@@ -2577,6 +2722,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-sonnet-4-')) {
@@ -2584,6 +2730,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
@@ -2591,6 +2738,7 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
@@ -2598,13 +2746,38 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: true,
     };
-  } else {
+  } else if (
+    /claude-(?:instant(?:-|$)|v?2(?=$|[-.:])|3(?=$|[-.]))/.test(modelId)
+  ) {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
+      isKnownModel: false,
+    };
+  } else if (modelId.includes('claude-')) {
+    // Known and legacy Claude families are handled above, so any remaining
+    // Claude ID is assumed to be newer than the known list. Keep it unknown so
+    // callers still receive the maxOutputTokens compatibility warning.
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      isKnownModel: false,
+    };
+  } else {
+    // Non-Claude models (e.g. served through Anthropic-compatible APIs)
+    // keep conservative defaults.
+    return {
+      maxOutputTokens: 4096,
+      supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
+      rejectsThinkingDisabledAboveHighEffort: false,
       isKnownModel: false,
     };
   }

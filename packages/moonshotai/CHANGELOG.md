@@ -1,5 +1,95 @@
 # @ai-sdk/moonshotai
 
+## 2.0.47
+
+### Patch Changes
+
+- c01944c: feat(provider/moonshotai): normalize tool schemas for Moonshot's MFJS validator. Tuple `items` arrays become `prefixItems`, `type` next to `anyOf` moves into the branches, and non-`object` root schemas fail with a clear client-side error instead of Moonshot's opaque 400. Everything else passes through unchanged; the original schema is still used for AI SDK result validation.
+
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 2.0.45
+
+### Patch Changes
+
+- 4d1b345: feat(provider/moonshotai): own the chat implementation, support video input. The provider no longer builds on `@ai-sdk/openai-compatible`; the converter, language model, and helpers are owned by the package. Video file parts (e.g. `mediaType: 'video/mp4'`) are converted to Moonshot's `video_url` content parts for video-capable models (`kimi-k3`, `kimi-k2.7-code`, `kimi-k2.6`, `kimi-k2.5`). Audio and PDF file parts now throw client-side (the API rejects those part types). `reasoningHistory: 'preserved'` now maps to Moonshot's `thinking.keep: 'all'` request field (previously a no-op, the API ignores `reasoning_history`), gated per model with a warning on models without `thinking.keep` support. Adds `promptCacheKey` and `safetyIdentifier` provider options, widens `reasoningEffort` to `'low' | 'high' | 'max'` per Moonshot's docs, maps the generic `reasoning` call option to `reasoning_effort`, and passes `ms://` Files API references through natively (declared in `supportedUrls`).
+
+## 2.0.44
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/openai-compatible@2.0.67
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [de18066]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai-compatible@2.0.66
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/openai-compatible@2.0.65
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+  - @ai-sdk/openai-compatible@2.0.64
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+  - @ai-sdk/openai-compatible@2.0.63
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/openai-compatible@2.0.62
+
+## 2.0.38
+
+### Patch Changes
+
+- 103056e: feat: add kimi-k3 model and `reasoningEffort` provider option
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [94fda5c]
+  - @ai-sdk/openai-compatible@2.0.61
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/openai-compatible@2.0.60
+
 ## 2.0.35
 
 ### Patch Changes

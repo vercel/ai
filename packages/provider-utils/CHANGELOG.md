@@ -1,5 +1,54 @@
 # @ai-sdk/provider-utils
 
+## 4.0.46
+
+### Patch Changes
+
+- 31205a4: chore(provider-utils): upgrade undici to a maintained release
+
+## 4.0.45
+
+### Patch Changes
+
+- b2a4d5a: Preserve streamed download size-limit errors when response cancellation fails.
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+
+## 4.0.43
+
+### Patch Changes
+
+- dab0a08: fix(provider-utils): drop Function-constructor dynamic import shim rejected by Next.js Edge Runtime builds
+
+## 4.0.42
+
+### Patch Changes
+
+- ee2bf30: fix(provider-utils): prevent Metro from parsing the Node 18 dynamic import fallback
+
+## 4.0.41
+
+### Patch Changes
+
+- 9ecdefe: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+
+## 4.0.40
+
+### Patch Changes
+
+- 19093fd: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+
+## 4.0.39
+
+### Patch Changes
+
+- 06fb54c: Accept callable Standard Schema validators that do not provide JSON Schema conversion.
+
 ## 4.0.38
 
 ### Patch Changes

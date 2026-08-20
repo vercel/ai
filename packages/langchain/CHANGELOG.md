@@ -1,5 +1,259 @@
 # @ai-sdk/langchain
 
+## 2.0.269
+
+### Patch Changes
+
+- Updated dependencies [f1afbf9]
+  - ai@6.0.261
+
+## 2.0.268
+
+### Patch Changes
+
+- 5b63247: Preserve tool input lifecycles when LangGraph steps reuse a provider tool call ID.
+- Updated dependencies [98c656f]
+- Updated dependencies [b253d52]
+- Updated dependencies [9e15cb4]
+  - ai@6.0.260
+
+## 2.0.267
+
+### Patch Changes
+
+- ai@6.0.259
+
+## 2.0.266
+
+### Patch Changes
+
+- ai@6.0.258
+
+## 2.0.265
+
+### Patch Changes
+
+- ai@6.0.257
+
+## 2.0.264
+
+### Patch Changes
+
+- ai@6.0.256
+
+## 2.0.263
+
+### Patch Changes
+
+- Updated dependencies [35a94b0]
+- Updated dependencies [93d24c6]
+- Updated dependencies [1bd1caf]
+  - ai@6.0.255
+
+## 2.0.262
+
+### Patch Changes
+
+- ai@6.0.254
+
+## 2.0.261
+
+### Patch Changes
+
+- Updated dependencies [d91d30b]
+  - ai@6.0.253
+
+## 2.0.260
+
+### Patch Changes
+
+- Updated dependencies [2f96d3f]
+- Updated dependencies [afb1965]
+  - ai@6.0.252
+
+## 2.0.259
+
+### Patch Changes
+
+- Updated dependencies [d13c2e9]
+  - ai@6.0.251
+
+## 2.0.258
+
+### Patch Changes
+
+- Updated dependencies [a077695]
+- Updated dependencies [7ce3b8c]
+  - ai@6.0.250
+
+## 2.0.257
+
+### Patch Changes
+
+- Updated dependencies [a774b7b]
+  - ai@6.0.249
+
+## 2.0.256
+
+### Patch Changes
+
+- 5995d53: Preserve LangGraph subgraph namespaces and step lifecycles without letting concurrent namespace counters split active text or reasoning streams.
+- Updated dependencies [2171d15]
+  - ai@6.0.248
+
+## 2.0.255
+
+### Patch Changes
+
+- ai@6.0.247
+
+## 2.0.254
+
+### Patch Changes
+
+- ai@6.0.246
+
+## 2.0.253
+
+### Patch Changes
+
+- Updated dependencies [0de0715]
+  - ai@6.0.245
+
+## 2.0.252
+
+### Patch Changes
+
+- Updated dependencies [79e58aa]
+  - ai@6.0.244
+
+## 2.0.251
+
+### Patch Changes
+
+- Updated dependencies [dd5d344]
+  - ai@6.0.243
+
+## 2.0.250
+
+### Patch Changes
+
+- ai@6.0.242
+
+## 2.0.249
+
+### Patch Changes
+
+- ai@6.0.241
+
+## 2.0.248
+
+### Patch Changes
+
+- ai@6.0.240
+
+## 2.0.247
+
+### Patch Changes
+
+- ai@6.0.239
+
+## 2.0.246
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+- Updated dependencies [26d10c0]
+- Updated dependencies [7767170]
+  - ai@6.0.238
+
+## 2.0.245
+
+### Patch Changes
+
+- Updated dependencies [f6020d7]
+  - ai@6.0.237
+
+## 2.0.244
+
+### Patch Changes
+
+- ai@6.0.236
+
+## 2.0.243
+
+### Patch Changes
+
+- ai@6.0.235
+
+## 2.0.242
+
+### Patch Changes
+
+- 533f6c4: Emit canonical LangChain image content blocks when converting user messages.
+- Updated dependencies [1efdef8]
+- Updated dependencies [49414cf]
+  - ai@6.0.234
+
+## 2.0.241
+
+### Patch Changes
+
+- Updated dependencies [fe410e7]
+- Updated dependencies [af7188c]
+  - ai@6.0.233
+
+## 2.0.240
+
+### Patch Changes
+
+- Updated dependencies [7644a61]
+  - ai@6.0.232
+
+## 2.0.239
+
+### Patch Changes
+
+- Updated dependencies [926f5a0]
+- Updated dependencies [4c5a22f]
+- Updated dependencies [842a383]
+  - ai@6.0.231
+
+## 2.0.238
+
+### Patch Changes
+
+- c184a23: fix(langchain): close LangGraph reasoning before starting text
+- Updated dependencies [19093fd]
+  - ai@6.0.230
+
+## 2.0.237
+
+### Patch Changes
+
+- ai@6.0.229
+
+## 2.0.236
+
+### Patch Changes
+
+- ai@6.0.228
+
+## 2.0.235
+
+### Patch Changes
+
+- Updated dependencies [6ace546]
+  - ai@6.0.227
+
+## 2.0.234
+
+### Patch Changes
+
+- Updated dependencies [94219a2]
+- Updated dependencies [b1be847]
+  - ai@6.0.226
+
 ## 2.0.233
 
 ### Patch Changes

@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { runToolsTransformation } from './run-tools-transformation';
 
 const testUsage: LanguageModelV3Usage = {
@@ -415,6 +416,58 @@ describe('runToolsTransformation', () => {
       `);
   });
 
+  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+    'should not execute tools when the finish reason is %s',
+    async finishReason => {
+      let executionCount = 0;
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: finishReason, raw: finishReason },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              executionCount++;
+              return 'tool-result';
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      expect(result).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+        }),
+      );
+      expect(executionCount).toBe(0);
+    },
+  );
+
   it('should hold off on sending finish until the delayed tool result is received', async () => {
     const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
@@ -503,6 +556,71 @@ describe('runToolsTransformation', () => {
         },
       ]
     `);
+  });
+
+  it('should not produce an unhandled rejection when tool executions finish after the model stream errors', async () => {
+    let inputStreamController!: ReadableStreamDefaultController<LanguageModelV3StreamPart>;
+    const inputStream = new ReadableStream<LanguageModelV3StreamPart>({
+      start(controller) {
+        inputStreamController = controller;
+        controller.enqueue({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'delayedToolA',
+          input: `{ "value": "test-a" }`,
+        });
+        controller.enqueue({
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'delayedToolB',
+          input: `{ "value": "test-b" }`,
+        });
+      },
+    });
+
+    const toolResultA = createResolvablePromise<string>();
+    const toolResultB = createResolvablePromise<string>();
+
+    const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
+      tools: {
+        delayedToolA: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: () => toolResultA.promise,
+        },
+        delayedToolB: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: () => toolResultB.promise,
+        },
+      },
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    const reader = transformedStream.getReader();
+
+    expect(await reader.read()).toMatchObject({
+      value: { type: 'tool-call', toolCallId: 'call-1' },
+    });
+    expect(await reader.read()).toMatchObject({
+      value: { type: 'tool-call', toolCallId: 'call-2' },
+    });
+
+    const modelStreamError = new Error('model stream error');
+    inputStreamController.error(modelStreamError);
+
+    await expect(reader.read()).rejects.toBe(modelStreamError);
+
+    toolResultA.resolve('result-a');
+    await delay(0);
+    toolResultB.resolve('result-b');
+    await delay(0);
   });
 
   it('should try to repair tool call when the tool name is not found', async () => {
@@ -650,6 +768,118 @@ describe('runToolsTransformation', () => {
     await convertReadableStreamToArray(transformedStream);
 
     expect(toolExecuted).toBe(false);
+  });
+
+  it('should not synthesize a client tool error for an invalid provider-executed tool call', async () => {
+    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'web_search',
+          input: '{}',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'web_search',
+          result: {
+            type: 'web_search_tool_result_error',
+            errorCode: 'invalid_tool_input',
+          },
+          isError: true,
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+          usage: testUsage,
+        },
+      ]);
+
+    const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
+      tools: {
+        web_search: {
+          type: 'provider',
+          id: 'test.web_search',
+          inputSchema: z.object({ query: z.string() }),
+          args: {},
+        },
+      },
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    const result = await convertReadableStreamToArray(transformedStream);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "error": [AI_InvalidToolInputError: Invalid input for tool web_search: Type validation failed: Value: {}.
+      Error message: [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": [
+            "query"
+          ],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]],
+          "input": {},
+          "invalid": true,
+          "providerExecuted": true,
+          "providerMetadata": undefined,
+          "title": undefined,
+          "toolCallId": "call-1",
+          "toolName": "web_search",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": undefined,
+          "error": {
+            "errorCode": "invalid_tool_input",
+            "type": "web_search_tool_result_error",
+          },
+          "input": {},
+          "providerExecuted": true,
+          "toolCallId": "call-1",
+          "toolName": "web_search",
+          "type": "tool-error",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": undefined,
+          "rawFinishReason": "tool_use",
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+        },
+      ]
+    `);
   });
 
   describe('provider-emitted tool-approval-request (MCP flow)', () => {

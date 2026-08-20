@@ -111,6 +111,41 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert image parts with S3 URLs', async () => {
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe the image' },
+          {
+            type: 'file',
+            data: new URL('s3://my-test-bucket/path/to/image.png'),
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { text: 'Describe the image' },
+          {
+            image: {
+              format: 'png',
+              source: {
+                s3Location: {
+                  uri: 's3://my-test-bucket/path/to/image.png',
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert messages with document parts', async () => {
     const fileData = new Uint8Array([0, 1, 2, 3]);
 
@@ -737,6 +772,46 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should replay reasoning redacted as `redactedContent`', async () => {
+    const redactedContent = 'encrypted-reasoning-payload';
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: { bedrock: { redactedContent } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedContent,
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
     const result = await convertToBedrockChatMessages([
       {
@@ -1255,6 +1330,98 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should strip invalid characters from tool call names', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: '$READFILE',
+            input: {},
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'exchange_delivered_order_items<|channel|>',
+            input: {},
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-3',
+            toolName: '$',
+            input: {},
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-1',
+              name: 'READFILE',
+              input: {},
+            },
+          },
+          {
+            toolUse: {
+              toolUseId: 'call-2',
+              name: 'exchange_delivered_order_itemschannel',
+              input: {},
+            },
+          },
+          {
+            toolUse: {
+              toolUseId: 'call-3',
+              name: '_',
+              input: {},
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should wrap non-object (invalid) tool call input in an object', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            // malformed JSON the model produced, kept as a raw string
+            input: '{ "city": "San Francisco", }',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'cityAttractions',
+                input: { rawInvalidInput: '{ "city": "San Francisco", }' },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should preserve empty text blocks when reasoning blocks are present', async () => {
     const result = await convertToBedrockChatMessages([
       {
@@ -1387,6 +1554,53 @@ describe('tool messages', () => {
                 image: {
                   format: 'jpeg',
                   source: { bytes: 'base64data' },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should convert tool result images with S3 URLs', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'image-generator',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'image-url',
+                  url: 's3://my-test-bucket/path/to/image.png',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'call-123',
+            content: [
+              {
+                image: {
+                  format: 'png',
+                  source: {
+                    s3Location: {
+                      uri: 's3://my-test-bucket/path/to/image.png',
+                    },
+                  },
                 },
               },
             ],

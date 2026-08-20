@@ -1,5 +1,129 @@
 # @ai-sdk/xai
 
+## 3.0.123
+
+### Patch Changes
+
+- Updated dependencies [7440d89]
+  - @ai-sdk/openai-compatible@2.0.69
+
+## 3.0.122
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/openai-compatible@2.0.68
+
+## 3.0.121
+
+### Patch Changes
+
+- 70a6c3b: feat (provider/xai): support Grok Imagine Video 1.5. Adds the `grok-imagine-video-1.5` model id and native `1080p` for text-to-video and image-to-video (the standard `resolution: '1920x1080'` now maps to `1080p`). Reference-to-video remains capped at `720p`, so a `1080p` request in that mode is downgraded with a warning. Also fixes reference routing: previously any non-empty `inputReferences` array selected reference-to-video, so an array holding only a non-image reference sent `reference_images: []` with no usable references.
+- 70a6c3b: feat (provider/xai): add `referenceVoiceIds` for reference-to-video reference audio. Pass up to 3 xAI preset voice ids (e.g. `['eve']`) and reference them from the prompt with `<AUDIO_0>`–`<AUDIO_2>`; they are sent as `reference_audios: [{ voice_id }]` on `POST /v1/videos/generations`.
+
+## 3.0.120
+
+### Patch Changes
+
+- 3283e3e: feat(xai): support the priority service tier on chat and responses
+
+## 3.0.119
+
+### Patch Changes
+
+- 451d2c3: feat(xai): Add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 3.0.118
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/openai-compatible@2.0.67
+
+## 3.0.117
+
+### Patch Changes
+
+- Updated dependencies [de18066]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai-compatible@2.0.66
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 3.0.116
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/openai-compatible@2.0.65
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+  - @ai-sdk/openai-compatible@2.0.64
+
+## 3.0.114
+
+### Patch Changes
+
+- 5d0c5f4: fix(xai): video generation no longer hangs while polling status
+
+## 3.0.113
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+  - @ai-sdk/openai-compatible@2.0.63
+
+## 3.0.112
+
+### Patch Changes
+
+- e4f8b5b: Warn when xAI Responses models ignore unsupported sampling settings.
+
+## 3.0.111
+
+### Patch Changes
+
+- 05ce9c0: fix(provider/xai): preserve images in Responses API tool results
+
+## 3.0.110
+
+### Patch Changes
+
+- 09ecf7b: fix(xai): handle empty HTTP 202 responses while polling videos
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+  - @ai-sdk/openai-compatible@2.0.62
+
+## 3.0.109
+
+### Patch Changes
+
+- b0db900: feat(provider/xai): support end-user identifiers for video generation and editing
+
+## 3.0.108
+
+### Patch Changes
+
+- Updated dependencies [94fda5c]
+  - @ai-sdk/openai-compatible@2.0.61
+
+## 3.0.107
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+  - @ai-sdk/openai-compatible@2.0.60
+
 ## 3.0.106
 
 ### Patch Changes

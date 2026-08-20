@@ -67,15 +67,18 @@ import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { extractReasoningContent } from './extract-reasoning-content';
 import { extractTextContent } from './extract-text-content';
+import { filterActiveTools } from './filter-active-tools';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { maybeSignApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
 import { text, type Output } from './output';
 import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
+import { prepareStepCallSettings } from './prepare-step-call-settings';
 import type { ResponseMessage } from './response-message';
 import { DefaultStepResult, type StepResult } from './step-result';
 import {
@@ -684,6 +687,10 @@ export async function generateText<
         >();
 
         do {
+          if (steps.length > 0) {
+            mergedAbortSignal?.throwIfAborted();
+          }
+
           // Set up step timeout if configured
           const stepTimeoutId = setAbortTimeout({
             abortController: stepAbortController,
@@ -724,6 +731,10 @@ export async function generateText<
 
             const stepActiveTools =
               prepareStepResult?.activeTools ?? activeTools;
+            const stepToolSet = filterActiveTools({
+              tools,
+              activeTools: stepActiveTools,
+            });
 
             const { toolChoice: stepToolChoice, tools: stepTools } =
               await prepareToolsAndToolChoice({
@@ -742,6 +753,11 @@ export async function generateText<
               providerOptions,
               prepareStepResult?.providerOptions,
             );
+
+            const stepCallSettings = prepareStepCallSettings({
+              callSettings,
+              stepSettings: prepareStepResult,
+            });
 
             await notify({
               event: {
@@ -807,20 +823,22 @@ export async function generateText<
                     'gen_ai.system': stepModel.provider,
                     'gen_ai.request.model': stepModel.modelId,
                     'gen_ai.request.frequency_penalty':
-                      settings.frequencyPenalty,
-                    'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                    'gen_ai.request.presence_penalty': settings.presencePenalty,
-                    'gen_ai.request.stop_sequences': settings.stopSequences,
-                    'gen_ai.request.temperature':
-                      settings.temperature ?? undefined,
-                    'gen_ai.request.top_k': settings.topK,
-                    'gen_ai.request.top_p': settings.topP,
+                      stepCallSettings.frequencyPenalty,
+                    'gen_ai.request.max_tokens':
+                      stepCallSettings.maxOutputTokens,
+                    'gen_ai.request.presence_penalty':
+                      stepCallSettings.presencePenalty,
+                    'gen_ai.request.stop_sequences':
+                      stepCallSettings.stopSequences,
+                    'gen_ai.request.temperature': stepCallSettings.temperature,
+                    'gen_ai.request.top_k': stepCallSettings.topK,
+                    'gen_ai.request.top_p': stepCallSettings.topP,
                   },
                 }),
                 tracer,
                 fn: async span => {
                   const result = await stepModel.doGenerate({
-                    ...callSettings,
+                    ...stepCallSettings,
                     tools: stepTools,
                     toolChoice: stepToolChoice,
                     responseFormat: await output?.responseFormat,
@@ -916,7 +934,7 @@ export async function generateText<
                 .map(toolCall =>
                   parseToolCall({
                     toolCall,
-                    tools,
+                    tools: stepToolSet,
                     repairToolCall,
                     system,
                     messages: stepInputMessages,
@@ -934,7 +952,7 @@ export async function generateText<
                 continue; // ignore invalid tool calls
               }
 
-              const tool = tools?.[toolCall.toolName];
+              const tool = stepToolSet?.[toolCall.toolName];
 
               if (tool == null) {
                 // ignore tool calls for tools that are not available,
@@ -942,7 +960,16 @@ export async function generateText<
                 continue;
               }
 
-              if (tool?.onInputAvailable != null) {
+              if (tool.onInputStart != null) {
+                await tool.onInputStart({
+                  toolCallId: toolCall.toolCallId,
+                  messages: stepInputMessages,
+                  abortSignal: mergedAbortSignal,
+                  experimental_context,
+                });
+              }
+
+              if (tool.onInputAvailable != null) {
                 await tool.onInputAvailable({
                   input: toolCall.input,
                   toolCallId: toolCall.toolCallId,
@@ -981,7 +1008,10 @@ export async function generateText<
             // insert error tool outputs for invalid tool calls:
             // TODO AI SDK 6: invalid inputs should not require output parts
             const invalidToolCalls = stepToolCalls.filter(
-              toolCall => toolCall.invalid && toolCall.dynamic,
+              toolCall =>
+                toolCall.invalid &&
+                toolCall.dynamic &&
+                !toolCall.providerExecuted,
             );
 
             clientToolOutputs = [];
@@ -1002,7 +1032,12 @@ export async function generateText<
               toolCall => !toolCall.providerExecuted,
             );
 
-            if (tools != null) {
+            if (
+              stepToolSet != null &&
+              isToolExecutionAllowedFinishReason(
+                currentModelResponse.finishReason.unified,
+              )
+            ) {
               clientToolOutputs.push(
                 ...(await executeTools({
                   toolCalls: clientToolCalls.filter(
@@ -1010,7 +1045,7 @@ export async function generateText<
                       !toolCall.invalid &&
                       toolApprovalRequests[toolCall.toolCallId] == null,
                   ),
-                  tools,
+                  tools: stepToolSet,
                   tracer,
                   telemetry,
                   messages: stepInputMessages,
@@ -1038,7 +1073,7 @@ export async function generateText<
             // the client tool's result is sent back.
             for (const toolCall of stepToolCalls) {
               if (!toolCall.providerExecuted) continue;
-              const tool = tools?.[toolCall.toolName];
+              const tool = stepToolSet?.[toolCall.toolName];
               if (tool?.type === 'provider' && tool.supportsDeferredResults) {
                 // Check if this tool call already has a result in the current response
                 const hasResultInResponse = currentModelResponse.content.some(
@@ -1067,14 +1102,14 @@ export async function generateText<
               toolCalls: stepToolCalls,
               toolOutputs: clientToolOutputs,
               toolApprovalRequests: Object.values(toolApprovalRequests),
-              tools,
+              tools: stepToolSet,
             });
 
             // append to messages for potential next step:
             responseMessages.push(
               ...(await toResponseMessages({
                 content: stepContent,
-                tools,
+                tools: stepToolSet,
               })),
             );
 

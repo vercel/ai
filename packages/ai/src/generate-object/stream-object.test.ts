@@ -23,7 +23,10 @@ import { MockTracer } from '../test/mock-tracer';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import type { StreamObjectResult } from './stream-object-result';
-import { asLanguageModelUsage } from '../types/usage';
+import {
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+} from '../types/usage';
 
 const testUsage: LanguageModelV3Usage = {
   inputTokens: {
@@ -857,6 +860,167 @@ describe('streamObject', () => {
     });
 
     describe('error handling', () => {
+      it('should reject pending result promises when doStream throws', async () => {
+        const error = new Error('test error');
+        const result = streamObject({
+          model: new MockLanguageModelV3({
+            doStream: async () => {
+              throw error;
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError: () => {},
+        });
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.request,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+      });
+
+      it('should not emit an unhandled rejection when a result promise is awaited after failure', async () => {
+        const error = new Error('test error');
+        const unhandledRejections: unknown[] = [];
+        const onUnhandledRejection = (reason: unknown) => {
+          unhandledRejections.push(reason);
+        };
+
+        process.on('unhandledRejection', onUnhandledRejection);
+
+        try {
+          const result = streamObject({
+            model: new MockLanguageModelV3({
+              doStream: async () => {
+                throw error;
+              },
+            }),
+            schema: z.object({ content: z.string() }),
+            prompt: 'prompt',
+            onError: () => {},
+          });
+          const objectPromise = result.object;
+
+          await convertAsyncIterableToArray(result.fullStream);
+          await new Promise(resolve => setTimeout(resolve, 0));
+
+          await expect(objectPromise).rejects.toBe(error);
+          expect(unhandledRejections).toStrictEqual([]);
+        } finally {
+          process.off('unhandledRejection', onUnhandledRejection);
+        }
+      });
+
+      it('should reject pending result promises and report failure for an error stream part', async () => {
+        const error = new Error('test error');
+        const onError = vitest.fn();
+        const onFinish = vitest.fn();
+        const result = streamObject({
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([{ type: 'error', error }]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError,
+          onFinish,
+        });
+
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toStrictEqual([{ type: 'error', error }]);
+
+        expect(onError).toHaveBeenCalledWith({ error });
+        expect(onFinish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            object: undefined,
+            error,
+            usage: createNullLanguageModelUsage(),
+          }),
+        );
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+        await expect(result.request).resolves.toStrictEqual({});
+      });
+
+      it('should preserve error parts and finish callbacks when onError throws', async () => {
+        const error = new Error('provider error');
+        const onFinish = vitest.fn();
+        const result = streamObject({
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([{ type: 'error', error }]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError() {
+            throw new Error('callback error');
+          },
+          onFinish,
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.fullStream),
+        ).resolves.toStrictEqual([{ type: 'error', error }]);
+        expect(onFinish).toHaveBeenCalledOnce();
+      });
+
+      it('should preserve raw stream errors when onError throws', async () => {
+        const error = new Error('test error');
+        const onError = vitest.fn(() => {
+          throw new Error('callback error');
+        });
+        const result = streamObject({
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  controller.error(error);
+                },
+              }),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError,
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.fullStream),
+        ).rejects.toBe(error);
+        expect(onError).toHaveBeenCalledWith({ error });
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+        await expect(result.request).resolves.toStrictEqual({});
+      });
+
       it('should throw NoObjectGeneratedError when schema validation fails', async () => {
         const result = streamObject({
           model: new MockLanguageModelV3({
@@ -1506,6 +1670,42 @@ describe('streamObject', () => {
       await convertAsyncIterableToArray(result.partialObjectStream);
 
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should end root and model call spans once when the model call fails', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            throw new Error('provider failed');
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        maxRetries: 0,
+        experimental_telemetry: { isEnabled: true, tracer },
+        onError: () => {},
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          endCalls: span.endCalls,
+          status: span.status,
+        })),
+      ).toEqual([
+        {
+          name: 'ai.streamObject',
+          endCalls: 1,
+          status: { code: 2, message: 'provider failed' },
+        },
+        {
+          name: 'ai.streamObject.doStream',
+          endCalls: 1,
+          status: { code: 2, message: 'provider failed' },
+        },
+      ]);
     });
 
     it('should not record telemetry inputs / outputs when disabled', async () => {

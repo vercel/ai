@@ -1,5 +1,188 @@
 # @ai-sdk/gateway
 
+## 3.0.177
+
+### Patch Changes
+
+- def7999: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.176
+
+### Patch Changes
+
+- 96304fc: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.175
+
+### Patch Changes
+
+- 000b243: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.174
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 3.0.173
+
+### Patch Changes
+
+- 71e94ad: feat(google): add `gemini-3.7-flash` model
+
+## 3.0.172
+
+### Patch Changes
+
+- 0ec239b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.171
+
+### Patch Changes
+
+- 18b0965: Serialize structured Gateway error responses in nested API call error messages.
+- 451d2c3: feat(xai): Add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 3.0.170
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.169
+
+### Patch Changes
+
+- b39f987: Backport: chore(provider/gateway): update gateway model settings files
+- d79117b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.168
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 3.0.167
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
+## 3.0.166
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+
+## 3.0.165
+
+### Patch Changes
+
+- 0cd92fa: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.164
+
+### Patch Changes
+
+- f615718: Export `GatewayEmbeddingModelId` and `GatewayImageModelId` from the package entry point.
+- 48d5dff: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.163
+
+### Patch Changes
+
+- 7e50c52: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.162
+
+### Patch Changes
+
+- b28367e: feat(provider/gateway): add `has` provider option for model capability filtering, supporting `'implicit-caching'` and `'vision'` (image input)
+
+## 3.0.161
+
+### Patch Changes
+
+- d3d9e0b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.160
+
+### Patch Changes
+
+- 87fb433: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+
+## 3.0.159
+
+### Patch Changes
+
+- de438f5: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.158
+
+### Patch Changes
+
+- 8418710: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.157
+
+### Patch Changes
+
+- 5d7b986: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.156
+
+### Patch Changes
+
+- e7d064f: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.155
+
+### Patch Changes
+
+- a09f944: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 3.0.154
+
+### Patch Changes
+
+- 2dd1aab: chore(provider/gateway): remove `hipaaCompliant` provider option
+- e567091: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.153
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 3.0.152
+
+### Patch Changes
+
+- 49a3098: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.151
+
+### Patch Changes
+
+- 5e624ac: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.150
+
+### Patch Changes
+
+- bc46977: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 3.0.149
 
 ### Patch Changes

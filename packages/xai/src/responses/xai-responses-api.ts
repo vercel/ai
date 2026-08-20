@@ -47,7 +47,18 @@ export type XaiResponsesAssistantMessage = {
 export type XaiResponsesFunctionCallOutput = {
   type: 'function_call_output';
   call_id: string;
-  output: string;
+  output:
+    | string
+    | Array<
+        | {
+            type: 'input_text';
+            text: string;
+          }
+        | {
+            type: 'input_image';
+            image_url: string;
+          }
+      >;
 };
 
 export type XaiResponsesReasoning = {
@@ -263,6 +274,7 @@ export const xaiResponsesResponseSchema = z.object({
   output: z.array(outputItemSchema),
   usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
+  service_tier: z.string().nullish(),
 });
 
 export const xaiResponsesChunkSchema = z.union([
@@ -532,6 +544,7 @@ export const xaiResponsesChunkSchema = z.union([
     response: z.object({
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: xaiResponsesUsageSchema.nullish(),
+      service_tier: z.string().nullish(),
     }),
   }),
   z.object({

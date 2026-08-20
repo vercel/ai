@@ -1,6 +1,8 @@
 import {
   UnsupportedFunctionalityError,
   type JSONObject,
+  type JSONValue,
+  type LanguageModelV3FilePart,
   type LanguageModelV3Message,
   type LanguageModelV3Prompt,
   type SharedV3ProviderMetadata,
@@ -17,6 +19,7 @@ import {
   type BedrockCachePoint,
   type BedrockDocumentFormat,
   type BedrockDocumentMimeType,
+  type BedrockImageBlock,
   type BedrockImageFormat,
   type BedrockImageMimeType,
   type BedrockMessages,
@@ -49,6 +52,38 @@ function pushCachePoint(
   if (cachePoint) {
     content.push(cachePoint);
   }
+}
+
+function sanitizeToolName(toolName: string): string {
+  return toolName.replace(/[^a-zA-Z0-9_-]/g, '') || '_';
+}
+
+function getBedrockImageSource({
+  data,
+  functionality,
+}: {
+  data: LanguageModelV3FilePart['data'];
+  functionality: string;
+}): BedrockImageBlock['image']['source'] {
+  if (data instanceof URL) {
+    if (data.protocol !== 's3:') {
+      throw new UnsupportedFunctionalityError({ functionality });
+    }
+    return {
+      s3Location: {
+        uri: data.toString(),
+      },
+    };
+  }
+
+  return { bytes: convertToBase64(data) };
+}
+
+function getBedrockImageFormatFromUrl(url: URL): BedrockImageFormat {
+  const extension = url.pathname.split('.').pop()?.toLowerCase();
+  return getBedrockImageFormat(
+    `image/${extension === 'jpg' ? 'jpeg' : extension}`,
+  );
 }
 
 async function shouldEnableCitations(
@@ -122,21 +157,23 @@ export async function convertToBedrockChatMessages(
                   }
 
                   case 'file': {
-                    if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads files for user file parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'File URL data',
-                      });
-                    }
-
                     if (part.mediaType.startsWith('image/')) {
                       bedrockContent.push({
                         image: {
                           format: getBedrockImageFormat(part.mediaType),
-                          source: { bytes: convertToBase64(part.data) },
+                          source: getBedrockImageSource({
+                            data: part.data,
+                            functionality: 'File URL data',
+                          }),
                         },
                       });
                     } else {
+                      if (part.data instanceof URL) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'File URL data',
+                        });
+                      }
+
                       if (!part.mediaType) {
                         throw new UnsupportedFunctionalityError({
                           functionality: 'file without mime type',
@@ -196,6 +233,18 @@ export async function convertToBedrockChatMessages(
                                 source: {
                                   bytes: convertToBase64(contentPart.data),
                                 },
+                              },
+                            };
+                          }
+                          case 'image-url': {
+                            const url = new URL(contentPart.url);
+                            return {
+                              image: {
+                                format: getBedrockImageFormatFromUrl(url),
+                                source: getBedrockImageSource({
+                                  data: url,
+                                  functionality: `tool result image URL "${contentPart.url}"`,
+                                }),
                               },
                             };
                           }
@@ -346,6 +395,12 @@ export async function convertToBedrockChatMessages(
                       },
                     },
                   });
+                } else if (reasoningMetadata?.redactedContent != null) {
+                  bedrockContent.push({
+                    reasoningContent: {
+                      redactedContent: reasoningMetadata.redactedContent,
+                    },
+                  });
                 } else if (reasoningMetadata?.redactedData != null) {
                   bedrockContent.push({
                     reasoningContent: {
@@ -366,8 +421,8 @@ export async function convertToBedrockChatMessages(
                 bedrockContent.push({
                   toolUse: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
-                    name: part.toolName,
-                    input: part.input as JSONObject,
+                    name: sanitizeToolName(part.toolName),
+                    input: toBedrockToolInput(part.input),
                   },
                 });
                 break;
@@ -392,6 +447,13 @@ export async function convertToBedrockChatMessages(
   }
 
   return { system, messages };
+}
+
+// wrap invalid tool call input because Bedrock requires it to be an object
+function toBedrockToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }
 
 function isBedrockImageFormat(format: string): format is BedrockImageFormat {

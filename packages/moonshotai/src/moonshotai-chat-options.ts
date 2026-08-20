@@ -10,9 +10,15 @@ export type MoonshotAIChatModelId =
   | 'kimi-k2-thinking-turbo'
   | 'kimi-k2-turbo'
   | 'kimi-k2.5'
+  | 'kimi-k3'
   | (string & {});
 
 export const moonshotaiLanguageModelOptions = z.object({
+  /**
+   * Reasoning effort for Kimi K3.
+   */
+  reasoningEffort: z.enum(['low', 'high', 'max']).optional(),
+
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),
@@ -21,8 +27,35 @@ export const moonshotaiLanguageModelOptions = z.object({
     .optional(),
 
   reasoningHistory: z.enum(['disabled', 'interleaved', 'preserved']).optional(),
+
+  /**
+   * Used to cache responses for similar requests to optimize cache hit rates.
+   * Typically a session or task id.
+   */
+  promptCacheKey: z.string().optional(),
+
+  /**
+   * A stable identifier used to help Moonshot detect users violating usage
+   * policies. Recommended to hash the username or email address.
+   */
+  safetyIdentifier: z.string().optional(),
 });
 
 export type MoonshotAILanguageModelOptions = z.infer<
   typeof moonshotaiLanguageModelOptions
 >;
+
+/**
+ * Whether the model accepts `thinking.keep` (Preserved Thinking). Verified
+ * against the live API: kimi-k2.6, kimi-k2.7-code(+highspeed), and kimi-k3
+ * accept `keep: 'all'`; other models reject it with a 400.
+ */
+export function getModelThinkingKeepSupport(
+  modelId: MoonshotAIChatModelId,
+): boolean {
+  return (
+    modelId === 'kimi-k2.6' ||
+    modelId === 'kimi-k3' ||
+    modelId.startsWith('kimi-k2.7-code')
+  );
+}

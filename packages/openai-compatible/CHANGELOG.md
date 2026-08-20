@@ -1,5 +1,89 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.69
+
+### Patch Changes
+
+- 7440d89: fix(openai-compatible): preserve unmapped usage fields in `usage.raw`
+
+  `usage.raw` is specified as usage "in the shape that the provider returns",
+  and the chat model already parsed the usage object loosely so that extra
+  top-level fields survived. The nested `prompt_tokens_details` and
+  `completion_tokens_details` objects were still strict, so anything a provider
+  reported inside them was dropped — which is where providers put their most
+  distinguishing detail. The existing "should preserve extra usage fields"
+  fixture was itself losing `audio_tokens`, `image_tokens` and `text_tokens`
+  this way.
+
+  Both nested objects are now parsed loosely, as is the completion model's usage
+  schema, which was strict throughout despite feeding the same `raw` field.
+
+  Only `usage.raw` changes. The mapped token counts are unaffected.
+
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 2.0.67
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 2.0.66
+
+### Patch Changes
+
+- de18066: fix(provider/openai-compatible): clamp `outputTokens.text` at 0 when a provider reports `completion_tokens_details.reasoning_tokens` greater than `completion_tokens` (observed with Baseten serving reasoning models that hit the length stop mid-reasoning). The text share of completion tokens can never be negative; `total` and `reasoning` remain as reported by the provider.
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
+## 2.0.64
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+
+## 2.0.63
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 2.0.61
+
+### Patch Changes
+
+- 94fda5c: Preserve structured error data from chat completion SSE streams.
+
+## 2.0.60
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 2.0.59
 
 ### Patch Changes

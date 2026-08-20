@@ -1,6 +1,7 @@
 import {
   NoSuchModelError,
   type LanguageModelV3,
+  type EmbeddingModelV3,
   type ProviderV3,
 } from '@ai-sdk/provider';
 import {
@@ -10,6 +11,8 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { PerplexityEmbeddingModel } from './perplexity-embedding-model';
+import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-options';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import type { PerplexityLanguageModelId } from './perplexity-language-model-options';
 import { VERSION } from './version';
@@ -26,9 +29,19 @@ export interface PerplexityProvider extends ProviderV3 {
   languageModel(modelId: PerplexityLanguageModelId): LanguageModelV3;
 
   /**
+   * Creates a Perplexity model for text embeddings.
+   */
+  embedding(modelId: PerplexityEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * Creates a Perplexity model for text embeddings.
+   */
+  embeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV3;
+
+  /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: string): never;
+  textEmbeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV3;
 }
 
 export interface PerplexityProviderSettings {
@@ -70,16 +83,26 @@ export function createPerplexity(
       `ai-sdk/perplexity/${VERSION}`,
     );
 
+  const baseURL = withoutTrailingSlash(
+    options.baseURL ?? 'https://api.perplexity.ai',
+  )!;
+
   const createLanguageModel = (modelId: PerplexityLanguageModelId) => {
     return new PerplexityLanguageModel(modelId, {
-      baseURL: withoutTrailingSlash(
-        options.baseURL ?? 'https://api.perplexity.ai',
-      )!,
+      baseURL,
       headers: getHeaders,
       generateId,
       fetch: options.fetch,
     });
   };
+
+  const createEmbeddingModel = (modelId: PerplexityEmbeddingModelId) =>
+    new PerplexityEmbeddingModel(modelId, {
+      provider: 'perplexity.embedding',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   const provider = (modelId: PerplexityLanguageModelId) =>
     createLanguageModel(modelId);
@@ -87,10 +110,9 @@ export function createPerplexity(
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
-  provider.textEmbeddingModel = provider.embeddingModel;
+  provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

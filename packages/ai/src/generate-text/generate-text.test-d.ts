@@ -65,4 +65,21 @@ describe('generateText types', () => {
       expectTypeOf<typeof result.output>().toEqualTypeOf<JSONValue>();
     });
   });
+
+  it('should support model call settings in prepareStep', async () => {
+    await generateText({
+      model: new MockLanguageModelV3(),
+      prompt: 'Hello, world!',
+      prepareStep: async () => ({
+        maxOutputTokens: 100,
+        temperature: 0,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0,
+        frequencyPenalty: -0.2,
+        stopSequences: [],
+        seed: 0,
+      }),
+    });
+  });
 });

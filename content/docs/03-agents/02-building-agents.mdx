@@ -117,6 +117,10 @@ const agent = new ToolLoopAgent({
 
 Learn more about [loop control and stop conditions](/docs/agents/loop-control).
 
+Model call settings returned from `prepareStep`, such as `temperature`, apply
+only to the current step. Later steps use the agent's top-level setting unless
+they return another override.
+
 ### Tool Choice
 
 Control how the agent uses tools:

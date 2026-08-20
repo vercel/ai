@@ -28,6 +28,9 @@ export type AnthropicUsageIteration = {
 export type AnthropicMessagesUsage = {
   input_tokens: number;
   output_tokens: number;
+  output_tokens_details?: {
+    thinking_tokens?: number | null;
+  } | null;
   cache_creation_input_tokens?: number | null;
   cache_read_input_tokens?: number | null;
   /**
@@ -50,6 +53,8 @@ export function convertAnthropicMessagesUsage({
 }): LanguageModelV3Usage {
   const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
   const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+  const reasoningTokens =
+    usage.output_tokens_details?.thinking_tokens ?? undefined;
 
   // When iterations is present (compaction or advisor), sum across executor
   // iterations to get the true executor totals. The top-level input_tokens
@@ -101,8 +106,9 @@ export function convertAnthropicMessagesUsage({
     },
     outputTokens: {
       total: outputTokens,
-      text: undefined,
-      reasoning: undefined,
+      text:
+        reasoningTokens == null ? undefined : outputTokens - reasoningTokens,
+      reasoning: reasoningTokens,
     },
     raw: rawUsage ?? usage,
   };

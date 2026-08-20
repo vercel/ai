@@ -1,5 +1,120 @@
 # @ai-sdk/openai
 
+## 3.0.99
+
+### Patch Changes
+
+- f40afcf: fix(openai): expand internal parallel tool call wrappers from the Responses API while preserving stateful continuation and streaming fallbacks
+
+## 3.0.98
+
+### Patch Changes
+
+- 91880b9: fix(openai): support built-in and provider-defined tools in the Responses `allowedTools` option
+
+  `allowedTools` emitted every allow-list entry as `{ type: 'function', name }`, but OpenAI identifies
+  built-in tools by type. Allow-listing a declared provider-defined tool (web search, image generation,
+  MCP, custom, ...) therefore failed with `Tool choice '<name>' not found in 'tools' parameter`. Entries
+  are now derived from the declared tool, including the MCP server label and custom tool name.
+
+  Tools that OpenAI cannot allow-list (the tool search tool, deferred tools, and namespaced tools) are
+  dropped from the allow-list with a warning, and an error is thrown if that would leave the allow-list
+  empty rather than silently sending an unrestricted request.
+
+  Ambiguous names are now reported instead of resolved silently. A name that matches both a declared tool
+  and another tool's provider tool name resolves to the declared tool and warns; a provider tool name
+  shared by several tools in the same request (two MCP servers, for example) is dropped with a warning.
+  A name that matches no declared tool keeps its existing behavior and is now warned about.
+
+## 3.0.97
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 3.0.96
+
+### Patch Changes
+
+- 64facff: Reconstruct provider-executed shell calls when continuing OpenAI Responses with storage disabled.
+
+## 3.0.95
+
+### Patch Changes
+
+- bdb46fe: Avoid duplicate MCP approval request references when continuing stored OpenAI Responses.
+
+## 3.0.94
+
+### Patch Changes
+
+- d3247d7: Keep client-executed function calls paired with their outputs when chaining OpenAI Responses with a previous response ID.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.93
+
+### Patch Changes
+
+- f471a1c: Accept `serviceTier: 'fast'` on OpenAI chat and responses models. OpenAI renamed priority processing to Fast mode and accepts `service_tier: 'fast'` and `'priority'` interchangeably, so `'fast'` is now passed through verbatim and gated on the same model capability as `'priority'`.
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 3.0.92
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
+## 3.0.91
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+
+## 3.0.90
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+
+## 3.0.89
+
+### Patch Changes
+
+- 23632b1: Add blocked domain filters to the OpenAI and Azure Responses API web search tools.
+
+## 3.0.88
+
+### Patch Changes
+
+- 8100830: Apply reasoning, service tier, and image defaults to recognizable future OpenAI model family versions.
+
+## 3.0.87
+
+### Patch Changes
+
+- 2f11af1: Preserve stored tool search output item IDs from provider metadata.
+
+## 3.0.86
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 3.0.85
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 3.0.84
 
 ### Patch Changes

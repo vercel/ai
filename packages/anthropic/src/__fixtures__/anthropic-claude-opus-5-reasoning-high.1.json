@@ -1,0 +1,35 @@
+{
+  "model": "claude-opus-5",
+  "id": "msg_011CdMNhurHSJCxCC2NB7WYc",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "thinking",
+      "thinking": "I need to find all roots of this cubic polynomial and verify them.",
+      "signature": "test-signature"
+    },
+    {
+      "type": "text",
+      "text": "The roots are 1, 2, and 3."
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+    "input_tokens": 51,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1699,
+    "output_tokens_details": {
+      "thinking_tokens": 139
+    },
+    "service_tier": "standard",
+    "inference_geo": "global"
+  }
+}

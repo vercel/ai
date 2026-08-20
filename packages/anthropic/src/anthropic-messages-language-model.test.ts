@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type { AnthropicLanguageModelOptions } from './anthropic-messages-options';
+import { getModelCapabilities } from './anthropic-messages-language-model';
 import { createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
@@ -217,6 +218,26 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(result.warnings).toEqual([]);
       });
+
+      it('should report thinking tokens as reasoning usage', async () => {
+        prepareJsonFixtureResponse('anthropic-claude-opus-5-reasoning-high.1');
+
+        const result = await provider('claude-opus-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'adaptive', display: 'summarized' },
+              effort: 'high',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(result.usage.outputTokens).toEqual({
+          total: 1699,
+          text: 1560,
+          reasoning: 139,
+        });
+      });
     });
 
     describe('reasoning (thinking disabled)', () => {
@@ -362,6 +383,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerOptions: {
             anthropic: {
               structuredOutputMode: 'jsonTool',
+              disableParallelToolUse: false,
             } satisfies AnthropicLanguageModelOptions,
           },
           responseFormat: {
@@ -420,6 +442,18 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
           }
         `);
+      });
+
+      it('should warn when parallel tool use is requested', () => {
+        expect(result.warnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'providerOptions.anthropic.disableParallelToolUse',
+            details:
+              '`disableParallelToolUse: false` is ignored when using the JSON response tool. ' +
+              'Parallel tool use is disabled to ensure a single coherent JSON tool call.',
+          },
+        ]);
       });
 
       it('should return the json response', async () => {
@@ -826,7 +860,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
-            "max_tokens": 4096,
+            "max_tokens": 128000,
             "messages": [
               {
                 "content": [
@@ -1314,6 +1348,25 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
           'server-side-fallback-2026-06-01',
+        );
+      });
+
+      it('should pass fallbacks "default" through and add the 2026-07-01 beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-fable-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              fallbacks: 'default',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.fallbacks).toBe('default');
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'server-side-fallback-2026-07-01',
         );
       });
 
@@ -3337,6 +3390,32 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         it('should include web fetch 20260209 tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
+        });
+
+        it('should preserve dynamic filtering callers', async () => {
+          const codeExecutionCall = result.content.find(
+            part =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          const webFetchCall = result.content.find(
+            part => part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          const webFetchResult = result.content.find(
+            part =>
+              part.type === 'tool-result' && part.toolName === 'web_fetch',
+          );
+
+          expect(
+            codeExecutionCall?.providerMetadata?.anthropic?.caller,
+          ).toEqual({ type: 'direct', toolId: undefined });
+          expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_015CSHH7X69AhdK9gNzotEeh',
+          });
+          expect(webFetchResult?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_015CSHH7X69AhdK9gNzotEeh',
+          });
         });
       });
 
@@ -9059,6 +9138,147 @@ describe('AnthropicMessagesLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+
+      it('should preserve the complete code execution transcript when replaying streamed output', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20260120-cache-replay',
+        );
+
+        const tools = [
+          {
+            type: 'provider' as const,
+            id: 'anthropic.code_execution_20260120' as const,
+            name: 'code_execution',
+            args: {},
+          },
+        ];
+        const liveResult = await provider('claude-sonnet-5').doStream({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        const parts = await convertReadableStreamToArray(liveResult.stream);
+        const toolCalls = parts.filter(
+          (part): part is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            part.type === 'tool-call' && part.toolName === 'code_execution',
+        );
+        const toolResults = parts.filter(
+          (part): part is LanguageModelV3StreamPart & { type: 'tool-result' } =>
+            part.type === 'tool-result' && part.toolName === 'code_execution',
+        );
+        const text = parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => (part.type === 'text-delta' ? part.delta : ''))
+          .join('');
+
+        expect(toolCalls).toHaveLength(2);
+        expect(toolResults).toHaveLength(2);
+        if (toolCalls.length !== 2 || toolResults.length !== 2) {
+          throw new Error(
+            'Live fixture did not contain the complete code execution transcript',
+          );
+        }
+
+        prepareChunksFixtureResponse('anthropic-refusal');
+        const replayResult = await provider('claude-sonnet-5').doStream({
+          prompt: [
+            ...TEST_PROMPT,
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: toolCalls[0].toolCallId,
+                  toolName: toolCalls[0].toolName,
+                  input: JSON.parse(toolCalls[0].input),
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: toolResults[0].toolCallId,
+                  toolName: toolResults[0].toolName,
+                  output: {
+                    type: 'json',
+                    value: toolResults[0].result,
+                  },
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: toolCalls[1].toolCallId,
+                  toolName: toolCalls[1].toolName,
+                  input: JSON.parse(toolCalls[1].input),
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: toolResults[1].toolCallId,
+                  toolName: toolResults[1].toolName,
+                  output: {
+                    type: 'json',
+                    value: toolResults[1].result,
+                  },
+                },
+                { type: 'text', text },
+              ],
+            },
+          ],
+          tools,
+        });
+        await convertReadableStreamToArray(replayResult.stream);
+
+        const replayRequest = await server.calls[1].requestBodyJson;
+        const expectedTranscript = [
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_01G1TEN1tmE12onHPBoUZXyz',
+            name: 'bash_code_execution',
+            input: {
+              command: 'for n in $(seq 1 12); do echo "$n: $((n*n))"; done',
+            },
+          },
+          {
+            type: 'bash_code_execution_tool_result',
+            tool_use_id: 'srvtoolu_01G1TEN1tmE12onHPBoUZXyz',
+            content: {
+              type: 'bash_code_execution_result',
+              stdout:
+                '1: 1\n2: 4\n3: 9\n4: 16\n5: 25\n6: 36\n7: 49\n8: 64\n9: 81\n10: 100\n11: 121\n12: 144\n',
+              stderr: '',
+              return_code: 0,
+              content: [],
+            },
+          },
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_01RVGDngrjBVGaN4p46X6hcq',
+            name: 'bash_code_execution',
+            input: {
+              command:
+                'sum=0; for n in $(seq 1 12); do sum=$((sum+n*n)); done; echo "Sum: $sum"',
+            },
+          },
+          {
+            type: 'bash_code_execution_tool_result',
+            tool_use_id: 'srvtoolu_01RVGDngrjBVGaN4p46X6hcq',
+            content: {
+              type: 'bash_code_execution_result',
+              stdout: 'Sum: 650\n',
+              stderr: '',
+              return_code: 0,
+              content: [],
+            },
+          },
+          {
+            type: 'text',
+            text: 'The sum of the squares of the integers from 1 to 12 is **650**.',
+          },
+        ];
+        const replayedTranscript = replayRequest.messages[1].content;
+
+        expect(replayedTranscript).toEqual(expectedTranscript);
+        expect(JSON.stringify(replayedTranscript)).toBe(
+          JSON.stringify(expectedTranscript),
+        );
+      });
     });
 
     describe('web fetch tool', () => {
@@ -9134,6 +9354,36 @@ describe('AnthropicMessagesLanguageModel', () => {
           expect(
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();
+        });
+
+        it('should preserve dynamic filtering callers', async () => {
+          const streamArray = await convertReadableStreamToArray(result.stream);
+          const codeExecutionCall = streamArray.find(
+            (part): part is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          const webFetchCall = streamArray.find(
+            (part): part is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+              part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          const webFetchResult = streamArray.find(
+            (
+              part,
+            ): part is LanguageModelV3StreamPart & { type: 'tool-result' } =>
+              part.type === 'tool-result' && part.toolName === 'web_fetch',
+          );
+
+          expect(
+            codeExecutionCall?.providerMetadata?.anthropic?.caller,
+          ).toEqual({ type: 'direct', toolId: undefined });
+          expect(webFetchCall?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+          });
+          expect(webFetchResult?.providerMetadata?.anthropic?.caller).toEqual({
+            type: 'code_execution_20260120',
+            toolId: 'srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK',
+          });
         });
       });
     });
@@ -9947,6 +10197,210 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
     });
+  });
+});
+
+describe('getModelCapabilities', () => {
+  it('should return correct capabilities for claude-opus-4-8', () => {
+    expect(getModelCapabilities('claude-opus-4-8')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-fable-5', () => {
+    expect(getModelCapabilities('claude-fable-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-opus-4-7', () => {
+    expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-sonnet-5', () => {
+    expect(getModelCapabilities('claude-sonnet-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-opus-4-6', () => {
+    const caps = getModelCapabilities('claude-opus-4-6');
+    expect(caps.rejectsSamplingParameters).toBe(false);
+    expect(caps.rejectsThinkingDisabledAboveHighEffort).toBe(false);
+  });
+
+  it('should return correct capabilities for claude-sonnet-4-6', () => {
+    const caps = getModelCapabilities('claude-sonnet-4-6');
+    expect(caps.rejectsSamplingParameters).toBe(false);
+    expect(caps.rejectsThinkingDisabledAboveHighEffort).toBe(false);
+  });
+
+  it('should return correct capabilities for claude-opus-5', () => {
+    expect(getModelCapabilities('claude-opus-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should not match claude-opus-5 capabilities for claude-opus-4-5', () => {
+    const caps = getModelCapabilities('claude-opus-4-5');
+    expect(caps.maxOutputTokens).toBe(64000);
+    expect(caps.rejectsThinkingDisabledAboveHighEffort).toBe(false);
+  });
+});
+
+describe('effort with thinking disabled', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const provider = createAnthropic({ apiKey: 'test-api-key' });
+  const model = provider('claude-future-9');
+
+  it.each(['xhigh', 'max'] as const)(
+    'should warn and lower effort to high when thinking is disabled with effort %s',
+    async effort => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const { warnings } = await model.doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+        maxOutputTokens: 1024,
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'disabled' },
+            effort,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.output_config.effort).toBe('high');
+      expect(requestBody.thinking).toEqual({ type: 'disabled' });
+      expect(warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.anthropic.effort',
+        }),
+      );
+    },
+  );
+
+  it('should not lower effort for known models', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'xhigh',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config.effort).toBe('xhigh');
+  });
+});
+
+describe('mid-conversation tool changes', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const provider = createAnthropic({ apiKey: 'test-api-key' });
+
+  it('should send tool change blocks and the beta header', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [{ type: 'tool_removal', toolName: 'get_weather' }],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages).toContainEqual({
+      role: 'system',
+      content: [
+        {
+          type: 'tool_removal',
+          tool: { type: 'tool_reference', name: 'get_weather' },
+        },
+      ],
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'mid-conversation-tool-changes-2026-07-01',
+    );
   });
 });
 

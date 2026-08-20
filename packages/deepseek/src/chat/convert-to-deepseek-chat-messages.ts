@@ -9,10 +9,12 @@ export function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
   modelId,
+  supportsStructuredOutputs = false,
 }: {
   prompt: LanguageModelV3Prompt;
   responseFormat: LanguageModelV3CallOptions['responseFormat'];
   modelId: string;
+  supportsStructuredOutputs?: boolean;
 }): {
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV3Warning>;
@@ -28,7 +30,7 @@ export function convertToDeepSeekChatMessages({
         role: 'system',
         content: 'Return JSON.',
       });
-    } else {
+    } else if (!supportsStructuredOutputs) {
       messages.push({
         role: 'system',
         content:

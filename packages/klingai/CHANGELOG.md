@@ -1,5 +1,73 @@
 # @ai-sdk/klingai
 
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+
+## 3.0.32
+
+### Patch Changes
+
+- 747a1f3: feat(provider/klingai): support single API key authentication
+
+  Kling AI now issues a single API key that is sent as a bearer token. Set it via
+  the `apiKey` provider setting or the `KLINGAI_API_KEY` environment variable. The
+  legacy `accessKey` / `secretKey` pair keeps working; when it is used the
+  provider continues to sign a short-lived JWT per request.
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 3.0.29
 
 ### Patch Changes

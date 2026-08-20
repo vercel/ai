@@ -1,6 +1,9 @@
 import fs from 'fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV3Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -220,13 +223,14 @@ describe('doGenerate', () => {
         },
         "outputTokens": {
           "reasoning": 320,
-          "text": -318,
+          "text": 0,
           "total": 2,
         },
         "raw": {
           "completion_tokens": 2,
           "completion_tokens_details": {
             "accepted_prediction_tokens": 0,
+            "audio_tokens": 0,
             "reasoning_tokens": 320,
             "rejected_prediction_tokens": 0,
           },
@@ -234,7 +238,10 @@ describe('doGenerate', () => {
           "num_sources_used": 0,
           "prompt_tokens": 12,
           "prompt_tokens_details": {
+            "audio_tokens": 0,
             "cached_tokens": 2,
+            "image_tokens": 0,
+            "text_tokens": 12,
           },
           "total_tokens": 334,
         },
@@ -1627,6 +1634,63 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it('should preserve extra usage fields nested inside token details', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-test',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'grok-3',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello!',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 100,
+            completion_tokens: 50,
+            total_tokens: 150,
+            prompt_tokens_details: {
+              cached_tokens: 80,
+              // Provider-specific detail, e.g. Alibaba's caching-mode
+              // discriminator, which decides the rate a cache read bills at.
+              cache_type: 'ephemeral',
+            },
+            completion_tokens_details: {
+              reasoning_tokens: 10,
+              provider_specific_detail: 7,
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.raw).toMatchInlineSnapshot(`
+        {
+          "completion_tokens": 50,
+          "completion_tokens_details": {
+            "provider_specific_detail": 7,
+            "reasoning_tokens": 10,
+          },
+          "prompt_tokens": 100,
+          "prompt_tokens_details": {
+            "cache_type": "ephemeral",
+            "cached_tokens": 80,
+          },
+          "total_tokens": 150,
+        }
+      `);
+    });
   });
 });
 
@@ -1712,6 +1776,59 @@ describe('doStream', () => {
       }
     `);
   });
+
+  it.each([
+    {
+      scenario: 'the connection closes',
+      finalChunks: [],
+    },
+    {
+      scenario: '[DONE] is received',
+      finalChunks: ['data: [DONE]\n\n'],
+    },
+  ])(
+    'should report an error when $scenario without a finish reason',
+    async ({ finalChunks }) => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"content":" World"},"finish_reason":null}]}\n\n`,
+          ...finalChunks,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type === 'text-delta')).toStrictEqual(
+        [
+          { type: 'text-delta', delta: 'Hello', id: 'txt-0' },
+          { type: 'text-delta', delta: ' World', id: 'txt-0' },
+        ],
+      );
+
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+      expect(errors[0].error).toMatchObject({
+        message: 'Response stream ended without a finish reason.',
+      });
+
+      expect(events.filter(event => event.type === 'finish')).toStrictEqual([
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        }),
+      ]);
+    },
+  );
 
   it('should handle empty string role in delta chunks', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
@@ -3020,11 +3137,11 @@ describe('doStream', () => {
     `);
   });
 
-  it('should handle error stream parts', async () => {
+  it('should preserve structured error stream parts', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"error": {"message": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.", "code": "Client specified an invalid argument"}}\n\n`,
+        `data: {"error": {"message": "Context length exceeded", "code": "CONTEXT_LENGTH_EXCEEDED"}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -3041,7 +3158,10 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "error": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.",
+          "error": {
+            "code": "CONTEXT_LENGTH_EXCEEDED",
+            "message": "Context length exceeded",
+          },
           "type": "error",
         },
         {

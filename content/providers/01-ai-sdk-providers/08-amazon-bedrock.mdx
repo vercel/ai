@@ -536,6 +536,11 @@ console.log(amazonResult.reasoningText); // reasoning text
 console.log(amazonResult.text); // text response
 ```
 
+For Anthropic models, Bedrock's `maxTokens` limit includes both thinking and
+final text. The provider therefore adds `budgetTokens` to `maxOutputTokens`
+when setting `maxTokens`. When `maxOutputTokens` is omitted, the provider adds
+`budgetTokens` to the default of `4096`.
+
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
@@ -1618,6 +1623,11 @@ console.log(reasoningText); // reasoning text
 console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
+
+Anthropic's `max_tokens` limit includes both thinking and final text. To reserve
+room for both, the provider adds `budgetTokens` to `maxOutputTokens` when
+setting `max_tokens`. For known models, the combined value is capped at the
+model's maximum output token limit.
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.

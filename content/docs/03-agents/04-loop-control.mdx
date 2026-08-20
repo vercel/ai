@@ -178,6 +178,46 @@ const result = await agent.generate({
 });
 ```
 
+### Model Call Settings
+
+Override provider-agnostic model call settings for an individual step. This can
+be useful when tool-calling steps need more deterministic sampling than the
+final response:
+
+```ts
+import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  temperature: 0.7,
+  tools: {
+    // your tools
+  },
+  prepareStep: async ({ stepNumber }) => {
+    if (stepNumber === 0) {
+      return {
+        temperature: 0,
+        maxOutputTokens: 300,
+      };
+    }
+
+    return {};
+  },
+});
+
+const result = await agent.generate({
+  prompt: '...',
+});
+```
+
+`prepareStep` can override `maxOutputTokens`, `temperature`, `topP`, `topK`,
+`presencePenalty`, `frequencyPenalty`, `stopSequences`, and `seed`. These
+overrides apply only to the current step. When a setting is omitted or
+`undefined`, the top-level value is used for that step. Defined falsy values
+such as `temperature: 0`, `seed: 0`, and an empty `stopSequences` array are
+preserved.
+
 ### Context Management
 
 Manage growing conversation history in long-running loops:

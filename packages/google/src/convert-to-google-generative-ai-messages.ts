@@ -101,6 +101,7 @@ function appendToolResultParts(
     [key: string]: unknown;
   }>,
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -143,7 +144,9 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
-      ...(toolCallId != null ? { id: toolCallId } : {}),
+      ...(includeFunctionCallIds && toolCallId != null
+        ? { id: toolCallId }
+        : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -172,13 +175,16 @@ function appendLegacyToolResultParts(
     [key: string]: unknown;
   }>,
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
-            ...(toolCallId != null ? { id: toolCallId } : {}),
+            ...(includeFunctionCallIds && toolCallId != null
+              ? { id: toolCallId }
+              : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -234,6 +240,7 @@ export function convertToGoogleGenerativeAIMessages(
      * injected.
      */
     onWarning?: (warning: SharedV3Warning) => void;
+    includeFunctionCallIds?: boolean;
   },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -245,6 +252,7 @@ export function convertToGoogleGenerativeAIMessages(
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
   const onWarning = options?.onWarning;
+  const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -313,6 +321,8 @@ export function convertToGoogleGenerativeAIMessages(
       case 'assistant': {
         systemMessagesAllowed = false;
 
+        let modelResponseHasSignedFunctionCall = false;
+
         contents.push({
           role: 'model',
           parts: content
@@ -375,18 +385,27 @@ export function convertToGoogleGenerativeAIMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
-
-                  // For Gemini 3, every replayed functionCall part must carry a
-                  // thoughtSignature or the API returns HTTP 400. If the upstream
-                  // serialization layer dropped the signature, inject the
-                  // documented sentinel so the request still succeeds.
+                  const isServerToolCall =
+                    serverToolCallId != null && serverToolType != null;
+                  const shouldSkipMissingSignatureMitigation =
+                    // Gemini 3 returns a single signature for a parallel
+                    // function-call response on the first standard function
+                    // call. Subsequent standard function calls in the same
+                    // model response legitimately have no signature.
+                    !isServerToolCall &&
+                    thoughtSignature == null &&
+                    modelResponseHasSignedFunctionCall;
                   const effectiveThoughtSignature =
                     thoughtSignature ??
-                    (isGemini3Model
+                    (isGemini3Model && !shouldSkipMissingSignatureMitigation
                       ? injectSkipSignature(part.toolName)
                       : undefined);
 
-                  if (serverToolCallId && serverToolType) {
+                  if (!isServerToolCall && thoughtSignature != null) {
+                    modelResponseHasSignedFunctionCall = true;
+                  }
+
+                  if (isServerToolCall) {
                     return {
                       toolCall: {
                         toolType: serverToolType,
@@ -402,7 +421,7 @@ export function convertToGoogleGenerativeAIMessages(
 
                   return {
                     functionCall: {
-                      ...(part.toolCallId != null
+                      ...(includeFunctionCallIds && part.toolCallId != null
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
@@ -499,6 +518,7 @@ export function convertToGoogleGenerativeAIMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             } else {
               appendLegacyToolResultParts(
@@ -506,12 +526,15 @@ export function convertToGoogleGenerativeAIMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             }
           } else {
             parts.push({
               functionResponse: {
-                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
+                ...(includeFunctionCallIds && part.toolCallId != null
+                  ? { id: part.toolCallId }
+                  : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,

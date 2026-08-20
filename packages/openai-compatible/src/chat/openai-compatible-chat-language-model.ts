@@ -430,10 +430,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       }
     >();
 
-    let finishReason: LanguageModelV3FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV3FinishReason | undefined;
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
@@ -474,7 +471,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
-                error: chunk.value.error.message,
+                error: chunk.value.error,
               });
               return;
             }
@@ -752,6 +749,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               });
             }
 
+            if (finishReason == null) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error: new InvalidResponseDataError({
+                  data: undefined,
+                  message: 'Response stream ended without a finish reason.',
+                }),
+              });
+            }
+
             const providerMetadata: SharedV3ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
@@ -786,18 +794,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 }
 
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
 const openaiCompatibleTokenUsageSchema = z
   .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
     prompt_tokens_details: z
-      .object({
+      .looseObject({
         cached_tokens: z.number().nullish(),
       })
       .nullish(),
     completion_tokens_details: z
-      .object({
+      .looseObject({
         reasoning_tokens: z.number().nullish(),
         accepted_prediction_tokens: z.number().nullish(),
         rejected_prediction_tokens: z.number().nullish(),

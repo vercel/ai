@@ -95,6 +95,7 @@ import type {
 } from './callback-events';
 import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
+import { filterActiveTools } from './filter-active-tools';
 import { text, type Output } from './output';
 import type {
   InferCompleteOutput,
@@ -102,6 +103,7 @@ import type {
   InferPartialOutput,
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
+import { prepareStepCallSettings } from './prepare-step-call-settings';
 import type { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
@@ -713,6 +715,11 @@ function createOutputTransformStream<
       textChunk += chunk.text;
       textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
 
+      if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
       // only publish if partial json can be parsed:
       const result = await output.parsePartialOutput({ text });
 
@@ -882,6 +889,7 @@ class DefaultStreamTextResult<
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
+    let currentStepToolSet = tools;
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -927,7 +935,10 @@ class DefaultStreamTextResult<
           part.type === 'tool-input-delta' ||
           part.type === 'raw'
         ) {
-          await onChunk?.({ chunk: part });
+          await notify({
+            event: { chunk: part },
+            callbacks: onChunk,
+          });
         }
 
         if (part.type === 'error') {
@@ -937,7 +948,10 @@ class DefaultStreamTextResult<
             recordedNoOutputError = error;
           }
 
-          await onError({ error });
+          await notify({
+            event: { error },
+            callbacks: onError,
+          });
         }
 
         if (part.type === 'text-start') {
@@ -1081,7 +1095,7 @@ class DefaultStreamTextResult<
         if (part.type === 'finish-step') {
           const stepMessages = await toResponseMessages({
             content: recordedContent,
-            tools,
+            tools: currentStepToolSet,
           });
 
           // Add step information (after response messages are updated):
@@ -1641,6 +1655,11 @@ class DefaultStreamTextResult<
 
             const stepActiveTools =
               prepareStepResult?.activeTools ?? activeTools;
+            const stepToolSet = filterActiveTools({
+              tools,
+              activeTools: stepActiveTools,
+            });
+            currentStepToolSet = stepToolSet;
 
             const { toolChoice: stepToolChoice, tools: stepTools } =
               await prepareToolsAndToolChoice({
@@ -1662,6 +1681,11 @@ class DefaultStreamTextResult<
               providerOptions,
               prepareStepResult?.providerOptions,
             );
+
+            const stepCallSettings = prepareStepCallSettings({
+              callSettings,
+              stepSettings: prepareStepResult,
+            });
 
             await notify({
               event: {
@@ -1728,23 +1752,26 @@ class DefaultStreamTextResult<
                     'gen_ai.system': stepModel.provider,
                     'gen_ai.request.model': stepModel.modelId,
                     'gen_ai.request.frequency_penalty':
-                      callSettings.frequencyPenalty,
-                    'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                      stepCallSettings.frequencyPenalty,
+                    'gen_ai.request.max_tokens':
+                      stepCallSettings.maxOutputTokens,
                     'gen_ai.request.presence_penalty':
-                      callSettings.presencePenalty,
-                    'gen_ai.request.stop_sequences': callSettings.stopSequences,
-                    'gen_ai.request.temperature': callSettings.temperature,
-                    'gen_ai.request.top_k': callSettings.topK,
-                    'gen_ai.request.top_p': callSettings.topP,
+                      stepCallSettings.presencePenalty,
+                    'gen_ai.request.stop_sequences':
+                      stepCallSettings.stopSequences,
+                    'gen_ai.request.temperature': stepCallSettings.temperature,
+                    'gen_ai.request.top_k': stepCallSettings.topK,
+                    'gen_ai.request.top_p': stepCallSettings.topP,
                   },
                 }),
                 tracer,
                 endWhenDone: false,
+                endOnError: true,
                 fn: async doStreamSpan => ({
                   startTimestampMs: now(), // get before the call
                   doStreamSpan,
                   result: await stepModel.doStream({
-                    ...callSettings,
+                    ...stepCallSettings,
                     tools: stepTools,
                     toolChoice: stepToolChoice,
                     responseFormat: await output?.responseFormat,
@@ -1759,7 +1786,7 @@ class DefaultStreamTextResult<
             );
 
             const streamWithToolResults = runToolsTransformation({
-              tools,
+              tools: stepToolSet,
               generatorStream: stream,
               tracer,
               telemetry,
@@ -1871,15 +1898,18 @@ class DefaultStreamTextResult<
                       }
 
                       case 'text-delta': {
-                        if (chunk.delta.length > 0) {
+                        if (
+                          chunk.delta.length > 0 ||
+                          chunk.providerMetadata != null
+                        ) {
                           controller.enqueue({
                             type: 'text-delta',
                             id: chunk.id,
                             text: chunk.delta,
                             providerMetadata: chunk.providerMetadata,
                           });
-                          activeText += chunk.delta;
                         }
+                        activeText += chunk.delta;
                         break;
                       }
 
@@ -1967,7 +1997,7 @@ class DefaultStreamTextResult<
                       case 'tool-input-start': {
                         activeToolCallToolNames[chunk.id] = chunk.toolName;
 
-                        const tool = tools?.[chunk.toolName];
+                        const tool = stepToolSet?.[chunk.toolName];
                         if (tool?.onInputStart != null) {
                           await tool.onInputStart({
                             toolCallId: chunk.id,
@@ -1993,7 +2023,7 @@ class DefaultStreamTextResult<
 
                       case 'tool-input-delta': {
                         const toolName = activeToolCallToolNames[chunk.id];
-                        const tool = tools?.[toolName];
+                        const tool = stepToolSet?.[toolName];
 
                         if (tool?.onInputDelta != null) {
                           await tool.onInputDelta({
@@ -2167,7 +2197,7 @@ class DefaultStreamTextResult<
                     // the client tool's result is sent back.
                     for (const toolCall of stepToolCalls) {
                       if (toolCall.providerExecuted !== true) continue;
-                      const tool = tools?.[toolCall.toolName];
+                      const tool = stepToolSet?.[toolCall.toolName];
                       if (
                         tool?.type === 'provider' &&
                         tool.supportsDeferredResults
@@ -2220,7 +2250,7 @@ class DefaultStreamTextResult<
                           content:
                             // use transformed content to create the messages for the next step:
                             recordedSteps[recordedSteps.length - 1].content,
-                          tools,
+                          tools: stepToolSet,
                         })),
                       );
 
@@ -2907,7 +2937,7 @@ class DefaultStreamTextResult<
       ...init
     }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
-    pipeUIMessageStreamToResponse({
+    return pipeUIMessageStreamToResponse({
       response,
       stream: this.toUIMessageStream({
         originalMessages,
@@ -2925,7 +2955,7 @@ class DefaultStreamTextResult<
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    pipeTextStreamToResponse({
+    return pipeTextStreamToResponse({
       response,
       textStream: this.textStream,
       ...init,

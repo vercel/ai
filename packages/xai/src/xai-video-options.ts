@@ -2,7 +2,7 @@ import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const nonEmptyStringSchema = z.string().min(1);
-const resolutionSchema = z.enum(['480p', '720p']);
+const resolutionSchema = z.enum(['480p', '720p', '1080p']);
 const modeSchema = z.enum(['edit-video', 'extend-video', 'reference-to-video']);
 
 export type XaiVideoMode = z.infer<typeof modeSchema>;
@@ -14,7 +14,15 @@ interface XaiVideoSharedOptions {
   resolution?: XaiVideoResolution | null;
 }
 
-interface XaiVideoEditModeOptions extends XaiVideoSharedOptions {
+interface XaiVideoUserOptions {
+  /**
+   * A unique identifier representing the end user, for abuse monitoring.
+   */
+  user?: string;
+}
+
+interface XaiVideoEditModeOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   /**
    * Select edit-video mode explicitly for best autocomplete and narrowing.
    */
@@ -32,22 +40,29 @@ interface XaiVideoExtendModeOptions extends XaiVideoSharedOptions {
   videoUrl: string;
 }
 
-interface XaiVideoReferenceToVideoOptions extends XaiVideoSharedOptions {
+interface XaiVideoReferenceToVideoOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   /**
    * Select reference-to-video mode explicitly for best autocomplete and narrowing.
    */
   mode: 'reference-to-video';
   /** Reference image URLs (1-7) for R2V generation. */
   referenceImageUrls: string[];
+  /**
+   * Preset voice ids (up to 3) that give the subject a voice.
+   */
+  referenceVoiceIds?: string[];
 }
 
-interface XaiVideoGenerationOptions extends XaiVideoSharedOptions {
+interface XaiVideoGenerationOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   mode?: undefined;
   videoUrl?: undefined;
   referenceImageUrls?: undefined;
 }
 
-interface XaiLegacyEditVideoOptions extends XaiVideoSharedOptions {
+interface XaiLegacyEditVideoOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   /**
    * Legacy backward-compatible shape: omitting `mode` while providing
    * `videoUrl` behaves like edit-video.
@@ -56,13 +71,18 @@ interface XaiLegacyEditVideoOptions extends XaiVideoSharedOptions {
   videoUrl: string;
 }
 
-interface XaiLegacyReferenceToVideoOptions extends XaiVideoSharedOptions {
+interface XaiLegacyReferenceToVideoOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   /**
    * Legacy backward-compatible shape: omitting `mode` while providing
    * `referenceImageUrls` behaves like reference-to-video.
    */
   mode?: undefined;
   referenceImageUrls: string[];
+  /**
+   * Preset voice ids (up to 3) that give the subject a voice.
+   */
+  referenceVoiceIds?: string[];
 }
 
 /**
@@ -74,6 +94,9 @@ interface XaiLegacyReferenceToVideoOptions extends XaiVideoSharedOptions {
  * - `'extend-video'`       + `videoUrl`           -- video extension (`POST /v1/videos/extensions`)
  * - `'reference-to-video'` + `referenceImageUrls` -- R2V generation  (`POST /v1/videos/generations`)
  * - no `mode`                                     -- standard generation from text prompts or image input
+ *
+ * Reference images may also come from the top-level `inputReferences` option
+ * instead of `referenceImageUrls`.
  *
  * Runtime remains backward compatible with legacy auto-detected provider
  * options, but the public TypeScript type is intentionally explicit so editors
@@ -94,11 +117,21 @@ const baseFields = {
   resolution: resolutionSchema.nullish(),
 };
 
+const userField = {
+  user: z.string().optional(),
+};
+
+const referenceVoiceIdsField = {
+  referenceVoiceIds: z.array(nonEmptyStringSchema).max(3).optional(),
+};
+
 const editVideoSchema = z.object({
   ...baseFields,
+  ...userField,
   mode: z.literal('edit-video'),
   videoUrl: nonEmptyStringSchema,
   referenceImageUrls: z.undefined().optional(),
+  referenceVoiceIds: z.undefined().optional(),
 });
 
 const extendVideoSchema = z.object({
@@ -106,10 +139,13 @@ const extendVideoSchema = z.object({
   mode: z.literal('extend-video'),
   videoUrl: nonEmptyStringSchema,
   referenceImageUrls: z.undefined().optional(),
+  referenceVoiceIds: z.undefined().optional(),
 });
 
 const referenceToVideoSchema = z.object({
   ...baseFields,
+  ...userField,
+  ...referenceVoiceIdsField,
   mode: z.literal('reference-to-video'),
   referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7),
   videoUrl: z.undefined().optional(),
@@ -117,6 +153,8 @@ const referenceToVideoSchema = z.object({
 
 const autoDetectSchema = z.object({
   ...baseFields,
+  ...userField,
+  ...referenceVoiceIdsField,
   mode: z.undefined().optional(),
   videoUrl: nonEmptyStringSchema.optional(),
   referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
@@ -134,6 +172,8 @@ const runtimeSchema = z
     mode: modeSchema.optional(),
     videoUrl: nonEmptyStringSchema.optional(),
     referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
+    referenceVoiceIds: z.array(nonEmptyStringSchema).max(3).optional(),
+    user: z.string().optional(),
     ...baseFields,
   })
   .passthrough();

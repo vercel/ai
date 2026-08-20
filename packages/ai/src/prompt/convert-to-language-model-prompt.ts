@@ -25,6 +25,7 @@ import {
   createDefaultDownloadFunction,
   type DownloadFunction,
 } from '../util/download/download-function';
+import { mergeObjects } from '../util/merge-objects';
 import {
   convertDataContentToBase64String,
   convertToLanguageModelV3DataContent,
@@ -106,7 +107,19 @@ export async function convertToLanguageModelPrompt({
 
     const lastCombinedMessage = combinedMessages.at(-1);
     if (lastCombinedMessage?.role === 'tool') {
+      const lastContentPart = lastCombinedMessage.content.at(-1);
+      if (
+        lastContentPart != null &&
+        lastCombinedMessage.providerOptions != null
+      ) {
+        lastContentPart.providerOptions = mergeObjects(
+          lastCombinedMessage.providerOptions,
+          lastContentPart.providerOptions,
+        );
+      }
+
       lastCombinedMessage.content.push(...message.content);
+      lastCombinedMessage.providerOptions = message.providerOptions;
     } else {
       combinedMessages.push(message);
     }

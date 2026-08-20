@@ -247,6 +247,81 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
+  it('should abort a hanging POST with the request signal', async () => {
+    let resolveSseController: (
+      controller: ReadableStreamDefaultController<Uint8Array>,
+    ) => void;
+    const sseControllerPromise = new Promise<
+      ReadableStreamDefaultController<Uint8Array>
+    >(resolve => {
+      resolveSseController = resolve;
+    });
+    let resolvePostStarted: () => void;
+    const postStarted = new Promise<void>(resolve => {
+      resolvePostStarted = resolve;
+    });
+    let postAborted = false;
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method !== 'POST') {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                resolveSseController(controller);
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          );
+        }
+
+        resolvePostStarted();
+        return new Promise<Response>((_, reject) => {
+          const signal = init.signal as AbortSignal;
+          signal.addEventListener(
+            'abort',
+            () => {
+              postAborted = true;
+              reject(signal.reason);
+            },
+            { once: true },
+          );
+        });
+      },
+    );
+    transport = new SseMCPTransport({
+      url: 'http://localhost:3000/sse',
+      fetch,
+    });
+
+    const connectPromise = transport.start();
+    const sseController = await sseControllerPromise;
+    sseController.enqueue(
+      new TextEncoder().encode(
+        'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+      ),
+    );
+    await connectPromise;
+
+    const abortController = new AbortController();
+    const abortReason = new Error('stop POST');
+    const sendPromise = transport.send(
+      {
+        jsonrpc: '2.0' as const,
+        method: 'test',
+        params: {},
+        id: '1',
+      },
+      { signal: abortController.signal },
+    );
+
+    await postStarted;
+    abortController.abort(abortReason);
+
+    await expect(sendPromise).rejects.toBe(abortReason);
+    expect(postAborted).toBe(true);
+    await transport.close();
+  });
+
   it('should reject cross-origin endpoints before connecting', async () => {
     const controller = new TestResponseController();
 

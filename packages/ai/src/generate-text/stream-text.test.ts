@@ -413,6 +413,164 @@ describe('streamText', () => {
     logWarningsSpy.mockRestore();
   });
 
+  it('should reject calls to inactive tools without executing them', async () => {
+    const execute = vi.fn(async () => 'result');
+    let providerToolCount: number | undefined;
+
+    const result = streamText({
+      model: new MockLanguageModelV3({
+        doStream: async ({ tools }) => {
+          providerToolCount = tools?.length;
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+              {
+                type: 'finish',
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute,
+        }),
+      },
+      prompt: 'test-input',
+      activeTools: [],
+    });
+
+    await result.consumeStream();
+
+    const [toolCall] = await result.toolCalls;
+
+    expect({
+      executeCallCount: execute.mock.calls.length,
+      providerToolCount,
+      toolCall: {
+        type: toolCall.type,
+        toolName: toolCall.toolName,
+        invalid: toolCall.invalid,
+        error: toolCall.invalid ? toolCall.error : undefined,
+      },
+      toolResults: await result.toolResults,
+    }).toMatchInlineSnapshot(`
+      {
+        "executeCallCount": 0,
+        "providerToolCount": 0,
+        "toolCall": {
+          "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: .],
+          "invalid": true,
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        "toolResults": [],
+      }
+    `);
+  });
+
+  it('should apply prepareStep activeTools to tool execution', async () => {
+    const execute = vi.fn(async () => 'result');
+    const providerToolCounts: Array<number | undefined> = [];
+    let modelCallCount = 0;
+
+    const result = streamText({
+      model: new MockLanguageModelV3({
+        doStream: async ({ tools }) => {
+          providerToolCounts.push(tools?.length);
+          modelCallCount++;
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: `call-${modelCallCount}`,
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+              {
+                type: 'finish',
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute,
+        }),
+      },
+      prompt: 'test-input',
+      prepareStep: ({ stepNumber }) =>
+        stepNumber === 1 ? { activeTools: [] } : undefined,
+      stopWhen: stepCountIs(2),
+    });
+
+    await result.consumeStream();
+    const steps = await result.steps;
+    const [secondStepToolCall] = steps[1].toolCalls;
+
+    expect({
+      executeCallCount: execute.mock.calls.length,
+      providerToolCounts,
+      firstStepToolResults: steps[0].toolResults,
+      secondStepToolCall: {
+        type: secondStepToolCall.type,
+        toolName: secondStepToolCall.toolName,
+        invalid: secondStepToolCall.invalid,
+        error: secondStepToolCall.invalid
+          ? secondStepToolCall.error
+          : undefined,
+      },
+      secondStepToolResults: steps[1].toolResults,
+    }).toMatchInlineSnapshot(`
+      {
+        "executeCallCount": 1,
+        "firstStepToolResults": [
+          {
+            "dynamic": false,
+            "input": {
+              "location": "Basel",
+            },
+            "output": "result",
+            "toolCallId": "call-1",
+            "toolName": "weather",
+            "type": "tool-result",
+          },
+        ],
+        "providerToolCounts": [
+          1,
+          0,
+        ],
+        "secondStepToolCall": {
+          "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: .],
+          "invalid": true,
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        "secondStepToolResults": [],
+      }
+    `);
+  });
+
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
@@ -617,6 +775,47 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should preserve provider metadata from empty text deltas', async () => {
+      const providerMetadata = {
+        testProvider: { signature: 'test-signature' },
+      };
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '',
+              providerMetadata,
+            },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toContainEqual({
+        type: 'text-delta',
+        id: '1',
+        text: '',
+        providerMetadata,
+      });
+      expect((await result.steps)[0].content).toContainEqual({
+        type: 'text',
+        text: 'Hello',
+        providerMetadata,
+      });
     });
 
     it('should send reasoning deltas', async () => {
@@ -5900,6 +6099,177 @@ describe('streamText', () => {
       });
     });
 
+    it('should apply prepareStep model call settings only to the current step', async () => {
+      const modelCallOptions: Array<LanguageModelV3CallOptions> = [];
+      const tracer = new MockTracer();
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async options => {
+            modelCallOptions.push(options);
+            const currentResponse = responseCount++;
+
+            return {
+              stream: convertArrayToReadableStream<LanguageModelV3StreamPart>(
+                currentResponse < 2
+                  ? [
+                      {
+                        type: 'tool-call' as const,
+                        toolCallId: `call-${currentResponse}`,
+                        toolName: 'tool1',
+                        input: '{ "value": "test" }',
+                      },
+                      {
+                        type: 'finish' as const,
+                        finishReason: {
+                          unified: 'tool-calls' as const,
+                          raw: undefined,
+                        },
+                        usage: testUsage,
+                      },
+                    ]
+                  : [
+                      { type: 'text-start' as const, id: '1' },
+                      {
+                        type: 'text-delta' as const,
+                        id: '1',
+                        delta: 'Final answer.',
+                      },
+                      { type: 'text-end' as const, id: '1' },
+                      {
+                        type: 'finish' as const,
+                        finishReason: {
+                          unified: 'stop' as const,
+                          raw: 'stop',
+                        },
+                        usage: testUsage,
+                      },
+                    ],
+              ),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        maxOutputTokens: 100,
+        temperature: 1,
+        topP: 0.9,
+        topK: 40,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.3,
+        stopSequences: ['outer'],
+        seed: 123,
+        prepareStep: async ({ stepNumber }) =>
+          stepNumber === 1
+            ? {
+                maxOutputTokens: 50,
+                temperature: 0,
+                topP: 0.5,
+                topK: 10,
+                presencePenalty: 0,
+                frequencyPenalty: -0.2,
+                stopSequences: [],
+                seed: 0,
+              }
+            : stepNumber === 2
+              ? { temperature: undefined }
+              : undefined,
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const selectCallSettings = ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      }: LanguageModelV3CallOptions) => ({
+        maxOutputTokens,
+        temperature,
+        topP,
+        topK,
+        presencePenalty,
+        frequencyPenalty,
+        stopSequences,
+        seed,
+      });
+
+      expect(modelCallOptions.map(selectCallSettings)).toEqual([
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+        {
+          maxOutputTokens: 50,
+          temperature: 0,
+          topP: 0.5,
+          topK: 10,
+          presencePenalty: 0,
+          frequencyPenalty: -0.2,
+          stopSequences: [],
+          seed: 0,
+        },
+        {
+          maxOutputTokens: 100,
+          temperature: 1,
+          topP: 0.9,
+          topK: 40,
+          presencePenalty: 0.4,
+          frequencyPenalty: 0.3,
+          stopSequences: ['outer'],
+          seed: 123,
+        },
+      ]);
+      expect(
+        tracer.jsonSpans
+          .filter(span => span.name === 'ai.streamText.doStream')
+          .map(span => span.attributes['gen_ai.request.temperature']),
+      ).toEqual([1, 0, 1]);
+    });
+
+    it('should validate model call settings returned from prepareStep', async () => {
+      let validationError: unknown;
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        prepareStep: async () => ({
+          maxOutputTokens: 0,
+        }),
+        onError: ({ error }) => {
+          validationError = error;
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(validationError).toMatchObject({
+        message:
+          'Invalid argument for parameter maxOutputTokens: maxOutputTokens must be >= 1',
+      });
+    });
+
     it('should expose providerOptions and experimental_context', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
@@ -6933,6 +7303,42 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should continue stream processing when onChunk throws', async () => {
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onChunk({ chunk }) {
+          if (chunk.type === 'text-delta') {
+            throw new Error('callback error');
+          }
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.textStream),
+      ).resolves.toStrictEqual(['Hello']);
+      await expect(resultObject.finishReason).resolves.toBe('stop');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
+    });
   });
 
   describe('options.onError', () => {
@@ -6954,6 +7360,42 @@ describe('streamText', () => {
       await resultObject.consumeStream();
 
       expect(result).toStrictEqual([{ error: new Error('test error') }]);
+    });
+
+    it('should preserve error parts and finish callbacks when onError throws', async () => {
+      const error = new Error('provider error');
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'error', raw: 'error' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError() {
+          throw new Error('callback error');
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.fullStream),
+      ).resolves.toContainEqual({ type: 'error', error });
+      await expect(resultObject.finishReason).resolves.toBe('error');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
     });
   });
 
@@ -13301,6 +13743,48 @@ describe('streamText', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should end root and model call spans once when the model call fails', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            throw new Error('provider failed');
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        experimental_telemetry: { isEnabled: true, tracer },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const rootSpan = tracer.spans.find(span => span.name === 'ai.streamText');
+
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          endCalls: span.endCalls,
+          status: span.status,
+        })),
+      ).toEqual([
+        {
+          name: 'ai.streamText',
+          endCalls: 1,
+          status: { code: 2, message: 'provider failed' },
+        },
+        {
+          name: 'ai.streamText.doStream',
+          endCalls: 1,
+          status: { code: 2, message: 'provider failed' },
+        },
+      ]);
+
+      // The provider rejected before producing a finish part or usage, so
+      // failure telemetry must not fabricate response metadata.
+      expect(rootSpan?.attributes['ai.response.finishReason']).toBeUndefined();
+      expect(rootSpan?.attributes['ai.usage.totalTokens']).toBeUndefined();
+    });
+
     it('should record successful tool call', async () => {
       const result = streamText({
         model: createTestModel({
@@ -18026,6 +18510,17 @@ describe('streamText', () => {
                 "request": {},
                 "type": "start-step",
                 "warnings": [],
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
               },
               {
                 "reason": "This operation was aborted",

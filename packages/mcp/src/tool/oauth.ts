@@ -271,37 +271,65 @@ function assertAuthorizationServerInformationMatches({
   }
 }
 
-/**
- * Extracts the OAuth 2.0 Protected Resource Metadata URL from a WWW-Authenticate header (RFC9728).
- * Looks for a resource="..." parameter.
- */
-export function extractResourceMetadataUrl(
-  response: Response,
-): URL | undefined {
+export function extractWWWAuthenticateParams(response: Response): {
+  resourceMetadataUrl?: URL;
+  scope?: string;
+} {
   const header =
     response.headers.get('www-authenticate') ??
     response.headers.get('WWW-Authenticate');
   if (!header) {
-    return undefined;
+    return {};
   }
 
   const [type, scheme] = header.split(' ');
-  if (type.toLowerCase() !== 'bearer' || !scheme) {
-    return undefined;
+  if (type.replace(/,$/, '').toLowerCase() !== 'bearer' || !scheme) {
+    return {};
   }
 
-  // regex taken from MCP spec
-  const regex = /resource_metadata="([^"]*)"/;
-  const match = header.match(regex);
-  if (!match) {
-    return undefined;
-  }
+  const resourceMetadataMatch = header.match(
+    /(?:^|[,\s])resource_metadata="([^"]*)"/i,
+  );
+  const scope = header.match(/(?:^|[,\s])scope="([^"]*)"/i)?.[1];
 
+  let resourceMetadataUrl: URL | undefined;
   try {
-    return new URL(match[1]);
-  } catch {
-    return undefined;
+    resourceMetadataUrl = resourceMetadataMatch
+      ? new URL(resourceMetadataMatch[1])
+      : undefined;
+  } catch {}
+
+  return { resourceMetadataUrl, scope };
+}
+
+/**
+ * Extracts the OAuth 2.0 Protected Resource Metadata URL from a WWW-Authenticate header (RFC9728).
+ */
+export function extractResourceMetadataUrl(
+  response: Response,
+): URL | undefined {
+  return extractWWWAuthenticateParams(response).resourceMetadataUrl;
+}
+
+function selectScope({
+  scope,
+  resourceMetadata,
+  clientMetadata,
+}: {
+  scope?: string;
+  resourceMetadata?: OAuthProtectedResourceMetadata;
+  clientMetadata: OAuthClientMetadata;
+}): string | undefined {
+  if (scope) {
+    return scope;
   }
+
+  const resourceScopes = resourceMetadata?.scopes_supported?.join(' ');
+  if (resourceScopes) {
+    return resourceScopes;
+  }
+
+  return clientMetadata.scope;
 }
 
 /**
@@ -1309,7 +1337,11 @@ async function authInternal(
       clientInformation,
       state,
       redirectUrl: provider.redirectUrl,
-      scope: scope || provider.clientMetadata.scope,
+      scope: selectScope({
+        scope,
+        resourceMetadata,
+        clientMetadata: provider.clientMetadata,
+      }),
       resource,
     },
   );

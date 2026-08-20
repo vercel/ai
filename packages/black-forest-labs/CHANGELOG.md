@@ -1,5 +1,74 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.56
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 1.0.55
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 1.0.54
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
+## 1.0.52
+
+### Patch Changes
+
+- Updated dependencies [ee2bf30]
+  - @ai-sdk/provider-utils@4.0.42
+
+## 1.0.51
+
+### Patch Changes
+
+- 129101d: Report the settled cost for FLUX 3 video generations. The submit response can only estimate, and returns no cost when the price depends on the finished video; the result endpoint answers with `SettledCostResultResponse`, whose cost was being dropped.
+
+## 1.0.50
+
+### Patch Changes
+
+- ec89d78: Add FLUX 3 video support to the Black Forest Labs provider, including text-to-video, image-to-video keyframes, video continuation, draft enhancement, and polling.
+
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [9ecdefe]
+  - @ai-sdk/provider-utils@4.0.41
+
+## 1.0.48
+
+### Patch Changes
+
+- Updated dependencies [19093fd]
+  - @ai-sdk/provider-utils@4.0.40
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [06fb54c]
+  - @ai-sdk/provider-utils@4.0.39
+
 ## 1.0.46
 
 ### Patch Changes

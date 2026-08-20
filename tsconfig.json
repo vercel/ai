@@ -64,10 +64,16 @@
       "path": "packages/fireworks"
     },
     {
+      "path": "packages/fish-audio"
+    },
+    {
       "path": "packages/gateway"
     },
     {
       "path": "packages/gladia"
+    },
+    {
+      "path": "packages/gmicloud"
     },
     {
       "path": "packages/google-vertex"
@@ -101,6 +107,9 @@
     },
     {
       "path": "packages/mcp"
+    },
+    {
+      "path": "packages/minimax"
     },
     {
       "path": "packages/mistral"

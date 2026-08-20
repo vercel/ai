@@ -1,6 +1,7 @@
 import { cancelResponseBody } from './cancel-response-body';
 import { DownloadError } from './download-error';
 import { isBrowserRuntime } from './is-browser-runtime';
+import { getDefaultDownloadFetch } from './safe-node-fetch';
 import { validateDownloadUrl } from './validate-download-url';
 
 const MAX_DOWNLOAD_REDIRECTS = 10;
@@ -24,6 +25,11 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
  *
  * The returned response is the final (non-redirect) response. The caller is
  * responsible for checking `response.ok` and reading the body.
+ *
+ * On Node.js, the default fetch resolves every hostname through a validating
+ * lookup hook and passes those exact addresses to the connector, preventing
+ * hostname-to-private-IP and DNS-rebinding bypasses. Other runtimes should
+ * constrain egress at the network layer when handling untrusted URLs.
  *
  * @throws DownloadError if a hop is unsafe, the redirect limit is exceeded, or
  * a redirect cannot be validated on a non-browser runtime.
@@ -52,6 +58,7 @@ export async function fetchWithValidatedRedirects({
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount++) {
     validateDownloadUrl(currentUrl);
 
+    const fetch = await getDefaultDownloadFetch();
     const response = await fetch(currentUrl, {
       ...baseInit,
       redirect: 'manual',

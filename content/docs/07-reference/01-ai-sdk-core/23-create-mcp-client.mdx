@@ -121,6 +121,13 @@ It currently does not support accepting notifications from an MCP server, and cu
               ],
             },
             {
+              name: 'initializationOptions',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional signal and timeout settings that bound transport startup and the initialize request. A timeout or abort closes the transport and rejects createMCPClient.',
+            },
+            {
               name: 'clientName',
               type: 'string',
               isOptional: true,

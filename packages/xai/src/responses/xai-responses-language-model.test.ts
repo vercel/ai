@@ -564,6 +564,30 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('none');
         });
 
+        it('reasoningEffort xhigh', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.6').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'xhigh',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.model).toBe('grok-4.6');
+          expect(requestBody.reasoning.effort).toBe('xhigh');
+        });
+
         it('logprobs and topLogprobs', async () => {
           prepareJsonResponse({
             id: 'resp_123',
@@ -684,6 +708,54 @@ describe('XaiResponsesLanguageModel', () => {
 
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.previous_response_id).toBe('resp_456');
+        });
+
+        it('serviceTier', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+            service_tier: 'priority',
+          });
+
+          const { providerMetadata } = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                serviceTier: 'priority',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.service_tier).toBe('priority');
+          expect(providerMetadata?.xai.serviceTier).toBe('priority');
+        });
+
+        it('serviceTier reports a downgrade to default', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+            service_tier: 'default',
+          });
+
+          const { providerMetadata } = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                serviceTier: 'priority',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          expect(providerMetadata?.xai.serviceTier).toBe('default');
         });
 
         it('include with file_search_call.results', async () => {
@@ -824,6 +896,98 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      it('should send image data in function call output', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4.5',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        await createModel('grok-4.5').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Read the tool image.' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'inspectImage',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'inspectImage',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'text',
+                        text: 'The requested image is attached.',
+                      },
+                      {
+                        type: 'image-data',
+                        mediaType: 'image/png',
+                        data: 'AAECAw==',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect((await server.calls[0].requestBodyJson).input)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Read the tool image.",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "arguments": "{}",
+              "call_id": "call_123",
+              "id": "call_123",
+              "name": "inspectImage",
+              "status": "completed",
+              "type": "function_call",
+            },
+            {
+              "call_id": "call_123",
+              "output": [
+                {
+                  "text": "The requested image is attached.",
+                  "type": "input_text",
+                },
+                {
+                  "image_url": "data:image/png;base64,AAECAw==",
+                  "type": "input_image",
+                },
+              ],
+              "type": "function_call_output",
+            },
+          ]
+        `);
+      });
+
       it('should warn about unsupported stopSequences', async () => {
         prepareJsonResponse({
           id: 'resp_123',
@@ -843,6 +1007,41 @@ describe('XaiResponsesLanguageModel', () => {
           [
             {
               "feature": "stopSequences",
+              "type": "unsupported",
+            },
+          ]
+        `);
+      });
+
+      it('should warn about unsupported sampling settings', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          topK: 10,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.5,
+        });
+
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "feature": "topK",
+              "type": "unsupported",
+            },
+            {
+              "feature": "frequencyPenalty",
+              "type": "unsupported",
+            },
+            {
+              "feature": "presencePenalty",
               "type": "unsupported",
             },
           ]
@@ -1758,6 +1957,37 @@ describe('XaiResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should warn about unsupported sampling settings', async () => {
+      prepareChunksFixtureResponse('xai-text-streaming.1');
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.find(part => part.type === 'stream-start')?.warnings)
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "feature": "topK",
+            "type": "unsupported",
+          },
+          {
+            "feature": "frequencyPenalty",
+            "type": "unsupported",
+          },
+          {
+            "feature": "presencePenalty",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
     describe('text streaming', () => {
       it('should stream web search with real response', async () => {
         prepareChunksFixtureResponse('xai-web-search-tool.1');
