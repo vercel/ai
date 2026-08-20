@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -18,7 +18,7 @@ run(async () => {
   for (const modelId of models) {
     try {
       const result = streamText({
-        model: xai.responses(modelId),
+        model: spacexai.responses(modelId),
         prompt: 'Say a single word.',
       });
 

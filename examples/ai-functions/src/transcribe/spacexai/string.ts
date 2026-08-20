@@ -1,18 +1,21 @@
-import { xai, type XaiTranscriptionModelOptions } from '@ai-sdk/xai';
+import {
+  spacexai,
+  type SpaceXAITranscriptionModelOptions,
+} from '@ai-sdk/spacexai';
 import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: xai.transcription(),
+    model: spacexai.transcription(),
     audio: Buffer.from(await readFile('./data/galileo.mp3')).toString('base64'),
     providerOptions: {
-      xai: {
+      spacexai: {
         language: 'en',
         format: true,
         keyterm: ['Galileo', 'Jupiter'],
-      } satisfies XaiTranscriptionModelOptions,
+      } satisfies SpaceXAITranscriptionModelOptions,
     },
   });
 

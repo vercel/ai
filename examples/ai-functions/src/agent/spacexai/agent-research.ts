@@ -1,14 +1,14 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { ToolLoopAgent } from 'ai';
 import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
-  model: xai.responses('grok-4-fast-non-reasoning'),
+  model: spacexai.responses('grok-4-fast-non-reasoning'),
   instructions: 'you are a helpful research assistant',
   tools: {
-    web_search: xai.tools.webSearch(),
-    x_search: xai.tools.xSearch(),
-    code_execution: xai.tools.codeExecution(),
+    web_search: spacexai.tools.webSearch(),
+    x_search: spacexai.tools.xSearch(),
+    code_execution: spacexai.tools.codeExecution(),
   },
 });
 

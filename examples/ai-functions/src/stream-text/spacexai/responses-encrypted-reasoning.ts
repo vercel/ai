@@ -1,4 +1,7 @@
-import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
+import {
+  spacexai,
+  type SpaceXAILanguageModelResponsesOptions,
+} from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -9,12 +12,12 @@ run(async () => {
     console.log(`\n=> ${modelId}`);
 
     const result = streamText({
-      model: xai.responses(modelId),
+      model: spacexai.responses(modelId),
       prompt: 'What is 2+2? Think carefully.',
       providerOptions: {
-        xai: {
+        spacexai: {
           store: false,
-        } satisfies XaiLanguageModelResponsesOptions,
+        } satisfies SpaceXAILanguageModelResponsesOptions,
       },
     });
 
@@ -33,7 +36,7 @@ run(async () => {
       }
 
       if (part.type === 'reasoning-end') {
-        const xaiMetadata = part.providerMetadata?.xai as {
+        const xaiMetadata = part.providerMetadata?.spacexai as {
           itemId?: string;
           reasoningEncryptedContent?: string;
         };

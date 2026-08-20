@@ -1,4 +1,4 @@
-import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAIVideoModelOptions } from '@ai-sdk/spacexai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
@@ -9,7 +9,7 @@ run(async () => {
     'Generating xAI image-to-video with grok-imagine-video...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: spacexai.video('grok-imagine-video'),
         prompt: {
           image:
             'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
@@ -17,9 +17,9 @@ run(async () => {
         },
         duration: 5,
         providerOptions: {
-          xai: {
+          spacexai: {
             pollTimeoutMs: 600000, // 10 minutes
-          } satisfies XaiVideoModelOptions,
+          } satisfies SpaceXAIVideoModelOptions,
         },
       }),
   );

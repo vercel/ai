@@ -1,11 +1,11 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import fs from 'node:fs';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai('grok-4.5'),
+    model: spacexai('grok-4.5'),
     messages: [
       {
         role: 'user',

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -15,7 +15,7 @@ run(async () => {
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
-    model: xai.image('grok-imagine-image'),
+    model: spacexai.image('grok-imagine-image'),
     prompt: {
       text: prompt,
       images: [cat, dog],

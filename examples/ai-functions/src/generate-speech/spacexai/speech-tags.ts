@@ -1,11 +1,11 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateSpeech } from 'ai';
 import { saveAudioFile } from '../../lib/save-audio';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: xai.speech(),
+    model: spacexai.speech(),
     text: 'Wait for it. [pause] <whisper>This is synthesized by xAI.</whisper> [laugh]',
     voice: 'eve',
     language: 'en',

@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText, uploadFile } from 'ai';
 import fs from 'node:fs';
 import { run } from '../../lib/run';
@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const { providerReference, mediaType, filename, providerMetadata } =
     await uploadFile({
-      api: xai.files(),
+      api: spacexai.files(),
       data: fs.readFileSync('./data/ai.pdf'),
       filename: 'ai.pdf',
     });
@@ -17,7 +17,7 @@ run(async () => {
   console.log('Provider metadata:', providerMetadata);
 
   const result = await generateText({
-    model: xai.responses('grok-4.5'),
+    model: spacexai.responses('grok-4.5'),
     messages: [
       {
         role: 'user',

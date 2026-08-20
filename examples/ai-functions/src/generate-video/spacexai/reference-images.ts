@@ -1,4 +1,4 @@
-import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAIVideoModelOptions } from '@ai-sdk/spacexai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
@@ -13,7 +13,7 @@ run(async () => {
     'Generating xAI reference-to-video with grok-imagine-video...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: spacexai.video('grok-imagine-video'),
         prompt:
           'The comic cat from <IMAGE_1> and the comic dog from <IMAGE_2> ' +
           'are having a playful chase through a sunlit park. ' +
@@ -21,14 +21,14 @@ run(async () => {
         duration: 8,
         aspectRatio: '16:9',
         providerOptions: {
-          xai: {
+          spacexai: {
             mode: 'reference-to-video',
             referenceImageUrls: [
               'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
               'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-dog.png',
             ],
             pollTimeoutMs: 600000, // 10 minutes
-          } satisfies XaiVideoModelOptions,
+          } satisfies SpaceXAIVideoModelOptions,
         },
       }),
   );

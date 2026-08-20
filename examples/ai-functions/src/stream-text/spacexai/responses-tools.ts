@@ -1,14 +1,14 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { stream } = streamText({
-    model: xai.responses('grok-4-fast-non-reasoning'),
+    model: spacexai.responses('grok-4-fast-non-reasoning'),
     tools: {
-      web_search: xai.tools.webSearch(),
-      x_search: xai.tools.xSearch(),
-      code_execution: xai.tools.codeExecution(),
+      web_search: spacexai.tools.webSearch(),
+      x_search: spacexai.tools.xSearch(),
+      code_execution: spacexai.tools.codeExecution(),
     },
     prompt: 'Can you research about Vercel AI Gateway?',
   });

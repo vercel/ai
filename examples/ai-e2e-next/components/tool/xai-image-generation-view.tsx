@@ -1,10 +1,12 @@
-import type { xai } from '@ai-sdk/xai';
+import type { spacexai } from '@ai-sdk/spacexai';
 import type { UIToolInvocation } from 'ai';
 
-export default function XaiImageGenerationView({
+export default function SpaceXAIImageGenerationView({
   invocation,
 }: {
-  invocation: UIToolInvocation<ReturnType<typeof xai.tools.imageGeneration>>;
+  invocation: UIToolInvocation<
+    ReturnType<typeof spacexai.tools.imageGeneration>
+  >;
 }) {
   switch (invocation.state) {
     case 'input-streaming':

@@ -1,4 +1,4 @@
-import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAIVideoModelOptions } from '@ai-sdk/spacexai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { run } from '../../lib/run';
 
@@ -7,15 +7,15 @@ import { run } from '../../lib/run';
 run(async () => {
   console.log('Step 1: generating a source video...');
   const source = await generateVideo({
-    model: xai.video('grok-imagine-video'),
+    model: spacexai.video('grok-imagine-video'),
     prompt: 'A cat sitting on a windowsill.',
     duration: 3,
     providerOptions: {
-      xai: { pollTimeoutMs: 600000 } satisfies XaiVideoModelOptions,
+      spacexai: { pollTimeoutMs: 600000 } satisfies SpaceXAIVideoModelOptions,
     },
   });
 
-  const sourceUrl = source.providerMetadata?.xai?.videoUrl as
+  const sourceUrl = source.providerMetadata?.spacexai?.videoUrl as
     | string
     | undefined;
   if (sourceUrl == null) {
@@ -26,17 +26,17 @@ run(async () => {
 
   console.log('\nStep 2: extending with unsupported params...');
   const result = await generateVideo({
-    model: xai.video('grok-imagine-video'),
+    model: spacexai.video('grok-imagine-video'),
     prompt: 'The cat stretches and jumps off the windowsill.',
     duration: 5,
     aspectRatio: '16:9',
     resolution: '1280x720',
     providerOptions: {
-      xai: {
+      spacexai: {
         mode: 'extend-video',
         videoUrl: sourceUrl,
         pollTimeoutMs: 600000,
-      } satisfies XaiVideoModelOptions,
+      } satisfies SpaceXAIVideoModelOptions,
     },
   });
 

@@ -206,12 +206,12 @@ importers:
       '@ai-sdk/rsc':
         specifier: workspace:*
         version: link:../../packages/rsc
+      '@ai-sdk/spacexai':
+        specifier: workspace:*
+        version: link:../../packages/spacexai
       '@ai-sdk/valibot':
         specifier: workspace:*
         version: link:../../packages/valibot
-      '@ai-sdk/xai':
-        specifier: workspace:*
-        version: link:../../packages/xai
       '@langfuse/otel':
         specifier: ^4.6.1
         version: 4.6.1(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))
@@ -486,6 +486,9 @@ importers:
       '@ai-sdk/sandbox-vercel':
         specifier: workspace:*
         version: link:../../packages/sandbox-vercel
+      '@ai-sdk/spacexai':
+        specifier: workspace:*
+        version: link:../../packages/spacexai
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
@@ -498,9 +501,6 @@ importers:
       '@ai-sdk/voyage':
         specifier: workspace:*
         version: link:../../packages/voyage
-      '@ai-sdk/xai':
-        specifier: workspace:*
-        version: link:../../packages/xai
       '@basetenlabs/performance-client':
         specifier: 0.0.10
         version: 0.0.10
@@ -1696,9 +1696,9 @@ importers:
 
   examples/spacexai-tts-demo:
     dependencies:
-      '@ai-sdk/xai':
+      '@ai-sdk/spacexai':
         specifier: workspace:*
-        version: link:../../packages/xai
+        version: link:../../packages/spacexai
       ai:
         specifier: workspace:*
         version: link:../../packages/ai

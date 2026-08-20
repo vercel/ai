@@ -1,10 +1,10 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai('grok-4.5'),
+    model: spacexai('grok-4.5'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

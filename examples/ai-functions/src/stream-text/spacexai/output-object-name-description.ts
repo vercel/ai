@@ -1,11 +1,11 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { Output, streamText } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai('grok-4.5'),
+    model: spacexai('grok-4.5'),
     output: Output.object({
       schema: z.object({
         name: z.string(),

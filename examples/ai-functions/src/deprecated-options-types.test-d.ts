@@ -135,7 +135,7 @@ import type {
   XaiLanguageModelResponsesOptions,
   XaiProviderOptions,
   XaiResponsesProviderOptions,
-} from '@ai-sdk/xai';
+} from '@ai-sdk/spacexai';
 import { describe, expectTypeOf, it } from 'vitest';
 
 describe('deprecated provider options type aliases', () => {
@@ -334,7 +334,7 @@ describe('deprecated provider options type aliases', () => {
     });
   });
 
-  describe('@ai-sdk/xai', () => {
+  describe('@ai-sdk/spacexai', () => {
     it('XaiProviderOptions equals XaiLanguageModelChatOptions', () => {
       expectTypeOf<XaiProviderOptions>().toEqualTypeOf<XaiLanguageModelChatOptions>();
     });

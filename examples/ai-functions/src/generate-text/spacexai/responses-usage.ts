@@ -1,10 +1,10 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4-1-fast-non-reasoning'),
+    model: spacexai.responses('grok-4-1-fast-non-reasoning'),
     prompt: 'Say a single word.',
   });
 

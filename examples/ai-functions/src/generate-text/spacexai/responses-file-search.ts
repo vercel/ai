@@ -1,20 +1,23 @@
-import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
+import {
+  spacexai,
+  type SpaceXAILanguageModelResponsesOptions,
+} from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4-fast-non-reasoning'),
+    model: spacexai.responses('grok-4-fast-non-reasoning'),
     tools: {
-      file_search: xai.tools.fileSearch({
+      file_search: spacexai.tools.fileSearch({
         vectorStoreIds: ['collection_your-id-here'],
         maxNumResults: 10,
       }),
     },
     providerOptions: {
-      xai: {
+      spacexai: {
         include: ['file_search_call.results'],
-      } satisfies XaiLanguageModelResponsesOptions,
+      } satisfies SpaceXAILanguageModelResponsesOptions,
     },
     prompt: 'What documents do you have access to? Summarize the key findings.',
   });

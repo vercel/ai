@@ -1,10 +1,10 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { transcribe } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: xai.transcription(),
+    model: spacexai.transcription(),
     audio: new URL(
       'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
     ),

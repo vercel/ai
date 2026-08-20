@@ -1,21 +1,21 @@
-import { xai, type XaiSpeechModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAISpeechModelOptions } from '@ai-sdk/spacexai';
 import { generateSpeech } from 'ai';
 import { saveAudioFile } from '../../lib/save-audio';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: xai.speech(),
+    model: spacexai.speech(),
     text: 'A high fidelity narration sample generated with xAI.',
     voice: 'rex',
     language: 'en',
     outputFormat: 'mp3',
     providerOptions: {
-      xai: {
+      spacexai: {
         sampleRate: 44100,
         bitRate: 192000,
         textNormalization: true,
-      } satisfies XaiSpeechModelOptions,
+      } satisfies SpaceXAISpeechModelOptions,
     },
   });
 

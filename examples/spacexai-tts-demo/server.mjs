@@ -1,8 +1,8 @@
 // Minimal local app to test xAI text-to-speech and speech-to-text through
-// @ai-sdk/xai. The API key remains on this server and is never sent to the
+// @ai-sdk/spacexai. The API key remains on this server and is never sent to the
 // browser.
 import { createServer } from 'node:http';
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateSpeech, transcribe } from 'ai';
 
 const PORT = Number(process.env.PORT) || 5051;
@@ -133,11 +133,11 @@ const page = `<!doctype html>
 <body>
   <main>
     <h1>xAI Voice Demo</h1>
-    <p>Text-to-speech and speech-to-text via <code>@ai-sdk/xai</code>.</p>
+    <p>Text-to-speech and speech-to-text via <code>@ai-sdk/spacexai</code>.</p>
 
     <section>
       <h2>Text-to-Speech</h2>
-      <p class="section-copy">Speech via <code>xai.speech()</code> and <code>generateSpeech</code>. Include tags such as <code>[pause]</code> or <code>&lt;whisper&gt;...&lt;/whisper&gt;</code> in the text.</p>
+      <p class="section-copy">Speech via <code>spacexai.speech()</code> and <code>generateSpeech</code>. Include tags such as <code>[pause]</code> or <code>&lt;whisper&gt;...&lt;/whisper&gt;</code> in the text.</p>
       <div class="field">
         <label for="text">Text</label>
         <textarea id="text">Hello from the AI SDK. [pause] &lt;whisper&gt;This is xAI text to speech.&lt;/whisper&gt;</textarea>
@@ -184,7 +184,7 @@ const page = `<!doctype html>
 
     <section>
       <h2>Speech-to-Text</h2>
-      <p class="section-copy">Batch transcription via <code>xai.transcription()</code> and <code>transcribe</code>. Hold the button to record, then release to transcribe, or upload a file directly.</p>
+      <p class="section-copy">Batch transcription via <code>spacexai.transcription()</code> and <code>transcribe</code>. Hold the button to record, then release to transcribe, or upload a file directly.</p>
       <div class="field row">
         <div>
           <label for="transcriptionLanguage">Language <span class="hint">(for formatting)</span></label>
@@ -446,14 +446,14 @@ const server = createServer(async (req, res) => {
 
       const codec = CODECS.includes(outputFormat) ? outputFormat : 'mp3';
       const result = await generateSpeech({
-        model: xai.speech(),
+        model: spacexai.speech(),
         text,
         voice: voice || 'eve',
         language: language || 'auto',
         outputFormat: codec,
         speed,
         providerOptions: {
-          xai: {
+          spacexai: {
             sampleRate,
             optimizeStreamingLatency,
             textNormalization,
@@ -494,11 +494,11 @@ const server = createServer(async (req, res) => {
       }
 
       const result = await transcribe({
-        model: xai.transcription(),
+        model: spacexai.transcription(),
         audio,
         mediaType: mediaType || 'audio/webm',
         providerOptions: {
-          xai: {
+          spacexai: {
             language,
             keyterm,
             format: format || undefined,

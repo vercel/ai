@@ -1,10 +1,10 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai('grok-3-mini'),
+    model: spacexai('grok-3-mini'),
     prompt: 'Say a single word.',
   });
 

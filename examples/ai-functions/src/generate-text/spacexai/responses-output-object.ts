@@ -1,11 +1,11 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4.5'),
+    model: spacexai.responses('grok-4.5'),
     output: Output.object({
       schema: z.object({
         recipe: z.object({

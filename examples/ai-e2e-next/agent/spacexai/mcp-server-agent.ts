@@ -1,9 +1,9 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const xaiMcpServerAgent = new ToolLoopAgent({
-  model: xai.responses('grok-4-1-fast-reasoning'),
+  model: spacexai.responses('grok-4-1-fast-reasoning'),
   tools: {
-    mcp_server: xai.tools.mcpServer({
+    mcp_server: spacexai.tools.mcpServer({
       serverUrl: 'https://mcp.deepwiki.com/mcp',
       serverLabel: 'deepwiki',
       serverDescription: 'DeepWiki MCP server for repository analysis',
@@ -11,4 +11,6 @@ export const xaiMcpServerAgent = new ToolLoopAgent({
   },
 });
 
-export type XaiMcpServerMessage = InferAgentUIMessage<typeof xaiMcpServerAgent>;
+export type SpaceXAIMcpServerMessage = InferAgentUIMessage<
+  typeof xaiMcpServerAgent
+>;

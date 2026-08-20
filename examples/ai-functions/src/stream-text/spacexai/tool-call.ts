@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import {
   streamText,
   type ModelMessage,
@@ -14,7 +14,7 @@ run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
-    model: xai('grok-4.5'),
+    model: spacexai('grok-4.5'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

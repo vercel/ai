@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       ];
 
       const { images } = await generateImage({
-        model: xai.image('grok-imagine-image'),
+        model: spacexai.image('grok-imagine-image'),
         prompt:
           allImages.length > 0
             ? { text: promptText, images: allImages }

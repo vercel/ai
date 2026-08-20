@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { convertBase64ToUint8Array } from '../../lib/convert-base64';
 import { presentImages } from '../../lib/present-image';
@@ -6,10 +6,10 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai.responses('grok-4.5'),
+    model: spacexai.responses('grok-4.5'),
     prompt: 'Generate an image of an origami fox in a paper forest',
     tools: {
-      image_generation: xai.tools.imageGeneration({ action: 'generate' }),
+      image_generation: spacexai.tools.imageGeneration({ action: 'generate' }),
     },
   });
 

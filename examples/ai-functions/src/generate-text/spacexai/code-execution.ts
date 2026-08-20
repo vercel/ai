@@ -1,14 +1,14 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4.5'),
+    model: spacexai.responses('grok-4.5'),
     prompt:
       'Calculate the compound interest for $10,000 at 5% annually for 10 years',
     tools: {
-      code_execution: xai.tools.codeExecution(),
+      code_execution: spacexai.tools.codeExecution(),
     },
     onStepFinish: async ({ request, response }) => {
       console.log('Request:', JSON.stringify(request, null, 2));

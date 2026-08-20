@@ -1,12 +1,12 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4.5'),
+    model: spacexai.responses('grok-4.5'),
     tools: {
-      web_search: xai.tools.webSearch({ enableImageSearch: true }),
+      web_search: spacexai.tools.webSearch({ enableImageSearch: true }),
     },
     prompt: 'Show me images of SpaceX Starship on the launch pad.',
   });

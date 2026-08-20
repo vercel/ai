@@ -1,15 +1,18 @@
-import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
+import {
+  spacexai,
+  type SpaceXAILanguageModelResponsesOptions,
+} from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai.responses('grok-3-mini-latest'),
+    model: spacexai.responses('grok-3-mini-latest'),
     providerOptions: {
-      xai: {
+      spacexai: {
         reasoningEffort: 'low',
         reasoningSummary: 'detailed',
-      } satisfies XaiLanguageModelResponsesOptions,
+      } satisfies SpaceXAILanguageModelResponsesOptions,
     },
     prompt: 'What is 12 * 37?',
   });

@@ -1,10 +1,10 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai.responses('grok-code-fast-1'),
+    model: spacexai.responses('grok-code-fast-1'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

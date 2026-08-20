@@ -1,4 +1,4 @@
-import { createXai } from '@ai-sdk/xai';
+import { createSpaceXAI } from '@ai-sdk/spacexai';
 import { APICallError } from '@ai-sdk/provider';
 import { generateSpeech } from 'ai';
 import { run } from '../../lib/run';
@@ -26,7 +26,7 @@ const CASES: Array<{
     expect: 'names the rejected voice',
     run: () =>
       generateSpeech({
-        model: createXai({}).speech(),
+        model: createSpaceXAI({}).speech(),
         voice: 'not-a-real-voice',
         text: 'Hello, world!',
       }),
@@ -36,7 +36,7 @@ const CASES: Array<{
     expect: 'mentions the speed range',
     run: () =>
       generateSpeech({
-        model: createXai({}).speech(),
+        model: createSpaceXAI({}).speech(),
         speed: 2,
         text: 'Hello, world!',
       }),
@@ -46,9 +46,9 @@ const CASES: Array<{
     expect: 'explains the replace key constraint',
     run: () =>
       generateSpeech({
-        model: createXai({}).speech(),
+        model: createSpaceXAI({}).speech(),
         text: 'C++ is a language.',
-        providerOptions: { xai: { replace: { 'C++': 'C plus plus' } } },
+        providerOptions: { spacexai: { replace: { 'C++': 'C plus plus' } } },
       }),
   },
   {
@@ -56,7 +56,7 @@ const CASES: Array<{
     expect: 'mentions authentication',
     run: () =>
       generateSpeech({
-        model: createXai({ apiKey: 'not-a-real-key' }).speech(),
+        model: createSpaceXAI({ apiKey: 'not-a-real-key' }).speech(),
         text: 'Hello, world!',
       }),
   },

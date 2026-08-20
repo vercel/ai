@@ -1,4 +1,4 @@
-import { type XaiVideoModelOptions, xai } from '@ai-sdk/xai';
+import { type SpaceXAIVideoModelOptions, spacexai } from '@ai-sdk/spacexai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
@@ -9,14 +9,14 @@ import { withSpinner } from '../../lib/spinner';
 run(async () => {
   const { videos, warnings } = await withSpinner('Generating video...', () =>
     generateVideo({
-      model: xai.video('grok-imagine-video'),
+      model: spacexai.video('grok-imagine-video'),
       prompt: 'A yorkie among dandelions at Crissy Field in San Francisco.',
       aspectRatio: '16:9',
       duration: 5,
       providerOptions: {
-        xai: {
+        spacexai: {
           pollTimeoutMs: 600000, // 10 minutes
-        } satisfies XaiVideoModelOptions,
+        } satisfies SpaceXAIVideoModelOptions,
       },
       webhook: async () => {
         throw new Error(

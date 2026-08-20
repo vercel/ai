@@ -1,11 +1,11 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai('grok-4-fast-reasoning'),
+    model: spacexai('grok-4-fast-reasoning'),
     output: Output.object({
       schema: z.object({
         name: z.string(),

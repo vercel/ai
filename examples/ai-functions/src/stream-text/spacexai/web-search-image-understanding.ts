@@ -1,12 +1,12 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { stream } = streamText({
-    model: xai.responses('grok-4-fast-non-reasoning'),
+    model: spacexai.responses('grok-4-fast-non-reasoning'),
     tools: {
-      web_search: xai.tools.webSearch({
+      web_search: spacexai.tools.webSearch({
         allowedDomains: ['x.ai'],
         enableImageUnderstanding: true,
       }),

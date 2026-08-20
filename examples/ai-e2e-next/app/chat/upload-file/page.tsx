@@ -19,7 +19,7 @@ const MODELS = [
   { id: 'gpt-5.6', provider: 'openai', label: 'GPT-5.6 (OpenAI)' },
   {
     id: 'grok-4.20-0309-reasoning',
-    provider: 'xai',
+    provider: 'spacexai',
     label: 'Grok 4.20 Reasoning (xAI)',
   },
 ] as const;

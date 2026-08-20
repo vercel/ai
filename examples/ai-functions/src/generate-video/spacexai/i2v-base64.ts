@@ -1,4 +1,4 @@
-import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAIVideoModelOptions } from '@ai-sdk/spacexai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import fs from 'node:fs';
 import { presentVideos } from '../../lib/present-video';
@@ -10,16 +10,16 @@ run(async () => {
     'Generating xAI image-to-video from base64...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: spacexai.video('grok-imagine-video'),
         prompt: {
           image: fs.readFileSync('data/comic-cat.png'),
           text: 'The cat slowly turns its head and blinks',
         },
         duration: 5,
         providerOptions: {
-          xai: {
+          spacexai: {
             pollTimeoutMs: 600000, // 10 minutes
-          } satisfies XaiVideoModelOptions,
+          } satisfies SpaceXAIVideoModelOptions,
         },
       }),
   );

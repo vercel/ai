@@ -1,11 +1,11 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import fs from 'node:fs';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai('grok-4.5'),
+    model: spacexai('grok-4.5'),
     messages: [
       {
         role: 'user',
@@ -16,7 +16,7 @@ run(async () => {
             mediaType: 'image/png',
             data: fs.readFileSync('./data/comic-cat.png'),
             // process the image at reduced resolution (fewer input tokens)
-            providerOptions: { xai: { imageDetail: 'low' } },
+            providerOptions: { spacexai: { imageDetail: 'low' } },
           },
         ],
       },

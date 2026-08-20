@@ -1,5 +1,8 @@
 import { openai } from '@ai-sdk/openai';
-import { createXai, type XaiProviderSettings } from '@ai-sdk/xai';
+import {
+  createSpaceXAI,
+  type SpaceXAIProviderSettings,
+} from '@ai-sdk/spacexai';
 import {
   experimental_streamTranscribe as streamTranscribe,
   generateSpeech,
@@ -10,8 +13,8 @@ import { run } from '../../lib/run';
 // xAI streaming STT authenticates via WebSocket headers. The native
 // WebSocket in Node.js, browsers, Deno, and Bun cannot send headers,
 // so a header-capable implementation (e.g. the `ws` package) is required.
-const xai = createXai({
-  webSocket: WebSocket as unknown as XaiProviderSettings['webSocket'],
+const spacexai = createSpaceXAI({
+  webSocket: WebSocket as unknown as SpaceXAIProviderSettings['webSocket'],
 });
 
 run(async () => {
@@ -35,11 +38,11 @@ run(async () => {
   });
 
   const result = streamTranscribe({
-    model: xai.transcription(),
+    model: spacexai.transcription(),
     audio,
     inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
     providerOptions: {
-      xai: {
+      spacexai: {
         keyterm: ['AI SDK'],
         streaming: {
           interimResults: true,

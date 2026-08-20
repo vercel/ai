@@ -1,4 +1,4 @@
-import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAIVideoModelOptions } from '@ai-sdk/spacexai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
@@ -12,17 +12,17 @@ run(async () => {
   // Step 1: Generate a short source video.
   const source = await withSpinner('Step 1: Generating source video...', () =>
     generateVideo({
-      model: xai.video('grok-imagine-video'),
+      model: spacexai.video('grok-imagine-video'),
       prompt: 'A cat sitting on a sunlit windowsill, tail gently swishing.',
       duration: 5,
       aspectRatio: '16:9',
       providerOptions: {
-        xai: { pollTimeoutMs: 600000 } satisfies XaiVideoModelOptions,
+        spacexai: { pollTimeoutMs: 600000 } satisfies SpaceXAIVideoModelOptions,
       },
     }),
   );
 
-  const sourceUrl = source.providerMetadata?.xai?.videoUrl as
+  const sourceUrl = source.providerMetadata?.spacexai?.videoUrl as
     | string
     | undefined;
   if (sourceUrl == null) {
@@ -37,16 +37,16 @@ run(async () => {
     'Step 2: Extending video with a new scene...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: spacexai.video('grok-imagine-video'),
         prompt:
           'The cat slowly turns its head, notices a butterfly, and leaps off the windowsill.',
         duration: 6,
         providerOptions: {
-          xai: {
+          spacexai: {
             mode: 'extend-video',
             videoUrl: sourceUrl,
             pollTimeoutMs: 600000,
-          } satisfies XaiVideoModelOptions,
+          } satisfies SpaceXAIVideoModelOptions,
         },
       }),
   );

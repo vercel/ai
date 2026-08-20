@@ -1,4 +1,4 @@
-import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAIVideoModelOptions } from '@ai-sdk/spacexai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import fs from 'node:fs';
 import { presentVideos } from '../../lib/present-video';
@@ -10,7 +10,7 @@ run(async () => {
     'Generating xAI reference-to-video with explicit mediaType...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: spacexai.video('grok-imagine-video'),
         prompt:
           '<IMAGE_1> and <IMAGE_2> ' +
           'are having a playful chase through a sunlit park. ' +
@@ -28,9 +28,9 @@ run(async () => {
         duration: 8,
         aspectRatio: '16:9',
         providerOptions: {
-          xai: {
+          spacexai: {
             pollTimeoutMs: 600000, // 10 minutes
-          } satisfies XaiVideoModelOptions,
+          } satisfies SpaceXAIVideoModelOptions,
         },
       }),
   );

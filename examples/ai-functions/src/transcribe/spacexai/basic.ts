@@ -1,11 +1,11 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: xai.transcription(),
+    model: spacexai.transcription(),
     audio: await readFile('data/galileo.mp3'),
   });
 

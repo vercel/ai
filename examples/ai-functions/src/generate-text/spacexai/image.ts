@@ -1,11 +1,11 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import fs from 'node:fs';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.chat('grok-4-1-fast-non-reasoning'),
+    model: spacexai.chat('grok-4-1-fast-non-reasoning'),
     messages: [
       {
         role: 'user',

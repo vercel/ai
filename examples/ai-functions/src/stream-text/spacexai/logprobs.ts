@@ -1,19 +1,22 @@
-import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+import {
+  spacexai,
+  type SpaceXAILanguageModelChatOptions,
+} from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai('grok-4.5'),
+    model: spacexai('grok-4.5'),
     prompt: 'write one short sentence about san francisco',
     include: {
       rawChunks: true,
     },
     providerOptions: {
-      xai: {
+      spacexai: {
         logprobs: true,
         topLogprobs: 3,
-      } satisfies XaiLanguageModelChatOptions,
+      } satisfies SpaceXAILanguageModelChatOptions,
     },
   });
 

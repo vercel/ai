@@ -1,12 +1,12 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const xaiWebSearchAgent = new ToolLoopAgent({
-  model: xai.responses('grok-4-fast-reasoning'),
+  model: spacexai.responses('grok-4-fast-reasoning'),
   tools: {
-    web_search: xai.tools.webSearch({
+    web_search: spacexai.tools.webSearch({
       enableImageUnderstanding: true,
     }),
-    x_search: xai.tools.xSearch({
+    x_search: spacexai.tools.xSearch({
       enableImageUnderstanding: true,
     }),
   },
@@ -18,7 +18,7 @@ export const xaiWebSearchAgent = new ToolLoopAgent({
     console.log('Response body:', JSON.stringify(response.messages, null, 2));
   },
   providerOptions: {
-    xai: {
+    spacexai: {
       store: false, // enable ZDR - needs to be false for teams with ZDR enabled
       reasoningEffort: 'high',
       reasoningSummary: 'detailed',
@@ -26,4 +26,6 @@ export const xaiWebSearchAgent = new ToolLoopAgent({
   },
 });
 
-export type XaiWebSearchMessage = InferAgentUIMessage<typeof xaiWebSearchAgent>;
+export type SpaceXAIWebSearchMessage = InferAgentUIMessage<
+  typeof xaiWebSearchAgent
+>;

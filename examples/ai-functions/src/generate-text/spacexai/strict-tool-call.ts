@@ -1,11 +1,11 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai('grok-4-1-fast-reasoning'),
+    model: spacexai('grok-4-1-fast-reasoning'),
     tools: {
       getWeather: tool({
         description: 'Get weather by city and unit',

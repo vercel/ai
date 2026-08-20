@@ -1,4 +1,4 @@
-import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAIVideoModelOptions } from '@ai-sdk/spacexai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import fs from 'node:fs';
 import { presentVideos } from '../../lib/present-video';
@@ -10,7 +10,7 @@ run(async () => {
     'Generating xAI image-to-video from a first frame...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: spacexai.video('grok-imagine-video'),
         prompt:
           'The comic cat stretches, yawns, and pads off across a sunlit room. ' +
           'Cinematic, warm afternoon light.',
@@ -23,9 +23,9 @@ run(async () => {
         duration: 8,
         aspectRatio: '16:9',
         providerOptions: {
-          xai: {
+          spacexai: {
             pollTimeoutMs: 600000, // 10 minutes
-          } satisfies XaiVideoModelOptions,
+          } satisfies SpaceXAIVideoModelOptions,
         },
       }),
   );

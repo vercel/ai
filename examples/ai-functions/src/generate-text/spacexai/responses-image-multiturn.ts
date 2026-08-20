@@ -1,10 +1,10 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   console.log(
-    'Testing xai.responses() with image in multiturn conversation...\n',
+    'Testing spacexai.responses() with image in multiturn conversation...\n',
   );
 
   const imageUrl =
@@ -12,7 +12,7 @@ async function main() {
 
   console.log('Turn 1: Describe the image');
   const result1 = await generateText({
-    model: xai.responses('grok-4-1-fast-non-reasoning'),
+    model: spacexai.responses('grok-4-1-fast-non-reasoning'),
     messages: [
       {
         role: 'user',
@@ -28,7 +28,7 @@ async function main() {
 
   console.log('Turn 2: Follow-up question about the image');
   const result2 = await generateText({
-    model: xai.responses('grok-4-1-fast-non-reasoning'),
+    model: spacexai.responses('grok-4-1-fast-non-reasoning'),
     messages: [
       {
         role: 'user',

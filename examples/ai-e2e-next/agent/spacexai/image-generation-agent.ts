@@ -1,16 +1,16 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 
 export const xaiImageGenerationAgent = new ToolLoopAgent({
-  model: xai.responses('grok-4.5'),
+  model: spacexai.responses('grok-4.5'),
   tools: {
-    image_generation: xai.tools.imageGeneration(),
+    image_generation: spacexai.tools.imageGeneration(),
   },
   onStepFinish: ({ request }) => {
     console.log(JSON.stringify(request.body, null, 2));
   },
 });
 
-export type XaiImageGenerationMessage = InferAgentUIMessage<
+export type SpaceXAIImageGenerationMessage = InferAgentUIMessage<
   typeof xaiImageGenerationAgent
 >;

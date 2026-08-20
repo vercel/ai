@@ -1,16 +1,19 @@
-import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
+import {
+  spacexai,
+  type SpaceXAILanguageModelResponsesOptions,
+} from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4.5'),
+    model: spacexai.responses('grok-4.5'),
     prompt: 'write one short sentence about san francisco',
     providerOptions: {
-      xai: {
+      spacexai: {
         logprobs: true,
         topLogprobs: 3,
-      } satisfies XaiLanguageModelResponsesOptions,
+      } satisfies SpaceXAILanguageModelResponsesOptions,
     },
   });
 

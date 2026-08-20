@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
-import { xai as provider } from '@ai-sdk/xai';
+import { spacexai as provider } from '@ai-sdk/spacexai';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,

@@ -6,7 +6,7 @@ import { luma } from '@ai-sdk/luma';
 import { mistral } from '@ai-sdk/mistral';
 import { openai } from '@ai-sdk/openai';
 import { replicate } from '@ai-sdk/replicate';
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import {
   createProviderRegistry,
   customProvider,
@@ -62,7 +62,7 @@ export const registry = createProviderRegistry({
   mistral,
   anthropic: myAnthropic,
   openai: myOpenAI,
-  xai,
+  spacexai,
   groq,
   elevenLabs,
 });
@@ -74,7 +74,7 @@ const registryWithCustomSeparator = createProviderRegistry(
     mistral,
     anthropic: myAnthropic,
     openai: myOpenAI,
-    xai,
+    spacexai,
     groq,
     elevenLabs,
   },

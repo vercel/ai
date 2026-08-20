@@ -1,10 +1,10 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai('grok-4.5'),
+    model: spacexai('grok-4.5'),
     prompt: 'Count from 1 to 3 slowly.',
     include: {
       rawChunks: true,

@@ -1,28 +1,28 @@
-import { xai, type XaiSpeechModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAISpeechModelOptions } from '@ai-sdk/spacexai';
 import { generateSpeech } from 'ai';
 import { saveAudioFile } from '../../lib/save-audio';
 import { run } from '../../lib/run';
 
 // xAI's `with_timestamps` option returns character-level alignment and
 // duration metadata alongside the audio. The audio is delivered as usual;
-// the timing data is exposed via `providerMetadata.xai`.
+// the timing data is exposed via `providerMetadata.spacexai`.
 run(async () => {
   const result = await generateSpeech({
-    model: xai.speech(),
+    model: spacexai.speech(),
     text: 'Hello world.',
     voice: 'eve',
     language: 'en',
     providerOptions: {
-      xai: {
+      spacexai: {
         withTimestamps: true,
-      } satisfies XaiSpeechModelOptions,
+      } satisfies SpaceXAISpeechModelOptions,
     },
   });
 
   console.log('Warnings:', result.warnings);
   console.log('Provider Metadata:', result.providerMetadata);
 
-  const timestamps = result.providerMetadata.xai?.audioTimestamps as
+  const timestamps = result.providerMetadata.spacexai?.audioTimestamps as
     | { graphChars: string[]; graphTimes: [number, number][] }
     | undefined;
   if (timestamps) {

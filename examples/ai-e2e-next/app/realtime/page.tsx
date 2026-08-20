@@ -3,10 +3,10 @@
 import { experimental_useRealtime } from '@ai-sdk/react';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { useState, useRef, useEffect, useMemo } from 'react';
 
-type Provider = 'openai' | 'google' | 'xai';
+type Provider = 'openai' | 'google' | 'spacexai';
 
 type VoiceOption = { id: string; label: string };
 
@@ -53,11 +53,11 @@ const PROVIDER_CONFIG: Record<
       outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
     },
   },
-  xai: {
+  spacexai: {
     label: 'xAI',
     defaultModel: 'grok-voice-latest',
     staticVoices: toVoiceOptions(['ara', 'eve', 'leo', 'rex', 'sal']),
-    createModel: modelId => xai.experimental_realtime(modelId),
+    createModel: modelId => spacexai.experimental_realtime(modelId),
   },
 };
 

@@ -1,12 +1,12 @@
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  console.log('Testing xai.responses() with image...');
+  console.log('Testing spacexai.responses() with image...');
 
   const result = await generateText({
-    model: xai.responses('grok-4-1-fast-non-reasoning'),
+    model: spacexai.responses('grok-4-1-fast-non-reasoning'),
     messages: [
       {
         role: 'user',

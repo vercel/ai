@@ -1,4 +1,4 @@
-import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { spacexai, type SpaceXAIVideoModelOptions } from '@ai-sdk/spacexai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
@@ -9,16 +9,16 @@ run(async () => {
     'Generating xAI text-to-video at 1080p with grok-imagine-video-1.5...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video-1.5'),
+        model: spacexai.video('grok-imagine-video-1.5'),
         prompt:
           'A glowing crystal-powered rocket launching from the red dunes of Mars.',
         aspectRatio: '16:9',
         duration: 8,
         providerOptions: {
-          xai: {
+          spacexai: {
             resolution: '1080p',
             pollTimeoutMs: 600000, // 10 minutes
-          } satisfies XaiVideoModelOptions,
+          } satisfies SpaceXAIVideoModelOptions,
         },
       }),
   );
