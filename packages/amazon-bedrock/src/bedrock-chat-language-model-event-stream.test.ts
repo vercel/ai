@@ -121,6 +121,44 @@ describe('BedrockChatLanguageModel doStream event stream handling', () => {
     );
   });
 
+  it.each([
+    'internalServerException',
+    'modelStreamErrorException',
+    'serviceUnavailableException',
+    'throttlingException',
+    'validationException',
+  ])('surfaces %s frames as stream errors', async exceptionType => {
+    const exception = {
+      message: `Modeled exception: ${exceptionType}`,
+    };
+    const exceptionFrame = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+        ':exception-type': {
+          type: 'string',
+          value: exceptionType,
+        },
+        ':content-type': { type: 'string', value: 'application/json' },
+      },
+      body: fromUtf8(JSON.stringify(exception)),
+    });
+
+    const { stream } = await createModel([exceptionFrame]).doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.at(-2)).toEqual({
+      type: 'error',
+      error: exception,
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: 'error',
+    });
+  });
+
   it('streams reasoning redacted as `redactedContent` for replay', async () => {
     const { stream } = await createModel([
       createEvent('contentBlockDelta', {
