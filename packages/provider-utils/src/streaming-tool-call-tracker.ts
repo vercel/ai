@@ -4,7 +4,6 @@ import {
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import { generateId as defaultGenerateId } from './generate-id';
-import { isParsableJson } from './parse-json';
 
 /**
  * Minimal interface for a streaming tool call delta from an OpenAI-compatible API.
@@ -61,9 +60,21 @@ interface TrackedToolCall {
   sequence: number;
   type: 'function';
   function: { name: string; arguments: string };
+  argumentStructure: ArgumentStructure;
   hasFinished: boolean;
   metadata?: SharedV4ProviderMetadata;
 }
+
+type ArgumentStructure =
+  | { kind: 'undetermined' }
+  | { kind: 'other' }
+  | {
+      kind: 'structured';
+      stack: Array<'{' | '['>;
+      inString: boolean;
+      escaped: boolean;
+      complete: boolean;
+    };
 
 type StreamingToolCallTrackerController = Pick<
   TransformStreamDefaultController<LanguageModelV4StreamPart>,
@@ -114,10 +125,8 @@ export class StreamingToolCallTracker<
    */
   processDelta(toolCallDelta: DELTA): void {
     const wireName = toolCallDelta.function?.name;
-    if (typeof wireName === 'string' && wireName.trim().length === 0) {
-      return;
-    }
-
+    const hasBlankName =
+      typeof wireName === 'string' && wireName.trim().length === 0;
     const wireId = this.getNonBlankString(toolCallDelta.id);
     const name = this.getNonBlankString(wireName);
     const { index } = toolCallDelta;
@@ -126,7 +135,10 @@ export class StreamingToolCallTracker<
       wireId,
       index,
       name,
-      hasExplicitType: toolCallDelta.type != null,
+      hasExplicitCallStart:
+        toolCallDelta.type != null &&
+        name != null &&
+        this.startsWithStructuredArguments(toolCallDelta.function?.arguments),
     });
 
     // `null` indicates that the available labels match multiple calls or
@@ -137,6 +149,13 @@ export class StreamingToolCallTracker<
 
     let toolCall: TrackedToolCall;
     if (existingToolCall === undefined) {
+      // Blank names cannot start a usable call, but some providers repeat a
+      // blank name on continuations. Correlate those continuations first, then
+      // ignore only the unmatched blank-name delta.
+      if (hasBlankName) {
+        return;
+      }
+
       toolCall = this.processNewToolCall(toolCallDelta, {
         wireId,
         index,
@@ -180,12 +199,12 @@ export class StreamingToolCallTracker<
     wireId,
     index,
     name,
-    hasExplicitType,
+    hasExplicitCallStart,
   }: {
     wireId: string | undefined;
     index: number | null | undefined;
     name: string | undefined;
-    hasExplicitType: boolean;
+    hasExplicitCallStart: boolean;
   }): TrackedToolCall | null | undefined {
     const indexedToolCalls =
       index != null ? this.toolCallsByIndex.get(index) : undefined;
@@ -193,7 +212,6 @@ export class StreamingToolCallTracker<
       indexedToolCalls,
       name,
     );
-    const startsExplicitCall = hasExplicitType && name != null;
 
     if (wireId != null) {
       const toolCallsWithId = this.toolCallsById.get(wireId);
@@ -205,7 +223,7 @@ export class StreamingToolCallTracker<
           );
           const matchingToolCall = this.selectMatchingToolCall(
             matchingToolCalls,
-            startsExplicitCall,
+            hasExplicitCallStart,
           );
           if (matchingToolCall !== undefined) {
             return matchingToolCall;
@@ -235,7 +253,7 @@ export class StreamingToolCallTracker<
 
           return this.selectMatchingToolCall(
             matchingToolCalls,
-            startsExplicitCall,
+            hasExplicitCallStart,
           );
         }
 
@@ -245,12 +263,12 @@ export class StreamingToolCallTracker<
       }
 
       if (matchingIndexedToolCalls.length > 0) {
-        // IDs can change during a call. A matching index/name continues an
-        // incomplete call even if the type is repeated, while a complete call
-        // followed by another explicit start at the same index stays distinct.
+        // IDs can change during a call. A matching index/name continues the
+        // call unless the delta has evidence of a fresh structured argument
+        // payload, while repeated labels alone are not a call boundary.
         return this.selectMatchingToolCall(
           matchingIndexedToolCalls,
-          hasExplicitType && name != null,
+          hasExplicitCallStart,
         );
       }
 
@@ -263,7 +281,7 @@ export class StreamingToolCallTracker<
       // indices across parallel calls.
       return this.selectMatchingToolCall(
         matchingIndexedToolCalls,
-        startsExplicitCall,
+        hasExplicitCallStart,
       );
     }
 
@@ -295,25 +313,41 @@ export class StreamingToolCallTracker<
 
   private selectMatchingToolCall(
     toolCalls: TrackedToolCall[],
-    startsExplicitCall: boolean,
+    hasExplicitCallStart: boolean,
   ): TrackedToolCall | null | undefined {
     if (toolCalls.length === 0) {
       return undefined;
     }
 
-    if (!startsExplicitCall) {
+    if (!hasExplicitCallStart) {
       return toolCalls.length === 1 ? toolCalls[0] : null;
     }
 
-    const incompleteToolCalls = toolCalls.filter(
-      toolCall => !isParsableJson(toolCall.function.arguments),
+    // A repeated type/name can occur on continuations. A fresh structured
+    // argument prefix is evidence of another call only after the matching call
+    // has completed its own structured argument payload.
+    const continuableToolCalls = toolCalls.filter(
+      toolCall =>
+        toolCall.argumentStructure.kind !== 'structured' ||
+        !toolCall.argumentStructure.complete,
     );
 
-    if (incompleteToolCalls.length === 1) {
-      return incompleteToolCalls[0];
+    if (continuableToolCalls.length === 1) {
+      return continuableToolCalls[0];
     }
 
-    return incompleteToolCalls.length > 1 ? null : undefined;
+    return continuableToolCalls.length > 1 ? null : undefined;
+  }
+
+  private startsWithStructuredArguments(
+    argumentsDelta: string | null | undefined,
+  ): boolean {
+    if (typeof argumentsDelta !== 'string') {
+      return false;
+    }
+
+    const firstCharacter = argumentsDelta.trimStart()[0];
+    return firstCharacter === '{' || firstCharacter === '[';
   }
 
   private processNewToolCall(
@@ -361,6 +395,7 @@ export class StreamingToolCallTracker<
 
     const metadata = this.extractMetadata?.(toolCallDelta);
 
+    const initialArguments = toolCallDelta.function?.arguments ?? '';
     const toolCall: TrackedToolCall = {
       id,
       index: index ?? undefined,
@@ -368,8 +403,12 @@ export class StreamingToolCallTracker<
       type: 'function',
       function: {
         name,
-        arguments: toolCallDelta.function?.arguments ?? '',
+        arguments: initialArguments,
       },
+      argumentStructure: this.updateArgumentStructure(
+        { kind: 'undetermined' },
+        initialArguments,
+      ),
       hasFinished: false,
       metadata,
     };
@@ -461,6 +500,10 @@ export class StreamingToolCallTracker<
     }
 
     if (toolCallDelta.function?.arguments != null) {
+      toolCall.argumentStructure = this.updateArgumentStructure(
+        toolCall.argumentStructure,
+        toolCallDelta.function.arguments,
+      );
       toolCall.function.arguments += toolCallDelta.function.arguments;
 
       this.controller.enqueue({
@@ -469,6 +512,69 @@ export class StreamingToolCallTracker<
         delta: toolCallDelta.function.arguments,
       });
     }
+  }
+
+  private updateArgumentStructure(
+    state: ArgumentStructure,
+    delta: string,
+  ): ArgumentStructure {
+    let nextState = state;
+
+    for (const character of delta) {
+      if (nextState.kind === 'undetermined') {
+        if (/\s/.test(character)) {
+          continue;
+        }
+
+        if (character !== '{' && character !== '[') {
+          nextState = { kind: 'other' };
+          continue;
+        }
+
+        nextState = {
+          kind: 'structured',
+          stack: [character],
+          inString: false,
+          escaped: false,
+          complete: false,
+        };
+        continue;
+      }
+
+      if (nextState.kind !== 'structured' || nextState.complete) {
+        continue;
+      }
+
+      if (nextState.inString) {
+        if (nextState.escaped) {
+          nextState.escaped = false;
+        } else if (character === '\\') {
+          nextState.escaped = true;
+        } else if (character === '"') {
+          nextState.inString = false;
+        }
+        continue;
+      }
+
+      if (character === '"') {
+        nextState.inString = true;
+      } else if (character === '{' || character === '[') {
+        nextState.stack.push(character);
+      } else if (character === '}' || character === ']') {
+        const expectedOpening = character === '}' ? '{' : '[';
+        if (nextState.stack.at(-1) !== expectedOpening) {
+          nextState = { kind: 'other' };
+          continue;
+        }
+
+        nextState.stack.pop();
+        if (nextState.stack.length === 0) {
+          nextState.complete = true;
+        }
+      }
+    }
+
+    return nextState;
   }
 
   private finishToolCall(toolCall: TrackedToolCall): void {
