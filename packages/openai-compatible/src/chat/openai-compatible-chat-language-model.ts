@@ -18,7 +18,6 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isParsableJson,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -578,6 +577,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                         delta: toolCall.function.arguments,
                       });
                     }
+<<<<<<< HEAD
 
                     // check if tool call is complete
                     // (some providers send the full tool call in one chunk):
@@ -595,6 +595,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                       });
                       toolCall.hasFinished = true;
                     }
+=======
+>>>>>>> bef93aec50 ([v6.0] fix: prevent streaming tool calls from finalizing on parsable partial JSON (#16800))
                   }
 
                   continue;
@@ -618,6 +620,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                   id: toolCall.id,
                   delta: toolCallDelta.function.arguments ?? '',
                 });
+<<<<<<< HEAD
 
                 // check if tool call is complete
                 if (
@@ -638,6 +641,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                   });
                   toolCall.hasFinished = true;
                 }
+=======
+>>>>>>> bef93aec50 ([v6.0] fix: prevent streaming tool calls from finalizing on parsable partial JSON (#16800))
               }
             }
           },
