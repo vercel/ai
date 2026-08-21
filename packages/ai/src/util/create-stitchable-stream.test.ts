@@ -214,6 +214,14 @@ describe('createStitchableStream', () => {
       expect(stream2CallbackCalled).toBe(true);
     });
 
+    it('should not throw when close is called after the consumer cancelled', async () => {
+      const { stream, close } = createStitchableStream<number>();
+
+      await stream.cancel();
+
+      expect(() => close()).not.toThrow();
+    });
+
     it('should throw an error when adding a stream after closing', async () => {
       const { addStream, close } = createStitchableStream<number>();
 
