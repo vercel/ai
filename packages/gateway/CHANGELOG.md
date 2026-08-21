@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.60
+
+### Patch Changes
+
+- 5941bd6: feat(gateway): implement `handleWebhookOption` on the video model so `generateVideo({ webhook })` registers the factory URL as the gateway's `callbackUrl` and awaits delivery instead of falling back to polling
+- 9a4337d: feat: add DeepSeek V4 Flash Vision Exp image input and Files API support
+
 ## 4.0.59
 
 ### Patch Changes
