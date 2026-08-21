@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19243,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/vue-use-completion-empty-initial-fallback.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/vue-use-completion-empty-initial-fallback.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #19243 reproduced: Vue useCompletion cannot preserve an empty completion"
+  }
+}
