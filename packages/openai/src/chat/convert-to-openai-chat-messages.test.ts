@@ -931,6 +931,43 @@ describe('tool calls', () => {
     `);
   });
 
+  it('should normalize non-object tool call input to an empty object', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              input: '{"foo":"bar"',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": null,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{}",
+                "name": "thwomp",
+              },
+              "id": "quux",
+              "type": "function",
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
   it('should handle different tool output types', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
