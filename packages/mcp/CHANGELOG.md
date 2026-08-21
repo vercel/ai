@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.73
+
+### Patch Changes
+
+- b8e4215: fix(mcp): support spawning command shims such as `npx` on Windows
+
 ## 1.0.72
 
 ### Patch Changes
