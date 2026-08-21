@@ -1,5 +1,27 @@
 # @ai-sdk/vue
 
+## 4.0.76
+
+### Patch Changes
+
+- 8514cff: fix(vue): preserve empty completion values when an initial completion is configured
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 4.0.75
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 4.0.74
+
+### Patch Changes
+
+- ai@7.0.74
+
 ## 4.0.73
 
 ### Patch Changes
