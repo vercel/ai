@@ -1,5 +1,15 @@
 # @ai-sdk/google-vertex
 
+## 5.0.60
+
+### Patch Changes
+
+- f607a12: chore(google): drop support for Imagen models and their integration following API shutdown
+- Updated dependencies [99989ba]
+- Updated dependencies [f607a12]
+  - @ai-sdk/openai-compatible@3.0.34
+  - @ai-sdk/google@4.0.49
+
 ## 5.0.59
 
 ### Patch Changes

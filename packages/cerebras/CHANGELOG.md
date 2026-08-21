@@ -1,5 +1,13 @@
 # @ai-sdk/cerebras
 
+## 3.0.34
+
+### Patch Changes
+
+- d6a521a: feat(cerebras): add typed provider options and send `maxOutputTokens` as `max_completion_tokens` field
+- Updated dependencies [99989ba]
+  - @ai-sdk/openai-compatible@3.0.34
+
 ## 3.0.33
 
 ### Patch Changes

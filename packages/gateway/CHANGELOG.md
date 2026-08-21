@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.59
+
+### Patch Changes
+
+- f607a12: chore(google): drop support for Imagen models and their integration following API shutdown
+
 ## 4.0.58
 
 ### Patch Changes

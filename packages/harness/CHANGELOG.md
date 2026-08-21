@@ -1,5 +1,12 @@
 # @ai-sdk/harness
 
+## 1.0.81
+
+### Patch Changes
+
+- 7f50d28: feat(harness): make `destroy` on `HarnessV1NetworkSandboxSession` mandatory
+  - ai@7.0.73
+
 ## 1.0.80
 
 ### Patch Changes
