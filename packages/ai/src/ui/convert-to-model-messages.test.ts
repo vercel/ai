@@ -1,6 +1,6 @@
 import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import z from 'zod/v4';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
@@ -1225,7 +1225,10 @@ describe('convertToModelMessages', () => {
 
   describe('when ignoring incomplete tool calls', () => {
     it('should ignore preliminary tool outputs', async () => {
-      let toModelOutputCalls = 0;
+      const toModelOutput = vi.fn(() => ({
+        type: 'text' as const,
+        value: 'converted preliminary output',
+      }));
 
       const result = await convertToModelMessages(
         [
@@ -1252,16 +1255,13 @@ describe('convertToModelMessages', () => {
           tools: {
             streamingTool: tool({
               inputSchema: z.object({ task: z.string() }),
-              toModelOutput: ({ output }) => {
-                toModelOutputCalls++;
-                return { type: 'json', value: output };
-              },
+              toModelOutput,
             }),
           },
         },
       );
 
-      expect(toModelOutputCalls).toBe(0);
+      expect(toModelOutput).not.toHaveBeenCalled();
       expect(result).toEqual([
         {
           role: 'user',
