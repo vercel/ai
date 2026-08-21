@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 8943,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8943-google-2-5-penalties.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-8943-google-2-5-penalties.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_8943_REPRODUCED: 6/6 Gemini 2.5 penalty calls failed with HTTP 400 INVALID_ARGUMENT"
+  }
+}
