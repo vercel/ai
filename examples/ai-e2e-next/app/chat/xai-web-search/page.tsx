@@ -1,6 +1,6 @@
 'use client';
 
-import type { XaiWebSearchMessage } from '@/agent/xai/web-search-agent';
+import type { SpaceXAIWebSearchMessage } from '@/agent/spacexai/web-search-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import SourcesView from '@/components/sources-view';
@@ -9,7 +9,7 @@ import { DefaultChatTransport } from 'ai';
 
 export default function ChatXaiWebSearch() {
   const { error, status, sendMessage, messages, regenerate } =
-    useChat<XaiWebSearchMessage>({
+    useChat<SpaceXAIWebSearchMessage>({
       transport: new DefaultChatTransport({
         api: '/api/chat/xai-web-search',
       }),

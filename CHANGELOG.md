@@ -48,7 +48,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/revai](./packages/revai/CHANGELOG.md)
 - [@ai-sdk/togetherai](./packages/togetherai/CHANGELOG.md)
 - [@ai-sdk/voyage](./packages/voyage/CHANGELOG.md)
-- [@ai-sdk/xai](./packages/xai/CHANGELOG.md)
+- [@ai-sdk/spacexai](./packages/spacexai/CHANGELOG.md)
 
 ### Framework Integrations
 

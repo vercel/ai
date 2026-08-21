@@ -1,0 +1,15 @@
+{
+  "name": "@example/spacexai-tts-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local browser demo for xAI text-to-speech and speech-to-text via @ai-sdk/spacexai.",
+  "scripts": {
+    "prestart": "pnpm --filter ai... --filter @ai-sdk/spacexai... build",
+    "start": "node --env-file-if-exists=.env server.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/spacexai": "workspace:*",
+    "ai": "workspace:*"
+  }
+}

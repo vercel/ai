@@ -1,7 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
 import { openai } from '@ai-sdk/openai';
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import { uploadFile } from 'ai';
 
 export async function POST(req: Request) {
@@ -14,14 +14,14 @@ export async function POST(req: Request) {
     data: string;
     mediaType: string;
     filename: string;
-    provider: 'anthropic' | 'google' | 'openai' | 'xai';
+    provider: 'anthropic' | 'google' | 'openai' | 'spacexai';
   } = await req.json();
 
   const filesMap = {
     anthropic: () => anthropic.files(),
     google: () => google.files(),
     openai: () => openai.files(),
-    xai: () => xai.files(),
+    spacexai: () => spacexai.files(),
   };
 
   const result = await uploadFile({

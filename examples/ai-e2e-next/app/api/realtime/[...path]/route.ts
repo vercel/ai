@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import {
   experimental_getRealtimeToolDefinitions as getRealtimeToolDefinitions,
   gateway,
@@ -55,8 +55,8 @@ const providers: Record<
     model: 'gemini-3.5-live-translate-preview',
     includeTools: false,
   },
-  xai: {
-    factory: xai.experimental_realtime,
+  spacexai: {
+    factory: spacexai.experimental_realtime,
     model: 'grok-voice-latest',
   },
   gateway: {

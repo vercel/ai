@@ -13,13 +13,7 @@
   ],
   "references": [
     {
-      "path": "../provider"
-    },
-    {
-      "path": "../provider-utils"
-    },
-    {
-      "path": "../test-server"
+      "path": "../spacexai"
     }
   ]
 }

@@ -1,4 +1,4 @@
-# @ai-sdk/xai
+# @ai-sdk/spacexai
 
 ## 4.0.42
 

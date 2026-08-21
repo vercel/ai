@@ -1,7 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
 import { openai } from '@ai-sdk/openai';
-import { xai } from '@ai-sdk/xai';
+import { spacexai } from '@ai-sdk/spacexai';
 import {
   consumeStream,
   convertToModelMessages,
@@ -13,7 +13,12 @@ import {
 } from 'ai';
 export const maxDuration = 60;
 
-const registry = createProviderRegistry({ anthropic, google, openai, xai });
+const registry = createProviderRegistry({
+  anthropic,
+  google,
+  openai,
+  spacexai,
+});
 
 export async function POST(req: Request) {
   const {
@@ -23,7 +28,7 @@ export async function POST(req: Request) {
   }: {
     messages: UIMessage[];
     modelId: string;
-    providerId: 'anthropic' | 'google' | 'openai' | 'xai';
+    providerId: 'anthropic' | 'google' | 'openai' | 'spacexai';
   } = await req.json();
 
   const model = registry.languageModel(`${providerId}:${modelId}`);

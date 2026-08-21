@@ -1,17 +1,18 @@
 'use client';
 
-import type { XaiImageGenerationMessage } from '@/agent/xai/image-generation-agent';
+import type { SpaceXAIImageGenerationMessage } from '@/agent/spacexai/image-generation-agent';
 import ChatInput from '@/components/chat-input';
 import XaiImageGenerationView from '@/components/tool/xai-image-generation-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
 export default function TestXaiImageGeneration() {
-  const { status, sendMessage, messages } = useChat<XaiImageGenerationMessage>({
-    transport: new DefaultChatTransport({
-      api: '/api/chat/xai-image-generation',
-    }),
-  });
+  const { status, sendMessage, messages } =
+    useChat<SpaceXAIImageGenerationMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/chat/xai-image-generation',
+      }),
+    });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">

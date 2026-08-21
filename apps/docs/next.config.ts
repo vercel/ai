@@ -93,6 +93,16 @@ const config: NextConfig = {
       destination: '/v5/providers/ai-sdk-providers',
       permanent: false,
     },
+    {
+      source: '/providers/ai-sdk-providers/xai',
+      destination: '/providers/ai-sdk-providers/spacexai',
+      permanent: true,
+    },
+    {
+      source: '/providers/ai-sdk-providers/xai.md',
+      destination: '/providers/ai-sdk-providers/spacexai.md',
+      permanent: true,
+    },
     // Legacy resource URLs, mirroring production.
     {
       source: '/tools-registry',

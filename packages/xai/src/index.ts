@@ -1,41 +1,80 @@
-export type {
-  XaiLanguageModelChatOptions,
-  /** @deprecated Use `XaiLanguageModelChatOptions` instead. */
-  XaiLanguageModelChatOptions as XaiProviderOptions,
-} from './xai-chat-language-model-options';
-export type { XaiErrorData } from './xai-error';
-export type { XaiFilePartProviderOptions } from './xai-file-part-options';
-export type {
-  XaiLanguageModelResponsesOptions,
-  /** @deprecated Use `XaiLanguageModelResponsesOptions` instead. */
-  XaiLanguageModelResponsesOptions as XaiResponsesProviderOptions,
-} from './responses/xai-responses-language-model-options';
-export type {
-  XaiImageModelOptions,
-  /** @deprecated Use `XaiImageModelOptions` instead. */
-  XaiImageModelOptions as XaiImageProviderOptions,
-} from './xai-image-model-options';
-export type { XaiVideoModelId } from './xai-video-settings';
-export type {
-  XaiVideoModelOptions,
-  /** @deprecated Use `XaiVideoModelOptions` instead. */
-  XaiVideoModelOptions as XaiVideoProviderOptions,
-} from './xai-video-model-options';
-export type { XaiSpeechModelOptions } from './xai-speech-model-options';
-export type { XaiTranscriptionModelOptions } from './xai-transcription-model-options';
-export type { XaiFilesOptions } from './files/xai-files-options';
-export { createXai, xai } from './xai-provider';
-export type { XaiProvider, XaiProviderSettings } from './xai-provider';
-export { XaiRealtimeModel as Experimental_XaiRealtimeModel } from './realtime/xai-realtime-model';
-export type { XaiRealtimeModelConfig as Experimental_XaiRealtimeModelConfig } from './realtime/xai-realtime-model';
-export {
+import {
+  codeExecution as spacexaiCodeExecution,
+  imageGeneration as spacexaiImageGeneration,
+  mcpServer as spacexaiMcpServer,
+  spacexaiTools,
+  type XaiProvider,
+  type XaiProviderSettings,
+  viewImage as spacexaiViewImage,
+  viewXVideo as spacexaiViewXVideo,
+  webSearch as spacexaiWebSearch,
+  xSearch as spacexaiXSearch,
+} from '@ai-sdk/spacexai';
+import { createSpaceXAIProvider } from '@ai-sdk/spacexai/internal';
+import { VERSION } from './version';
+
+export * from '@ai-sdk/spacexai';
+
+function withProviderId<
+  ARGS extends unknown[],
+  RESULT extends { id: `${string}.${string}` },
+>(
+  toolFactory: (...args: ARGS) => RESULT,
+  id: `${string}.${string}`,
+): (...args: ARGS) => RESULT {
+  return (...args) => ({ ...toolFactory(...args), id });
+}
+
+export const codeExecution: typeof spacexaiCodeExecution = withProviderId(
+  spacexaiCodeExecution,
+  'xai.code_execution',
+);
+const fileSearch = withProviderId(spacexaiTools.fileSearch, 'xai.file_search');
+export const imageGeneration: typeof spacexaiImageGeneration = withProviderId(
+  spacexaiImageGeneration,
+  'xai.image_generation',
+);
+export const mcpServer: typeof spacexaiMcpServer = withProviderId(
+  spacexaiMcpServer,
+  'xai.mcp',
+);
+export const viewImage: typeof spacexaiViewImage = withProviderId(
+  spacexaiViewImage,
+  'xai.view_image',
+);
+export const viewXVideo: typeof spacexaiViewXVideo = withProviderId(
+  spacexaiViewXVideo,
+  'xai.view_x_video',
+);
+export const webSearch: typeof spacexaiWebSearch = withProviderId(
+  spacexaiWebSearch,
+  'xai.web_search',
+);
+export const xSearch: typeof spacexaiXSearch = withProviderId(
+  spacexaiXSearch,
+  'xai.x_search',
+);
+
+export const xaiTools: typeof spacexaiTools = {
   codeExecution,
+  fileSearch,
   imageGeneration,
   mcpServer,
   viewImage,
   viewXVideo,
   webSearch,
   xSearch,
-  xaiTools,
-} from './tool';
-export { VERSION } from './version';
+};
+
+export function createXai(options: XaiProviderSettings = {}): XaiProvider {
+  return createSpaceXAIProvider({
+    options,
+    providerName: 'xai',
+    tools: xaiTools,
+    userAgent: `ai-sdk/xai/${VERSION}`,
+  });
+}
+
+export const xai = createXai();
+
+export { VERSION };
