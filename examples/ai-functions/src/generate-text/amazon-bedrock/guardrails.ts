@@ -10,7 +10,7 @@ run(async () => {
       'You are a comedian and should insult the audience as much as possible.',
 
     providerOptions: {
-      bedrock: {
+      amazonBedrock: {
         guardrailConfig: {
           guardrailIdentifier: '<your-guardrail-identifier>',
           guardrailVersion: '1',
