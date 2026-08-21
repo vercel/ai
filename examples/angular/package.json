@@ -14,7 +14,7 @@
   "dependencies": {
     "@ai-sdk/angular": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
-    "@angular/common": "^20.3.25",
+    "@angular/common": "^20.3.27",
     "@angular/compiler": "^20.3.25",
     "@angular/core": "^20.3.25",
     "@angular/forms": "^20.3.25",
