@@ -1,5 +1,4 @@
 import { z } from 'zod/v4';
-import { z as z3 } from 'zod/v3';
 import { tool, type ToolSet } from '@ai-sdk/provider-utils';
 import type { ChatInit } from './chat';
 import type {
@@ -239,10 +238,10 @@ describe('onToolCall', () => {
 
 describe('messageMetadataSchema', () => {
   it('accepts a nullish metadata schema when the message id is branded', () => {
-    const metadataSchema = z3.object({ value: z3.string() }).nullish();
+    const metadataSchema = z.object({ value: z.string() }).nullish();
 
     type MessageId = string & { readonly __brand: 'MessageId' };
-    type Message = UIMessage<z3.infer<typeof metadataSchema>> & {
+    type Message = UIMessage<z.infer<typeof metadataSchema>> & {
       id: MessageId;
     };
 
