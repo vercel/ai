@@ -318,7 +318,7 @@ describe('user messages', () => {
             },
           ],
         },
-    ]);
+      ]);
     });
 
     it('should add audio content for audio/mpeg file parts', () => {
@@ -870,73 +870,73 @@ describe('tool calls', () => {
         content: JSON.stringify({ oof: '321rab' }),
         tool_call_id: 'quux',
       },
-      ]);
-    });
+    ]);
+  });
 
-    it('should serialize ordinary string tool call inputs', () => {
-      const result = convertToOpenAIChatMessages({
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                input: '{"foo":"bar123"}',
-                toolCallId: 'quux',
-                toolName: 'thwomp',
-              },
-            ],
-          },
-        ],
-      });
-
-      expect(result.messages[0]).toMatchObject({
-        tool_calls: [
-          {
-            function: {
-              arguments: JSON.stringify('{"foo":"bar123"}'),
+  it('should serialize ordinary string tool call inputs', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: '{"foo":"bar123"}',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
             },
-          },
-        ],
-      });
+          ],
+        },
+      ],
     });
 
-    it('should preserve explicitly marked raw tool call arguments', () => {
-      const result = convertToOpenAIChatMessages({
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                input: '{"foo":',
-                toolCallId: 'quux',
-                toolName: 'thwomp',
-                providerOptions: {
-                  __ai_sdk: { rawToolCallArguments: true },
-                },
+    expect(result.messages[0]).toMatchObject({
+      tool_calls: [
+        {
+          function: {
+            arguments: JSON.stringify('{"foo":"bar123"}'),
+          },
+        },
+      ],
+    });
+  });
+
+  it('should preserve explicitly marked raw tool call arguments', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: '{"foo":',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              providerOptions: {
+                __ai_sdk: { rawToolCallArguments: true },
               },
-            ],
-          },
-        ],
-      });
-
-      expect(result.messages[0]).toMatchObject({
-        tool_calls: [{ function: { arguments: '{"foo":' } }],
-      });
+            },
+          ],
+        },
+      ],
     });
 
-    it('should send empty string content for assistant messages with no tool calls', () => {
-      const result = convertToOpenAIChatMessages({
+    expect(result.messages[0]).toMatchObject({
+      tool_calls: [{ function: { arguments: '{"foo":' } }],
+    });
+  });
+
+  it('should send empty string content for assistant messages with no tool calls', () => {
+    const result = convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'assistant',
           content: [{ type: 'text', text: '' }],
         },
       ],
-      });
+    });
 
-      expect(result.messages).toMatchInlineSnapshot(`
+    expect(result.messages).toMatchInlineSnapshot(`
       [
         {
           "content": "",
@@ -945,7 +945,7 @@ describe('tool calls', () => {
         },
       ]
       `);
-    });
+  });
 
   it('should default missing tool call input to an empty object', () => {
     const result = convertToOpenAIChatMessages({

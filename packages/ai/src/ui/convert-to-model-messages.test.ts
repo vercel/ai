@@ -844,6 +844,35 @@ describe('convertToModelMessages', () => {
         ]
       `);
       });
+
+      it('marks string raw input for provider-specific replay', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Error: Invalid input',
+                input: undefined,
+                rawInput: '{"operation":"add"',
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toMatchObject({
+          content: [
+            {
+              input: '{"operation":"add"',
+              providerOptions: {
+                __ai_sdk: { rawToolCallArguments: true },
+              },
+            },
+          ],
+        });
+      });
     });
 
     it('should handle assistant message with provider-executed tool output available', async () => {
