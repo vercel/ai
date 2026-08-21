@@ -1,13 +1,8 @@
 import {
   NoSuchModelError,
-<<<<<<< HEAD
+  type Experimental_VideoModelV3,
   type ImageModelV3,
   type ProviderV3,
-=======
-  type Experimental_VideoModelV4,
-  type ImageModelV4,
-  type ProviderV4,
->>>>>>> 53f1bc41ed (feat(black-forest-labs): add video model support (FLUX 3) (#18417))
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -70,12 +65,12 @@ export interface BlackForestLabsProvider extends ProviderV3 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV4;
+  video(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV3;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV4;
+  videoModel(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.

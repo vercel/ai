@@ -1,26 +1,18 @@
 import {
   AISDKError,
   InvalidArgumentError,
-  type Experimental_VideoModelV4 as VideoModelV4,
-  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
-  type Experimental_VideoModelV4File as VideoModelV4File,
-  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
-  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
-  type Experimental_VideoModelV4Result as VideoModelV4Result,
-  type SharedV4Warning,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type Experimental_VideoModelV3File as VideoModelV3File,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   delay,
   getFromApi,
-  getTopLevelMediaType,
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -49,6 +41,11 @@ const UNTIMED_KEYFRAMES_NEEDING_DURATION = 3;
 const allowedAspectRatios = new Set<string>(blackForestLabsVideoAspectRatios);
 const allowedResolutions = new Set<string>(blackForestLabsVideoResolutions);
 
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
 /**
  * Statuses that end the poll without a video.
  */
@@ -74,15 +71,9 @@ interface BlackForestLabsVideoModelConfig {
   };
 }
 
-type BlackForestLabsVideoOperation = {
-  requestId: string;
-  pollingUrl: string;
-  cost?: number;
-  inputMegapixels?: number;
-  outputMegapixels?: number;
-};
-
-type BlackForestLabsVideoDoGenerateOptions = VideoModelV4CallOptions;
+type BlackForestLabsVideoDoGenerateOptions = Parameters<
+  VideoModelV3['doGenerate']
+>[0];
 
 /**
  * The API takes a named tier (`hd`/`fhd`) while the top-level `resolution` is
@@ -108,7 +99,7 @@ function resolveTopLevelResolution(
   };
 }
 
-function nonImageFrameMediaType(file: VideoModelV4File): string | undefined {
+function nonImageFrameMediaType(file: VideoModelV3File): string | undefined {
   if (file.mediaType == null) {
     return undefined;
   }
@@ -128,7 +119,7 @@ function getDraftEnhanceArgs(
   options: BlackForestLabsVideoDoGenerateOptions,
   bflOptions: BlackForestLabsVideoModelOptions,
 ) {
-  const warnings: Array<SharedV4Warning> = [];
+  const warnings: Array<SharedV3Warning> = [];
 
   const pinnedByBundle: Array<[feature: string, isSet: boolean]> = [
     ['prompt', (options.prompt?.trim().length ?? 0) > 0],
@@ -212,7 +203,7 @@ function describePollDetails(details: unknown): string | undefined {
  * The API takes conditioning media as an http(s) URL or a bare base64 string —
  * not a data URI.
  */
-function toBlackForestLabsFile(file: VideoModelV4File): string {
+function toBlackForestLabsFile(file: VideoModelV3File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -224,26 +215,12 @@ function toBlackForestLabsFile(file: VideoModelV4File): string {
   return Buffer.from(file.data).toString('base64');
 }
 
-export class BlackForestLabsVideoModel implements VideoModelV4 {
-  readonly specificationVersion = 'v4';
+export class BlackForestLabsVideoModel implements VideoModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  static [WORKFLOW_SERIALIZE](model: BlackForestLabsVideoModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: BlackForestLabsVideoModelId;
-    config: BlackForestLabsVideoModelConfig;
-  }) {
-    return new BlackForestLabsVideoModel(options.modelId, options.config);
   }
 
   constructor(
@@ -252,7 +229,7 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
   ) {}
 
   private async getArgs(options: BlackForestLabsVideoDoGenerateOptions) {
-    const warnings: Array<SharedV4Warning> = [];
+    const warnings: Array<SharedV3Warning> = [];
 
     const bflOptions = (await parseProviderOptions({
       provider: 'blackForestLabs',
@@ -423,7 +400,7 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
     // reference-image concept, so image references cannot be honored.
     let startVideo: string | undefined;
     const referenceFiles = options.inputReferences ?? [];
-    const referenceVideos: VideoModelV4File[] = [];
+    const referenceVideos: VideoModelV3File[] = [];
 
     for (const file of referenceFiles) {
       const topLevelMediaType =
@@ -545,9 +522,9 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
     return { body, warnings };
   }
 
-  async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
-  ): Promise<VideoModelV4OperationStartResult> {
+  async doGenerate(
+    options: BlackForestLabsVideoDoGenerateOptions,
+  ): Promise<Awaited<ReturnType<VideoModelV3['doGenerate']>>> {
     const { body, warnings } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
@@ -556,7 +533,7 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
       options.headers,
     );
 
-    const { value: submit, responseHeaders } = await postJsonToApi({
+    const { value: submit } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
       headers: combinedHeaders,
       body,
@@ -567,138 +544,12 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
       fetch: this.config.fetch,
     });
 
-    return {
-      operation: {
-        requestId: submit.id,
-        pollingUrl: submit.polling_url,
-        ...(submit.cost != null && { cost: submit.cost }),
-        ...(submit.input_mp != null && {
-          inputMegapixels: submit.input_mp,
-        }),
-        ...(submit.output_mp != null && {
-          outputMegapixels: submit.output_mp,
-        }),
-      } satisfies BlackForestLabsVideoOperation,
-      warnings,
-      response: {
-        modelId: this.modelId,
-        timestamp: currentDate,
-        headers: responseHeaders,
-      },
-    };
-  }
-
-  async doStatus(
-    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
-  ): Promise<VideoModelV4OperationStatusResult> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const operation = options.operation as BlackForestLabsVideoOperation;
-    const url = new URL(operation.pollingUrl);
+    const requestId = submit.id;
+    const url = new URL(submit.polling_url);
     if (!url.searchParams.has('id')) {
-      url.searchParams.set('id', operation.requestId);
+      url.searchParams.set('id', requestId);
     }
 
-    const combinedHeaders = combineHeaders(
-      await resolve(this.config.headers),
-      options.headers,
-    );
-
-    const { value, responseHeaders } = await getFromApi({
-      url: url.toString(),
-      // The polling URL comes from the provider response; validate it.
-      validateUrl: true,
-      trustedOrigin: this.config.baseURL,
-      // Only send credentials when it stays on a trusted provider host.
-      headers: isTrustedUrl(url.toString(), this.config.baseURL)
-        ? combinedHeaders
-        : undefined,
-      failedResponseHandler: bflFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(bflVideoPollSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
-
-    const response = {
-      modelId: this.modelId,
-      timestamp: currentDate,
-      headers: responseHeaders,
-    };
-    const { status, result } = value;
-
-    if (status === 'Ready') {
-      const parsed = bflVideoResultSchema.safeParse(result);
-      if (!parsed.success) {
-        throw new AISDKError({
-          name: 'BLACK_FOREST_LABS_VIDEO_GENERATION_ERROR',
-          message:
-            'Black Forest Labs reported the video as Ready but returned no result.sample URL. ' +
-            `Request id: ${operation.requestId}`,
-        });
-      }
-
-      return {
-        status: 'completed',
-        videos: [
-          {
-            type: 'url',
-            url: parsed.data.sample,
-            mediaType: 'video/mp4',
-          },
-        ],
-        warnings: [],
-        providerMetadata: {
-          blackForestLabs: {
-            videos: [
-              {
-                id: operation.requestId,
-                videoUrl: parsed.data.sample,
-                ...(parsed.data.seed != null && { seed: parsed.data.seed }),
-                ...(parsed.data.start_time != null && {
-                  start_time: parsed.data.start_time,
-                }),
-                ...(parsed.data.end_time != null && {
-                  end_time: parsed.data.end_time,
-                }),
-                ...(parsed.data.duration != null && {
-                  duration: parsed.data.duration,
-                }),
-                ...(parsed.data.draft_cache != null && {
-                  draftCache: parsed.data.draft_cache,
-                }),
-                ...(operation.cost != null && { cost: operation.cost }),
-                ...(operation.inputMegapixels != null && {
-                  inputMegapixels: operation.inputMegapixels,
-                }),
-                ...(operation.outputMegapixels != null && {
-                  outputMegapixels: operation.outputMegapixels,
-                }),
-              },
-            ],
-          },
-        },
-        response,
-      };
-    }
-
-    if (TERMINAL_FAILURE_STATUSES.has(status)) {
-      const detail = describePollDetails(value.details);
-      return {
-        status: 'error',
-        error:
-          `Black Forest Labs video generation failed with status "${status}"` +
-          `${detail != null ? `: ${detail}` : ''}. Request id: ${operation.requestId}`,
-        response,
-      };
-    }
-
-    return { status: 'pending', response };
-  }
-
-  async doGenerate(
-    options: BlackForestLabsVideoDoGenerateOptions,
-  ): Promise<VideoModelV4Result> {
-    const startResult = await this.doStart(options);
-    const operation = startResult.operation as BlackForestLabsVideoOperation;
     const pollIntervalMillis =
       this.config.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS;
     const pollTimeoutMillis =
@@ -713,32 +564,93 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
           name: 'BLACK_FOREST_LABS_VIDEO_GENERATION_TIMEOUT',
           message:
             `Black Forest Labs video generation timed out after ${pollTimeoutMillis}ms. ` +
-            `Request id: ${operation.requestId}`,
+            `Request id: ${requestId}`,
         });
       }
 
-      const statusResult = await this.doStatus({
-        operation,
-        headers: options.headers,
+      const { value, responseHeaders } = await getFromApi({
+        url: url.toString(),
+        // Polling URLs come from the provider response. Only send credentials
+        // when the URL remains on a trusted Black Forest Labs host.
+        headers: isTrustedUrl(url.toString(), this.config.baseURL)
+          ? combinedHeaders
+          : undefined,
+        failedResponseHandler: bflFailedResponseHandler,
+        successfulResponseHandler:
+          createJsonResponseHandler(bflVideoPollSchema),
         abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
       });
 
-      if (statusResult.status === 'pending') {
+      const { status, result } = value;
+      if (status !== 'Ready' && !TERMINAL_FAILURE_STATUSES.has(status)) {
         continue;
       }
 
-      if (statusResult.status === 'error') {
+      if (TERMINAL_FAILURE_STATUSES.has(status)) {
+        const detail = describePollDetails(value.details);
         throw new AISDKError({
           name: 'BLACK_FOREST_LABS_VIDEO_GENERATION_FAILED',
-          message: statusResult.error,
+          message:
+            `Black Forest Labs video generation failed with status "${status}"` +
+            `${detail != null ? `: ${detail}` : ''}. Request id: ${requestId}`,
+        });
+      }
+
+      const parsed = bflVideoResultSchema.safeParse(result);
+      if (!parsed.success) {
+        throw new AISDKError({
+          name: 'BLACK_FOREST_LABS_VIDEO_GENERATION_ERROR',
+          message:
+            'Black Forest Labs reported the video as Ready but returned no result.sample URL. ' +
+            `Request id: ${requestId}`,
         });
       }
 
       return {
-        videos: statusResult.videos,
-        warnings: [...startResult.warnings, ...statusResult.warnings],
-        providerMetadata: statusResult.providerMetadata,
-        response: statusResult.response,
+        videos: [
+          {
+            type: 'url',
+            url: parsed.data.sample,
+            mediaType: 'video/mp4',
+          },
+        ],
+        warnings,
+        providerMetadata: {
+          blackForestLabs: {
+            videos: [
+              {
+                id: requestId,
+                videoUrl: parsed.data.sample,
+                ...(parsed.data.seed != null && { seed: parsed.data.seed }),
+                ...(parsed.data.start_time != null && {
+                  start_time: parsed.data.start_time,
+                }),
+                ...(parsed.data.end_time != null && {
+                  end_time: parsed.data.end_time,
+                }),
+                ...(parsed.data.duration != null && {
+                  duration: parsed.data.duration,
+                }),
+                ...(parsed.data.draft_cache != null && {
+                  draftCache: parsed.data.draft_cache,
+                }),
+                ...(submit.cost != null && { cost: submit.cost }),
+                ...(submit.input_mp != null && {
+                  inputMegapixels: submit.input_mp,
+                }),
+                ...(submit.output_mp != null && {
+                  outputMegapixels: submit.output_mp,
+                }),
+              },
+            ],
+          },
+        },
+        response: {
+          modelId: this.modelId,
+          timestamp: currentDate,
+          headers: responseHeaders,
+        },
       };
     }
   }

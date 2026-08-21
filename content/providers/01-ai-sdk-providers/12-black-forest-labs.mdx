@@ -276,10 +276,6 @@ const { video } = await generateVideo({
   prompt: 'A white kitten chases a butterfly across a sunlit garden.',
   aspectRatio: '16:9',
   duration: 8,
-  poll: {
-    intervalMs: 2000,
-    timeoutMs: 600000, // 10 minutes
-  },
   providerOptions: {
     blackForestLabs: {
       resolution: 'fhd',
@@ -294,9 +290,10 @@ SDK Core. `generateVideo` downloads it before resolving, so `video` is a
 `GeneratedFile`. The signed URL remains available in
 `providerMetadata.blackForestLabs.videos[0].videoUrl`.
 
-Use the top-level `poll` option to have AI SDK Core orchestrate polling and set
-the interval and timeout. The FLUX 3 video API does not currently expose a
-webhook callback input, so a top-level `webhook` falls back to polling.
+The provider polls internally every 2 seconds for up to 10 minutes. To override
+those defaults, create a provider instance with `pollIntervalMillis` or
+`pollTimeoutMillis`. The FLUX 3 video API does not currently expose a webhook
+callback input.
 
 `duration` accepts a whole number of seconds from 5 to 20. A fractional value is
 rounded and an out-of-range value is clamped, each with a warning. Omit it to let

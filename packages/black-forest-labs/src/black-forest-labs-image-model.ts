@@ -6,11 +6,7 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
-<<<<<<< HEAD
-  isSameOrigin,
   lazySchema,
-=======
->>>>>>> 53f1bc41ed (feat(black-forest-labs): add video model support (FLUX 3) (#18417))
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -21,18 +17,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-<<<<<<< HEAD
-  type BlackForestLabsAspectRatio,
-  type BlackForestLabsImageModelId,
-=======
   bflFailedResponseHandler,
   isTrustedUrl,
 } from './black-forest-labs-api';
-import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
   BlackForestLabsImageModelId,
->>>>>>> 53f1bc41ed (feat(black-forest-labs): add video model support (FLUX 3) (#18417))
 } from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -354,30 +344,9 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   }
 }
 
-<<<<<<< HEAD
 /**
- * Black Forest Labs returns response-supplied URLs (polling and delivery) on
- * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
- * URL on `api.bfl.ai`), so a strict same-origin check against the configured
- * base URL is not enough. Credentials may also be sent to any https host under
- * the official `bfl.ai` domain.
+ * Provider options for Black Forest Labs image generation.
  */
-function isTrustedUrl(url: string, baseUrl: string): boolean {
-  if (isSameOrigin(url, baseUrl)) {
-    return true;
-  }
-
-  try {
-    const { protocol, hostname } = new URL(url);
-    return (
-      protocol === 'https:' &&
-      (hostname === 'bfl.ai' || hostname.endsWith('.bfl.ai'))
-    );
-  } catch {
-    return false;
-  }
-}
-
 export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
@@ -423,8 +392,6 @@ export type BlackForestLabsImageModelOptions = InferSchema<
   typeof blackForestLabsImageModelOptionsSchema
 >;
 
-=======
->>>>>>> 53f1bc41ed (feat(black-forest-labs): add video model support (FLUX 3) (#18417))
 function convertSizeToAspectRatio(
   size: string,
 ): BlackForestLabsAspectRatio | undefined {

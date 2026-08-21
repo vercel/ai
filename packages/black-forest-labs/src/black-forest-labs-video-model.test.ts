@@ -1,12 +1,8 @@
 import type {
-  Experimental_VideoModelV4CallOptions,
-  Experimental_VideoModelV4File,
+  Experimental_VideoModelV3CallOptions,
+  Experimental_VideoModelV3File,
 } from '@ai-sdk/provider';
-import {
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
-  type FetchFunction,
-} from '@ai-sdk/provider-utils';
+import { type FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { BlackForestLabsVideoModel } from './black-forest-labs-video-model';
@@ -54,7 +50,7 @@ function createModel({
   });
 }
 
-const defaultOptions: Experimental_VideoModelV4CallOptions = {
+const defaultOptions: Experimental_VideoModelV3CallOptions = {
   prompt,
   n: 1,
   aspectRatio: undefined,
@@ -69,19 +65,19 @@ const defaultOptions: Experimental_VideoModelV4CallOptions = {
   providerOptions: {},
 };
 
-const imageUrlFile: Experimental_VideoModelV4File = {
+const imageUrlFile: Experimental_VideoModelV3File = {
   type: 'url',
   url: 'https://cdn.example.com/first.png',
   mediaType: 'image/png',
 };
 
-const lastImageUrlFile: Experimental_VideoModelV4File = {
+const lastImageUrlFile: Experimental_VideoModelV3File = {
   type: 'url',
   url: 'https://cdn.example.com/last.png',
   mediaType: 'image/png',
 };
 
-const videoUrlFile: Experimental_VideoModelV4File = {
+const videoUrlFile: Experimental_VideoModelV3File = {
   type: 'url',
   url: 'https://cdn.example.com/clip.mp4',
   mediaType: 'video/mp4',
@@ -107,40 +103,8 @@ describe('BlackForestLabsVideoModel', () => {
 
       expect(model.provider).toBe('black-forest-labs.video');
       expect(model.modelId).toBe('flux-3-video');
-      expect(model.specificationVersion).toBe('v4');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxVideosPerCall).toBe(1);
-    });
-
-    it('should support workflow serialization', () => {
-      const serialized = BlackForestLabsVideoModel[WORKFLOW_SERIALIZE](
-        createModel({
-          currentDate: () => new Date(0),
-          fetch: async () => new Response(),
-        }),
-      );
-
-      expect(serialized).toEqual({
-        modelId: 'flux-3-video',
-        config: {
-          provider: 'black-forest-labs.video',
-          baseURL: TEST_BASE_URL,
-          headers: { 'x-key': 'test-key' },
-          pollIntervalMillis: 1,
-          pollTimeoutMillis: 5000,
-        },
-      });
-
-      const model = BlackForestLabsVideoModel[WORKFLOW_DESERIALIZE]({
-        modelId: 'flux-3-video',
-        config: serialized.config as {
-          provider: string;
-          baseURL: string;
-          headers: Record<string, string>;
-        },
-      });
-
-      expect(model.provider).toBe('black-forest-labs.video');
-      expect(model.modelId).toBe('flux-3-video');
     });
   });
 
@@ -1035,86 +999,6 @@ describe('BlackForestLabsVideoModel', () => {
   });
 
   describe('polling', () => {
-    it('should expose a serializable operation from doStart', async () => {
-      const result = await createModel().doStart({ ...defaultOptions });
-
-      expect(result.operation).toStrictEqual({
-        requestId: REQUEST_ID,
-        pollingUrl: POLL_URL,
-        cost: 0.42,
-        inputMegapixels: 1.23,
-        outputMegapixels: 4.56,
-      });
-      expect(result.warnings).toStrictEqual([]);
-      expect(server.calls).toHaveLength(1);
-    });
-
-    it('should return pending from a single doStatus check', async () => {
-      server.urls[POLL_URL].response = {
-        type: 'json-value',
-        body: { status: 'Generating' },
-      };
-
-      const result = await createModel().doStatus({
-        operation: { requestId: REQUEST_ID, pollingUrl: POLL_URL },
-      });
-
-      expect(result).toMatchObject({ status: 'pending' });
-      expect(server.calls).toHaveLength(1);
-      expect(server.calls[0].requestUrl).toBe(`${POLL_URL}?id=${REQUEST_ID}`);
-    });
-
-    it('should return a completed video from doStatus', async () => {
-      const result = await createModel().doStatus({
-        operation: {
-          requestId: REQUEST_ID,
-          pollingUrl: POLL_URL,
-          cost: 0.42,
-          inputMegapixels: 1.23,
-          outputMegapixels: 4.56,
-        },
-      });
-
-      expect(result).toMatchObject({
-        status: 'completed',
-        videos: [{ type: 'url', url: VIDEO_URL, mediaType: 'video/mp4' }],
-        providerMetadata: {
-          blackForestLabs: {
-            videos: [
-              {
-                id: REQUEST_ID,
-                videoUrl: VIDEO_URL,
-                seed: 7,
-                duration: 8,
-                cost: 0.42,
-                inputMegapixels: 1.23,
-                outputMegapixels: 4.56,
-              },
-            ],
-          },
-        },
-      });
-      expect(server.calls).toHaveLength(1);
-    });
-
-    it('should return an error from doStatus for terminal failures', async () => {
-      server.urls[POLL_URL].response = {
-        type: 'json-value',
-        body: { status: 'Content Moderated', details: 'blocked by policy' },
-      };
-
-      const result = await createModel().doStatus({
-        operation: { requestId: REQUEST_ID, pollingUrl: POLL_URL },
-      });
-
-      expect(result).toMatchObject({
-        status: 'error',
-        error:
-          'Black Forest Labs video generation failed with status "Content Moderated": blocked by policy. Request id: req-123',
-      });
-      expect(server.calls).toHaveLength(1);
-    });
-
     it('should keep polling through non-terminal statuses', async () => {
       let callNumber = 0;
       server.urls[POLL_URL].response = () => {
