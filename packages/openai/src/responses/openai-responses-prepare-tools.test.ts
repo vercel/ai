@@ -3,6 +3,109 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('MCP tools', () => {
+    it('should serialize a remote MCP server URL', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'remote',
+              serverUrl: 'https://example.com/mcp',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        expect.objectContaining({
+          type: 'mcp',
+          server_label: 'remote',
+          server_url: 'https://example.com/mcp',
+          tunnel_id: undefined,
+        }),
+      ]);
+    });
+
+    it('should serialize a Secure MCP tunnel and preserve MCP options', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'secure-tunnel',
+              tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+              serverDescription: 'Private MCP server',
+              authorization: 'Bearer test-token',
+              headers: { 'X-Test': 'test-value' },
+              allowedTools: {
+                readOnly: true,
+                toolNames: ['search'],
+              },
+              requireApproval: {
+                never: { toolNames: ['search'] },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'mcp',
+          server_label: 'secure-tunnel',
+          tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+          server_url: undefined,
+          connector_id: undefined,
+          server_description: 'Private MCP server',
+          authorization: 'Bearer test-token',
+          headers: { 'X-Test': 'test-value' },
+          allowed_tools: {
+            read_only: true,
+            tool_names: ['search'],
+          },
+          require_approval: {
+            never: { tool_names: ['search'] },
+          },
+        },
+      ]);
+    });
+
+    it('should reject missing or ambiguous MCP targets', async () => {
+      const prepare = (args: Record<string, unknown>) =>
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.mcp',
+              name: 'mcp',
+              args,
+            },
+          ],
+          toolChoice: undefined,
+        });
+
+      await expect(prepare({ serverLabel: 'missing-target' })).rejects.toThrow(
+        'Exactly one of serverUrl, connectorId, or tunnelId must be provided.',
+      );
+      await expect(
+        prepare({
+          serverLabel: 'ambiguous-target',
+          serverUrl: 'https://example.com/mcp',
+          tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+        }),
+      ).rejects.toThrow(
+        'Exactly one of serverUrl, connectorId, or tunnelId must be provided.',
+      );
+    });
+  });
+
   describe('function tools strict mode', () => {
     it('should pass through strict mode when strict is true', async () => {
       const result = await prepareResponsesTools({
