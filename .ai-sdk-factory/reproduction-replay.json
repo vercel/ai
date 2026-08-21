@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "issueId": 17326,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17326.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-17326.ts",
+    "packages/gateway/src/__fixtures__/issue-17326-xai-grok-4.5.chunks.txt",
+    "packages/gateway/src/__fixtures__/issue-17326-anthropic-claude-haiku-4.5.chunks.txt",
+    "packages/gateway/src/__fixtures__/issue-17326-xai-grok-4.5-count-tokens.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #17326 REPRODUCED: message_start usage is 0/0 for anthropic/claude-haiku-4.5 while terminal usage is non-zero"
+  }
+}
