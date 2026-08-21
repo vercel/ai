@@ -228,6 +228,88 @@ describe('lastAssistantMessageIsCompleteWithApprovalResponses', () => {
     ).toBe(false);
   });
 
+  it('should return true when tool approval is denied (output-denied state)', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithApprovalResponses({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_1',
+                state: 'output-denied',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval_1', approved: false },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return true mixing denied and approved tools', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithApprovalResponses({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_1',
+                state: 'output-denied',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval_1', approved: false },
+              },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_2',
+                state: 'output-available',
+                input: { city: 'Paris' },
+                output: { temperature: 20, weather: 'cloudy' },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return true mixing output-denied with approval-responded', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithApprovalResponses({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_1',
+                state: 'approval-responded',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval_1', approved: true },
+              },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_2',
+                state: 'output-denied',
+                input: { city: 'Paris' },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
   it('should only consider the last step in a multi-step message', () => {
     expect(
       lastAssistantMessageIsCompleteWithApprovalResponses({
