@@ -1,5 +1,12 @@
 # @ai-sdk/cerebras
 
+## 2.0.76
+
+### Patch Changes
+
+- Updated dependencies [c79dd10]
+  - @ai-sdk/openai-compatible@2.0.70
+
 ## 2.0.75
 
 ### Patch Changes
