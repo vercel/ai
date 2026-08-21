@@ -30,6 +30,7 @@ import {
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import type {
+  OpenAIResponsesAssistantMessage,
   OpenAIResponsesCompactionItem,
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
@@ -287,6 +288,33 @@ function getPromptCacheBreakpoint(
   return providerOptions?.[providerOptionsName]?.promptCacheBreakpoint as
     | OpenAIPromptCacheBreakpoint
     | undefined;
+}
+
+function createAssistantTextInput({
+  text,
+  id,
+  phase,
+}: {
+  text: string;
+  id: string | undefined;
+  phase: 'commentary' | 'final_answer' | null | undefined;
+}): OpenAIResponsesAssistantMessage {
+  if (id == null) {
+    return {
+      role: 'assistant',
+      content: [{ type: 'input_text', text }],
+      ...(phase != null && { phase }),
+    };
+  }
+
+  return {
+    type: 'message',
+    role: 'assistant',
+    content: [{ type: 'output_text', text, annotations: [] }],
+    id,
+    status: 'completed',
+    ...(phase != null && { phase }),
+  };
 }
 
 /**
@@ -564,12 +592,13 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              input.push({
-                role: 'assistant',
-                content: [{ type: 'output_text', text: part.text }],
-                id,
-                ...(phase != null && { phase }),
-              });
+              input.push(
+                createAssistantTextInput({
+                  text: part.text,
+                  id,
+                  phase,
+                }),
+              );
 
               break;
             }
