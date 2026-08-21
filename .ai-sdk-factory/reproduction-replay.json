@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 19241,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19241-rsc-state-races.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-19241-rsc-state-races.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19241_PRIMARY_FAILURE: same-tick keyed setters dropped the a update; sequential keyed setters dropped the a update; overlapping wrapped actions dropped the action A update; a wrapped action dropped the functional local a update"
+  }
+}
