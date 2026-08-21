@@ -931,6 +931,35 @@ describe('tool calls', () => {
     `);
   });
 
+  it('should normalize malformed replayed tool call input to an object', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_1',
+              toolName: 'set_cell_range',
+              input: '{"label":"Build sheet",',
+            },
+          ],
+        },
+      ],
+    });
+
+    const argumentsText =
+      result.messages[0].role === 'assistant'
+        ? result.messages[0].tool_calls?.[0].function.arguments
+        : undefined;
+    expect(argumentsText).toBeDefined();
+
+    const decodedArguments = JSON.parse(argumentsText!);
+    expect(decodedArguments).toEqual(expect.any(Object));
+    expect(Array.isArray(decodedArguments)).toBe(false);
+    expect(argumentsText).not.toBe('{"label":"Build sheet",');
+  });
+
   it('should handle different tool output types', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [

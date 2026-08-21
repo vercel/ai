@@ -1,0 +1,10 @@
+{
+  "error": {
+    "message": "<400> InternalError.Algo.InvalidParameter: The \"function.arguments\" parameter of the code model must be in JSON format.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "invalid_parameter_error"
+  },
+  "id": "chatcmpl-814260dc-a0b7-9a0e-a050-2f27e77fbe56",
+  "request_id": "814260dc-a0b7-9a0e-a050-2f27e77fbe56"
+}
