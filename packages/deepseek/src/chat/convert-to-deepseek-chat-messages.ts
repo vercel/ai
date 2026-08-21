@@ -3,7 +3,15 @@ import type {
   LanguageModelV4Prompt,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { DeepSeekChatPrompt } from './deepseek-chat-api-types';
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+} from '@ai-sdk/provider-utils';
+import type {
+  DeepSeekChatPrompt,
+  DeepSeekContentPart,
+} from './deepseek-chat-api-types';
 
 export function convertToDeepSeekChatMessages({
   prompt,
@@ -65,10 +73,48 @@ export function convertToDeepSeekChatMessages({
       }
 
       case 'user': {
-        let userContent = '';
+        const hasImagePart = content.some(
+          part =>
+            part.type === 'file' &&
+            (part.data.type === 'url' || part.data.type === 'data') &&
+            getTopLevelMediaType(part.mediaType) === 'image',
+        );
+
+        if (!hasImagePart) {
+          let userContent = '';
+          for (const part of content) {
+            if (part.type === 'text') {
+              userContent += part.text;
+            } else {
+              warnings.push({
+                type: 'unsupported',
+                feature: `user message part type: ${part.type}`,
+              });
+            }
+          }
+
+          messages.push({ role: 'user', content: userContent });
+          break;
+        }
+
+        const userContent: Array<DeepSeekContentPart> = [];
         for (const part of content) {
           if (part.type === 'text') {
-            userContent += part.text;
+            userContent.push({ type: 'text', text: part.text });
+          } else if (
+            part.type === 'file' &&
+            (part.data.type === 'url' || part.data.type === 'data') &&
+            getTopLevelMediaType(part.mediaType) === 'image'
+          ) {
+            userContent.push({
+              type: 'image_url',
+              image_url: {
+                url:
+                  part.data.type === 'url'
+                    ? part.data.url.toString()
+                    : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+              },
+            });
           } else {
             warnings.push({
               type: 'unsupported',
