@@ -130,7 +130,7 @@ The following optional provider options are available for Cerebras language mode
 
   Number of most likely tokens to return at each token position. Accepts values from `0` through `20`. Requires `logprobs` to be `true`.
 
-- **logitBias** _Record<string, number>_
+- **logitBias** _Record&lt;string, number&gt;_
 
   Maps token IDs to bias values from `-100` through `100`.
 
@@ -146,7 +146,7 @@ The following optional provider options are available for Cerebras language mode
 
   Controls how reasoning content appears in the response. Format support depends on the model.
 
-- **prediction** _{ type: 'content'; content: string | Array<{ type: 'text'; text: string }> }_
+- **prediction** _&#123; type: 'content'; content: string | Array&lt;&#123; type: 'text'; text: string &#125;&gt; &#125;_
 
   Supplies predicted output that can accelerate requests where most of the response is already known.
 
