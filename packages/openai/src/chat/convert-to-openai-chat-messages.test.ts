@@ -637,6 +637,72 @@ describe('tool calls', () => {
     ]);
   });
 
+  it('should normalize non-object tool call inputs without raw string pass-through', () => {
+    const malformedResult = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: '{"label":"Build sheet",',
+              toolCallId: 'malformed',
+              toolName: 'set_cell_range',
+            },
+          ],
+        },
+      ],
+    });
+    const serializedObjectResult = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: '{"label":"Build sheet"}',
+              toolCallId: 'serialized-object',
+              toolName: 'set_cell_range',
+            },
+          ],
+        },
+      ],
+    });
+
+    const malformedMessage = malformedResult.messages[0];
+    const serializedObjectMessage = serializedObjectResult.messages[0];
+
+    expect(malformedMessage.role).toBe('assistant');
+    expect(serializedObjectMessage.role).toBe('assistant');
+    if (
+      malformedMessage.role !== 'assistant' ||
+      serializedObjectMessage.role !== 'assistant'
+    ) {
+      throw new Error('Expected assistant messages.');
+    }
+
+    const malformedArguments =
+      malformedMessage.tool_calls?.[0].function.arguments;
+    const serializedObjectArguments =
+      serializedObjectMessage.tool_calls?.[0].function.arguments;
+
+    expect(malformedArguments).toBeDefined();
+    expect(serializedObjectArguments).toBeDefined();
+
+    const decodedMalformedArguments = JSON.parse(malformedArguments!);
+    const decodedSerializedObjectArguments = JSON.parse(
+      serializedObjectArguments!,
+    );
+
+    expect(decodedMalformedArguments).not.toBeNull();
+    expect(Array.isArray(decodedMalformedArguments)).toBe(false);
+    expect(typeof decodedMalformedArguments).toBe('object');
+    expect(decodedSerializedObjectArguments).not.toEqual({
+      label: 'Build sheet',
+    });
+    expect(typeof decodedSerializedObjectArguments).toBe('object');
+  });
+
   it('should send empty string content for assistant messages with no tool calls', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
