@@ -1655,26 +1655,7 @@ class DefaultStreamTextResult<
           try {
             stepFinish = new DelayedPromise<void>();
 
-<<<<<<< HEAD
             const stepInputMessages = [...initialMessages, ...responseMessages];
-=======
-          // maps provider-assigned IDs to stream-unique IDs for the text and
-          // reasoning parts that are active in this step
-          const textPartIds = new Map<string, string>();
-          const reasoningPartIds = new Map<string, string>();
-
-          self.addStream(
-            streamWithToolResults.pipeThrough(
-              new TransformStream<
-                ExecuteToolsStreamPart<TOOLS>,
-                TextStreamPart<TOOLS>
-              >({
-                async transform(chunk, controller): Promise<void> {
-                  if (chunk.type === 'model-call-start') {
-                    warnings = chunk.warnings;
-                    return; // stream start chunks are sent immediately and do not count as first chunk
-                  }
->>>>>>> c6d57f3902 (fix(ai): prevent duplicate text and reasoning part ids (#19269))
 
             const prepareStepResult = await prepareStep?.({
               model,
@@ -1895,6 +1876,11 @@ class DefaultStreamTextResult<
             // raw text as it comes from the provider. recorded for telemetry.
             let activeText = '';
 
+            // Maps provider-assigned IDs to stream-unique IDs for the text and
+            // reasoning parts that are active in this step.
+            const textPartIds = new Map<string, string>();
+            const reasoningPartIds = new Map<string, string>();
+
             self.addStream(
               streamWithToolResults.pipeThrough(
                 new TransformStream<
@@ -1904,7 +1890,6 @@ class DefaultStreamTextResult<
                   async transform(chunk, controller): Promise<void> {
                     resetChunkTimeout();
 
-<<<<<<< HEAD
                     if (chunk.type === 'stream-start') {
                       warnings = chunk.warnings;
                       return; // stream start chunks are sent immediately and do not count as first chunk
@@ -1939,97 +1924,25 @@ class DefaultStreamTextResult<
                     }
 
                     switch (chunkType) {
-                      case 'tool-approval-request':
-                      case 'text-start':
-                      case 'text-end': {
+                      case 'tool-approval-request': {
                         controller.enqueue(chunk);
                         break;
-=======
-                  switch (chunkType) {
-                    case 'file':
-                    case 'custom':
-                    case 'source':
-                    case 'reasoning-file':
-                    case 'tool-input-start':
-                    case 'tool-input-end':
-                    case 'tool-input-delta':
-                    case 'tool-approval-request': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
+                      }
 
-                    case 'text-start': {
-                      const id = reserveTextPartId(chunk.id);
-                      textPartIds.set(chunk.id, id);
-                      controller.enqueue({ ...chunk, id });
-                      break;
-                    }
+                      case 'text-start': {
+                        const id = reserveTextPartId(chunk.id);
+                        textPartIds.set(chunk.id, id);
+                        controller.enqueue({ ...chunk, id });
+                        break;
+                      }
 
-                    case 'text-delta': {
-                      if (
-                        chunk.text.length > 0 ||
-                        chunk.providerMetadata != null
-                      ) {
+                      case 'text-end': {
                         controller.enqueue({
                           ...chunk,
                           id: textPartIds.get(chunk.id) ?? chunk.id,
                         });
-                      }
-                      break;
-                    }
-
-                    case 'text-end': {
-                      controller.enqueue({
-                        ...chunk,
-                        id: textPartIds.get(chunk.id) ?? chunk.id,
-                      });
-                      textPartIds.delete(chunk.id);
-                      break;
-                    }
-
-                    case 'reasoning-start': {
-                      const id = reserveReasoningPartId(chunk.id);
-                      reasoningPartIds.set(chunk.id, id);
-                      controller.enqueue({ ...chunk, id });
-                      break;
-                    }
-
-                    case 'reasoning-delta': {
-                      controller.enqueue({
-                        ...chunk,
-                        id: reasoningPartIds.get(chunk.id) ?? chunk.id,
-                      });
-                      break;
-                    }
-
-                    case 'reasoning-end': {
-                      controller.enqueue({
-                        ...chunk,
-                        id: reasoningPartIds.get(chunk.id) ?? chunk.id,
-                      });
-                      reasoningPartIds.delete(chunk.id);
-                      break;
-                    }
-
-                    case 'tool-call': {
-                      controller.enqueue(chunk);
-                      // store tool calls for onEnd callback and toolCalls promise:
-                      stepToolCalls.push(chunk);
-                      break;
-                    }
-
-                    case 'tool-approval-response': {
-                      controller.enqueue(chunk);
-                      stepToolApprovalResponses.push(chunk);
-                      break;
-                    }
-
-                    case 'tool-result': {
-                      controller.enqueue(chunk);
-
-                      if (!chunk.preliminary) {
-                        stepToolOutputs.push(chunk);
->>>>>>> c6d57f3902 (fix(ai): prevent duplicate text and reasoning part ids (#19269))
+                        textPartIds.delete(chunk.id);
+                        break;
                       }
 
                       case 'text-delta': {
@@ -2039,7 +1952,7 @@ class DefaultStreamTextResult<
                         ) {
                           controller.enqueue({
                             type: 'text-delta',
-                            id: chunk.id,
+                            id: textPartIds.get(chunk.id) ?? chunk.id,
                             text: chunk.delta,
                             providerMetadata: chunk.providerMetadata,
                           });
@@ -2048,16 +1961,26 @@ class DefaultStreamTextResult<
                         break;
                       }
 
-                      case 'reasoning-start':
+                      case 'reasoning-start': {
+                        const id = reserveReasoningPartId(chunk.id);
+                        reasoningPartIds.set(chunk.id, id);
+                        controller.enqueue({ ...chunk, id });
+                        break;
+                      }
+
                       case 'reasoning-end': {
-                        controller.enqueue(chunk);
+                        controller.enqueue({
+                          ...chunk,
+                          id: reasoningPartIds.get(chunk.id) ?? chunk.id,
+                        });
+                        reasoningPartIds.delete(chunk.id);
                         break;
                       }
 
                       case 'reasoning-delta': {
                         controller.enqueue({
                           type: 'reasoning-delta',
-                          id: chunk.id,
+                          id: reasoningPartIds.get(chunk.id) ?? chunk.id,
                           text: chunk.delta,
                           providerMetadata: chunk.providerMetadata,
                         });

@@ -12065,7 +12065,7 @@ describe('streamText', () => {
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV4({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             switch (responseCount++) {
               case 0:
@@ -12113,13 +12113,13 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        stopWhen: isStepCount(2),
+        stopWhen: stepCountIs(2),
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
       });
 
-      const parts = await convertAsyncIterableToArray(result.stream);
+      const parts = await convertAsyncIterableToArray(result.fullStream);
 
       // no mismatched part errors were recorded:
       expect(parts.filter(part => part.type === 'error')).toEqual([]);
@@ -12176,7 +12176,7 @@ describe('streamText', () => {
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV4({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             switch (responseCount++) {
               case 0:
@@ -12231,13 +12231,13 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        stopWhen: isStepCount(2),
+        stopWhen: stepCountIs(2),
         _internal: {
           generateId: mockId({ prefix: 'id' }),
         },
       });
 
-      const parts = await convertAsyncIterableToArray(result.stream);
+      const parts = await convertAsyncIterableToArray(result.fullStream);
 
       // no mismatched part errors were recorded:
       expect(parts.filter(part => part.type === 'error')).toEqual([]);
@@ -12294,7 +12294,7 @@ describe('streamText', () => {
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV4({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             switch (responseCount++) {
               case 0:
@@ -12341,10 +12341,10 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        stopWhen: isStepCount(2),
+        stopWhen: stepCountIs(2),
       });
 
-      const parts = await convertAsyncIterableToArray(result.stream);
+      const parts = await convertAsyncIterableToArray(result.fullStream);
 
       expect(
         parts.filter(
