@@ -181,9 +181,6 @@ export class ByteDanceImageModel implements ImageModelV4 {
   }
 }
 
-// Ark exposes no input token count for image generation, so `inputTokens` stays
-// undefined rather than being defaulted to 0. A missing `usage` object is not
-// warned about - it is a valid response.
 function mapImageUsage(
   usage: z.infer<typeof byteDanceImageResponseSchema>['usage'],
 ): ImageModelV4Usage | undefined {
@@ -200,9 +197,6 @@ function mapImageUsage(
 // breakages when the API adds fields and keeps parsing efficient.
 const byteDanceImageResponseSchema = z.object({
   data: z.array(z.object({ b64_json: z.string() })),
-  // Ark also returns `generated_images` and `tool_usage`, which are deliberately
-  // not parsed here: `generated_images` duplicates `images.length`, and neither
-  // is a token count.
   usage: z
     .object({
       output_tokens: z.number().nullish(),
