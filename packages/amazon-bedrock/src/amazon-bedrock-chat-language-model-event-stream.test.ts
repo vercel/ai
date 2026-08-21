@@ -2,6 +2,7 @@ import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { fromUtf8, toUtf8 } from '@smithy/util-utf8';
+import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
 
@@ -34,7 +35,59 @@ function createStream(
   });
 }
 
+function createFixtureEvents(filename: string): Uint8Array[] {
+  return fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map(line => {
+      const event = JSON.parse(line) as Record<string, unknown>;
+      const [eventType, data] = Object.entries(event)[0];
+      return createEvent(eventType, JSON.stringify(data));
+    });
+}
+
 describe('AmazonBedrockChatLanguageModel doStream', () => {
+  it('surfaces documented redactedContent reasoning without an error and preserves the tool call', async () => {
+    const model = new AmazonBedrockChatLanguageModel('us.openai.gpt-5.6-luna', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: {},
+      fetch: async () =>
+        new Response(
+          createStream(createFixtureEvents('amazon-bedrock-redacted-content')),
+          {
+            status: 200,
+            headers: {
+              'content-type': 'application/vnd.amazon.eventstream',
+            },
+          },
+        ),
+      generateId: () => 'test-id',
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: 'error' })]),
+    );
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'call_75be1097e9375c5aaa95a748e208be0e',
+          toolName: 'propose',
+          input:
+            '{"groups":[{"name":"Sales","parentGroupName":""},{"name":"Team1","parentGroupName":"Sales"}]}',
+        }),
+      ]),
+    );
+    expect(JSON.stringify(parts)).toContain('"redactedContent"');
+  });
+
   it('surfaces event stream decoding failures', async () => {
     const corruptedFrame = createEvent('contentBlockDelta', 'corrupted');
     corruptedFrame[corruptedFrame.length - 1] ^= 0xff;

@@ -1,0 +1,44 @@
+{
+  "metrics": {
+    "latencyMs": 11108
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "reasoningContent": {
+            "redactedContent": "cnNuX3BVUGgxNnRvNFZLWURnSkFQeW1iRUFJRmVDVUt2MlgxeHQvOGNSRXgrN1F1bmRiWTlJQytValJRQ09KSlJkcnZuMXkvQUY4QUFRQVZZWGR6TFdOeWVYQjBieTF3ZFdKc2FXTXRhMlY1QUVSQmJVMUJaR1JSY21KTlJHVndTSHBZZWtWcVJXbzRNRklyVWs1alVFTTJMMlJoWm5KRFNVRTNSVXRTVW5nM00yOHdjM3BuY1V4dFEwWXlPWFZSU1N0NFRHYzlQUUFCQUJGaGQzTXRhMjF6TFdocFpYSmhjbU5vZVFBS1ltVnliUzF6ZEc5eVpRQmNJN1BsRzhNbzdtT3J4cHFqYzg5YmRQM1EyREl4TnpNNjZLYWZvTHlNUzlzVU9FejZtUWk3SDF4cDRPUEFpTkJSSlJCR0VvOThPRlJLbS9LNU91WElRQis2YnBVTHNuUSt0UGlhZHMyYktHNlpWNGRjK1VUKzMvVlFOMDBDQUFBUUFGMUhOZ2RjMjQ1ajkvS1U2T0xVN2d2ZjFiNnRNK2tsNDJqYWc4eVlNUVhFRHI3aXRwQUgxa0V2TlpKaC8xYnFWZi8vLy84QUFBQUJBQUFBQUFBQUFBQUFBQUFCQUFBQXBZQWt4VTNjeVhWaHRDQ0x3MEx1ekdZWHlIczJPZ0RUaVo3aEVaRjV5V000SERoamhJTFBvZnZCR3pNZHFzM3pueFFQeW52OTNkeVE0cTBmSE1DdFJUVzR6NWxmTFZJc3JYYUZkZUdXZWZnRVlLRkNVYm9jdFFOKzcrMnBDYXUxanVKZjcxOHZVMGxhTWpHNUwxcjlFbnNBMFcxOXdoV3A2R3JPUGR6WVFOQUZlOEQrZzlkVXYvMDd1V01SaEdFanJoMnZtZ0hCamFYNTRKS0NSNlhYN21rZHp0L1JpSTdGQmNFVXd1aFhacXlRTXVkQXFWTUFaekJsQWpBL2Rid01DTU02MEJoeXpwaU1paUZSSTJCNVlqS2xCS3VnUFAydElCRmVxa2lxclJGWlZoRkhvaXhQb2ZiK2RPa0NNUUQveGZXMW5NaWQ5eHlRbTNNS3NoNll1bXBUVW5kcXl4czd6OC9JelBoT1pLaCtmbFRic0U1OVFSV0d6RGFHVHRrPQ=="
+          }
+        },
+        {
+          "toolUse": {
+            "input": {
+              "groups": [
+                {
+                  "name": "Sales",
+                  "parentGroupName": ""
+                },
+                {
+                  "name": "Team1",
+                  "parentGroupName": "Sales"
+                }
+              ]
+            },
+            "name": "propose",
+            "toolUseId": "call_144c4e2e449d535e83c74d130aca0d89"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "inputTokens": 67,
+    "outputTokens": 62,
+    "serverToolUsage": {},
+    "totalTokens": 129
+  }
+}
