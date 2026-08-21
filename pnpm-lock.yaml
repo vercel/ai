@@ -94,7 +94,7 @@ importers:
         specifier: 3.0.60
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 1.0.72
+        specifier: 1.0.73
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
         specifier: 3.0.59
@@ -112,7 +112,7 @@ importers:
         specifier: 3.0.267
         version: link:../../packages/react
       '@ai-sdk/rsc':
-        specifier: 2.0.264
+        specifier: 2.0.265
         version: link:../../packages/rsc
       '@ai-sdk/valibot':
         specifier: 2.0.47
