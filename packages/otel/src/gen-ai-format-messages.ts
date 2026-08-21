@@ -117,8 +117,8 @@ export function mapOperationName(operationId: string): string {
     'ai.streamText': 'invoke_agent',
     'ai.generateObject': 'invoke_agent',
     'ai.streamObject': 'invoke_agent',
-    'ai.embed': 'embed',
-    'ai.embedMany': 'embed_many',
+    'ai.embed': 'embeddings',
+    'ai.embedMany': 'embeddings',
     'ai.rerank': 'rerank',
   };
   return mapping[operationId] ?? operationId;

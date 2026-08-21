@@ -1150,7 +1150,6 @@ export class OpenTelemetry implements Telemetry {
 
     state.rootSpan.setAttributes(
       selectAttributes(telemetry, {
-        'gen_ai.usage.input_tokens': event.usage.tokens,
         ...selectSupplementalAttributes(
           telemetry,
           this.supplementalAttributes,

@@ -1364,7 +1364,7 @@ describe('OpenTelemetry', () => {
   });
 
   describe('onStart (embed)', () => {
-    it('creates an embed operation span', () => {
+    it('creates an embeddings operation span', () => {
       integration.onStart!(
         makeOnStartEvent({
           operationId: 'ai.embed',
@@ -1376,11 +1376,11 @@ describe('OpenTelemetry', () => {
         {
           "ended": false,
           "initAttributes": {
-            "gen_ai.operation.name": "embed",
+            "gen_ai.operation.name": "embeddings",
             "gen_ai.provider.name": "openai",
             "gen_ai.request.model": "gpt-4",
           },
-          "name": "embed gpt-4",
+          "name": "embeddings gpt-4",
           "runtimeAttributes": {},
         }
       `);
@@ -2095,7 +2095,7 @@ describe('OpenTelemetry', () => {
   });
 
   describe('embed integration', () => {
-    it('distinguishes aggregate usage from provider request usage', async () => {
+    it('reports usage only on the provider request span', async () => {
       const sdkTrace = createSdkTracer();
       integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
 
@@ -2129,15 +2129,15 @@ describe('OpenTelemetry', () => {
             "operation": "embeddings",
           },
           {
-            "inputTokens": 14,
-            "name": "embed text-embedding-model",
-            "operation": "embed",
+            "inputTokens": undefined,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
           },
         ]
       `);
     });
 
-    it('distinguishes aggregate embedMany usage from provider request usage', async () => {
+    it('reports batched usage only on provider request spans', async () => {
       const sdkTrace = createSdkTracer();
       integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
 
@@ -2177,9 +2177,9 @@ describe('OpenTelemetry', () => {
             "operation": "embeddings",
           },
           {
-            "inputTokens": 42,
-            "name": "embed_many text-embedding-model",
-            "operation": "embed_many",
+            "inputTokens": undefined,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
           },
         ]
       `);

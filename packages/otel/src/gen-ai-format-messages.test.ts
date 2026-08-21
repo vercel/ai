@@ -110,14 +110,14 @@ describe('mapOperationName', () => {
     `);
   });
 
-  it('should map embed/embedMany to distinct wrapper operations', () => {
+  it('should map embed/embedMany to embeddings', () => {
     expect({
       embed: mapOperationName('ai.embed'),
       embedMany: mapOperationName('ai.embedMany'),
     }).toMatchInlineSnapshot(`
       {
-        "embed": "embed",
-        "embedMany": "embed_many",
+        "embed": "embeddings",
+        "embedMany": "embeddings",
       }
     `);
   });
