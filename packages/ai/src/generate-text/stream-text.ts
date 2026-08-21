@@ -192,6 +192,7 @@ const isOutputChunkType = {
   'model-call-response-metadata': false,
   'model-call-end': false,
   error: false,
+  ping: false,
   raw: false,
 } as const satisfies Record<ExecuteToolsStreamPart['type'], boolean>;
 
@@ -2237,7 +2238,8 @@ class DefaultStreamTextResult<
                     case 'tool-input-start':
                     case 'tool-input-end':
                     case 'tool-input-delta':
-                    case 'tool-approval-request': {
+                    case 'tool-approval-request':
+                    case 'ping': {
                       controller.enqueue(chunk);
                       break;
                     }
