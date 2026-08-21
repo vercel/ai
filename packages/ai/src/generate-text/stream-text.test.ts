@@ -12150,17 +12150,17 @@ describe('streamText', () => {
             "type": "text-end",
           },
           {
-            "id": "id-2",
+            "id": "id-3",
             "type": "text-start",
           },
           {
-            "id": "id-2",
+            "id": "id-3",
             "providerMetadata": undefined,
             "text": "It is sunny.",
             "type": "text-delta",
           },
           {
-            "id": "id-2",
+            "id": "id-3",
             "type": "text-end",
           },
         ]
@@ -12268,17 +12268,17 @@ describe('streamText', () => {
             "type": "reasoning-end",
           },
           {
-            "id": "id-2",
+            "id": "id-3",
             "type": "reasoning-start",
           },
           {
-            "id": "id-2",
+            "id": "id-3",
             "providerMetadata": undefined,
             "text": "thinking more",
             "type": "reasoning-delta",
           },
           {
-            "id": "id-2",
+            "id": "id-3",
             "type": "reasoning-end",
           },
         ]
