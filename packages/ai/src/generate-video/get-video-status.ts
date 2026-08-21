@@ -12,7 +12,8 @@ import { VERSION } from '../version';
  * The result of an `experimental_getVideoStatus` call: the spec-level status
  * payload, discriminated by `status` (`pending` | `completed` | `error`).
  */
-export type GetVideoStatusResult = Experimental_VideoModelV4OperationStatusResult;
+export type GetVideoStatusResult =
+  Experimental_VideoModelV4OperationStatusResult;
 
 /**
  * Checks the status of an asynchronous video generation started with
