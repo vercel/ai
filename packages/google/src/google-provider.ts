@@ -8,6 +8,7 @@ import type {
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
+  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -15,6 +16,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
@@ -40,6 +42,8 @@ import {
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 import { GoogleRealtimeModel } from './realtime/google-realtime-model';
+import { GoogleSpeechTranslationModel } from './speech-translation/google-speech-translation-model';
+import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
 
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): LanguageModelV4;
@@ -90,6 +94,20 @@ export interface GoogleProvider extends ProviderV4 {
    * Creates a model for video generation.
    */
   videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates an experimental model for streaming speech translation.
+   */
+  translation(
+    modelId: GoogleSpeechTranslationModelId,
+  ): SpeechTranslationModelV4;
+
+  /**
+   * Creates an experimental model for streaming speech translation.
+   */
+  speechTranslationModel(
+    modelId: GoogleSpeechTranslationModelId,
+  ): SpeechTranslationModelV4;
 
   /**
    * Creates a model for speech generation (text-to-speech).
@@ -151,6 +169,12 @@ export interface GoogleProviderSettings {
    * Optional function to generate a unique ID for each request.
    */
   generateId?: () => string;
+
+  /**
+   * Custom WebSocket implementation. This is useful for testing or for
+   * runtimes that need a WebSocket constructor with header support.
+   */
+  webSocket?: WebSocketConstructor;
 
   /**
    * Custom provider name
@@ -288,6 +312,16 @@ export function createGoogle(
       fetch: options.fetch,
     });
 
+  const createSpeechTranslationModel = (
+    modelId: GoogleSpeechTranslationModelId,
+  ) =>
+    new GoogleSpeechTranslationModel(modelId, {
+      provider: `${providerName}.speech-translation`,
+      baseURL,
+      headers: getHeaders,
+      webSocket: options.webSocket,
+    });
+
   const createSpeechModel = (modelId: GoogleSpeechModelId) =>
     new GoogleSpeechModel(modelId, {
       provider: `${providerName}.speech`,
@@ -358,6 +392,8 @@ export function createGoogle(
   provider.files = createFiles;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.translation = createSpeechTranslationModel;
+  provider.speechTranslationModel = createSpeechTranslationModel;
   provider.interactions = createInteractionsModel;
   provider.tools = googleTools;
 

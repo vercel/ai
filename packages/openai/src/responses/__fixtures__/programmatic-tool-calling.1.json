@@ -1,0 +1,185 @@
+{
+  "id": "resp_0742d30c1d273351016a6145ef9a28819fa909a12fb4ce083c",
+  "object": "response",
+  "created_at": 1784759791,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1784759794,
+  "error": null,
+  "frequency_penalty": 0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-5.6-sol",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_0742d30c1d273351016a6145f02f90819f8f697ae6397b30ca",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABqYUXyB9UqAPDyJjuQvOF8G68skrQxVjIxGDJrDBMQ3-TD6MOqcXMTBWBmHhTbWEIOkM_YxWvo9WC_3CvFjE5wEXm-twwr5tWNEZeEr1v-gJ2rbfRh_QEvxMteJ9n_6TRqP1YUfpLBwXV5yecCV95esj5zwGC-NalMtMjpKQhxy5dksgNsyUZEpeuCE26V7sSbXFUgCEtd8YDx2qxIaxUaX-lJmTw2HXmEK0AXyOhe7eqJNcBQkr1N5gA5GUO6Kg_cQyNpYacqJPpHpOIj5hWc-FxEx7Q18zryeFGcS2J7Cesht2b_rue5s-xXmqwGIzlUMzLoMeGD_pFmwPOe27FaxSXTW-6fz58uL5ep2upBPCJg9tPoLIXiVh8BX2LgKUpvEBaYmWI5Kr05TtD_47jc85xRpyebRbxhTBI8CdzDD-oe-PjpTDC7dxSvqPZsBStt9Ix2cIal9bvBpS1hhNnqBkZTZaVIHGRavklwNtx72ioPLvE6fPqiIeE1SKSqKeHjrjedFs5XoV_z06vRFXUTJAmDXHaNBH7-shvKSWwuWKAE5cqk4clLjajhDhaPqT-eCUKwuIjrdjBIfnZ9y5fMGBMq_4uJtVb0AfRl2Tv_BYG27HDJjV0AykeADx1UfaSodMSBLPVyVmNytjg1MA5qSY9zMjJgIZhnC-4Vwpt37oVEjKO0jP1l-eo7H0LhrwvqFMx2h4Y-yX4XEniVxbWJigqZTst_1EZcchBkWM8oeSLtPuilMbblizONHkKm9qPbJsDA-SGcQkzQbzwNk36Drk9qVqF1VuPBuXj_fYVZUgxpcxMb4SVb0cFQxvy_N2NyLhvmuS0nmesvRQFzM7H-NnxpXF5QooGvRM49DlndAUeei-C-YR1gIDv7V08krywvoeZRQGk8H2sCr_ln4TwnjUeFtbChwbIo4eUSFLQY0fe8LqbUdf4p2QJfbnIsPEk9G_Uax9DtefxVt1RXVF51cy2xhG8m8CevFNr7UHpR-2FNqla3SajoFO4f68h8kh66O26GFGH1t0vFbFT_3n1GpIof5-loo6KhPdkyhD21aU-dim3hSPc3ZtJJlmTsW2gbdD4nYfMPdWOBMJiV6v_TA9ES6pAoEr7HVg2HQWAoGftyVNY5YGNhX088-N9DncA15KLzV5Cwseei3XnpkHv4EEwZvrQzD9kGyQy8b0_3KD6zw2RIruk1fXVN0q6D9pJfMOcLiNuUa--55xdVctGi8nSk3B7qlme6JhJPEDibgjr7y-FDEKbI1WZYlXxD1pMzX4LhJRPaeMo2ubDpUnNopSBjug==",
+      "summary": []
+    },
+    {
+      "id": "cm_0742d30c1d273351016a6145f1d2d0819faa3ecfc950fceec4",
+      "type": "program",
+      "call_id": "call_O2IvSLQcJ0bwIvJZ2ovGV69M",
+      "code": "const inventory = await tools.getInventory({sku: \"sku_123\"});\nconst demand = await tools.getDemand({sku: \"sku_123\"});\ntext(JSON.stringify({\n  sku: \"sku_123\",\n  availableUnits: inventory.availableUnits,\n  requestedUnits: demand.requestedUnits,\n  sufficient: inventory.availableUnits >= demand.requestedUnits\n}));\n",
+      "fingerprint": "gAAAAABqYUXys6PFDtT1FnhMGvWYXprIat7-SDXMjz0lviu6FnjlRXBWV817jeG0b7-SNit6G-_4pe2Qw3waLzZqlHNB4MUFNoJDBliIAHgGGHP8NbDlI7kyRcN_RlNSuZTC0SC-f3ywqwVsmnJp_BoJ2wjG1Z9a2Z5qveyaETeG8jh61yXIozjPITJpetZpQrdGIN_52YTQwY4suWpxVE4_Kds7f7ST53rkVEw3hSSJ6uPKYzoVZE5FW028vstadT72gAtQuN8ztcJWXMK3fWln1DVxi7EfwDvvs-2zAzXEXWECu-UBHyyd9FaDllwBWTKNv6v5_uq0tISX0ZiTfV5K9TJGyCkPLoIMPDLz8irTNJpo1_qxTYGDNj1ksM1loKyE7qZLNH1og-22-yW83PsDyvglcakiVwh-_P96RoKNFMvk0Y5BgIeT8Lcz7wSBjuvenY3gVeHbpeoc0G21ttGLuiKkFAO4S3-dG2SuCGuBYEJVI8EyQhWNwuZNliQnHFA2d7XGGaHth2B-o04lueg2Awg5slf7WL4guHzBYuqReQucL-9V1umaCMTDKRfPV8ghaYyd9fhvY4NjQC7WuLGe9JHjIDyd2qDdpZNjXH7ur4svPVL7Wxb04ij-mBzNcCItkHCnmS7wmvhUA88aUZT2tmaiz8GUVA=="
+    },
+    {
+      "id": "fc_0742d30c1d273351016a6145f1dac0819fb0053980ae918c16",
+      "type": "function_call",
+      "status": "in_progress",
+      "arguments": "{\"sku\":\"sku_123\"}",
+      "call_id": "call_rj6LW6NEyodD5YVKeoexoLNz",
+      "caller": {
+        "type": "program",
+        "caller_id": "call_O2IvSLQcJ0bwIvJZ2ovGV69M"
+      },
+      "name": "getInventory"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "medium",
+    "mode": "standard",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [
+    {
+      "type": "programmatic_tool_calling"
+    },
+    {
+      "type": "function",
+      "allowed_callers": [
+        "programmatic"
+      ],
+      "description": "Get available inventory for a SKU.",
+      "name": "getInventory",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          },
+          "availableUnits": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sku",
+          "availableUnits"
+        ],
+        "additionalProperties": false
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sku"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "strict": true
+    },
+    {
+      "type": "function",
+      "allowed_callers": [
+        "programmatic"
+      ],
+      "description": "Get requested units for a SKU.",
+      "name": "getDemand",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          },
+          "requestedUnits": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sku",
+          "requestedUnits"
+        ],
+        "additionalProperties": false
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sku"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "strict": true
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 631,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 139,
+    "output_tokens_details": {
+      "reasoning_tokens": 55
+    },
+    "total_tokens": 770
+  },
+  "user": null,
+  "metadata": {}
+}

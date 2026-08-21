@@ -113,6 +113,7 @@ import type {
   InferPartialOutput,
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
+import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { convertToReasoningOutputs } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
@@ -135,6 +136,11 @@ import type {
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import {
+  prepareToolsForToolCallers,
+  resolveToolCallerConfiguration,
+  type Experimental_ToolCallers,
+} from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type {
@@ -371,6 +377,7 @@ export function streamText<
   experimental_sandbox: sandbox,
   output,
   toolApproval,
+  experimental_toolCallers,
   experimental_toolApprovalSecret,
   experimental_telemetry,
   telemetry = experimental_telemetry,
@@ -493,6 +500,11 @@ export function streamText<
      * This configuration takes precedence over tool-defined approval settings.
      */
     toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Configures which caller tools may invoke each tool.
+     */
+    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
 
     /**
      * Secret for HMAC-signing tool approval requests. When set, the server
@@ -794,6 +806,7 @@ export function streamText<
     stopConditions: asArray(stopWhen),
     output,
     toolApproval,
+    experimental_toolCallers,
     experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
@@ -915,6 +928,11 @@ function createOutputTransformStream<
       textChunk += chunk.text;
       textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
 
+      if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
       // only publish if partial json can be parsed:
       const result = await output.parsePartialOutput({ text });
 
@@ -1003,6 +1021,7 @@ class DefaultStreamTextResult<
     stopConditions,
     output,
     toolApproval,
+    experimental_toolCallers,
     experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
@@ -1058,6 +1077,7 @@ class DefaultStreamTextResult<
     >;
     output: OUTPUT | undefined;
     toolApproval: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> | undefined;
+    experimental_toolCallers: Experimental_ToolCallers<TOOLS> | undefined;
     experimental_toolApprovalSecret: string | Uint8Array | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
@@ -1108,6 +1128,10 @@ class DefaultStreamTextResult<
   }) {
     this.outputSpecification = output;
     this.tools = tools;
+    const resolvedToolCallers = resolveToolCallerConfiguration({
+      tools,
+      toolCallers: experimental_toolCallers,
+    });
 
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       TOOLS,
@@ -1169,7 +1193,10 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
-        await onChunk?.({ chunk: part });
+        await notify({
+          event: { chunk: part },
+          callbacks: onChunk,
+        });
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
@@ -1178,7 +1205,10 @@ class DefaultStreamTextResult<
             recordedNoOutputError = error;
           }
 
-          await onError({ error });
+          await notify({
+            event: { error },
+            callbacks: onError,
+          });
         }
 
         if (
@@ -1932,10 +1962,20 @@ class DefaultStreamTextResult<
             tools,
             activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
+          const {
+            executionTools: stepExecutionTools,
+            modelTools: stepModelTools,
+          } = prepareToolsForToolCallers({
+            tools: stepActiveTools,
+            toolCallers: resolvedToolCallers,
+          });
           const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
 
           const stepTools = await prepareTools({
-            tools: stepActiveTools,
+            tools: stepModelTools as ActiveToolSubset<
+              TOOLS,
+              ActiveTools<NoInfer<TOOLS>>
+            >,
             toolOrder: stepToolOrder as ToolOrder<
               ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
             >,
@@ -1963,6 +2003,11 @@ class DefaultStreamTextResult<
             prepareStepResult?.providerOptions,
           );
 
+          const stepCallSettings = prepareStepCallSettings({
+            callSettings,
+            stepSettings: prepareStepResult,
+          });
+
           const stepStartTimestampMs = now();
 
           const { retry } = prepareRetries({ maxRetries, abortSignal });
@@ -1975,7 +2020,7 @@ class DefaultStreamTextResult<
             retry(async () =>
               streamLanguageModelCall({
                 model: prepareStepResult?.model ?? model,
-                tools: stepActiveTools,
+                tools: stepModelTools as TOOLS,
                 toolOrder: stepToolOrder,
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                 instructions: stepInstructions,
@@ -2035,7 +2080,7 @@ class DefaultStreamTextResult<
                 _internal: {
                   now,
                 },
-                ...callSettings,
+                ...stepCallSettings,
               }),
             ),
           );
@@ -2045,7 +2090,7 @@ class DefaultStreamTextResult<
           const streamAfterToolCallbackInvocation =
             invokeToolCallbacksFromStream({
               stream: languageModelStream,
-              tools,
+              tools: stepExecutionTools as TOOLS,
               stepInputMessages: stepMessages,
               abortSignal,
               runtimeContext,
@@ -2068,7 +2113,7 @@ class DefaultStreamTextResult<
 
           const streamWithToolResults = executeToolsFromStream({
             stream: streamAfterToolCallbackInvocation,
-            tools,
+            tools: stepExecutionTools as TOOLS,
             callId,
             messages: stepMessages,
             abortSignal,
@@ -2198,7 +2243,10 @@ class DefaultStreamTextResult<
                     }
 
                     case 'text-delta': {
-                      if (chunk.text.length > 0) {
+                      if (
+                        chunk.text.length > 0 ||
+                        chunk.providerMetadata != null
+                      ) {
                         controller.enqueue(chunk);
                       }
                       break;
@@ -2346,7 +2394,7 @@ class DefaultStreamTextResult<
                   // the client tool's result is sent back.
                   for (const toolCall of stepToolCalls) {
                     if (toolCall.providerExecuted !== true) continue;
-                    const tool = getOwn(tools, toolCall.toolName);
+                    const tool = getOwn(stepExecutionTools, toolCall.toolName);
                     if (
                       tool?.type === 'provider' &&
                       tool.supportsDeferredResults
@@ -2380,13 +2428,12 @@ class DefaultStreamTextResult<
                   cleanupStepTimeouts();
 
                   if (
-                    // Continue if:
-                    // 1. There are client tool calls that have all been executed or denied, OR
-                    // 2. There are pending deferred results from provider-executed tools, OR
-                    ((clientToolCalls.length > 0 &&
-                      clientToolCalls.length ===
-                        clientToolOutputs.length +
-                          deniedToolApprovalResponses.length) ||
+                    // Continue only after all client tool calls have been executed or denied,
+                    // and if there are client results or pending deferred provider results.
+                    clientToolCalls.length ===
+                      clientToolOutputs.length +
+                        deniedToolApprovalResponses.length &&
+                    (clientToolCalls.length > 0 ||
                       pendingDeferredToolCalls.size > 0) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({

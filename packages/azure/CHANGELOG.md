@@ -1,5 +1,248 @@
 # @ai-sdk/azure
 
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [9a4337d]
+  - @ai-sdk/deepseek@3.0.30
+
+## 4.0.46
+
+### Patch Changes
+
+- Updated dependencies [6be0f51]
+  - @ai-sdk/openai@4.0.45
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/openai@4.0.44
+  - @ai-sdk/deepseek@3.0.29
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [a062795]
+  - @ai-sdk/openai@4.0.43
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [b6fff2e]
+  - @ai-sdk/openai@4.0.42
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [59d6def]
+  - @ai-sdk/openai@4.0.41
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [e19a4a6]
+  - @ai-sdk/openai@4.0.40
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/deepseek@3.0.28
+  - @ai-sdk/openai@4.0.39
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [d302134]
+  - @ai-sdk/openai@4.0.38
+
+## 4.0.38
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/deepseek@3.0.27
+  - @ai-sdk/openai@4.0.37
+
+## 4.0.37
+
+### Patch Changes
+
+- Updated dependencies [6157098]
+- Updated dependencies [4cd4548]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/openai@4.0.36
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/deepseek@3.0.26
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/deepseek@3.0.25
+  - @ai-sdk/openai@4.0.35
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [73d48d0]
+- Updated dependencies [bbd9b31]
+  - @ai-sdk/openai@4.0.34
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [e6a93c4]
+  - @ai-sdk/openai@4.0.33
+
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/deepseek@3.0.24
+  - @ai-sdk/openai@4.0.32
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.32
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/deepseek@3.0.23
+  - @ai-sdk/openai@4.0.31
+
+## 4.0.31
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/openai@4.0.30
+  - @ai-sdk/deepseek@3.0.22
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/deepseek@3.0.21
+  - @ai-sdk/openai@4.0.29
+
+## 4.0.29
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/deepseek@3.0.20
+  - @ai-sdk/openai@4.0.28
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/deepseek@3.0.19
+  - @ai-sdk/openai@4.0.27
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [f7c4a38]
+- Updated dependencies [fa95504]
+  - @ai-sdk/openai@4.0.26
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/deepseek@3.0.18
+
+## 4.0.26
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [beaecb3]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/openai@4.0.25
+  - @ai-sdk/deepseek@3.0.17
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/deepseek@3.0.16
+  - @ai-sdk/openai@4.0.24
+
+## 4.0.24
+
+### Patch Changes
+
+- 96a237d: Add blocked domain filters to the OpenAI and Azure Responses API web search tools.
+- Updated dependencies [96a237d]
+  - @ai-sdk/openai@4.0.23
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/openai@4.0.22
+  - @ai-sdk/deepseek@3.0.15
+
+## 4.0.22
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/deepseek@3.0.14
+  - @ai-sdk/openai@4.0.21
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.21
+
+### Patch Changes
+
+- Updated dependencies [1f6dd3a]
+  - @ai-sdk/openai@4.0.20
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [34c53c0]
+  - @ai-sdk/openai@4.0.19
+
 ## 4.0.19
 
 ### Patch Changes

@@ -16,7 +16,27 @@ export interface DeepSeekSystemMessage {
 
 export interface DeepSeekUserMessage {
   role: 'user';
-  content: string;
+  content: string | Array<DeepSeekContentPart>;
+}
+
+export type DeepSeekContentPart =
+  | DeepSeekContentPartText
+  | DeepSeekContentPartImage
+  | DeepSeekContentPartFile;
+
+export interface DeepSeekContentPartText {
+  type: 'text';
+  text: string;
+}
+
+export interface DeepSeekContentPartImage {
+  type: 'image_url';
+  image_url: { url: string };
+}
+
+export interface DeepSeekContentPartFile {
+  type: 'file';
+  file_id: string;
 }
 
 export interface DeepSeekAssistantMessage {
