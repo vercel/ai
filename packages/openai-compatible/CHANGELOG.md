@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.34
+
+### Patch Changes
+
+- 99989ba: feat(provider/openai-compatible): report image generation token usage
+
 ## 3.0.33
 
 ### Patch Changes

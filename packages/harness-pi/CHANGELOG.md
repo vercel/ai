@@ -1,5 +1,13 @@
 # @ai-sdk/harness-pi
 
+## 1.0.83
+
+### Patch Changes
+
+- 00127df: fix(harness-pi): fix incorrect grep use
+- Updated dependencies [7f50d28]
+  - @ai-sdk/harness@1.0.81
+
 ## 1.0.82
 
 ### Patch Changes
