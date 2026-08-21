@@ -44,6 +44,7 @@ import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-set
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
 import { stripWorkDir } from './strip-work-dir';
+import { createToolInputWorkDirStripper } from './tool-input-work-dir-stripper';
 import {
   createTurnTelemetry,
   type TurnContentPart,
@@ -259,6 +260,22 @@ export function runPrompt<
       ]),
     );
     const settledHostToolCallIds = new Set<string>();
+    /*
+     * Streamed tool input needs stripping that spans fragments — a work-dir
+     * reference can be split across two deltas. Held state lives for the turn.
+     */
+    const toolInputWorkDirStripper = createToolInputWorkDirStripper(
+      input.sessionWorkDir,
+    );
+    /** Project one wire part into consumer-facing parts and enqueue them. */
+    const forward = (part: HarnessV1StreamPart) => {
+      for (const translated of translateStreamPart<TOOLS>(
+        part,
+        translateOptions,
+      )) {
+        result.enqueue(translated);
+      }
+    };
     let closingResumedStep = false;
     let pendingStopBoundary:
       | {
@@ -649,15 +666,43 @@ export function runPrompt<
          * execution below — the tools need the absolute path to resolve
          * against the sandbox root, so the strip is display-only.
          */
-        const displayValue = stripWorkDir(value, input.sessionWorkDir);
+        let displayValue = stripWorkDir(value, input.sessionWorkDir);
         const settledHostInputReplay =
           (displayValue.type === 'tool-call' ||
             displayValue.type === 'tool-result' ||
-            displayValue.type === 'tool-approval-request') &&
+            displayValue.type === 'tool-approval-request' ||
+            displayValue.type === 'tool-input-start' ||
+            displayValue.type === 'tool-input-delta' ||
+            displayValue.type === 'tool-input-end') &&
           settledHostToolCallIds.has(displayValue.toolCallId);
 
         if (settledHostInputReplay) {
           continue;
+        }
+
+        /*
+         * Streamed input fragments go through the stateful stripper instead of
+         * `stripWorkDir`, so a work-dir reference split across two deltas is
+         * caught. It holds back the tail that might begin one, so a delta can
+         * shrink to nothing — forward nothing in that case, and release
+         * whatever is still held as one last delta when the block closes.
+         */
+        if (displayValue.type === 'tool-input-delta') {
+          const delta = toolInputWorkDirStripper.push(
+            displayValue.toolCallId,
+            displayValue.delta,
+          );
+          if (delta.length === 0) continue;
+          displayValue = { ...displayValue, delta };
+        } else if (displayValue.type === 'tool-input-end') {
+          const held = toolInputWorkDirStripper.flush(displayValue.toolCallId);
+          if (held.length > 0) {
+            forward({
+              type: 'tool-input-delta',
+              toolCallId: displayValue.toolCallId,
+              delta: held,
+            });
+          }
         }
 
         if (displayValue.type === 'finish-step' && closingResumedStep) {
@@ -724,12 +769,7 @@ export function runPrompt<
         }
 
         // Forward to consumer as soon as possible.
-        for (const part of translateStreamPart<TOOLS>(
-          displayValue,
-          translateOptions,
-        )) {
-          result.enqueue(part);
-        }
+        forward(displayValue);
 
         // Tool-call validation lives here (not in translateStreamPart) because
         // schema parsing is async and needs the merged tool set in scope.

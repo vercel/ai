@@ -1453,6 +1453,34 @@ function formatUnknownError(error: unknown): string {
   return String(error);
 }
 
+/**
+ * Bridge stream parts forwarded to the turn as-is. `finish` and `error` are
+ * subscribed separately, since they also settle the turn.
+ *
+ * This is a subscription list, not the full outbound union — subscribing is
+ * how a part reaches the turn at all, and the channel buffers a validated
+ * frame that has no subscriber rather than raising. A part the bridge emits
+ * but this list omits is therefore dropped silently, so anything added to the
+ * wire that this adapter emits has to be added here too.
+ */
+const FORWARDED_BRIDGE_EVENT_TYPES = [
+  'stream-start',
+  'text-start',
+  'text-delta',
+  'text-end',
+  'reasoning-start',
+  'reasoning-delta',
+  'reasoning-end',
+  'tool-input-start',
+  'tool-input-delta',
+  'tool-input-end',
+  'tool-call',
+  'tool-approval-request',
+  'tool-result',
+  'finish-step',
+  'raw',
+] as const;
+
 function createSession({
   sessionId,
   channel,
@@ -1554,26 +1582,8 @@ function createSession({
       pendingReject!(err);
     };
 
-    const eventTypes = [
-      'stream-start',
-      'text-start',
-      'text-delta',
-      'text-end',
-      'reasoning-start',
-      'reasoning-delta',
-      'reasoning-end',
-      'tool-call',
-      'tool-approval-request',
-      'tool-result',
-      'finish-step',
-      'raw',
-    ] as const;
-    for (const type of eventTypes) {
-      unsubs.push(
-        channel.on(type, msg => {
-          forward(msg);
-        }),
-      );
+    for (const type of FORWARDED_BRIDGE_EVENT_TYPES) {
+      unsubs.push(channel.on(type, forward));
     }
     unsubs.push(
       channel.on('finish', msg => {

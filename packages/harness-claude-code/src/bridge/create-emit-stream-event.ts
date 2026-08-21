@@ -21,8 +21,13 @@ export type ClaudeMessage = {
   event?: {
     type?: string;
     index?: number;
-    content_block?: { type?: string };
-    delta?: { type?: string; text?: string; thinking?: string };
+    content_block?: { type?: string; id?: string; name?: string };
+    delta?: {
+      type?: string;
+      text?: string;
+      thinking?: string;
+      partial_json?: string;
+    };
   };
   message?: {
     content?: ReadonlyArray<MessageBlock>;
@@ -47,6 +52,13 @@ type MessageBlock = {
   is_error?: boolean;
 };
 
+/**
+ * A content block the CLI is still streaming, keyed by block index. `text` and
+ * `thinking` carry a generated id; `tool` carries the tool-use id, so the
+ * streamed input and the eventual `tool-call` correlate.
+ */
+type PartialBlock = { id: string; kind: 'text' | 'thinking' | 'tool' };
+
 export type ClaudeStreamEventState = {
   /*
    * Map of native tool-use id → tool name. Claude assistant messages emit
@@ -56,7 +68,7 @@ export type ClaudeStreamEventState = {
    */
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>;
+  partialBlocks: Map<number, PartialBlock>;
   stepUsage: Record<string, unknown> | undefined;
   pendingStepToolUseIds: Set<string>;
   pendingStepUsage: Record<string, unknown> | undefined;
@@ -91,6 +103,35 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
 }
 
 const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
+
+/** Native-name prefix of the MCP server the bridge hosts `HarnessAgent` tools on. */
+export const HARNESS_TOOLS_MCP_PREFIX = 'mcp__harness-tools__';
+
+/**
+ * Whether a call is `dynamic` on the wire — a user-configured MCP tool, not in
+ * the agent's typed tool set. A tool's `tool-call`, `tool-input-start` and
+ * `tool-result` must agree on the flag, so all three derive it here.
+ */
+export function isExternalMcpTool(nativeName: string): boolean {
+  return (
+    nativeName.startsWith('mcp__') &&
+    !nativeName.startsWith(HARNESS_TOOLS_MCP_PREFIX)
+  );
+}
+
+/**
+ * Whether a tool call settles on this wire with a `tool-call` of its own. The
+ * ones that do not are swallowed below, so streaming an input for one would
+ * leave a tool part with nothing to settle it.
+ */
+function emitsToolCall(nativeName: string): boolean {
+  return (
+    !nativeName.startsWith(HARNESS_TOOLS_MCP_PREFIX) &&
+    nativeName !== STRUCTURED_OUTPUT_TOOL_NAME
+  );
+}
+
+const STRUCTURED_OUTPUT_TOOL_NAME = 'StructuredOutput';
 
 export function createEmitStreamEvent({
   state,
@@ -195,7 +236,7 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'stream_event') {
-      handleStreamEvent(msg.event, state.partialBlocks, emit);
+      handleStreamEvent(msg.event, state.partialBlocks, emit, toCommonName);
       return;
     }
 
@@ -210,19 +251,18 @@ export function createEmitStreamEvent({
           typeof block.name === 'string'
         ) {
           toolUseIds.push(block.id);
-          if (block.name === 'StructuredOutput') {
+          if (block.name === STRUCTURED_OUTPUT_TOOL_NAME) {
             state.structuredOutputToolUseIds.add(block.id);
             continue;
           }
-          const mcpPrefix = 'mcp__harness-tools__';
-          if (block.name.startsWith(mcpPrefix)) {
+          if (block.name.startsWith(HARNESS_TOOLS_MCP_PREFIX)) {
             state.pendingStepToolUseIds.add(block.id);
             state.mcpToolUseIds.add(block.id);
             opensStep = true;
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
-          const dynamic = block.name.startsWith('mcp__');
+          const dynamic = isExternalMcpTool(block.name);
           if (dynamic) state.externalMcpToolUseIds.add(block.id);
           if (state.approvalRequestedToolUseIds.has(block.id)) {
             continue;
@@ -373,14 +413,16 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
 
 function handleStreamEvent(
   event: ClaudeMessage['event'] | undefined,
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>,
+  partialBlocks: Map<number, PartialBlock>,
   send: Emit,
+  toCommonName: (nativeName: string) => string,
 ): void {
   if (!event || typeof event.index !== 'number') return;
   const index = event.index;
 
   if (event.type === 'content_block_start') {
-    const blockType = event.content_block?.type;
+    const block = event.content_block;
+    const blockType = block?.type;
     if (blockType === 'text') {
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'text' });
@@ -389,6 +431,22 @@ function handleStreamEvent(
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'thinking' });
       send({ type: 'reasoning-start', id });
+    } else if (blockType === 'tool_use') {
+      const id = block?.id;
+      const name = block?.name;
+      if (typeof id !== 'string' || typeof name !== 'string') return;
+      if (!emitsToolCall(name)) return;
+
+      // The tool-use id is already known here, so the streamed input and the
+      // `tool-call` the assistant message emits later share a `toolCallId`.
+      partialBlocks.set(index, { id, kind: 'tool' });
+      send({
+        type: 'tool-input-start',
+        toolCallId: id,
+        toolName: toCommonName(name),
+        providerExecuted: true,
+        ...(isExternalMcpTool(name) ? { dynamic: true } : {}),
+      });
     }
     return;
   }
@@ -412,6 +470,16 @@ function handleStreamEvent(
         id: block.id,
         delta: event.delta.thinking,
       });
+    } else if (
+      block.kind === 'tool' &&
+      event.delta?.type === 'input_json_delta' &&
+      typeof event.delta.partial_json === 'string'
+    ) {
+      send({
+        type: 'tool-input-delta',
+        toolCallId: block.id,
+        delta: event.delta.partial_json,
+      });
     }
     return;
   }
@@ -420,10 +488,24 @@ function handleStreamEvent(
     const block = partialBlocks.get(index);
     if (!block) return;
     partialBlocks.delete(index);
-    if (block.kind === 'text') {
-      send({ type: 'text-end', id: block.id });
-    } else {
-      send({ type: 'reasoning-end', id: block.id });
+    /*
+     * Exhaustive on purpose: a catch-all `else` here would silently close a
+     * future block kind as `reasoning-end`.
+     */
+    switch (block.kind) {
+      case 'text':
+        send({ type: 'text-end', id: block.id });
+        return;
+      case 'thinking':
+        send({ type: 'reasoning-end', id: block.id });
+        return;
+      case 'tool':
+        send({ type: 'tool-input-end', toolCallId: block.id });
+        return;
+      default: {
+        const exhaustive: never = block.kind;
+        void exhaustive;
+      }
     }
   }
 }

@@ -1,3 +1,4 @@
+import { readUIMessageStream, type UIMessage } from 'ai';
 import { describe, expect, test, vi } from 'vitest';
 import type {
   HarnessV1ContinueTurnState,
@@ -39,6 +40,11 @@ function fakeSession(
   options: {
     unfinishedTurn?: boolean;
     suspendState?: HarnessV1ContinueTurnState;
+    /**
+     * Runs before the suspend resolves — pair it with `streamResult`'s
+     * `closeForSuspend` so a blocked stream ends when the slice is torn down.
+     */
+    onSuspend?: () => void;
   } = {},
 ): HarnessAgentSession & {
   suspendCalls: number;
@@ -57,6 +63,7 @@ function fakeSession(
     },
     async suspendTurn() {
       session.suspendCalls++;
+      options.onSuspend?.();
       return options.suspendState ?? continueState('suspended');
     },
     async detach() {
@@ -118,6 +125,39 @@ function streamResult(opts: {
     ),
   };
   return { result, closeForSuspend: () => close?.() };
+}
+
+/**
+ * Replay a slice's chunks through the UI reducer, continuing a prior message —
+ * what a `useChat`-style client would end up rendering.
+ */
+async function toUIMessage(
+  chunks: HarnessWorkflowChunk[],
+  previous?: UIMessage,
+): Promise<UIMessage | undefined> {
+  const stream = new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+      controller.close();
+    },
+  });
+
+  let latest = previous;
+  for await (const message of readUIMessageStream({
+    stream: stream as never,
+    ...(previous != null ? { message: previous } : {}),
+  })) {
+    latest = message;
+  }
+  return latest;
+}
+
+function toolParts(
+  message: UIMessage | undefined,
+): Array<{ state?: string; input?: unknown }> {
+  return (message?.parts ?? []).filter(part =>
+    part.type.startsWith('tool-'),
+  ) as Array<{ state?: string; input?: unknown }>;
 }
 
 function collectingWritable(): {
@@ -312,19 +352,11 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('completes the time slice: suspends at the budget and carries the cursor forward', async () => {
-    const session = fakeSession();
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }, { type: 'text-delta', id: 't', delta: 'a' }],
       blockAfter: true,
     });
-    const suspendingSession = session as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSuspend = suspendingSession.suspendTurn.bind(session);
-    suspendingSession.suspendTurn = async () => {
-      closeForSuspend();
-      return originalSuspend();
-    };
+    const session = fakeSession({ onSuspend: closeForSuspend });
 
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
@@ -390,7 +422,6 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('continued slice reopens active parts and preserves aggregate token usage', async () => {
-    const firstSession = fakeSession();
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
@@ -401,14 +432,7 @@ describe('runHarnessAgentTimeSlice', () => {
       ],
       blockAfter: true,
     });
-    const suspendingSession = firstSession as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSuspend = suspendingSession.suspendTurn.bind(firstSession);
-    suspendingSession.suspendTurn = async () => {
-      closeForSuspend();
-      return originalSuspend();
-    };
+    const firstSession = fakeSession({ onSuspend: closeForSuspend });
 
     const firstAgent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => firstSession),
@@ -483,7 +507,6 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('continued slice emits a pending tool input only once across the time-slice boundary', async () => {
-    const firstSession = fakeSession();
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
@@ -498,14 +521,7 @@ describe('runHarnessAgentTimeSlice', () => {
       ],
       blockAfter: true,
     });
-    const suspendingSession = firstSession as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSuspend = suspendingSession.suspendTurn.bind(firstSession);
-    suspendingSession.suspendTurn = async () => {
-      closeForSuspend();
-      return originalSuspend();
-    };
+    const firstSession = fakeSession({ onSuspend: closeForSuspend });
 
     const firstAgent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => firstSession),
@@ -570,6 +586,157 @@ describe('runHarnessAgentTimeSlice', () => {
         providerExecuted: true,
       },
       { type: 'finish' },
+    ]);
+  });
+
+  test('continued slice replays tool-input-start before a delta from the previous slice', async () => {
+    const { result: firstResult, closeForSuspend } = streamResult({
+      chunks: [
+        { type: 'start' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'call_1',
+          toolName: 'write',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'call_1',
+          inputTextDelta: '{"path":',
+        },
+      ],
+      blockAfter: true,
+    });
+    const firstSession = fakeSession({ onSuspend: closeForSuspend });
+
+    const firstAgent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => firstSession),
+      stream: vi.fn(async () => firstResult),
+      continueStream: vi.fn(async () => {
+        throw new Error('continue should not be called on the first slice');
+      }),
+    };
+
+    const firstWritable = collectingWritable();
+    const readyForNextStep = await runHarnessAgentTimeSlice({
+      agent: firstAgent,
+      state: createHarnessWorkflowState({ prompt: 'hi', sessionId: 'ses_1' }),
+      timeSliceSeconds: 0.05,
+      writable: firstWritable.writable,
+    });
+
+    expect(readyForNextStep.streamContext?.activeToolInputs).toEqual({
+      call_1: {
+        start: {
+          type: 'tool-input-start',
+          toolCallId: 'call_1',
+          toolName: 'write',
+          providerExecuted: true,
+        },
+        text: '{"path":',
+      },
+    });
+
+    // The second slice also suspends, so its stream context is persisted and
+    // the clear-on-settle can be asserted.
+    const { result: secondResult, closeForSuspend: closeSecondForSuspend } =
+      streamResult({
+        chunks: [
+          { type: 'start' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'call_1',
+            inputTextDelta: '"app/page.tsx"}',
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'call_1',
+            toolName: 'write',
+            input: { path: 'app/page.tsx' },
+            providerExecuted: true,
+          },
+        ],
+        blockAfter: true,
+      });
+    const secondSession = fakeSession({ onSuspend: closeSecondForSuspend });
+    const secondAgent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => secondSession),
+      stream: vi.fn(async () => {
+        throw new Error('stream should not be called on a continued slice');
+      }),
+      continueStream: vi.fn(async () => secondResult),
+    };
+    const secondWritable = collectingWritable();
+
+    const afterSecondSlice = await runHarnessAgentTimeSlice({
+      agent: secondAgent,
+      state: readyForNextStep,
+      timeSliceSeconds: 0.05,
+      writable: secondWritable.writable,
+    });
+
+    expect(afterSecondSlice.status).toBe('ready_for_next_step');
+    // The replayed start, then the input received so far, then this slice's
+    // own chunks. The re-announced `start-step` is dropped.
+    expect(secondWritable.chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call_1',
+        toolName: 'write',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'call_1',
+        inputTextDelta: '{"path":',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'call_1',
+        inputTextDelta: '"app/page.tsx"}',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call_1',
+        toolName: 'write',
+        input: { path: 'app/page.tsx' },
+        providerExecuted: true,
+      },
+    ]);
+    // The settled input clears the replay entry, so a later slice does not
+    // re-open a tool part that already resolved.
+    expect(afterSecondSlice.streamContext?.activeToolInputs).toBeUndefined();
+    expect(
+      Object.keys(afterSecondSlice.streamContext?.pendingToolInputs ?? {}),
+    ).toEqual(['call_1']);
+
+    /*
+     * What the client makes of those chunks, which the assertions above
+     * cannot show. Two things regress silently at the chunk level:
+     *
+     *  - ONE part. `tool-input-*` resolves its part within the current step,
+     *    so a step boundary in the continued slice would open a second part
+     *    and strand the first (#18348, reached from the streaming side).
+     *  - The object CONTINUES. Re-opening resets the incremental parser, so
+     *    without the replayed prefix the second slice parses
+     *    `"app/page.tsx"}` alone and the input collapses to a bare string.
+     */
+    const afterFirstRender = await toUIMessage(firstWritable.chunks);
+    expect(toolParts(afterFirstRender)).toEqual([
+      expect.objectContaining({ state: 'input-streaming' }),
+    ]);
+
+    const afterSecondRender = await toUIMessage(
+      secondWritable.chunks,
+      afterFirstRender,
+    );
+    expect(toolParts(afterSecondRender)).toEqual([
+      expect.objectContaining({
+        state: 'input-available',
+        input: { path: 'app/page.tsx' },
+      }),
     ]);
   });
 
@@ -696,19 +863,11 @@ describe('runHarnessAgentStep', () => {
 
 describe('runHarnessAgentSlice', () => {
   test('supports sliceTimeoutSeconds and maps ready_for_next_step to timed_out', async () => {
-    const session = fakeSession();
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }],
       blockAfter: true,
     });
-    const suspendingSession = session as unknown as {
-      suspendTurn: () => Promise<HarnessV1ContinueTurnState>;
-    };
-    const originalSuspend = suspendingSession.suspendTurn.bind(session);
-    suspendingSession.suspendTurn = async () => {
-      closeForSuspend();
-      return originalSuspend();
-    };
+    const session = fakeSession({ onSuspend: closeForSuspend });
     const agent: HarnessWorkflowAgent = {
       createSession: vi.fn(async () => session),
       stream: vi.fn(async () => result),

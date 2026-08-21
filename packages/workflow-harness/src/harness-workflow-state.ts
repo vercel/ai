@@ -53,6 +53,31 @@ export interface HarnessWorkflowStreamContext {
     HarnessWorkflowSerializedChunk
   >;
   readonly pendingToolInputs?: Record<string, HarnessWorkflowSerializedChunk>;
+  /**
+   * `tool-input-start` chunks for tool inputs still streaming when the slice
+   * ended, keyed by tool-call id. Replayed as a prelude in the next slice —
+   * a `tool-input-delta` whose start the client never saw is a stream error.
+   * Cleared once the input settles (`tool-input-available` /
+   * `tool-input-error`).
+   */
+  /**
+   * Tool inputs still streaming when the slice ended, keyed by tool-call id.
+   * Both halves are replayed into the next slice, in order:
+   *
+   *  - `start` re-opens the part. A `tool-input-delta` for a tool call the
+   *    client never saw begin is a stream error.
+   *  - `text` is the input JSON received so far. Re-opening resets the
+   *    client's partial-JSON parser, so without it the next slice's fragments
+   *    parse as a fresh document and the rendered input collapses to whatever
+   *    the tail happens to spell.
+   *
+   * Cleared once the input settles (`tool-input-available` /
+   * `tool-input-error`).
+   */
+  readonly activeToolInputs?: Record<
+    string,
+    { readonly start: HarnessWorkflowSerializedChunk; readonly text: string }
+  >;
 }
 
 /**

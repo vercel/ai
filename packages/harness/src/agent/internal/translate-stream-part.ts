@@ -103,6 +103,45 @@ export function translateStreamPart<TOOLS extends ToolSet>(
         } as TextStreamPart<TOOLS>,
       ];
 
+    case 'tool-input-start':
+      /*
+       * The wire calls the correlation key `toolCallId` (like every other
+       * tool part); the AI SDK part calls it `id`. `dynamic` is forwarded
+       * verbatim — the same field `validateToolCall` forwards from the
+       * settled `tool-call` — so both parts key the same UI part.
+       */
+      return [
+        {
+          type: 'tool-input-start',
+          id: event.toolCallId,
+          toolName: event.toolName,
+          ...(event.providerExecuted !== undefined
+            ? { providerExecuted: event.providerExecuted }
+            : {}),
+          ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
+          ...(event.providerMetadata !== undefined
+            ? { providerMetadata: event.providerMetadata }
+            : {}),
+        } as TextStreamPart<TOOLS>,
+      ];
+
+    case 'tool-input-delta':
+      return [
+        {
+          type: 'tool-input-delta',
+          id: event.toolCallId,
+          delta: event.delta,
+        } as TextStreamPart<TOOLS>,
+      ];
+
+    case 'tool-input-end':
+      return [
+        {
+          type: 'tool-input-end',
+          id: event.toolCallId,
+        } as TextStreamPart<TOOLS>,
+      ];
+
     case 'tool-call':
       // Tool-call validation is async (it parses input against the tool's
       // schema) and lives in `run-prompt.ts` where the merged tool set is in

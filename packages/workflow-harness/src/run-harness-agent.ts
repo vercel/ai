@@ -161,6 +161,19 @@ export async function runHarnessAgent(
   (timer as { unref?: () => void } | undefined)?.unref?.();
 
   let sawError = false;
+  /*
+   * A tool input still streaming when the previous slice ended has to finish
+   * inside the step that opened it. `tool-input-start` / `-delta` /
+   * `-available` resolve their part within the current step, so if the
+   * continued slice opens a new one the re-opened input lands in a second
+   * part and the first is left pending forever — the same duplicate-render
+   * failure as #18348, reached from the streaming side. The turn was
+   * suspended mid-step, so the continuation belongs to that same step: drop
+   * the boundary the resumed stream re-announces.
+   */
+  let resumedStepBoundaryToDrop =
+    state.continueFrom != null &&
+    Object.keys(streamContext.activeToolInputs).length > 0;
   // Tracks whether the writable was closed (only on a finished turn). The
   // `finally` then releases the lock only when we did NOT close, since closing
   // already releases it.
@@ -182,6 +195,10 @@ export async function runHarnessAgent(
          */
         if (value.type === 'start' && state.continueFrom != null) continue;
         if (value.type === 'finish') continue;
+        if (value.type === 'start-step' && resumedStepBoundaryToDrop) {
+          resumedStepBoundaryToDrop = false;
+          continue;
+        }
         if (value.type === 'error') {
           const errorText = (value as { errorText?: unknown }).errorText;
           /*
@@ -341,11 +358,16 @@ type MutableStreamContext = {
   activeTextParts: Record<string, HarnessWorkflowSerializedChunk>;
   activeReasoningParts: Record<string, HarnessWorkflowSerializedChunk>;
   pendingToolInputs: Record<string, HarnessWorkflowSerializedChunk>;
+  activeToolInputs: Record<
+    string,
+    { start: HarnessWorkflowSerializedChunk; text: string }
+  >;
 };
 
 type ExecutionPartState = {
   openedTextParts: Set<string>;
   openedReasoningParts: Set<string>;
+  openedToolInputStreams: Set<string>;
 };
 
 function createMutableStreamContext(
@@ -355,6 +377,7 @@ function createMutableStreamContext(
     activeTextParts: { ...(context?.activeTextParts ?? {}) },
     activeReasoningParts: { ...(context?.activeReasoningParts ?? {}) },
     pendingToolInputs: { ...(context?.pendingToolInputs ?? {}) },
+    activeToolInputs: { ...(context?.activeToolInputs ?? {}) },
   };
 }
 
@@ -362,6 +385,7 @@ function createExecutionPartState(): ExecutionPartState {
   return {
     openedTextParts: new Set(),
     openedReasoningParts: new Set(),
+    openedToolInputStreams: new Set(),
   };
 }
 
@@ -385,25 +409,73 @@ async function writeRequiredPrelude(options: {
   const { chunk, writer, streamContext, executionPartState } = options;
   const id = stringProperty({ chunk, key: 'id' });
 
-  if (
-    (chunk.type === 'text-delta' || chunk.type === 'text-end') &&
-    id != null &&
-    streamContext.activeTextParts[id] != null &&
-    !executionPartState.openedTextParts.has(id)
-  ) {
-    await writer.write(streamContext.activeTextParts[id]);
-    executionPartState.openedTextParts.add(id);
+  if (chunk.type === 'text-delta' || chunk.type === 'text-end') {
+    await replayOnce({
+      writer,
+      key: id,
+      carried: streamContext.activeTextParts,
+      written: executionPartState.openedTextParts,
+    });
   }
 
-  if (
-    (chunk.type === 'reasoning-delta' || chunk.type === 'reasoning-end') &&
-    id != null &&
-    streamContext.activeReasoningParts[id] != null &&
-    !executionPartState.openedReasoningParts.has(id)
-  ) {
-    await writer.write(streamContext.activeReasoningParts[id]);
-    executionPartState.openedReasoningParts.add(id);
+  if (chunk.type === 'reasoning-delta' || chunk.type === 'reasoning-end') {
+    await replayOnce({
+      writer,
+      key: id,
+      carried: streamContext.activeReasoningParts,
+      written: executionPartState.openedReasoningParts,
+    });
   }
+
+  /*
+   * A tool input can still be streaming when a slice ends, so its deltas
+   * continue in the next one. Re-open the part and restore what the client
+   * had parsed — see `activeToolInputs` for why both halves are needed.
+   *
+   * A *settled* input is deliberately not replayed — see #18348, where
+   * replaying one across a slice boundary opened a second UI part. This is
+   * confined to inputs still streaming, which the client rejects outright
+   * without their start.
+   */
+  if (chunk.type === 'tool-input-delta') {
+    const toolCallId = stringProperty({ chunk, key: 'toolCallId' });
+    if (toolCallId == null) return;
+
+    const carried = streamContext.activeToolInputs[toolCallId];
+    if (
+      carried == null ||
+      executionPartState.openedToolInputStreams.has(toolCallId)
+    ) {
+      return;
+    }
+
+    executionPartState.openedToolInputStreams.add(toolCallId);
+    await writer.write(carried.start);
+    if (carried.text.length > 0) {
+      await writer.write({
+        type: 'tool-input-delta',
+        toolCallId,
+        inputTextDelta: carried.text,
+      });
+    }
+  }
+}
+
+/**
+ * Write a chunk carried over from an earlier slice, at most once per
+ * execution. A no-op when the chunk originated in this slice (nothing was
+ * carried) or when it has already been replayed.
+ */
+async function replayOnce(options: {
+  writer: WritableStreamDefaultWriter<HarnessWorkflowChunk>;
+  key: string | undefined;
+  carried: Record<string, HarnessWorkflowSerializedChunk>;
+  written: Set<string>;
+}): Promise<void> {
+  const { writer, key, carried, written } = options;
+  if (key == null || carried[key] == null || written.has(key)) return;
+  await writer.write(carried[key]);
+  written.add(key);
 }
 
 function recordWorkflowChunk(options: {
@@ -439,13 +511,35 @@ function recordWorkflowChunk(options: {
     return;
   }
 
+  if (chunk.type === 'tool-input-start' && toolCallId != null) {
+    streamContext.activeToolInputs[toolCallId] = {
+      start: cloneChunk(chunk),
+      text: '',
+    };
+    executionPartState.openedToolInputStreams.add(toolCallId);
+    return;
+  }
+
+  // Accumulate the input alongside its start; see `activeToolInputs`. Only
+  // while it is still streaming — a delta with no live start is not ours.
+  if (chunk.type === 'tool-input-delta' && toolCallId != null) {
+    const active = streamContext.activeToolInputs[toolCallId];
+    const delta = stringProperty({ chunk, key: 'inputTextDelta' });
+    if (active != null && delta != null) {
+      active.text += delta;
+    }
+    return;
+  }
+
   if (chunk.type === 'tool-input-available' && toolCallId != null) {
     streamContext.pendingToolInputs[toolCallId] = cloneChunk(chunk);
+    delete streamContext.activeToolInputs[toolCallId];
     return;
   }
 
   if (chunk.type === 'tool-input-error' && toolCallId != null) {
     delete streamContext.pendingToolInputs[toolCallId];
+    delete streamContext.activeToolInputs[toolCallId];
     return;
   }
 
@@ -494,6 +588,9 @@ function serializeStreamContextField(context: MutableStreamContext): {
       : {}),
     ...(Object.keys(context.pendingToolInputs).length > 0
       ? { pendingToolInputs: context.pendingToolInputs }
+      : {}),
+    ...(Object.keys(context.activeToolInputs).length > 0
+      ? { activeToolInputs: context.activeToolInputs }
       : {}),
   };
   return Object.keys(streamContext).length > 0 ? { streamContext } : {};
