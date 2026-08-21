@@ -256,7 +256,46 @@ Session memory supports two modes: **tool-driven** (the LLM decides when to read
 
 MongoDB memory works with any AI SDK model and embedding provider, with no vendor lock-in beyond MongoDB Atlas.
 
-**When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
+### Knowl
+
+[Knowl](https://github.com/dat999zx/knowl) is a local-first memory engine for coding agents. It stores decisions, constraints and architecture as typed atoms in SQLite under your project, and resolves conflicts at write time: a fact whose subject and relation match one already stored retires the earlier record, so the stale value stops being a retrieval candidate rather than competing with its replacement. There is no hosted service and no API key.
+
+```bash
+pnpm add @knowl/ai-sdk
+```
+
+Knowl scopes memory to a project directory, so initialize one first:
+
+```bash
+npx -y @dat999zx/knowl init
+```
+
+```ts
+__PROVIDER_IMPORT__;
+import { knowlTools } from '@knowl/ai-sdk';
+import { ToolLoopAgent } from 'ai';
+
+const memory = await knowlTools({ projectRoot: '/srv/app' });
+
+try {
+  const agent = new ToolLoopAgent({
+    model: __MODEL__,
+    tools: memory.tools,
+  });
+
+  const result = await agent.generate({
+    prompt: 'Remember that my favorite editor is Neovim',
+  });
+} finally {
+  await memory.close();
+}
+```
+
+`projectRoot` selects which project's memory the agent reads and writes, so agents given different roots share nothing. The Knowl server runs as a child process, so call `memory.close()` when you are done, or create the client once at module scope and reuse it. Knowl works with any AI SDK provider.
+
+Under the hood this is an MCP server, so you can also wire it with [`createMCPClient`](/docs/reference/ai-sdk-core/create-mcp-client) directly. The package adds project scoping, process lifecycle, and a launcher fix for Windows, where `npx` resolves to `npx.cmd` and cannot be spawned without a shell.
+
+**When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service, except where the provider runs locally.
 
 ## Custom Tool
 
