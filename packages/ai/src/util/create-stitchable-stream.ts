@@ -28,6 +28,14 @@ export function createStitchableStream<T>(): {
   let isCancelled = false;
   let waitForNewStream = createResolvablePromise<void>();
 
+  const safeClose = () => {
+    try {
+      controller?.close();
+    } catch {
+      // already closed (consumer cancelled the outer stream)
+    }
+  };
+
   const terminate = () => {
     if (isCancelled) {
       return;
@@ -41,7 +49,7 @@ export function createStitchableStream<T>(): {
       reader.cancel();
     });
     innerStreams = [];
-    controller?.close();
+    safeClose();
   };
 
   const processPull = async () => {
@@ -51,7 +59,7 @@ export function createStitchableStream<T>(): {
 
     // Case 1: Outer stream is closed and no more inner streams
     if (isClosed && innerStreams.length === 0) {
-      controller?.close();
+      safeClose();
       return;
     }
 
@@ -78,7 +86,7 @@ export function createStitchableStream<T>(): {
 
         if (innerStreams.length === 0 && isClosed) {
           // when closed and no more inner streams, stop pulling
-          controller?.close();
+          safeClose();
         } else {
           // continue pulling from the next stream
           await processPull();
@@ -155,7 +163,7 @@ export function createStitchableStream<T>(): {
       waitForNewStream.resolve();
 
       if (innerStreams.length === 0) {
-        controller?.close();
+        safeClose();
       }
     },
 
