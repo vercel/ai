@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.76
+
+### Patch Changes
+
+- c6d57f3: fix(ai): prevent duplicate text and reasoning part ids
+- 677a707: fix(ai): allow nullish metadata schemas for UI messages with branded IDs
+
 ## 7.0.75
 
 ### Patch Changes
