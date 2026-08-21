@@ -56,6 +56,14 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
   }
 
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'amazon.nova-canvas-v1:0' ? true : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.modelId === 'amazon.nova-canvas-v1:0' ? true : undefined;
+  }
+
   private getUrl(modelId: string): string {
     const encodedModelId = encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}/invoke`;

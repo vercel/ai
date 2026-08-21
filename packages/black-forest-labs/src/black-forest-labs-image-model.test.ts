@@ -114,6 +114,34 @@ describe('BlackForestLabsImageModel', () => {
     },
   });
 
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'flux-pro-1.0-fill',
+        supportsFileInputs: true,
+        supportsMaskInputs: true,
+      },
+      {
+        modelId: 'flux-kontext-pro',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = createBasicModel({ modelId });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   beforeEach(() => {
     vi.mocked(providerUtils.parseProviderOptions).mockClear();
   });
