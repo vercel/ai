@@ -2098,4 +2098,388 @@ describe('smoothStream', () => {
       `);
     });
   });
+
+  describe('tool input smoothing', () => {
+    const noOpDelay = async () => {};
+
+    it('should reject invalid tool input chunking strategies', () => {
+      expect(() =>
+        smoothStream({
+          toolInputSmoothing: {
+            chunking: 'word' as any,
+          },
+        }),
+      ).toThrowErrorMatchingInlineSnapshot(
+        `[AI_InvalidArgumentError: Chunking must be "character", a RegExp, or a ChunkDetector function. Received: word]`,
+      );
+    });
+
+    it('should smooth tool input by Unicode code point when enabled', async () => {
+      const delays: Array<number | null> = [];
+      const input = '{"city":"London 🌧️"}';
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        {
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta: input,
+          providerMetadata: {
+            testProvider: { signature: 'test-signature' },
+          },
+        },
+        { type: 'tool-input-end', id: 'call-1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 5,
+          toolInputSmoothing: {},
+          _internal: {
+            delay: async delayInMs => {
+              delays.push(delayInMs);
+            },
+          },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      const inputDeltas = events.filter(
+        (
+          event,
+        ): event is Extract<
+          TextStreamPart<ToolSet>,
+          { type: 'tool-input-delta' }
+        > => event.type === 'tool-input-delta',
+      );
+
+      expect(inputDeltas).toEqual(
+        [...input].map((delta, index, chunks) => ({
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta,
+          ...(index === chunks.length - 1
+            ? {
+                providerMetadata: {
+                  testProvider: { signature: 'test-signature' },
+                },
+              }
+            : {}),
+        })),
+      );
+      expect(inputDeltas.map(({ delta }) => delta).join('')).toBe(input);
+      expect(delays).toEqual([...input].map(() => 5));
+      expect(events.at(0)).toEqual({
+        type: 'tool-input-start',
+        id: 'call-1',
+        toolName: 'weather',
+      });
+      expect(events.at(-1)).toEqual({
+        type: 'tool-input-end',
+        id: 'call-1',
+      });
+    });
+
+    it('should combine provider deltas with custom tool input chunking', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"city":' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '"Lon' },
+        { type: 'tool-input-delta', id: 'call-1', delta: 'don"' },
+        { type: 'tool-input-end', id: 'call-1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          toolInputSmoothing: {
+            chunking: /[:,]/,
+          },
+          _internal: { delay: noOpDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toEqual([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"city":' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '"London"' },
+        { type: 'tool-input-end', id: 'call-1' },
+      ]);
+      expect(
+        events
+          .filter(event => event.type === 'tool-input-delta')
+          .map(event => event.delta)
+          .join(''),
+      ).toBe('{"city":"London"');
+    });
+
+    it('should support a custom tool input chunk detector', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        {
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta: '{"city":"London"}',
+        },
+        { type: 'tool-input-end', id: 'call-1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          toolInputSmoothing: {
+            chunking: buffer =>
+              buffer.length >= 4 ? buffer.slice(0, 4) : null,
+          },
+          _internal: { delay: noOpDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => event.type === 'tool-input-delta')).toEqual(
+        ['{"ci', 'ty":', '"Lon', 'don"', '}'].map(delta => ({
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta,
+        })),
+      );
+    });
+
+    it('should pass zero delay to the delay function', async () => {
+      const delays: Array<number | null> = [];
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{}' },
+        { type: 'tool-input-end', id: 'call-1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 0,
+          toolInputSmoothing: {},
+          _internal: {
+            delay: async delayInMs => {
+              delays.push(delayInMs);
+            },
+          },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(delays).toEqual([0, 0]);
+    });
+
+    it('should preserve metadata from multiple provider deltas in order', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        {
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta: '{"city"',
+          providerMetadata: {
+            testProvider: { signature: 'first' },
+          },
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta: ':"Rome"}',
+          providerMetadata: {
+            testProvider: { signature: 'second' },
+          },
+        },
+        { type: 'tool-input-end', id: 'call-1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          toolInputSmoothing: {
+            chunking: /:/,
+          },
+          _internal: { delay: noOpDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toEqual([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        {
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta: '{"city"',
+          providerMetadata: {
+            testProvider: { signature: 'first' },
+          },
+        },
+        { type: 'tool-input-delta', id: 'call-1', delta: ':' },
+        {
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta: '"Rome"}',
+          providerMetadata: {
+            testProvider: { signature: 'second' },
+          },
+        },
+        { type: 'tool-input-end', id: 'call-1' },
+      ]);
+    });
+
+    it('should preserve empty tool input deltas with provider metadata', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"city":"Rome"}' },
+        {
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta: '',
+          providerMetadata: {
+            testProvider: { signature: 'test-signature' },
+          },
+        },
+        { type: 'tool-input-end', id: 'call-1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          toolInputSmoothing: {},
+          _internal: { delay: noOpDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.at(-2)).toEqual({
+        type: 'tool-input-delta',
+        id: 'call-1',
+        delta: '',
+        providerMetadata: {
+          testProvider: { signature: 'test-signature' },
+        },
+      });
+      expect(events.at(-1)).toEqual({
+        type: 'tool-input-end',
+        id: 'call-1',
+      });
+    });
+
+    it('should include and exclude individual tools', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"city":"Rome"}' },
+        { type: 'tool-input-end', id: 'call-1' },
+        { type: 'tool-input-start', id: 'call-2', toolName: 'upload' },
+        { type: 'tool-input-delta', id: 'call-2', delta: '{"data":"abc"}' },
+        { type: 'tool-input-end', id: 'call-2' },
+        { type: 'tool-input-start', id: 'call-3', toolName: 'search' },
+        { type: 'tool-input-delta', id: 'call-3', delta: '{"query":"AI"}' },
+        { type: 'tool-input-end', id: 'call-3' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          toolInputSmoothing: {
+            include: ['weather', 'upload'],
+            exclude: ['upload'],
+          },
+          _internal: { delay: noOpDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => event.type === 'tool-input-delta')).toEqual(
+        [
+          ...[...'{"city":"Rome"}'].map(delta => ({
+            type: 'tool-input-delta',
+            id: 'call-1',
+            delta,
+          })),
+          { type: 'tool-input-delta', id: 'call-2', delta: '{"data":"abc"}' },
+          { type: 'tool-input-delta', id: 'call-3', delta: '{"query":"AI"}' },
+        ],
+      );
+    });
+
+    it('should preserve ordering for interleaved tool inputs', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        { type: 'tool-input-start', id: 'call-2', toolName: 'search' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"city"' },
+        { type: 'tool-input-delta', id: 'call-2', delta: '{"query"' },
+        { type: 'tool-input-delta', id: 'call-1', delta: ':"Rome"}' },
+        { type: 'tool-input-end', id: 'call-1' },
+        { type: 'tool-input-delta', id: 'call-2', delta: ':"AI"}' },
+        { type: 'tool-input-end', id: 'call-2' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          toolInputSmoothing: {
+            chunking: /:/,
+          },
+          _internal: { delay: noOpDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toEqual([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        { type: 'tool-input-start', id: 'call-2', toolName: 'search' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"city"' },
+        { type: 'tool-input-delta', id: 'call-2', delta: '{"query"' },
+        { type: 'tool-input-delta', id: 'call-1', delta: ':' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '"Rome"}' },
+        { type: 'tool-input-end', id: 'call-1' },
+        { type: 'tool-input-delta', id: 'call-2', delta: ':' },
+        { type: 'tool-input-delta', id: 'call-2', delta: '"AI"}' },
+        { type: 'tool-input-end', id: 'call-2' },
+      ]);
+    });
+
+    it.each([
+      { type: 'error' as const, error: new Error('test error') },
+      { type: 'abort' as const, reason: 'test abort' },
+    ])(
+      'should flush pending tool input before $type chunks',
+      async finalChunk => {
+        const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+          { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+          { type: 'tool-input-delta', id: 'call-1', delta: '{"city":"Rome"' },
+          finalChunk,
+        ]).pipeThrough(
+          smoothStream({
+            delayInMs: null,
+            toolInputSmoothing: {
+              chunking: /,missing,/,
+            },
+            _internal: { delay: noOpDelay },
+          })({ tools: {} }),
+        );
+
+        await consumeStream(stream);
+
+        expect(events).toEqual([
+          { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+          { type: 'tool-input-delta', id: 'call-1', delta: '{"city":"Rome"' },
+          finalChunk,
+        ]);
+      },
+    );
+
+    it('should flush pending tool input when the stream closes', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"city":"Rome"' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          toolInputSmoothing: {
+            chunking: /,missing,/,
+          },
+          _internal: { delay: noOpDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toEqual([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"city":"Rome"' },
+      ]);
+    });
+  });
 });
