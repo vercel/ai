@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.138
+
+### Patch Changes
+
+- 1a04ece: Backport: chore(provider/gateway): update gateway model settings files
+- ed2f035: feat: add DeepSeek V4 Flash Vision Exp image input support
+
 ## 2.0.137
 
 ### Patch Changes

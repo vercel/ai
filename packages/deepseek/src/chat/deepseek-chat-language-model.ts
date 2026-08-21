@@ -48,7 +48,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: DeepSeekChatModelId;
-  readonly supportedUrls = {};
+
+  readonly supportedUrls = {
+    'image/*': [/^https?:\/\/.*$/],
+  };
 
   private readonly config: DeepSeekChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;

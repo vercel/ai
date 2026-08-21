@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 1.0.51
+
+### Patch Changes
+
+- ed2f035: feat: add DeepSeek V4 Flash Vision Exp image input support
+
 ## 1.0.50
 
 ### Patch Changes

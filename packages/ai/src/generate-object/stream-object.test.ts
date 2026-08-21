@@ -951,6 +951,29 @@ describe('streamObject', () => {
         await expect(result.request).resolves.toStrictEqual({});
       });
 
+      it('should preserve error parts and finish callbacks when onError throws', async () => {
+        const error = new Error('provider error');
+        const onFinish = vitest.fn();
+        const result = streamObject({
+          model: new MockLanguageModelV2({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([{ type: 'error', error }]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError() {
+            throw new Error('callback error');
+          },
+          onFinish,
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.fullStream),
+        ).resolves.toStrictEqual([{ type: 'error', error }]);
+        expect(onFinish).toHaveBeenCalledOnce();
+      });
+
       it('should reject pending result promises and invoke onError when the raw stream errors', async () => {
         const error = new Error('test error');
         const onError = vitest.fn();
@@ -973,6 +996,42 @@ describe('streamObject', () => {
           convertAsyncIterableToArray(result.fullStream),
         ).rejects.toBe(error);
         expect(onError).toHaveBeenCalledWith({ error });
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+        await expect(result.request).resolves.toStrictEqual({});
+      });
+
+      it('should preserve the provider error when onError throws for a raw stream error', async () => {
+        const error = new Error('provider error');
+        const result = streamObject({
+          model: new MockLanguageModelV2({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  controller.error(error);
+                },
+              }),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError() {
+            throw new Error('callback error');
+          },
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.fullStream),
+        ).rejects.toBe(error);
 
         await Promise.all(
           [

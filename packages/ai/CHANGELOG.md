@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.243
+
+### Patch Changes
+
+- 9e8a754: Prevent exceptions in streaming `onChunk` and `onError` callbacks from terminating the stream or masking provider errors.
+- Updated dependencies [1a04ece]
+- Updated dependencies [ed2f035]
+  - @ai-sdk/gateway@2.0.138
+
 ## 5.0.242
 
 ### Patch Changes
