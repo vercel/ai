@@ -30,6 +30,13 @@ export type {
   GatewayGenerationInfoParams,
   GatewayGenerationInfo,
 } from './gateway-generation-info';
+export type {
+  GatewayModelMetricsOptions,
+  GatewayModelMetricMeta,
+  GatewayModelMetricsRow,
+  GatewayModelMetricsResponse,
+  GatewayModelMetricsResponseMeta,
+} from './gateway-model-metrics';
 export type { GatewayLanguageModelEntry as GatewayModelEntry } from './gateway-model-entry';
 export {
   createGateway,
