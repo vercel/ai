@@ -395,7 +395,7 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
-  it('should handle POST request errors', async () => {
+  it('should reject non-2xx POST responses with HTTP details', async () => {
     const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
@@ -409,9 +409,10 @@ describe('SseMCPTransport', () => {
       body: 'Internal Server Error',
     };
 
-    const errorPromise = new Promise<unknown>(resolve => {
-      transport.onerror = err => resolve(err);
-    });
+    let reportedError: unknown;
+    transport.onerror = error => {
+      reportedError = error;
+    };
 
     const connectPromise = transport.start();
     controller.write(
@@ -426,11 +427,19 @@ describe('SseMCPTransport', () => {
       id: '1',
     };
 
-    await transport.send(message);
-
-    const error = await errorPromise;
-    expect(error).toBeInstanceOf(MCPClientError);
-    expect((error as Error).message).toContain('Error: POSTing to endpoint');
+    await expect(transport.send(message)).rejects.toMatchObject({
+      message:
+        'MCP SSE Transport Error: POSTing to endpoint (HTTP 500): Internal Server Error',
+      statusCode: 500,
+      url: 'http://localhost:3000/messages',
+      responseBody: 'Internal Server Error',
+    });
+    expect(reportedError).toBeInstanceOf(MCPClientError);
+    expect(reportedError).toMatchObject({
+      statusCode: 500,
+      url: 'http://localhost:3000/messages',
+      responseBody: 'Internal Server Error',
+    });
     expect(transport['connected']).toBe(true);
 
     await transport.close();
