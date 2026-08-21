@@ -1,0 +1,37 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{\"label\": \"A1:B10\"}",
+              "name": "set_cell_range"
+            },
+            "id": "call_48dc828f33d7473fa345dd",
+            "index": 0,
+            "type": "function"
+          }
+        ]
+      },
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "logprobs": null
+    }
+  ],
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 202,
+    "completion_tokens": 24,
+    "total_tokens": 226,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "created": 1787346264,
+  "system_fingerprint": null,
+  "model": "qwen-plus",
+  "id": "chatcmpl-152f6e05-c36f-91d3-a57d-55476dad984f"
+}
