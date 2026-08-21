@@ -450,6 +450,44 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should pass video input as video_url in doGenerate', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe this video.' },
+            {
+              type: 'file',
+              data: {
+                type: 'data',
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+              mediaType: 'video/mp4',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe this video.' },
+            {
+              type: 'video_url',
+              video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should pass settings', async () => {
     prepareJsonResponse();
 
@@ -3459,6 +3497,44 @@ describe('doStream', () => {
         "stream": true,
       }
     `);
+  });
+
+  it('should pass video input as video_url in doStream', async () => {
+    prepareStreamResponse({ content: [] });
+
+    await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/video.mp4'),
+              },
+              mediaType: 'video/mp4',
+            },
+          ],
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'video_url',
+              video_url: { url: 'https://example.com/video.mp4' },
+            },
+          ],
+        },
+      ],
+      stream: true,
+    });
   });
 
   it('should pass headers', async () => {
