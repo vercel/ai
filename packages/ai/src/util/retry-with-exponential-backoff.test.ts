@@ -194,6 +194,42 @@ describe('retryWithExponentialBackoffRespectingRetryHeaders', () => {
     expect(result).toBe('success');
   });
 
+  it('should fall back to exponential backoff for partially numeric headers', async () => {
+    let attempt = 0;
+    const initialDelay = 2000;
+
+    const fn = vi.fn().mockImplementation(async () => {
+      attempt++;
+      if (attempt === 1) {
+        throw new APICallError({
+          message: 'Rate limited',
+          url: 'https://api.example.com',
+          requestBodyValues: {},
+          isRetryable: true,
+          data: undefined,
+          responseHeaders: {
+            'retry-after-ms': '100invalid',
+            'retry-after': '1invalid',
+          },
+        });
+      }
+      return 'success';
+    });
+
+    const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+      initialDelayInMs: initialDelay,
+    })(fn);
+
+    await vi.advanceTimersByTimeAsync(initialDelay - 100);
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(200);
+    expect(fn).toHaveBeenCalledTimes(2);
+
+    const result = await promise;
+    expect(result).toBe('success');
+  });
+
   describe('with mocked provider responses', () => {
     it('should handle Anthropic 429 response with retry-after-ms header', async () => {
       let attempt = 0;

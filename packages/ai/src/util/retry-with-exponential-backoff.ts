@@ -6,6 +6,13 @@ import {
 } from '@ai-sdk/provider-utils';
 import { RetryError } from './retry-error';
 
+function parseRetryDelay(value: string): number | undefined {
+  if (value.trim() === '') return undefined;
+
+  const delay = Number(value);
+  return Number.isFinite(delay) ? delay : undefined;
+}
+
 function getRetryDelayInMs({
   error,
   exponentialBackoffDelay,
@@ -26,8 +33,8 @@ function getRetryDelayInMs({
   // retry-ms is more precise than retry-after and used by e.g. OpenAI
   const retryAfterMs = headers['retry-after-ms'];
   if (retryAfterMs) {
-    const timeoutMs = parseFloat(retryAfterMs);
-    if (!Number.isNaN(timeoutMs)) {
+    const timeoutMs = parseRetryDelay(retryAfterMs);
+    if (timeoutMs !== undefined) {
       ms = timeoutMs;
     }
   }
@@ -35,8 +42,8 @@ function getRetryDelayInMs({
   // About the Retry-After header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
   const retryAfter = headers['retry-after'];
   if (retryAfter && ms === undefined) {
-    const timeoutSeconds = parseFloat(retryAfter);
-    if (!Number.isNaN(timeoutSeconds)) {
+    const timeoutSeconds = parseRetryDelay(retryAfter);
+    if (timeoutSeconds !== undefined) {
       ms = timeoutSeconds * 1000;
     } else {
       ms = Date.parse(retryAfter) - Date.now();
