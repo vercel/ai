@@ -70,15 +70,16 @@ export async function convertToLanguageModelPrompt({
     }
   }
 
-  const approvedToolCallIds = new Set<string>();
-  for (const message of prompt.messages) {
-    if (message.role === 'tool') {
-      for (const part of message.content) {
-        if (part.type === 'tool-approval-response') {
-          const toolCallId = approvalIdToToolCallId.get(part.approvalId);
-          if (toolCallId) {
-            approvedToolCallIds.add(toolCallId);
-          }
+  // collectToolApprovals only consumes responses from the final tool message.
+  // Older responses must not suppress missing-result validation.
+  const approvalResponseToolCallIds = new Set<string>();
+  const lastMessage = prompt.messages.at(-1);
+  if (lastMessage?.role === 'tool') {
+    for (const part of lastMessage.content) {
+      if (part.type === 'tool-approval-response') {
+        const toolCallId = approvalIdToToolCallId.get(part.approvalId);
+        if (toolCallId) {
+          approvalResponseToolCallIds.add(toolCallId);
         }
       }
     }
@@ -149,11 +150,6 @@ export async function convertToLanguageModelPrompt({
       }
       case 'user':
       case 'system':
-        // remove approved tool calls from the set before checking:
-        for (const id of approvedToolCallIds) {
-          toolCallIds.delete(id);
-        }
-
         if (toolCallIds.size > 0) {
           throw new MissingToolResultsError({
             toolCallIds: Array.from(toolCallIds),
@@ -163,8 +159,8 @@ export async function convertToLanguageModelPrompt({
     }
   }
 
-  // remove approved tool calls from the set before checking:
-  for (const id of approvedToolCallIds) {
+  // The final approval response is consumed before the next model call.
+  for (const id of approvalResponseToolCallIds) {
     toolCallIds.delete(id);
   }
 
