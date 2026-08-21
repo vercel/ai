@@ -7,8 +7,11 @@ description: API Reference for embedMany.
 
 Embed several values using an embedding model.
 
-`embedMany` automatically splits large requests into smaller chunks if the model
-has a limit on how many embeddings can be generated in a single call.
+`embedMany` automatically splits large requests into smaller chunks when the
+model declares a limit on how many embeddings can be generated in a single call.
+This split is based on the number of values, not an estimated token count or
+character length. If your provider enforces a total token limit per embedding
+request, batch your input values before calling `embedMany`.
 
 ```ts
 import { embedMany } from 'ai';
@@ -77,7 +80,7 @@ const { embeddings } = await embedMany({
       type: 'number',
       isOptional: true,
       description:
-        'Maximum number of concurrent requests to the provider. Default: Infinity.',
+        'Maximum number of concurrent requests to the provider after value-based chunking. This does not change how many values are sent in each request. Default: Infinity.',
     },
     {
       name: 'telemetry',
