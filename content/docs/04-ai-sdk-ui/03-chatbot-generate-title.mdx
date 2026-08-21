@@ -1,0 +1,81 @@
+---
+title: Generate a Chat Title
+description: Learn how to generate a short title from the first user message.
+---
+
+# Generate a Chat Title
+
+A common chatbot pattern is to name the conversation from the first user
+message — a sidebar label like "Windows path fix" instead of "New chat".
+
+Use [`generateText`](/docs/ai-sdk-core/generating-text) once, after the first
+user turn. Keep the model small and the prompt strict so titles stay short.
+
+## Generate the title
+
+```ts filename="util/generate-chat-title.ts"
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+export async function generateChatTitle(firstUserText: string) {
+  const { text } = await generateText({
+    model: openai('gpt-4.1-mini'),
+    system:
+      'Generate a short chat title (maximum 6 words). ' +
+      'No quotes, no trailing punctuation, no preamble.',
+    prompt: firstUserText,
+  });
+
+  return text.trim();
+}
+```
+
+## Call it after the first message
+
+In your chat route, generate a title when you persist the first user message.
+Skip later turns so you do not overwrite a title the user already sees.
+
+```ts filename="app/api/chat/route.ts"
+import { streamText, convertToModelMessages, type UIMessage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { generateChatTitle } from '@util/generate-chat-title';
+import { saveChat, saveChatTitle } from '@util/chat-store';
+
+export async function POST(req: Request) {
+  const { messages, id }: { messages: UIMessage[]; id: string } =
+    await req.json();
+
+  const isFirstUserTurn =
+    messages.filter(message => message.role === 'user').length === 1;
+
+  if (isFirstUserTurn) {
+    const firstText = messages[0].parts
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('\n');
+
+    // Do not await if you want the stream to start immediately.
+    void generateChatTitle(firstText).then(title => saveChatTitle(id, title));
+  }
+
+  const result = streamText({
+    model: openai('gpt-4.1-mini'),
+    messages: await convertToModelMessages(messages),
+    async onFinish({ response }) {
+      await saveChat({ id, messages: response.messages });
+    },
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+Store `title` next to the message list (same store as
+[message persistence](/docs/ai-sdk-ui/chatbot-message-persistence)). Render it
+in the sidebar from that field.
+
+## Tips
+
+- Use a small/fast model. Title generation should not block the first token of the reply.
+- Cap length in the system prompt; trim on the server if the model ignores it.
+- Re-run only if the user asks to rename, or if the first message is edited.
