@@ -1060,7 +1060,7 @@ describe('createACP', () => {
       first.files.find(file =>
         file.path.endsWith('/implementation/implementation.json'),
       )?.content,
-    ).toContain('"executable": "codex-acp"');
+    ).toContain('"executablePath": "node_modules/.bin/codex-acp"');
     expect(first.commands.map(command => command.command)).toEqual([
       'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       'pnpm --dir implementation install --prod --store-dir ../.pnpm-store',
@@ -1123,6 +1123,40 @@ describe('createACP', () => {
     expect(bootstrap.commands.map(command => command.command)).toContain(
       'pnpm --dir implementation install --frozen-lockfile --prod --store-dir ../.pnpm-store',
     );
+  });
+
+  it('generates isolated install command acquisition without npm implementation files', async () => {
+    const harness = createACP({
+      harnessId: 'cursor-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://cursor.com/install -fsS | bash',
+      },
+      executable: 'agent',
+      args: ['--disable-auto-update', 'acp'],
+    });
+    const bootstrap = await harness.getBootstrap!();
+    const implementationFiles = bootstrap.files.filter(file =>
+      file.path.includes('/implementation/'),
+    );
+
+    expect(implementationFiles.map(file => file.path).sort()).toEqual([
+      '.harness-bootstrap/cursor-acp/implementation/implementation.json',
+      '.harness-bootstrap/cursor-acp/implementation/install.sh',
+    ]);
+    expect(
+      implementationFiles.find(file => file.path.endsWith('/install.sh'))
+        ?.content,
+    ).toContain('curl https://cursor.com/install -fsS | bash');
+    expect(
+      implementationFiles.find(file =>
+        file.path.endsWith('/implementation.json'),
+      )?.content,
+    ).toContain('"executablePath": "home/.local/bin/agent"');
+    expect(bootstrap.commands.map(command => command.command)).toEqual([
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      'bash implementation/install.sh',
+    ]);
   });
 
   it('resolves bridge assets from source and bundled module layouts', () => {
