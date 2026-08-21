@@ -23,6 +23,7 @@ export interface StreamingToolCallTrackerOptions<
 > {
   /**
    * ID generator function for tool call IDs.
+   * Blank or repeated outputs are converted to usable unique IDs.
    * Defaults to the standard generateId.
    */
   generateId?: () => string;
@@ -55,11 +56,25 @@ export interface StreamingToolCallTrackerOptions<
 
 interface TrackedToolCall {
   id: string;
+  index?: number;
+  sequence: number;
   type: 'function';
   function: { name: string; arguments: string };
+  argumentStructure: ArgumentStructure;
   hasFinished: boolean;
   metadata?: SharedV4ProviderMetadata;
 }
+
+type ArgumentStructure =
+  | { kind: 'undetermined' }
+  | { kind: 'other' }
+  | {
+      kind: 'structured';
+      stack: Array<'{' | '['>;
+      inString: boolean;
+      escaped: boolean;
+      complete: boolean;
+    };
 
 type StreamingToolCallTrackerController = Pick<
   TransformStreamDefaultController<LanguageModelV4StreamPart>,
@@ -77,10 +92,11 @@ type StreamingToolCallTrackerController = Pick<
 export class StreamingToolCallTracker<
   DELTA extends StreamingToolCallDelta = StreamingToolCallDelta,
 > {
-  private toolCalls = new Set<TrackedToolCall>();
-  private toolCallsById = new Map<string, TrackedToolCall>();
-  private toolCallsByIndex = new Map<number, TrackedToolCall>();
-  private latestToolCall: TrackedToolCall | undefined;
+  private toolCalls: TrackedToolCall[] = [];
+  private toolCallsById = new Map<string, Set<TrackedToolCall>>();
+  private toolCallsByIndex = new Map<number, Set<TrackedToolCall>>();
+  private usedToolCallIds = new Set<string>();
+  private nextGeneratedIdSuffixes = new Map<string, number>();
   private readonly controller: StreamingToolCallTrackerController;
   private readonly _generateId: () => string;
   private readonly typeValidation: 'none' | 'if-present' | 'required';
@@ -108,24 +124,54 @@ export class StreamingToolCallTracker<
    * events as appropriate.
    */
   processDelta(toolCallDelta: DELTA): void {
-    const { id, index } = toolCallDelta;
-    let toolCall =
-      id != null && id.length > 0
-        ? this.toolCallsById.get(id)
-        : index != null
-          ? this.toolCallsByIndex.get(index)
-          : this.latestToolCall;
+    const wireName = toolCallDelta.function?.name;
+    const hasBlankName =
+      typeof wireName === 'string' && wireName.trim().length === 0;
+    const wireId = this.getNonBlankString(toolCallDelta.id);
+    const name = this.getNonBlankString(wireName);
+    const { index } = toolCallDelta;
 
-    if (toolCall == null) {
-      toolCall = this.processNewToolCall(toolCallDelta);
+    const existingToolCall = this.findToolCall({
+      wireId,
+      index,
+      name,
+      hasExplicitCallStart:
+        toolCallDelta.type != null &&
+        name != null &&
+        this.startsWithStructuredArguments(toolCallDelta.function?.arguments),
+    });
+
+    // `null` indicates that the available labels match multiple calls or
+    // conflict without enough information to choose safely.
+    if (existingToolCall === null) {
+      return;
+    }
+
+    let toolCall: TrackedToolCall;
+    if (existingToolCall === undefined) {
+      // Blank names cannot start a usable call, but some providers repeat a
+      // blank name on continuations. Correlate those continuations first, then
+      // ignore only the unmatched blank-name delta.
+      if (hasBlankName) {
+        return;
+      }
+
+      toolCall = this.processNewToolCall(toolCallDelta, {
+        wireId,
+        index,
+        name,
+      });
     } else {
+      toolCall = existingToolCall;
+      if (wireId != null) {
+        this.associateWireId(toolCall, wireId);
+      }
       this.processExistingToolCall(toolCall, toolCallDelta);
     }
 
     if (index != null) {
-      this.toolCallsByIndex.set(index, toolCall);
+      this.associateIndex(toolCall, index);
     }
-    this.latestToolCall = toolCall;
   }
 
   /**
@@ -133,14 +179,189 @@ export class StreamingToolCallTracker<
    * flush handler to ensure all tool calls are properly completed.
    */
   flush(): void {
-    for (const toolCall of this.toolCalls) {
+    // Index order is reliable only when every call has an index. For mixed
+    // streams, keep insertion order rather than moving all index-less calls
+    // behind indexed calls.
+    const toolCalls = this.toolCalls.every(toolCall => toolCall.index != null)
+      ? [...this.toolCalls].sort(
+          (a, b) => a.index! - b.index! || a.sequence - b.sequence,
+        )
+      : this.toolCalls;
+
+    for (const toolCall of toolCalls) {
       if (!toolCall.hasFinished) {
         this.finishToolCall(toolCall);
       }
     }
   }
 
-  private processNewToolCall(toolCallDelta: DELTA): TrackedToolCall {
+  private findToolCall({
+    wireId,
+    index,
+    name,
+    hasExplicitCallStart,
+  }: {
+    wireId: string | undefined;
+    index: number | null | undefined;
+    name: string | undefined;
+    hasExplicitCallStart: boolean;
+  }): TrackedToolCall | null | undefined {
+    const indexedToolCalls =
+      index != null ? this.toolCallsByIndex.get(index) : undefined;
+    const matchingIndexedToolCalls = this.filterToolCallsByName(
+      indexedToolCalls,
+      name,
+    );
+
+    if (wireId != null) {
+      const toolCallsWithId = this.toolCallsById.get(wireId);
+
+      if (toolCallsWithId != null) {
+        if (index != null) {
+          const matchingToolCalls = matchingIndexedToolCalls.filter(toolCall =>
+            toolCallsWithId.has(toolCall),
+          );
+          const matchingToolCall = this.selectMatchingToolCall(
+            matchingToolCalls,
+            hasExplicitCallStart,
+          );
+          if (matchingToolCall !== undefined) {
+            return matchingToolCall;
+          }
+
+          // A named delta with a distinct index starts a new call even when its
+          // wire ID and function name repeat. Providers may reuse IDs across
+          // parallel calls, so the ID/name pair cannot override index evidence.
+          if (name != null) {
+            return undefined;
+          }
+
+          // Conflicting labels on a continuation cannot be resolved safely.
+          if (indexedToolCalls != null) {
+            return null;
+          }
+
+          return toolCallsWithId.size === 1
+            ? toolCallsWithId.values().next().value
+            : null;
+        }
+
+        if (name != null) {
+          const matchingToolCalls = [...toolCallsWithId].filter(
+            toolCall => toolCall.function.name === name,
+          );
+
+          return this.selectMatchingToolCall(
+            matchingToolCalls,
+            hasExplicitCallStart,
+          );
+        }
+
+        return toolCallsWithId.size === 1
+          ? toolCallsWithId.values().next().value
+          : null;
+      }
+
+      if (matchingIndexedToolCalls.length > 0) {
+        // IDs can change during a call. A matching index/name continues the
+        // call unless the delta has evidence of a fresh structured argument
+        // payload, while repeated labels alone are not a call boundary.
+        return this.selectMatchingToolCall(
+          matchingIndexedToolCalls,
+          hasExplicitCallStart,
+        );
+      }
+
+      return undefined;
+    }
+
+    if (indexedToolCalls != null) {
+      // Repeated names are valid on continuations. A different name at the
+      // same index is evidence of a new call from a provider that reuses
+      // indices across parallel calls.
+      return this.selectMatchingToolCall(
+        matchingIndexedToolCalls,
+        hasExplicitCallStart,
+      );
+    }
+
+    if (name != null) {
+      return undefined;
+    }
+
+    const unfinishedToolCalls = this.toolCalls.filter(
+      toolCall => !toolCall.hasFinished,
+    );
+    if (unfinishedToolCalls.length === 1) {
+      return unfinishedToolCalls[0];
+    }
+    return unfinishedToolCalls.length > 1 ? null : undefined;
+  }
+
+  private filterToolCallsByName(
+    toolCalls: Set<TrackedToolCall> | undefined,
+    name: string | undefined,
+  ): TrackedToolCall[] {
+    if (toolCalls == null) {
+      return [];
+    }
+
+    return [...toolCalls].filter(
+      toolCall => name == null || toolCall.function.name === name,
+    );
+  }
+
+  private selectMatchingToolCall(
+    toolCalls: TrackedToolCall[],
+    hasExplicitCallStart: boolean,
+  ): TrackedToolCall | null | undefined {
+    if (toolCalls.length === 0) {
+      return undefined;
+    }
+
+    if (!hasExplicitCallStart) {
+      return toolCalls.length === 1 ? toolCalls[0] : null;
+    }
+
+    // A repeated type/name can occur on continuations. A fresh structured
+    // argument prefix is evidence of another call only after the matching call
+    // has completed its own structured argument payload.
+    const continuableToolCalls = toolCalls.filter(
+      toolCall =>
+        toolCall.argumentStructure.kind !== 'structured' ||
+        !toolCall.argumentStructure.complete,
+    );
+
+    if (continuableToolCalls.length === 1) {
+      return continuableToolCalls[0];
+    }
+
+    return continuableToolCalls.length > 1 ? null : undefined;
+  }
+
+  private startsWithStructuredArguments(
+    argumentsDelta: string | null | undefined,
+  ): boolean {
+    if (typeof argumentsDelta !== 'string') {
+      return false;
+    }
+
+    const firstCharacter = argumentsDelta.trimStart()[0];
+    return firstCharacter === '{' || firstCharacter === '[';
+  }
+
+  private processNewToolCall(
+    toolCallDelta: DELTA,
+    {
+      wireId,
+      index,
+      name,
+    }: {
+      wireId: string | undefined;
+      index: number | null | undefined;
+      name: string | undefined;
+    },
+  ): TrackedToolCall {
     if (this.typeValidation === 'required') {
       if (toolCallDelta.type !== 'function') {
         throw new InvalidResponseDataError({
@@ -157,41 +378,43 @@ export class StreamingToolCallTracker<
       }
     }
 
-    if (toolCallDelta.id == null) {
-      throw new InvalidResponseDataError({
-        data: toolCallDelta,
-        message: `Expected 'id' to be a string.`,
-      });
-    }
-
-    if (toolCallDelta.function?.name == null) {
+    if (name == null) {
       throw new InvalidResponseDataError({
         data: toolCallDelta,
         message: `Expected 'function.name' to be a string.`,
       });
     }
 
+    const id = this.createToolCallId(wireId);
+
     this.controller.enqueue({
       type: 'tool-input-start',
-      id: toolCallDelta.id,
-      toolName: toolCallDelta.function.name,
+      id,
+      toolName: name,
     });
 
     const metadata = this.extractMetadata?.(toolCallDelta);
 
+    const initialArguments = toolCallDelta.function?.arguments ?? '';
     const toolCall: TrackedToolCall = {
-      id: toolCallDelta.id,
+      id,
+      index: index ?? undefined,
+      sequence: this.toolCalls.length,
       type: 'function',
       function: {
-        name: toolCallDelta.function.name,
-        arguments: toolCallDelta.function.arguments ?? '',
+        name,
+        arguments: initialArguments,
       },
+      argumentStructure: this.updateArgumentStructure(
+        { kind: 'undetermined' },
+        initialArguments,
+      ),
       hasFinished: false,
       metadata,
     };
-    this.toolCalls.add(toolCall);
-    if (toolCall.id.length > 0) {
-      this.toolCallsById.set(toolCall.id, toolCall);
+    this.toolCalls.push(toolCall);
+    if (wireId != null) {
+      this.associateWireId(toolCall, wireId);
     }
 
     // Emit initial delta if arguments already present
@@ -210,6 +433,64 @@ export class StreamingToolCallTracker<
     return toolCall;
   }
 
+  private associateWireId(toolCall: TrackedToolCall, wireId: string): void {
+    let toolCallsWithId = this.toolCallsById.get(wireId);
+    if (toolCallsWithId == null) {
+      toolCallsWithId = new Set();
+      this.toolCallsById.set(wireId, toolCallsWithId);
+    }
+    toolCallsWithId.add(toolCall);
+  }
+
+  private associateIndex(toolCall: TrackedToolCall, index: number): void {
+    let toolCallsWithIndex = this.toolCallsByIndex.get(index);
+    if (toolCallsWithIndex == null) {
+      toolCallsWithIndex = new Set();
+      this.toolCallsByIndex.set(index, toolCallsWithIndex);
+    }
+    toolCallsWithIndex.add(toolCall);
+  }
+
+  private createToolCallId(wireId: string | undefined): string {
+    if (wireId != null && !this.usedToolCallIds.has(wireId)) {
+      this.usedToolCallIds.add(wireId);
+      return wireId;
+    }
+
+    const generatedId =
+      this.getNonBlankString(this._generateId()) ?? 'tool-call';
+
+    if (!this.usedToolCallIds.has(generatedId)) {
+      this.usedToolCallIds.add(generatedId);
+      return generatedId;
+    }
+
+    // Resume after the last suffix checked for this generated value. This
+    // keeps deterministic generators bounded without repeatedly rescanning
+    // the same occupied suffixes.
+    const initialSuffix = this.nextGeneratedIdSuffixes.get(generatedId) ?? 1;
+    const maximumSuffix = initialSuffix + this.usedToolCallIds.size;
+    for (let suffix = initialSuffix; suffix <= maximumSuffix; suffix++) {
+      const suffixedId = `${generatedId}-${suffix}`;
+      if (!this.usedToolCallIds.has(suffixedId)) {
+        this.usedToolCallIds.add(suffixedId);
+        this.nextGeneratedIdSuffixes.set(generatedId, suffix + 1);
+        return suffixedId;
+      }
+    }
+
+    // The bounded search above is guaranteed to return by the pigeonhole
+    // principle. This guards against future changes invalidating that
+    // invariant without restoring an unbounded retry loop.
+    throw new Error('Failed to create a unique tool call ID.');
+  }
+
+  private getNonBlankString(
+    value: string | null | undefined,
+  ): string | undefined {
+    return value != null && value.trim().length > 0 ? value : undefined;
+  }
+
   private processExistingToolCall(
     toolCall: TrackedToolCall,
     toolCallDelta: DELTA,
@@ -219,6 +500,10 @@ export class StreamingToolCallTracker<
     }
 
     if (toolCallDelta.function?.arguments != null) {
+      toolCall.argumentStructure = this.updateArgumentStructure(
+        toolCall.argumentStructure,
+        toolCallDelta.function.arguments,
+      );
       toolCall.function.arguments += toolCallDelta.function.arguments;
 
       this.controller.enqueue({
@@ -227,6 +512,69 @@ export class StreamingToolCallTracker<
         delta: toolCallDelta.function.arguments,
       });
     }
+  }
+
+  private updateArgumentStructure(
+    state: ArgumentStructure,
+    delta: string,
+  ): ArgumentStructure {
+    let nextState = state;
+
+    for (const character of delta) {
+      if (nextState.kind === 'undetermined') {
+        if (/\s/.test(character)) {
+          continue;
+        }
+
+        if (character !== '{' && character !== '[') {
+          nextState = { kind: 'other' };
+          continue;
+        }
+
+        nextState = {
+          kind: 'structured',
+          stack: [character],
+          inString: false,
+          escaped: false,
+          complete: false,
+        };
+        continue;
+      }
+
+      if (nextState.kind !== 'structured' || nextState.complete) {
+        continue;
+      }
+
+      if (nextState.inString) {
+        if (nextState.escaped) {
+          nextState.escaped = false;
+        } else if (character === '\\') {
+          nextState.escaped = true;
+        } else if (character === '"') {
+          nextState.inString = false;
+        }
+        continue;
+      }
+
+      if (character === '"') {
+        nextState.inString = true;
+      } else if (character === '{' || character === '[') {
+        nextState.stack.push(character);
+      } else if (character === '}' || character === ']') {
+        const expectedOpening = character === '}' ? '{' : '[';
+        if (nextState.stack.at(-1) !== expectedOpening) {
+          nextState = { kind: 'other' };
+          continue;
+        }
+
+        nextState.stack.pop();
+        if (nextState.stack.length === 0) {
+          nextState.complete = true;
+        }
+      }
+    }
+
+    return nextState;
   }
 
   private finishToolCall(toolCall: TrackedToolCall): void {
@@ -241,7 +589,7 @@ export class StreamingToolCallTracker<
 
     this.controller.enqueue({
       type: 'tool-call',
-      toolCallId: toolCall.id ?? this._generateId(),
+      toolCallId: toolCall.id,
       toolName: toolCall.function.name,
       input: toolCall.function.arguments,
       ...(providerMetadata ? { providerMetadata } : {}),
