@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.264
+
+### Patch Changes
+
+- 6a7e701: fix(ai): prevent duplicate text and reasoning part ids
+
 ## 6.0.263
 
 ### Patch Changes
