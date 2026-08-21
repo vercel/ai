@@ -13,6 +13,9 @@ describe('unknown model max output tokens', () => {
   });
 
   const model = createAnthropic({ apiKey: 'test-api-key' })('future-model');
+  const futureClaudeModel = createAnthropic({ apiKey: 'test-api-key' })(
+    'claude-future-9',
+  );
 
   beforeEach(() => {
     server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -60,5 +63,24 @@ describe('unknown model max output tokens', () => {
       max_tokens: 123456,
     });
     expect(warnings).toEqual([]);
+  });
+
+  it('should use the current-generation default and warn for an unknown Claude model', async () => {
+    const { warnings } = await futureClaudeModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      model: 'claude-future-9',
+      max_tokens: 128000,
+    });
+    expect(warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'maxOutputTokens',
+        details:
+          'The model "claude-future-9" is unknown. The max output tokens have been limited to 128000. Set maxOutputTokens explicitly to override this limit.',
+      },
+    ]);
   });
 });

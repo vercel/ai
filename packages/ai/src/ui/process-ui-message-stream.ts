@@ -49,6 +49,10 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   finishReason?: FinishReason;
 };
 
+export type UIMessageStreamWriteOptions = {
+  updateStatus?: boolean;
+};
+
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
   messageId,
@@ -95,7 +99,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   runUpdateMessageJob: (
     job: (options: {
       state: StreamingUIMessageState<UI_MESSAGE>;
-      write: () => void;
+      write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => Promise<void>;
   onError: ErrorHandler;
@@ -484,6 +488,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'reasoning-start': {
               const reasoningPart: ReasoningUIPart = {
                 type: 'reasoning',
+                id: chunk.id,
                 text: '',
                 providerMetadata: chunk.providerMetadata,
                 state: 'streaming',
@@ -882,6 +887,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'reset-step': {
+              const currentStepParts = getCurrentStepParts();
+
+              state.activeTextParts = createIdMap();
+              state.activeReasoningParts = createIdMap();
+              state.partialToolCalls = createIdMap();
+
+              if (currentStepParts.length > 0) {
+                state.message.parts.splice(
+                  state.message.parts.length - currentStepParts.length,
+                  currentStepParts.length,
+                );
+                write();
+              }
+              break;
+            }
+
             case 'start': {
               if (chunk.messageId != null) {
                 state.message.id = chunk.messageId;
@@ -890,7 +912,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               await updateMessageMetadata(chunk.messageMetadata);
 
               if (chunk.messageId != null || chunk.messageMetadata != null) {
-                write();
+                write({ updateStatus: false });
               }
               break;
             }

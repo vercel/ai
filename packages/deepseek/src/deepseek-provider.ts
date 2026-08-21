@@ -1,4 +1,5 @@
 import {
+  type FilesV4,
   NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
@@ -11,6 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { DeepSeekChatModelId } from './chat/deepseek-chat-language-model-options';
 import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
+import { DeepSeekFiles } from './files/deepseek-files';
 import { VERSION } from './version';
 
 export interface DeepSeekProviderSettings {
@@ -53,6 +55,11 @@ export interface DeepSeekProvider extends ProviderV4 {
   chat(modelId: DeepSeekChatModelId): LanguageModelV4;
 
   /**
+   * Creates a DeepSeek files interface for uploading images.
+   */
+  files(): FilesV4;
+
+  /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
@@ -61,9 +68,9 @@ export interface DeepSeekProvider extends ProviderV4 {
 export function createDeepSeek(
   options: DeepSeekProviderSettings = {},
 ): DeepSeekProvider {
-  const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.deepseek.com',
-  );
+  const baseURL =
+    withoutTrailingSlash(options.baseURL ?? 'https://api.deepseek.com') ??
+    'https://api.deepseek.com';
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -87,12 +94,21 @@ export function createDeepSeek(
     });
   };
 
+  const createFiles = () =>
+    new DeepSeekFiles({
+      provider: 'deepseek.files',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = (modelId: DeepSeekChatModelId) =>
     createLanguageModel(modelId);
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
+  provider.files = createFiles;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
