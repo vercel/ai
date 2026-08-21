@@ -1,5 +1,39 @@
 # @ai-sdk/openai
 
+## 4.0.45
+
+### Patch Changes
+
+- 6be0f51: fix(openai): expand internal parallel tool call wrappers from the Responses API while preserving stateful continuation and streaming fallbacks
+
+## 4.0.44
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.43
+
+### Patch Changes
+
+- a062795: fix(openai): support built-in and provider-defined tools in the Responses `allowedTools` option
+
+  `allowedTools` emitted every allow-list entry as `{ type: 'function', name }`, but OpenAI identifies
+  built-in tools by type. Allow-listing a declared provider-defined tool (web search, image generation,
+  MCP, custom, ...) therefore failed with `Tool choice '<name>' not found in 'tools' parameter`. Entries
+  are now derived from the declared tool, including the MCP server label and custom tool name.
+
+  Tools that OpenAI cannot allow-list (the tool search tool, deferred tools, and namespaced tools) are
+  dropped from the allow-list with a warning, and an error is thrown if that would leave the allow-list
+  empty rather than silently sending an unrestricted request.
+
+  Ambiguous names are now reported instead of resolved silently. A name that matches both a declared tool
+  and another tool's provider tool name resolves to the declared tool and warns; a provider tool name
+  shared by several tools in the same request (two MCP servers, for example) is dropped with a warning.
+  A name that matches no declared tool keeps its existing behavior and is now warned about.
+
 ## 4.0.42
 
 ### Patch Changes

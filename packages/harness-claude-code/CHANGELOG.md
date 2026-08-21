@@ -1,5 +1,63 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [7f50d28]
+  - @ai-sdk/harness@1.0.81
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.80
+
+## 1.0.82
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.79
+
+## 1.0.81
+
+### Patch Changes
+
+- eace6fb: feat(harness): add experimental support for steering agent conversations mid-turn
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness@1.0.78
+
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
+## 1.0.79
+
+### Patch Changes
+
+- 54686d6: fix(harness-claude-code): allow bootstrap in sandboxes that require explicit dependency build approval
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+
+## 1.0.77
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+
 ## 1.0.76
 
 ### Patch Changes

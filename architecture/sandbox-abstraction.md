@@ -122,7 +122,6 @@ classDiagram
     class HarnessV1SandboxProvider {
       specificationVersion
       providerId
-      bridgePorts
       createSession(options)
       resumeSession(options)
     }
@@ -191,6 +190,10 @@ flowchart TD
 `getPortEndpoint()` returns the public URL together with any headers required
 to connect to it. `getPortUrl()` remains available for compatibility but is
 deprecated because it drops those headers.
+
+`destroy()` stops the sandbox session before performing any additional cleanup,
+such as deleting the backing resource or freeing resources. Implementations
+with no additional cleanup can implement `destroy()` by calling `stop()`.
 
 `restricted()` is the boundary between infrastructure code and user/tool code.
 `HarnessAgent` owns the network sandbox session, while host-executed tools receive only the restricted basic session.

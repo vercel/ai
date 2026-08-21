@@ -1,5 +1,61 @@
 # ai
 
+## 7.0.73
+
+### Patch Changes
+
+- Updated dependencies [f607a12]
+  - @ai-sdk/gateway@4.0.59
+
+## 7.0.72
+
+### Patch Changes
+
+- Updated dependencies [fdcc814]
+  - @ai-sdk/gateway@4.0.58
+
+## 7.0.71
+
+### Patch Changes
+
+- 9a37469: Prevent exceptions in streaming `onChunk` and `onError` callbacks from terminating the stream or masking provider errors.
+- Updated dependencies [936719b]
+  - @ai-sdk/gateway@4.0.57
+
+## 7.0.70
+
+### Patch Changes
+
+- 9566914: Stop multi-step text generation for client tool approval even when a provider-executed tool has a deferred result.
+- b181020: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- 7054073: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- a828527: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+- d3cc3fe: Clear partial UI message parts when a WorkflowAgent model-call step is retried.
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/gateway@4.0.56
+
+## 7.0.69
+
+### Patch Changes
+
+- Updated dependencies [1f7a464]
+  - @ai-sdk/gateway@4.0.55
+
+## 7.0.68
+
+### Patch Changes
+
+- Updated dependencies [257632b]
+  - @ai-sdk/gateway@4.0.54
+
+## 7.0.67
+
+### Patch Changes
+
+- Updated dependencies [a0b1ffc]
+  - @ai-sdk/gateway@4.0.53
+
 ## 7.0.66
 
 ### Patch Changes

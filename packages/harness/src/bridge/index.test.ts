@@ -119,7 +119,11 @@ describe('runBridge', () => {
     const client = await connect(handle.port);
 
     const hello = await client.waitFor(f => f.type === 'bridge-hello');
-    expect(hello).toMatchObject({ type: 'bridge-hello', state: 'waiting' });
+    expect(hello).toMatchObject({
+      type: 'bridge-hello',
+      state: 'waiting',
+      capabilities: { experimental_userMessageResponses: true },
+    });
 
     client.send({ type: 'start' });
     await client.waitFor(f => f.type === 'finish');
@@ -199,6 +203,164 @@ describe('runBridge', () => {
     client.send({ type: 'tool-result', toolCallId: 'tc1', output: 'OK' });
     const observed = await client.waitFor(f => f.type === 'tool-observed');
     expect(observed.output).toBe('OK');
+  });
+
+  it('acknowledges a user message after the adapter accepts it', async () => {
+    let releaseTurn!: () => void;
+    const turnReleased = new Promise<void>(resolve => {
+      releaseTurn = resolve;
+    });
+    const pendingCounts: number[] = [];
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        pendingCounts.push(turn.experimental_userMessages.pendingCount);
+        for await (const message of turn.experimental_userMessages) {
+          pendingCounts.push(turn.experimental_userMessages.pendingCount);
+          turn.emit({ type: 'user-message-observed', text: message.text });
+          message.accept();
+          pendingCounts.push(turn.experimental_userMessages.pendingCount);
+          await turnReleased;
+          return;
+        }
+      },
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'start' });
+    client.send({
+      type: 'user-message',
+      messageId: 'message-1',
+      text: 'Change course.',
+    });
+
+    await expect(
+      client.waitFor(f => f.type === 'user-message-response'),
+    ).resolves.toMatchObject({
+      type: 'user-message-response',
+      messageId: 'message-1',
+      accepted: true,
+    });
+    await expect(
+      client.waitFor(f => f.type === 'user-message-observed'),
+    ).resolves.toMatchObject({ text: 'Change course.' });
+    expect(pendingCounts).toEqual([0, 1, 0]);
+    releaseTurn();
+  });
+
+  it('accepts the original user-message payload without a messageId', async () => {
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        for await (const message of turn.experimental_userMessages) {
+          message.accept();
+          return;
+        }
+      },
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'start' });
+    client.send({ type: 'user-message', text: '/compact' });
+
+    await expect(
+      client.waitFor(f => f.type === 'user-message-response'),
+    ).resolves.toMatchObject({
+      messageId: expect.any(String),
+      accepted: true,
+    });
+  });
+
+  it('rejects user messages from a connection that does not own the turn', async () => {
+    let releaseTurn!: () => void;
+    const turnReleased = new Promise<void>(resolve => {
+      releaseTurn = resolve;
+    });
+    let userMessages: BridgeTurn['experimental_userMessages'] | undefined;
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        userMessages = turn.experimental_userMessages;
+        await turnReleased;
+      },
+    });
+    const owner = await connect(handle.port);
+    await owner.waitFor(f => f.type === 'bridge-hello');
+    owner.send({ type: 'start' });
+    await vi.waitFor(() => expect(userMessages).toBeDefined());
+
+    const other = await connect(handle.port);
+    await other.waitFor(f => f.type === 'bridge-hello');
+    other.send({
+      type: 'user-message',
+      messageId: 'message-1',
+      text: 'Change course.',
+    });
+
+    await expect(
+      other.waitFor(f => f.type === 'user-message-response'),
+    ).resolves.toMatchObject({
+      messageId: 'message-1',
+      accepted: false,
+      error: {
+        message: 'The connection does not own the active bridge turn.',
+      },
+    });
+    expect(userMessages?.pendingCount).toBe(0);
+    releaseTurn();
+  });
+
+  it('deduplicates retried user messages by messageId', async () => {
+    let releaseTurn!: () => void;
+    const turnReleased = new Promise<void>(resolve => {
+      releaseTurn = resolve;
+    });
+    let observedCount = 0;
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        for await (const message of turn.experimental_userMessages) {
+          observedCount++;
+          message.accept();
+          await turnReleased;
+          return;
+        }
+      },
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'start' });
+    const request = {
+      type: 'user-message',
+      messageId: 'message-1',
+      text: 'Change course.',
+    };
+    client.send(request);
+    await client.waitFor(f => f.type === 'user-message-response');
+    client.send(request);
+
+    await vi.waitFor(() => {
+      expect(
+        client.frames.filter(f => f.type === 'user-message-response'),
+      ).toHaveLength(2);
+    });
+    expect(observedCount).toBe(1);
+    releaseTurn();
+  });
+
+  it('rejects a user message when no turn is active', async () => {
+    const handle = await startBridge({ onStart: async () => {} });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({
+      type: 'user-message',
+      messageId: 'message-1',
+      text: 'Too late.',
+    });
+
+    await expect(
+      client.waitFor(f => f.type === 'user-message-response'),
+    ).resolves.toMatchObject({
+      messageId: 'message-1',
+      accepted: false,
+      error: { message: 'The bridge has no active turn to steer.' },
+    });
   });
 
   it('reports non-fatal bridge warnings to stderr without emitting stream errors', async () => {
