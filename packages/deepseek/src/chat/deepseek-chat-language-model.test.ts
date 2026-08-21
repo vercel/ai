@@ -20,6 +20,14 @@ const server = createTestServer({
 });
 
 describe('DeepSeekChatLanguageModel', () => {
+  describe('supportedUrls', () => {
+    it('should natively support HTTP image URLs', () => {
+      expect(provider.chat('deepseek-chat').supportedUrls).toEqual({
+        'image/*': [/^https?:\/\/.*$/],
+      });
+    });
+  });
+
   describe('doGenerate', () => {
     function prepareJsonFixtureResponse(filename: string) {
       server.urls['https://api.deepseek.com/chat/completions'].response = {

@@ -1,5 +1,11 @@
 # @ai-sdk/code-mode
 
+## 1.0.31
+
+### Patch Changes
+
+- ai@7.0.74
+
 ## 1.0.30
 
 ### Patch Changes
