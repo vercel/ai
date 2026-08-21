@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17441,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-files-fetch-body-type-compatibility.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-files-fetch-body-type-compatibility.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 2,
+    "signal": "packages/google/src/google-files.ts(110,7): error TS2322: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BodyInit | null | undefined'."
+  }
+}
