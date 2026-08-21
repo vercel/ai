@@ -371,6 +371,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       hasFinished: boolean;
     }> = [];
 
+<<<<<<< HEAD
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     const usage: {
       completionTokens: number | undefined;
@@ -396,6 +397,23 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         cachedTokens: undefined,
       },
       totalTokens: undefined,
+=======
+    // Buffers tool-call deltas by `index` until `function.name` is known.
+    // Some OpenAI-compatible providers send the first delta without
+    // `function.name`.
+    const pendingToolCalls = new Map<
+      number,
+      {
+        id: string | null;
+        bufferedArguments: string;
+        thoughtSignature: string | undefined;
+      }
+    >();
+
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+>>>>>>> 4d4e1768ea ([v6.0] fix(openai-compatible): buffer tool call deltas until function.name arrives (#16836))
     };
     let lastUsage: z.infer<typeof openaiCompatibleTokenUsageSchema> = undefined;
     let isFirstChunk = true;
@@ -534,20 +552,105 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                 const index = toolCallDelta.index;
 
                 if (toolCalls[index] == null) {
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
+                  if (toolCallDelta.index != null) {
+                    // Buffer deltas until `function.name` is known. Some
+                    // OpenAI-compatible providers send the first delta
+                    // without `function.name`.
+                    let pending = pendingToolCalls.get(index);
+                    if (pending == null) {
+                      pending = {
+                        id: toolCallDelta.id ?? null,
+                        bufferedArguments: '',
+                        thoughtSignature:
+                          toolCallDelta.extra_content?.google
+                            ?.thought_signature ?? undefined,
+                      };
+                      pendingToolCalls.set(index, pending);
+                    } else {
+                      if (pending.id == null && toolCallDelta.id != null) {
+                        pending.id = toolCallDelta.id;
+                      }
+                      if (
+                        pending.thoughtSignature == null &&
+                        toolCallDelta.extra_content?.google
+                          ?.thought_signature != null
+                      ) {
+                        pending.thoughtSignature =
+                          toolCallDelta.extra_content.google.thought_signature;
+                      }
+                    }
+
+                    const argumentsDelta = toolCallDelta.function?.arguments;
+                    if (argumentsDelta != null) {
+                      pending.bufferedArguments += argumentsDelta;
+                    }
+
+                    const name = toolCallDelta.function?.name;
+                    if (name == null) {
+                      continue; // wait for the delta that carries the name
+                    }
+
+                    pendingToolCalls.delete(index);
+
+                    if (pending.id == null) {
+                      throw new InvalidResponseDataError({
+                        data: toolCallDelta,
+                        message: `Expected 'id' to be a string.`,
+                      });
+                    }
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: pending.id,
+                      toolName: name,
                     });
+
+                    toolCalls[index] = {
+                      id: pending.id,
+                      type: 'function',
+                      function: {
+                        name,
+                        arguments: pending.bufferedArguments,
+                      },
+                      hasFinished: false,
+                      thoughtSignature: pending.thoughtSignature,
+                    };
+                  } else {
+                    if (toolCallDelta.id == null) {
+                      throw new InvalidResponseDataError({
+                        data: toolCallDelta,
+                        message: `Expected 'id' to be a string.`,
+                      });
+                    }
+
+                    if (toolCallDelta.function?.name == null) {
+                      throw new InvalidResponseDataError({
+                        data: toolCallDelta,
+                        message: `Expected 'function.name' to be a string.`,
+                      });
+                    }
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallDelta.id,
+                      toolName: toolCallDelta.function.name,
+                    });
+
+                    toolCalls[index] = {
+                      id: toolCallDelta.id,
+                      type: 'function',
+                      function: {
+                        name: toolCallDelta.function.name,
+                        arguments: toolCallDelta.function.arguments ?? '',
+                      },
+                      hasFinished: false,
+                      thoughtSignature:
+                        toolCallDelta.extra_content?.google
+                          ?.thought_signature ?? undefined,
+                    };
                   }
 
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
+<<<<<<< HEAD
                   controller.enqueue({
                     type: 'tool-input-start',
                     id: toolCallDelta.id,
@@ -564,6 +667,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                     hasFinished: false,
                   };
 
+=======
+>>>>>>> 4d4e1768ea ([v6.0] fix(openai-compatible): buffer tool call deltas until function.name arrives (#16836))
                   const toolCall = toolCalls[index];
 
                   if (
@@ -649,6 +754,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
+            }
+
+            // Tool-call deltas that never received a `function.name` are
+            // invalid, preserving the original invalid-response semantics.
+            for (const [index, pending] of pendingToolCalls) {
+              throw new InvalidResponseDataError({
+                data: {
+                  index,
+                  id: pending.id,
+                  function: { arguments: pending.bufferedArguments },
+                },
+                message: `Expected 'function.name' to be a string.`,
+              });
             }
 
             // go through all tool calls and send the ones that are not finished
