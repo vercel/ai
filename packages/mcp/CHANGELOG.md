@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.35
+
+### Patch Changes
+
+- 76fb75d: fix(mcp): reject SSE requests when POST responses are unsuccessful
+
 ## 2.0.34
 
 ### Patch Changes
