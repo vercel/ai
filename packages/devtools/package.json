@@ -41,7 +41,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@hono/node-server": "^1.19.13",
-    "hono": "^4.12.25"
+    "hono": "^4.12.34"
   },
   "devDependencies": {
     "@radix-ui/react-collapsible": "^1.1.12",
