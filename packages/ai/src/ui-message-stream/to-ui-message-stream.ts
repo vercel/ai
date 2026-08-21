@@ -13,7 +13,7 @@ import { toUIMessageChunk } from './to-ui-message-chunk';
  * Converts a stream of `TextStreamPart<TOOLS>` chunks (as emitted by
  * `streamText`'s `stream`) into a stream of `UIMessageChunk`s suitable for
  * UI message streaming, including response message ID injection and
- * `onEnd` handling.
+ * step/end callback handling.
  */
 export function toUIMessageStream<
   TOOLS extends ToolSet = ToolSet,
@@ -29,6 +29,8 @@ export function toUIMessageStream<
   messageMetadata,
   originalMessages,
   generateMessageId,
+  onStepEnd,
+  onStepFinish,
   onEnd,
   onFinish,
 }: {
@@ -85,6 +87,7 @@ export function toUIMessageStream<
     stream: uiMessageChunkStream,
     messageId: responseMessageId ?? generateMessageId?.(),
     originalMessages,
+    onStepEnd: onStepEnd ?? onStepFinish,
     onEnd: onEnd ?? onFinish,
     onError,
   });

@@ -16,6 +16,8 @@ import type { UIMessage } from '../ui';
 import type {
   UIMessageStreamOnEndCallback,
   UIMessageStreamOnFinishCallback,
+  UIMessageStreamOnStepEndCallback,
+  UIMessageStreamOnStepFinishCallback,
 } from '../ui-message-stream';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
@@ -139,10 +141,26 @@ describe('streamText types', () => {
   });
 
   describe('toUIMessageStream options', () => {
-    it('should support onEnd and deprecated onFinish', () => {
+    it('should support step and stream end callbacks', () => {
       const result = streamText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
+      });
+
+      result.toUIMessageStream({
+        onStepEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnStepEndCallback<UIMessage>>[0]
+          >();
+        },
+      });
+
+      result.toUIMessageStream({
+        onStepFinish: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnStepFinishCallback<UIMessage>>[0]
+          >();
+        },
       });
 
       result.toUIMessageStream({

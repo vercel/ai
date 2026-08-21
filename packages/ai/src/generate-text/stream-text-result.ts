@@ -12,6 +12,8 @@ import type { LanguageModelResponseMetadata } from '../types/language-model-resp
 import type { LanguageModelUsage } from '../types/usage';
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { UIMessageStreamOnEndCallback } from '../ui-message-stream/ui-message-stream-on-end-callback';
+import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
+import type { UIMessageStreamOnStepFinishCallback } from '../ui-message-stream/ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -56,6 +58,20 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    * the original messages are provided and the last message is an assistant message).
    */
   generateMessageId?: IdGenerator;
+
+  /**
+   * Callback that is called when each step ends during multi-step runs.
+   * Useful for persisting intermediate UI messages.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /**
+   * Callback that is called when each step ends during multi-step runs.
+   * Useful for persisting intermediate UI messages.
+   *
+   * @deprecated Use `onStepEnd` instead.
+   */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
   onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 

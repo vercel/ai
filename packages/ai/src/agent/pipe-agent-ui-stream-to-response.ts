@@ -5,19 +5,17 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
-import type {
-  GenerateTextOnStepEndCallback,
-  GenerateTextOnStepFinishCallback,
-} from '../generate-text/generate-text-events';
 import type { Output } from '../generate-text/output';
 import type { StreamTextTransform } from '../generate-text/stream-text';
-import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type { InferUITools, UIMessage } from '../ui/ui-messages';
 import type { Agent } from './agent';
-import { createAgentUIStream } from './create-agent-ui-stream';
+import {
+  createAgentUIStream,
+  type AgentUIMessageStreamOptions,
+} from './create-agent-ui-stream';
 
 /**
  * Pipes the agent UI message stream to a Node.js ServerResponse object.
@@ -32,6 +30,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * @param experimental_transform - Stream transformations. Optional.
  * @param onStepEnd - Callback that is called when each step ends. Optional.
  * @param onStepFinish - Deprecated alias for `onStepEnd`. Optional.
+ * @param onUIMessageStepEnd - Callback that is called with the accumulated UI message when each step ends. Optional.
  * @param headers - Additional headers for the response. Optional.
  * @param status - The status code for the response. Optional.
  * @param statusText - The status text for the response. Optional.
@@ -59,11 +58,9 @@ export async function pipeAgentUIStreamToResponse<
   experimental_sandbox?: SandboxSession;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
-  onStepEnd?: GenerateTextOnStepEndCallback<TOOLS>;
-  /** @deprecated Use `onStepEnd` instead. */
-  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
-  UIMessageStreamOptions<
+  AgentUIMessageStreamOptions<
+    TOOLS,
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >): Promise<void> {
   return pipeUIMessageStreamToResponse({

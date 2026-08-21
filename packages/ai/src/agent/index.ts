@@ -27,5 +27,8 @@ export {
   type InferAgentUIMessage,
 } from './infer-agent-ui-message';
 export { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
-export { createAgentUIStream } from './create-agent-ui-stream';
+export {
+  createAgentUIStream,
+  type AgentUIMessageStreamOptions,
+} from './create-agent-ui-stream';
 export { pipeAgentUIStreamToResponse } from './pipe-agent-ui-stream-to-response';
