@@ -13,17 +13,32 @@ const BUN_ERROR_CODES = [
   'EPIPE',
 ];
 
-function isBunNetworkError(error: unknown): error is Error & { code?: string } {
-  if (!(error instanceof Error)) {
-    return false;
+const UNDICI_NETWORK_ERROR_CODES = [
+  'UND_ERR_SOCKET',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_BODY_TIMEOUT',
+  'UND_ERR_CONNECT_TIMEOUT',
+];
+
+function findNetworkError(
+  error: unknown,
+): (Error & { code?: string }) | undefined {
+  let current = error;
+
+  for (let index = 0; index < 10 && current instanceof Error; index++) {
+    const code = (current as any).code;
+    if (
+      typeof code === 'string' &&
+      (BUN_ERROR_CODES.includes(code) ||
+        UNDICI_NETWORK_ERROR_CODES.includes(code))
+    ) {
+      return current;
+    }
+
+    current = (current as any).cause;
   }
 
-  const code = (error as any).code;
-  if (typeof code === 'string' && BUN_ERROR_CODES.includes(code)) {
-    return true;
-  }
-
-  return false;
+  return undefined;
 }
 
 export function handleFetchError({
@@ -58,9 +73,27 @@ export function handleFetchError({
     }
   }
 
-  if (isBunNetworkError(error)) {
+  const networkError = findNetworkError(error);
+
+  if (networkError != null) {
+    if (APICallError.isInstance(error)) {
+      return new APICallError({
+        message: error.message,
+        cause: error.cause,
+        url: error.url,
+        requestBodyValues: error.requestBodyValues,
+        statusCode: error.statusCode,
+        responseHeaders: error.responseHeaders,
+        responseBody: error.responseBody,
+        data: error.data,
+        isRetryable: true,
+      });
+    }
+
     return new APICallError({
-      message: `Cannot connect to API: ${error.message}`,
+      message: `Cannot connect to API: ${
+        error instanceof Error ? error.message : networkError.message
+      }`,
       cause: error,
       url,
       requestBodyValues,

@@ -1,5 +1,6 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import { extractResponseHeaders } from './extract-response-headers';
+import { handleFetchError } from './handle-fetch-error';
 import { parseJSON, safeParseJSON, type ParseResult } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
 import { readResponseWithSizeLimit } from './read-response-with-size-limit';
@@ -16,6 +17,37 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
 }>;
 
 const textDecoder = new TextDecoder();
+
+function wrapResponseBodyStream({
+  stream,
+  url,
+  requestBodyValues,
+}: {
+  stream: ReadableStream<Uint8Array>;
+  url: string;
+  requestBodyValues: unknown;
+}) {
+  const reader = stream.getReader();
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        controller.error(handleFetchError({ error, url, requestBodyValues }));
+      }
+    },
+    async cancel(reason) {
+      await reader.cancel(reason);
+    },
+  });
+}
 
 async function readResponseBodyAsText({
   response,
@@ -102,7 +134,7 @@ export const createEventSourceResponseHandler =
   <T>(
     chunkSchema: FlexibleSchema<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
-  async ({ response }: { response: Response }) => {
+  async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
 
     if (response.body == null) {
@@ -112,7 +144,11 @@ export const createEventSourceResponseHandler =
     return {
       responseHeaders,
       value: parseJsonEventStream({
-        stream: response.body,
+        stream: wrapResponseBodyStream({
+          stream: response.body,
+          url,
+          requestBodyValues,
+        }),
         schema: chunkSchema,
       }),
     };

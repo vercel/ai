@@ -167,5 +167,20 @@ describe('asGatewayError', () => {
 
       expect(GatewayTimeoutError.isInstance(result)).toBe(false);
     });
+
+    it('should preserve retryability for transport errors after response headers', async () => {
+      const apiCallError = new APICallError({
+        message: 'Failed to process successful response',
+        url: 'https://example.com',
+        requestBodyValues: {},
+        statusCode: 200,
+        isRetryable: true,
+      });
+
+      const result = await asGatewayError(apiCallError);
+
+      expect(result.isRetryable).toBe(true);
+      expect(result.statusCode).toBe(500);
+    });
   });
 });
