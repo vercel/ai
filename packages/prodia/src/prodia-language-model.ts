@@ -86,6 +86,9 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
     if (options.frequencyPenalty !== undefined) {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
+    if (options.seed !== undefined) {
+      warnings.push({ type: 'unsupported', feature: 'seed' });
+    }
     if (options.tools !== undefined && options.tools.length > 0) {
       warnings.push({ type: 'unsupported', feature: 'tools' });
     }
