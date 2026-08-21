@@ -3,14 +3,9 @@
 import {
   createTestServer,
   TestResponseController,
-<<<<<<< HEAD
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import { screen, waitFor } from '@testing-library/react';
-=======
-} from '@ai-sdk/provider-utils/test';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
->>>>>>> origin/release-v5.0
 import userEvent from '@testing-library/user-event';
 import {
   type FinishReason,
