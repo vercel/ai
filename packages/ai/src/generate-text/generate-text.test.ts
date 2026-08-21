@@ -1,6 +1,7 @@
 import {
   InvalidPromptError,
   type LanguageModelV4CallOptions,
+  type LanguageModelV4FinishReason,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4Prompt,
   type LanguageModelV4ProviderTool,
@@ -7813,6 +7814,27 @@ describe('generateText', () => {
           model: new MockLanguageModelV4({
             doGenerate: async () => ({
               ...dummyResponseValues,
+              content: [{ type: 'text', text: `{ "value": "test-value" }` }],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.output).toEqual({ value: 'test-value' });
+      });
+
+      it('should parse the output when the finish reason is missing', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              finishReason: {
+                unified: undefined,
+                raw: undefined,
+              } as unknown as LanguageModelV4FinishReason,
               content: [{ type: 'text', text: `{ "value": "test-value" }` }],
             }),
           }),
