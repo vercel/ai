@@ -562,6 +562,87 @@ exports[`doGenerate > tool call > should extract tool calls 1`] = `
 }
 `;
 
+exports[`doStream > citations > should stream citations as source parts 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "68475c80-574b-4c65-98a4-e81cebab5dce",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "The key benefits are ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "automation of tasks.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "id": "test-citation-id",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "cohere": {
+        "citationType": "TEXT_CONTENT",
+        "end": 40,
+        "sources": [
+          {
+            "document": {
+              "id": "doc:0",
+              "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+              "title": "benefits.txt",
+            },
+            "id": "doc:0",
+            "type": "document",
+          },
+        ],
+        "start": 21,
+        "text": "automation of tasks",
+      },
+    },
+    "sourceType": "document",
+    "title": "benefits.txt",
+    "type": "source",
+  },
+  {
+    "finishReason": {
+      "raw": "COMPLETE",
+      "unified": "stop",
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": undefined,
+        "cacheWrite": undefined,
+        "noCache": 1683,
+        "total": 1683,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": 62,
+        "total": 62,
+      },
+      "raw": {
+        "input_tokens": 1683,
+        "output_tokens": 62,
+      },
+    },
+  },
+]
+`;
+
 exports[`doStream > empty tool call > should handle empty tool call arguments 1`] = `
 [
   {

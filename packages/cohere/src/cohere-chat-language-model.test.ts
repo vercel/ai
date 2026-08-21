@@ -808,6 +808,71 @@ describe('doStream', () => {
     });
   });
 
+  describe('citations', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('cohere-citations');
+    });
+
+    it('should stream citations as source parts', async () => {
+      const mockGenerateId = vi.fn().mockReturnValue('test-citation-id');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+
+      const { stream } = await testProvider('command-r-plus').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+
+    it('should emit the same source parts as doGenerate', async () => {
+      const mockGenerateId = vi.fn().mockReturnValue('test-citation-id');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+
+      const { stream } = await testProvider('command-r-plus').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.filter(part => part.type === 'source')).toEqual([
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id',
+          mediaType: 'text/plain',
+          title: 'benefits.txt',
+          providerMetadata: {
+            cohere: {
+              start: 21,
+              end: 40,
+              text: 'automation of tasks',
+              sources: [
+                {
+                  type: 'document',
+                  id: 'doc:0',
+                  document: {
+                    id: 'doc:0',
+                    text: 'AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction',
+                    title: 'benefits.txt',
+                  },
+                },
+              ],
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+      ]);
+    });
+  });
+
   describe('tool call', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('cohere-tool-call');
