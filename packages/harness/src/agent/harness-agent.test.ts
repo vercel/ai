@@ -2720,17 +2720,6 @@ describe('HarnessAgent', () => {
     expect(sandboxDestroy).toHaveBeenCalledTimes(1);
   });
 
-  test('session.destroy() falls back to stopping the sandbox when destroy is unsupported', async () => {
-    const { session, sandboxStop, sandboxDestroy } = makeLifecycleSession({
-      sandboxSessionOverrides: { destroy: undefined },
-    });
-
-    await session.destroy();
-
-    expect(sandboxStop).toHaveBeenCalledTimes(1);
-    expect(sandboxDestroy).not.toHaveBeenCalled();
-  });
-
   test('session.compact() forwards to the harness session doCompact, then throws once ended', async () => {
     const { harness, doCompact } = mockHarness({ script: () => [] });
     const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });

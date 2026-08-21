@@ -134,7 +134,7 @@ describe('createVercelSandbox (wrap existing)', () => {
 
   it('destroy is a no-op (caller owns lifecycle)', async () => {
     const { sandbox, spies } = makeMockSandbox();
-    await (await createVercelSandbox({ sandbox }).createSession()).destroy?.();
+    await (await createVercelSandbox({ sandbox }).createSession()).destroy();
     expect(spies.stop).not.toHaveBeenCalled();
     expect(spies.delete).not.toHaveBeenCalled();
   });
@@ -532,13 +532,22 @@ describe('createVercelSandbox (create from scratch)', () => {
     expect(createMock.mock.calls[0][0]).toMatchObject({ timeout: 60_000 });
   });
 
-  it('destroy stops and deletes owned sandboxes', async () => {
-    const { sandbox, spies } = makeMockSandbox();
+  it('destroy stops before deleting owned sandboxes', async () => {
+    const calls: string[] = [];
+    const { sandbox, spies } = makeMockSandbox({
+      stop: vi.fn(async () => {
+        calls.push('stop');
+      }),
+      delete: vi.fn(async () => {
+        calls.push('delete');
+      }),
+    });
     createMock.mockResolvedValueOnce(sandbox);
 
     const handle = await createVercelSandbox({}).createSession();
-    await handle.destroy?.();
+    await handle.destroy();
 
+    expect(calls).toEqual(['stop', 'delete']);
     expect(spies.stop).toHaveBeenCalledTimes(1);
     expect(spies.delete).toHaveBeenCalledTimes(1);
   });
@@ -552,7 +561,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     createMock.mockResolvedValueOnce(sandbox);
 
     const handle = await createVercelSandbox({}).createSession();
-    await handle.destroy?.();
+    await handle.destroy();
 
     expect(spies.stop).toHaveBeenCalledTimes(1);
     expect(spies.delete).toHaveBeenCalledTimes(1);
