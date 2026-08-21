@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 19035,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-truncated-event-stream.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/amazon-bedrock-truncated-event-stream.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG REPRODUCED: truncated AWS event-stream frame closed normally"
+  }
+}
