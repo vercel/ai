@@ -1,6 +1,9 @@
 import fs from 'fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from '../openai-compatible-provider';
@@ -205,6 +208,33 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot();
     });
+  });
+
+  it('should generate distinct IDs for parallel tool calls with empty IDs', async () => {
+    prepareJsonResponse({
+      finish_reason: 'tool_calls',
+      tool_calls: [
+        {
+          id: '',
+          type: 'function',
+          function: { name: 'first', arguments: '{"value":1}' },
+        },
+        {
+          id: '',
+          type: 'function',
+          function: { name: 'second', arguments: '{"value":2}' },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+    const toolCallIds = result.content
+      .filter(part => part.type === 'tool-call')
+      .map(part => part.toolCallId);
+
+    expect(toolCallIds).toHaveLength(2);
+    expect(toolCallIds.every(id => id.length > 0)).toBe(true);
+    expect(new Set(toolCallIds).size).toBe(2);
   });
 
   it('should extract usage', async () => {
@@ -420,6 +450,44 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should pass video input as video_url in doGenerate', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe this video.' },
+            {
+              type: 'file',
+              data: {
+                type: 'data',
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+              mediaType: 'video/mp4',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe this video.' },
+            {
+              type: 'video_url',
+              video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should pass settings', async () => {
     prepareJsonResponse();
 
@@ -506,6 +574,48 @@ describe('doGenerate', () => {
         "someCustomOption": "test-value",
       }
     `);
+  });
+
+  it('should serialize thought signatures using the custom provider metadata key', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await provider('grok-3').doGenerate({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'test_tool',
+              input: { value: 'test' },
+              providerOptions: {
+                'test-provider': {
+                  thoughtSignature: '<Signature A>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'assistant',
+          tool_calls: [
+            {
+              extra_content: {
+                google: {
+                  thought_signature: '<Signature A>',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
   });
 
   it('should not include provider-specific options for different provider', async () => {
@@ -1864,6 +1974,59 @@ describe('doStream', () => {
       }
     `);
   });
+
+  it.each([
+    {
+      scenario: 'the connection closes',
+      finalChunks: [],
+    },
+    {
+      scenario: '[DONE] is received',
+      finalChunks: ['data: [DONE]\n\n'],
+    },
+  ])(
+    'should report an error when $scenario without a finish reason',
+    async ({ finalChunks }) => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"content":" World"},"finish_reason":null}]}\n\n`,
+          ...finalChunks,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type === 'text-delta')).toStrictEqual(
+        [
+          { type: 'text-delta', delta: 'Hello', id: 'txt-0' },
+          { type: 'text-delta', delta: ' World', id: 'txt-0' },
+        ],
+      );
+
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+      expect(errors[0].error).toMatchObject({
+        message: 'Response stream ended without a finish reason.',
+      });
+
+      expect(events.filter(event => event.type === 'finish')).toStrictEqual([
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        }),
+      ]);
+    },
+  );
 
   it('should handle empty string role in delta chunks', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
@@ -3334,6 +3497,44 @@ describe('doStream', () => {
         "stream": true,
       }
     `);
+  });
+
+  it('should pass video input as video_url in doStream', async () => {
+    prepareStreamResponse({ content: [] });
+
+    await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/video.mp4'),
+              },
+              mediaType: 'video/mp4',
+            },
+          ],
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'video_url',
+              video_url: { url: 'https://example.com/video.mp4' },
+            },
+          ],
+        },
+      ],
+      stream: true,
+    });
   });
 
   it('should pass headers', async () => {

@@ -1,5 +1,24 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.60
+
+### Patch Changes
+
+- 8ca1352: fix(amazon-bedrock): surface modeled event-stream exceptions
+- Updated dependencies [6be0f51]
+  - @ai-sdk/openai@4.0.45
+
+## 5.0.59
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- aabc617: fix (provider/amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API and replay it on subsequent turns
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/openai@4.0.44
+  - @ai-sdk/anthropic@4.0.40
+
 ## 5.0.58
 
 ### Patch Changes

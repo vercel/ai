@@ -24,7 +24,9 @@ import {
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
   maskSandboxCredentials,
+  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -32,7 +34,11 @@ import {
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
-import { tool, type Experimental_SandboxProcess } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Experimental_SandboxProcess,
+  type Experimental_SandboxSession as SandboxSession,
+} from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
@@ -93,6 +99,11 @@ export type DeepAgentsHarnessSettings = {
   readonly effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   /** Bridge port override; defaults to the sandbox's first declared port. */
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
@@ -198,6 +209,26 @@ export function createDeepAgents(
     doStart: async startOpts => {
       const permissionMode = startOpts.permissionMode;
       const sandboxSession = startOpts.sandboxSession;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: settings.port,
+        portEndpoint: settings.portEndpoint,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'deepagents',
+          message:
+            'The deepagents harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
+        });
+      }
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal: startOpts.abortSignal,
+        });
       const authenticationMode = resolveDeepAgentsAuthenticationMode({
         auth: settings.auth,
       });
@@ -205,7 +236,10 @@ export function createDeepAgents(
         auth: settings.auth,
       });
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
-      if (sandboxSession.addRequestTransformations != null) {
+      if (
+        'addRequestTransformations' in sandboxSession &&
+        sandboxSession.addRequestTransformations != null
+      ) {
         const requestTransformations = createDeepAgentsRequestTransformations(
           resolvedAuthEnvironment,
           authenticationMode,
@@ -223,10 +257,8 @@ export function createDeepAgents(
       } else {
         warnCredentialBrokeringUnavailable();
       }
-      const session = sandboxSession.restricted();
-      const sandboxId = sandboxSession.id;
       const bootstrapDir = posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
+        defaultWorkingDirectory,
         BOOTSTRAP_DIR,
       );
 
@@ -239,7 +271,7 @@ export function createDeepAgents(
           : undefined;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -261,9 +293,10 @@ export function createDeepAgents(
       // Attach to the still-running bridge (continueFrom replays past the cursor); on failure fall through to a fresh spawn.
       if (coords) {
         try {
-          const endpoint = await sandboxSession.getPortEndpoint({
+          const endpoint = await resolveBridgeEndpoint({
+            sandboxSession,
+            override: settings.portEndpoint,
             port: coords.port,
-            protocol: 'ws',
           });
           const attachEndpoint = withBridgeToken({
             endpoint,
@@ -299,11 +332,14 @@ export function createDeepAgents(
         }
       }
 
-      const port = resolveBridgePort(sandboxSession, settings.port);
+      const port = resolveBridgePort({
+        sandboxSession,
+        override: settings.port,
+      });
       const token =
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
-          : settings.mintBridgeToken(sandboxId);
+          : settings.mintBridgeToken(sandboxId!);
 
       // Always discover repo-provided skills under <workDir>/.agents/skills (e.g. a cloned repo); a missing dir is tolerated by deepagents.
       // Absolute paths: LocalShellBackend (non-virtual) treats a leading-slash path as a real fs path.
@@ -311,12 +347,12 @@ export function createDeepAgents(
       // Host-provided skills go to $HOME (out of the work dir) and take priority (listed last → wins on name collision).
       if ((startOpts.skills?.length ?? 0) > 0) {
         const homeDir = await resolveSandboxHomeDir({
-          sandbox: session,
+          sandbox: toolSafeSandboxSession,
           abortSignal: startOpts.abortSignal,
         });
         const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
         await writeSkills({
-          sandbox: session,
+          sandbox: toolSafeSandboxSession,
           root: homeSkillsRoot,
           skills: startOpts.skills ?? [],
           abortSignal: startOpts.abortSignal,
@@ -331,19 +367,19 @@ export function createDeepAgents(
         BRIDGE_WS_PORT: String(port),
       };
 
-      await session.run({
+      await toolSafeSandboxSession.run({
         command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
         abortSignal: startOpts.abortSignal,
       });
 
       await markBridgeStarting({
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'deepagents',
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await session.spawn({
+      const proc = await toolSafeSandboxSession.spawn({
         command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
@@ -358,7 +394,7 @@ export function createDeepAgents(
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'deepagents',
         timeoutMs,
@@ -382,9 +418,10 @@ export function createDeepAgents(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await sandboxSession.getPortEndpoint({
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: settings.portEndpoint,
         port: boundPort,
-        protocol: 'ws',
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
@@ -419,17 +456,68 @@ export function createDeepAgents(
   };
 }
 
-function resolveBridgePort(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  override: number | undefined,
-): number {
+function resolveBridgePort({
+  sandboxSession,
+  override,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: number | undefined;
+}): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'deepagents',
     message:
       'The deepagents harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createDeepAgents({ port })`.',
+  });
+}
+
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'deepagents',
+      message:
+        'The deepagents harness requires an explicit `port` when using a basic sandbox session.',
+    });
+  }
+  if (portEndpoint == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'deepagents',
+      message:
+        'The deepagents harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+    });
+  }
+}
+
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'deepagents',
+    message:
+      'The deepagents harness requires an explicit `portEndpoint` when using a basic sandbox session.',
   });
 }
 
@@ -440,7 +528,7 @@ async function writeSkills({
   skills,
   abortSignal,
 }: {
-  sandbox: ReturnType<HarnessV1NetworkSandboxSession['restricted']>;
+  sandbox: SandboxSession;
   root: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
@@ -523,7 +611,7 @@ function createSession({
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   bridgePort: number;
   bridgeToken: string;
-  sandboxId: string;
+  sandboxId: string | undefined;
   isResume: boolean;
   // True only when attaching to a live bridge that already built the agent with
   // its instructions. A fresh spawn (incl. a respawn on attach failure or a
@@ -641,9 +729,6 @@ function createSession({
           isError: input.isError,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
       submitToolApproval: async input => {
         channel.send({
           type: 'tool-approval-response',
@@ -746,7 +831,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };
@@ -770,7 +855,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };

@@ -1160,6 +1160,35 @@ class DefaultStreamTextResult<
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
 
+    // provider-assigned text/reasoning part IDs are only unique within a
+    // single model call (e.g. Anthropic uses the content block index, which
+    // restarts at 0 for every call), so colliding IDs are remapped to keep
+    // them unique across the whole multi-step stream:
+    const createPartIdReserver = () => {
+      const usedIds = new Set<string>();
+
+      return (id: string) => {
+        if (!usedIds.has(id)) {
+          usedIds.add(id);
+          return id;
+        }
+
+        const generatedId = generateId();
+        let uniqueId = generatedId;
+        let suffix = 0;
+
+        while (usedIds.has(uniqueId)) {
+          uniqueId = `${generatedId}-${++suffix}`;
+        }
+
+        usedIds.add(uniqueId);
+        return uniqueId;
+      };
+    };
+
+    const reserveTextPartId = createPartIdReserver();
+    const reserveReasoningPartId = createPartIdReserver();
+
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
     // These tools may not return their results in the same turn as their call.
@@ -1193,7 +1222,10 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
-        await onChunk?.({ chunk: part });
+        await notify({
+          event: { chunk: part },
+          callbacks: onChunk,
+        });
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
@@ -1202,7 +1234,10 @@ class DefaultStreamTextResult<
             recordedNoOutputError = error;
           }
 
-          await onError({ error });
+          await notify({
+            event: { error },
+            callbacks: onError,
+          });
         }
 
         if (
@@ -2183,6 +2218,11 @@ class DefaultStreamTextResult<
             modelId: model.modelId,
           };
 
+          // maps provider-assigned IDs to stream-unique IDs for the text and
+          // reasoning parts that are active in this step
+          const textPartIds = new Map<string, string>();
+          const reasoningPartIds = new Map<string, string>();
+
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
@@ -2222,11 +2262,6 @@ class DefaultStreamTextResult<
                     case 'file':
                     case 'custom':
                     case 'source':
-                    case 'text-start':
-                    case 'text-end':
-                    case 'reasoning-start':
-                    case 'reasoning-end':
-                    case 'reasoning-delta':
                     case 'reasoning-file':
                     case 'tool-input-start':
                     case 'tool-input-end':
@@ -2236,13 +2271,56 @@ class DefaultStreamTextResult<
                       break;
                     }
 
+                    case 'text-start': {
+                      const id = reserveTextPartId(chunk.id);
+                      textPartIds.set(chunk.id, id);
+                      controller.enqueue({ ...chunk, id });
+                      break;
+                    }
+
                     case 'text-delta': {
                       if (
                         chunk.text.length > 0 ||
                         chunk.providerMetadata != null
                       ) {
-                        controller.enqueue(chunk);
+                        controller.enqueue({
+                          ...chunk,
+                          id: textPartIds.get(chunk.id) ?? chunk.id,
+                        });
                       }
+                      break;
+                    }
+
+                    case 'text-end': {
+                      controller.enqueue({
+                        ...chunk,
+                        id: textPartIds.get(chunk.id) ?? chunk.id,
+                      });
+                      textPartIds.delete(chunk.id);
+                      break;
+                    }
+
+                    case 'reasoning-start': {
+                      const id = reserveReasoningPartId(chunk.id);
+                      reasoningPartIds.set(chunk.id, id);
+                      controller.enqueue({ ...chunk, id });
+                      break;
+                    }
+
+                    case 'reasoning-delta': {
+                      controller.enqueue({
+                        ...chunk,
+                        id: reasoningPartIds.get(chunk.id) ?? chunk.id,
+                      });
+                      break;
+                    }
+
+                    case 'reasoning-end': {
+                      controller.enqueue({
+                        ...chunk,
+                        id: reasoningPartIds.get(chunk.id) ?? chunk.id,
+                      });
+                      reasoningPartIds.delete(chunk.id);
                       break;
                     }
 
@@ -2422,13 +2500,12 @@ class DefaultStreamTextResult<
                   cleanupStepTimeouts();
 
                   if (
-                    // Continue if:
-                    // 1. There are client tool calls that have all been executed or denied, OR
-                    // 2. There are pending deferred results from provider-executed tools, OR
-                    ((clientToolCalls.length > 0 &&
-                      clientToolCalls.length ===
-                        clientToolOutputs.length +
-                          deniedToolApprovalResponses.length) ||
+                    // Continue only after all client tool calls have been executed or denied,
+                    // and if there are client results or pending deferred provider results.
+                    clientToolCalls.length ===
+                      clientToolOutputs.length +
+                        deniedToolApprovalResponses.length &&
+                    (clientToolCalls.length > 0 ||
                       pendingDeferredToolCalls.size > 0) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({

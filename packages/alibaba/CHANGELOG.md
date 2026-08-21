@@ -1,5 +1,13 @@
 # @ai-sdk/alibaba
 
+## 2.0.33
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
 ## 2.0.32
 
 ### Patch Changes

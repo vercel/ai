@@ -57,7 +57,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
   readonly modelId: DeepSeekChatModelId;
-  readonly supportedUrls = {};
+
+  readonly supportedUrls = {
+    'image/*': [/^https?:\/\/.*$/],
+  };
 
   private readonly config: DeepSeekChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
@@ -248,7 +251,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
         });
