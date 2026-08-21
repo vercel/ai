@@ -197,6 +197,19 @@ describe('experimental_startVideo', () => {
     ]);
   });
 
+  it('should throw when n is not a positive integer', async () => {
+    const doStart = vi.fn(async () => createStartResponse());
+    const model = new MockVideoModelV4({ doStart });
+
+    await expect(
+      experimental_startVideo({ model, prompt, n: 0 }),
+    ).rejects.toThrow('Invalid n: expected a positive integer, received 0.');
+    await expect(
+      experimental_startVideo({ model, prompt, n: 1.5 }),
+    ).rejects.toThrow('Invalid n: expected a positive integer, received 1.5.');
+    expect(doStart).not.toHaveBeenCalled();
+  });
+
   it('should throw when n exceeds the known per-call limit', async () => {
     await expect(
       experimental_startVideo({

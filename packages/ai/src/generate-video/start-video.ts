@@ -138,6 +138,12 @@ export async function experimental_startVideo({
     );
   }
 
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(
+      `Invalid n: expected a positive integer, received ${JSON.stringify(n)}.`,
+    );
+  }
+
   // A start yields one operation covering all n videos: refuse to silently
   // exceed a known per-call limit instead of splitting into several starts.
   const knownMaxVideosPerCall =
