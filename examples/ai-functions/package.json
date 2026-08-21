@@ -54,6 +54,7 @@
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/otel": "workspace:*",
+    "@ai-sdk/parasail": "workspace:*",
     "@ai-sdk/perplexity": "workspace:*",
     "@ai-sdk/prodia": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
