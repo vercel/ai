@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19241,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19241-rsc-state-races.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19241-rsc-state-races.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19241_REPRODUCED: AI state updates were dropped"
+  }
+}
