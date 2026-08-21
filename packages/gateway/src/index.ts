@@ -54,6 +54,7 @@ export {
   GatewayInvalidRequestError,
   GatewayRateLimitError,
   GatewayModelNotFoundError,
+  GatewayNotFoundError,
   GatewayInternalServerError,
   GatewayResponseError,
 } from './errors';

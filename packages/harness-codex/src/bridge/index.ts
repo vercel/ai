@@ -264,8 +264,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     finishReason: { unified: 'stop', raw: 'stop' },
     totalUsage: turnUsage ?? defaultUsage(),
   });
-
-  void turn.pendingUserMessages; // accepted but only consumed when codex supports streamed user input
 }
 
 /**

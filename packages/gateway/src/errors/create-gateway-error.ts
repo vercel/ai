@@ -7,6 +7,7 @@ import {
   GatewayModelNotFoundError,
   modelNotFoundParamSchema,
 } from './gateway-model-not-found-error';
+import { GatewayNotFoundError } from './gateway-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
 import { GatewayFailedDependencyError } from './gateway-failed-dependency-error';
 import {
@@ -99,6 +100,13 @@ export async function createGatewayErrorFromResponse({
         generationId,
       });
     }
+    case 'not_found':
+      return new GatewayNotFoundError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
     case 'internal_server_error':
       return new GatewayInternalServerError({
         message,

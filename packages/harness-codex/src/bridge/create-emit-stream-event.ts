@@ -85,7 +85,7 @@ export function createEmitStreamEvent({
     }
     if (event.type === 'turn.completed') {
       if (event.usage) setTurnUsage(mapUsage(event.usage));
-      stepTracker.finishStep();
+      stepTracker.finishTurn();
       return;
     }
     if (event.type === 'turn.failed') {

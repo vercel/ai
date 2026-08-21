@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 type QueryArgs = {
+  prompt: AsyncIterable<unknown>;
   options: Record<string, unknown>;
 };
 
@@ -17,12 +18,43 @@ const state = vi.hoisted(() => ({
   start: {} as Record<string, unknown>,
   originalArgv: [] as string[],
   originalEnv: {} as Record<string, string | undefined>,
+  steering: false,
+  acceptedUserMessages: [] as string[],
+  queryInputs: [] as unknown[],
 }));
 
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
   query: (args: QueryArgs) => {
     state.queryArgs.push(args);
     return (async function* () {
+      if (state.steering) {
+        const input = args.prompt[Symbol.asyncIterator]();
+        const initial = await input.next();
+        const steering = await input.next();
+        state.queryInputs.push(initial.value, steering.value);
+        const steeringUuid = Reflect.get(steering.value as object, 'uuid');
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'initial result',
+        };
+        yield {
+          type: 'command_lifecycle',
+          command_uuid: steeringUuid,
+          state: 'queued',
+        };
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'steered result',
+        };
+        yield {
+          type: 'command_lifecycle',
+          command_uuid: steeringUuid,
+          state: 'completed',
+        };
+        return;
+      }
       for (const message of state.messages) {
         yield message;
       }
@@ -42,7 +74,19 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
   }) => {
     await onStart(state.start, {
       abortSignal: new AbortController().signal,
-      pendingUserMessages: [],
+      experimental_userMessages: {
+        pendingCount: state.steering ? 1 : 0,
+        close: () => {},
+        [Symbol.asyncIterator]: async function* () {
+          if (!state.steering) return;
+          yield {
+            messageId: 'steering-message-1',
+            text: 'Actually, Paris, Texas.',
+            accept: () => state.acceptedUserMessages.push('steering-message-1'),
+            reject: () => {},
+          };
+        },
+      },
       firstTurn: true,
       emit: (event: Record<string, unknown>) => state.emitted.push(event),
       emitWarning: () => {},
@@ -68,6 +112,9 @@ describe('Claude Code bridge configuration', () => {
       prompt: 'Inspect the project.',
       thinking: { type: 'disabled' },
     };
+    state.steering = false;
+    state.acceptedUserMessages = [];
+    state.queryInputs = [];
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       TEST_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -221,6 +268,34 @@ describe('Claude Code bridge configuration', () => {
         cacheWrite: 0,
       },
       outputTokens: { total: 5, text: 5 },
+    });
+  });
+
+  test('keeps the query open past the first result for an accepted steering message', async () => {
+    state.steering = true;
+
+    await import('./index');
+
+    expect(state.acceptedUserMessages).toEqual(['steering-message-1']);
+    expect(state.queryInputs).toHaveLength(2);
+    expect(state.queryInputs[0]).toMatchObject({
+      type: 'user',
+      parent_tool_use_id: null,
+      uuid: expect.any(String),
+      message: {
+        role: 'user',
+        content: [{ type: 'text', text: 'Inspect the project.' }],
+      },
+    });
+    expect(state.queryInputs[1]).toMatchObject({
+      type: 'user',
+      parent_tool_use_id: null,
+      uuid: 'steering-message-1',
+      priority: 'next',
+      message: {
+        role: 'user',
+        content: [{ type: 'text', text: 'Actually, Paris, Texas.' }],
+      },
     });
   });
 });

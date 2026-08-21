@@ -13,7 +13,11 @@ import {
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
-import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
+import {
+  getRestrictedSandboxSession,
+  resolveSandboxHomeDir,
+} from '@ai-sdk/harness/utils';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
   Agent,
   createTool,
@@ -90,7 +94,7 @@ export interface ClineSessionSettings {
 
 export interface CreateClineSessionInput {
   readonly sessionId: string;
-  readonly sandboxSession: HarnessV1NetworkSandboxSession;
+  readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: ClineSessionSettings;
@@ -109,6 +113,12 @@ interface PendingToolApproval {
 interface ActiveClineTurn {
   readonly token: object;
   readonly done: Promise<void>;
+}
+
+interface PendingUserMessage {
+  readonly text: string;
+  resolve(): void;
+  reject(error: unknown): void;
 }
 
 /**
@@ -241,9 +251,11 @@ export async function createClineSession(
     }
   }
 
-  const sandbox = input.sandboxSession.restricted();
+  const toolSafeSandboxSession = getRestrictedSandboxSession(
+    input.sandboxSession,
+  );
   const sandboxHomeDir = await resolveSandboxHomeDir({
-    sandbox,
+    sandbox: toolSafeSandboxSession,
     ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
   const privateSessionDir = resolveClinePrivateSessionDirectory({
@@ -256,17 +268,13 @@ export async function createClineSession(
     input.builtinToolFiltering,
   );
 
-  const ops = createClineRemoteOps({
-    sandbox,
-    workDir: input.sessionWorkDir,
-  });
-
   // Materialize harness-provided skills into sandbox HOME (not the workspace)
   // and advertise them via a system prompt section.
   let skillsSection: string | undefined;
+  let skillRootDir: string | undefined;
   if (input.skills.length > 0) {
-    const skillRootDir = await writeClineSkills({
-      sandbox,
+    skillRootDir = await writeClineSkills({
+      sandbox: toolSafeSandboxSession,
       sandboxHomeDir,
       skills: input.skills,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
@@ -276,9 +284,15 @@ export async function createClineSession(
     }
   }
 
+  const ops = createClineRemoteOps({
+    sandbox: toolSafeSandboxSession,
+    workDir: input.sessionWorkDir,
+    ...(skillRootDir ? { readableRoots: [{ sandboxDir: skillRootDir }] } : {}),
+  });
+
   const baseSystemPrompt = buildSystemPrompt({
     sessionWorkDir: input.sessionWorkDir,
-    sandboxDescription: sandbox.description,
+    sandboxDescription: toolSafeSandboxSession.description,
     ...(skillsSection ? { skillsSection } : {}),
   });
 
@@ -287,7 +301,7 @@ export async function createClineSession(
   let currentMessages: readonly AgentMessage[] = [];
   if (input.isResume && input.resumeHistoryFileName) {
     const restored = await pullHistoryFromSandbox({
-      sandbox,
+      sandbox: toolSafeSandboxSession,
       privateSessionDir,
       historyFileName: safeClineHistoryFileName(input.resumeHistoryFileName),
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
@@ -319,7 +333,8 @@ export async function createClineSession(
   let suspending = false;
   const pendingToolResults = new Map<string, PendingToolResult>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
-  const pendingUserMessages: string[] = [];
+  const pendingUserMessages: PendingUserMessage[] = [];
+  let acceptingUserMessages = false;
 
   // Emit channel set at the start of every turn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
@@ -345,10 +360,24 @@ export async function createClineSession(
     pendingToolApprovals.clear();
   }
 
+  function consumePendingUserMessage(): string | undefined {
+    const pending = pendingUserMessages.shift();
+    if (pending == null) return undefined;
+    pending.resolve();
+    return pending.text;
+  }
+
+  function rejectPendingUserMessages(error: unknown): void {
+    for (const pending of pendingUserMessages) {
+      pending.reject(error);
+    }
+    pendingUserMessages.length = 0;
+  }
+
   async function persistHistory(): Promise<void> {
     const messages = agent?.snapshot().messages ?? currentMessages;
     await persistHistoryToSandbox({
-      sandbox,
+      sandbox: toolSafeSandboxSession,
       privateSessionDir,
       historyFileName: CLINE_DEFAULT_HISTORY_FILE_NAME,
       messages,
@@ -463,7 +492,7 @@ export async function createClineSession(
       },
       // Mid-turn user messages injected via `submitUserMessage` are consumed
       // by the runtime between loop iterations, before the next model call.
-      consumePendingUserMessage: () => pendingUserMessages.shift(),
+      consumePendingUserMessage,
     });
     agentHasRun = false;
 
@@ -521,8 +550,15 @@ export async function createClineSession(
           ...(args.reason !== undefined ? { reason: args.reason } : {}),
         });
       },
-      async submitUserMessage(text) {
-        pendingUserMessages.push(text);
+      submitUserMessage(text) {
+        if (!acceptingUserMessages) {
+          return Promise.reject(
+            new Error('Cline has no running turn to steer.'),
+          );
+        }
+        return new Promise<void>((resolve, reject) => {
+          pendingUserMessages.push({ text, resolve, reject });
+        });
       },
       done: controlInput.done,
     };
@@ -597,97 +633,109 @@ export async function createClineSession(
       ...(input.settings.modelId ? { modelId: input.settings.modelId } : {}),
     });
 
+    acceptingUserMessages = true;
     const turnPromise = (async () => {
       const runtime = agent!;
-      let result: AgentRunResult;
       try {
-        // `text` is undefined only on rerun-continue: `continue()` without
-        // input re-drives the loop from the restored transcript instead of
-        // pushing an empty user message.
-        result =
-          turnOpts.text === undefined
-            ? await runtime.continue()
-            : agentHasRun
-              ? await runtime.continue(turnOpts.text)
-              : await runtime.run(turnOpts.text);
-        agentHasRun = true;
+        let nextText = turnOpts.text;
+        let result: AgentRunResult;
+        for (;;) {
+          // `text` is undefined only on rerun-continue: `continue()` without
+          // input re-drives the loop from the restored transcript instead of
+          // pushing an empty user message.
+          result =
+            nextText === undefined
+              ? await runtime.continue()
+              : agentHasRun
+                ? await runtime.continue(nextText)
+                : await runtime.run(nextText);
+          agentHasRun = true;
+          currentMessages = result.messages;
+
+          if (translatorState) {
+            for (const part of finishClineTranslation(translatorState)) {
+              currentEmit?.(part);
+            }
+          }
+
+          if (result.status !== 'completed') break;
+          const pendingUserMessage = consumePendingUserMessage();
+          if (pendingUserMessage == null) break;
+          nextText = pendingUserMessage;
+        }
+
+        if (
+          turnOpts.responseFormat?.type === 'json' &&
+          result.status === 'completed'
+        ) {
+          const id = `structured-output-${input.sessionId}`;
+          currentEmit?.({ type: 'text-start', id });
+          currentEmit?.({
+            type: 'text-delta',
+            id,
+            delta: result.outputText,
+          });
+          currentEmit?.({ type: 'text-end', id });
+          currentEmit?.({
+            type: 'finish-step',
+            finishReason: { unified: 'stop', raw: 'structured-output' },
+            usage: {
+              inputTokens: {
+                total: 0,
+                noCache: undefined,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 0,
+                text: undefined,
+                reasoning: undefined,
+              },
+            },
+          });
+        }
+
+        if (result.status === 'aborted') {
+          /*
+           * A `doSuspendTurn` aborts the in-flight turn on purpose — settle
+           * silently so the stream closes cleanly; the next slice
+           * rerun-continues from the persisted history. Caller-driven aborts
+           * finish the turn with an `other`/aborted reason.
+           */
+          if (suspending) return;
+          currentEmit?.({
+            type: 'finish',
+            finishReason: mapRunFinishReason(result.status),
+            totalUsage: usageFromAgentUsage(result.usage),
+          });
+          return;
+        }
+
+        if (result.status === 'failed') {
+          currentEmit?.({
+            type: 'error',
+            error: result.error ?? new Error('Cline agent run failed'),
+          });
+          return;
+        }
+
+        currentEmit?.({
+          type: 'finish',
+          finishReason: mapRunFinishReason(result.status),
+          totalUsage: usageFromAgentUsage(result.usage),
+        });
       } catch (error) {
         // `run` resolves for aborted/failed statuses; a throw here is
         // unanticipated (e.g. config error). Swallow only the abort our own
         // suspend caused; surface anything else.
         if (suspending && isAbortError(error)) return;
         currentEmit?.({ type: 'error', error });
-        return;
+      } finally {
+        acceptingUserMessages = false;
+        rejectPendingUserMessages(
+          new Error('Cline turn ended before accepting the user message.'),
+        );
       }
-
-      currentMessages = result.messages;
-
-      if (translatorState) {
-        for (const part of finishClineTranslation(translatorState)) {
-          currentEmit?.(part);
-        }
-      }
-
-      if (
-        turnOpts.responseFormat?.type === 'json' &&
-        result.status === 'completed'
-      ) {
-        const id = `structured-output-${input.sessionId}`;
-        currentEmit?.({ type: 'text-start', id });
-        currentEmit?.({
-          type: 'text-delta',
-          id,
-          delta: result.outputText,
-        });
-        currentEmit?.({ type: 'text-end', id });
-        currentEmit?.({
-          type: 'finish-step',
-          finishReason: { unified: 'stop', raw: 'structured-output' },
-          usage: {
-            inputTokens: {
-              total: 0,
-              noCache: undefined,
-              cacheRead: undefined,
-              cacheWrite: undefined,
-            },
-            outputTokens: {
-              total: 0,
-              text: undefined,
-              reasoning: undefined,
-            },
-          },
-        });
-      }
-
-      if (result.status === 'aborted') {
-        /*
-         * A `doSuspendTurn` aborts the in-flight turn on purpose — settle
-         * silently so the stream closes cleanly; the next slice
-         * rerun-continues from the persisted history. Caller-driven aborts
-         * finish the turn with an `other`/aborted reason.
-         */
-        if (suspending) return;
-        currentEmit?.({
-          type: 'finish',
-          finishReason: mapRunFinishReason(result.status),
-          totalUsage: usageFromAgentUsage(result.usage),
-        });
-        return;
-      }
-
-      if (result.status === 'failed') {
-        currentEmit?.({
-          type: 'error',
-          error: result.error ?? new Error('Cline agent run failed'),
-        });
-        return;
-      }
-
-      currentEmit?.({
-        type: 'finish',
-        finishReason: mapRunFinishReason(result.status),
-        totalUsage: usageFromAgentUsage(result.usage),
-      });
     })();
 
     const activeTurnToken = {};

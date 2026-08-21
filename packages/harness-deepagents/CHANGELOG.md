@@ -1,5 +1,67 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.84
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.84
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.83
+
+## 1.0.82
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.82
+
+## 1.0.81
+
+### Patch Changes
+
+- Updated dependencies [7f50d28]
+  - @ai-sdk/harness@1.0.81
+
+## 1.0.80
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.80
+
+## 1.0.79
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.79
+
+## 1.0.78
+
+### Patch Changes
+
+- eace6fb: feat(harness): add experimental support for steering agent conversations mid-turn
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness@1.0.78
+
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
 ## 1.0.75
 
 ### Patch Changes

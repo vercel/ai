@@ -121,10 +121,7 @@ async function runHarnessFromSnapshot({
     ports: [bridgePort],
     timeout: sandboxTimeout,
   });
-  const provider = createVercelSandbox({
-    sandbox,
-    bridgePorts: [bridgePort],
-  });
+  const provider = createVercelSandbox({ sandbox });
   const restoredSession = await provider.createSession();
   await assertBootstrapAssets({
     session: restoredSession,

@@ -1,5 +1,19 @@
 # @ai-sdk/openai
 
+## 4.0.45
+
+### Patch Changes
+
+- 6be0f51: fix(openai): expand internal parallel tool call wrappers from the Responses API while preserving stateful continuation and streaming fallbacks
+
+## 4.0.44
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
 ## 4.0.43
 
 ### Patch Changes
