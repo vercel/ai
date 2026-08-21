@@ -422,6 +422,9 @@ describe('createUIMessageStream', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "unknown",
+          },
           "responseMessage": {
             "id": "response-message-id",
             "metadata": undefined,
@@ -538,6 +541,9 @@ describe('createUIMessageStream', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "unknown",
+          },
           "responseMessage": {
             "id": "1",
             "parts": [
@@ -609,6 +615,9 @@ describe('createUIMessageStream', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "unknown",
+          },
           "responseMessage": {
             "id": "response-message-id",
             "metadata": undefined,
@@ -669,6 +678,9 @@ describe('createUIMessageStream', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "unknown",
+          },
           "responseMessage": {
             "id": "existing-message-id",
             "metadata": undefined,
@@ -677,6 +689,135 @@ describe('createUIMessageStream', () => {
           },
         },
       ]
+    `);
+  });
+
+  it('reports operation outcomes without inferring failure from error chunks', async () => {
+    const observe = async (
+      execute: Parameters<typeof createUIMessageStream>[0]['execute'],
+    ) => {
+      let onEndCalls = 0;
+      let observation:
+        | {
+            isAborted: boolean;
+            status: string;
+            errorMessage: string | undefined;
+          }
+        | undefined;
+
+      const stream = createUIMessageStream({
+        execute,
+        onError: error =>
+          error instanceof Error ? error.message : 'unknown error',
+        onEnd: ({ isAborted, outcome }) => {
+          onEndCalls++;
+          observation = {
+            isAborted,
+            status: outcome.status,
+            errorMessage:
+              outcome.status === 'failed' && outcome.error instanceof Error
+                ? outcome.error.message
+                : undefined,
+          };
+        },
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      return {
+        chunkTypes: chunks.map(chunk => chunk.type),
+        onEndCalls,
+        ...observation!,
+      };
+    };
+
+    expect({
+      undeclaredEof: await observe(() => {}),
+      errorChunk: await observe(({ writer }) => {
+        writer.write({ type: 'error', errorText: 'recoverable error' });
+      }),
+      declaredCompleted: await observe(({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+      }),
+      declaredFailed: await observe(({ writer }) => {
+        writer.setOutcome({
+          status: 'failed',
+          error: new Error('declared failure'),
+        });
+      }),
+      declaredAborted: await observe(({ writer }) => {
+        writer.setOutcome({ status: 'aborted' });
+      }),
+      executeRejection: await observe(async () => {
+        throw new Error('execute failure');
+      }),
+      mergedStreamRejection: await observe(({ writer }) => {
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new Error('merged stream failure'));
+            },
+          }),
+        );
+      }),
+    }).toMatchInlineSnapshot(`
+      {
+        "declaredAborted": {
+          "chunkTypes": [],
+          "errorMessage": undefined,
+          "isAborted": true,
+          "onEndCalls": 1,
+          "status": "aborted",
+        },
+        "declaredCompleted": {
+          "chunkTypes": [],
+          "errorMessage": undefined,
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "completed",
+        },
+        "declaredFailed": {
+          "chunkTypes": [],
+          "errorMessage": "declared failure",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
+        "errorChunk": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": undefined,
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "unknown",
+        },
+        "executeRejection": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": "execute failure",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
+        "mergedStreamRejection": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": "merged stream failure",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
+        "undeclaredEof": {
+          "chunkTypes": [],
+          "errorMessage": undefined,
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "unknown",
+        },
+      }
     `);
   });
 });

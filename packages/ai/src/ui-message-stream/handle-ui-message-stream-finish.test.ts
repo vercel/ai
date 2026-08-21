@@ -141,6 +141,38 @@ describe('handleUIMessageStreamFinish', () => {
       expect(onFinishCallback).not.toHaveBeenCalled();
     });
 
+    it('should pass the stream owner outcome to onEnd', async () => {
+      const onEndCallback = vi.fn();
+      const error = new Error('stream failed');
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-456' },
+        { type: 'error', errorText: 'masked error' },
+      ]);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-456',
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+        getOutcome: () => ({ status: 'failed', error }),
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect({
+        isAborted: onEndCallback.mock.calls[0][0].isAborted,
+        outcome: onEndCallback.mock.calls[0][0].outcome,
+      }).toMatchInlineSnapshot(`
+        {
+          "isAborted": false,
+          "outcome": {
+            "error": [Error: stream failed],
+            "status": "failed",
+          },
+        }
+      `);
+    });
+
     it('should handle empty original messages array', async () => {
       const onFinishCallback = vi.fn();
       const inputChunks: UIMessageChunk[] = [
