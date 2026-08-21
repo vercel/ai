@@ -452,7 +452,12 @@ export async function convertToAmazonBedrockChatMessages(
           pushCachePoint(amazonBedrockContent, providerOptions);
         }
 
-        messages.push({ role: 'user', content: amazonBedrockContent });
+        const previousMessage = messages.at(-1);
+        if (previousMessage?.role === 'user') {
+          previousMessage.content.push(...amazonBedrockContent);
+        } else {
+          messages.push({ role: 'user', content: amazonBedrockContent });
+        }
 
         break;
       }
@@ -466,8 +471,27 @@ export async function convertToAmazonBedrockChatMessages(
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
           const { content } = message;
-          const hasReasoningBlocks = content.some(
-            part => part.type === 'reasoning',
+          const reasoningMetadata = await Promise.all(
+            content.map(async part =>
+              part.type === 'reasoning'
+                ? ((await parseProviderOptions({
+                    provider: 'amazonBedrock',
+                    providerOptions: part.providerOptions,
+                    schema: amazonBedrockReasoningMetadataSchema,
+                  })) ??
+                  (await parseProviderOptions({
+                    provider: 'bedrock',
+                    providerOptions: part.providerOptions,
+                    schema: amazonBedrockReasoningMetadataSchema,
+                  })))
+                : undefined,
+            ),
+          );
+          const hasReasoningBlocks = reasoningMetadata.some(
+            metadata =>
+              metadata?.signature != null ||
+              metadata?.redactedContent != null ||
+              metadata?.redactedData != null,
           );
 
           for (let k = 0; k < content.length; k++) {
@@ -497,40 +521,30 @@ export async function convertToAmazonBedrockChatMessages(
               }
 
               case 'reasoning': {
-                const reasoningMetadata =
-                  (await parseProviderOptions({
-                    provider: 'amazonBedrock',
-                    providerOptions: part.providerOptions,
-                    schema: amazonBedrockReasoningMetadataSchema,
-                  })) ??
-                  (await parseProviderOptions({
-                    provider: 'bedrock',
-                    providerOptions: part.providerOptions,
-                    schema: amazonBedrockReasoningMetadataSchema,
-                  }));
+                const metadata = reasoningMetadata[k];
 
-                if (reasoningMetadata?.signature != null) {
+                if (metadata?.signature != null) {
                   // do not trim reasoning text when a signature is present:
                   // the signature validates the exact original bytes
                   amazonBedrockContent.push({
                     reasoningContent: {
                       reasoningText: {
                         text: part.text,
-                        signature: reasoningMetadata.signature,
+                        signature: metadata.signature,
                       },
                     },
                   });
-                } else if (reasoningMetadata?.redactedContent != null) {
+                } else if (metadata?.redactedContent != null) {
                   amazonBedrockContent.push({
                     reasoningContent: {
-                      redactedContent: reasoningMetadata.redactedContent,
+                      redactedContent: metadata.redactedContent,
                     },
                   });
-                } else if (reasoningMetadata?.redactedData != null) {
+                } else if (metadata?.redactedData != null) {
                   amazonBedrockContent.push({
                     reasoningContent: {
                       redactedReasoning: {
-                        data: reasoningMetadata.redactedData,
+                        data: metadata.redactedData,
                       },
                     },
                   });
