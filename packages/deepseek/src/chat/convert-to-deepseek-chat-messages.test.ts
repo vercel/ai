@@ -28,7 +28,7 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should warn about unsupported file parts', async () => {
+    it('should convert image data to an image URL content part', () => {
       const result = convertToDeepSeekChatMessages({
         prompt: [
           {
@@ -39,6 +39,92 @@ describe('convertToDeepSeekChatMessages', () => {
                 type: 'file',
                 data: Buffer.from([0, 1, 2, 3]).toString('base64'),
                 mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "image_url": {
+                    "url": "data:image/png;base64,AAECAw==",
+                  },
+                  "type": "image_url",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should convert an image URL to an image URL content part', () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                data: new URL('https://example.com/image.png'),
+                mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-flash-vision-exp',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "image_url": {
+                    "url": "https://example.com/image.png",
+                  },
+                  "type": "image_url",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should warn about unsupported non-image file parts', () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                mediaType: 'application/pdf',
               },
             ],
           },
