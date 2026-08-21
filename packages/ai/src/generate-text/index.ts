@@ -68,6 +68,7 @@ export {
   type StreamTextInclude,
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
+  type StreamTextOnErrorResult,
   type StreamTextTransform,
 } from './stream-text';
 export type {

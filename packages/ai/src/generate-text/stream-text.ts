@@ -127,7 +127,10 @@ import {
   isStopConditionMet,
   type StopCondition,
 } from './stop-condition';
-import { streamLanguageModelCall } from './stream-language-model-call';
+import {
+  streamLanguageModelCall,
+  type LanguageModelStreamPart,
+} from './stream-language-model-call';
 import type {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -262,9 +265,14 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
  *
  * @param event - The event that is passed to the callback.
  */
-export type StreamTextOnErrorCallback = Callback<{
+export type StreamTextOnErrorResult = { retry: true };
+
+export type StreamTextOnErrorCallback = (event: {
   error: unknown;
-}>;
+}) =>
+  | PromiseLike<void | StreamTextOnErrorResult>
+  | void
+  | StreamTextOnErrorResult;
 
 /**
  * Callback that is set using the `onChunk` option.
@@ -326,6 +334,7 @@ export type StreamTextOnAbortCallback<
  * If set and supported by the model, calls will generate deterministic results.
  *
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param streamRetries - Maximum number of retries for provider errors received after streaming starts. Set to 0 to disable automatic stream retries while allowing `onError` to request retries. Omit to disable all stream retry behavior. Default: 0.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
@@ -370,6 +379,7 @@ export function streamText<
   messages,
   allowSystemInMessages,
   maxRetries,
+  streamRetries,
   abortSignal,
   timeout,
   headers,
@@ -392,9 +402,7 @@ export function streamText<
   experimental_download: download,
   includeRawChunks,
   onChunk,
-  onError = ({ error }) => {
-    console.error(error);
-  },
+  onError: onErrorArg,
   onFinish,
   onEnd = onFinish,
   onAbort,
@@ -579,9 +587,29 @@ export function streamText<
     /**
      * Callback that is invoked when an error occurs during streaming.
      * You can use it to log errors.
+     * Return `{ retry: true }` to retry the current model step after a provider
+     * error is received from the response stream when `streamRetries` is
+     * explicitly configured.
      * The stream processing will pause until the callback promise is resolved.
      */
     onError?: StreamTextOnErrorCallback;
+
+    /**
+     * Maximum number of automatic retries for provider errors received after
+     * response streaming has started. Each retry reruns only the current model
+     * step. Completed earlier steps and their tool results are preserved.
+     *
+     * Partial output from a failed attempt that was already emitted cannot be
+     * retracted and remains in consumer-facing streams.
+     *
+     * Set to `0` to disable automatic retries while allowing `onError` to
+     * request retries. Omit this option to disable all stream retry behavior
+     * and preserve incremental tool streaming for existing `onError`
+     * observers.
+     *
+     * @default 0 (stream retry behavior disabled when omitted)
+     */
+    streamRetries?: number;
 
     /**
      * Callback that is called when the LLM response and all request tool executions
@@ -758,6 +786,11 @@ export function streamText<
     firstChunkTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
+  const onError: StreamTextOnErrorCallback =
+    onErrorArg ??
+    (({ error }) => {
+      console.error(error);
+    });
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
   const resolvedOnLanguageModelCallStart =
@@ -775,6 +808,7 @@ export function streamText<
     headers,
     settings,
     maxRetries,
+    streamRetries,
     abortSignal: mergeAbortSignals(
       abortSignal,
       totalTimeoutMs,
@@ -813,6 +847,7 @@ export function streamText<
     timeout,
     onChunk,
     onError,
+    canRetryStreamViaOnError: streamRetries !== undefined && onErrorArg != null,
     onEnd,
     onAbort,
     onStepFinish: resolvedOnStepEnd,
@@ -998,6 +1033,7 @@ class DefaultStreamTextResult<
     headers,
     settings,
     maxRetries: maxRetriesArg,
+    streamRetries: streamRetriesArg,
     abortSignal,
     stepTimeoutMs,
     stepAbortController,
@@ -1031,6 +1067,7 @@ class DefaultStreamTextResult<
     timeout,
     onChunk,
     onError,
+    canRetryStreamViaOnError,
     onEnd,
     onAbort,
     onStepFinish,
@@ -1050,6 +1087,7 @@ class DefaultStreamTextResult<
     headers: Record<string, string | undefined> | undefined;
     settings: LanguageModelCallOptions;
     maxRetries: number | undefined;
+    streamRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
     stepAbortController: AbortController | undefined;
@@ -1093,6 +1131,7 @@ class DefaultStreamTextResult<
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
     onError: StreamTextOnErrorCallback;
+    canRetryStreamViaOnError: boolean;
     onEnd:
       | undefined
       | GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
@@ -1183,6 +1222,7 @@ class DefaultStreamTextResult<
       }
     > = createIdMap();
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
+    const errorsHandledForStreamRetry = new Set<unknown>();
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
@@ -1193,10 +1233,15 @@ class DefaultStreamTextResult<
 
         const { part } = chunk;
 
-        await notify({
-          event: { chunk: part },
-          callbacks: onChunk,
-        });
+        const callbacksHandledForStreamRetry =
+          part.type === 'error' && errorsHandledForStreamRetry.has(part.error);
+
+        if (!callbacksHandledForStreamRetry) {
+          await notify({
+            event: { chunk: part },
+            callbacks: onChunk,
+          });
+        }
 
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
@@ -1205,10 +1250,16 @@ class DefaultStreamTextResult<
             recordedNoOutputError = error;
           }
 
-          await notify({
-            event: { error },
-            callbacks: onError,
-          });
+          if (callbacksHandledForStreamRetry) {
+            errorsHandledForStreamRetry.delete(part.error);
+          } else {
+            await notify({
+              event: { error },
+              callbacks: async event => {
+                await onError(event);
+              },
+            });
+          }
         }
 
         if (
@@ -1600,6 +1651,12 @@ class DefaultStreamTextResult<
     const { maxRetries } = prepareRetries({
       maxRetries: maxRetriesArg,
       abortSignal,
+    });
+    const { maxRetries: streamRetries } = prepareRetries({
+      maxRetries: streamRetriesArg,
+      abortSignal,
+      parameter: 'streamRetries',
+      defaultMaxRetries: 0,
     });
 
     const callSettings = prepareLanguageModelCallOptions(settings);
@@ -2011,79 +2068,229 @@ class DefaultStreamTextResult<
           const stepStartTimestampMs = now();
 
           const { retry } = prepareRetries({ maxRetries, abortSignal });
+          let hasNotifiedStepStart = false;
 
-          const {
-            stream: languageModelStream,
-            request,
-            response,
-          } = await runInStepTracingChannelContext(() =>
-            retry(async () =>
-              streamLanguageModelCall({
-                model: prepareStepResult?.model ?? model,
-                tools: stepModelTools as TOOLS,
-                toolOrder: stepToolOrder,
-                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                instructions: stepInstructions,
-                messages: stepMessages,
-                allowSystemInMessages,
-                repairToolCall,
-                refineToolInput,
-                abortSignal,
-                headers,
-                includeRawChunks: include.rawChunks,
-                providerOptions: stepProviderOptions,
-                download,
-                output,
-                callId,
-                executeLanguageModelCallInTelemetryContext:
-                  telemetryDispatcher.executeLanguageModelCall,
-                toolsContext,
-                experimental_sandbox: stepSandbox,
-                onLanguageModelCallStart: filterNullable(
-                  onLanguageModelCallStart,
-                  telemetryDispatcher.onLanguageModelCallStart as
-                    | undefined
-                    | OnLanguageModelCallStartCallback,
-                ),
-                onLanguageModelCallEnd: filterNullable(
-                  onLanguageModelCallEnd,
-                  telemetryDispatcher.onLanguageModelCallEnd as
-                    | undefined
-                    | OnLanguageModelCallEndCallback<TOOLS>,
-                ),
-                onStart: async ({ promptMessages }) => {
-                  await notify({
-                    event: {
-                      callId,
-                      provider: stepModel.provider,
-                      modelId: stepModel.modelId,
-                      stepNumber: recordedSteps.length,
-                      instructions: stepInstructions,
-                      messages: stepMessages,
-                      tools,
-                      toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                      activeTools:
-                        prepareStepResult?.activeTools ?? activeTools,
-                      toolOrder: stepToolOrder,
-                      steps: [...recordedSteps],
-                      providerOptions: stepProviderOptions,
-                      runtimeContext,
-                      toolsContext,
-                      output,
-                      promptMessages,
-                      stepTools,
-                      stepToolChoice,
-                    },
-                    callbacks: [onStepStart, telemetryDispatcher.onStepStart],
-                  });
-                },
-                _internal: {
-                  now,
-                },
-                ...stepCallSettings,
-              }),
-            ),
-          );
+          const callLanguageModel = () =>
+            runInStepTracingChannelContext(() =>
+              retry(async () =>
+                streamLanguageModelCall({
+                  model: prepareStepResult?.model ?? model,
+                  tools: stepModelTools as TOOLS,
+                  toolOrder: stepToolOrder,
+                  toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                  instructions: stepInstructions,
+                  messages: stepMessages,
+                  allowSystemInMessages,
+                  repairToolCall,
+                  refineToolInput,
+                  abortSignal,
+                  headers,
+                  includeRawChunks: include.rawChunks,
+                  providerOptions: stepProviderOptions,
+                  download,
+                  output,
+                  callId,
+                  executeLanguageModelCallInTelemetryContext:
+                    telemetryDispatcher.executeLanguageModelCall,
+                  toolsContext,
+                  experimental_sandbox: stepSandbox,
+                  onLanguageModelCallStart: filterNullable(
+                    onLanguageModelCallStart,
+                    telemetryDispatcher.onLanguageModelCallStart as
+                      | undefined
+                      | OnLanguageModelCallStartCallback,
+                  ),
+                  onLanguageModelCallEnd: filterNullable(
+                    onLanguageModelCallEnd,
+                    telemetryDispatcher.onLanguageModelCallEnd as
+                      | undefined
+                      | OnLanguageModelCallEndCallback<TOOLS>,
+                  ),
+                  onStart: async ({ promptMessages }) => {
+                    if (hasNotifiedStepStart) {
+                      return;
+                    }
+                    hasNotifiedStepStart = true;
+
+                    await notify({
+                      event: {
+                        callId,
+                        provider: stepModel.provider,
+                        modelId: stepModel.modelId,
+                        stepNumber: recordedSteps.length,
+                        instructions: stepInstructions,
+                        messages: stepMessages,
+                        tools,
+                        toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                        activeTools:
+                          prepareStepResult?.activeTools ?? activeTools,
+                        toolOrder: stepToolOrder,
+                        steps: [...recordedSteps],
+                        providerOptions: stepProviderOptions,
+                        runtimeContext,
+                        toolsContext,
+                        output,
+                        promptMessages,
+                        stepTools,
+                        stepToolChoice,
+                      },
+                      callbacks: [onStepStart, telemetryDispatcher.onStepStart],
+                    });
+                  },
+                  _internal: {
+                    now,
+                  },
+                  ...stepCallSettings,
+                }),
+              ),
+            );
+
+          const initialLanguageModelCall = await callLanguageModel();
+          let request = initialLanguageModelCall.request;
+          let response = initialLanguageModelCall.response;
+          let languageModelStreamReader =
+            initialLanguageModelCall.stream.getReader();
+          let automaticStreamRetryCount = 0;
+          let bufferedAttemptParts: LanguageModelStreamPart<TOOLS>[] = [];
+          const outputChunksHandledBeforeBuffering = new WeakSet<object>();
+          const openTextParts = new Set<string>();
+          const openReasoningParts = new Set<string>();
+          const shouldBufferToolParts =
+            streamRetries > 0 || canRetryStreamViaOnError;
+
+          const languageModelStream = new ReadableStream<
+            LanguageModelStreamPart<TOOLS>
+          >({
+            async pull(controller) {
+              const enqueueAttemptPart = (
+                part: LanguageModelStreamPart<TOOLS>,
+              ) => {
+                switch (part.type) {
+                  case 'text-start':
+                    openTextParts.add(part.id);
+                    break;
+                  case 'text-end':
+                    openTextParts.delete(part.id);
+                    break;
+                  case 'reasoning-start':
+                    openReasoningParts.add(part.id);
+                    break;
+                  case 'reasoning-end':
+                    openReasoningParts.delete(part.id);
+                    break;
+                }
+
+                controller.enqueue(part);
+              };
+
+              const flushBufferedAttemptParts = () => {
+                for (const part of bufferedAttemptParts) {
+                  enqueueAttemptPart(part);
+                }
+                bufferedAttemptParts = [];
+              };
+
+              const closeOpenAttemptParts = () => {
+                for (const id of openTextParts) {
+                  controller.enqueue({ type: 'text-end', id });
+                }
+                openTextParts.clear();
+
+                for (const id of openReasoningParts) {
+                  controller.enqueue({ type: 'reasoning-end', id });
+                }
+                openReasoningParts.clear();
+              };
+
+              while (true) {
+                const { done, value } = await languageModelStreamReader.read();
+
+                if (done) {
+                  flushBufferedAttemptParts();
+                  controller.close();
+                  return;
+                }
+
+                const isToolPart =
+                  value.type === 'tool-input-start' ||
+                  value.type === 'tool-input-delta' ||
+                  value.type === 'tool-input-end' ||
+                  value.type === 'tool-call' ||
+                  value.type === 'tool-approval-request' ||
+                  value.type === 'tool-approval-response' ||
+                  value.type === 'tool-result' ||
+                  value.type === 'tool-error';
+
+                if (value.type === 'model-call-end') {
+                  flushBufferedAttemptParts();
+                  enqueueAttemptPart(value);
+                  return;
+                }
+
+                if (
+                  shouldBufferToolParts &&
+                  value.type !== 'error' &&
+                  (isToolPart || bufferedAttemptParts.length > 0)
+                ) {
+                  if (isOutputChunk(value)) {
+                    clearFirstChunkTimeout();
+                    resetChunkTimeout();
+                    outputChunksHandledBeforeBuffering.add(value);
+                  }
+
+                  bufferedAttemptParts.push(value);
+                  continue;
+                }
+
+                if (value.type !== 'error') {
+                  enqueueAttemptPart(value);
+                  return;
+                }
+
+                await notify({
+                  event: { chunk: value },
+                  callbacks: onChunk,
+                });
+                const error = wrapGatewayError(value.error);
+                let onErrorResult: void | StreamTextOnErrorResult = undefined;
+                try {
+                  onErrorResult = await onError({ error });
+                } catch {}
+                const callbackRequestedRetry =
+                  canRetryStreamViaOnError &&
+                  typeof onErrorResult === 'object' &&
+                  onErrorResult != null &&
+                  'retry' in onErrorResult &&
+                  onErrorResult.retry === true;
+                const automaticRetry =
+                  automaticStreamRetryCount < streamRetries;
+
+                if (!automaticRetry && !callbackRequestedRetry) {
+                  flushBufferedAttemptParts();
+                  errorsHandledForStreamRetry.add(value.error);
+                  controller.enqueue(value);
+                  return;
+                }
+
+                if (automaticRetry) {
+                  automaticStreamRetryCount++;
+                }
+
+                await languageModelStreamReader.cancel(error);
+                bufferedAttemptParts = [];
+                closeOpenAttemptParts();
+
+                const retryLanguageModelCall = await callLanguageModel();
+                request = retryLanguageModelCall.request;
+                response = retryLanguageModelCall.response;
+                languageModelStreamReader =
+                  retryLanguageModelCall.stream.getReader();
+              }
+            },
+            cancel(reason) {
+              return languageModelStreamReader.cancel(reason);
+            },
+          });
 
           startFirstChunkTimeout();
 
@@ -2215,13 +2422,21 @@ class DefaultStreamTextResult<
                   const chunkType = chunk.type;
 
                   if (isOutputChunk(chunk)) {
-                    if (!hasReceivedOutputChunk) {
+                    const timeoutHandledBeforeBuffering =
+                      outputChunksHandledBeforeBuffering.has(chunk);
+
+                    if (
+                      !hasReceivedOutputChunk &&
+                      !timeoutHandledBeforeBuffering
+                    ) {
                       // Clear before forwarding the first output so a timeout
                       // cannot race with already-visible generated content.
                       clearFirstChunkTimeout();
                     }
                     hasReceivedOutputChunk = true;
-                    resetChunkTimeout();
+                    if (!timeoutHandledBeforeBuffering) {
+                      resetChunkTimeout();
+                    }
                   }
 
                   switch (chunkType) {

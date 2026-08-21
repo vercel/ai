@@ -22,8 +22,44 @@ import type { DeepPartial } from '../util/deep-partial';
 import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
+import type {
+  StreamTextOnErrorCallback,
+  StreamTextOnErrorResult,
+} from './stream-text';
 
 describe('streamText types', () => {
+  describe('stream retries', () => {
+    it('should accept streamRetries and an onError retry result', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        streamRetries: 2,
+        onError: () => ({ retry: true }),
+      });
+    });
+
+    it('should expose a precise callback return union', () => {
+      expectTypeOf<ReturnType<StreamTextOnErrorCallback>>().toEqualTypeOf<
+        | PromiseLike<void | StreamTextOnErrorResult>
+        | void
+        | StreamTextOnErrorResult
+      >();
+    });
+
+    it('should accept a conditional async retry result', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        streamRetries: 0,
+        onError: async ({ error }) => {
+          if (error instanceof Error) {
+            return { retry: true } as const;
+          }
+        },
+      });
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', () => {
       streamText({
