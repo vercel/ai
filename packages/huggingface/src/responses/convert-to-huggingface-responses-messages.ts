@@ -4,6 +4,7 @@ import {
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
+  convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
@@ -54,7 +55,7 @@ export async function convertToHuggingFaceResponsesMessages({
                         image_url:
                           part.data.type === 'url'
                             ? part.data.url.toString()
-                            : `data:${resolveFullMediaType({ part })};base64,${part.data.data}`,
+                            : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
                       };
                     } else {
                       throw new UnsupportedFunctionalityError({
