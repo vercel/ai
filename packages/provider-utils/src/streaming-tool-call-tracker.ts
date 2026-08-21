@@ -119,6 +119,10 @@ export class StreamingToolCallTracker<
 
     let toolCall: TrackedToolCall;
     if (existingToolCall === undefined) {
+      this.validateNewToolCall(toolCallDelta);
+      if (name == null) {
+        return;
+      }
       toolCall = this.processNewToolCall(toolCallDelta, {
         wireId,
         index,
@@ -173,7 +177,10 @@ export class StreamingToolCallTracker<
       if (toolCallsWithId != null) {
         if (index != null) {
           if (indexedToolCall != null && toolCallsWithId.has(indexedToolCall)) {
-            return name == null || indexedToolCall.function.name === name
+            return this.canContinueToolCall(indexedToolCall, {
+              name,
+              hasExplicitType,
+            })
               ? indexedToolCall
               : undefined;
           }
@@ -194,8 +201,11 @@ export class StreamingToolCallTracker<
         }
 
         if (name != null) {
-          const matchingToolCalls = [...toolCallsWithId].filter(
-            toolCall => toolCall.function.name === name,
+          const matchingToolCalls = [...toolCallsWithId].filter(toolCall =>
+            this.canContinueToolCall(toolCall, {
+              name,
+              hasExplicitType,
+            }),
           );
 
           if (matchingToolCalls.length === 0) {
@@ -214,10 +224,10 @@ export class StreamingToolCallTracker<
         // IDs can change during a call. Continue an incomplete matching call,
         // but keep complete explicit calls that reuse an index distinct.
         if (
-          name == null ||
-          (indexedToolCall.function.name === name &&
-            (!hasExplicitType ||
-              !isParsableJson(indexedToolCall.function.arguments)))
+          this.canContinueToolCall(indexedToolCall, {
+            name,
+            hasExplicitType,
+          })
         ) {
           return indexedToolCall;
         }
@@ -227,9 +237,12 @@ export class StreamingToolCallTracker<
     }
 
     if (indexedToolCall != null) {
-      // A different name at the same index indicates a new call from a
-      // provider that reuses indices.
-      return name == null || indexedToolCall.function.name === name
+      // A different name or a complete explicit call at the same index
+      // indicates a new call from a provider that reuses indices.
+      return this.canContinueToolCall(indexedToolCall, {
+        name,
+        hasExplicitType,
+      })
         ? indexedToolCall
         : undefined;
     }
@@ -247,18 +260,24 @@ export class StreamingToolCallTracker<
     return unfinishedToolCalls.length > 1 ? null : undefined;
   }
 
-  private processNewToolCall(
-    toolCallDelta: DELTA,
+  private canContinueToolCall(
+    toolCall: TrackedToolCall,
     {
-      wireId,
-      index,
       name,
+      hasExplicitType,
     }: {
-      wireId: string | undefined;
-      index: number | null | undefined;
       name: string | undefined;
+      hasExplicitType: boolean;
     },
-  ): TrackedToolCall {
+  ): boolean {
+    return (
+      name == null ||
+      (toolCall.function.name === name &&
+        (!hasExplicitType || !isParsableJson(toolCall.function.arguments)))
+    );
+  }
+
+  private validateNewToolCall(toolCallDelta: DELTA): void {
     if (this.typeValidation === 'required') {
       if (toolCallDelta.type !== 'function') {
         throw new InvalidResponseDataError({
@@ -274,14 +293,20 @@ export class StreamingToolCallTracker<
         });
       }
     }
+  }
 
-    if (name == null) {
-      throw new InvalidResponseDataError({
-        data: toolCallDelta,
-        message: `Expected 'function.name' to be a string.`,
-      });
-    }
-
+  private processNewToolCall(
+    toolCallDelta: DELTA,
+    {
+      wireId,
+      index,
+      name,
+    }: {
+      wireId: string | undefined;
+      index: number | null | undefined;
+      name: string;
+    },
+  ): TrackedToolCall {
     const id = this.createToolCallId(wireId);
 
     this.controller.enqueue({

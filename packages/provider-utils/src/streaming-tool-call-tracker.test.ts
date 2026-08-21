@@ -65,6 +65,50 @@ describe('StreamingToolCallTracker', () => {
     ]);
   });
 
+  it.each([
+    ['omitted ids', undefined],
+    ['repeated ids', 'dup'],
+  ])(
+    'keeps consecutive same-name calls with %s and a reused index separate',
+    (_, wireId) => {
+      const { parts, controller } = createCollector();
+      const generateId = vi
+        .fn<() => string>()
+        .mockReturnValueOnce('generated-1')
+        .mockReturnValueOnce('generated-2');
+      const tracker = new StreamingToolCallTracker(controller, { generateId });
+
+      tracker.processDelta({
+        index: 0,
+        id: wireId,
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"path":"a"}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: wireId,
+        type: 'function',
+        function: { name: 'read_file', arguments: '{"path":"b"}' },
+      });
+      tracker.flush();
+
+      expect(getToolCalls(parts)).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: wireId ?? 'generated-1',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: wireId == null ? 'generated-2' : 'generated-1',
+          toolName: 'read_file',
+          input: '{"path":"b"}',
+        },
+      ]);
+    },
+  );
+
   it('uses index evidence for a continuation with a blank id', () => {
     const { parts, controller } = createCollector();
     const tracker = new StreamingToolCallTracker(controller);
@@ -128,19 +172,39 @@ describe('StreamingToolCallTracker', () => {
     ]);
   });
 
-  it.each([undefined, '', '   '])('rejects an unusable function name', name => {
-    const { controller } = createCollector();
-    const tracker = new StreamingToolCallTracker(controller);
+  it.each([undefined, '', '   '])(
+    'ignores an unmatched unusable function name without discarding valid calls',
+    name => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
 
-    expect(() =>
       tracker.processDelta({
         index: 0,
         id: 'call_a',
         type: 'function',
-        function: { name },
-      }),
-    ).toThrow("Expected 'function.name' to be a string.");
-  });
+        function: { name: 'read_file', arguments: '{"path":"a"}' },
+      });
+
+      expect(() =>
+        tracker.processDelta({
+          index: 1,
+          id: 'call_b',
+          type: 'function',
+          function: { name, arguments: '{"path":"b"}' },
+        }),
+      ).not.toThrow();
+      tracker.flush();
+
+      expect(getToolCalls(parts)).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_a',
+          toolName: 'read_file',
+          input: '{"path":"a"}',
+        },
+      ]);
+    },
+  );
 
   it('ignores a delta that is ambiguous across active calls', () => {
     const { parts, controller } = createCollector();
