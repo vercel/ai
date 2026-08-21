@@ -57,6 +57,32 @@ function prepareJsonResponse({
 }
 
 describe('GoogleVertexImageModel', () => {
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'gemini-2.5-flash-image',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'legacy-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const capabilityModel = new GoogleVertexImageModel(modelId, {
+          provider: 'google.vertex.image',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(capabilityModel.supportsFileInputs).toBe(supportsFileInputs);
+        expect(capabilityModel.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   it('should return 10 for maxImagesPerCall', () => {
     expect(model.maxImagesPerCall).toBe(10);
   });

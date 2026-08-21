@@ -7,6 +7,7 @@
 '@ai-sdk/google': patch
 '@ai-sdk/google-vertex': patch
 '@ai-sdk/luma': patch
+'@ai-sdk/fal': patch
 '@ai-sdk/openai-compatible': patch
 '@ai-sdk/openai': patch
 '@ai-sdk/prodia': patch
