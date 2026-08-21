@@ -1,4 +1,4 @@
-import type { JSONObject } from '@ai-sdk/provider';
+import type { JSONObject, JSONValue } from '@ai-sdk/provider';
 import type {
   InferToolInput,
   InferToolOutput,
@@ -322,6 +322,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
   | {
@@ -336,6 +338,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
   | {
@@ -352,6 +356,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
   | {
@@ -368,6 +374,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
   | {
@@ -382,6 +390,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
 );
@@ -440,6 +450,8 @@ export type DynamicToolUIPart = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
   | {
@@ -454,6 +466,8 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
   | {
@@ -470,6 +484,8 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
   | {
@@ -485,6 +501,8 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
   | {
@@ -499,6 +517,8 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        context?: JSONValue;
+        inputDigest?: string;
       };
     }
 );

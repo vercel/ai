@@ -1,3 +1,4 @@
+import type { JSONValue } from '@ai-sdk/provider';
 import type {
   Context,
   InferToolContext,
@@ -31,7 +32,7 @@ export type ToolApprovalStatus =
   | { type: 'not-applicable'; reason?: never }
   | { type: 'approved'; reason?: string }
   | { type: 'denied'; reason?: string }
-  | { type: 'user-approval'; reason?: never };
+  | { type: 'user-approval'; reason?: never; context?: JSONValue };
 
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.

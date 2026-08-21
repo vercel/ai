@@ -1447,6 +1447,54 @@ describe('convertToModelMessages', () => {
       ]);
     });
 
+    it('should round-trip approval context and inputDigest', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                state: 'approval-responded',
+                toolCallId: 'call-1',
+                input: { city: 'Tokyo' },
+                approval: {
+                  id: 'approval-1',
+                  approved: true,
+                  context: { recordCount: 47 },
+                  inputDigest: 'digest-1',
+                  signature: 'sig-1',
+                },
+              },
+            ],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result[0]).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+            providerExecuted: undefined,
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCallId: 'call-1',
+            isAutomatic: undefined,
+            signature: 'sig-1',
+            context: { recordCount: 47 },
+            inputDigest: 'digest-1',
+          },
+        ],
+      });
+    });
+
     it('should preserve tool calls with approval responses', async () => {
       const result = await convertToModelMessages(
         [

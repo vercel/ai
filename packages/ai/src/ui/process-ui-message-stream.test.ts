@@ -7653,6 +7653,84 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('tool approval request context', () => {
+    it('should surface context and inputDigest on approval-requested and preserve them after respond', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'value' },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          context: { recordCount: 47 },
+          inputDigest: 'digest-1',
+          signature: 'sig-1',
+        },
+        {
+          type: 'tool-approval-response',
+          approvalId: 'id-1',
+          approved: true,
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const requested = writeCalls.find(call =>
+        call.message.parts.some(
+          part =>
+            part.type === 'tool-tool1' &&
+            'state' in part &&
+            part.state === 'approval-requested',
+        ),
+      )?.message.parts.find(part => part.type === 'tool-tool1') as {
+        state: string;
+        approval?: Record<string, unknown>;
+      };
+
+      expect(requested?.state).toBe('approval-requested');
+      expect(requested?.approval).toEqual({
+        id: 'id-1',
+        context: { recordCount: 47 },
+        inputDigest: 'digest-1',
+        signature: 'sig-1',
+      });
+
+      const responded = state!.message.parts.find(
+        part => part.type === 'tool-tool1',
+      ) as { state: string; approval?: Record<string, unknown> };
+
+      expect(responded?.state).toBe('approval-responded');
+      expect(responded?.approval).toEqual({
+        id: 'id-1',
+        approved: true,
+        context: { recordCount: 47 },
+        inputDigest: 'digest-1',
+        signature: 'sig-1',
+      });
+    });
+  });
+
   describe('tool approval requests (dynamic tool)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

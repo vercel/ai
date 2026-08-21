@@ -1,4 +1,4 @@
-import type { JSONObject } from '@ai-sdk/provider';
+import type { JSONObject, JSONValue } from '@ai-sdk/provider';
 import {
   providerMetadataSchema,
   type ProviderMetadata,
@@ -87,6 +87,8 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolCallId: z.string(),
         isAutomatic: z.boolean().optional(),
         signature: z.string().optional(),
+        context: jsonValueSchema.optional(),
+        inputDigest: z.string().optional(),
       }),
       z.looseObject({
         type: z.literal('tool-approval-response'),
@@ -300,6 +302,8 @@ export type UIMessageChunk<
       toolCallId: string;
       isAutomatic?: boolean;
       signature?: string;
+      context?: JSONValue;
+      inputDigest?: string;
     }
   | {
       type: 'tool-approval-response';
