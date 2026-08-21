@@ -1,0 +1,132 @@
+---
+title: Kyma API
+description: Learn how to use the Kyma API community provider.
+---
+
+# Kyma API Provider
+
+[kyma-api/ai-sdk](https://github.com/sonpiaz/kyma-api) is a community provider that uses [Kyma API](https://kymaapi.com) to provide access to 20+ open-source models — including DeepSeek, Qwen, Llama, Gemma, Gemini, Kimi, and MiniMax — through a single OpenAI-compatible endpoint.
+
+API keys can be obtained for free at [kymaapi.com](https://kymaapi.com). Free credits are included on signup.
+
+## Setup
+
+The Kyma provider is available in the `@kyma-api/ai-sdk` module. You can install it with:
+
+<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
+  <Tab>
+    <Snippet text="pnpm add @kyma-api/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @kyma-api/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @kyma-api/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @kyma-api/ai-sdk" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `kyma` from `@kyma-api/ai-sdk`:
+
+```ts
+import { kyma } from '@kyma-api/ai-sdk';
+```
+
+If you need a customized setup, you can import `createKyma` from `@kyma-api/ai-sdk` and create a provider instance with your settings:
+
+```ts
+import { createKyma } from '@kyma-api/ai-sdk';
+
+const kyma = createKyma({
+  apiKey: process.env.KYMA_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the Kyma provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://kymaapi.com/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `KYMA_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+## Language Models
+
+You can create language models using the provider instance. The first argument is the model ID.
+
+```ts
+const model = kyma('deepseek-v3');
+```
+
+### Example
+
+```ts
+import { kyma } from '@kyma-api/ai-sdk';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: kyma('deepseek-v3'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Kyma language models can also be used in the `streamText` function:
+
+```ts
+import { kyma } from '@kyma-api/ai-sdk';
+import { streamText } from 'ai';
+
+const { textStream } = await streamText({
+  model: kyma('llama-3.3-70b'),
+  messages: [{ role: 'user', content: 'Explain quantum computing simply.' }],
+});
+```
+
+### Smart Aliases
+
+Kyma provides model aliases so you don't have to memorize exact model IDs:
+
+```ts
+kyma('best')          // Highest quality overall
+kyma('fast')          // Fastest response time
+kyma('code')          // Best for coding agents
+kyma('reasoning')     // Deep reasoning
+kyma('long-context')  // 1M token context window
+kyma('vision')        // Best multimodal / image input
+```
+
+### Model Capabilities
+
+| Model | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ----- | ----------- | ----------------- | ---------- | -------------- |
+| `qwen-3.6-plus` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-v3` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-r1` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k2.5` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemma-4-31b` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen-3-32b` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-3.3-70b` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `minimax-m2.5` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-flash` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-3-flash` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-4-scout` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `step-3.5-flash` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `glm-4.5-air` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  The table above lists popular models. Please see the [Kyma API
+  docs](https://docs.kymaapi.com) for a full list of available models. You can
+  also pass any available model ID as a string if needed.
+</Note>
