@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18930,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/stream-object-error-promises.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/stream-object-error-promises.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_18930_REPRODUCED: streamObject failure result promises did not reject"
+  }
+}
