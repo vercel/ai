@@ -1,5 +1,11 @@
 # @ai-sdk/bytedance
 
+## 2.0.31
+
+### Patch Changes
+
+- 5b7da0e: feat(provider/bytedance): report image generation token usage
+
 ## 2.0.30
 
 ### Patch Changes

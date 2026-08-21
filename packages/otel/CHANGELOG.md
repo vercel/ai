@@ -1,5 +1,33 @@
 # @ai-sdk/otel
 
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 1.0.75
+
+### Patch Changes
+
+- c0a42bc: fix(otel): prevent embedding usage double counting by reporting usage only on provider request spans
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 1.0.74
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 1.0.73
+
+### Patch Changes
+
+- ai@7.0.73
+
 ## 1.0.72
 
 ### Patch Changes

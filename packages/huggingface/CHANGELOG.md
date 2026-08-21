@@ -1,5 +1,12 @@
 # @ai-sdk/huggingface
 
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [99989ba]
+  - @ai-sdk/openai-compatible@3.0.34
+
 ## 2.0.33
 
 ### Patch Changes

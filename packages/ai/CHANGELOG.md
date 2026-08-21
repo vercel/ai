@@ -1,5 +1,35 @@
 # ai
 
+## 7.0.76
+
+### Patch Changes
+
+- c6d57f3: fix(ai): prevent duplicate text and reasoning part ids
+- 677a707: fix(ai): allow nullish metadata schemas for UI messages with branded IDs
+
+## 7.0.75
+
+### Patch Changes
+
+- 8978ad8: feat(ai): add `experimental_startVideo` and `experimental_videoStatus` — user-facing fire-and-forget wrappers over the video model `doStart`/`doStatus` spec methods, with the same sparse-options DX as `generateVideo`
+- Updated dependencies [dedac59]
+  - @ai-sdk/gateway@4.0.61
+
+## 7.0.74
+
+### Patch Changes
+
+- Updated dependencies [5941bd6]
+- Updated dependencies [9a4337d]
+  - @ai-sdk/gateway@4.0.60
+
+## 7.0.73
+
+### Patch Changes
+
+- Updated dependencies [f607a12]
+  - @ai-sdk/gateway@4.0.59
+
 ## 7.0.72
 
 ### Patch Changes

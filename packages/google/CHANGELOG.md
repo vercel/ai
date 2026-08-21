@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.49
+
+### Patch Changes
+
+- f607a12: chore(google): drop support for Imagen models and their integration following API shutdown
+
 ## 4.0.48
 
 ### Patch Changes
