@@ -1,5 +1,33 @@
 # @ai-sdk/fireworks
 
+## 1.0.52
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/openai-compatible@1.0.48
+
+## 1.0.51
+
+### Patch Changes
+
+- b42ee57: Parse the object error envelope Fireworks actually returns (`{"error":{"object","type","code","message"}}`) instead of a bare string. The mismatched schema failed to parse, so error messages silently degraded to the HTTP reason phrase — `Bad Request` over HTTP/1.1, and an empty string over HTTP/2, which has no reason phrase. Fireworks' own message now reaches the caller, e.g. `Model not found, inaccessible, and/or not deployed` rather than `Not Found`.
+
+## 1.0.50
+
+### Patch Changes
+
+- 537970a: Send `promptCacheKey`, `serviceTier`, `reasoningHistory` and `thinking.budgetTokens` under the snake_case names the Fireworks API defines. Fireworks rejects unknown fields outright, so previously any of these provider options failed the whole request with `400 Extra inputs are not permitted`.
+
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/openai-compatible@1.0.47
+
 ## 1.0.48
 
 ### Patch Changes

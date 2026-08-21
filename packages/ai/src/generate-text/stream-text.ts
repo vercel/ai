@@ -64,6 +64,7 @@ import { consumeStream } from '../util/consume-stream';
 import { createIdMap } from '../util/create-id-map';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
+import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import type { ContentPart } from './content-part';
@@ -540,6 +541,11 @@ function createOutputTransformStream<
       text += chunk.text;
       textChunk += chunk.text;
 
+      if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
       // only publish if partial json can be parsed:
       const result = await output.parsePartial({ text });
       if (result != null) {
@@ -705,11 +711,17 @@ class DefaultStreamTextResult<
           part.type === 'tool-input-delta' ||
           part.type === 'raw'
         ) {
-          await onChunk?.({ chunk: part });
+          await notify({
+            event: { chunk: part },
+            callbacks: onChunk,
+          });
         }
 
         if (part.type === 'error') {
-          await onError({ error: wrapGatewayError(part.error) });
+          await notify({
+            event: { error: wrapGatewayError(part.error) },
+            callbacks: onError,
+          });
         }
 
         if (part.type === 'text-start') {
@@ -1180,6 +1192,7 @@ class DefaultStreamTextResult<
               }),
               tracer,
               endWhenDone: false,
+              endOnError: true,
               fn: async doStreamSpan => {
                 return {
                   startTimestampMs: now(), // get before the call
@@ -1279,7 +1292,10 @@ class DefaultStreamTextResult<
                     }
 
                     case 'text-delta': {
-                      if (chunk.delta.length > 0) {
+                      if (
+                        chunk.delta.length > 0 ||
+                        chunk.providerMetadata != null
+                      ) {
                         controller.enqueue({
                           type: 'text-delta',
                           id: chunk.id,

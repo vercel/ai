@@ -1,4 +1,5 @@
 import {
+  InvalidResponseDataError,
   type JSONObject,
   type LanguageModelV2,
   type LanguageModelV2CallWarning,
@@ -1220,6 +1221,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     let contextManagement:
       | AnthropicMessageMetadata['contextManagement']
       | null = null;
+    let isMessageOpen = false;
+    let activeMessageId: string | null | undefined;
+    let hasInvalidMessageSequence = false;
 
     let blockType:
       | 'text'
@@ -1247,6 +1251,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         },
 
         transform(chunk, controller) {
+          if (hasInvalidMessageSequence) {
+            return;
+          }
+
           if (options.includeRawChunks) {
             controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
           }
@@ -1750,6 +1758,27 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             }
 
             case 'message_start': {
+              if (isMessageOpen) {
+                if (activeMessageId === value.message.id) {
+                  return;
+                }
+
+                hasInvalidMessageSequence = true;
+                controller.enqueue({
+                  type: 'error',
+                  error: new InvalidResponseDataError({
+                    data: value,
+                    message:
+                      `Received message_start for message ${JSON.stringify(value.message.id)} ` +
+                      `while message ${JSON.stringify(activeMessageId)} is still open.`,
+                  }),
+                });
+                return;
+              }
+
+              isMessageOpen = true;
+              activeMessageId = value.message.id;
+
               usage.inputTokens = value.message.usage.input_tokens;
               usage.cachedInputTokens =
                 value.message.usage.cache_read_input_tokens ?? undefined;
@@ -1906,6 +1935,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             }
 
             case 'message_stop': {
+              isMessageOpen = false;
+              activeMessageId = undefined;
+
               controller.enqueue({
                 type: 'finish',
                 finishReason,

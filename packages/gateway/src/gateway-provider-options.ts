@@ -95,6 +95,19 @@ const gatewayProviderOptions = lazyValidator(() =>
           byok: z.record(z.string(), z.number().int().min(1000)).optional(),
         })
         .optional(),
+      /**
+       * Restrict routing to provider models that have all of the given
+       * capabilities:
+       *
+       * - `'implicit-caching'`: models that perform automatic (implicit)
+       *   prompt caching
+       * - `'vision'`: models that accept image input
+       *
+       * The capability is a property of the model, so the filter applies to
+       * both BYOK and system credentials. If no provider model for the
+       * requested model satisfies the capabilities, the request fails.
+       */
+      has: z.array(z.enum(['implicit-caching', 'vision'])).optional(),
     }),
   ),
 );

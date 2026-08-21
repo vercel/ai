@@ -1,5 +1,31 @@
 # @ai-sdk/anthropic
 
+## 2.0.95
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 2.0.94
+
+### Patch Changes
+
+- e7afc18: Reject spliced Anthropic generations while allowing duplicate message start events for the active message.
+
+## 2.0.93
+
+### Patch Changes
+
+- 950eec8: Preserve Anthropic prompt-cache matches by replaying complete code-execution transcripts in their original wire shape.
+
+## 2.0.92
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
 ## 2.0.91
 
 ### Patch Changes

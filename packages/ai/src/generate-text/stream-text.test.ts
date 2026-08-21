@@ -689,6 +689,55 @@ describe('streamText', () => {
         `);
     });
 
+    it('should preserve provider metadata from empty text deltas', async () => {
+      const providerMetadata = {
+        testProvider: { signature: 'test-signature' },
+      };
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: '' },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '',
+              providerMetadata,
+            },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        experimental_output: text(),
+        prompt: 'test-input',
+      });
+
+      const fullStream = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(
+        fullStream.filter(
+          chunk => chunk.type === 'text-delta' && chunk.text === '',
+        ),
+      ).toStrictEqual([
+        {
+          type: 'text-delta',
+          id: '1',
+          text: '',
+          providerMetadata,
+        },
+      ]);
+      expect((await result.steps)[0].content).toContainEqual({
+        type: 'text',
+        text: 'Hello',
+        providerMetadata,
+      });
+    });
+
     it('should send reasoning deltas', async () => {
       const result = streamText({
         model: modelWithReasoning,
@@ -4955,6 +5004,12 @@ describe('streamText', () => {
             "type": "tool-call",
           },
           {
+            "id": "4",
+            "providerMetadata": undefined,
+            "text": " World",
+            "type": "text-delta",
+          },
+          {
             "input": {
               "value": "test",
             },
@@ -4969,14 +5024,44 @@ describe('streamText', () => {
             "toolName": "tool1",
             "type": "tool-result",
           },
-          {
-            "id": "4",
-            "providerMetadata": undefined,
-            "text": " World",
-            "type": "text-delta",
-          },
         ]
       `);
+    });
+
+    it('should continue stream processing when onChunk throws', async () => {
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onChunk({ chunk }) {
+          if (chunk.type === 'text-delta') {
+            throw new Error('callback error');
+          }
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.textStream),
+      ).resolves.toStrictEqual(['Hello']);
+      await expect(resultObject.finishReason).resolves.toBe('stop');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
     });
   });
 
@@ -4999,6 +5084,42 @@ describe('streamText', () => {
       await resultObject.consumeStream();
 
       expect(result).toStrictEqual([{ error: new Error('test error') }]);
+    });
+
+    it('should preserve error parts and finish callbacks when onError throws', async () => {
+      const error = new Error('provider error');
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'error',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError() {
+          throw new Error('callback error');
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.fullStream),
+      ).resolves.toContainEqual({ type: 'error', error });
+      await expect(resultObject.finishReason).resolves.toBe('error');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
     });
   });
 
@@ -9597,6 +9718,48 @@ describe('streamText', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should end telemetry spans once after a model call fails', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('model call failed');
+          },
+        }),
+        maxRetries: 0,
+        prompt: 'test-input',
+        experimental_telemetry: { isEnabled: true, tracer },
+        onError: () => {},
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const rootSpan = tracer.spans.find(span => span.name === 'ai.streamText');
+
+      expect(parts.map(part => part.type)).toEqual(['start', 'error']);
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          endCalls: span.endCalls,
+          status: span.status,
+        })),
+      ).toEqual([
+        {
+          name: 'ai.streamText',
+          endCalls: 1,
+          status: { code: 2, message: 'model call failed' },
+        },
+        {
+          name: 'ai.streamText.doStream',
+          endCalls: 1,
+          status: { code: 2, message: 'model call failed' },
+        },
+      ]);
+
+      // The provider rejected before producing a finish part or usage, so
+      // failure telemetry must not fabricate response metadata.
+      expect(rootSpan?.attributes['ai.response.finishReason']).toBeUndefined();
+      expect(rootSpan?.attributes['ai.usage.totalTokens']).toBeUndefined();
+    });
+
     it('should record successful tool call', async () => {
       const result = streamText({
         model: createTestModel({
@@ -11429,6 +11592,12 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": " WORLD",
+              "type": "text-delta",
+            },
+            {
               "input": {
                 "value": "TEST",
               },
@@ -11438,12 +11607,6 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": " WORLD",
-              "type": "text-delta",
             },
           ]
         `);
@@ -13283,6 +13446,11 @@ describe('streamText', () => {
           [
             {
               "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
             },
             {
               "type": "abort",

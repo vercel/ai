@@ -1,5 +1,25 @@
 # @ai-sdk/mistral
 
+## 2.0.43
+
+### Patch Changes
+
+- 24404ae: fix(mistral): support incremental streaming tool calls
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
 ## 2.0.40
 
 ### Patch Changes

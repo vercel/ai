@@ -1,13 +1,14 @@
-import { google } from '@ai-sdk/google';
+import { gmicloud } from '@ai-sdk/gmicloud';
 import { streamText } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-3.6-flash'),
+    model: gmicloud('deepseek-ai/DeepSeek-V4-Flash-0731'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
+  console.log(result);
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }

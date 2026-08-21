@@ -1,5 +1,17 @@
 # @ai-sdk/provider-utils
 
+## 3.0.32
+
+### Patch Changes
+
+- 0e51b7b: Preserve streamed download size-limit errors when response cancellation fails.
+
+## 3.0.31
+
+### Patch Changes
+
+- 7a6bdbc: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+
 ## 3.0.30
 
 ### Patch Changes

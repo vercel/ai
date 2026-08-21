@@ -1,4 +1,6 @@
 export type { GatewayModelId } from './gateway-language-model-settings';
+export type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+export type { GatewayImageModelId } from './gateway-image-model-settings';
 export type {
   GatewayLanguageModelEntry,
   GatewayLanguageModelSpecification,

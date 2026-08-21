@@ -1,6 +1,7 @@
 import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   getFromApi,
   lazyValidator,
   resolve,
@@ -41,7 +42,7 @@ export class GatewayFetchMetadata {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: this.config.fetch,
       });
@@ -64,7 +65,7 @@ export class GatewayFetchMetadata {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: this.config.fetch,
       });

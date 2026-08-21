@@ -1,5 +1,6 @@
 import {
   type JSONObject,
+  type JSONValue,
   type LanguageModelV2Message,
   type LanguageModelV2Prompt,
   type SharedV2ProviderMetadata,
@@ -295,6 +296,12 @@ export async function convertToBedrockChatMessages(
                         },
                       },
                     });
+                  } else if (reasoningMetadata.redactedContent != null) {
+                    bedrockContent.push({
+                      reasoningContent: {
+                        redactedContent: reasoningMetadata.redactedContent,
+                      },
+                    });
                   } else if (reasoningMetadata.redactedData != null) {
                     bedrockContent.push({
                       reasoningContent: {
@@ -315,7 +322,7 @@ export async function convertToBedrockChatMessages(
                   toolUse: {
                     toolUseId: part.toolCallId,
                     name: sanitizeToolName(part.toolName),
-                    input: part.input as JSONObject,
+                    input: toBedrockToolInput(part.input),
                   },
                 });
                 break;
@@ -340,6 +347,13 @@ export async function convertToBedrockChatMessages(
   }
 
   return { system, messages };
+}
+
+// wrap invalid tool call input because Bedrock requires it to be an object
+function toBedrockToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }
 
 function isBedrockImageFormat(format: string): format is BedrockImageFormat {

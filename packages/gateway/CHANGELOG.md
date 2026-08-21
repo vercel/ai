@@ -1,5 +1,125 @@
 # @ai-sdk/gateway
 
+## 2.0.139
+
+### Patch Changes
+
+- b7dd2fe: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.138
+
+### Patch Changes
+
+- 1a04ece: Backport: chore(provider/gateway): update gateway model settings files
+- ed2f035: feat: add DeepSeek V4 Flash Vision Exp image input support
+
+## 2.0.137
+
+### Patch Changes
+
+- bef36a6: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.136
+
+### Patch Changes
+
+- 05d5b6c: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.135
+
+### Patch Changes
+
+- b484978: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.134
+
+### Patch Changes
+
+- df0cbe9: feat(google): add `gemini-3.7-flash` model
+
+## 2.0.133
+
+### Patch Changes
+
+- 91e93fa: Serialize structured Gateway error responses in nested API call error messages.
+- de0921d: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.132
+
+### Patch Changes
+
+- 1e632f7: feat(xai): add Grok 4.6 models
+
+## 2.0.131
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 2.0.130
+
+### Patch Changes
+
+- b474448: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.129
+
+### Patch Changes
+
+- c524e57: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.128
+
+### Patch Changes
+
+- bd09b8e: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.127
+
+### Patch Changes
+
+- b74765f: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.126
+
+### Patch Changes
+
+- 1ce55ef: Export gateway embedding and image model ID types.
+- f50dc31: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.125
+
+### Patch Changes
+
+- ecd9c1c: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.124
+
+### Patch Changes
+
+- 8ea0ce4: feat(provider/gateway): add `has` provider option for model capability filtering, supporting `'implicit-caching'` and `'vision'` (image input)
+
+## 2.0.123
+
+### Patch Changes
+
+- d27b3c3: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.122
+
+### Patch Changes
+
+- 5bd6d2c: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
+## 2.0.121
+
+### Patch Changes
+
+- b408f1d: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.120
 
 ### Patch Changes
