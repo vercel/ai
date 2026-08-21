@@ -48,6 +48,8 @@ const doWrap = ({
     overrideProvider,
     overrideModelId,
     overrideMaxImagesPerCall,
+    overrideSupportsFileInputs,
+    overrideSupportsMaskInputs,
   },
   modelId,
   providerId,
@@ -71,11 +73,18 @@ const doWrap = ({
       ? maxImagesPerCallRaw.bind(model)
       : maxImagesPerCallRaw;
 
+  const supportsFileInputs =
+    overrideSupportsFileInputs?.({ model }) ?? model.supportsFileInputs;
+  const supportsMaskInputs =
+    overrideSupportsMaskInputs?.({ model }) ?? model.supportsMaskInputs;
+
   return {
     specificationVersion: 'v4',
     provider: providerId ?? overrideProvider?.({ model }) ?? model.provider,
     modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,
     maxImagesPerCall,
+    supportsFileInputs,
+    supportsMaskInputs,
     async doGenerate(
       params: ImageModelV4CallOptions,
     ): Promise<ImageModelV4Result> {

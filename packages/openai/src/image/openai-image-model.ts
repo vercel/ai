@@ -54,6 +54,22 @@ export class OpenAIImageModel implements ImageModelV4 {
     return getMaxImagesPerCall(this.modelId);
   }
 
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      this.modelId === 'dall-e-2' ||
+      this.modelId.startsWith('gpt-image-') ||
+      this.modelId.startsWith('chatgpt-image-')
+    ) {
+      return true;
+    }
+
+    return this.modelId === 'dall-e-3' ? false : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs;
+  }
+
   get provider(): string {
     return this.config.provider;
   }

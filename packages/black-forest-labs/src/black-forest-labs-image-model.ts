@@ -51,6 +51,26 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
+  get supportsFileInputs(): boolean | undefined {
+    return [
+      'flux-kontext-pro',
+      'flux-kontext-max',
+      'flux-pro-1.1-ultra',
+      'flux-pro-1.1',
+      'flux-pro-1.0-fill',
+    ].includes(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (this.modelId === 'flux-pro-1.0-fill') {
+      return true;
+    }
+
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
   }

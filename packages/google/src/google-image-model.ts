@@ -56,6 +56,14 @@ export class GoogleImageModel implements ImageModelV4 {
     return 10;
   }
 
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId.startsWith('gemini-') ? true : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
   }

@@ -51,6 +51,8 @@ describe('XaiImageModel', () => {
       expect(model.modelId).toBe('grok-imagine-image');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(3);
+      expect(model.supportsFileInputs).toBe(true);
+      expect(model.supportsMaskInputs).toBe(false);
     });
   });
 
