@@ -1,0 +1,254 @@
+---
+title: Goose
+description: Goose Provider for the AI SDK
+---
+
+# Goose
+
+[Goose](https://github.com/block/goose) is an open-source autonomous coding agent from Block that runs on your machine. The Goose provider for the AI SDK wraps the Goose CLI, enabling you to use Goose as a language model through standard AI SDK interfaces (`generateText`, `streamText`). This gives you:
+
+- **Agentic Coding**: Goose autonomously executes multi-step coding tasks, reading files, writing code, running commands, and iterating on errors
+- **Any LLM Backend**: Route through any provider Goose supports — Anthropic, OpenAI, Google, xAI, Ollama, or OpenRouter — with a single interface
+- **Tool Execution Built-In**: Goose's built-in tools (file I/O, shell, search, etc.) are executed server-side and streamed back as provider-executed tool calls
+- **Session Persistence**: Named sessions let you resume multi-turn conversations with full context
+- **Local Model Support**: Use Ollama models running on your own hardware with no API key required
+
+Learn more about Goose in the [Goose Documentation](https://block.github.io/goose/).
+
+## Prerequisites
+
+Goose must be installed on your machine. Install it from the [Goose releases page](https://github.com/block/goose/releases) or via Homebrew:
+
+```bash
+brew install block/tap/goose
+```
+
+Verify installation:
+
+```bash
+goose --version
+```
+
+## Setup
+
+The Goose provider is available in the `ai-sdk-provider-goose` module. You can install it with:
+
+<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-provider-goose" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-provider-goose" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-provider-goose" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-provider-goose" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use the default provider instance, import `goose` directly:
+
+```typescript
+import { goose } from "ai-sdk-provider-goose";
+
+// Uses your locally configured goose (no provider override)
+const model = goose("goose");
+
+// Or specify a provider/model
+const model = goose("anthropic/claude-sonnet-4-6");
+```
+
+To create a custom provider instance with specific settings, use `createGoose`:
+
+```typescript
+import { createGoose } from "ai-sdk-provider-goose";
+
+const customGoose = createGoose({
+  binPath: "/custom/path/goose", // Path to goose binary (default: 'goose')
+  timeout: 120000, // Request timeout in ms (default: 600000)
+  maxTurns: 100, // Max autonomous turns (default: 1500)
+  args: ["--profile", "custom"], // Additional CLI arguments
+});
+
+const model = customGoose("openai/gpt-4o");
+```
+
+## Language Models
+
+The Goose provider supports language models only (no embedding or image models). Create a model by passing a model ID in `provider/model` format:
+
+```typescript
+const model = goose("anthropic/claude-sonnet-4-6");
+```
+
+You can also use the `GooseModels` shortcuts for common models:
+
+```typescript
+import { goose, GooseModels } from "ai-sdk-provider-goose";
+
+const model = goose(GooseModels["claude-sonnet-4-6"]);
+// Equivalent to: goose('anthropic/claude-sonnet-4-6')
+```
+
+Or pass `'goose'` to use whatever model is configured locally in your Goose installation:
+
+```typescript
+const model = goose("goose");
+```
+
+### Supported Providers
+
+| Provider   | Example Model ID                  | API Key Env Var      |
+| ---------- | --------------------------------- | -------------------- |
+| Anthropic  | `anthropic/claude-sonnet-4-6`     | `ANTHROPIC_API_KEY`  |
+| OpenAI     | `openai/gpt-4o`                   | `OPENAI_API_KEY`     |
+| Google     | `google/gemini-2.5-pro`           | `GOOGLE_API_KEY`     |
+| xAI        | `xai/grok-3`                      | `XAI_API_KEY`        |
+| Ollama     | `ollama/qwen3`                    | None (local)         |
+| OpenRouter | `openrouter/moonshotai/kimi-k2.5` | `OPENROUTER_API_KEY` |
+
+### Model Settings
+
+When creating a model, you can pass these optional settings:
+
+```typescript
+const model = goose("anthropic/claude-sonnet-4-6", {
+  sessionName: "my-session", // Named session for continuity
+  resume: true, // Resume an existing session
+  apiKey: "sk-...", // API key (mapped to provider env var)
+  maxTurns: 500, // Max autonomous turns
+  env: { CUSTOM_VAR: "value" }, // Extra environment variables
+});
+```
+
+## Examples
+
+### `generateText`
+
+```typescript
+import { goose } from "ai-sdk-provider-goose";
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: goose("anthropic/claude-sonnet-4-6"),
+  prompt: "What is 2+2? Answer in one word.",
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```typescript
+import { goose } from "ai-sdk-provider-goose";
+import { streamText } from "ai";
+
+const result = streamText({
+  model: goose("anthropic/claude-sonnet-4-6"),
+  prompt: "Count from 1 to 10.",
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Session Persistence
+
+Named sessions allow multi-turn conversations where Goose retains full context between calls:
+
+```typescript
+import { goose } from "ai-sdk-provider-goose";
+import { generateText } from "ai";
+
+// First call — creates a new session
+const { text: response1 } = await generateText({
+  model: goose("anthropic/claude-sonnet-4-6", {
+    sessionName: "my-session",
+  }),
+  prompt: "My name is Alice. Remember this.",
+});
+
+// Second call — resumes the session with full context
+const { text: response2 } = await generateText({
+  model: goose("anthropic/claude-sonnet-4-6", {
+    sessionName: "my-session",
+    resume: true,
+  }),
+  prompt: "What is my name?",
+});
+
+console.log(response2); // Alice
+```
+
+### Agentic Tool Use
+
+Goose executes tools autonomously (file reads, shell commands, etc.) and streams the results back. Tool calls are marked as `providerExecuted`, so the AI SDK treats them as informational — no client-side tool execution is needed:
+
+```typescript
+import { goose } from "ai-sdk-provider-goose";
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: goose("anthropic/claude-sonnet-4-6"),
+  prompt: "Read the README.md file and summarize it in one sentence.",
+});
+
+console.log(text);
+```
+
+You can observe tool calls and results in the full stream:
+
+```typescript
+import { goose } from "ai-sdk-provider-goose";
+import { streamText } from "ai";
+
+const result = streamText({
+  model: goose("anthropic/claude-sonnet-4-6"),
+  prompt: "List all TypeScript files in the src directory.",
+});
+
+for await (const part of result.fullStream) {
+  console.log(part.type, part);
+}
+```
+
+### Session Export
+
+Export a Goose session's messages in AI SDK format for further processing:
+
+```typescript
+import { exportSession } from "ai-sdk-provider-goose";
+
+// Export messages filtered for user-visible content
+const messages = exportSession("my-session", "user");
+
+// Export raw Goose messages without conversion
+import { exportSessionRaw } from "ai-sdk-provider-goose";
+const rawMessages = exportSessionRaw("my-session");
+```
+
+### Using Ollama (Local Models)
+
+Use locally running models with no API key required:
+
+```typescript
+import { goose } from "ai-sdk-provider-goose";
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: goose("ollama/qwen3"),
+  prompt: "Explain recursion in one sentence.",
+});
+```
+
+## Additional Resources
+
+- [Goose Provider Repository](https://github.com/Evanfeenstra/ai-sdk-provider-goose)
+- [Goose Documentation](https://block.github.io/goose/)
+- [Goose GitHub](https://github.com/block/goose)
+- [AI SDK Documentation](https://sdk.vercel.ai/docs)
