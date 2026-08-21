@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.61
+
+### Patch Changes
+
+- dedac59: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.60
 
 ### Patch Changes
