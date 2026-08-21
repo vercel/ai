@@ -1,5 +1,6 @@
-import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
+import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
+import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 
 describe('convertToDeepSeekChatMessages', () => {
   describe('user messages', () => {
@@ -118,6 +119,77 @@ describe('convertToDeepSeekChatMessages', () => {
           "warnings": [],
         }
       `);
+    });
+
+    it('should convert an image provider reference to a file content part', () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    deepseek: 'file-api-deepseek',
+                    openai: 'file-openai',
+                  },
+                },
+                mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-flash-vision-exp',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "file_id": "file-api-deepseek",
+                  "type": "file",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should throw when an image reference has no DeepSeek identifier', () => {
+      expect(() =>
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'reference',
+                    reference: { openai: 'file-openai' },
+                  },
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-v4-flash-vision-exp',
+        }),
+      ).toThrow(NoSuchProviderReferenceError);
     });
 
     it('should warn about unsupported non-image file parts', async () => {

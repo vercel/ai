@@ -21,7 +21,8 @@ export interface DeepSeekUserMessage {
 
 export type DeepSeekContentPart =
   | DeepSeekContentPartText
-  | DeepSeekContentPartImage;
+  | DeepSeekContentPartImage
+  | DeepSeekContentPartFile;
 
 export interface DeepSeekContentPartText {
   type: 'text';
@@ -31,6 +32,11 @@ export interface DeepSeekContentPartText {
 export interface DeepSeekContentPartImage {
   type: 'image_url';
   image_url: { url: string };
+}
+
+export interface DeepSeekContentPartFile {
+  type: 'file';
+  file_id: string;
 }
 
 export interface DeepSeekAssistantMessage {

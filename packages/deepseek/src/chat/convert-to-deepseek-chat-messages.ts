@@ -7,6 +7,7 @@ import {
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
+  resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import type {
   DeepSeekChatPrompt,
@@ -76,7 +77,9 @@ export function convertToDeepSeekChatMessages({
         const hasImagePart = content.some(
           part =>
             part.type === 'file' &&
-            (part.data.type === 'url' || part.data.type === 'data') &&
+            (part.data.type === 'reference' ||
+              part.data.type === 'url' ||
+              part.data.type === 'data') &&
             getTopLevelMediaType(part.mediaType) === 'image',
         );
 
@@ -103,18 +106,32 @@ export function convertToDeepSeekChatMessages({
             userContent.push({ type: 'text', text: part.text });
           } else if (
             part.type === 'file' &&
-            (part.data.type === 'url' || part.data.type === 'data') &&
             getTopLevelMediaType(part.mediaType) === 'image'
           ) {
-            userContent.push({
-              type: 'image_url',
-              image_url: {
-                url:
-                  part.data.type === 'url'
-                    ? part.data.url.toString()
-                    : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
-              },
-            });
+            if (part.data.type === 'reference') {
+              userContent.push({
+                type: 'file',
+                file_id: resolveProviderReference({
+                  reference: part.data.reference,
+                  provider: 'deepseek',
+                }),
+              });
+            } else if (part.data.type === 'url' || part.data.type === 'data') {
+              userContent.push({
+                type: 'image_url',
+                image_url: {
+                  url:
+                    part.data.type === 'url'
+                      ? part.data.url.toString()
+                      : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                },
+              });
+            } else {
+              warnings.push({
+                type: 'unsupported',
+                feature: `user message part type: ${part.type}`,
+              });
+            }
           } else {
             warnings.push({
               type: 'unsupported',
