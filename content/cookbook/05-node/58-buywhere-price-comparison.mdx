@@ -1,0 +1,247 @@
+---
+title: BuyWhere Price Comparison Agent
+description: Build a Singapore and Southeast Asia product price comparison agent with the AI SDK and the BuyWhere MCP server
+tags: ['node', 'tool use', 'agent', 'mcp', 'e-commerce', 'price-comparison']
+---
+
+# BuyWhere Price Comparison Agent
+
+[BuyWhere](https://buywhere.ai) is a unified product catalog API that indexes live
+listings across major Singapore and Southeast Asia merchants (Lazada, Shopee,
+Amazon, Harvey Norman, and more) plus the United States. It exposes a hosted
+[Model Context Protocol](https://modelcontextprotocol.io) (MCP) server at
+`https://api.buywhere.ai/mcp` that the AI SDK can talk to directly.
+
+This recipe shows how to build a price-comparison agent that finds the cheapest
+vendor for a product and reasons about whether today's price is a good deal.
+
+## When to use this pattern
+
+Use the BuyWhere MCP server when your agent needs to:
+
+- Search live product listings across multiple merchants in a region
+- Compare prices for the same SKU side-by-side
+- Browse a catalog by category
+- Filter by country, currency, or price range
+
+For pure web search, see the [Web Search Agent](/cookbook/05-node/56-web-search-agent)
+recipe. For a generic MCP integration walkthrough, see
+[MCP Tools](/cookbook/05-node/54-mcp-tools).
+
+## Setup
+
+<Note>
+  Get an API key from the [BuyWhere Dashboard](https://buywhere.ai/api-keys).
+  The free tier includes 1,000 requests/hour.
+</Note>
+
+Install the AI SDK MCP client:
+
+<Snippet text="pnpm install @ai-sdk/mcp ai @ai-sdk/openai zod dotenv" />
+
+Set your API key as an environment variable:
+
+```bash
+export BUYWHERE_API_KEY=bw_your_key_here
+```
+
+## Available tools
+
+The BuyWhere MCP server exposes seven agent-relevant tools (an eighth, `ingest_products`,
+requires write permissions and is not used in this recipe):
+
+| Tool | Description |
+|------|-------------|
+| `search_products` | Search the catalog by keyword with country, price, and merchant filters |
+| `get_product` | Get full product details by ID |
+| `compare_products` | Compare 2–10 products side-by-side |
+| `get_deals` | Find discounted products sorted by discount percentage |
+| `list_categories` | List top-level categories with product counts |
+| `find_best_price` | Find the cheapest option for a given product name |
+| `find_similar` | Vector-similarity neighbours for a product |
+
+Supported markets: Singapore (SGD), United States (USD), Vietnam (VND), Thailand (THB),
+Malaysia (MYR). Pass `country_code` on each call; the server infers the currency.
+
+## Price comparison agent
+
+The agent below answers "Where is the cheapest 1TB SSD under S$200 in Singapore,
+and is today's price a good deal?" It chains `find_best_price` and `search_products`
+over multiple steps, then composes an answer.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { createMCPClient } from '@ai-sdk/mcp';
+import { generateText, isStepCount } from 'ai';
+import 'dotenv/config';
+
+async function main() {
+  const buywhere = await createMCPClient({
+    transport: {
+      type: 'http',
+      url: 'https://api.buywhere.ai/mcp',
+      headers: {
+        Authorization: `Bearer ${process.env.BUYWHERE_API_KEY}`,
+      },
+    },
+  });
+
+  try {
+    const tools = await buywhere.tools();
+
+    const { text } = await generateText({
+      model: openai('gpt-4o-mini'),
+      tools,
+      stopWhen: isStepCount(5),
+      prompt:
+        'Find the cheapest 1TB SSD under S$200 in Singapore. ' +
+        'Use find_best_price to identify the lowest-priced listing and ' +
+        'search_products with max_price=200 to compare alternatives.',
+    });
+
+    console.log(text);
+  } finally {
+    await buywhere.close();
+  }
+}
+
+main().catch(console.error);
+```
+
+How the step budget gets spent:
+
+1. **Step 1** — Model calls `find_best_price({ product_name: '1TB SSD', country_code: 'SG' })`.
+2. **Step 2** — Model cross-checks with `search_products({ q: '1TB SSD', country_code: 'SG', max_price: 200, compact: true })`.
+3. **Step 3** — Model picks a shortlist and calls `compare_products({ ids })`.
+4. **Step 4** — Model synthesizes the answer with merchant, price, and a buy link.
+
+## Streaming to a Next.js route handler
+
+The same MCP client drops into `streamText` without changes:
+
+```ts
+// app/api/buywhere/route.ts
+import { openai } from '@ai-sdk/openai';
+import { createMCPClient } from '@ai-sdk/mcp';
+import { streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const buywhere = await createMCPClient({
+    transport: {
+      type: 'http',
+      url: 'https://api.buywhere.ai/mcp',
+      headers: {
+        Authorization: `Bearer ${process.env.BUYWHERE_API_KEY}`,
+      },
+    },
+  });
+
+  try {
+    const tools = await buywhere.tools();
+    const result = streamText({
+      model: openai('gpt-4o-mini'),
+      messages,
+      tools,
+    });
+    return result.toDataStreamResponse();
+  } finally {
+    await buywhere.close();
+  }
+}
+```
+
+Always call `buywhere.close()` (or use the `onEnd` hook for streaming) so the MCP
+HTTP connection is released.
+
+## Limiting which tools the model can call
+
+You don't have to expose every BuyWhere tool. Pick a subset to keep the tool
+description prompt short and the model's choices focused:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { createMCPClient } from '@ai-sdk/mcp';
+import { generateText, isStepCount } from 'ai';
+import 'dotenv/config';
+
+async function main() {
+  const buywhere = await createMCPClient({
+    transport: {
+      type: 'http',
+      url: 'https://api.buywhere.ai/mcp',
+      headers: {
+        Authorization: `Bearer ${process.env.BUYWHERE_API_KEY}`,
+      },
+    },
+  });
+
+  try {
+    const all = await buywhere.tools();
+    const { search_products, get_deals, find_best_price } = all;
+
+    const { text } = await generateText({
+      model: openai('gpt-4o-mini'),
+      tools: { search_products, get_deals, find_best_price },
+      stopWhen: isStepCount(3),
+      prompt: 'What are the best electronics deals in Singapore right now?',
+    });
+
+    console.log(text);
+  } finally {
+    await buywhere.close();
+  }
+}
+
+main().catch(console.error);
+```
+
+Smaller tool sets mean fewer tokens per turn and a tighter model focus.
+
+## Error handling
+
+The BuyWhere MCP server returns standard JSON-RPC errors. Transient failures
+(upstream timeout, rate limit) are best handled by letting the AI SDK's `stopWhen`
+budget exhaust gracefully — most transient BuyWhere errors are retryable inside
+the loop:
+
+```ts
+import { APICallError } from 'ai';
+
+try {
+  const result = await generateText({
+    /* ... */
+  });
+} catch (error) {
+  if (error instanceof APICallError) {
+    console.error(`Tool call failed: ${error.statusCode} ${error.message}`);
+  }
+  throw error;
+}
+```
+
+For deterministic errors (invalid product ID, country not supported), surface
+the message to the model so it can adjust the next step.
+
+<Note type="warning">
+  The `BUYWHERE_API_KEY` is a secret. Never commit it. Use a `.env.local` file
+  (gitignored) or your platform's secret manager.
+</Note>
+
+## Going further
+
+- Use `get_deals({ country_code: 'SG', min_discount: 30 })` to power a daily
+  "best deals" digest.
+- Pass `compact: true` to `search_products` to receive a slimmer response with
+  `structured_specs`, `comparison_attributes`, and `normalized_price_usd` — useful
+  when the model is going to reason about specs.
+- Combine `list_categories` with `get_deals` to build a category-browsing agent.
+
+## Links
+
+- [BuyWhere](https://buywhere.ai)
+- [BuyWhere API documentation](https://docs.buywhere.ai)
+- [Model Context Protocol](https://modelcontextprotocol.io)
+- [MCP Tools recipe](/cookbook/05-node/54-mcp-tools)
+- [vercel/ai#14734](https://github.com/vercel/ai/issues/14734)
