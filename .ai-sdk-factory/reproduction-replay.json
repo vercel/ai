@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19274,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19274-openai-malformed-tool-replay.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19274-openai-malformed-tool-replay.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19274_REPRODUCED: qwen-plus rejected malformed replayed tool arguments while normalized object arguments succeeded"
+  }
+}
