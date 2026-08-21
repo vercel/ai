@@ -1457,6 +1457,5 @@ describe('GatewayVideoModel', () => {
         createTestModel().doStatus({ operation: { gatewayJobId: 'job_123' } }),
       ).rejects.toThrow();
     });
-
   });
 });
