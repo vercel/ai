@@ -396,12 +396,9 @@ const takoSearchInputSchema = lazySchema(() =>
   ),
 );
 
-const takoDatasetCellSchema = z.union([
-  z.boolean(),
-  z.number(),
-  z.string(),
-  z.string().nullable(),
-]);
+const takoDatasetCellSchema = z
+  .union([z.boolean(), z.number(), z.string()])
+  .nullable();
 
 const takoResultContentSchema = z
   .object({
@@ -410,14 +407,7 @@ const takoResultContentSchema = z
       .nullish(),
     cost: z.number().optional(),
     data: z.string().nullish(),
-    records: z
-      .array(
-        z.record(
-          z.string(),
-          z.union([z.boolean(), z.number(), z.string(), z.string().nullable()]),
-        ),
-      )
-      .nullish(),
+    records: z.array(z.record(z.string(), takoDatasetCellSchema)).nullish(),
     dataset: z
       .object({
         columns: z.array(

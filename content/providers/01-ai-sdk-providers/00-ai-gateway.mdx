@@ -820,6 +820,8 @@ The Tako Search tool supports these optional configuration options:
 - **effort** _'fast' | 'instant' | 'deep'_ - Search effort. `'fast'` is the balanced default, `'instant'` favors cached low-latency results, and `'deep'` broadens retrieval with reranking at higher cost and latency.
 - **sources** _object_ - Omit to search both curated Tako data and the live web. When set, only source keys present are searched.
 - **sources.web** _object_ - Configure web results:
+  - **count** _number_ - Maximum web results, 1-20.
+  - **category** _'finance' | 'news' | 'sports'_ - Restrict web results to one category.
   - **includeDomains** / **excludeDomains** _string[]_ - Only return, or drop, results from these bare domains. Up to 20 each.
   - **publishedAfter** / **publishedBefore** _string_ - Keep results published on or after, or on or before, this `YYYY-MM-DD` date.
   - **snippetMaxChars** _number_ - Character cap on each result's text excerpt. Defaults to 4,000; maximum 20,000.
@@ -830,6 +832,8 @@ The Tako Search tool supports these optional configuration options:
   - **includeContents** _boolean_ - Inline each card's underlying rows in `content.dataset` as typed, unit-labeled columns.
   - **contentFormat** _'json_compact' | 'json_records' | 'csv' | 'card_json'_ - Serialization for inlined card data. Defaults to `'json_compact'`.
   - **maxRows** _number_ - Row cap for inlined card data. Omit to use your account's default inline cap (20 rows on the standard plan); maximum 2,000.
+  - **nodeIds** _string[]_ - Data Graph node IDs to prioritize. Up to 20.
+  - **strict** _boolean_ - Only return cards matching `nodeIds`. Requires at least one `nodeIds` value.
 - **location** _object_ - End-user `{ latitude, longitude }` coordinates for localized results.
 - **countryCode** _string_ - ISO 3166-1 alpha-2 country code, such as `'US'`.
 - **locale** _string_ - BCP-47 locale, such as `'en-US'`.
