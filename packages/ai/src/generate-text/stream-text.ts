@@ -95,7 +95,7 @@ import {
   type ActiveToolSubset,
 } from './filter-active-tools';
 import type {
-  GenerateTextOnEndCallback,
+  GenerateTextEndEvent,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
@@ -274,6 +274,20 @@ export type StreamTextOnErrorCallback = Callback<{
 export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
   chunk: TextStreamPart<TOOLS>;
 }) => PromiseLike<void> | void;
+
+type StreamTextOnEndCallback<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+> = Callback<
+  GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT> & {
+    /**
+     * The parsed output when an output setting was provided and parsing
+     * succeeded.
+     */
+    readonly output?: InferCompleteOutput<OUTPUT>;
+  }
+>;
 
 /**
  * Callback that is set using the `onAbort` option.
@@ -589,7 +603,11 @@ export function streamText<
      *
      * The usage is the combined usage of all steps.
      */
-    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+    onEnd?: StreamTextOnEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
 
     /**
      * Callback that is called when the LLM response and all request tool executions
@@ -599,9 +617,10 @@ export function streamText<
      *
      * @deprecated Use `onEnd` instead.
      */
-    onFinish?: GenerateTextOnEndCallback<
+    onFinish?: StreamTextOnEndCallback<
       NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
     >;
 
     onAbort?: StreamTextOnAbortCallback<
@@ -973,6 +992,10 @@ class DefaultStreamTextResult<
   private readonly _initialResponseMessages = new DelayedPromise<
     Array<ResponseMessage>
   >();
+  private readonly _onEndCompleted = new DelayedPromise<void>();
+
+  private outputPromise: Promise<InferCompleteOutput<OUTPUT>> | undefined;
+  private isOnEndCallbackBeingInvoked = false;
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
@@ -1095,7 +1118,11 @@ class DefaultStreamTextResult<
     onError: StreamTextOnErrorCallback;
     onEnd:
       | undefined
-      | GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+      | StreamTextOnEndCallback<
+          NoInfer<TOOLS>,
+          NoInfer<RUNTIME_CONTEXT>,
+          NoInfer<OUTPUT>
+        >;
     onAbort:
       | undefined
       | StreamTextOnAbortCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
@@ -1486,43 +1513,80 @@ class DefaultStreamTextResult<
             step => step.dynamicToolResults,
           );
           const warnings = recordedSteps.flatMap(step => step.warnings ?? []);
+          const onEndWithOutput =
+            onEnd == null
+              ? undefined
+              : async (event: GenerateTextEndEvent<TOOLS, RUNTIME_CONTEXT>) => {
+                  const parsedOutput =
+                    output == null
+                      ? undefined
+                      : await self.getOutputPromise().catch(() => undefined);
 
-          await notify({
-            event: {
-              callId,
-              toolsContext: finalStep.toolsContext,
-              stepNumber: finalStep.stepNumber,
-              model: finalStep.model,
-              runtimeContext: finalStep.runtimeContext,
-              finishReason: finalStep.finishReason,
-              rawFinishReason: finalStep.rawFinishReason,
-              usage: totalUsage,
-              totalUsage,
-              content,
-              text: finalStep.text,
-              reasoning: finalStep.reasoning,
-              reasoningText: finalStep.reasoningText,
-              files,
-              sources,
-              toolCalls,
-              staticToolCalls,
-              dynamicToolCalls,
-              toolResults,
-              staticToolResults,
-              dynamicToolResults,
-              responseMessages: [
-                ...initialResponseMessages,
-                ...recordedSteps.flatMap(step => step.response.messages),
-              ],
-              warnings,
-              request: finalStep.request,
-              response: finalStep.response,
-              providerMetadata: finalStep.providerMetadata,
-              steps: recordedSteps,
-              finalStep,
-            },
-            callbacks: [onEnd, telemetryDispatcher.onEnd],
+                  // Allow result.output to be obtained synchronously from the
+                  // callback without letting concurrent external reads bypass
+                  // callback completion.
+                  let callbackResult: PromiseLike<void> | void;
+                  self.isOnEndCallbackBeingInvoked = true;
+                  try {
+                    callbackResult = onEnd({
+                      ...event,
+                      ...(output != null ? { output: parsedOutput } : {}),
+                    });
+                  } finally {
+                    self.isOnEndCallbackBeingInvoked = false;
+                  }
+                  await callbackResult;
+                };
+
+          const onEndEvent = {
+            callId,
+            toolsContext: finalStep.toolsContext,
+            stepNumber: finalStep.stepNumber,
+            model: finalStep.model,
+            runtimeContext: finalStep.runtimeContext,
+            finishReason: finalStep.finishReason,
+            rawFinishReason: finalStep.rawFinishReason,
+            usage: totalUsage,
+            totalUsage,
+            content,
+            text: finalStep.text,
+            reasoning: finalStep.reasoning,
+            reasoningText: finalStep.reasoningText,
+            files,
+            sources,
+            toolCalls,
+            staticToolCalls,
+            dynamicToolCalls,
+            toolResults,
+            staticToolResults,
+            dynamicToolResults,
+            responseMessages: [
+              ...initialResponseMessages,
+              ...recordedSteps.flatMap(step => step.response.messages),
+            ],
+            warnings,
+            request: finalStep.request,
+            response: finalStep.response,
+            providerMetadata: finalStep.providerMetadata,
+            steps: recordedSteps,
+            finalStep,
+          };
+
+          const userOnEndPromise = notify({
+            event: onEndEvent,
+            callbacks: onEndWithOutput,
           });
+          const telemetryOnEndPromise = notify({
+            event: onEndEvent,
+            callbacks: telemetryDispatcher.onEnd,
+          });
+
+          try {
+            await userOnEndPromise;
+          } finally {
+            self._onEndCompleted.resolve();
+          }
+          await telemetryOnEndPromise;
         } catch (error) {
           controller.error(error);
         }
@@ -2749,6 +2813,10 @@ class DefaultStreamTextResult<
       delayedPromise: this._initialResponseMessages,
       error,
     });
+    this.rejectResultPromise({
+      delayedPromise: this._onEndCompleted,
+      error,
+    });
   }
 
   private rejectResultPromise<T>({
@@ -2816,18 +2884,30 @@ class DefaultStreamTextResult<
     return createAsyncIterableStream(this.teeStream().pipeThrough(transform));
   }
 
+  private getOutputPromise(): Promise<InferCompleteOutput<OUTPUT>> {
+    if (this.outputPromise == null) {
+      this.outputPromise = this.finalStep.then(step => {
+        const output = this.outputSpecification ?? text();
+        return output.parseCompleteOutput(
+          { text: step.text },
+          {
+            response: step.response,
+            usage: step.usage,
+            finishReason: step.finishReason,
+          },
+        );
+      });
+    }
+
+    return this.outputPromise;
+  }
+
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
-    return this.finalStep.then(step => {
-      const output = this.outputSpecification ?? text();
-      return output.parseCompleteOutput(
-        { text: step.text },
-        {
-          response: step.response,
-          usage: step.usage,
-          finishReason: step.finishReason,
-        },
-      );
-    });
+    this.consumeStream();
+
+    return this.isOnEndCallbackBeingInvoked
+      ? this.getOutputPromise()
+      : this._onEndCompleted.promise.then(() => this.getOutputPromise());
   }
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
