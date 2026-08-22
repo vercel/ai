@@ -206,13 +206,17 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       for (const part of message.content) {
         if (part.type === 'file' || part.type === 'reasoning-file') {
           part.data = maybeBase64EncodeFileData(part.data);
-        } else if (
-          part.type === 'tool-result' &&
-          part.output.type === 'content'
-        ) {
-          for (const contentPart of part.output.value) {
-            if (contentPart.type === 'file') {
-              contentPart.data = maybeBase64EncodeFileData(contentPart.data);
+        } else if (part.type === 'tool-result') {
+          if (part.output.type === 'execution-denied') {
+            part.output = {
+              type: 'text',
+              value: part.output.reason ?? 'Tool call execution denied.',
+            };
+          } else if (part.output.type === 'content') {
+            for (const contentPart of part.output.value) {
+              if (contentPart.type === 'file') {
+                contentPart.data = maybeBase64EncodeFileData(contentPart.data);
+              }
             }
           }
         }
