@@ -2840,6 +2840,7 @@ class DefaultStreamTextResult<
     sendSources,
     sendStart,
     sendFinish,
+    sendFinishReason,
     onError,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
@@ -2856,6 +2857,7 @@ class DefaultStreamTextResult<
         sendSources,
         sendStart,
         sendFinish,
+        sendFinishReason,
         onError,
       }),
     );
@@ -2872,6 +2874,7 @@ class DefaultStreamTextResult<
       sendReasoning,
       sendSources,
       sendFinish,
+      sendFinishReason,
       sendStart,
       onError,
       ...init
@@ -2887,6 +2890,7 @@ class DefaultStreamTextResult<
         sendReasoning,
         sendSources,
         sendFinish,
+        sendFinishReason,
         sendStart,
         onError,
       }),
@@ -2911,6 +2915,7 @@ class DefaultStreamTextResult<
     sendReasoning,
     sendSources,
     sendFinish,
+    sendFinishReason,
     sendStart,
     onError,
     ...init
@@ -2925,6 +2930,7 @@ class DefaultStreamTextResult<
         sendReasoning,
         sendSources,
         sendFinish,
+        sendFinishReason,
         sendStart,
         onError,
       }),
