@@ -192,15 +192,13 @@ export interface OpenAIProviderSettings {
 export function createOpenAI(
   options: OpenAIProviderSettings = {},
 ): OpenAIProvider {
+  const configuredBaseURL = loadOptionalSetting({
+    settingValue: options.baseURL,
+    environmentVariableName: 'OPENAI_BASE_URL',
+  });
   const baseURL =
-    withoutTrailingSlash(
-      validateBaseURL(
-        loadOptionalSetting({
-          settingValue: options.baseURL,
-          environmentVariableName: 'OPENAI_BASE_URL',
-        }),
-      ),
-    ) ?? 'https://api.openai.com/v1';
+    withoutTrailingSlash(validateBaseURL(configuredBaseURL)) ??
+    'https://api.openai.com/v1';
 
   const providerName = options.name ?? 'openai';
 
@@ -309,6 +307,7 @@ export function createOpenAI(
     return new OpenAIResponsesBatchLanguageModel(modelId, {
       provider: `${providerName}.responses`,
       url: ({ path }) => `${baseURL}${path}`,
+      isCustomBaseURL: configuredBaseURL != null,
       headers: getHeaders,
       fetch: options.fetch,
       // Soft-deprecated. TODO: remove in v8

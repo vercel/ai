@@ -31,7 +31,7 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
-import { openaiFailedResponseHandler } from '../openai-error';
+import { createOpenAIResponsesFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
@@ -659,7 +659,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       url,
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
-      failedResponseHandler: openaiFailedResponseHandler,
+      failedResponseHandler: createOpenAIResponsesFailedResponseHandler({
+        isCustomBaseURL: this.config.isCustomBaseURL ?? false,
+      }),
       successfulResponseHandler: createJsonResponseHandler(
         openaiResponsesResponseSchema,
       ),
@@ -1340,7 +1342,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         ...body,
         stream: true,
       },
-      failedResponseHandler: openaiFailedResponseHandler,
+      failedResponseHandler: createOpenAIResponsesFailedResponseHandler({
+        isCustomBaseURL: this.config.isCustomBaseURL ?? false,
+      }),
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiResponsesChunkSchema,
       ),
