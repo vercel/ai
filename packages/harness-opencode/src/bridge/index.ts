@@ -28,6 +28,11 @@ import {
 import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
+import {
+  normalizeSyncHistory,
+  readReplaySessionId,
+  toReplayEvents,
+} from './opencode-sync';
 import { configureOpenCodeServerAuth } from './opencode-server-auth';
 import {
   addUsage,
@@ -135,7 +140,58 @@ await runBridge<StartMessage>({
   onStart: runTurn,
   onStop: () =>
     runtime.sessionId ? { openCodeSessionId: runtime.sessionId } : {},
+  onExportSession: exportSession,
 });
+
+/**
+ * Answer an `export-session` command with the OpenCode sync history of the
+ * current session. The runtime (and therefore the OpenCode server) only exists
+ * after the first turn, which the host mirrors by refusing to export before a
+ * session id is known.
+ */
+async function exportSession(): Promise<unknown> {
+  if (runtime.client == null || runtime.sessionId == null) {
+    throw new Error('The OpenCode bridge has no session to export yet.');
+  }
+  const history = await runtime.client.sync.history.list({ body: {} });
+  if (history.error) {
+    throw new Error(
+      `OpenCode sync history failed: ${formatError(history.error)}`,
+    );
+  }
+  return {
+    openCodeSessionId: runtime.sessionId,
+    syncEvents: normalizeSyncHistory(history.data),
+  };
+}
+
+/**
+ * Reconstruct an exported conversation by replaying its sync events into the
+ * fresh OpenCode server. Replay preserves the original session id, so the
+ * returned id re-locks the bridge onto the exported session.
+ */
+async function replaySyncEvents({
+  client,
+  start,
+}: {
+  client: OpenCodeClient;
+  start: StartMessage;
+}): Promise<string> {
+  const replayed = await client.sync.replay({
+    body_directory: workdir,
+    events: toReplayEvents(start.importEvents ?? []),
+  });
+  if (replayed.error) {
+    throw new Error(
+      `OpenCode sync replay failed: ${formatError(replayed.error)}`,
+    );
+  }
+  const sessionId = readReplaySessionId(replayed.data);
+  if (sessionId == null) {
+    throw new Error('OpenCode sync replay returned no session id.');
+  }
+  return sessionId;
+}
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
@@ -529,6 +585,12 @@ async function ensureSession({
   emit: Emit;
 }): Promise<string> {
   if (runtime.sessionId) return runtime.sessionId;
+  if (start.importEvents && start.importEvents.length > 0) {
+    const sessionId = await replaySyncEvents({ client, start });
+    runtime.sessionId = sessionId;
+    emit({ type: 'bridge-thread', threadId: sessionId });
+    return sessionId;
+  }
   if (start.resumeSessionId) {
     const existing = await legacySessionGet({
       client,

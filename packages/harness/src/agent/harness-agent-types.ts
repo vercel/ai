@@ -16,6 +16,7 @@ import type {
   HarnessV1PromptTurnOptions,
   HarnessV1ResumeSessionState,
   HarnessV1Session,
+  HarnessV1SessionExport,
   HarnessV1Skill,
   HarnessV1StartOptions,
   HarnessV1StreamPart,
@@ -45,6 +46,7 @@ export type HarnessAgentToolSpec = HarnessV1ToolSpec;
 export type HarnessAgentLifecycleState = HarnessV1LifecycleState;
 export type HarnessAgentResumeSessionState = HarnessV1ResumeSessionState;
 export type HarnessAgentContinueTurnState = HarnessV1ContinueTurnState;
+export type HarnessAgentSessionExport = HarnessV1SessionExport;
 export type HarnessAgentPendingToolApproval = HarnessV1PendingToolApproval;
 export type HarnessAgentPendingToolResult = HarnessV1PendingToolResult;
 

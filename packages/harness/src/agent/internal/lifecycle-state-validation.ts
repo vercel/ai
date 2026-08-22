@@ -1,6 +1,10 @@
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { HarnessError } from '../../errors/harness-error';
-import type { HarnessV1, HarnessV1LifecycleState } from '../../v1';
+import type {
+  HarnessV1,
+  HarnessV1LifecycleState,
+  HarnessV1SessionExport,
+} from '../../v1';
 
 /**
  * Validate a lifecycle state against the harness's contract:
@@ -105,4 +109,34 @@ export async function validateLifecycleStateData<
       ? { pendingToolResults: state.pendingToolResults }
       : {}),
   } as STATE;
+}
+
+/**
+ * Validate a session export against the harness's contract: `type` must be
+ * `'session-export'`, `specificationVersion` must be `'harness-v1'`, and
+ * `harnessId` must match the harness that will import it. The adapter owns the
+ * export `data` shape, so — unlike lifecycle state — no schema is applied here;
+ * the adapter re-validates `data` in `doStart({ importFrom })`.
+ */
+export function validateSessionExportData(input: {
+  harness: HarnessV1;
+  state: HarnessV1SessionExport;
+}): HarnessV1SessionExport {
+  const { harness, state } = input;
+  if (state.type !== 'session-export') {
+    throw new HarnessError({
+      message: `Session export has unexpected type '${state.type}'; expected 'session-export'.`,
+    });
+  }
+  if (state.specificationVersion !== 'harness-v1') {
+    throw new HarnessError({
+      message: `Session export has unexpected specificationVersion '${state.specificationVersion}'; expected 'harness-v1'.`,
+    });
+  }
+  if (state.harnessId !== harness.harnessId) {
+    throw new HarnessError({
+      message: `Session export was produced by harness '${state.harnessId}' but this agent uses '${harness.harnessId}'.`,
+    });
+  }
+  return state;
 }

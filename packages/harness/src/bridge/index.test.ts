@@ -13,9 +13,11 @@ afterEach(async () => {
 async function startBridge({
   onStart,
   onStop,
+  onExportSession,
 }: {
   onStart: (start: { type: 'start' }, turn: BridgeTurn) => Promise<void>;
   onStop?: () => unknown;
+  onExportSession?: () => unknown;
 }): Promise<BridgeHandle> {
   const handle = await runBridge<{ type: 'start' }>({
     bridgeType: 'test',
@@ -24,6 +26,7 @@ async function startBridge({
     token: TOKEN,
     onStart,
     ...(onStop ? { onStop } : {}),
+    ...(onExportSession ? { onExportSession } : {}),
     // Never call process.exit from a test.
     onExit: () => {},
   });
@@ -597,5 +600,78 @@ describe('runBridge', () => {
       expect(onDestroy).toHaveBeenCalledTimes(1);
       expect(exited).toBe(true);
     });
+  });
+
+  it('answers export-session with the onExportSession payload', async () => {
+    const handle = await startBridge({
+      onStart: async (_start, turn) => turn.emit({ type: 'finish' }),
+      onExportSession: async () => ({ openCodeSessionId: 'ses_1' }),
+    });
+
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'export-session' });
+
+    const reply = await client.waitFor(f => f.type === 'bridge-export');
+    expect(reply.data).toEqual({ openCodeSessionId: 'ses_1' });
+    expect(reply.error).toBeUndefined();
+  });
+
+  it('replies with an error when the bridge has no export support', async () => {
+    const handle = await startBridge({
+      onStart: async (_start, turn) => turn.emit({ type: 'finish' }),
+    });
+
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'export-session' });
+
+    const reply = await client.waitFor(f => f.type === 'bridge-export');
+    expect(reply.data).toBeUndefined();
+    expect(reply.error).toEqual({
+      message: 'The test bridge does not support session export.',
+    });
+  });
+
+  it('replies with an error when onExportSession throws', async () => {
+    const handle = await startBridge({
+      onStart: async (_start, turn) => turn.emit({ type: 'finish' }),
+      onExportSession: async () => {
+        throw new Error('no session yet');
+      },
+    });
+
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'export-session' });
+
+    const reply = await client.waitFor(f => f.type === 'bridge-export');
+    expect(reply.data).toBeUndefined();
+    expect(reply.error).toEqual({ message: 'no session yet' });
+  });
+
+  it('does not claim the event stream for export-session', async () => {
+    const handle = await startBridge({
+      onStart: async (_start, turn) => turn.emit({ type: 'finish' }),
+      onExportSession: async () => ({ openCodeSessionId: 'ses_1' }),
+    });
+
+    const a = await connect(handle.port);
+    await a.waitFor(f => f.type === 'bridge-hello');
+    a.send({ type: 'start' });
+    await a.waitFor(f => f.type === 'finish'); // A owns the stream
+
+    const b = await connect(handle.port);
+    await b.waitFor(f => f.type === 'bridge-hello');
+    b.send({ type: 'export-session' });
+    const reply = await b.waitFor(f => f.type === 'bridge-export');
+    expect(reply.data).toEqual({ openCodeSessionId: 'ses_1' });
+
+    // A still owns the stream: the next turn's events go to it, not to B.
+    a.send({ type: 'start' });
+    await a.waitFor(
+      f => f.type === 'finish' && typeof f.seq === 'number' && f.seq > 1,
+    );
+    expect(b.frames.some(f => f.type === 'finish')).toBe(false);
   });
 });

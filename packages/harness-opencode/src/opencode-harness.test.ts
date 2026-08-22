@@ -688,6 +688,202 @@ describe('createOpenCode adapter', () => {
     await session.doDestroy();
   });
 
+  describe('session export/import', () => {
+    function createSandboxSession() {
+      const emptyStream = () =>
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.close();
+          },
+        });
+      const sandbox = {
+        async run({ command }: { command: string }) {
+          return command === 'printf "%s" "$HOME"'
+            ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+            : { exitCode: 0, stdout: '', stderr: '' };
+        },
+        async readTextFile() {
+          return null;
+        },
+        async spawn() {
+          return {
+            stdout: emptyStream(),
+            stderr: emptyStream(),
+            async wait() {},
+            async kill() {},
+          };
+        },
+      };
+      return {
+        id: 'test-sandbox',
+        defaultWorkingDirectory: '/workspace',
+        restricted: () => sandbox,
+        ports: [4000] as ReadonlyArray<number>,
+        async getPortEndpoint() {
+          return { url: 'ws://sandbox.example' };
+        },
+        async getPortUrl() {
+          return 'ws://sandbox.example';
+        },
+        async stop() {},
+      } as unknown as HarnessV1NetworkSandboxSession;
+    }
+
+    const syncEvents = [
+      {
+        id: 'evt_1',
+        aggregate_id: 'ses_1',
+        seq: 1,
+        type: 'session.created',
+        data: { id: 'ses_1' },
+      },
+      {
+        id: 'evt_2',
+        aggregate_id: 'ses_1',
+        seq: 2,
+        type: 'message.updated',
+        data: { id: 'msg_1' },
+      },
+    ];
+
+    beforeEach(() => {
+      harnessUtilsMocks.channels.length = 0;
+      harnessUtilsMocks.waitForBridgeReady.mockReset();
+      harnessUtilsMocks.waitForBridgeReady.mockResolvedValue({ port: 4000 });
+    });
+
+    it('exports the session via export-session and shapes the payload', async () => {
+      const session = await createOpenCode().doStart({
+        sessionId: 's1',
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/workspace/project',
+      });
+      const channel = harnessUtilsMocks.channels.at(-1)!;
+      channel.emit('bridge-thread', {
+        type: 'bridge-thread',
+        threadId: 'ses_1',
+      });
+
+      const pending = session.doExportSession!();
+      expect(channel.sent).toContainEqual({ type: 'export-session' });
+      channel.emit('bridge-export', {
+        type: 'bridge-export',
+        data: { openCodeSessionId: 'ses_1', syncEvents },
+      });
+      await expect(pending).resolves.toEqual({
+        type: 'session-export',
+        harnessId: 'opencode',
+        specificationVersion: 'harness-v1',
+        data: { openCodeSessionId: 'ses_1', syncEvents },
+      });
+
+      await session.doDestroy();
+    });
+
+    it('surfaces bridge export errors', async () => {
+      const session = await createOpenCode().doStart({
+        sessionId: 's1',
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/workspace/project',
+      });
+      const channel = harnessUtilsMocks.channels.at(-1)!;
+      channel.emit('bridge-thread', {
+        type: 'bridge-thread',
+        threadId: 'ses_1',
+      });
+
+      const pending = session.doExportSession!();
+      channel.emit('bridge-export', {
+        type: 'bridge-export',
+        error: { message: 'The OpenCode bridge has no session to export yet.' },
+      });
+      await expect(pending).rejects.toThrow(
+        'OpenCode session export failed: The OpenCode bridge has no session to export yet.',
+      );
+
+      await session.doDestroy();
+    });
+
+    it('refuses to export before a turn has established a session', async () => {
+      const session = await createOpenCode().doStart({
+        sessionId: 's1',
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/workspace/project',
+      });
+      await expect(session.doExportSession!()).rejects.toThrow(
+        'has no OpenCode session to export yet',
+      );
+      await session.doDestroy();
+    });
+
+    it('seeds the first start with importEvents and the exported session id', async () => {
+      const session = await createOpenCode().doStart({
+        sessionId: 's1',
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/workspace/project',
+        importFrom: {
+          type: 'session-export',
+          harnessId: 'opencode',
+          specificationVersion: 'harness-v1',
+          data: { openCodeSessionId: 'ses_1', syncEvents },
+        },
+      });
+      expect(session.isResume).toBe(true);
+      const channel = harnessUtilsMocks.channels.at(-1)!;
+
+      await session.doPromptTurn({ prompt: 'recall', emit: () => {} });
+      expect(channel.sent.at(-1)).toMatchObject({
+        type: 'start',
+        prompt: 'recall',
+        resumeSessionId: 'ses_1',
+        importEvents: syncEvents,
+      });
+
+      await session.doPromptTurn({ prompt: 'again', emit: () => {} });
+      expect(channel.sent.at(-1)).toMatchObject({
+        type: 'start',
+        prompt: 'again',
+      });
+      expect(
+        (channel.sent.at(-1) as { importEvents?: unknown }).importEvents,
+      ).toBeUndefined();
+
+      await session.doDestroy();
+    });
+
+    it('refuses exports produced by other harnesses', async () => {
+      await expect(
+        createOpenCode().doStart({
+          sessionId: 's1',
+          sandboxSession: createSandboxSession(),
+          sessionWorkDir: '/workspace/project',
+          importFrom: {
+            type: 'session-export',
+            harnessId: 'claude-code',
+            specificationVersion: 'harness-v1',
+            data: {},
+          },
+        }),
+      ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    });
+
+    it('refuses malformed export payloads', async () => {
+      await expect(
+        createOpenCode().doStart({
+          sessionId: 's1',
+          sandboxSession: createSandboxSession(),
+          sessionWorkDir: '/workspace/project',
+          importFrom: {
+            type: 'session-export',
+            harnessId: 'opencode',
+            specificationVersion: 'harness-v1',
+            data: { openCodeSessionId: 'ses_1' },
+          },
+        }),
+      ).rejects.toThrow('malformed session export payload');
+    });
+  });
+
   describe('getBootstrap', () => {
     it('returns a recipe with the expected harnessId and bootstrapDir', async () => {
       const harness = createOpenCode();
