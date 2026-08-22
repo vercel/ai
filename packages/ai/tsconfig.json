@@ -25,7 +25,19 @@
   ],
   "references": [
     {
+      "path": "../deepseek"
+    },
+    {
       "path": "../gateway"
+    },
+    {
+      "path": "../groq"
+    },
+    {
+      "path": "../moonshotai"
+    },
+    {
+      "path": "../openai"
     },
     {
       "path": "../provider"
@@ -35,6 +47,9 @@
     },
     {
       "path": "../test-server"
+    },
+    {
+      "path": "../xai"
     }
   ]
 }

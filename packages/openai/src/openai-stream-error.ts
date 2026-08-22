@@ -1,12 +1,39 @@
 import { APICallError } from '@ai-sdk/provider';
-import type { ParseResult } from '@ai-sdk/provider-utils';
+import {
+  createProviderStreamError,
+  type ParseResult,
+  type ProviderStreamError,
+} from '@ai-sdk/provider-utils';
 
 type StreamError = {
   message: string;
   code?: string | number | null;
   type?: string | null;
-  frame: unknown;
 };
+
+/**
+ * Converts an OpenAI stream error frame into provider-owned metadata that AI
+ * SDK Core can normalize without duplicating OpenAI error-code semantics.
+ */
+export function createOpenAIProviderStreamError(
+  frame: unknown,
+): ProviderStreamError | undefined {
+  const streamError = parseStreamError(frame);
+
+  if (streamError == null) {
+    return undefined;
+  }
+
+  const statusCode = getStatusCode(streamError);
+
+  return createProviderStreamError({
+    message: streamError.message,
+    type: getErrorDiscriminator(streamError),
+    statusCode,
+    isRetryable: isRetryableStatusCode(statusCode),
+    data: frame,
+  });
+}
 
 export async function throwIfOpenAIStreamErrorBeforeOutput<T>({
   stream,
@@ -154,14 +181,14 @@ function createOpenAIStreamError({
   requestBodyValues: unknown;
   responseHeaders?: Record<string, string>;
 }): APICallError {
-  const streamError = parseStreamError(frame);
+  const streamError = createOpenAIProviderStreamError(frame);
   return new APICallError({
     message:
       streamError?.message ??
       'OpenAI stream failed before any output was generated',
     url,
     requestBodyValues,
-    statusCode: streamError == null ? 500 : getStatusCode(streamError),
+    statusCode: streamError?.statusCode ?? 500,
     responseHeaders,
     responseBody: JSON.stringify(frame),
     data: frame,
@@ -184,7 +211,6 @@ function parseStreamError(frame: unknown): StreamError | undefined {
           message: responseError.message,
           code: getStringOrNumber(responseError.code),
           type: 'response.failed',
-          frame,
         }
       : undefined;
   }
@@ -200,9 +226,16 @@ function parseStreamError(frame: unknown): StreamError | undefined {
         message: error.message,
         code: getStringOrNumber(error.code),
         type: typeof error.type === 'string' ? error.type : undefined,
-        frame,
       }
     : undefined;
+}
+
+function getErrorDiscriminator(error: StreamError): string | undefined {
+  return typeof error.code === 'string' && error.code.length > 0
+    ? error.code
+    : typeof error.type === 'string' && error.type.length > 0
+      ? error.type
+      : undefined;
 }
 
 function getStatusCode(error: StreamError): number {
@@ -259,4 +292,13 @@ function getStringOrNumber(value: unknown): string | number | undefined {
 
 function isHttpErrorStatusCode(value: number): boolean {
   return Number.isInteger(value) && value >= 400 && value <= 599;
+}
+
+function isRetryableStatusCode(statusCode: number): boolean {
+  return (
+    statusCode === 408 ||
+    statusCode === 409 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
 }

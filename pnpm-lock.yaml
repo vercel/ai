@@ -1778,9 +1778,24 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/deepseek':
+        specifier: workspace:*
+        version: link:../deepseek
+      '@ai-sdk/groq':
+        specifier: workspace:*
+        version: link:../groq
+      '@ai-sdk/moonshotai':
+        specifier: workspace:*
+        version: link:../moonshotai
+      '@ai-sdk/openai':
+        specifier: workspace:*
+        version: link:../openai
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
+      '@ai-sdk/xai':
+        specifier: workspace:*
+        version: link:../xai
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0

@@ -8474,14 +8474,20 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             {
               "error": {
-                "error": {
-                  "code": "server_error",
-                  "message": "response failed",
-                  "param": null,
-                  "type": "server_error",
+                "data": {
+                  "error": {
+                    "code": "server_error",
+                    "message": "response failed",
+                    "param": null,
+                    "type": "server_error",
+                  },
+                  "sequence_number": 2,
+                  "type": "error",
                 },
-                "sequence_number": 2,
-                "type": "error",
+                "isRetryable": true,
+                "message": "response failed",
+                "statusCode": 500,
+                "type": "server_error",
               },
               "type": "error",
             },
