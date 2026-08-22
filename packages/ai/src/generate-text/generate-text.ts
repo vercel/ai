@@ -1518,9 +1518,10 @@ export async function generateText<
         callbacks: [onEnd, telemetryDispatcher.onEnd],
       });
 
-      // parse output only if the last step was finished with "stop":
+      // parse output when the model returned text, or when a stop response
+      // produced an empty text output:
       let resolvedOutput;
-      if (lastStep.finishReason === 'stop') {
+      if (lastStep.finishReason === 'stop' || lastStep.text.length > 0) {
         const outputSpecification = output ?? text();
         resolvedOutput = await outputSpecification.parseCompleteOutput(
           { text: lastStep.text },
