@@ -59,5 +59,38 @@ createServer(async (req, res) => {
 
       break;
     }
+
+    // keep the connection alive while the stream is idle.
+    // try it with `curl -iN http://localhost:8080/keep-alive`: the response
+    // headers arrive immediately (instead of with the first chunk) and a
+    // `: keep-alive` comment is sent every 2 seconds until the stream produces
+    // its first chunk. this prevents reverse proxies from timing out slow or
+    // idle streams.
+    case '/keep-alive': {
+      const stream = createUIMessageStream({
+        execute: async ({ writer }) => {
+          writer.write({ type: 'start' });
+
+          // simulate a slow start, e.g. a long-running tool call:
+          await new Promise(resolve => setTimeout(resolve, 10_000));
+
+          writer.write({ type: 'text-start', id: 'text-1' });
+          writer.write({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'Sorry for the wait!',
+          });
+          writer.write({ type: 'text-end', id: 'text-1' });
+        },
+      });
+
+      pipeUIMessageStreamToResponse({
+        stream,
+        response: res,
+        keepAliveMs: 2_000,
+      });
+
+      break;
+    }
   }
 }).listen(8080);
