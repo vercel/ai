@@ -191,7 +191,7 @@ describe('convertToPerplexityMessages', () => {
 
       expect((result[0].content as unknown[])[0]).toEqual({
         type: 'file_url',
-        file_url: { url: pdfBase64 },
+        file_url: { url: `data:application/pdf;base64,${pdfBase64}` },
         file_name: 'doc.pdf',
       });
     });
