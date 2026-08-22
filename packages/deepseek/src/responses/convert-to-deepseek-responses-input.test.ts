@@ -41,16 +41,32 @@ describe('convertToDeepSeekResponsesInput', () => {
     `);
   });
 
-  it('should warn about unsupported user message parts', () => {
+  it('should convert image parts into input_image content', () => {
     const { input, warnings } = convert([
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'What is in this image?' },
+          { type: 'text', text: 'What is in these images?' },
           {
             type: 'file',
             mediaType: 'image/png',
             data: { type: 'url', url: new URL('https://example.com/a.png') },
+          },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: {
+              type: 'data',
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
+          },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: {
+              type: 'reference',
+              reference: { deepseek: 'file-api-1234567890' },
+            },
           },
         ],
       },
@@ -60,7 +76,40 @@ describe('convertToDeepSeekResponsesInput', () => {
       {
         type: 'message',
         role: 'user',
-        content: [{ type: 'input_text', text: 'What is in this image?' }],
+        content: [
+          { type: 'input_text', text: 'What is in these images?' },
+          { type: 'input_image', image_url: 'https://example.com/a.png' },
+          {
+            type: 'input_image',
+            image_url: 'data:image/png;base64,AAECAw==',
+          },
+          { type: 'input_image', file_id: 'file-api-1234567890' },
+        ],
+      },
+    ]);
+    expect(warnings).toStrictEqual([]);
+  });
+
+  it('should warn about unsupported user message parts', () => {
+    const { input, warnings } = convert([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this file?' },
+          {
+            type: 'file',
+            mediaType: 'application/pdf',
+            data: { type: 'url', url: new URL('https://example.com/a.pdf') },
+          },
+        ],
+      },
+    ]);
+
+    expect(input).toStrictEqual([
+      {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: 'What is in this file?' }],
       },
     ]);
     expect(warnings).toStrictEqual([

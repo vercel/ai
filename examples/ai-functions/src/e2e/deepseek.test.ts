@@ -20,9 +20,7 @@ createFeatureTestSuite({
   customAssertions: {
     errorValidator: (error: APICallError) => {
       expect(
-        (error.data as DeepSeekErrorData).error.message.includes(
-          'you passed no-such-model',
-        ),
+        (error.data as DeepSeekErrorData).error.message === 'Model Not Exist',
       ).toBe(true);
     },
   },

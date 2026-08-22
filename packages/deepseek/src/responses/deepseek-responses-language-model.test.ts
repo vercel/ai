@@ -35,6 +35,7 @@ const WEB_SEARCH_TOOL: LanguageModelV4ProviderTool = {
 
 const provider = createDeepSeek({ apiKey: 'test-api-key' });
 const model = provider.responses('deepseek-v4-flash');
+const webSearchModel = provider.responses('deepseek-v4-pro');
 
 const URL = 'https://api.deepseek.com/responses';
 const server = createTestServer({ [URL]: {} });
@@ -61,6 +62,14 @@ function prepareChunksFixtureResponse(filename: string) {
 }
 
 describe('DeepSeekResponsesLanguageModel', () => {
+  describe('supportedUrls', () => {
+    it('should natively support HTTP image URLs', () => {
+      expect(provider.responses('deepseek-flash').supportedUrls).toEqual({
+        'image/*': [/^https?:\/\/.*$/],
+      });
+    });
+  });
+
   describe('doGenerate', () => {
     describe('text', () => {
       beforeEach(() => {
@@ -230,7 +239,7 @@ describe('DeepSeekResponsesLanguageModel', () => {
       });
 
       it('should send the web search tool and tool choice', async () => {
-        await model.doGenerate({
+        await webSearchModel.doGenerate({
           prompt: TEST_PROMPT,
           tools: [WEB_SEARCH_TOOL],
           toolChoice: { type: 'tool', toolName: 'web_search' },
@@ -242,7 +251,7 @@ describe('DeepSeekResponsesLanguageModel', () => {
       });
 
       it('should emit the search as a provider-executed tool call and result', async () => {
-        const { content } = await model.doGenerate({
+        const { content } = await webSearchModel.doGenerate({
           prompt: TEST_PROMPT,
           tools: [WEB_SEARCH_TOOL],
         });
@@ -253,7 +262,7 @@ describe('DeepSeekResponsesLanguageModel', () => {
       });
 
       it('should use the name the tool was registered under', async () => {
-        const { content } = await model.doGenerate({
+        const { content } = await webSearchModel.doGenerate({
           prompt: TEST_PROMPT,
           tools: [{ ...WEB_SEARCH_TOOL, name: 'search_the_web' }],
         });
@@ -266,7 +275,7 @@ describe('DeepSeekResponsesLanguageModel', () => {
       });
 
       it('should send prior searches back as web_search_call items', async () => {
-        await model.doGenerate({
+        await webSearchModel.doGenerate({
           prompt: [
             { role: 'user', content: [{ type: 'text', text: 'Who won?' }] },
             {
@@ -352,7 +361,7 @@ describe('DeepSeekResponsesLanguageModel', () => {
       });
 
       it('should drop searches that carry no replayable action', async () => {
-        await model.doGenerate({
+        await webSearchModel.doGenerate({
           prompt: [
             { role: 'user', content: [{ type: 'text', text: 'Who won?' }] },
             {
@@ -644,7 +653,7 @@ describe('DeepSeekResponsesLanguageModel', () => {
         body: JSON.stringify({
           error: {
             message:
-              'The supported API model names are deepseek-v4-pro or deepseek-v4-flash, but you passed no-such-model.',
+              'The supported API model names are deepseek-flash or deepseek-v4-pro, but you passed no-such-model.',
             type: 'invalid_request_error',
             param: null,
             code: 'invalid_request_error',
@@ -655,7 +664,7 @@ describe('DeepSeekResponsesLanguageModel', () => {
       await expect(
         provider.responses('no-such-model').doGenerate({ prompt: TEST_PROMPT }),
       ).rejects.toThrow(
-        'The supported API model names are deepseek-v4-pro or deepseek-v4-flash, but you passed no-such-model.',
+        'The supported API model names are deepseek-flash or deepseek-v4-pro, but you passed no-such-model.',
       );
     });
   });
@@ -705,7 +714,7 @@ describe('DeepSeekResponsesLanguageModel', () => {
     it('should stream web searches as provider-executed tool calls', async () => {
       prepareChunksFixtureResponse('deepseek-web-search');
 
-      const result = await model.doStream({
+      const result = await webSearchModel.doStream({
         prompt: TEST_PROMPT,
         tools: [WEB_SEARCH_TOOL],
       });

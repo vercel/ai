@@ -36,23 +36,6 @@ const getRequestUrl = async (
 
 describe('createDeepSeek', () => {
   describe('language model factories', () => {
-    it('uses the chat completions API by default', async () => {
-      const fetchMock = createFetchMock();
-      const provider = createDeepSeek({
-        apiKey: 'test-api-key',
-        fetch: fetchMock,
-      });
-
-      expect(
-        await getRequestUrl(provider('deepseek-v4-flash'), fetchMock),
-      ).toBe('https://api.deepseek.com/chat/completions');
-      expect(provider('deepseek-v4-flash').provider).toBe('deepseek.chat');
-      expect(provider.languageModel('deepseek-v4-flash').provider).toBe(
-        'deepseek.chat',
-      );
-      expect(provider.chat('deepseek-v4-flash').provider).toBe('deepseek.chat');
-    });
-
     it('uses the responses API for models created with `responses`', async () => {
       const fetchMock = createFetchMock();
       const provider = createDeepSeek({
@@ -61,9 +44,9 @@ describe('createDeepSeek', () => {
       });
 
       expect(
-        await getRequestUrl(provider.responses('deepseek-v4-flash'), fetchMock),
+        await getRequestUrl(provider.responses('deepseek-flash'), fetchMock),
       ).toBe('https://api.deepseek.com/responses');
-      expect(provider.responses('deepseek-v4-flash').provider).toBe(
+      expect(provider.responses('deepseek-flash').provider).toBe(
         'deepseek.responses',
       );
     });

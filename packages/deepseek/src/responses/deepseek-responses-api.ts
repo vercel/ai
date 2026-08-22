@@ -8,6 +8,18 @@ export interface DeepSeekResponsesInputTextContent {
   text: string;
 }
 
+/**
+ * `image_url` and `file_id` are mutually exclusive - exactly one of them has
+ * to be set.
+ *
+ * @see https://api-docs.deepseek.com/guides/responses_api#image-input
+ */
+export interface DeepSeekResponsesInputImageContent {
+  type: 'input_image';
+  image_url?: string;
+  file_id?: string;
+}
+
 export interface DeepSeekResponsesOutputTextContent {
   type: 'output_text';
   text: string;
@@ -16,7 +28,9 @@ export interface DeepSeekResponsesOutputTextContent {
 export interface DeepSeekResponsesUserMessage {
   type: 'message';
   role: 'user';
-  content: Array<DeepSeekResponsesInputTextContent>;
+  content: Array<
+    DeepSeekResponsesInputTextContent | DeepSeekResponsesInputImageContent
+  >;
 }
 
 export interface DeepSeekResponsesAssistantMessage {

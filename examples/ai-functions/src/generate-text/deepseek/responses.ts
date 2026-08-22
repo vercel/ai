@@ -10,7 +10,7 @@ run(async () => {
   const result = await generateText({
     // `deepSeek(...)` uses the Chat Completions API, `deepSeek.responses(...)`
     // the Responses API:
-    model: deepSeek.responses('deepseek-v4-flash'),
+    model: deepSeek.responses('deepseek-flash'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       deepseek: {

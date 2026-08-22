@@ -1,21 +1,12 @@
-import {
-  deepSeek,
-  type DeepSeekLanguageModelChatOptions,
-} from '@ai-sdk/deepseek';
+import { deepSeek, DeepSeekLanguageModelChatOptions } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: deepSeek('deepseek-v4-flash'),
+    model: deepSeek('deepseek-v4-pro'),
     prompt: 'How many "r"s are in the word "strawberry"?',
-    providerOptions: {
-      deepseek: {
-        // the DeepSeek V4 models think by default:
-        thinking: { type: 'disabled' },
-      } satisfies DeepSeekLanguageModelChatOptions,
-    },
   });
 
   print('Content:', result.content);

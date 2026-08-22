@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: deepSeek('deepseek-v4-pro'),
-    reasoning: 'high',
+    reasoning: 'medium',
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 

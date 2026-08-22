@@ -2,8 +2,10 @@ import { z } from 'zod/v4';
 
 // https://api-docs.deepseek.com/quick_start/pricing
 export type DeepSeekResponsesModelId =
+  | 'deepseek-flash'
   | 'deepseek-v4-flash'
   | 'deepseek-v4-pro'
+  | 'deepseek-v4-flash-vision-exp'
   | (string & {});
 
 export const deepseekLanguageModelResponsesOptions = z.object({

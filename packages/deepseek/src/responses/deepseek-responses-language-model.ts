@@ -62,7 +62,9 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
   readonly modelId: DeepSeekResponsesModelId;
-  readonly supportedUrls = {};
+  readonly supportedUrls = {
+    'image/*': [/^https?:\/\/.*$/],
+  };
 
   private readonly config: DeepSeekResponsesConfig;
 
