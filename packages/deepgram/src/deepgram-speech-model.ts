@@ -72,19 +72,20 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
     // family ID is used; full voice IDs (e.g. `aura-2-thalia-en`) pass through.
     let upstreamModelId: string = this.modelId;
     if (VOICE_FAMILY_IDS.has(this.modelId)) {
-      if (!voice?.trim()) {
+      const trimmedVoice = voice?.trim();
+      if (!trimmedVoice) {
         throw new Error(
           `Deepgram speech model "${this.modelId}" requires a \`voice\` to be set (e.g. voice: 'thalia').`,
         );
       }
       if (language === 'auto') {
         warnings.push({
-          type: 'unsupported',
+          type: 'compatibility',
           feature: 'language',
           details: `Deepgram TTS models do not support automatic language detection. Language "en" was used instead.`,
         });
       }
-      upstreamModelId = `${this.modelId}-${voice}-${language && language !== 'auto' ? language : 'en'}`;
+      upstreamModelId = `${this.modelId}-${trimmedVoice}-${language && language !== 'auto' ? language : 'en'}`;
     }
 
     // Create request body

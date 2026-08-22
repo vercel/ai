@@ -128,6 +128,18 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should trim whitespace from the voice when composing', async () => {
+    prepareAudioResponse();
+
+    await model.doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      voice: ' thalia ',
+    });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.searchParams.get('model')).toBe('aura-2-thalia-en');
+  });
+
   it('should pass through full voice model IDs', async () => {
     prepareAudioResponse();
 
@@ -193,7 +205,7 @@ describe('doGenerate', () => {
         {
           "details": "Deepgram TTS models do not support automatic language detection. Language "en" was used instead.",
           "feature": "language",
-          "type": "unsupported",
+          "type": "compatibility",
         },
       ]
     `);
