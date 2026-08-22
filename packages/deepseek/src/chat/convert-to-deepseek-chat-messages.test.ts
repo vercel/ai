@@ -13,7 +13,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
-        modelId: 'deepseek-chat',
+        modelId: 'deepseek-v4-flash',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -48,7 +48,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
-        modelId: 'deepseek-chat',
+        modelId: 'deepseek-v4-flash',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -94,7 +94,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
-        modelId: 'deepseek-chat',
+        modelId: 'deepseek-v4-flash',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -211,7 +211,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
-        modelId: 'deepseek-chat',
+        modelId: 'deepseek-v4-flash',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -261,7 +261,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
-        modelId: 'deepseek-chat',
+        modelId: 'deepseek-v4-flash',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -269,7 +269,7 @@ describe('convertToDeepSeekChatMessages', () => {
           "messages": [
             {
               "content": "",
-              "reasoning_content": undefined,
+              "reasoning_content": "",
               "role": "assistant",
               "tool_calls": [
                 {
@@ -320,7 +320,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
-        modelId: 'deepseek-chat',
+        modelId: 'deepseek-v4-flash',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -328,7 +328,7 @@ describe('convertToDeepSeekChatMessages', () => {
           "messages": [
             {
               "content": "",
-              "reasoning_content": undefined,
+              "reasoning_content": "",
               "role": "assistant",
               "tool_calls": [
                 {
@@ -387,7 +387,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
-        modelId: 'deepseek-chat',
+        modelId: 'deepseek-v4-flash',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -423,7 +423,7 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should filter out reasoning content from turns before the last user message', () => {
+    it('should filter out reasoning content from turns before the last user message for non-v4 models', () => {
       const result = convertToDeepSeekChatMessages({
         prompt: [
           {
@@ -462,7 +462,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
-        modelId: 'deepseek-chat',
+        modelId: 'DeepSeek-R1',
       });
 
       expect(result).toMatchInlineSnapshot(`

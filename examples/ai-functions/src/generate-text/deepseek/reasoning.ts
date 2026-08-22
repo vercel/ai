@@ -4,8 +4,8 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: deepSeek('deepseek-reasoner'),
-    reasoning: 'medium',
+    model: deepSeek('deepseek-v4-pro'),
+    reasoning: 'high',
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 

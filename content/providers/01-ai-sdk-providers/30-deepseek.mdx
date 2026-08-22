@@ -62,37 +62,81 @@ import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-You can also use the `.chat()` or `.languageModel()` factory methods:
+DeepSeek serves its models through two APIs, and the provider exposes both:
 
 ```ts
-const model = deepSeek.chat('deepseek-chat');
+// Chat Completions API (default):
+const model = deepSeek.chat('deepseek-v4-flash');
 // or
-const model = deepSeek.languageModel('deepseek-chat');
+const model = deepSeek.languageModel('deepseek-v4-flash');
+
+// Responses API:
+const model = deepSeek.responses('deepseek-v4-flash');
 ```
+
+Both APIs are stateless and support text generation, object generation,
+tool calling and [image input](#file-uploads) on the vision models. The
+Responses API additionally supports DeepSeek's server-side
+[web search](#web-search) tool, which is why `deepSeek.tools` requires a model
+created with `deepSeek.responses()`.
 
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-The following optional provider options are available for DeepSeek models:
+### Provider Options
+
+The following optional provider options are available for models created with
+`deepSeek()`, `deepSeek.chat()` or `deepSeek.languageModel()`:
 
 - `thinking` _object_
 
-  Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
-  - `type`: `'adaptive' | 'enabled' | 'disabled'` - Enable, disable, or let the model decide (`adaptive`) when to think. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
+  Optional. Controls whether the model thinks before it answers. The DeepSeek
+  V4 models think by default.
+  - `type`: `'enabled' | 'disabled' | 'adaptive'` - Always think, never think,
+    or let the model decide per request (`adaptive`). See [DeepSeek's thinking
+    mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
 
 - `reasoningEffort` _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
 
-  Optional. Controls thinking strength for DeepSeek V4 reasoning models. Per
-  DeepSeek's docs, `low` and `medium` are mapped to `high`, and `xhigh` is
-  mapped to `max` server-side for compatibility with other providers. When
-  using the top-level `reasoning` setting, `minimal` is sent as `low`, and
-  `low`, `medium`, `high`, and `xhigh` pass through to DeepSeek's native
-  effort values.
+  Optional. Controls how much the model thinks. Defaults to `high`. DeepSeek V4
+  has three thinking strengths - `low`, `high` and `max`. `medium` and `xhigh`
+  are accepted for compatibility with other providers and are mapped to `high`
+  by DeepSeek.
+
+- `strictJsonSchema` _boolean_
+
+  Optional. Whether to use strict JSON schema validation for structured
+  outputs. Only applies when the serving endpoint supports JSON schema response
+  formats (e.g. Azure). Defaults to `true`.
+
+Models created with `deepSeek.responses()` accept these options instead:
+
+- `reasoningEffort` _'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+
+  Optional. Controls how much the model thinks. Same strengths as above, except
+  that the Responses API turns thinking off with `none` rather than with a
+  separate `thinking` option.
+
+- `strictJsonSchema` _boolean_
+
+  Optional. Whether to use strict JSON schema validation for structured
+  outputs. Defaults to `true`.
+
+- `user` _string_
+
+  Optional. A stable identifier for your end-user, which DeepSeek uses to
+  isolate [rate limits](https://api-docs.deepseek.com/quick_start/rate_limit)
+  between your users.
+
+<Note>
+  DeepSeek ignores `temperature`, `topP`, `presencePenalty` and
+  `frequencyPenalty` while thinking is active.
+</Note>
 
 ```ts highlight="7-12"
 import {
@@ -102,7 +146,7 @@ import {
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'How many "r"s are in the word "strawberry"?',
   providerOptions: {
     deepseek: {
@@ -115,14 +159,15 @@ const { text, reasoning } = await generateText({
 
 ### Reasoning
 
-DeepSeek has reasoning support for the `deepseek-reasoner` model. The reasoning is exposed through streaming:
+The DeepSeek V4 models think before answering, and the chain of thought is
+exposed as reasoning content:
 
 ```ts
 import { deepSeek } from '@ai-sdk/deepseek';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: deepSeek('deepseek-reasoner'),
+  model: deepSeek('deepseek-v4-pro'),
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
 
@@ -137,8 +182,68 @@ for await (const part of result.stream) {
 }
 ```
 
+Instead of the provider options you can use the portable top-level `reasoning`
+setting, which is mapped onto DeepSeek's thinking mode as follows:
+
+| `reasoning` | DeepSeek                        |
+| ----------- | ------------------------------- |
+| `none`      | thinking disabled               |
+| `minimal`   | thinking enabled, effort `low`  |
+| `low`       | thinking enabled, effort `low`  |
+| `medium`    | thinking enabled, effort `high` |
+| `high`      | thinking enabled, effort `high` |
+| `xhigh`     | thinking enabled, effort `max`  |
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-v4-pro'),
+  reasoning: 'xhigh',
+  prompt: 'How many "r"s are in the word "strawberry"?',
+});
+```
+
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
+
+### Web Search
+
+DeepSeek can search the web through the `deepSeek.tools.webSearch` tool. The
+searches run on DeepSeek's servers, so your application makes no requests of
+its own and the tool needs no configuration. It is only available on the
+Responses API, so the model has to be created with `deepSeek.responses()`:
+
+```ts highlight="5"
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: deepSeek.responses('deepseek-v4-flash'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search: deepSeek.tools.webSearch(),
+  },
+});
+
+for (const toolResult of result.toolResults) {
+  if (toolResult.toolName === 'web_search') {
+    // { type: 'search', queries: [...] } or { type: 'openPage', url: '...' }
+    console.log(toolResult.output.action);
+  }
+}
+```
+
+The model may search several times before answering. DeepSeek reports what it
+did in each call as an `action`, either a `search` with the queries it ran or
+an `openPage` with the URL it opened.
+
+<Note>
+  Web search is only available on the Responses API, so it does not work with
+  models created via `deepSeek()`, `deepSeek.chat()` or
+  `deepSeek.languageModel()`.
+</Note>
 
 ### Cache Token Usage
 
@@ -149,7 +254,7 @@ import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Your prompt here',
 });
 
@@ -207,12 +312,16 @@ const { text } = await generateText({
 
 The optional `expiresAfter` setting specifies the lifetime in seconds. DeepSeek accepts values from 3,600 seconds (one hour) through 2,592,000 seconds (30 days). Files are permanent when no expiration is specified.
 
+Images are supported on both APIs, so the same message works with
+`deepSeek.responses('deepseek-v4-flash-vision-exp')`. Next to provider
+references, you can also pass image URLs and image bytes directly.
+
 ## Model Capabilities
 
 | Model                          | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |
 | ------------------------------ | --------------- | ----------------- | ----------- | ---------- | -------------- |
-| `deepseek-chat`                | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
-| `deepseek-reasoner`            | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+| `deepseek-v4-flash`            | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+| `deepseek-v4-pro`              | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
 | `deepseek-v4-flash-vision-exp` | <Check />       | <Check />         | <Check />   | <Check />  | <Check />      |
 
 <Note>

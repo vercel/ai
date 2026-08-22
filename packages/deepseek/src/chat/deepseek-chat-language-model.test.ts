@@ -22,7 +22,7 @@ const server = createTestServer({
 describe('DeepSeekChatLanguageModel', () => {
   describe('supportedUrls', () => {
     it('should natively support HTTP image URLs', () => {
-      expect(provider.chat('deepseek-chat').supportedUrls).toEqual({
+      expect(provider.chat('deepseek-v4-flash').supportedUrls).toEqual({
         'image/*': [/^https?:\/\/.*$/],
       });
     });
@@ -45,7 +45,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should send correct request body', async () => {
-        await provider.chat('deepseek-chat').doGenerate({
+        await provider.chat('deepseek-v4-flash').doGenerate({
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -66,7 +66,7 @@ describe('DeepSeekChatLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "deepseek-chat",
+            "model": "deepseek-v4-flash",
             "temperature": 0.5,
             "top_p": 0.3,
           }
@@ -74,7 +74,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should extract text content', async () => {
-        const result = await provider.chat('deepseek-chat').doGenerate({
+        const result = await provider.chat('deepseek-v4-flash').doGenerate({
           prompt: TEST_PROMPT,
         });
 
@@ -88,7 +88,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should send correct request body', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+        await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: [
             {
               role: 'user',
@@ -115,7 +115,7 @@ describe('DeepSeekChatLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "deepseek-reasoner",
+            "model": "deepseek-v4-pro",
             "thinking": {
               "type": "enabled",
             },
@@ -124,7 +124,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should extract text content', async () => {
-        const result = await provider.chat('deepseek-chat').doGenerate({
+        const result = await provider.chat('deepseek-v4-flash').doGenerate({
           prompt: TEST_PROMPT,
         });
 
@@ -138,7 +138,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should map top-level reasoning to thinking enabled', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+        await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'high',
         });
@@ -151,7 +151,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should map top-level reasoning none to thinking disabled', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+        await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'none',
         });
@@ -164,7 +164,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should map top-level reasoning xhigh to reasoning_effort max', async () => {
-        const result = await provider.chat('deepseek-reasoner').doGenerate({
+        const result = await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'xhigh',
         });
@@ -181,7 +181,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should map top-level reasoning low to reasoning_effort low without a compatibility warning', async () => {
-        const result = await provider.chat('deepseek-reasoner').doGenerate({
+        const result = await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'low',
         });
@@ -197,19 +197,25 @@ describe('DeepSeekChatLanguageModel', () => {
         );
       });
 
-      it('should map top-level reasoning medium to reasoning_effort medium', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+      it('should map top-level reasoning medium to reasoning_effort high', async () => {
+        const result = await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'medium',
         });
 
         expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'medium',
+          'high',
         );
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "medium" is not directly supported by this model. mapped to effort "high".',
+        });
       });
 
       it('should map top-level reasoning minimal to reasoning_effort low with compatibility warning', async () => {
-        const result = await provider.chat('deepseek-reasoner').doGenerate({
+        const result = await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'minimal',
         });
@@ -228,7 +234,7 @@ describe('DeepSeekChatLanguageModel', () => {
       it.each(['low', 'medium', 'xhigh'] as const)(
         'should pass providerOptions reasoningEffort %s through to the API',
         async effort => {
-          await provider.chat('deepseek-reasoner').doGenerate({
+          await provider.chat('deepseek-v4-pro').doGenerate({
             prompt: TEST_PROMPT,
             providerOptions: {
               deepseek: {
@@ -244,7 +250,7 @@ describe('DeepSeekChatLanguageModel', () => {
       );
 
       it('should pass providerOptions thinking.type=adaptive through to the API', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+        await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             deepseek: {
@@ -259,7 +265,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should pass providerOptions reasoningEffort', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+        await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             deepseek: {
@@ -276,7 +282,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should prefer providerOptions thinking over top-level reasoning', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+        await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'none',
           providerOptions: {
@@ -292,7 +298,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+        await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'high',
           providerOptions: {
@@ -308,7 +314,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should not set thinking when reasoning is not specified', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+        await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
         });
 
@@ -324,7 +330,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should send correct request body', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+        await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -354,7 +360,7 @@ describe('DeepSeekChatLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "deepseek-reasoner",
+            "model": "deepseek-v4-pro",
             "thinking": {
               "type": "enabled",
             },
@@ -389,7 +395,7 @@ describe('DeepSeekChatLanguageModel', () => {
         });
 
         it('should send correct request body without schema', async () => {
-          await provider.chat('deepseek-reasoner').doGenerate({
+          await provider.chat('deepseek-v4-pro').doGenerate({
             prompt: TEST_PROMPT,
             responseFormat: { type: 'json' },
             tools: [
@@ -424,7 +430,7 @@ describe('DeepSeekChatLanguageModel', () => {
                   "role": "user",
                 },
               ],
-              "model": "deepseek-reasoner",
+              "model": "deepseek-v4-pro",
               "response_format": {
                 "type": "json_object",
               },
@@ -457,7 +463,7 @@ describe('DeepSeekChatLanguageModel', () => {
         });
 
         it('should send correct request body with schema', async () => {
-          await provider.chat('deepseek-reasoner').doGenerate({
+          await provider.chat('deepseek-v4-pro').doGenerate({
             prompt: TEST_PROMPT,
             responseFormat: {
               type: 'json',
@@ -515,7 +521,7 @@ describe('DeepSeekChatLanguageModel', () => {
                   "role": "user",
                 },
               ],
-              "model": "deepseek-reasoner",
+              "model": "deepseek-v4-pro",
               "response_format": {
                 "type": "json_object",
               },
@@ -548,7 +554,7 @@ describe('DeepSeekChatLanguageModel', () => {
         });
 
         it('should extract text content', async () => {
-          const result = await provider.chat('deepseek-reasoner').doGenerate({
+          const result = await provider.chat('deepseek-v4-pro').doGenerate({
             prompt: TEST_PROMPT,
             responseFormat: { type: 'json' },
             tools: [
@@ -674,7 +680,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should extract tool call content', async () => {
-        const result = await provider.chat('deepseek-reasoner').doGenerate({
+        const result = await provider.chat('deepseek-v4-pro').doGenerate({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -721,7 +727,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should send model id, settings, and input', async () => {
-        await provider.chat('deepseek-chat').doStream({
+        await provider.chat('deepseek-v4-flash').doStream({
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -742,7 +748,7 @@ describe('DeepSeekChatLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "deepseek-chat",
+            "model": "deepseek-v4-flash",
             "stream": true,
             "stream_options": {
               "include_usage": true,
@@ -754,7 +760,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should stream text', async () => {
-        const result = await provider.chat('deepseek-chat').doStream({
+        const result = await provider.chat('deepseek-v4-flash').doStream({
           prompt: TEST_PROMPT,
         });
 
@@ -770,7 +776,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should stream reasoning', async () => {
-        const result = await provider.chat('deepseek-reasoning').doStream({
+        const result = await provider.chat('deepseek-v4-pro').doStream({
           prompt: TEST_PROMPT,
         });
 
@@ -786,7 +792,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should stream tool call', async () => {
-        const result = await provider.chat('deepseek-reasoner').doStream({
+        const result = await provider.chat('deepseek-v4-pro').doStream({
           prompt: TEST_PROMPT,
           tools: [
             {

@@ -2,17 +2,22 @@ import { z } from 'zod/v4';
 
 // https://api-docs.deepseek.com/quick_start/pricing
 export type DeepSeekChatModelId =
-  | 'deepseek-chat'
-  | 'deepseek-reasoner'
+  | 'deepseek-v4-flash'
+  | 'deepseek-v4-pro'
   | 'deepseek-v4-flash-vision-exp'
   | (string & {});
 
 export const deepseekLanguageModelChatOptions = z.object({
   /**
-   * Type of thinking to use. Defaults to `enabled`.
+   * Whether the model thinks before answering. Thinking is enabled by default
+   * on the DeepSeek V4 models.
    *
-   * See https://api-docs.deepseek.com/guides/thinking_mode for the
-   * `adaptive` option, which lets the model decide when to think.
+   * `adaptive` lets the model decide per request whether to think. It is
+   * accepted by the API alongside `enabled` and `disabled`, but is not covered
+   * by https://api-docs.deepseek.com/guides/thinking_mode.
+   *
+   * Note that DeepSeek ignores `temperature`, `topP`, `presencePenalty` and
+   * `frequencyPenalty` while thinking is active.
    */
   thinking: z
     .object({
@@ -21,11 +26,13 @@ export const deepseekLanguageModelChatOptions = z.object({
     .optional(),
 
   /**
-   * Controls the thinking strength for DeepSeek V4 reasoning models.
+   * How much the model thinks before answering. Defaults to `high`.
    *
-   * DeepSeek's API accepts `low`, `medium`, `high`, `xhigh`, and `max`.
-   * Per their docs, `low` and `medium` are mapped to `high`, and `xhigh`
-   * is mapped to `max` server-side for compatibility with other providers.
+   * DeepSeek V4 has three thinking strengths - `low`, `high` and `max`. The
+   * API additionally accepts `medium` and `xhigh` for compatibility with other
+   * providers and maps both of them to `high`.
+   *
+   * @see https://api-docs.deepseek.com/guides/thinking_mode
    */
   reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
 
