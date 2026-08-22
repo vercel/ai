@@ -2317,7 +2317,7 @@ describe('Mistral tool call ID normalization', () => {
       content: [
         {
           toolResult: {
-            toolUseId: 'toolusebp',
+            toolUseId: '8eHypBDcw',
             content: [{ text: 'The result is 42' }],
           },
         },
@@ -2348,7 +2348,7 @@ describe('Mistral tool call ID normalization', () => {
       content: [
         {
           toolUse: {
-            toolUseId: 'toolusexy',
+            toolUseId: 'De61BW1Dz',
             name: 'test-tool',
             input: { query: 'test' },
           },
