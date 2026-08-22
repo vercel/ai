@@ -1,12 +1,37 @@
 const KASADA_ENDPOINT = 'FILL_IN.kasadapolyform.io';
 
-async function handler(request: Request) {
-  const url = new URL(request.url);
+type RouteContext = {
+  params?: {
+    restpath?: string[];
+  };
+};
 
-  url.protocol = 'https:';
-  url.host = KASADA_ENDPOINT;
-  url.port = '';
-  url.searchParams.delete('restpath');
+function isSafePathSegment(segment: string): boolean {
+  return (
+    segment.length > 0 &&
+    segment !== '.' &&
+    segment !== '..' &&
+    !segment.includes('/') &&
+    !segment.includes('\\') &&
+    /^[A-Za-z0-9._~-]+$/.test(segment)
+  );
+}
+
+async function handler(request: Request, context: RouteContext) {
+  const incomingUrl = new URL(request.url);
+  const url = new URL(`https://${KASADA_ENDPOINT}`);
+
+  const rawSegments = context.params?.restpath ?? [];
+  if (!rawSegments.every(isSafePathSegment)) {
+    return new Response('Invalid path.', { status: 400 });
+  }
+  url.pathname = `/${rawSegments.join('/')}`;
+
+  incomingUrl.searchParams.forEach((value, key) => {
+    if (key !== 'restpath') {
+      url.searchParams.append(key, value);
+    }
+  });
 
   const headers = new Headers(request.headers);
   headers.set('X-Forwarded-Host', 'FILL_IN');
