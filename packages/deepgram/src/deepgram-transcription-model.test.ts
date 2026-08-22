@@ -97,6 +97,29 @@ describe('doGenerate', () => {
       expect(requestUrl).toContain('detect_language=true');
     });
 
+    it('should pass paragraphs, intents, sentiment, replace, and keyterm as query parameters', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          deepgram: {
+            paragraphs: true,
+            intents: true,
+            sentiment: true,
+            replace: 'REDACTED',
+            keyterm: 'galileo',
+          },
+        },
+      });
+
+      const requestUrl = server.calls[0].requestUrl;
+      expect(requestUrl).toContain('paragraphs=true');
+      expect(requestUrl).toContain('intents=true');
+      expect(requestUrl).toContain('sentiment=true');
+      expect(requestUrl).toContain('replace=REDACTED');
+      expect(requestUrl).toContain('keyterm=galileo');
+    });
+
     it('should return detected language from response', async () => {
       const result = await model.doGenerate({
         audio: audioData,
