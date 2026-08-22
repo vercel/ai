@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19311,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19311-negative-output-tokens.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19311-negative-output-tokens.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19311 REPRODUCED: negative outputTokens.text: openai=-1, groq=-1, alibaba=-1, moonshotai=-1, deepseek=-1, perplexity=-1, aggregate=-1"
+  }
+}
