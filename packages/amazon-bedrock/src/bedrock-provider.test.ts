@@ -2,6 +2,7 @@ import type * as AnthropicModule from '@ai-sdk/anthropic';
 import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import { loadOptionalSetting } from '@ai-sdk/provider-utils';
 import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
+import fs from 'node:fs';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
@@ -86,6 +87,23 @@ describe('AmazonBedrockProvider', () => {
   });
 
   describe('createAmazonBedrock', () => {
+    it('should resolve the AWS ISO partition endpoint', () => {
+      const liveAttempt = JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/issue-11197-live-attempt.json',
+          'utf8',
+        ),
+      );
+      const provider = createAmazonBedrock({
+        region: liveAttempt.scenario.region,
+      });
+
+      provider(liveAttempt.scenario.modelId);
+
+      const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseUrl()).toBe(liveAttempt.expectedBaseURL);
+    });
+
     it('should create a provider instance with default options', () => {
       const provider = createAmazonBedrock();
       const model = provider('anthropic.claude-v2');
