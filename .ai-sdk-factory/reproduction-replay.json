@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19067,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19067.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19067.ts",
+    "packages/openai/src/responses/__fixtures__/issue-19067-parallel-tool-call-wrapper.chunks.txt",
+    "packages/openai/src/responses/issue-19067-parallel-tool-call-wrapper.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19067_REPRODUCED: the parallel wrapper was rejected with NoSuchToolError and its declared nested tool calls were discarded"
+  }
+}
