@@ -70,6 +70,19 @@ export type HarnessV1StreamPart =
   // `true` for runtime-executed builtins, false/undefined for host tools.
   | (LanguageModelV4ToolCall & {
       nativeName?: string;
+      /**
+       * How many tool calls the runtime emits for the step this call belongs
+       * to. Lets the host collect every approval in a step before parking the
+       * turn for host input, instead of parking on the first one and dropping
+       * the rest.
+       *
+       * Adapters that know the step's tool-call set before emitting the first
+       * `tool-call` (e.g. Pi, whose `message_end` carries the whole assistant
+       * message) should set it on every `tool-call` of the step. Adapters that
+       * discover tool calls incrementally omit it, and the host parks on the
+       * first call needing input.
+       */
+      stepToolCallCount?: number;
     })
   | LanguageModelV4ToolApprovalRequest
   | LanguageModelV4ToolResult
@@ -267,6 +280,7 @@ export const harnessV1ToolCallPartSchema = z.object({
   dynamic: z.boolean().optional(),
   providerMetadata: harnessV1ProviderMetadataSchema.optional(),
   nativeName: z.string().optional(),
+  stepToolCallCount: z.number().int().positive().optional(),
 });
 
 export const harnessV1ToolApprovalRequestPartSchema = z.object({

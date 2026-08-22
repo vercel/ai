@@ -1196,6 +1196,125 @@ describe('runPrompt host tool generator results', () => {
     expect(stopBoundaryCalls).toBe(0);
   });
 
+  test('collects every approval in a step before pausing the turn', async () => {
+    const submitted: SubmittedResult[] = [];
+    const pending: unknown[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => ({ temperature: 72 }),
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+            stepToolCallCount: 2,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'NYC' }),
+            stepToolCallCount: 2,
+          },
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'user-approval' },
+      onPendingToolApproval: approval => pending.push(approval),
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(submitted).toEqual([]);
+    expect(await result.finishReason).toBe('tool-calls');
+    expect(
+      (pending as Array<{ toolCallId: string }>).map(
+        approval => approval.toolCallId,
+      ),
+    ).toEqual(['c1', 'c2']);
+    const approvalRequests = parts.filter(
+      part => part.type === 'tool-approval-request',
+    ) as Array<
+      Extract<TextStreamPart<ToolSet>, { type: 'tool-approval-request' }>
+    >;
+    expect(approvalRequests.map(request => request.toolCall.input)).toEqual([
+      { city: 'SF' },
+      { city: 'NYC' },
+    ]);
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(
+      steps[0]!.content.flatMap(part =>
+        part.type === 'tool-call' ? [part.toolCallId] : [],
+      ),
+    ).toEqual(['c1', 'c2']);
+  });
+
+  test('pauses on the first approval when the step tool-call count is unknown', async () => {
+    const pending: unknown[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => ({ temperature: 72 }),
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'c2',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'NYC' }),
+        },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'user-approval' },
+      onPendingToolApproval: approval => pending.push(approval),
+    });
+
+    for await (const _part of result.fullStream) {
+      // drain
+    }
+    await done;
+
+    expect(
+      (pending as Array<{ toolCallId: string }>).map(
+        approval => approval.toolCallId,
+      ),
+    ).toEqual(['c1']);
+  });
+
   test('denies custom tools configured with denied approval status', async () => {
     const submitted: SubmittedResult[] = [];
     const weather = tool({
