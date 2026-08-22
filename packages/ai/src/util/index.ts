@@ -10,3 +10,4 @@ export { isDeepEqualData } from './is-deep-equal-data';
 export { parsePartialJson } from './parse-partial-json';
 export { SerialJobExecutor } from './serial-job-executor';
 export { simulateReadableStream } from './simulate-readable-stream';
+export { withFallback, type FallbackOptions } from './with-fallback';
