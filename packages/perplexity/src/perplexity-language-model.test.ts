@@ -446,7 +446,7 @@ describe('doGenerate', () => {
         },
         "outputTokens": {
           "reasoning": 50,
-          "text": -30,
+          "text": 0,
           "total": 20,
         },
         "raw": {
@@ -735,7 +735,7 @@ describe('doStream', () => {
         },
         "outputTokens": {
           "reasoning": 50,
-          "text": -29,
+          "text": 0,
           "total": 21,
         },
         "raw": {
