@@ -1,0 +1,113 @@
+---
+title: DaoXE
+description: Use the DaoXE multi-model multi-protocol gateway with the AI SDK via OpenAI-compatible Chat Completions.
+---
+
+# DaoXE Provider
+
+[DaoXE](https://daoxe.com) is a multi-model, multi-protocol API gateway. It exposes OpenAI-compatible Chat Completions and Responses endpoints, Anthropic Messages (Claude protocol) paths, and image-compatible endpoints where available, so apps can route multiple providers through one account.
+
+For the Vercel AI SDK, use DaoXE's OpenAI-compatible Chat Completions surface through `@ai-sdk/openai-compatible` with base URL `https://daoxe.com/v1`.
+
+<Note>
+  DaoXE is not available in mainland China. Model IDs, availability, and pricing
+  are account-scoped — use the live catalog on your DaoXE account / [pricing
+  page](https://daoxe.com/pricing) rather than hardcoding a public model list.
+</Note>
+
+## Setup
+
+The DaoXE provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use DaoXE, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const daoxe = createOpenAICompatible({
+  name: 'daoxe',
+  baseURL: 'https://daoxe.com/v1',
+  apiKey: process.env.DAOXE_API_KEY,
+});
+```
+
+<Note>
+  Create an API key in [DaoXE](https://daoxe.com) and set the `DAOXE_API_KEY`
+  environment variable. Do not commit keys to source control.
+</Note>
+
+## Language Models
+
+Pass a model ID from your DaoXE account catalog as the first argument. Model availability can vary by account, so prefer IDs returned by authenticated `GET /v1/models` (or shown in the dashboard) over any static list.
+
+```ts
+const model = daoxe('YOUR_ACCOUNT_MODEL_ID');
+```
+
+You can also use the chat-model factory:
+
+```ts
+const model = daoxe.chatModel('YOUR_ACCOUNT_MODEL_ID');
+```
+
+### Example - Generate Text
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const daoxe = createOpenAICompatible({
+  name: 'daoxe',
+  baseURL: 'https://daoxe.com/v1',
+  apiKey: process.env.DAOXE_API_KEY,
+});
+
+const { text, usage, finishReason } = await generateText({
+  model: daoxe('YOUR_ACCOUNT_MODEL_ID'),
+  prompt: 'Summarize multi-protocol API gateways in one sentence.',
+});
+
+console.log(text);
+console.log('Token usage:', usage);
+console.log('Finish reason:', finishReason);
+```
+
+### Example - Stream Text
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const daoxe = createOpenAICompatible({
+  name: 'daoxe',
+  baseURL: 'https://daoxe.com/v1',
+  apiKey: process.env.DAOXE_API_KEY,
+});
+
+const result = streamText({
+  model: daoxe('YOUR_ACCOUNT_MODEL_ID'),
+  prompt: 'Write a short note about unified model access.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log();
+console.log('Token usage:', await result.usage);
+console.log('Finish reason:', await result.finishReason);
+```
+
+## Multi-protocol note
+
+DaoXE is not limited to OpenAI Chat Completions. Beyond the surface used by `@ai-sdk/openai-compatible`, the gateway also offers OpenAI Responses, Anthropic Messages (Claude protocol), and image-compatible endpoints where available. Those other protocols are configured with their respective client SDKs; this page focuses on the AI SDK path via OpenAI-compatible Chat Completions.
+
+## Further reading
+
+- [DaoXE pricing / catalog](https://daoxe.com/pricing)
+- [Public examples](https://github.com/seven7763/DaoXE-AI)
