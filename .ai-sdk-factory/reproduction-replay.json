@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 9967,
+  "command": "ISSUE_9967_REPLAY_FIXTURE=1 pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9967-amazon-bedrock-gpt-oss-object.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-9967-amazon-bedrock-gpt-oss-object.ts",
+    "packages/amazon-bedrock/src/__fixtures__/issue-9967-gpt-oss-json-tool-name-channel.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_9967_REPRODUCED: NoObjectGeneratedError on attempt 1"
+  }
+}

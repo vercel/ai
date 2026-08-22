@@ -1,0 +1,37 @@
+{
+  "metrics": {
+    "latencyMs": 984
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "reasoningContent": {
+            "reasoningText": {
+              "text": "The user says: \"Extract product information from: Pizza, $12, Large\". We have to output a JSON object via the function 'json' with name, size, price.\n\nWe need to call the function with name: \"Pizza\", size: \"Large\", price: 12. Note the price is number, 12. The question: distinct order of fields? The function signature: json({_}: {name: string, size: string, price: number}) returns any. No ordering requirement, but we output the JSON correctly.\n\nSo we need to output the function call: maybe use the function call format. Use name of function and arguments. In JSON. Format: { \"name\": \"Pizza\", \"size\": \"Large\", \"price\": 12 }.\n\nThus use tool."
+            }
+          }
+        },
+        {
+          "toolUse": {
+            "input": {
+              "name": "Pizza",
+              "size": "Large",
+              "price": 12
+            },
+            "name": "json<|channel|>commentary",
+            "toolUseId": "tooluse_x8RLcHCNXeUTHeEWUwSSXi"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "inputTokens": 137,
+    "outputTokens": 196,
+    "serverToolUsage": {},
+    "totalTokens": 333
+  }
+}
