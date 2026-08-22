@@ -5,7 +5,6 @@ import {
   type Experimental_VideoModelV4File as VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
-  type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -474,25 +473,22 @@ export class AlibabaVideoModel implements VideoModelV4 {
     responseHeaders: Record<string, string> | undefined,
     warnings: SharedV4Warning[],
     currentDate: Date,
-  ): {
-    status: 'completed';
-    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
-    warnings: SharedV4Warning[];
-    providerMetadata: SharedV4ProviderMetadata;
-    response: {
-      timestamp: Date;
-      modelId: string;
-      headers: Record<string, string> | undefined;
-    };
-  } {
+  ): VideoModelV4OperationStatusResult {
     const taskId = statusResponse.output?.task_id;
     const videoUrl = statusResponse.output?.video_url;
 
+    // Terminal, so it is reported the same way as an upstream FAILED task: a
+    // SUCCEEDED task with no URL never gains one on a later poll.
     if (!videoUrl) {
-      throw new AISDKError({
-        name: 'ALIBABA_VIDEO_GENERATION_ERROR',
-        message: `No video URL in response. Task ID: ${taskId}`,
-      });
+      return {
+        status: 'error',
+        error: `No video URL in response. Task ID: ${taskId}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     return {

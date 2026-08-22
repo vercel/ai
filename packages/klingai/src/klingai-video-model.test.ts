@@ -1337,6 +1337,52 @@ describe('KlingAIVideoModel', () => {
       };
     });
 
+    it('should return error status when a succeeded task carries no videos', async () => {
+      // Terminal: a throw here is indistinguishable from a transient network
+      // fault, so an async poller would retry a task that already succeeded.
+      server.urls[
+        `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`
+      ].response = {
+        type: 'json-value',
+        body: {
+          code: 0,
+          message: 'success',
+          request_id: 'req-no-videos',
+          data: {
+            task_id: 'task-abc-123',
+            task_status: 'succeed',
+            task_status_msg: '',
+            task_info: {},
+            task_result: { videos: [] },
+            created_at: 1722769557708,
+            updated_at: 1722769560000,
+          },
+        },
+      };
+
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      const result = await model.doStatus({
+        operation: {
+          taskId: 'task-abc-123',
+          endpointPath: '/v1/videos/text2video',
+        },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toContain('No videos in response');
+      }
+
+      // Reset
+      server.urls[
+        `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`
+      ].response = {
+        type: 'json-value',
+        body: successfulTaskResponse,
+      };
+    });
+
     it('should return error status on failed task', async () => {
       server.urls[
         `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`

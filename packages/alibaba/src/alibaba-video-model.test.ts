@@ -570,6 +570,41 @@ describe('AlibabaVideoModel', () => {
       };
     });
 
+    it('should return error status when SUCCEEDED carries no video URL', async () => {
+      // Terminal: a throw here is indistinguishable from a transient network
+      // fault, so an async poller would retry a task that already succeeded.
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            task_id: 'task-abc-123',
+            task_status: 'SUCCEEDED',
+          },
+          request_id: 'req-no-url',
+        },
+      };
+
+      const model = createModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'task-abc-123' },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toBe(
+          'No video URL in response. Task ID: task-abc-123',
+        );
+        expect(result.response.modelId).toBe('wan2.6-t2v');
+      }
+
+      // Reset
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: succeededTaskResponse,
+      };
+    });
+
     it('should return error status on FAILED', async () => {
       server.urls[TASK_URL].response = {
         type: 'json-value',

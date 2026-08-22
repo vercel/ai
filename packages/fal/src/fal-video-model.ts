@@ -4,7 +4,6 @@ import {
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
-  type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -121,7 +120,11 @@ export class FalVideoModel implements VideoModelV4 {
         };
       }
 
-      if (APICallError.isInstance(error)) {
+      // Only a non-retryable provider error is terminal. A 429 or 5xx is a
+      // transient transport fault, so it is rethrown for the caller's retry to
+      // handle — reporting it as `status: 'error'` would permanently fail a
+      // generation the provider is still working on.
+      if (APICallError.isInstance(error) && !error.isRetryable) {
         return {
           status: 'error' as const,
           error: error.message,
@@ -310,24 +313,21 @@ export class FalVideoModel implements VideoModelV4 {
     responseHeaders?: Record<string, string>;
     warnings: SharedV4Warning[];
     currentDate: Date;
-  }): {
-    status: 'completed';
-    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
-    warnings: SharedV4Warning[];
-    providerMetadata: SharedV4ProviderMetadata;
-    response: {
-      timestamp: Date;
-      modelId: string;
-      headers: Record<string, string> | undefined;
-    };
-  } {
+  }): VideoModelV4OperationStatusResult {
     const videoUrl = response.video?.url;
 
+    // Terminal, so it is reported as an error status rather than thrown: a
+    // completed response with no video URL never gains one on a later poll.
     if (!videoUrl || !response.video) {
-      throw new AISDKError({
-        name: 'FAL_VIDEO_GENERATION_ERROR',
-        message: 'No video URL in response',
-      });
+      return {
+        status: 'error',
+        error: 'No video URL in response',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     return {

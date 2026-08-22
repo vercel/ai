@@ -5,7 +5,6 @@ import {
   type Experimental_VideoModelV4File as VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
-  type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -107,6 +106,28 @@ function convertInputReferenceImage(
 ): Record<string, unknown> | undefined {
   const image = convertFileToVertexImage(file, warnings);
   return image != null ? { image, referenceType: 'asset' } : undefined;
+}
+
+/**
+ * A done operation with no videos is normally the Responsible AI filter case:
+ * every sample was removed, which `raiMediaFilteredCount` reports. The reasons
+ * are only present when the request set `includeRaiReason`.
+ */
+function describeMissingVideos(operation: VertexOperation): string {
+  const filteredCount = operation.response?.raiMediaFilteredCount ?? 0;
+  if (filteredCount === 0) {
+    return `No videos in response. Response: ${JSON.stringify(operation)}`;
+  }
+
+  const reasons = operation.response?.raiMediaFilteredReasons
+    ?.filter(reason => reason.length > 0)
+    .join('; ');
+
+  return (
+    `Video generation returned no videos: all ${filteredCount} generated sample(s) ` +
+    `were removed by Responsible AI filters.` +
+    (reasons ? ` Reasons: ${reasons}` : '')
+  );
 }
 
 export class GoogleVertexVideoModel implements VideoModelV4 {
@@ -261,26 +282,20 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
     responseHeaders: Record<string, string> | undefined;
     warnings: SharedV4Warning[];
     currentDate: Date;
-  }): {
-    status: 'completed';
-    videos: Array<
-      | { type: 'base64'; data: string; mediaType: string }
-      | { type: 'url'; url: string; mediaType: string }
-    >;
-    warnings: SharedV4Warning[];
-    providerMetadata: SharedV4ProviderMetadata;
-    response: {
-      timestamp: Date;
-      modelId: string;
-      headers: Record<string, string> | undefined;
-    };
-  } {
+  }): VideoModelV4OperationStatusResult {
     const response = finalOperation.response;
+    // Terminal, so it is reported the same way as an operation-level error: a
+    // done operation with no videos never gains any on a later poll.
     if (!response?.videos || response.videos.length === 0) {
-      throw new AISDKError({
-        name: 'VERTEX_VIDEO_GENERATION_ERROR',
-        message: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
-      });
+      return {
+        status: 'error',
+        error: describeMissingVideos(finalOperation),
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     const videos: Array<
@@ -316,10 +331,15 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
     }
 
     if (videos.length === 0) {
-      throw new AISDKError({
-        name: 'VERTEX_VIDEO_GENERATION_ERROR',
-        message: 'No valid videos in response',
-      });
+      return {
+        status: 'error',
+        error: 'No valid videos in response',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     return {
@@ -465,6 +485,9 @@ const googleVertexOperationSchema = z.object({
         )
         .nullish(),
       raiMediaFilteredCount: z.number().nullish(),
+      /** Reason codes for samples the Responsible AI filters removed. Only
+       * populated when the request set `includeRaiReason`. */
+      raiMediaFilteredReasons: z.array(z.string()).nullish(),
     })
     .nullish(),
 });

@@ -564,6 +564,78 @@ describe('GoogleVertexVideoModel', () => {
       expect(result.status).toBe('pending');
     });
 
+    it('should return error status when done carries no videos', async () => {
+      // Terminal: a throw here is indistinguishable from a transient network
+      // fault, so an async poller would retry an operation that is already done.
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        videos: [],
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toContain(
+        'No videos in response',
+      );
+      expect(result.response).toMatchObject({
+        modelId: 'veo-2.0-generate-001',
+      });
+    });
+
+    it('should name the Responsible AI filters when they removed every sample', async () => {
+      // `done` with no videos is normally the all-filtered case, and the count
+      // is already in the response — so the message should say so rather than
+      // dumping the raw operation.
+      const model = new GoogleVertexVideoModel('veo-2.0-generate-001', {
+        provider: 'google-vertex',
+        baseURL: 'https://api.example.com',
+        headers: () => ({ 'api-key': 'test-key' }),
+        fetch: async () =>
+          new Response(
+            JSON.stringify({
+              name: 'operations/filtered-op',
+              done: true,
+              response: {
+                videos: [],
+                raiMediaFilteredCount: 2,
+                raiMediaFilteredReasons: ['58061214: Celebrity'],
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/filtered-op' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toBe(
+        'Video generation returned no videos: all 2 generated sample(s) were ' +
+          'removed by Responsible AI filters. Reasons: 58061214: Celebrity',
+      );
+    });
+
+    it('should return error status when done carries no usable video data', async () => {
+      // The samples exist but none has base64 data or a GCS URI.
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        videos: [{ video: { mimeType: 'video/mp4' } }],
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toBe(
+        'No valid videos in response',
+      );
+    });
+
     it('should return error status on operation error', async () => {
       const model = createMockModel({
         operationName: 'operations/my-op-123',

@@ -1,5 +1,4 @@
 import {
-  AISDKError,
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
@@ -276,11 +275,22 @@ export class ReplicateVideoModel implements VideoModelV4 {
     }
 
     if (prediction.status === 'succeeded') {
+      // Terminal, so it is reported the same way as `failed` above: a succeeded
+      // prediction with no output will never gain one on a later poll. Replicate
+      // clears outputs after a retention window and flags it with
+      // `data_removed`, so the message says which case this is.
       if (!prediction.output) {
-        throw new AISDKError({
-          name: 'REPLICATE_VIDEO_GENERATION_ERROR',
-          message: 'No video URL in response',
-        });
+        return {
+          status: 'error' as const,
+          error: prediction.data_removed
+            ? 'Video generation succeeded but its output has been removed by Replicate. Outputs are deleted after their retention window; the prediction must be re-run.'
+            : 'No video URL in response',
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: responseHeaders,
+          },
+        };
       }
 
       return {
@@ -320,6 +330,9 @@ const replicatePredictionSchema = z.object({
   id: z.string(),
   status: z.enum(['starting', 'processing', 'succeeded', 'failed', 'canceled']),
   output: z.string().nullish(),
+  /** Set once Replicate has cleared the prediction's output (~1 hour by
+   * default), which is the documented reason a succeeded prediction has none. */
+  data_removed: z.boolean().nullish(),
   error: z.string().nullish(),
   urls: z.object({
     get: z.string(),
