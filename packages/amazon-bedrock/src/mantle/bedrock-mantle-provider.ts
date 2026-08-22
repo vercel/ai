@@ -249,6 +249,7 @@ export function createBedrockMantle(
       url,
       headers: getHeaders,
       fetch: fetchFunction,
+      compatibility: 'compatible',
     });
 
   const provider = function (modelId: BedrockMantleChatModelId) {
