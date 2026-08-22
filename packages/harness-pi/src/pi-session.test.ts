@@ -160,6 +160,36 @@ describe('createPiSession', () => {
     }));
   });
 
+  it('rejects structured output turns', async () => {
+    const session = await createPiSession({
+      sessionId: 'session-structured-output',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      await expect(
+        session.doPromptTurn({
+          prompt: 'Generate an object.',
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object' },
+          },
+          emit: () => {},
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_HarnessCapabilityUnsupportedError',
+        harnessId: 'pi',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('loads a caller-supplied inline extension factory through createPi', async () => {
     const factory = vi.fn((piApi: ExtensionAPI) => {
       expect(piApi).toBe(piMock.extensionApi);
@@ -252,6 +282,49 @@ describe('createPiSession', () => {
       expect(observedEvents).toEqual(['agent_start', 'agent_start']);
       expect(piMock.resourceLoaderReloadCount).toBe(3);
       expect(piMock.agentSessionExtensionResults).toHaveLength(1);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('steers the active Pi session', async () => {
+    let finishPrompt!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      finishPrompt = resolve;
+    });
+    const steer = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => promptDone),
+      steer,
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+    const session = await createPiSession({
+      sessionId: 'session-steering',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Weather in Paris?',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.submitUserMessage?.('Actually, Paris, Texas.');
+
+      expect(steer).toHaveBeenCalledExactlyOnceWith('Actually, Paris, Texas.');
+      finishPrompt();
+      await control.done;
     } finally {
       await session.doDestroy();
     }

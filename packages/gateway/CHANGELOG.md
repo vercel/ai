@@ -1,5 +1,69 @@
 # @ai-sdk/gateway
 
+## 4.0.62
+
+### Patch Changes
+
+- a371615: feat (provider/gateway): add Tako Search tool support
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.61
+
+### Patch Changes
+
+- dedac59: chore(provider/gateway): update gateway model settings files
+
+## 4.0.60
+
+### Patch Changes
+
+- 5941bd6: feat(gateway): implement `handleWebhookOption` on the video model so `generateVideo({ webhook })` registers the factory URL as the gateway's `callbackUrl` and awaits delivery instead of falling back to polling
+- 9a4337d: feat: add DeepSeek V4 Flash Vision Exp image input and Files API support
+
+## 4.0.59
+
+### Patch Changes
+
+- f607a12: chore(google): drop support for Imagen models and their integration following API shutdown
+
+## 4.0.58
+
+### Patch Changes
+
+- fdcc814: chore(provider/gateway): update gateway model settings files
+
+## 4.0.57
+
+### Patch Changes
+
+- 936719b: add experimental batch API support (startTextBatch/getBatchStatus/getBatchResults) via the AI Gateway batch routes
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.55
+
+### Patch Changes
+
+- 1f7a464: chore(provider/gateway): update gateway model settings files
+
+## 4.0.54
+
+### Patch Changes
+
+- 257632b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.53
+
+### Patch Changes
+
+- a0b1ffc: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.52
 
 ### Patch Changes

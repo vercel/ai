@@ -13,6 +13,7 @@ import {
   agentBasicE2e,
   agentErrorToolE2e,
   agentInstructionsStringE2e,
+  agentModelRetriesE2e,
   agentMultiStepE2e,
   agentOnFinishE2e,
   agentOnStartE2e,
@@ -24,11 +25,29 @@ import {
   agentRepairToolCallE2e,
   agentRuntimeAndToolsContextE2e,
   agentSandboxE2e,
+  agentStreamErrorE2e,
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
   agentToolInputSchemaE2e,
 } from './test/agent-e2e-workflows.js';
+
+async function collectStream<T>(stream: ReadableStream<T>): Promise<T[]> {
+  const chunks: T[] = [];
+  const reader = stream.getReader();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        return chunks;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 
 describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
   // ==========================================================================
@@ -43,6 +62,37 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
         stepCount: 1,
         lastStepText: 'Echo: hello world',
       });
+    });
+
+    it('retries model calls within one durable step attempt', async () => {
+      const run = await start(agentModelRetriesE2e, []);
+
+      await expect(run.returnValue).resolves.toBe(
+        'model-attempts=3;step-attempt=1',
+      );
+    });
+
+    it('surfaces stream error data without retrying the model step', async () => {
+      const run = await start(agentStreamErrorE2e, []);
+      const chunksPromise = collectStream<{ type: string; error?: unknown }>(
+        run.readable,
+      );
+      const rv = await run.returnValue;
+      const chunks = await chunksPromise;
+      const terminal = {
+        type: 'credential',
+        code: 'safe-terminal-classification',
+      };
+
+      expect(rv).toEqual({
+        error: terminal,
+        finishReason: 'error',
+        stepCount: 1,
+        callbackErrors: [terminal],
+      });
+      expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([
+        { type: 'error', error: terminal },
+      ]);
     });
 
     it('single tool call', async () => {

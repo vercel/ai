@@ -1,5 +1,26 @@
 # @ai-sdk/deepseek
 
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 3.0.30
+
+### Patch Changes
+
+- 9a4337d: feat: add DeepSeek V4 Flash Vision Exp image input and Files API support
+
+## 3.0.29
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
 ## 3.0.28
 
 ### Patch Changes

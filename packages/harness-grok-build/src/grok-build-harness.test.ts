@@ -41,6 +41,7 @@ describe('createGrokBuild', () => {
       args: settings.args,
       credentialEnv: settings.credentialEnv,
       instructionMapping: settings.instructionMapping,
+      outputSchemaMapping: settings.outputSchemaMapping,
       providerAuthentication: settings.providerAuthentication,
       builtinToolNames: Object.keys(settings.builtinTools ?? {}),
     }).toMatchInlineSnapshot(`
@@ -90,6 +91,12 @@ describe('createGrokBuild', () => {
             "rules",
           ],
           "type": "session-meta",
+        },
+        "outputSchemaMapping": {
+          "path": [
+            "outputSchema",
+          ],
+          "type": "session-prompt-meta",
         },
         "providerAuthentication": {
           "gateway": {
@@ -157,10 +164,12 @@ describe('createGrokBuild', () => {
 
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
+    const portEndpoint = { url: 'wss://sandbox.example/bridge' };
     createGrokBuild({
       auth: 'direct',
       model: 'grok-code-fast-1',
       port: 4319,
+      portEndpoint,
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
@@ -172,6 +181,7 @@ describe('createGrokBuild', () => {
       auth: settings.auth,
       modelId: settings.modelId,
       port: settings.port,
+      portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
@@ -179,6 +189,7 @@ describe('createGrokBuild', () => {
       auth: 'direct',
       modelId: 'grok-code-fast-1',
       port: 4319,
+      portEndpoint,
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,

@@ -2,6 +2,7 @@ import {
   commonTool,
   type HarnessV1,
   type HarnessV1BuiltinTool,
+  type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import {
@@ -35,6 +36,11 @@ export type GrokBuildHarnessSettings = {
    * Overrides the sandbox port used by the ACP bridge.
    */
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   /**
    * Maximum milliseconds to wait for the ACP bridge to start.
    */
@@ -286,6 +292,7 @@ export function createGrokBuild(
     auth: settings.auth,
     modelId: settings.model,
     port: settings.port,
+    portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
     mcpServers: settings.mcpServers,
     isMcpToolCall: toolCall => {
@@ -320,6 +327,10 @@ export function createGrokBuild(
     instructionMapping: {
       type: 'session-meta',
       path: ['rules'],
+    },
+    outputSchemaMapping: {
+      type: 'session-prompt-meta',
+      path: ['outputSchema'],
     },
     providerAuthentication: {
       gateway: {

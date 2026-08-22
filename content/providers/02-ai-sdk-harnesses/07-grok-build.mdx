@@ -104,6 +104,12 @@ Settings:
 The adapter pins the Grok Build CLI and ACP launch command. These implementation
 details cannot be overridden through `createGrokBuild()`.
 
+## Structured Output
+
+Grok Build supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+Its profile maps the JSON Schema to Grok Build's private ACP prompt metadata,
+which the runtime enforces through its provider structured-output mechanism.
+
 ## Authentication
 
 By default, authentication is resolved from the host environment. When the

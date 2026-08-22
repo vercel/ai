@@ -25,6 +25,13 @@ export {
 } from './harness-v1-builtin-tool';
 export type { HarnessV1Metadata } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
+export type {
+  HarnessV1JSONSchema,
+  HarnessV1JSONArray,
+  HarnessV1JSONObject,
+  HarnessV1JSONValue,
+  HarnessV1ResponseFormat,
+} from './harness-v1-response-format';
 export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
 export type {
   HarnessV1ContinueTurnState,
@@ -66,8 +73,10 @@ export {
   harnessV1BridgeDestroyInboundSchema,
   harnessV1BridgeHelloSchema,
   harnessV1BridgeInboundCommandSchemas,
+  harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeOutboundMessageSchema,
   harnessV1BridgeReadySchema,
+  harnessV1BridgeResponseFormatSchema,
   harnessV1BridgeResumeInboundSchema,
   harnessV1BridgeSandboxLogSchema,
   harnessV1BridgeStopInboundSchema,
@@ -78,13 +87,15 @@ export {
   harnessV1BridgeToolResultInboundSchema,
   harnessV1BridgePermissionModeSchema,
   harnessV1BridgeToolWireSchema,
-  harnessV1BridgeUserMessageInboundSchema,
+  experimental_harnessV1BridgeUserMessageInboundSchema,
+  experimental_harnessV1BridgeUserMessageResponseSchema,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1BridgeDebugEvent,
   type HarnessV1BridgeOutboundMessage,
   type HarnessV1BridgeReady,
   type HarnessV1BridgeSandboxLog,
   type HarnessV1BridgeToolWire,
+  type Experimental_HarnessV1BridgeUserMessageResponse,
 } from './harness-v1-bridge-protocol';
 export {
   harnessV1DebugConfigSchema,

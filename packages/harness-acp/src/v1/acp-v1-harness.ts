@@ -19,8 +19,10 @@ import {
   classifyDiskLog,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
   markBridgeStarting,
   maskSandboxCredentials,
+  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -30,6 +32,7 @@ import {
 import {
   asSchema,
   type Experimental_SandboxProcess,
+  type Experimental_SandboxSession as SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
@@ -76,6 +79,7 @@ import {
 } from './acp-v1-prompt';
 import type {
   ACPInstructionMapping,
+  ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPSerializableValue,
@@ -113,6 +117,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   settings,
   builtinTools,
   port: portOverride,
+  portEndpoint: portEndpointOverride,
   startupTimeoutMs,
   clientApp,
   lifecycleStateSchema,
@@ -120,6 +125,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   settings: ACPV1Settings;
   builtinTools: TBuiltinTools;
   port?: number;
+  portEndpoint?: HarnessV1PortEndpoint;
   startupTimeoutMs?: number;
   clientApp: ACPClientApp;
   lifecycleStateSchema: NonNullable<
@@ -209,6 +215,26 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         compatibility: providerAuthenticationCompatibility,
       });
       const sandboxSession = startOptions.sandboxSession;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: portOverride,
+        portEndpoint: portEndpointOverride,
+        harnessId: settings.harnessId,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw unsupported({
+          harnessId: settings.harnessId,
+          message: `The ${settings.harnessId} ACP harness cannot use \`mintBridgeToken\` with a sandbox session that does not expose an id.`,
+        });
+      }
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal: startOptions.abortSignal,
+        });
       const implementationEnvironment = resolveImplementationEnvironment({
         implementation,
         env,
@@ -220,6 +246,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
 
       if (
         settings.credentialBrokering != null &&
+        'addRequestTransformations' in sandboxSession &&
         sandboxSession.addRequestTransformations != null
       ) {
         const providerEnvironment = resolveProviderEnvironment({
@@ -274,15 +301,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       } else if (settings.credentialBrokering != null) {
         warnCredentialBrokeringUnavailable();
       }
-      const sandbox = sandboxSession.restricted();
       const resolvedBridgeDir = posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
+        defaultWorkingDirectory,
         bootstrap.bootstrapDir,
       );
       const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
       const workDir = startOptions.sessionWorkDir;
       const sandboxHomeDir = await resolveSandboxHomeDir({
-        sandbox,
+        sandbox: toolSafeSandboxSession,
         abortSignal: startOptions.abortSignal,
       });
       const privateSessionDir = resolveACPPrivateSessionDirectory({
@@ -308,7 +334,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           implementationIdentity,
           authenticationProfile,
           lifecycleData,
-          sandboxId: sandboxSession.id,
+          sandboxId,
         });
       }
       const skills = startOptions.skills ?? [];
@@ -322,7 +348,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       if (skills.length > 0) {
         skillCatalog = (
           await materializeACPSkills({
-            sandbox,
+            sandbox: toolSafeSandboxSession,
             sandboxHomeDir,
             sessionWorkDir: workDir,
             harnessId: settings.harnessId,
@@ -364,9 +390,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }
         if (coords != null) {
           try {
-            const endpoint = await sandboxSession.getPortEndpoint({
+            const endpoint = await resolveBridgeEndpoint({
+              sandboxSession,
+              override: portEndpointOverride,
               port: coords.port,
-              protocol: 'ws',
+              harnessId: settings.harnessId,
             });
             const attachEndpoint = withBridgeToken({
               endpoint,
@@ -388,6 +416,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               modelId: settings.modelId,
               sessionMeta: settings.session?.meta,
               instructionMapping: settings.instructionMapping,
+              outputSchemaMapping: settings.outputSchemaMapping,
               debug: startOptions.observability?.debug,
               implementationIdentity,
               authenticationProfile,
@@ -405,7 +434,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               acpSessionId: lifecycleData.acpSessionId,
               bridgePort: coords.port,
               bridgeToken: coords.token,
-              sandboxId: sandboxSession.id,
+              sandboxId,
               isResume: true,
               turnInFlight: isContinue,
               bridgeStateDir,
@@ -418,7 +447,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           } catch (error) {
             if (isContinue) {
               const eventLog = await Promise.resolve(
-                sandbox.readTextFile({
+                toolSafeSandboxSession.readTextFile({
                   path: `${bridgeStateDir}/event-log.ndjson`,
                   abortSignal: startOptions.abortSignal,
                 }),
@@ -446,6 +475,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   authenticationProfile,
                   sessionMeta: settings.session?.meta,
                   instructionMapping: settings.instructionMapping,
+                  outputSchemaMapping: settings.outputSchemaMapping,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
                   mcpServers: settings.mcpServers,
@@ -477,6 +507,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             authenticationProfile,
             sessionMeta: settings.session?.meta,
             instructionMapping: settings.instructionMapping,
+            outputSchemaMapping: settings.outputSchemaMapping,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
             mcpServers: settings.mcpServers,
@@ -498,19 +529,19 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const token =
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
-          : settings.mintBridgeToken(sandboxSession.id);
-      await sandbox.run({
+          : settings.mintBridgeToken(sandboxId!);
+      await toolSafeSandboxSession.run({
         command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
         abortSignal: startOptions.abortSignal,
       });
       await markBridgeStarting({
-        sandbox,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: settings.harnessId,
         abortSignal: startOptions.abortSignal,
       });
 
-      const proc = await sandbox.spawn({
+      const proc = await toolSafeSandboxSession.spawn({
         command:
           `node ${shellQuote(`${resolvedBridgeDir}/bridge.mjs`)}` +
           ` --workdir ${shellQuote(workDir)}` +
@@ -547,7 +578,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const timeoutMs = startupTimeoutMs ?? 120_000;
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        sandbox,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: settings.harnessId,
         timeoutMs,
@@ -571,9 +602,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await sandboxSession.getPortEndpoint({
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: portEndpointOverride,
         port: boundPort,
-        protocol: 'ws',
+        harnessId: settings.harnessId,
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
       const channel: ACPChannel = new SandboxChannel({
@@ -638,6 +671,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         modelId: settings.modelId,
         sessionMeta: settings.session?.meta,
         instructionMapping: settings.instructionMapping,
+        outputSchemaMapping: settings.outputSchemaMapping,
         debug: startOptions.observability?.debug,
         implementationIdentity,
         authenticationProfile,
@@ -655,7 +689,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         acpSessionId: lifecycleData?.acpSessionId,
         bridgePort: boundPort,
         bridgeToken: token,
-        sandboxId: sandboxSession.id,
+        sandboxId,
         isResume,
         turnInFlight:
           respawnStrategy?.mode === 'disk-replay' ||
@@ -740,17 +774,66 @@ function resolveBridgePort({
   override,
   harnessId,
 }: {
-  sandboxSession: HarnessV1NetworkSandboxSession;
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   override: number | undefined;
   harnessId: string;
 }): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw unsupported({
     harnessId,
     message:
       `The ${harnessId} ACP harness needs a TCP port exposed by the sandbox. ` +
       'Create the sandbox with `ports: [<port>]` or configure the harness `port`.',
+  });
+}
+
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
+  harnessId,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+  harnessId: string;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw unsupported({
+      harnessId,
+      message: `The ${harnessId} ACP harness requires an explicit \`port\` when using a basic sandbox session.`,
+    });
+  }
+  if (portEndpoint == null) {
+    throw unsupported({
+      harnessId,
+      message: `The ${harnessId} ACP harness requires an explicit \`portEndpoint\` when using a basic sandbox session.`,
+    });
+  }
+}
+
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+  harnessId,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+  harnessId: string;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw unsupported({
+    harnessId,
+    message: `The ${harnessId} ACP harness requires an explicit \`portEndpoint\` when using a basic sandbox session.`,
   });
 }
 
@@ -879,6 +962,7 @@ function createSession({
   modelId,
   sessionMeta,
   instructionMapping,
+  outputSchemaMapping,
   debug,
   implementationIdentity,
   authenticationProfile,
@@ -910,6 +994,7 @@ function createSession({
   modelId: string | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   debug: HarnessV1DebugConfig | undefined;
   implementationIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
@@ -1211,6 +1296,20 @@ function createSession({
     isResume,
     ...(modelId == null ? {} : { modelId }),
     doPromptTurn: async options => {
+      if (options.responseFormat?.type === 'json') {
+        if (options.responseFormat.schema == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} requires a JSON schema for structured output.`,
+          });
+        }
+        if (outputSchemaMapping == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} does not support structured output through ACP.`,
+          });
+        }
+      }
       if (replayOnly) {
         throw new Error(
           `${harnessId} recovered this turn through disk replay only and has no restored ACP process for a subsequent prompt.`,
@@ -1237,6 +1336,8 @@ function createSession({
         authenticationProfile,
         sessionMeta,
         instructionMapping,
+        responseFormat: options.responseFormat,
+        outputSchemaMapping,
       });
       const control = wireTurn({
         emit: options.emit,
@@ -1272,6 +1373,12 @@ function createSession({
             builtinTools,
             permissionMode,
             permissionModeMapping,
+            ...(options.responseFormat == null
+              ? {}
+              : { responseFormat: options.responseFormat }),
+            ...(turnStartConfig.outputSchemaMapping == null
+              ? {}
+              : { outputSchemaMapping: turnStartConfig.outputSchemaMapping }),
             ...(mcpServers == null ? {} : { mcpServers }),
             tools: options.tools == null ? undefined : turnStartConfig.tools,
             turnStartConfig,
@@ -1283,6 +1390,20 @@ function createSession({
       return control;
     },
     doContinueTurn: async options => {
+      if (options.responseFormat?.type === 'json') {
+        if (options.responseFormat.schema == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} requires a JSON schema for structured output.`,
+          });
+        }
+        if (outputSchemaMapping == null) {
+          throw unsupported({
+            harnessId,
+            message: `${harnessId} does not support structured output through ACP.`,
+          });
+        }
+      }
       if (!turnInFlight) {
         throw new Error(`${harnessId} has no in-flight ACP turn to continue.`);
       }
@@ -1310,6 +1431,12 @@ function createSession({
             builtinTools: turnStartConfig.builtinTools,
             permissionMode: turnStartConfig.permissionMode,
             permissionModeMapping: turnStartConfig.permissionModeMapping,
+            ...(turnStartConfig.responseFormat == null
+              ? {}
+              : { responseFormat: turnStartConfig.responseFormat }),
+            ...(turnStartConfig.outputSchemaMapping == null
+              ? {}
+              : { outputSchemaMapping: turnStartConfig.outputSchemaMapping }),
             ...(instructionMapping == null
               ? {}
               : {
@@ -1482,6 +1609,7 @@ function validateACPTurnStartConfig({
   authenticationProfile,
   sessionMeta,
   instructionMapping,
+  outputSchemaMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
@@ -1490,6 +1618,7 @@ function validateACPTurnStartConfig({
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1505,6 +1634,8 @@ function validateACPTurnStartConfig({
     authenticationProfile,
     sessionMeta,
     instructionMapping,
+    responseFormat: turnStartConfig.responseFormat,
+    outputSchemaMapping,
   });
   if (
     current.configurationFingerprint !==
@@ -1523,6 +1654,7 @@ function validateACPColdSessionConfiguration({
   authenticationProfile,
   sessionMeta,
   instructionMapping,
+  outputSchemaMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
@@ -1534,6 +1666,7 @@ function validateACPColdSessionConfiguration({
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1550,6 +1683,8 @@ function validateACPColdSessionConfiguration({
     authenticationProfile,
     sessionMeta,
     instructionMapping,
+    responseFormat: coldSession.responseFormat,
+    outputSchemaMapping,
   });
   if (
     current.configurationFingerprint !== coldSession.configurationFingerprint ||

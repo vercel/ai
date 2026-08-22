@@ -1,5 +1,102 @@
 # @ai-sdk/harness
 
+## 1.0.85
+
+### Patch Changes
+
+- fa6af57: fix(harness): emit builtin tool results after approval continuations
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 1.0.83
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 1.0.82
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 1.0.81
+
+### Patch Changes
+
+- 7f50d28: feat(harness): make `destroy` on `HarnessV1NetworkSandboxSession` mandatory
+  - ai@7.0.73
+
+## 1.0.80
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 1.0.79
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 1.0.78
+
+### Patch Changes
+
+- eace6fb: feat(harness): add experimental support for steering agent conversations mid-turn
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - @ai-sdk/provider-utils@5.0.28
+  - ai@7.0.70
+
+## 1.0.76
+
+### Patch Changes
+
+- fc1970b: feat(harness): allow passing caller-owned `sandboxSession` to `HarnessAgent.createSession()` and in that case allow omitting the then unnecessary `sandbox` arg from `HarnessAgent` constructor
+  - ai@7.0.69
+
+## 1.0.75
+
+### Patch Changes
+
+- d300737: fix(harness): keep the runtime's error message on failed provider-executed tool results
+  - ai@7.0.68
+
+## 1.0.74
+
+### Patch Changes
+
+- ai@7.0.67
+
+## 1.0.73
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- d25cae2: fix(harness): claim the bridge event stream on start/resume instead of on connect
+
 ## 1.0.72
 
 ### Patch Changes

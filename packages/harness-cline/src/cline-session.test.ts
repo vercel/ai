@@ -22,9 +22,14 @@ const clineMock = vi.hoisted(() => ({
     headers?: Record<string, string>;
   }>,
   runInputs: [] as AgentRunInput[],
+  runGate: undefined as Promise<void> | undefined,
+  runStatus: 'completed' as AgentRunResult['status'],
+  runError: undefined as Error | undefined,
+  outputText: '',
 }));
 
-vi.mock('@ai-sdk/harness/utils', () => ({
+vi.mock('@ai-sdk/harness/utils', async importOriginal => ({
+  ...(await importOriginal()),
   resolveSandboxHomeDir: vi.fn(async () => '/sandbox/home'),
   shellQuote: vi.fn((value: string) => value),
 }));
@@ -47,6 +52,7 @@ vi.mock('@cline/agents', () => ({
 
     async run(input: AgentRunInput): Promise<AgentRunResult> {
       clineMock.runInputs.push(input);
+      await clineMock.runGate;
       return this.result();
     }
 
@@ -62,9 +68,9 @@ vi.mock('@cline/agents', () => ({
       return {
         agentId: 'agent-1',
         runId: 'run-1',
-        status: 'completed',
+        status: clineMock.runStatus,
         iterations: 1,
-        outputText: '',
+        outputText: clineMock.outputText,
         messages: this.messages,
         usage: {
           inputTokens: 0,
@@ -72,6 +78,7 @@ vi.mock('@cline/agents', () => ({
           cacheReadTokens: 0,
           cacheWriteTokens: 0,
         },
+        ...(clineMock.runError ? { error: clineMock.runError } : {}),
       };
     }
   },
@@ -118,6 +125,10 @@ describe('createClineSession instructions', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
+    clineMock.outputText = '';
   });
 
   it('appends instructions to the system prompt without changing the user prompt', async () => {
@@ -241,6 +252,61 @@ describe('createClineSession instructions', () => {
       await session.doDestroy();
     }
   });
+
+  it('continues the active turn with queued steering messages', async () => {
+    let releaseRun!: () => void;
+    clineMock.runGate = new Promise<void>(resolve => {
+      releaseRun = resolve;
+    });
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Weather in Paris?',
+        emit: vi.fn(),
+      });
+      const steering = control.submitUserMessage?.('Actually, Paris, Texas.');
+      releaseRun();
+      await steering;
+      await control.done;
+
+      expect(clineMock.runInputs).toEqual(['Weather in Paris?']);
+      expect(clineMock.continueInputs).toEqual(['Actually, Paris, Texas.']);
+      await expect(control.submitUserMessage?.('Too late.')).rejects.toThrow(
+        'no running turn',
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rejects queued steering messages when the turn fails before consuming them', async () => {
+    let releaseRun!: () => void;
+    clineMock.runGate = new Promise<void>(resolve => {
+      releaseRun = resolve;
+    });
+    clineMock.runStatus = 'failed';
+    clineMock.runError = new Error('Cline failed');
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Weather in Paris?',
+        emit: vi.fn(),
+      });
+      const steering = expect(
+        control.submitUserMessage?.('Actually, Paris, Texas.'),
+      ).rejects.toThrow('turn ended before accepting');
+
+      releaseRun();
+
+      await steering;
+      await control.done;
+      expect(clineMock.continueInputs).toEqual([]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
 });
 
 describe('createClineSession model configuration', () => {
@@ -251,6 +317,10 @@ describe('createClineSession model configuration', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
+    clineMock.outputText = '';
   });
 
   it('uses the Cline backend and delegates default model selection', async () => {
@@ -428,6 +498,10 @@ describe('createClineSession tool results', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
+    clineMock.outputText = '';
   });
 
   it.each([
@@ -619,6 +693,10 @@ describe('createClineSession tool execution', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
+    clineMock.outputText = '';
   });
 
   it('configures initial and rebuilt agents for parallel tool execution', async () => {
@@ -647,6 +725,99 @@ describe('createClineSession tool execution', () => {
         'parallel',
         'parallel',
       ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('uses a schema-constrained terminal tool for structured output', async () => {
+    clineMock.outputText = '{"answer":"yes"}';
+    const session = await createSession();
+    const emitted: unknown[] = [];
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Answer.',
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+        emit: event => emitted.push(event),
+      });
+      await control.done;
+
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      const structuredOutput = findTool({
+        config,
+        name: 'structured_output',
+      });
+      expect(config.completionPolicy).toEqual({
+        requireCompletionTool: true,
+      });
+      expect(structuredOutput.inputSchema).toEqual({
+        type: 'object',
+        properties: {
+          output: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+        required: ['output'],
+        additionalProperties: false,
+      });
+      await expect(
+        structuredOutput.execute(
+          { output: { answer: 42 } },
+          createToolContext({ toolCallId: 'invalid' }),
+        ),
+      ).resolves.toBe('{"answer":42}');
+      await expect(
+        structuredOutput.execute(
+          { output: { answer: 'yes' } },
+          createToolContext({ toolCallId: 'valid' }),
+        ),
+      ).resolves.toBe('{"answer":"yes"}');
+      expect(emitted).toEqual(
+        expect.arrayContaining([
+          {
+            type: 'text-delta',
+            id: 'structured-output-session-1',
+            delta: '{"answer":"yes"}',
+          },
+        ]),
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rejects structured output for the tool-less Codex CLI provider', async () => {
+    const session = await createSession({
+      settings: { providerId: 'openai-codex-cli' },
+    });
+
+    try {
+      await expect(
+        session.doPromptTurn({
+          prompt: 'Answer.',
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object' },
+          },
+          emit: () => {},
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_HarnessCapabilityUnsupportedError',
+        harnessId: 'cline',
+      });
     } finally {
       await session.doDestroy();
     }

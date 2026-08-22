@@ -274,6 +274,9 @@ function fakeSandbox({
       if (command === 'printf "%s" "$HOME"') {
         return { exitCode: 0, stdout: homeDir, stderr: '' };
       }
+      if (command === 'pwd') {
+        return { exitCode: 0, stdout: '/workspace\n', stderr: '' };
+      }
       return { exitCode: 0, stdout: '', stderr: '' };
     },
     spawn: async ({
@@ -1057,7 +1060,7 @@ describe('createACP', () => {
       first.files.find(file =>
         file.path.endsWith('/implementation/implementation.json'),
       )?.content,
-    ).toContain('"executable": "codex-acp"');
+    ).toContain('"executablePath": "node_modules/.bin/codex-acp"');
     expect(first.commands.map(command => command.command)).toEqual([
       'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       'pnpm --dir implementation install --prod --store-dir ../.pnpm-store',
@@ -1120,6 +1123,40 @@ describe('createACP', () => {
     expect(bootstrap.commands.map(command => command.command)).toContain(
       'pnpm --dir implementation install --frozen-lockfile --prod --store-dir ../.pnpm-store',
     );
+  });
+
+  it('generates isolated install command acquisition without npm implementation files', async () => {
+    const harness = createACP({
+      harnessId: 'cursor-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://cursor.com/install -fsS | bash',
+      },
+      executable: 'agent',
+      args: ['--disable-auto-update', 'acp'],
+    });
+    const bootstrap = await harness.getBootstrap!();
+    const implementationFiles = bootstrap.files.filter(file =>
+      file.path.includes('/implementation/'),
+    );
+
+    expect(implementationFiles.map(file => file.path).sort()).toEqual([
+      '.harness-bootstrap/cursor-acp/implementation/implementation.json',
+      '.harness-bootstrap/cursor-acp/implementation/install.sh',
+    ]);
+    expect(
+      implementationFiles.find(file => file.path.endsWith('/install.sh'))
+        ?.content,
+    ).toContain('curl https://cursor.com/install -fsS | bash');
+    expect(
+      implementationFiles.find(file =>
+        file.path.endsWith('/implementation.json'),
+      )?.content,
+    ).toContain('"executablePath": "home/.local/bin/agent"');
+    expect(bootstrap.commands.map(command => command.command)).toEqual([
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      'bash implementation/install.sh',
+    ]);
   });
 
   it('resolves bridge assets from source and bundled module layouts', () => {
@@ -1202,6 +1239,93 @@ describe('createACP', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  it('requires explicit bridge settings for a basic sandbox session', async () => {
+    const networkSession = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+    const sandboxSession = networkSession.restricted();
+
+    await expect(
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+      }).doStart({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(/explicit `port`/);
+
+    await expect(
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        port: 4319,
+      }).doStart({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(/explicit `portEndpoint`/);
+  });
+
+  it('uses a basic sandbox session with explicit bridge settings', async () => {
+    const runs: string[] = [];
+    const networkSession = fakeSandbox({
+      runs,
+      spawns: [],
+      stop: async () => {},
+    });
+    const session = await createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      port: 4319,
+      portEndpoint: { url: 'ws://127.0.0.1:4319' },
+    }).doStart({
+      sessionId: 'session-1',
+      sandboxSession: networkSession.restricted(),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(runs[0]).toBe('pwd');
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: {
+        port: 4319,
+        token: expect.any(String),
+        lastSeenEventId: 0,
+      },
+    });
+    expect(resumeFrom.data).not.toMatchObject({
+      bridge: { sandboxId: expect.anything() },
+    });
+  });
+
+  it('requires a sandbox id for custom bridge token minting', async () => {
+    const networkSession = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+
+    await expect(
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        port: 4319,
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+        mintBridgeToken: sandboxId => sandboxId,
+      }).doStart({
+        sessionId: 'session-1',
+        sandboxSession: networkSession.restricted(),
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(/does not expose an id/);
+  });
+
   it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
     harnessUtilsMocks.connectOnOpen = true;
     const spawns: Array<{
@@ -1211,19 +1335,21 @@ describe('createACP', () => {
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge?existing=value',
+      headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+    };
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
       mintBridgeToken,
+      portEndpoint,
     });
     const sandboxSession = fakeSandbox({
       runs: [],
       spawns,
       stop: async () => {},
-      bridgePortEndpoint: {
-        url: 'wss://sandbox.example/bridge?existing=value',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
-      },
+      bridgePortEndpoint: { url: 'ws://unused.example' },
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -1249,11 +1375,11 @@ describe('createACP', () => {
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
     ]);
     await attachedSession.doDetach();
@@ -1286,6 +1412,86 @@ describe('createACP', () => {
     ).rejects.toBe(abortError);
     expect(harnessUtilsMocks.channels[0]!.sent).toEqual([]);
 
+    await session.doDestroy();
+  });
+
+  it('rejects structured output when the ACP profile has no schema mapping', async () => {
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    await expect(
+      session.doPromptTurn({
+        prompt: 'Answer.',
+        responseFormat: {
+          type: 'json',
+          schema: { type: 'object' },
+        },
+        emit: () => {},
+      }),
+    ).rejects.toSatisfy(error =>
+      HarnessCapabilityUnsupportedError.isInstance(error),
+    );
+    expect(harnessUtilsMocks.channels[0]!.sent).toEqual([]);
+
+    await session.doDestroy();
+  });
+
+  it('passes structured output configuration to a mapped ACP profile', async () => {
+    const outputSchemaMapping = {
+      type: 'session-prompt-meta',
+      path: ['outputSchema'],
+    } as const;
+    const harness = createACP({
+      harnessId: 'grok-build-acp',
+      ...agentSettings,
+      outputSchemaMapping,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const responseFormat = {
+      type: 'json' as const,
+      schema: {
+        type: 'object',
+        properties: { answer: { type: 'string' } },
+        required: ['answer'],
+      },
+    };
+
+    const control = await session.doPromptTurn({
+      prompt: 'Answer.',
+      responseFormat,
+      emit: () => {},
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      responseFormat,
+      outputSchemaMapping,
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
     await session.doDestroy();
   });
 

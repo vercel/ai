@@ -1,4 +1,4 @@
-import type { HarnessV1 } from '@ai-sdk/harness';
+import type { HarnessV1, HarnessV1PortEndpoint } from '@ai-sdk/harness';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { ACPClientApp } from './acp-auth';
@@ -24,6 +24,11 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
   readonly clientApp?: ACPClientApp;
   readonly version?: ACPV1Settings['version'];
@@ -40,6 +45,7 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
   readonly modelId?: ACPV1Settings['modelId'];
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
+  readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
   readonly mintBridgeToken?: ACPV1Settings['mintBridgeToken'];
@@ -124,6 +130,7 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
         builtinTools:
           settings.builtinTools ?? (ACP_BUILTIN_TOOLS as TBuiltinTools),
         port: settings.port,
+        portEndpoint: settings.portEndpoint,
         startupTimeoutMs: settings.startupTimeoutMs,
         clientApp,
         lifecycleStateSchema: acpResumeStateSchema,

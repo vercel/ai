@@ -1,5 +1,92 @@
 # @ai-sdk/workflow
 
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 2.0.4
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 2.0.3
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 2.0.2
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 2.0.1
+
+### Patch Changes
+
+- 4233a40: Resume transformed WorkflowAgent streams using UI message chunk indexes.
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 2.0.0
+
+### Major Changes
+
+- 3238c04: Upgrade to Workflow 5 and drop Workflow 4 support. Applications must now install Workflow 5, which is currently available under the `beta` tag.
+
+### Patch Changes
+
+- d3cc3fe: Clear partial UI message parts when a WorkflowAgent model-call step is retried.
+- Updated dependencies [e6087c9]
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - @ai-sdk/provider-utils@5.0.28
+  - ai@7.0.70
+
+## 1.0.70
+
+### Patch Changes
+
+- ai@7.0.69
+
+## 1.0.69
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 1.0.68
+
+### Patch Changes
+
+- e6064c5: Honor `WorkflowAgent` model-call retry settings without stacking workflow step retries.
+- 83f9b12: Expose the original value from model stream error parts on resolved WorkflowAgent results without retrying the durable model step.
+  - ai@7.0.67
+
 ## 1.0.67
 
 ### Patch Changes
