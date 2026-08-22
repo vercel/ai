@@ -1,0 +1,30 @@
+---
+title: Glossary
+description: Shared terminology used throughout the AI SDK documentation.
+---
+
+# Glossary
+
+Use these terms consistently when reading or contributing to AI SDK documentation.
+
+| Term | Definition | Avoid |
+| --- | --- | --- |
+| **Language model call** | A single request to a language model through an AI SDK function such as `generateText` or `streamText`. | Generation |
+| **Model** | The object passed to AI SDK functions that represents a provider-specific model implementation, for example `openai('gpt-4o')`. | API client |
+| **Model ID** | The provider-specific string that identifies a model variant, for example `'gpt-4o'` or `'claude-sonnet-4-5'`. | Model name |
+| **Provider** | A package that implements AI SDK model specifications for a service, for example `@ai-sdk/openai` or `@ai-sdk/anthropic`. | Adapter, connector |
+| **Provider specification** | The interfaces in `@ai-sdk/provider` that define the contract providers implement. | Provider client |
+| **Provider options** | Provider-specific options that are passed through to a provider without being interpreted by AI SDK Core. | Extra options, metadata |
+| **Message** | A structured item in a model conversation, such as a system, user, assistant, or tool message. | Chat item |
+| **Tool** | A typed function that a model can call during a language model call. | Function, plugin |
+| **Tool call** | A model request to invoke a tool with generated input. | Function call |
+| **Tool result** | The output returned after a tool call has executed. | Tool response |
+| **Stream** | Incremental output from a model or AI SDK helper, usually consumed as it is produced. | Event feed |
+| **Callback** | A function passed to an AI SDK API that is invoked at a specific lifecycle point. | Listener, observer |
+
+## Related documentation
+
+- [Generating Text](/docs/ai-sdk-core/generating-text)
+- [Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling)
+- [Provider Management](/docs/ai-sdk-core/provider-management)
+- [Lifecycle Callbacks](/docs/ai-sdk-core/lifecycle-callbacks)
