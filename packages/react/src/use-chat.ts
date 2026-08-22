@@ -132,6 +132,10 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       chatRef.current.id !== options.id);
 
   if (shouldRecreateChat) {
+    // If library owns Chat, stop current stream before replacing.
+    if (!('chat' in options)) {
+      chatRef.current.stop();
+    }
     chatRef.current = 'chat' in options ? options.chat : new Chat(chatOptions);
   }
 
