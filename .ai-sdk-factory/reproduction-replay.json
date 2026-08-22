@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19300,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19300-output-object-truncation-error.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19300-output-object-truncation-error.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19300: generateText returned AI_NoOutputGeneratedError without truncated-output diagnostics"
+  }
+}
