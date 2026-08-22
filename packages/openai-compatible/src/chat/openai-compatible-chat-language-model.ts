@@ -532,6 +532,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let textPartIndex = 0;
     const convertUsage = (
       usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
     ) => this.convertUsage(usage);
@@ -648,13 +649,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
 
               if (!isActiveText) {
-                controller.enqueue({ type: 'text-start', id: 'txt-0' });
+                controller.enqueue({ type: 'text-start', id: `txt-${textPartIndex}` });
                 isActiveText = true;
               }
 
               controller.enqueue({
                 type: 'text-delta',
-                id: 'txt-0',
+                id: `txt-${textPartIndex}`,
                 delta: delta.content,
               });
             }
@@ -669,6 +670,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
                 isActiveReasoning = false;
               }
 
+              if (isActiveText) {
+                controller.enqueue({ type: 'text-end', id: `txt-${textPartIndex}` });
+                isActiveText = false;
+                textPartIndex++;
+              }
+
               for (const toolCallDelta of delta.tool_calls) {
                 processToolCallDelta(toolCallDelta);
               }
@@ -681,7 +688,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             }
 
             if (isActiveText) {
-              controller.enqueue({ type: 'text-end', id: 'txt-0' });
+              controller.enqueue({ type: 'text-end', id: `txt-${textPartIndex}` });
             }
 
             // Forward any tool-call deltas that never received a
