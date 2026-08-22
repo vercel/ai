@@ -93,6 +93,10 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/embeddings': {},
   'https://test-resource.openai.azure.com/openai/v1/images/generations': {},
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses':
+    {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions':
+    {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
   'https://our-gateway.example.com/azure/chat/completions': {},
@@ -272,6 +276,56 @@ describe('responses (default language model)', () => {
         `"https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1"`,
       );
     });
+
+    it('should omit api-version for Azure AI Foundry project v1 baseURL', async () => {
+      server.urls[
+        'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_foundry',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          model: 'test-deployment',
+          output: [
+            {
+              id: 'msg_foundry',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: '',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 4,
+            output_tokens: 30,
+            total_tokens: 34,
+          },
+          incomplete_details: null,
+        },
+      };
+
+      const provider = createAzure({
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai',
+        apiKey: 'test-api-key',
+      });
+
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses"`,
+      );
+    });
   });
 });
 
@@ -410,6 +464,42 @@ describe('chat', () => {
 
       expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
         `"https://our-gateway.example.com/azure/chat/completions"`,
+      );
+    });
+
+    it('should omit api-version for Azure AI Foundry project v1 chat baseURL', async () => {
+      server.urls[
+        'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-foundry',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test-deployment',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const provider = createAzure({
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions"`,
       );
     });
   });
