@@ -1,5 +1,6 @@
 import {
   InvalidPromptError,
+  JSONParseError,
   type LanguageModelV4CallOptions,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4Prompt,
@@ -29,6 +30,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { signToolApproval } from './tool-approval-signature';
 import { z } from 'zod/v4';
@@ -7823,6 +7825,42 @@ describe('generateText', () => {
         });
 
         expect(result.output).toEqual({ value: 'test-value' });
+      });
+
+      it('should expose parse diagnostics when output is truncated', async () => {
+        const truncatedText = '{"value":"test';
+
+        try {
+          await generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: async () => ({
+                ...dummyResponseValues,
+                finishReason: { unified: 'length', raw: 'length' },
+                content: [{ type: 'text', text: truncatedText }],
+              }),
+            }),
+            prompt: 'prompt',
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+          });
+
+          assert.fail('must throw error');
+        } catch (error) {
+          expect(NoObjectGeneratedError.isInstance(error)).toBe(true);
+
+          if (!NoObjectGeneratedError.isInstance(error)) {
+            return;
+          }
+
+          expect(error.message).toBe(
+            'No object generated: could not parse the response.',
+          );
+          expect(error.cause).toBeInstanceOf(JSONParseError);
+          expect(error.text).toBe(truncatedText);
+          expect(error.finishReason).toBe('length');
+          expect(error.usage?.outputTokens).toBe(10);
+        }
       });
 
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
