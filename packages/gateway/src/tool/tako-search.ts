@@ -1,9 +1,9 @@
 import {
-  createProviderExecutedToolFactory,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from '../zod';
+import { z } from 'zod';
 
 export type TakoSearchEffort = 'deep' | 'fast' | 'instant';
 
@@ -566,7 +566,7 @@ const takoSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const takoSearchToolFactory = createProviderExecutedToolFactory<
+export const takoSearchToolFactory = createProviderToolFactoryWithOutputSchema<
   TakoSearchInput,
   TakoSearchOutput,
   TakoSearchConfig
