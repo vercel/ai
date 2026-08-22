@@ -797,6 +797,9 @@ describe('doStream', () => {
       });
 
       const parts = await convertReadableStreamToArray(result.stream);
+      const expectedInput = '{"query": "current Berlin weather"}';
+
+      expect(parts.filter(part => part.type === 'error')).toStrictEqual([]);
 
       expect(
         parts.filter(
@@ -811,7 +814,7 @@ describe('doStream', () => {
         {
           type: 'tool-input-delta',
           id: 'chatcmpl-tool-9f149c74c42f265b',
-          delta: '{"query": "current Berlin weather"}',
+          delta: expectedInput,
         },
         {
           type: 'tool-input-end',
@@ -821,9 +824,15 @@ describe('doStream', () => {
           type: 'tool-call',
           toolCallId: 'chatcmpl-tool-9f149c74c42f265b',
           toolName: 'webSearchTool',
-          input: '{"query": "current Berlin weather"}',
+          input: expectedInput,
         },
       ]);
+      expect(
+        parts
+          .filter(part => part.type === 'tool-input-delta')
+          .map(part => part.delta)
+          .join(''),
+      ).toBe(expectedInput);
     });
   });
 
