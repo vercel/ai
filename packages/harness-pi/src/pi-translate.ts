@@ -30,6 +30,13 @@ export interface PiTranslatorState {
   observedToolNames: Map<string, string>;
   /** Tool ids requested by the current assistant message but not yet completed. */
   pendingStepToolCallIds: Set<string>;
+  /**
+   * How many tool calls the current assistant message requested. Known from
+   * `message_end`, which Pi emits before any `tool_execution_start`, and
+   * reported on every `tool-call` of the step so the host can collect all of
+   * the step's approvals before parking the turn for host input.
+   */
+  stepToolCallCount: number | undefined;
   /** Whether the current assistant message has opened a visible step. */
   stepOpen: boolean;
   /**
@@ -84,6 +91,7 @@ export function createPiTranslatorState(
     reasoningStarted: false,
     observedToolNames: new Map(),
     pendingStepToolCallIds: new Set(),
+    stepToolCallCount: undefined,
     stepOpen: false,
     hostToolResults: new Map(),
     dynamicToolCallIds: new Set(),
@@ -155,6 +163,7 @@ function finishStep(state: PiTranslatorState): HarnessV1StreamPart[] {
   if (!state.stepOpen || state.pendingStepToolCallIds.size > 0) return [];
   state.stepOpen = false;
   state.pendingStepToolCallIds.clear();
+  state.stepToolCallCount = undefined;
   return [
     {
       type: 'finish-step',
@@ -215,6 +224,7 @@ export function translatePiEvent(
       if (event.type === 'message_start') {
         state.stepOpen = true;
         state.pendingStepToolCallIds.clear();
+        state.stepToolCallCount = undefined;
       }
       state.streamedAssistantText = '';
       state.currentTextId = undefined;
@@ -308,11 +318,20 @@ export function translatePiEvent(
         state.currentReasoningId = undefined;
       }
       if (event.type === 'message_end') {
-        for (const toolCallId of extractPiToolCallIds(event.message)) {
+        const toolCallIds = extractPiToolCallIds(event.message);
+        for (const toolCallId of toolCallIds) {
           state.pendingStepToolCallIds.add(toolCallId);
         }
+        /*
+         * Pi commits the whole assistant message here, before it emits any
+         * `tool_execution_start`, so the step's tool-call count is known up
+         * front and can be reported on each `tool-call` below.
+         */
+        state.stepToolCallCount =
+          toolCallIds.length > 0 ? toolCallIds.length : undefined;
       } else {
         state.pendingStepToolCallIds.clear();
+        state.stepToolCallCount = undefined;
         parts.push(...finishStep(state));
       }
       return parts;
@@ -337,6 +356,9 @@ export function translatePiEvent(
           ...(wire !== native ? { nativeName: native } : {}),
           ...(providerExecuted ? { providerExecuted: true } : {}),
           ...(isMcpTool ? { dynamic: true } : {}),
+          ...(state.stepToolCallCount != null
+            ? { stepToolCallCount: state.stepToolCallCount }
+            : {}),
         } as HarnessV1StreamPart,
       ];
     }
