@@ -30,6 +30,20 @@ function prepareJsonFixtureResponse(
   };
 }
 
+function prepareJsonFixtureErrorResponse(filename: string, status: number) {
+  server.urls['https://api.openai.com/v1/embeddings'].response = {
+    type: 'error',
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: fs.readFileSync(
+      `src/embedding/__fixtures__/${filename}.json`,
+      'utf8',
+    ),
+  };
+}
+
 describe('doEmbed', () => {
   it('should extract embedding', async () => {
     prepareJsonFixtureResponse('openai-embedding');
@@ -160,5 +174,26 @@ describe('doEmbed', () => {
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/openai/0.0.0-test`,
     );
+  });
+
+  it('should expose the aggregate token limit error recorded for issue #10082', async () => {
+    prepareJsonFixtureErrorResponse('issue-10082-token-limit-error', 400);
+
+    await expect(
+      provider
+        .embedding('text-embedding-3-small')
+        .doEmbed({ values: testValues }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Requested 1228288 tokens, max 300000 tokens per request',
+      data: {
+        error: {
+          message: 'Requested 1228288 tokens, max 300000 tokens per request',
+          type: 'max_tokens_per_request',
+          param: null,
+          code: 'max_tokens_per_request',
+        },
+      },
+    });
   });
 });

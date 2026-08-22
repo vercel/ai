@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 10082,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-10082-embed-many-token-limit.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-10082-embed-many-token-limit.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #10082: embedMany sent a request above the OpenAI 300,000-token aggregate limit instead of splitting it into smaller requests."
+  }
+}
