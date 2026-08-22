@@ -279,6 +279,34 @@ describe('createToolModelOutput', () => {
       `);
     });
 
+    it('should JSON serialize object output', async () => {
+      class ObjectIdLike {
+        toJSON() {
+          return '507f1f77bcf86cd799439011';
+        }
+      }
+
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: {
+          id: new ObjectIdLike(),
+          omitted: undefined,
+        },
+        tool: undefined,
+        errorMode: 'none',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": {
+            "id": "507f1f77bcf86cd799439011",
+          },
+        }
+      `);
+    });
+
     it('should return json type for array output', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
