@@ -4,9 +4,10 @@ import { experimental_useRealtime } from '@ai-sdk/react';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
+import { gateway } from 'ai';
 import { useState, useRef, useEffect, useMemo } from 'react';
 
-type Provider = 'openai' | 'google' | 'xai';
+type Provider = 'openai' | 'google' | 'xai' | 'gateway';
 
 type VoiceOption = { id: string; label: string };
 
@@ -58,6 +59,26 @@ const PROVIDER_CONFIG: Record<
     defaultModel: 'grok-voice-latest',
     staticVoices: toVoiceOptions(['ara', 'eve', 'leo', 'rex', 'sal']),
     createModel: modelId => xai.experimental_realtime(modelId),
+  },
+  gateway: {
+    label: 'AI Gateway',
+    defaultModel: 'openai/gpt-realtime-2',
+    // Routed to openai/gpt-realtime-2 through the Gateway, so OpenAI voices apply.
+    staticVoices: toVoiceOptions([
+      'alloy',
+      'ash',
+      'ballad',
+      'coral',
+      'echo',
+      'fable',
+      'marin',
+      'sage',
+      'shimmer',
+      'verse',
+    ]),
+    // Model construction is browser-safe: the codec is built client-side while the
+    // short-lived `vcst_` token is minted server-side via /api/realtime/setup.
+    createModel: modelId => gateway.experimental_realtime(modelId),
   },
 };
 
