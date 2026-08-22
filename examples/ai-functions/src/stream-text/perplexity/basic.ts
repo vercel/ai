@@ -7,11 +7,16 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: perplexity('sonar-pro'),
+    model: perplexity('low'),
     prompt: 'What has happened in San Francisco recently?',
     providerOptions: {
       perplexity: {
-        search_recency_filter: 'week',
+        tools: [
+          {
+            type: 'web_search',
+            filters: { search_recency_filter: 'week' },
+          },
+        ],
       } satisfies PerplexityLanguageModelOptions,
     },
   });

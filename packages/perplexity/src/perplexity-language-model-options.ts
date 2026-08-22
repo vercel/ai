@@ -1,145 +1,118 @@
 import { z } from 'zod/v4';
 
-export const perplexityLanguageModelOptions = z.looseObject({
-  /**
-   * Filters search results to those published within the specified time window.
-   * Cannot be combined with other date filters.
-   */
+const userLocationSchema = z.looseObject({
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  country: z.string().optional(),
+  city: z.string().optional(),
+  region: z.string().optional(),
+});
+
+const webSearchFiltersSchema = z.looseObject({
+  search_domain_filter: z.array(z.string()).optional(),
   search_recency_filter: z
     .enum(['hour', 'day', 'week', 'month', 'year'])
     .optional(),
-
-  /**
-   * Restrict web search results to specific domains or URLs.
-   * Prefix a domain with "-" to exclude it.
-   */
-  search_domain_filter: z.array(z.string()).optional(),
-
-  /**
-   * Filter search results by language using ISO 639-1 codes.
-   */
-  search_language_filter: z.array(z.string()).optional(),
-
-  /**
-   * Return search results published after this date.
-   */
   search_after_date_filter: z.string().optional(),
-
-  /**
-   * Return search results published before this date.
-   */
   search_before_date_filter: z.string().optional(),
-
-  /**
-   * Return search results last updated after this date.
-   */
   last_updated_after_filter: z.string().optional(),
-
-  /**
-   * Return search results last updated before this date.
-   */
   last_updated_before_filter: z.string().optional(),
+});
+
+const webSearchToolSchema = z.looseObject({
+  type: z.literal('web_search'),
+  filters: webSearchFiltersSchema.optional(),
+  max_results: z.number().int().positive().optional(),
+  max_tokens: z.number().optional(),
+  max_tokens_per_page: z.number().optional(),
+  search_context_size: z.enum(['low', 'medium', 'high']).optional(),
+  user_location: userLocationSchema.optional(),
+});
+
+const nativeToolSchema = z.union([
+  webSearchToolSchema,
+  z.looseObject({
+    type: z.literal('fetch_url'),
+    max_urls: z.number().optional(),
+  }),
+  z.looseObject({ type: z.literal('people_search') }),
+  z.looseObject({ type: z.literal('finance_search') }),
+  z.looseObject({ type: z.literal('sandbox') }),
+  z.looseObject({
+    type: z.literal('mcp'),
+    server_label: z.string(),
+    server_url: z.string(),
+    allowed_tools: z.array(z.string()).optional(),
+    authorization: z.string().optional(),
+    defer_loading: z.boolean().optional(),
+    headers: z.record(z.string(), z.string()).optional(),
+  }),
+  z.looseObject({
+    type: z.literal('connector'),
+    id: z.string(),
+    server_label: z.string(),
+    server_description: z.string().optional(),
+    allowed_tools: z.array(z.string()).optional(),
+  }),
+]);
+
+export const perplexityLanguageModelOptions = z.looseObject({
+  /** Top-level Agent API instructions. */
+  instructions: z.string().optional(),
 
   /**
-   * Source of search results.
+   * Native Agent API tools. AI SDK function tools can also be supplied through
+   * the top-level `tools` option on `generateText` and `streamText`.
    */
-  search_mode: z.enum(['web', 'academic', 'sec']).optional(),
+  tools: z.array(nativeToolSchema).optional(),
 
-  /**
-   * If true, the model decides whether web search is needed.
-   */
-  enable_search_classifier: z.boolean().optional(),
+  /** A fallback model list for Agent API routing. */
+  models: z.array(z.string()).optional(),
 
-  /**
-   * If true, disables web search.
-   */
-  disable_search: z.boolean().optional(),
+  /** Maximum number of agentic steps. */
+  max_steps: z.number().int().positive().optional(),
 
-  /**
-   * If true, a list of related questions is included in the response.
-   */
-  return_related_questions: z.boolean().optional(),
+  /** Maximum number of native tool calls. */
+  max_tool_calls: z.number().int().nonnegative().optional(),
 
-  /**
-   * If true, image search results are included in the response.
-   */
-  return_images: z.boolean().optional(),
+  /** Continue a conversation from an earlier Agent API response. */
+  previous_response_id: z.string().optional(),
 
-  /**
-   * Restrict image results to specific domains.
-   * Prefix a domain with "-" to exclude it.
-   */
-  image_domain_filter: z.array(z.string()).optional(),
+  /** Whether Perplexity should store the response. */
+  store: z.boolean().optional(),
 
-  /**
-   * Restrict image results to specific file formats.
-   */
-  image_format_filter: z.array(z.string()).optional(),
+  /** Preferred response language as an ISO 639-1 language code. */
+  language_preference: z.string().optional(),
 
-  /**
-   * Additional media response configuration.
-   */
-  media_response: z
+  /** Agent API reasoning configuration. */
+  reasoning: z
     .looseObject({
-      overrides: z
-        .looseObject({
-          /**
-           * If true, video results are included in the response.
-           */
-          return_videos: z.boolean().optional(),
-        })
-        .optional(),
+      effort: z.enum(['minimal', 'low', 'medium', 'high', 'xhigh']).optional(),
     })
     .optional(),
 
-  /**
-   * Controls the format of streaming events.
-   */
-  stream_mode: z.enum(['full', 'concise']).optional(),
-
-  /**
-   * Controls how much effort the model spends on reasoning.
-   */
-  reasoning_effort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
-
-  /**
-   * Preferred response language as an ISO 639-1 language code.
-   */
-  language_preference: z.string().optional(),
-
-  /**
-   * Additional web search configuration.
-   */
-  web_search_options: z
-    .looseObject({
-      /**
-       * Controls the size of search context injected into the model.
-       */
-      search_context_size: z.enum(['low', 'medium', 'high']).optional(),
-
-      /**
-       * Controls whether to use fast search, pro search, or automatic routing.
-       */
-      search_type: z.enum(['fast', 'pro', 'auto']).optional(),
-
-      /**
-       * User location for search result personalization.
-       */
-      user_location: z
-        .looseObject({
-          latitude: z.number().optional(),
-          longitude: z.number().optional(),
-          country: z.string().optional(),
-          city: z.string().optional(),
-          region: z.string().optional(),
-        })
-        .optional(),
-
-      /**
-       * If true, applies enhanced relevance filtering to image results.
-       */
-      image_results_enhanced_relevance: z.boolean().optional(),
-    })
+  /** Agent API skill configuration. */
+  skills: z
+    .array(
+      z.union([
+        z.looseObject({
+          type: z.literal('builtin'),
+          name: z.enum([
+            'office',
+            'office/docx',
+            'office/pdf',
+            'office/pptx',
+            'office/xlsx',
+          ]),
+        }),
+        z.looseObject({
+          type: z.literal('inline'),
+          name: z.string(),
+          description: z.string(),
+          instructions: z.string(),
+        }),
+      ]),
+    )
     .optional(),
 });
 
