@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.29
+
+### Patch Changes
+
+- b74971f: Preserve schema-valued additional properties when converting Zod 4 schemas.
+
 ## 5.0.28
 
 ### Patch Changes
