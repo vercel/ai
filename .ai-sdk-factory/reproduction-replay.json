@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19034,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-modeled-event-stream-exception.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-modeled-event-stream-exception.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19034_REPRODUCED: modeled Bedrock exception was dropped; expected an error part and finishReason \"error\", received no error part and finishReason \"other\"."
+  }
+}
