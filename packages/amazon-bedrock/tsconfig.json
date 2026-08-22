@@ -10,11 +10,15 @@
     "build",
     "node_modules",
     "tsup.config.ts",
-    "anthropic/index.d.ts"
+    "anthropic/index.d.ts",
+    "mantle/index.d.ts"
   ],
   "references": [
     {
       "path": "../anthropic"
+    },
+    {
+      "path": "../openai"
     },
     {
       "path": "../provider"
