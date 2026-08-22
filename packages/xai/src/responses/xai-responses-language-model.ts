@@ -320,16 +320,31 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'reasoning': {
-          const summaryTexts = part.summary
-            .map(s => s.text)
-            .filter(text => text && text.length > 0);
+          const texts =
+            part.summary.length > 0
+              ? part.summary.map(s => s.text)
+              : (part.content ?? []).map(c => c.text);
 
+<<<<<<< HEAD
           if (summaryTexts.length > 0) {
             const reasoningText = summaryTexts.join('');
             if (part.encrypted_content || part.id) {
               content.push({
                 type: 'reasoning',
                 text: reasoningText,
+=======
+          const reasoningText = texts
+            .filter(text => text && text.length > 0)
+            .join('');
+
+          // condition changed here since encrypted content can now come with empty reasoning text
+          if (reasoningText || part.encrypted_content) {
+            const hasMetadata = part.encrypted_content || part.id;
+            content.push({
+              type: 'reasoning',
+              text: reasoningText,
+              ...(hasMetadata && {
+>>>>>>> 19eece65b8 ([v6.0] fix(provider/xai): extract reasoning text from content in responses doGenerate (#16798))
                 providerMetadata: {
                   xai: {
                     ...(part.encrypted_content && {
