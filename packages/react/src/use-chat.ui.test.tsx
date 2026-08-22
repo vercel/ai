@@ -2303,7 +2303,316 @@ describe('use-chat', () => {
     });
   });
 
-  describe('throttle', () => {
+  describe('default throttle', () => {
+    const defaultThrottleMs = 50;
+    let dataCalls: unknown[] = [];
+    let renderedSnapshots: Array<{ status: string; text: string }> = [];
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+      dataCalls = [];
+      renderedSnapshots = [];
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    setupTestComponent(() => {
+      const { error, messages, sendMessage, status, stop } = useChat({
+        generateId: mockId(),
+        onData: data => {
+          dataCalls.push(data);
+        },
+      });
+
+      const assistantText = messages
+        .filter(message => message.role === 'assistant')
+        .flatMap(message => message.parts)
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join('');
+
+      renderedSnapshots.push({ status, text: assistantText });
+
+      return (
+        <div>
+          <div data-testid="status">{status}</div>
+          {error != null && <div data-testid="error">{error.message}</div>}
+          {messages.map((message, index) => (
+            <div data-testid={`message-${index}`} key={message.id}>
+              {message.role === 'user' ? 'User: ' : 'AI: '}
+              {message.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+          <button
+            data-testid="do-send"
+            onClick={() =>
+              sendMessage({ parts: [{ type: 'text', text: 'hi' }] })
+            }
+          />
+          <button data-testid="stop" onClick={stop} />
+        </div>
+      );
+    });
+
+    it('should use a 50ms cadence with an immediate leading publication when throttle is omitted', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+
+      // The first message snapshot in the burst is published immediately.
+      expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+      await act(async () => {
+        await controller.write(formatChunk({ type: 'text-start', id: '0' }));
+        await controller.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
+        );
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.queryByTestId('message-1')).not.toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(defaultThrottleMs);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      await act(async () => {
+        await controller.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: 'lo' }),
+        );
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(defaultThrottleMs);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+      controller.close();
+    });
+
+    it('should process data callbacks without waiting for message publication', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+
+      await act(async () => {
+        await controller.write(formatChunk({ type: 'text-start', id: '0' }));
+        await controller.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        );
+        await controller.write(
+          formatChunk({
+            type: 'data-test',
+            data: 'processed immediately',
+          }),
+        );
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.queryByTestId('message-1')).not.toBeInTheDocument();
+      expect(dataCalls).toStrictEqual([
+        {
+          type: 'data-test',
+          data: 'processed immediately',
+        },
+      ]);
+      controller.close();
+    });
+
+    it('should publish the final messages in the same render as ready', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      renderedSnapshots = [];
+      fireEvent.click(screen.getByTestId('do-send'));
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
+      controller.close();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      expect(renderedSnapshots.at(-1)).toStrictEqual({
+        status: 'ready',
+        text: 'Hello',
+      });
+    });
+
+    it('should publish the latest messages in the same render as error', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      renderedSnapshots = [];
+      fireEvent.click(screen.getByTestId('do-send'));
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+      controller.write(
+        formatChunk({ type: 'error', errorText: 'stream failed' }),
+      );
+      controller.close();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.getByTestId('status')).toHaveTextContent('error');
+      expect(screen.getByTestId('error')).toHaveTextContent('stream failed');
+      expect(renderedSnapshots.at(-1)).toStrictEqual({
+        status: 'error',
+        text: 'Hello',
+      });
+    });
+
+    it('should publish the latest messages in the same render when an abort becomes ready', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      renderedSnapshots = [];
+      fireEvent.click(screen.getByTestId('do-send'));
+      await act(async () => {
+        await controller.write(formatChunk({ type: 'text-start', id: '0' }));
+        await controller.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        );
+      });
+
+      expect(screen.queryByTestId('message-1')).not.toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('stop'));
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      expect(renderedSnapshots.at(-1)).toStrictEqual({
+        status: 'ready',
+        text: 'Hello',
+      });
+    });
+  });
+
+  describe('throttle: 0', () => {
+    let renderedAssistantTexts: string[] = [];
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+      renderedAssistantTexts = [];
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    setupTestComponent(() => {
+      const { messages, sendMessage } = useChat({
+        throttle: 0,
+        generateId: mockId(),
+      });
+
+      const assistantText = messages
+        .filter(message => message.role === 'assistant')
+        .flatMap(message => message.parts)
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join('');
+
+      renderedAssistantTexts.push(assistantText);
+
+      return (
+        <div>
+          {messages.map((message, index) => (
+            <div data-testid={`message-${index}`} key={message.id}>
+              {message.role === 'user' ? 'User: ' : 'AI: '}
+              {message.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+          <button
+            data-testid="do-send"
+            onClick={() =>
+              sendMessage({ parts: [{ type: 'text', text: 'hi' }] })
+            }
+          />
+        </div>
+      );
+    });
+
+    it('should publish every message snapshot without throttling', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+
+      await act(async () => {
+        await controller.write(formatChunk({ type: 'text-start', id: '0' }));
+        await controller.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
+        );
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      await act(async () => {
+        await controller.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: 'lo' }),
+        );
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+      expect(renderedAssistantTexts).toContain('Hel');
+      expect(renderedAssistantTexts).toContain('Hello');
+      controller.close();
+    });
+  });
+
+  describe('custom throttle', () => {
     const throttleMs = 50;
 
     beforeEach(() => {
