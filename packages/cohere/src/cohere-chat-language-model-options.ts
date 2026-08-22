@@ -2,6 +2,7 @@ import { z } from 'zod/v4';
 
 // https://docs.cohere.com/docs/models
 export type CohereChatModelId =
+  | 'north-mini-code-1-0'
   | 'command-a-03-2025'
   | 'command-a-reasoning-08-2025'
   | 'command-a-vision-07-2025'
