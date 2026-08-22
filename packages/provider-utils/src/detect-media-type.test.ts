@@ -840,6 +840,18 @@ describe('detectMediaType', () => {
     ).toBe('video/webm');
   });
 
+  it('detects QuickTime video, whose ftyp header also matches the mp4 signature', () => {
+    const movBytes = new Uint8Array([
+      0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20,
+    ]);
+    expect(
+      detectMediaType({
+        data: movBytes,
+        topLevelType: 'video',
+      }),
+    ).toBe('video/quicktime');
+  });
+
   it('detects document types when topLevelType is "application"', () => {
     const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00]);
     expect(
