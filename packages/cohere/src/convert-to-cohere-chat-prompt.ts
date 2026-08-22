@@ -154,6 +154,7 @@ export async function convertToCohereChatPrompt(
           ...content.map(toolResult => {
             const output = toolResult.output;
 
+<<<<<<< HEAD
             let contentValue: string;
             switch (output.type) {
               case 'text':
@@ -166,6 +167,23 @@ export async function convertToCohereChatPrompt(
                 contentValue = JSON.stringify(output.value);
                 break;
             }
+=======
+              let contentValue: string;
+              switch (output.type) {
+                case 'text':
+                case 'error-text':
+                  contentValue = output.value;
+                  break;
+                case 'execution-denied':
+                  contentValue = output.reason ?? 'Tool call execution denied.';
+                  break;
+                case 'content':
+                case 'json':
+                case 'error-json':
+                  contentValue = JSON.stringify(output.value);
+                  break;
+              }
+>>>>>>> 327642b278 ([v6.0] fix: more precise default message for tool execution denial (#16804))
 
             return {
               role: 'tool' as const,
