@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { APICallError, type LanguageModelV4 } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
 import {
+  SpanKind,
+  SpanStatusCode,
   context,
   SpanStatusCode,
   trace,
@@ -2094,6 +2097,97 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('streamText integration', () => {
+    it('preserves failed model-call spans across a successful retry', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      const doStream = vi
+        .fn<LanguageModelV4['doStream']>()
+        .mockImplementationOnce(async () => {
+          throw createRetryableError();
+        })
+        .mockImplementationOnce(async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { raw: 'stop', unified: 'stop' },
+              usage: {
+                inputTokens: {
+                  total: 1,
+                  noCache: 1,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 1,
+                  text: 1,
+                  reasoning: undefined,
+                },
+              },
+            },
+          ]),
+        }));
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doStream,
+        }),
+        maxRetries: 1,
+        prompt: 'test-input',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      await expect(result.text).resolves.toBe('hello');
+
+      expect(doStream).toHaveBeenCalledTimes(2);
+      expectRetryTrace({
+        chatStatuses: [SpanStatusCode.ERROR, SpanStatusCode.UNSET],
+        exporter: sdkTrace.exporter,
+        operationStatus: SpanStatusCode.UNSET,
+      });
+    });
+
+    it('closes every failed model-call span when retries are exhausted', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      const doStream = vi.fn<LanguageModelV4['doStream']>(async () => {
+        throw createRetryableError();
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doStream,
+        }),
+        maxRetries: 1,
+        prompt: 'test-input',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      await expect(result.text).rejects.toThrow();
+
+      expect(doStream).toHaveBeenCalledTimes(2);
+      expectRetryTrace({
+        chatStatuses: [SpanStatusCode.ERROR, SpanStatusCode.ERROR],
+        exporter: sdkTrace.exporter,
+        operationStatus: SpanStatusCode.ERROR,
+      });
+    });
+  });
+
   describe('embed integration', () => {
     it('reports usage only on the provider request span', async () => {
       const sdkTrace = createSdkTracer();
@@ -2738,3 +2832,63 @@ describe('OpenTelemetry', () => {
     });
   });
 });
+
+function createRetryableError() {
+  return new APICallError({
+    message: 'Internal Server Error',
+    url: 'https://api.example.com/v1/chat',
+    requestBodyValues: { prompt: 'test-input' },
+    statusCode: 500,
+    responseHeaders: { 'retry-after-ms': '1' },
+  });
+}
+
+function expectRetryTrace({
+  chatStatuses,
+  exporter,
+  operationStatus,
+}: {
+  chatStatuses: SpanStatusCode[];
+  exporter: InMemorySpanExporter;
+  operationStatus: SpanStatusCode;
+}) {
+  const spans = exporter.getFinishedSpans();
+  const rootSpan = spans.find(span => span.name === 'invoke_agent gpt-4');
+  const stepSpan = spans.find(span => span.name === 'step 1');
+
+  if (!rootSpan) {
+    throw new Error('Expected one finished root span');
+  }
+  if (!stepSpan) {
+    throw new Error('Expected one finished step span');
+  }
+
+  const chatSpans = spans.filter(span => span.name === 'chat gpt-4');
+
+  expect(spans).toHaveLength(4);
+  expect(chatSpans).toHaveLength(2);
+  expect(chatSpans.map(span => span.kind)).toEqual([
+    SpanKind.CLIENT,
+    SpanKind.CLIENT,
+  ]);
+  expect(chatSpans.map(span => span.status.code)).toEqual(chatStatuses);
+  expect(chatSpans.map(span => span.status.message)).toEqual(
+    chatStatuses.map(status =>
+      status === SpanStatusCode.ERROR ? 'Internal Server Error' : undefined,
+    ),
+  );
+  expect(chatSpans.map(span => span.events.map(event => event.name))).toEqual(
+    chatStatuses.map(status =>
+      status === SpanStatusCode.ERROR ? ['exception'] : [],
+    ),
+  );
+  expect(stepSpan.parentSpanContext?.spanId).toBe(
+    rootSpan.spanContext().spanId,
+  );
+  expect(chatSpans.map(span => span.parentSpanContext?.spanId)).toEqual([
+    stepSpan.spanContext().spanId,
+    stepSpan.spanContext().spanId,
+  ]);
+  expect(rootSpan.status.code).toBe(operationStatus);
+  expect(stepSpan.status.code).toBe(operationStatus);
+}

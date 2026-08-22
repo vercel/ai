@@ -196,7 +196,22 @@ export class OpenTelemetry implements Telemetry {
       return execute();
     }
 
-    return context.with(modelCallContext, execute);
+    return context.with(modelCallContext, async () => {
+      try {
+        return await execute();
+      } catch (error) {
+        const inferenceSpan = state?.inferenceSpan;
+        if (state?.operationId !== 'ai.streamText' || !inferenceSpan) {
+          throw error;
+        }
+
+        recordErrorOnSpan(inferenceSpan, error);
+        inferenceSpan.end();
+        state.inferenceSpan = undefined;
+        state.inferenceContext = undefined;
+        throw error;
+      }
+    });
   }
 
   onStart(
@@ -641,6 +656,7 @@ export class OpenTelemetry implements Telemetry {
   onStepStart(event: OtelStepStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
+    if (state.stepSpan) return;
 
     const { telemetry } = state;
     state.runtimeContext = event.runtimeContext as
