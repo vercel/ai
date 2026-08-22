@@ -16,6 +16,7 @@ import { parsePartialJson } from '../util/parse-partial-json';
 import type { UIDataTypesToSchemas } from './chat';
 import {
   getStaticToolName,
+  getToolName,
   isStaticToolUIPart,
   isToolUIPart,
   type CustomContentUIPart,
@@ -60,22 +61,72 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage: UI_MESSAGE | undefined;
   messageId: string;
 }): StreamingUIMessageState<UI_MESSAGE> {
+  const message =
+    lastMessage?.role === 'assistant'
+      ? lastMessage
+      : ({
+          id: messageId,
+          metadata: undefined,
+          role: 'assistant',
+          parts: [] as UIMessagePart<
+            InferUIMessageData<UI_MESSAGE>,
+            InferUIMessageTools<UI_MESSAGE>
+          >[],
+        } as UI_MESSAGE);
+
+  // Resume/hydrate: if the last assistant message already contains unfinished
+  // tool parts (state === 'input-streaming'), seed partialToolCalls so later
+  // tool-input-delta chunks can continue instead of throwing
+  // "Received tool-input-delta for missing tool call" (#14027).
+  const partialToolCalls = createIdMap<{
+    text: string;
+    index: number;
+    toolName: string;
+    dynamic?: boolean;
+    title?: string;
+    toolMetadata?: JSONObject;
+  }>();
+
+  if (Array.isArray(message.parts)) {
+    const toolParts = message.parts.filter(isToolUIPart);
+    toolParts.forEach((part, index) => {
+      if (part.state !== 'input-streaming') return;
+
+      // Hydrated UI messages expose partial `input` on input-streaming parts.
+      // Prefer that official field (object or string); only then fall back to any
+      // non-standard `rawInput` buffer some serializers may still attach.
+      const anyPart = part as { input?: unknown; rawInput?: unknown };
+      const text =
+        typeof anyPart.input === 'string'
+          ? anyPart.input
+          : anyPart.input != null
+            ? (() => {
+                try {
+                  return JSON.stringify(anyPart.input);
+                } catch {
+                  return '';
+                }
+              })()
+            : typeof anyPart.rawInput === 'string'
+              ? anyPart.rawInput
+              : '';
+
+      partialToolCalls[part.toolCallId] = {
+        text,
+        index,
+        toolName: getToolName(part),
+        dynamic: !isStaticToolUIPart(part),
+        title: part.title,
+        toolMetadata: part.toolMetadata,
+      };
+    });
+  }
+
   return {
-    message:
-      lastMessage?.role === 'assistant'
-        ? lastMessage
-        : ({
-            id: messageId,
-            metadata: undefined,
-            role: 'assistant',
-            parts: [] as UIMessagePart<
-              InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
-            >[],
-          } as UI_MESSAGE),
+    message,
     activeTextParts: createIdMap(),
     activeReasoningParts: createIdMap(),
-    partialToolCalls: createIdMap(),
+    partialToolCalls,
   };
 }
 
