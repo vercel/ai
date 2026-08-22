@@ -55,8 +55,8 @@ describe('google-vertex-anthropic-provider', () => {
         headers: expect.any(Object),
         buildRequestUrl: expect.any(Function),
         transformRequestBody: expect.any(Function),
-        supportsNativeStructuredOutput: false,
-        supportsStrictTools: false,
+        supportsNativeStructuredOutput: true,
+        supportsStrictTools: true,
       }),
     );
   });
@@ -214,8 +214,8 @@ describe('google-vertex-anthropic-provider', () => {
           "headers": {},
           "provider": "googleVertex.anthropic.messages",
           "supportedUrls": [Function],
-          "supportsNativeStructuredOutput": false,
-          "supportsStrictTools": false,
+          "supportsNativeStructuredOutput": true,
+          "supportsStrictTools": true,
           "transformRequestBody": [Function],
         }
       `);
@@ -237,8 +237,8 @@ describe('google-vertex-anthropic-provider', () => {
           "headers": {},
           "provider": "googleVertex.anthropic.messages",
           "supportedUrls": [Function],
-          "supportsNativeStructuredOutput": false,
-          "supportsStrictTools": false,
+          "supportsNativeStructuredOutput": true,
+          "supportsStrictTools": true,
           "transformRequestBody": [Function],
         }
       `);
