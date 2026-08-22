@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 18605,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-mcp-approval-previous-response-id.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-mcp-approval-previous-response-id.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "REPRODUCED: OpenAI rejected the AI SDK MCP approval continuation after it sent both item_reference and mcp_approval_response; the documented mcp_approval_response-only continuation succeeded."
+  }
+}
