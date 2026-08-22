@@ -89,6 +89,23 @@ export const googleLanguageModelOptions = lazySchema(() =>
       structuredOutputs: z.boolean().optional(),
 
       /**
+       * Optional. Send tool input schemas as JSON Schema via
+       * `functionDeclarations[].parametersJsonSchema` instead of the OpenAPI
+       * subset in `parameters`. Default is false.
+       *
+       * The two fields are mutually exclusive per function declaration.
+       * `parametersJsonSchema` requires Gemini 2.5 or later, and accepts JSON
+       * Schema keywords the OpenAPI subset cannot express (`$ref`, `$defs`,
+       * and `anyOf` carrying sibling keywords), so schemas the conversion
+       * mangles or rejects are sent verbatim.
+       *
+       * Note that Gemini enforces a nesting-depth limit on this field which
+       * the lossy conversion can flatten a schema under, so a very deeply
+       * nested schema may be accepted on `parameters` but rejected here.
+       */
+      useParametersJsonSchema: z.boolean().optional(),
+
+      /**
        * Optional. A list of unique safety settings for blocking unsafe content.
        */
       safetySettings: z

@@ -278,6 +278,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolChoice,
       modelId: this.modelId,
       isVertexProvider,
+      useParametersJsonSchema: googleOptions?.useParametersJsonSchema ?? false,
     });
 
     const resolvedThinking = resolveThinkingConfig({
