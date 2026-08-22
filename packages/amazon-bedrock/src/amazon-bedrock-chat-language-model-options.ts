@@ -134,6 +134,20 @@ export const amazonBedrockLanguageModelChatOptions = z.object({
    */
   anthropicBeta: z.array(z.string()).optional(),
   /**
+   * Guardrail configuration for the request.
+   * `streamProcessingMode` only applies to streaming calls.
+   *
+   * @see https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-use-converse-api.html
+   */
+  guardrailConfig: z
+    .object({
+      guardrailIdentifier: z.string().optional(),
+      guardrailVersion: z.string().optional(),
+      trace: z.enum(['enabled', 'disabled', 'enabled_full']).optional(),
+      streamProcessingMode: z.enum(['sync', 'async']).optional(),
+    })
+    .optional(),
+  /**
    * Service tier for the request.
    * @see https://docs.aws.amazon.com/bedrock/latest/userguide/service-tiers-inference.html
    *
