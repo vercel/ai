@@ -1,10 +1,20 @@
 import type {
+  LanguageModelV4FilePart,
   LanguageModelV4Prompt,
+  LanguageModelV4TextPart,
   LanguageModelV4ToolResultOutput,
   SharedV4Warning,
 } from '@ai-sdk/provider';
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
 import type {
+  DeepSeekResponsesInputImageContent,
   DeepSeekResponsesInputItem,
+  DeepSeekResponsesInputTextContent,
   DeepSeekResponsesOutputTextContent,
   DeepSeekResponsesWebSearchCallAction,
 } from './deepseek-responses-api';
@@ -13,9 +23,8 @@ import type {
  * Converts an AI SDK prompt into DeepSeek Responses API input items.
  *
  * System messages become `instructions`, which DeepSeek inserts as the first
- * system message. Image and file parts are not supported by DeepSeek and are
- * dropped with a warning rather than sent, since the API silently replaces
- * them with placeholder text.
+ * system message. Images are only processed by the vision models; the other
+ * models replace them with placeholder text.
  *
  * @see https://api-docs.deepseek.com/guides/responses_api
  */
@@ -44,17 +53,27 @@ export function convertToDeepSeekResponsesInput({
       }
 
       case 'user': {
-        const userContent: Array<{ type: 'input_text'; text: string }> = [];
+        const userContent: Array<
+          DeepSeekResponsesInputTextContent | DeepSeekResponsesInputImageContent
+        > = [];
 
         for (const part of content) {
           if (part.type === 'text') {
             userContent.push({ type: 'input_text', text: part.text });
-          } else {
-            warnings.push({
-              type: 'unsupported',
-              feature: `user message part type: ${part.type}`,
-            });
+            continue;
           }
+
+          const image = toInputImage(part);
+
+          if (image != null) {
+            userContent.push(image);
+            continue;
+          }
+
+          warnings.push({
+            type: 'unsupported',
+            feature: `user message part type: ${part.type}`,
+          });
         }
 
         input.push({ type: 'message', role: 'user', content: userContent });
@@ -168,6 +187,37 @@ export function convertToDeepSeekResponsesInput({
       systemMessages.length > 0 ? systemMessages.join('\n') : undefined,
     warnings,
   };
+}
+
+function toInputImage(
+  part: LanguageModelV4TextPart | LanguageModelV4FilePart,
+): DeepSeekResponsesInputImageContent | undefined {
+  if (
+    part.type !== 'file' ||
+    getTopLevelMediaType(part.mediaType) !== 'image'
+  ) {
+    return undefined;
+  }
+
+  switch (part.data.type) {
+    case 'reference':
+      return {
+        type: 'input_image',
+        file_id: resolveProviderReference({
+          reference: part.data.reference,
+          provider: 'deepseek',
+        }),
+      };
+    case 'url':
+      return { type: 'input_image', image_url: part.data.url.toString() };
+    case 'data':
+      return {
+        type: 'input_image',
+        image_url: `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+      };
+    default:
+      return undefined;
+  }
 }
 
 function stringifyToolOutput(

@@ -61,6 +61,16 @@ function prepareChunksFixtureResponse(filename: string) {
 }
 
 describe('DeepSeekResponsesLanguageModel', () => {
+  describe('supportedUrls', () => {
+    it('should natively support HTTP image URLs', () => {
+      expect(
+        provider.responses('deepseek-v4-flash-vision-exp').supportedUrls,
+      ).toEqual({
+        'image/*': [/^https?:\/\/.*$/],
+      });
+    });
+  });
+
   describe('doGenerate', () => {
     describe('text', () => {
       beforeEach(() => {
