@@ -1714,6 +1714,7 @@ class DefaultStreamTextResult<
         const {
           approvedToolApprovals: localApprovedToolApprovals,
           deniedToolApprovals: revalidationDeniedToolApprovals,
+          invalidToolApprovals,
         } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
           approvedToolApprovals: approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
@@ -1766,6 +1767,21 @@ class DefaultStreamTextResult<
             } as StaticToolOutputDenied<TOOLS>);
           }
 
+          for (const toolApproval of invalidToolApprovals) {
+            toolExecutionStepStreamController?.enqueue({
+              type: 'tool-error',
+              toolCallId: toolApproval.toolCall.toolCallId,
+              toolName: toolApproval.toolCall.toolName,
+              input: toolApproval.toolCall.input,
+              error: getErrorMessage(toolApproval.error),
+              dynamic: true,
+              title: toolApproval.toolCall.title,
+              ...(toolApproval.toolCall.toolMetadata != null
+                ? { toolMetadata: toolApproval.toolCall.toolMetadata }
+                : {}),
+            });
+          }
+
           const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
           await Promise.all(
@@ -1804,7 +1820,8 @@ class DefaultStreamTextResult<
           // Local tool results (approved + denied) are sent as tool results:
           if (
             toolOutputs.length > 0 ||
-            localDeniedToolApprovalsWithoutResults.length > 0
+            localDeniedToolApprovalsWithoutResults.length > 0 ||
+            invalidToolApprovals.length > 0
           ) {
             const localToolContent: ToolContent = [];
 
@@ -1823,6 +1840,24 @@ class DefaultStreamTextResult<
                       ? output.output
                       : output.error,
                   errorMode: output.type === 'tool-error' ? 'text' : 'none',
+                }),
+              });
+            }
+
+            // Report invalid approved tool calls to the model without
+            // executing them. Repairing the input after approval would change
+            // the operation that the user authorized.
+            for (const toolApproval of invalidToolApprovals) {
+              localToolContent.push({
+                type: 'tool-result' as const,
+                toolCallId: toolApproval.toolCall.toolCallId,
+                toolName: toolApproval.toolCall.toolName,
+                output: await createToolModelOutput({
+                  toolCallId: toolApproval.toolCall.toolCallId,
+                  input: toolApproval.toolCall.input,
+                  tool: getOwn(tools, toolApproval.toolCall.toolName),
+                  output: toolApproval.error,
+                  errorMode: 'text',
                 }),
               });
             }

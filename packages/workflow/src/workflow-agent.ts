@@ -1562,12 +1562,12 @@ export class WorkflowAgent<
           }
 
           // Re-validate through the shared core implementation: input schema,
-          // HMAC signature (when configured), and approval policy. It throws on
-          // invalid input/signature; convert that to a denial result so the
-          // agent loop can continue gracefully.
+          // HMAC signature (when configured), and approval policy. Convert
+          // invalid input, denial, or signature errors to a tool error result
+          // so the agent loop can continue gracefully.
           let revalidationReason: string | undefined;
           try {
-            const { deniedToolApprovals: policyDenied } =
+            const { deniedToolApprovals: policyDenied, invalidToolApprovals } =
               await validateApprovedToolApprovals({
                 approvedToolApprovals: [approval.collected],
                 tools: this.tools as ToolSet,
@@ -1577,7 +1577,12 @@ export class WorkflowAgent<
                   effectiveToolsContext as InferToolSetContext<ToolSet>,
                 runtimeContext: effectiveRuntimeContext,
               });
-            if (policyDenied.length > 0) {
+
+            if (invalidToolApprovals.length > 0) {
+              revalidationReason = getErrorMessage(
+                invalidToolApprovals[0].error,
+              );
+            } else if (policyDenied.length > 0) {
               revalidationReason =
                 policyDenied[0].approvalResponse.reason ??
                 'Tool approval denied';
