@@ -1,12 +1,12 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
-import { createCodexACP } from './_create';
+import { createCursorACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
   const agent = new HarnessAgent({
-    harness: createCodexACP(),
+    harness: createCursorACP(),
     sandbox: createVercelSandbox({
       runtime: 'node24',
       ports: [4000],
@@ -15,13 +15,19 @@ run(async () => {
   });
   const session = await agent.createSession();
   try {
-    const result = await agent.stream({
+    const createResult = await agent.stream({
       session,
       prompt:
-        'In one tool phase, start two separate shell calls in parallel: one must run `sleep 1; printf first`, and the other must run `sleep 1; printf second`. Then report both exact outputs.',
+        'Create `notes.md` containing exactly "hello world", then report what you changed.',
     });
-    await printFullStream({ result });
-    console.log('steps:', (await result.steps).length);
+    await printFullStream({ result: createResult });
+
+    const editResult = await agent.stream({
+      session,
+      prompt:
+        'Edit `notes.md` to capitalize "Hello", then report what you changed.',
+    });
+    await printFullStream({ result: editResult });
   } finally {
     await session.destroy();
   }

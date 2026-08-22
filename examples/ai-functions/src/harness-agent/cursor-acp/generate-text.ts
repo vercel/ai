@@ -1,23 +1,11 @@
-import { readFile } from 'node:fs/promises';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
-import { createCodexACP } from './_create';
+import { createCursorACP } from './_create';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const lockedSourceDir = new URL('./locked-acquisition/', import.meta.url);
-  const [packageJson, pnpmLockYaml] = await Promise.all([
-    readFile(new URL('package.json', lockedSourceDir), 'utf8'),
-    readFile(new URL('pnpm-lock.yaml', lockedSourceDir), 'utf8'),
-  ]);
   const agent = new HarnessAgent({
-    harness: createCodexACP({
-      source: {
-        type: 'npm-locked',
-        packageJson,
-        pnpmLockYaml,
-      },
-    }),
+    harness: createCursorACP(),
     sandbox: createVercelSandbox({
       runtime: 'node24',
       ports: [4000],
