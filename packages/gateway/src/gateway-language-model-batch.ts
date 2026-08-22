@@ -58,11 +58,23 @@ export class GatewayBatchLanguageModel
    * server-side, so status and results always route back through the
    * Gateway job.
    */
+  // The Gateway notifies the caller's URL on completion (`callbackUrl`), so
+  // the factory's URL passes straight through, mirroring the video model.
+  async experimental_handleBatchWebhookOption({
+    webhook,
+  }: {
+    webhook: () => PromiseLike<{ url: string }>;
+  }): Promise<{ webhookUrl: string }> {
+    const { url } = await webhook();
+    return { webhookUrl: url };
+  }
+
   async experimental_doStartBatch({
     requests,
     providerOptions,
     headers,
     abortSignal,
+    webhookUrl,
   }: BatchV4StartOptions<LanguageModelV4BatchRequest>): Promise<BatchV4StartResult> {
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
@@ -84,6 +96,7 @@ export class GatewayBatchLanguageModel
             : undefined,
         ),
         body: {
+          ...(webhookUrl != null && { callbackUrl: webhookUrl }),
           modelId: this.modelId,
           requests: requests.map(request => ({
             id: request.id,
