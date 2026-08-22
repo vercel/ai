@@ -47,7 +47,12 @@ const stream = createUIMessageStream({
       prompt: 'Write a haiku about AI',
     });
 
-    writer.merge(toUIMessageStream({ stream: result.stream }));
+    writer.merge(
+      toUIMessageStream({
+        stream: result.stream,
+        originalMessages: existingMessages,
+      }),
+    );
   },
   onError: error => `Custom error: ${error.message}`,
   originalMessages: existingMessages,
@@ -56,6 +61,12 @@ const stream = createUIMessageStream({
   },
 });
 ```
+
+<Note>
+  When you merge a `streamText` result that can continue existing tool calls,
+  including tool approval flows, pass the same `originalMessages` to both
+  `createUIMessageStream` and `toUIMessageStream`.
+</Note>
 
 ## API Signature
 
