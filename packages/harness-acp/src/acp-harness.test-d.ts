@@ -55,7 +55,7 @@ describe('createACP built-in tool inference', () => {
     expectTypeOf(harness.builtinTools).toEqualTypeOf<{ bash: typeof bash }>();
   });
 
-  test('accepts discriminated simple and locked npm sources', () => {
+  test('accepts discriminated npm and install command sources', () => {
     createACP({
       harnessId: 'simple-acp',
       source: {
@@ -79,6 +79,14 @@ describe('createACP built-in tool inference', () => {
         type: 'npm-locked',
         packageJson: '{"private":true}',
         pnpmLockYaml: "lockfileVersion: '9.0'\n",
+      },
+      executable: 'acp-agent',
+    });
+    createACP({
+      harnessId: 'install-command-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://example.com/install -fsS | bash',
       },
       executable: 'acp-agent',
     });
