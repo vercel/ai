@@ -10,6 +10,24 @@ const amazonBedrockErrorSchema = z.looseObject({
   message: z.string().optional(),
 });
 
+// Transform a Bedrock error payload into the Anthropic error shape
+// ({ type, message }) so downstream Anthropic handlers and the stream
+// chunk schema can process it.
+async function toAnthropicErrorPayload(
+  text: string,
+  type = 'error',
+): Promise<{ type: string; message: string }> {
+  const parsed = await safeParseJSON({
+    text,
+    schema: amazonBedrockErrorSchema,
+  });
+
+  const message =
+    parsed.success && parsed.value.message ? parsed.value.message : text;
+
+  return { type, message };
+}
+
 export function createAmazonBedrockAnthropicFetch(
   baseFetch: FetchFunction,
 ): FetchFunction {
@@ -20,17 +38,9 @@ export function createAmazonBedrockAnthropicFetch(
     // so that anthropicFailedResponseHandler can extract the message.
     if (!response.ok) {
       const text = await response.text();
-      const parsed = await safeParseJSON({
-        text,
-        schema: amazonBedrockErrorSchema,
-      });
-
-      const message =
-        parsed.success && parsed.value.message ? parsed.value.message : text;
-
       const anthropicError = JSON.stringify({
         type: 'error',
-        error: { type: 'error', message },
+        error: await toAnthropicErrorPayload(text),
       });
 
       return new Response(anthropicError, {
@@ -93,26 +103,16 @@ function transformAmazonBedrockEventStreamToSSE(
           controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
         }
       } else if (event.messageType === 'exception') {
-        // Transform Bedrock stream exceptions into Anthropic error event format
-        // ({ type, message } object), mirroring the non-streaming error branch
-        // above. Emitting the raw payload string fails the Anthropic chunk
-        // schema and surfaces as a type validation error instead of the
-        // actual Bedrock error message.
-        const parsed = await safeParseJSON({
-          text: event.data,
-          schema: amazonBedrockErrorSchema,
-        });
-
-        const message =
-          parsed.success && parsed.value.message
-            ? parsed.value.message
-            : event.data;
-
+        // Emitting the raw payload string would fail the Anthropic chunk
+        // schema; normalize to the Anthropic error event shape instead.
         controller.enqueue(
           textEncoder.encode(
             `data: ${JSON.stringify({
               type: 'error',
-              error: { type: event.exceptionType ?? 'error', message },
+              error: await toAnthropicErrorPayload(
+                event.data,
+                event.exceptionType,
+              ),
             })}\n\n`,
           ),
         );
