@@ -1,19 +1,19 @@
 {
-  "id": "7a630f5b-b7e6-4878-82f8-d77db164d42b",
+  "id": "21d2ddcb-4947-4e28-a783-857aedbe6ace",
   "object": "chat.completion",
-  "created": 1764665845,
-  "model": "deepseek-reasoner",
+  "created": 1786782778,
+  "model": "deepseek-v4-flash",
   "choices": [
     {
       "index": 0,
       "message": {
         "role": "assistant",
         "content": "",
-        "reasoning_content": "The user is asking for the weather in San Francisco. I have a weather tool available that can get weather information for a location. I should use this tool with the location parameter set to \"San Francisco\". Let me call the weather function.",
+        "reasoning_content": "The user asks about weather in San Francisco. I'll call the weather tool.",
         "tool_calls": [
           {
             "index": 0,
-            "id": "call_00_9V0vrf86Pc9aelHCJMZqnJBo",
+            "id": "call_00_lCIkdHRa7AKmCG3TlxXz1061",
             "type": "function",
             "function": {
               "name": "weather",
@@ -27,17 +27,17 @@
     }
   ],
   "usage": {
-    "prompt_tokens": 339,
-    "completion_tokens": 92,
-    "total_tokens": 431,
+    "prompt_tokens": 374,
+    "completion_tokens": 60,
+    "total_tokens": 434,
     "prompt_tokens_details": {
-      "cached_tokens": 320
+      "cached_tokens": 0
     },
     "completion_tokens_details": {
-      "reasoning_tokens": 48
+      "reasoning_tokens": 16
     },
-    "prompt_cache_hit_tokens": 320,
-    "prompt_cache_miss_tokens": 19
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 374
   },
-  "system_fingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache"
+  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
 }
