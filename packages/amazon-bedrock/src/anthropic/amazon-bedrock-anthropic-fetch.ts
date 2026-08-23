@@ -93,9 +93,27 @@ function transformAmazonBedrockEventStreamToSSE(
           controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
         }
       } else if (event.messageType === 'exception') {
+        // Transform Bedrock stream exceptions into Anthropic error event format
+        // ({ type, message } object), mirroring the non-streaming error branch
+        // above. Emitting the raw payload string fails the Anthropic chunk
+        // schema and surfaces as a type validation error instead of the
+        // actual Bedrock error message.
+        const parsed = await safeParseJSON({
+          text: event.data,
+          schema: amazonBedrockErrorSchema,
+        });
+
+        const message =
+          parsed.success && parsed.value.message
+            ? parsed.value.message
+            : event.data;
+
         controller.enqueue(
           textEncoder.encode(
-            `data: ${JSON.stringify({ type: 'error', error: event.data })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'error',
+              error: { type: event.exceptionType ?? 'error', message },
+            })}\n\n`,
           ),
         );
       }

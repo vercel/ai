@@ -116,7 +116,7 @@ describe('createAmazonBedrockAnthropicFetch', () => {
     expect(text).toBe('data: [DONE]\n\n');
   });
 
-  it('should handle exception messages', async () => {
+  it('should transform exception messages into Anthropic error event format', async () => {
     const codec = new EventStreamCodec(toUtf8, fromUtf8);
 
     const errorData = JSON.stringify({ message: 'Rate limit exceeded' });
@@ -148,8 +148,143 @@ describe('createAmazonBedrockAnthropicFetch', () => {
     const text = new TextDecoder().decode(value);
 
     expect(text).toBe(
-      `data: ${JSON.stringify({ type: 'error', error: errorData })}\n\n`,
+      `data: ${JSON.stringify({
+        type: 'error',
+        error: { type: 'ThrottlingException', message: 'Rate limit exceeded' },
+      })}\n\n`,
     );
+  });
+
+  it('should parse exception events so the Anthropic stream chunk schema accepts them', async () => {
+    const codec = new EventStreamCodec(toUtf8, fromUtf8);
+
+    // Exact payload observed from bedrock-runtime invoke-with-response-stream
+    // during a model error: the exception body is a JSON string with only a
+    // `message` field. Emitting it un-parsed produces
+    // {"type":"error","error":"{\"message\":\"...\"}"} which fails the
+    // Anthropic chunk schema (error must be an object) and surfaces as
+    // AI_TypeValidationError instead of the Bedrock error message.
+    const errorData = JSON.stringify({
+      message: 'Bedrock is unable to process your request.',
+    });
+    const amazonBedrockEvent = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+        ':exception-type': {
+          type: 'string',
+          value: 'modelStreamErrorException',
+        },
+      },
+      body: fromUtf8(errorData),
+    });
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(amazonBedrockEvent);
+        controller.close();
+      },
+    });
+
+    const mockResponse = createMockResponse(
+      stream,
+      'application/vnd.amazon.eventstream',
+    );
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createAmazonBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+    const reader = response.body!.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value);
+
+    const event = JSON.parse(text.replace(/^data: /, ''));
+    expect(event).toEqual({
+      type: 'error',
+      error: {
+        type: 'modelStreamErrorException',
+        message: 'Bedrock is unable to process your request.',
+      },
+    });
+    // the error member must be an object to satisfy the Anthropic
+    // stream chunk schema: z.object({ type: z.string(), message: z.string() })
+    expect(typeof event.error).toBe('object');
+  });
+
+  it('should use raw exception data as message when it has no message field', async () => {
+    const codec = new EventStreamCodec(toUtf8, fromUtf8);
+
+    const errorData = JSON.stringify({ code: 'InternalFailure' });
+    const amazonBedrockEvent = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+        ':exception-type': {
+          type: 'string',
+          value: 'internalServerException',
+        },
+      },
+      body: fromUtf8(errorData),
+    });
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(amazonBedrockEvent);
+        controller.close();
+      },
+    });
+
+    const mockResponse = createMockResponse(
+      stream,
+      'application/vnd.amazon.eventstream',
+    );
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createAmazonBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+    const reader = response.body!.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value);
+
+    const event = JSON.parse(text.replace(/^data: /, ''));
+    expect(event.error).toEqual({
+      type: 'internalServerException',
+      message: errorData,
+    });
+  });
+
+  it('should fall back to type "error" when the exception has no :exception-type header', async () => {
+    const codec = new EventStreamCodec(toUtf8, fromUtf8);
+
+    const amazonBedrockEvent = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+      },
+      body: fromUtf8('not valid json'),
+    });
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(amazonBedrockEvent);
+        controller.close();
+      },
+    });
+
+    const mockResponse = createMockResponse(
+      stream,
+      'application/vnd.amazon.eventstream',
+    );
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createAmazonBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+    const reader = response.body!.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value);
+
+    const event = JSON.parse(text.replace(/^data: /, ''));
+    expect(event.error).toEqual({
+      type: 'error',
+      message: 'not valid json',
+    });
   });
 
   it('should handle multiple events in sequence', async () => {
