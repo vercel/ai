@@ -282,7 +282,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id,
+          toolCallId: toolCall.id || this.generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
         });

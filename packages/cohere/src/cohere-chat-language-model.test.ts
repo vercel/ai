@@ -104,6 +104,33 @@ describe('doGenerate', () => {
       prepareJsonFixtureResponse('cohere-tool-call');
     });
 
+    it('should generate an ID when the tool call ID is empty', async () => {
+      const body = JSON.parse(
+        fs.readFileSync('src/__fixtures__/cohere-tool-call.json', 'utf8'),
+      );
+      body.message.tool_calls[0].id = '';
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body,
+      };
+
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: vi.fn().mockReturnValue('test-id'),
+      });
+
+      const { content } = await testProvider('command-r-plus').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(content).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolName: 'weather',
+        input: '{"location":"San Francisco"}',
+      });
+    });
+
     it('should extract tool calls', async () => {
       const result = await model.doGenerate({
         tools: [

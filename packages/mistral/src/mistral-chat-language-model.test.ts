@@ -91,6 +91,33 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot();
     });
+
+    it('should generate an ID when the tool call ID is empty', async () => {
+      const body = JSON.parse(
+        fs.readFileSync('src/__fixtures__/mistral-tool-call.json', 'utf8'),
+      );
+      body.choices[0].message.tool_calls[0].id = '';
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'json-value',
+        body,
+      };
+
+      const testProvider = createMistral({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-id',
+      });
+
+      const result = await testProvider
+        .chat('mistral-small-latest')
+        .doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.content).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'test-id',
+        toolName: 'weather',
+        input: '{"location": "San Francisco"}',
+      });
+    });
   });
 
   describe('reasoning', () => {

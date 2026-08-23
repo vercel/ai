@@ -88,6 +88,26 @@ describe('XaiChatLanguageModel', () => {
         const result = await model.doGenerate({ prompt: TEST_PROMPT });
         expect(result).toMatchSnapshot();
       });
+
+      it('should generate an ID when the tool call ID is empty', async () => {
+        const body = JSON.parse(
+          fs.readFileSync('src/__fixtures__/xai-tool-call.json', 'utf8'),
+        );
+        body.choices[0].message.tool_calls[0].id = '';
+        server.urls['https://api.x.ai/v1/chat/completions'].response = {
+          type: 'json-value',
+          body,
+        };
+
+        const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(result.content).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'test-id',
+          toolName: 'weather',
+          input: '{"location":"San Francisco"}',
+        });
+      });
     });
 
     it('should extract usage', async () => {
