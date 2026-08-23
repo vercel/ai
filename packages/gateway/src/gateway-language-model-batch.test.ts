@@ -197,17 +197,6 @@ describe('GatewayBatchLanguageModel', () => {
       });
     });
 
-    it('should pass the webhook factory URL through experimental_handleBatchWebhookOption', async () => {
-      const result =
-        await createTestModel().experimental_handleBatchWebhookOption({
-          webhook: async () => ({ url: 'https://example.com/batch-webhook' }),
-        });
-
-      expect(result).toEqual({
-        webhookUrl: 'https://example.com/batch-webhook',
-      });
-    });
-
     it('should send webhookUrl as the top-level callbackUrl body field', async () => {
       prepareBatchStartResponse({
         batchId: 'batch_abc123',

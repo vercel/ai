@@ -16,5 +16,4 @@ export type {
   TextBatchItemResult as Experimental_TextBatchItemResult,
   TextBatchReference as Experimental_TextBatchReference,
   TextBatchRequest as Experimental_TextBatchRequest,
-  TextBatchWebhookFactory as Experimental_TextBatchWebhookFactory,
 } from './batch-types';

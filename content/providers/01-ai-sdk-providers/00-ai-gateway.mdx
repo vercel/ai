@@ -207,6 +207,51 @@ const { text } = await generateText({
 
 AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
 
+## Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+AI Gateway supports durable text batches through `experimental_startTextBatch`, `experimental_getBatchStatus`, and `experimental_getBatchResults`. See the [AI Gateway batch processing guide](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing) for supported models, limits, and the complete lifecycle.
+
+Pass a publicly reachable HTTPS `webhookUrl` when starting a batch to receive a terminal notification instead of polling. AI Gateway sends `batch.completed`, `batch.failed`, or `batch.cancelled`. The event contains terminal status information but not batch results. Completion webhooks are an AI Gateway capability; direct Anthropic and OpenAI batch providers return an unsupported warning when this option is provided.
+
+```ts filename="start-batch.ts"
+import { randomUUID } from 'node:crypto';
+import { experimental_startTextBatch as startTextBatch } from 'ai';
+
+// The receiver uses this token to look up the expected batch and signing
+// secret before trusting anything in the webhook body.
+const token = randomUUID();
+
+const batch = await startTextBatch({
+  model: 'anthropic/claude-haiku-4.5',
+  requests: [
+    { id: 'france', prompt: 'What is the capital of France?' },
+    { id: 'germany', prompt: 'What is the capital of Germany?' },
+  ],
+  webhookUrl: `https://example.com/api/batch-webhook?token=${token}`,
+});
+
+const asyncJob = batch.providerMetadata?.gateway?.asyncJob as
+  | { webhookSigningSecret?: string }
+  | undefined;
+
+if (asyncJob?.webhookSigningSecret == null) {
+  throw new Error('AI Gateway did not return a webhook signing secret.');
+}
+
+await saveBatchWebhook(token, {
+  batch,
+  signingSecret: asyncJob.webhookSigningSecret,
+});
+```
+
+The signing secret is returned only in the start response. Persist it and the complete `batch` reference before the process exits. The receiver must verify the `x-ai-gateway-signature` header against the raw request body before trusting the event. The header has the form `t=<unix seconds>,v1=<hex digest>`, where `v1` is the HMAC-SHA256 digest of `"<t>.<raw body>"`. Use a timing-safe comparison, reject stale timestamps, and reject events whose `data.jobId` does not match the persisted `batch.id`. Batch deliveries use the same signing format as AI Gateway video webhooks; see [verifying the delivery](https://vercel.com/docs/ai-gateway/modalities/video-generation#verifying-the-delivery) for a complete verification helper.
+
+AI Gateway expects a 2xx response within 10 seconds and retries failed deliveries. Retries carry the same `x-ai-gateway-idempotency-key` value (`<jobId>-<status>`), which receivers can use for deduplication. After verification, pass the persisted `batch` reference to `experimental_getBatchStatus` and `experimental_getBatchResults`. Delivery is best-effort, so periodically reconcile persisted batches by status as a fallback for a notification that exhausts its retries.
+
 ## Reranking Models
 
 You can create reranking models using the `rerankingModel` method on the provider instance:

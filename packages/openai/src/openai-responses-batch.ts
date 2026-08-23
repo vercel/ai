@@ -133,7 +133,19 @@ class OpenAIResponsesBatch {
     options: BatchV4StartOptions<OpenAIBatchRequest>,
   ): Promise<BatchV4StartResult> {
     const fileParts: string[] = [];
-    const warnings: BatchV4StartResult['warnings'] = [];
+    const warnings: BatchV4StartResult['warnings'] =
+      options.webhookUrl == null
+        ? []
+        : [
+            {
+              warning: {
+                type: 'unsupported',
+                feature: 'webhookUrl',
+                details:
+                  'The OpenAI Batch API does not support per-batch webhook URLs.',
+              },
+            },
+          ];
 
     for (const request of options.requests) {
       const preparedRequest = await this.options.prepareRequest(request);

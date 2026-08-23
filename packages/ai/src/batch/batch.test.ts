@@ -171,48 +171,10 @@ describe('startTextBatch', () => {
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
   });
 
-  it('resolves the webhook factory through the model handler and forwards the webhook URL', async () => {
+  it('forwards the webhook URL to the batch model', async () => {
     const calls: Array<
       Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0]
     > = [];
-    const webhook = vi
-      .fn()
-      .mockResolvedValue({ url: 'https://example.com/batch-webhook' });
-    const model = Object.assign(
-      createMockBatchModel({
-        doStartBatch: async options => {
-          calls.push(options);
-          return { batchId: 'batch-123', status: 'pending', warnings: [] };
-        },
-      }),
-      {
-        experimental_handleBatchWebhookOption: async (options: {
-          webhook: () => PromiseLike<{ url: string }>;
-        }) => {
-          const { url } = await options.webhook();
-          return { webhookUrl: url };
-        },
-      },
-    );
-
-    const result = await startTextBatch({
-      model,
-      requests: [{ id: 'request-1', prompt: 'hello' }],
-      webhook,
-    });
-
-    expect(webhook).toHaveBeenCalledTimes(1);
-    expect(calls[0].webhookUrl).toBe('https://example.com/batch-webhook');
-    expect(result.warnings).toEqual([]);
-  });
-
-  it('warns without invoking the webhook factory when the model does not support webhooks', async () => {
-    const calls: Array<
-      Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0]
-    > = [];
-    const webhook = vi
-      .fn()
-      .mockResolvedValue({ url: 'https://example.com/batch-webhook' });
     const model = createMockBatchModel({
       doStartBatch: async options => {
         calls.push(options);
@@ -223,21 +185,11 @@ describe('startTextBatch', () => {
     const result = await startTextBatch({
       model,
       requests: [{ id: 'request-1', prompt: 'hello' }],
-      webhook,
+      webhookUrl: 'https://example.com/batch-webhook',
     });
 
-    expect(webhook).not.toHaveBeenCalled();
-    expect(calls[0].webhookUrl).toBeUndefined();
-    expect(result.warnings).toEqual([
-      {
-        warning: {
-          type: 'unsupported',
-          feature: 'webhook',
-          details:
-            'This model does not support batch webhooks. Poll the batch status instead.',
-        },
-      },
-    ]);
+    expect(calls[0].webhookUrl).toBe('https://example.com/batch-webhook');
+    expect(result.warnings).toEqual([]);
   });
 });
 

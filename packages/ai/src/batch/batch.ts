@@ -37,7 +37,7 @@ export async function startTextBatch({
   model: modelArg,
   requests,
   providerOptions,
-  webhook,
+  webhookUrl,
   abortSignal,
   headers,
   timeout,
@@ -45,27 +45,6 @@ export async function startTextBatch({
   validateRequests(requests);
 
   const model = resolveBatchLanguageModel(modelArg);
-
-  // Mirrors the video webhook flow: only invoke the user's factory when the
-  // model signals support, so ignored webhook endpoints are never created.
-  const earlyWarnings: StartTextBatchResult['warnings'][number][] = [];
-  let webhookUrl: string | undefined;
-  if (webhook != null) {
-    if (model.experimental_handleBatchWebhookOption != null) {
-      ({ webhookUrl } = await model.experimental_handleBatchWebhookOption({
-        webhook,
-      }));
-    } else {
-      earlyWarnings.push({
-        warning: {
-          type: 'unsupported',
-          feature: 'webhook',
-          details:
-            'This model does not support batch webhooks. Poll the batch status instead.',
-        },
-      });
-    }
-  }
   const operationAbortSignal = mergeAbortSignals(
     abortSignal,
     getTotalTimeoutMs(timeout),
@@ -105,8 +84,7 @@ export async function startTextBatch({
       headers: headersWithUserAgent,
       ...(webhookUrl != null && { webhookUrl }),
     });
-    const { batchId, warnings: startWarnings, ...status } = result;
-    const warnings = [...earlyWarnings, ...startWarnings];
+    const { batchId, warnings, ...status } = result;
 
     logWarnings({
       warnings: warnings.map(({ warning }) => warning),

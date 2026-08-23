@@ -41,6 +41,9 @@ it('keeps batch start non-retrying', () => {
   expectTypeOf<StartTextBatchOptions['timeout']>().toEqualTypeOf<
     number | { totalMs?: number } | undefined
   >();
+  expectTypeOf<StartTextBatchOptions['webhookUrl']>().toEqualTypeOf<
+    string | undefined
+  >();
 });
 
 it('excludes Core orchestration and tool execution from batch items', () => {

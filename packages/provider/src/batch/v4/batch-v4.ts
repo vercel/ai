@@ -43,6 +43,8 @@ export type BatchV4StartOptions<REQUEST> = {
 
   /**
    * URL the provider notifies when the batch reaches a terminal state.
+   * Providers that do not support completion webhooks should return an
+   * unsupported warning.
    */
   readonly webhookUrl?: string;
 };
@@ -95,14 +97,6 @@ export type BatchV4ItemResult<RESULT> =
  * processing.
  */
 export type BatchModelV4<REQUEST, RESULT> = {
-  /**
-   * Webhook capability signal, mirroring the video model's `handleWebhookOption`:
-   * the SDK invokes the user's webhook factory only when this method is present.
-   */
-  experimental_handleBatchWebhookOption?: (options: {
-    webhook: () => PromiseLike<{ url: string }>;
-  }) => PromiseLike<{ webhookUrl: string }>;
-
   experimental_doStartBatch(
     options: BatchV4StartOptions<REQUEST>,
   ): PromiseLike<BatchV4StartResult>;

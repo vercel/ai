@@ -71,19 +71,19 @@ type BatchRequestOptions = {
 };
 
 /**
- * Webhook factory for batch completion notifications, mirroring the video
- * `webhook` option: invoked only when the model supports batch webhooks.
- */
-export type TextBatchWebhookFactory = () => PromiseLike<{ url: string }>;
-
-/**
  * Options for starting a text batch.
  */
 export type StartTextBatchOptions = {
   model: BatchLanguageModel;
   requests: ReadonlyArray<TextBatchRequest>;
   providerOptions?: ProviderOptions;
-  webhook?: TextBatchWebhookFactory;
+
+  /**
+   * URL that the provider should notify when the batch reaches a terminal
+   * state. Providers that do not support completion webhooks return an
+   * unsupported warning.
+   */
+  webhookUrl?: string;
 } & BatchRequestOptions;
 
 /**

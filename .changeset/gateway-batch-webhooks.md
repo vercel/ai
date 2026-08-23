@@ -1,7 +1,9 @@
 ---
+'@ai-sdk/anthropic': patch
+'@ai-sdk/gateway': patch
+'@ai-sdk/openai': patch
 '@ai-sdk/provider': patch
 'ai': patch
-'@ai-sdk/gateway': patch
 ---
 
-feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhook` factory (mirroring the video webhook flow), models signal support via `experimental_handleBatchWebhookOption`, and the gateway provider registers the URL through its batch `callbackUrl` contract.
+feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
