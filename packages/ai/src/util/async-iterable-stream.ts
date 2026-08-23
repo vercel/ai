@@ -78,7 +78,15 @@ export function asAsyncIterableStream<T>(
           return { done: true, value: undefined };
         }
 
-        const { done, value } = await reader.read();
+        let result: ReadableStreamReadResult<T>;
+        try {
+          result = await reader.read();
+        } catch (error) {
+          await cleanup(false);
+          throw error;
+        }
+
+        const { done, value } = result;
 
         if (done) {
           await cleanup(true);

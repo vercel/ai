@@ -28,6 +28,15 @@ const sandbox = undefined as never as HarnessV1SandboxProvider;
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
 
 describe('HarnessAgentSettings tool filtering types', () => {
+  test('sandbox provider is optional', () => {
+    const settings: Settings = {
+      harness,
+      tools: userTools,
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
   test('activeTools accepts builtin and user tool names', () => {
     const settings: Settings = {
       harness,

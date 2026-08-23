@@ -1,5 +1,339 @@
 # @ai-sdk/vue
 
+## 4.0.77
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
+## 4.0.76
+
+### Patch Changes
+
+- 8514cff: fix(vue): preserve empty completion values when an initial completion is configured
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 4.0.75
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 4.0.74
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 4.0.73
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 4.0.72
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 4.0.70
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - @ai-sdk/provider-utils@5.0.28
+  - ai@7.0.70
+
+## 4.0.69
+
+### Patch Changes
+
+- ai@7.0.69
+
+## 4.0.68
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 4.0.67
+
+### Patch Changes
+
+- ai@7.0.67
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 4.0.65
+
+### Patch Changes
+
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 4.0.64
+
+### Patch Changes
+
+- ai@7.0.64
+
+## 4.0.63
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 4.0.62
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
+## 4.0.61
+
+### Patch Changes
+
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+- Updated dependencies [7fbfc6d]
+  - ai@7.0.61
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.60
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
+## 4.0.59
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - ai@7.0.59
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [72ad23f]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - ai@7.0.58
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - ai@7.0.57
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
+## 4.0.55
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - ai@7.0.55
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.54
+
+### Patch Changes
+
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [cd0177b]
+- Updated dependencies [2b60826]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.52
+
+### Patch Changes
+
+- Updated dependencies [3836a85]
+- Updated dependencies [1bec07d]
+  - ai@7.0.52
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - ai@7.0.51
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+- Updated dependencies [da64b51]
+  - ai@7.0.50
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.49
+
+### Patch Changes
+
+- ai@7.0.49
+
+## 4.0.48
+
+### Patch Changes
+
+- ai@7.0.48
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - ai@7.0.47
+
+## 4.0.46
+
+### Patch Changes
+
+- ai@7.0.46
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [d6ce0ee]
+- Updated dependencies [fa95504]
+- Updated dependencies [349afe7]
+  - ai@7.0.45
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - ai@7.0.43
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - @ai-sdk/provider-utils@5.0.15
+  - ai@7.0.42
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [09a52cb]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - ai@7.0.39
+
+## 4.0.38
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.37
+
+### Patch Changes
+
+- ai@7.0.37
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
 ## 4.0.35
 
 ### Patch Changes

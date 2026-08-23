@@ -1,5 +1,6 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import {
+  experimental_toolCaller,
   tool,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
@@ -100,6 +101,42 @@ describe('ToolLoopAgent', () => {
           },
         }
       `);
+    });
+
+    it('should forward experimental_toolCallers to generateText', async () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: tools =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => Object.keys(tools),
+            }),
+        },
+      );
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
+      });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      expect(doGenerateOptions?.tools?.map(tool => tool.name)).toEqual([
+        'code_mode',
+      ]);
     });
 
     it('should tag the user-agent with the agent identifier', async () => {
@@ -242,6 +279,20 @@ describe('ToolLoopAgent', () => {
       await agent.generate({
         prompt: 'Hello, world!',
         timeout: 5000,
+      });
+
+      // timeout is merged into abortSignal, so we check that an abort signal was created
+      expect(doGenerateOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should pass settings timeout to generateText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        timeout: 5000,
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
       });
 
       // timeout is merged into abortSignal, so we check that an abort signal was created
@@ -781,6 +832,43 @@ describe('ToolLoopAgent', () => {
       );
     });
 
+    it('should forward experimental_toolCallers to streamText', async () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: tools =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => Object.keys(tools),
+            }),
+        },
+      );
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+
+      expect(doStreamOptions?.tools?.map(tool => tool.name)).toEqual([
+        'code_mode',
+      ]);
+    });
+
     it('should forward toolOrder to streamText', async () => {
       const agent = new ToolLoopAgent({
         model: mockModel,
@@ -863,6 +951,22 @@ describe('ToolLoopAgent', () => {
       const result = await agent.stream({
         prompt: 'Hello, world!',
         timeout: 5000,
+      });
+
+      await result.consumeStream();
+
+      // timeout is merged into abortSignal, so we check that an abort signal was created
+      expect(doStreamOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should pass settings timeout to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        timeout: 5000,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
       });
 
       await result.consumeStream();

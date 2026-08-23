@@ -93,6 +93,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     maxOutputTokens,
     temperature,
     topP,
+    topK,
+    frequencyPenalty,
+    presencePenalty,
     stopSequences,
     seed,
     responseFormat,
@@ -109,6 +112,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         providerOptions,
         schema: xaiLanguageModelResponsesOptions,
       })) ?? {};
+
+    if (topK != null) {
+      warnings.push({ type: 'unsupported', feature: 'topK' });
+    }
+
+    if (frequencyPenalty != null) {
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
+    }
+
+    if (presencePenalty != null) {
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
+    }
 
     if (stopSequences != null) {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
@@ -132,6 +147,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     const fileSearchToolName = tools?.find(
       tool => tool.type === 'provider' && tool.id === 'xai.file_search',
+    )?.name;
+
+    const imageGenerationToolName = tools?.find(
+      tool => tool.type === 'provider' && tool.id === 'xai.image_generation',
     )?.name;
 
     const { input, inputWarnings } = await convertToXaiResponsesInput({
@@ -183,7 +202,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: 'high',
+            xhigh: this.modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
@@ -236,6 +255,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.serviceTier != null && {
+        service_tier: options.serviceTier,
+      }),
     };
 
     if (xaiTools && xaiTools.length > 0) {
@@ -254,6 +276,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       codeExecutionToolName,
       mcpToolName,
       fileSearchToolName,
+      imageGenerationToolName,
     };
   }
 
@@ -268,6 +291,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       codeExecutionToolName,
       mcpToolName,
       fileSearchToolName,
+      imageGenerationToolName,
     } = await this.getArgs(options);
 
     const {
@@ -328,6 +352,40 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               })) ?? null,
           },
         });
+
+        continue;
+      }
+
+      if (part.type === 'image_generation_call') {
+        const toolName = imageGenerationToolName ?? 'image_generation';
+
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName,
+          input: '{}',
+          providerExecuted: true,
+        });
+
+        if (part.result != null) {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: {
+              result: part.result,
+              ...(part.prompt != null && { prompt: part.prompt }),
+            },
+          });
+        } else {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            isError: true,
+            result: `Image generation failed (status: ${part.status}).`,
+          });
+        }
 
         continue;
       }
@@ -471,10 +529,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
-      ...(response.usage?.cost_in_usd_ticks != null && {
+      ...((response.usage?.cost_in_usd_ticks != null ||
+        response.service_tier != null) && {
         providerMetadata: {
           xai: {
-            costInUsdTicks: response.usage.cost_in_usd_ticks,
+            ...(response.usage?.cost_in_usd_ticks != null && {
+              costInUsdTicks: response.usage.cost_in_usd_ticks,
+            }),
+            ...(response.service_tier != null && {
+              serviceTier: response.service_tier,
+            }),
           },
         },
       }),
@@ -499,6 +563,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       codeExecutionToolName,
       mcpToolName,
       fileSearchToolName,
+      imageGenerationToolName,
     } = await this.getArgs(options);
     const body = {
       ...args,
@@ -524,6 +589,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     let usage: LanguageModelV4Usage | undefined = undefined;
     let costInUsdTicks: number | undefined = undefined;
+    let serviceTier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -718,6 +784,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 costInUsdTicks = response.usage.cost_in_usd_ticks ?? undefined;
               }
 
+              serviceTier = response.service_tier ?? undefined;
+
               if (event.type === 'response.incomplete') {
                 const reason =
                   'incomplete_details' in response
@@ -783,6 +851,45 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             if (event.type === 'response.function_call_arguments.done') {
               // Arguments are fully received; output_item.done will
               // emit tool-input-end and tool-call with the final arguments.
+              return;
+            }
+
+            if (
+              event.type === 'response.image_generation_call.in_progress' ||
+              event.type === 'response.image_generation_call.generating' ||
+              event.type === 'response.image_generation_call.completed'
+            ) {
+              if (!seenToolCalls.has(event.item_id)) {
+                seenToolCalls.add(event.item_id);
+
+                const toolName = imageGenerationToolName ?? 'image_generation';
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: event.item_id,
+                  toolName,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: event.item_id,
+                  delta: '{}',
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: event.item_id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: event.item_id,
+                  toolName,
+                  input: '{}',
+                  providerExecuted: true,
+                });
+              }
+
               return;
             }
 
@@ -875,6 +982,63 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                         })) ?? null,
                     },
                   });
+                }
+
+                return;
+              }
+
+              if (part.type === 'image_generation_call') {
+                const toolName = imageGenerationToolName ?? 'image_generation';
+
+                if (!seenToolCalls.has(part.id)) {
+                  seenToolCalls.add(part.id);
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: part.id,
+                    toolName,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: part.id,
+                    delta: '{}',
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: part.id,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: part.id,
+                    toolName,
+                    input: '{}',
+                    providerExecuted: true,
+                  });
+                }
+
+                if (event.type === 'response.output_item.done') {
+                  if (part.result != null) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.id,
+                      toolName,
+                      result: {
+                        result: part.result,
+                        ...(part.prompt != null && { prompt: part.prompt }),
+                      },
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.id,
+                      toolName,
+                      isError: true,
+                      result: `Image generation failed (status: ${part.status}).`,
+                    });
+                  }
                 }
 
                 return;
@@ -1070,10 +1234,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-              ...(costInUsdTicks != null && {
+              ...((costInUsdTicks != null || serviceTier != null) && {
                 providerMetadata: {
                   xai: {
-                    costInUsdTicks,
+                    ...(costInUsdTicks != null && { costInUsdTicks }),
+                    ...(serviceTier != null && { serviceTier }),
                   },
                 },
               }),

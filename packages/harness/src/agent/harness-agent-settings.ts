@@ -16,6 +16,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type {
   ActiveTools,
+  OutputInterface as Output,
   StopCondition,
   TelemetryOptions,
   ToolApprovalStatus,
@@ -99,6 +100,7 @@ export type HarnessAgentSettings<
   THarness extends HarnessAgentAdapter<any> = HarnessAgentAdapter,
   TUserTools extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = never,
 > = {
   /**
    * The harness adapter driving the underlying agent runtime. Its
@@ -132,11 +134,17 @@ export type HarnessAgentSettings<
   readonly skills?: ReadonlyArray<HarnessAgentSkill>;
 
   /**
-   * Instructions for the underlying agent runtime. Adapters prepend this to
-   * the first user message of a fresh session, once — it is not re-applied on
-   * later turns or when resuming a previously ended session.
+   * Instructions for the underlying agent runtime. Adapters append this to a
+   * native system or developer prompt when supported. Otherwise, they prepend
+   * it to the first user message of a fresh session.
    */
   readonly instructions?: string;
+
+  /**
+   * Optional specification for generating typed output. The same output
+   * requirement is active for every turn run by this agent.
+   */
+  readonly output?: OUTPUT;
 
   /**
    * Conditions that stop the current result after a completed harness tool
@@ -171,12 +179,11 @@ export type HarnessAgentSettings<
   readonly toolApproval?: HarnessAgentToolApprovalConfiguration;
 
   /**
-   * Sandbox provider whose `create()` produces the network sandbox session the
-   * harness runs against. Its `restricted()` view is also propagated to user
-   * tool `execute()` calls (as the `experimental_sandbox` field), typed as
-   * `Experimental_SandboxSession` so tools cannot reach the infra surface.
+   * Optional sandbox provider used to create or resume network sandbox
+   * sessions. When omitted, every `createSession()` call must provide an
+   * existing network sandbox session.
    */
-  readonly sandbox: HarnessV1SandboxProvider;
+  readonly sandbox?: HarnessV1SandboxProvider;
 
   /**
    * Sandbox working-directory and lifecycle hook configuration.

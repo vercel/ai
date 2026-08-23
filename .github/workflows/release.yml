@@ -126,3 +126,12 @@ jobs:
         run: pnpm changeset publish --no-git-tag --tag snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify snapshot release pull request
+        if: inputs.snapshot == true
+        run: |
+          cd .github/scripts/notify-released
+          npm install --no-save
+          node notify-snapshot.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
