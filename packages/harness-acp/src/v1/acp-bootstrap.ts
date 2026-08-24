@@ -7,6 +7,7 @@ import {
   createImplementationManifest,
   getImplementationInstallScript,
   getImplementationLockfile,
+  getImplementationWorkspaceFile,
   type ACPImplementation,
 } from './implementation';
 
@@ -38,6 +39,9 @@ export function createACPBootstrap({
         implementation,
       });
       const implementationLock = getImplementationLockfile({
+        implementation,
+      });
+      const implementationWorkspace = getImplementationWorkspaceFile({
         implementation,
       });
       const implementationInstallScript = getImplementationInstallScript({
@@ -78,6 +82,14 @@ export function createACPBootstrap({
                 {
                   path: `${bootstrapDir}/implementation/pnpm-lock.yaml`,
                   content: implementationLock,
+                },
+              ]),
+          ...(implementationWorkspace == null
+            ? []
+            : [
+                {
+                  path: `${bootstrapDir}/implementation/pnpm-workspace.yaml`,
+                  content: implementationWorkspace,
                 },
               ]),
           ...(implementationInstallScript == null

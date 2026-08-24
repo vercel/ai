@@ -60,6 +60,9 @@ export function validateACPV1Implementation(
     if (source.pnpmLockYaml.length === 0) {
       throw new Error('ACP source.pnpmLockYaml must not be empty.');
     }
+    if (source.pnpmWorkspaceYaml?.length === 0) {
+      throw new Error('ACP source.pnpmWorkspaceYaml must not be empty.');
+    }
   } else if (source.type === 'npm-simple') {
     validateNpmSimpleSource({ source });
   } else if (source.command.trim().length === 0) {
@@ -133,6 +136,15 @@ export function getImplementationLockfile({
   return source.type === 'npm-locked' ? source.pnpmLockYaml : undefined;
 }
 
+export function getImplementationWorkspaceFile({
+  implementation,
+}: {
+  implementation: ACPImplementation;
+}): string | undefined {
+  const { source } = implementation;
+  return source.type === 'npm-locked' ? source.pnpmWorkspaceYaml : undefined;
+}
+
 export function createImplementationDescriptor({
   implementation,
 }: {
@@ -177,6 +189,7 @@ export function createImplementationIdentity({
           type: source.type,
           packageJson: source.packageJson,
           pnpmLockYaml: source.pnpmLockYaml,
+          pnpmWorkspaceYaml: source.pnpmWorkspaceYaml,
         }
       : source.type === 'npm-simple'
         ? {

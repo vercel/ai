@@ -16,12 +16,15 @@ import { VERSION } from './version';
 
 declare const __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: string;
 declare const __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
+declare const __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
 
 const GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
 const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON =
   __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__;
 const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
   __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__;
+const GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE =
+  __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
 
 export type GrokBuildHarnessSettings = {
   /**
@@ -319,6 +322,7 @@ export function createGrokBuild(
       type: 'npm-locked',
       packageJson: GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON,
       pnpmLockYaml: GROK_BUILD_IMPLEMENTATION_PNPM_LOCK,
+      pnpmWorkspaceYaml: GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE,
     },
     executable: 'grok',
     args: ['agent', 'stdio'],
