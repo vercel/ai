@@ -45,6 +45,7 @@ export interface DeepSeekAssistantMessage {
   role: 'assistant';
   content?: string | null;
   name?: string;
+  prefix?: true;
   reasoning_content?: string;
   tool_calls?: Array<DeepSeekMessageToolCall>;
 }

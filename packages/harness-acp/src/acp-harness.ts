@@ -40,6 +40,12 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly forwardEnv?: ACPV1Settings['forwardEnv'];
   readonly credentialEnv?: ACPV1Settings['credentialEnv'];
   readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: ACPV1Settings['credentialForwarding'];
   readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];

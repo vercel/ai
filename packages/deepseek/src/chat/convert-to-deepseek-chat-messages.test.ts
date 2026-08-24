@@ -1,4 +1,8 @@
-import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
+import {
+  InvalidPromptError,
+  NoSuchProviderReferenceError,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 
@@ -780,6 +784,114 @@ describe('convertToDeepSeekChatMessages', () => {
           "warnings": [],
         }
       `);
+    });
+  });
+
+  describe('assistant prefix completion', () => {
+    it('should serialize prefix true on the final assistant message', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Complete this sentence.' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'The answer is' }],
+            providerOptions: {
+              deepseek: {
+                prefix: true,
+              },
+            },
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+        supportsAssistantPrefixCompletion: true,
+      });
+
+      expect(result).toStrictEqual({
+        messages: [
+          {
+            role: 'user',
+            content: 'Complete this sentence.',
+          },
+          {
+            role: 'assistant',
+            content: 'The answer is',
+            prefix: true,
+            reasoning_content: undefined,
+            tool_calls: undefined,
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should reject prefix completion on a non-assistant message', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Complete this sentence.' }],
+              providerOptions: {
+                deepseek: {
+                  prefix: true,
+                },
+              },
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+          supportsAssistantPrefixCompletion: true,
+        }),
+      ).rejects.toSatisfy(InvalidPromptError.isInstance);
+    });
+
+    it('should reject prefix completion on a non-final assistant message', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The answer is' }],
+              providerOptions: {
+                deepseek: {
+                  prefix: true,
+                },
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Continue.' }],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+          supportsAssistantPrefixCompletion: true,
+        }),
+      ).rejects.toSatisfy(InvalidPromptError.isInstance);
+    });
+
+    it('should reject prefix completion without a beta base URL capability', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The answer is' }],
+              providerOptions: {
+                deepseek: {
+                  prefix: true,
+                },
+              },
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+        }),
+      ).rejects.toSatisfy(UnsupportedFunctionalityError.isInstance);
     });
   });
 });
