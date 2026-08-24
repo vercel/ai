@@ -54,6 +54,10 @@ const adapterConfigs = [
     ],
   },
   {
+    name: 'fx',
+    packageDir: 'packages/harness-fx',
+  },
+  {
     name: 'Grok Build',
     packageDir: 'packages/harness-grok-build',
     primarySdk: '@xai-official/grok',
@@ -253,6 +257,10 @@ function main() {
     }
 
     const rootManifest = readJson(rootPackageJsonPath);
+    if (adapter.primarySdk == null) {
+      continue;
+    }
+
     const primarySpec = getDependencySpec({
       manifest: rootManifest,
       packageName: adapter.primarySdk,
