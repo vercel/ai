@@ -38,7 +38,7 @@ function fetchReturning(chunks: UIMessageChunk[]): typeof fetch {
 /**
  * Drives a transport-produced stream through the real AI SDK consumer
  * (the same state machine that backs `useChat`). Returns the final assembled
- * text, reasoning, and any framing error the consumer reported.
+ * message parts and any framing error the consumer reported.
  */
 async function consume(stream: ReadableStream<UIMessageChunk>) {
   let consumerError: Error | undefined;
@@ -62,7 +62,7 @@ async function consume(stream: ReadableStream<UIMessageChunk>) {
     )
     .map(p => p.text)
     .join('');
-  return { consumerError, text, reasoning };
+  return { consumerError, parts, text, reasoning };
 }
 
 async function sendAndConsume(chunks: UIMessageChunk[]) {
@@ -93,7 +93,7 @@ const INTERLEAVED: UIMessageChunk[] = [
 ];
 
 describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
-  it('consumes a raw interleaved text stream without losing content', async () => {
+  it('consumes a raw interleaved text stream as one completed part', async () => {
     const raw = new ReadableStream<UIMessageChunk>({
       start(controller) {
         for (const chunk of INTERLEAVED) {
@@ -102,16 +102,32 @@ describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
         controller.close();
       },
     });
-    const { consumerError, text } = await consume(raw);
+    const { consumerError, parts } = await consume(raw);
     expect(consumerError).toBeUndefined();
-    expect(text).toBe('Hello world');
+    expect(parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'Hello world',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
   });
 
-  it('repairs an interleaved stream so the consumer does not fail the turn', async () => {
-    const { consumerError, text } = await sendAndConsume(INTERLEAVED);
+  it('preserves an interleaved text part through workflow normalization', async () => {
+    const { consumerError, parts, text } = await sendAndConsume(INTERLEAVED);
     expect(consumerError).toBeUndefined();
-    // No content is lost — the orphaned delta is re-framed rather than dropped.
     expect(text).toBe('Hello world');
+    expect(parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'Hello world',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
   });
 
   it('drops a re-delivered (reconnect/replay) duplicate tail without erroring', async () => {
@@ -127,9 +143,18 @@ describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
       { type: 'text-end', id: '0' },
       { type: 'finish' },
     ];
-    const { consumerError, text } = await sendAndConsume(DUPLICATED);
+    const { consumerError, parts, text } = await sendAndConsume(DUPLICATED);
     expect(consumerError).toBeUndefined();
     expect(text).toBe('Hello world');
+    expect(parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'Hello world',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
   });
 
   it('passes a well-formed multi-step stream through unchanged', async () => {
@@ -148,9 +173,25 @@ describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
       { type: 'finish-step' },
       { type: 'finish' },
     ];
-    const { consumerError, text } = await sendAndConsume(WELL_FORMED);
+    const { consumerError, parts, text } = await sendAndConsume(WELL_FORMED);
     expect(consumerError).toBeUndefined();
     expect(text).toBe('onetwo');
+    expect(parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'one',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'two',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
   });
 
   // Reasoning parts can be interleaved in the same way as text parts. Drive the
@@ -167,7 +208,7 @@ describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
     { type: 'finish' },
   ];
 
-  it('consumes a raw interleaved reasoning stream without losing content', async () => {
+  it('consumes a raw interleaved reasoning stream as one completed part', async () => {
     const raw = new ReadableStream<UIMessageChunk>({
       start(controller) {
         for (const chunk of INTERLEAVED_REASONING) {
@@ -176,16 +217,35 @@ describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
         controller.close();
       },
     });
-    const { consumerError, reasoning } = await consume(raw);
+    const { consumerError, parts } = await consume(raw);
     expect(consumerError).toBeUndefined();
-    expect(reasoning).toBe('Thinking...');
+    expect(parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'reasoning',
+        id: '0',
+        text: 'Thinking...',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
   });
 
-  it('repairs an interleaved reasoning stream with no content lost', async () => {
-    const { consumerError, reasoning } = await sendAndConsume(
+  it('preserves an interleaved reasoning part through workflow normalization', async () => {
+    const { consumerError, parts, reasoning } = await sendAndConsume(
       INTERLEAVED_REASONING,
     );
     expect(consumerError).toBeUndefined();
     expect(reasoning).toBe('Thinking...');
+    expect(parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'reasoning',
+        id: '0',
+        text: 'Thinking...',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
   });
 });
