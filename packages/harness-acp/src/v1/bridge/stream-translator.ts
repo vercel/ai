@@ -206,6 +206,11 @@ export function createACPStreamTranslator({
       const builtin = resolveBuiltinTool({
         programmaticName,
         metadata: state.values._meta,
+        title: getStringProperty({
+          value: state.values,
+          property: 'title',
+        }),
+        kind: isACPToolKind(state.values.kind) ? state.values.kind : undefined,
         rawInput: state.values.rawInput,
         builtinTools,
         builtinToolsByName,
@@ -478,12 +483,16 @@ function addBuiltinToolMatch({
 function resolveBuiltinTool({
   programmaticName,
   metadata,
+  title,
+  kind,
   rawInput,
   builtinTools,
   builtinToolsByName,
 }: {
   programmaticName: string | undefined;
   metadata: unknown;
+  title: string | undefined;
+  kind: ACPToolKind | undefined;
   rawInput: unknown;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   builtinToolsByName: ReadonlyMap<string, ACPBuiltinToolMapping>;
@@ -502,10 +511,66 @@ function resolveBuiltinTool({
       : undefined;
   }
 
+  const titleMatch = findBuiltinToolByTitle({
+    title,
+    kind,
+    builtinTools,
+  });
+  if (titleMatch != null) return titleMatch;
+
   const schemaMatches = builtinTools.filter(tool =>
     matchesBuiltinToolInput({ rawInput, inputSchema: tool.inputSchema }),
   );
   return schemaMatches.length === 1 ? schemaMatches[0] : undefined;
+}
+
+function findBuiltinToolByTitle({
+  title,
+  kind,
+  builtinTools,
+}: {
+  title: string | undefined;
+  kind: ACPToolKind | undefined;
+  builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
+}): ACPBuiltinToolMapping | undefined {
+  if (title == null) return undefined;
+  const matches = builtinTools.filter(
+    tool =>
+      tool.title != null &&
+      title.startsWith(tool.title) &&
+      isCompatibleToolKind({ toolUseKind: tool.toolUseKind, kind }),
+  );
+  if (matches.length === 0) return undefined;
+  const longestPrefixLength = Math.max(
+    ...matches.map(tool => tool.title!.length),
+  );
+  const longestMatches = matches.filter(
+    tool => tool.title!.length === longestPrefixLength,
+  );
+  return longestMatches.length === 1 ? longestMatches[0] : undefined;
+}
+
+function isCompatibleToolKind({
+  toolUseKind,
+  kind,
+}: {
+  toolUseKind: ACPBuiltinToolMapping['toolUseKind'];
+  kind: ACPToolKind | undefined;
+}): boolean {
+  if (toolUseKind == null || kind == null) return true;
+  switch (toolUseKind) {
+    case 'readonly':
+      return (
+        kind === 'read' ||
+        kind === 'search' ||
+        kind === 'fetch' ||
+        kind === 'think'
+      );
+    case 'edit':
+      return kind === 'edit' || kind === 'delete' || kind === 'move';
+    case 'bash':
+      return kind === 'execute';
+  }
 }
 
 function findBuiltinToolsInMetadata({
