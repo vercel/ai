@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19329,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19329-provider-id-encoding.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19329-provider-id-encoding.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19329_REPRODUCED: provider-returned IDs escaped credentialed URL path segments."
+  }
+}
