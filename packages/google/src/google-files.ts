@@ -137,8 +137,14 @@ export class GoogleFiles implements FilesV4 {
 
       await delay(pollIntervalMs);
 
+      const fileNameMatch = /^files\/([^/]+)$/.exec(file.name);
+      const filePath =
+        fileNameMatch != null
+          ? `files/${encodeURIComponent(fileNameMatch[1])}`
+          : encodeURIComponent(file.name);
+
       const { value: fileStatus } = await getFromApi({
-        url: `${this.config.baseURL}/${file.name}`,
+        url: `${this.config.baseURL}/${filePath}`,
         validateUrl: false,
         headers: combineHeaders(resolvedHeaders),
         successfulResponseHandler: createJsonResponseHandler(

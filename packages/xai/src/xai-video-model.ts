@@ -538,7 +538,7 @@ export class XaiVideoModel implements VideoModelV4 {
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${baseURL}/videos/${requestId}`,
+      url: `${baseURL}/videos/${encodeURIComponent(requestId)}`,
       validateUrl: false,
       headers: combineHeaders(this.config.headers(), options.headers),
       successfulResponseHandler: xaiVideoStatusResponseHandler,
