@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
 
@@ -10,6 +11,10 @@ const server = createTestServer({
   'https://api.deepseek.com/files': {},
 });
 
+const liveFileResponse = JSON.parse(
+  fs.readFileSync('src/files/__fixtures__/deepseek-file-upload.json', 'utf8'),
+);
+
 function prepareFileResponse({
   id = 'file-api-abc123',
   expiresAt = null,
@@ -20,8 +25,8 @@ function prepareFileResponse({
   server.urls['https://api.deepseek.com/files'].response = {
     type: 'json-value',
     body: {
+      ...liveFileResponse,
       id,
-      object: 'file',
       bytes: 1024,
       created_at: 1700000000,
       filename: 'comic-cat.png',
@@ -69,6 +74,7 @@ describe('DeepSeek Files - uploadFile', () => {
       mediaType: 'image/png',
       providerMetadata: {
         deepseek: {
+          object: 'file',
           filename: 'comic-cat.png',
           purpose: 'user_data',
           bytes: 1024,
@@ -78,6 +84,33 @@ describe('DeepSeek Files - uploadFile', () => {
       },
     });
   });
+
+  it.each([
+    ['missing', undefined],
+    ['null', null],
+  ])(
+    'should omit object from provider metadata when the response field is %s',
+    async (_, object) => {
+      const response = { ...liveFileResponse, object };
+      if (object === undefined) {
+        delete response.object;
+      }
+
+      server.urls['https://api.deepseek.com/files'].response = {
+        type: 'json-value',
+        body: response,
+      };
+
+      const files = createDeepSeek({ apiKey: 'test-api-key' }).files();
+      const result = await files.uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'image/png',
+        filename: 'issue-19390.png',
+      });
+
+      expect(result.providerMetadata?.deepseek).not.toHaveProperty('object');
+    },
+  );
 
   it('should pass expires_after as bracketed multipart fields', async () => {
     prepareFileResponse();
