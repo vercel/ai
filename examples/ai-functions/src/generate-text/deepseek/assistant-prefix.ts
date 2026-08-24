@@ -12,7 +12,7 @@ const deepSeek = createDeepSeek({
 
 run(async () => {
   const { text } = await generateText({
-    model: deepSeek('deepseek-chat'),
+    model: deepSeek('deepseek-v4-flash'),
     messages: [
       {
         role: 'user',

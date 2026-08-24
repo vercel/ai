@@ -8,6 +8,7 @@ import { DeepSeekChatLanguageModel } from './deepseek-chat-language-model';
 import type {
   DeepSeekAssistantMessageProviderOptions,
   DeepSeekLanguageModelChatOptions,
+  DeepSeekMessageProviderOptions,
 } from './deepseek-chat-language-model-options';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
@@ -29,6 +30,39 @@ const server = createTestServer({
 });
 
 describe('DeepSeekChatLanguageModel', () => {
+  describe('model IDs', () => {
+    it.each(['deepseek-v4-flash', 'deepseek-v4-pro'] as const)(
+      'should forward the %s model ID',
+      async modelId => {
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'json-value',
+          body: {
+            id: 'test-id',
+            choices: [
+              {
+                finish_reason: 'stop',
+                index: 0,
+                message: { content: 'Hello', role: 'assistant' },
+              },
+            ],
+            created: 0,
+            model: modelId,
+            object: 'chat.completion',
+            usage: {
+              completion_tokens: 1,
+              prompt_tokens: 1,
+              total_tokens: 2,
+            },
+          },
+        };
+
+        await provider.chat(modelId).doGenerate({ prompt: TEST_PROMPT });
+
+        expect((await server.calls[0].requestBodyJson).model).toBe(modelId);
+      },
+    );
+  });
+
   describe('supportedUrls', () => {
     it('should natively support HTTP image URLs', () => {
       expect(provider.chat('deepseek-chat').supportedUrls).toEqual({
@@ -158,6 +192,77 @@ describe('DeepSeekChatLanguageModel', () => {
               'presencePenalty is deprecated by DeepSeek and has been omitted. Remove presencePenalty from the request.',
           },
         ]);
+      });
+
+      it('should send message names', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.',
+              providerOptions: {
+                deepseek: {
+                  name: 'guide',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'alice',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Hello, Alice.' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'assistant',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'How are you?' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'alice',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "You are a helpful assistant.",
+                "name": "guide",
+                "role": "system",
+              },
+              {
+                "content": "Hello",
+                "name": "alice",
+                "role": "user",
+              },
+              {
+                "content": "Hello, Alice.",
+                "name": "assistant",
+                "role": "assistant",
+              },
+              {
+                "content": "How are you?",
+                "name": "alice",
+                "role": "user",
+              },
+            ],
+            "model": "deepseek-chat",
+          }
+        `);
       });
 
       it('should pass providerOptions userId as user_id', async () => {
@@ -307,6 +412,105 @@ describe('DeepSeekChatLanguageModel', () => {
         });
 
         expect(result).toMatchSnapshot();
+      });
+    });
+
+    describe('logprobs', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('deepseek-logprobs');
+      });
+
+      it('should send logprobs provider options', async () => {
+        await provider.chat('deepseek-v4-flash').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: true,
+              topLogprobs: 1,
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "logprobs": true,
+            "messages": [
+              {
+                "content": "Hello",
+                "role": "user",
+              },
+            ],
+            "model": "deepseek-v4-flash",
+            "top_logprobs": 1,
+          }
+        `);
+      });
+
+      it('should enable logprobs when topLogprobs is set', async () => {
+        await provider.chat('deepseek-v4-flash').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              topLogprobs: 1,
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          logprobs: true,
+          top_logprobs: 1,
+        });
+      });
+
+      it('should extract content and reasoning logprobs', async () => {
+        const result = await provider.chat('deepseek-v4-flash').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: true,
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        expect(result.providerMetadata?.deepseek.logprobs)
+          .toMatchInlineSnapshot(`
+            {
+              "content": [
+                {
+                  "bytes": [
+                    79,
+                    75,
+                  ],
+                  "logprob": -0.00002467602,
+                  "token": "OK",
+                  "top_logprobs": [
+                    {
+                      "bytes": [
+                        79,
+                        75,
+                      ],
+                      "logprob": -0.00002467602,
+                      "token": "OK",
+                    },
+                  ],
+                },
+              ],
+              "reasoning_content": [
+                {
+                  "bytes": null,
+                  "logprob": -0.1,
+                  "token": "Reasoning",
+                  "top_logprobs": [
+                    {
+                      "bytes": null,
+                      "logprob": -0.1,
+                      "token": "Reasoning",
+                    },
+                  ],
+                },
+              ],
+            }
+          `);
       });
     });
 
@@ -919,7 +1123,7 @@ describe('DeepSeekChatLanguageModel', () => {
           };
       });
 
-      it('should send prefix true on the final assistant message', async () => {
+      it('should send name and prefix on the final assistant message', async () => {
         await betaProvider.chat('deepseek-chat').doGenerate({
           prompt: [
             {
@@ -931,6 +1135,7 @@ describe('DeepSeekChatLanguageModel', () => {
               content: [{ type: 'text', text: 'The answer is' }],
               providerOptions: {
                 deepseek: {
+                  name: 'assistant',
                   prefix: true,
                 } satisfies DeepSeekAssistantMessageProviderOptions,
               },
@@ -947,6 +1152,7 @@ describe('DeepSeekChatLanguageModel', () => {
             {
               role: 'assistant',
               content: 'The answer is',
+              name: 'assistant',
               prefix: true,
             },
           ],
@@ -1120,6 +1326,67 @@ describe('DeepSeekChatLanguageModel', () => {
         });
       });
 
+      it('should send message names', async () => {
+        await provider.chat('deepseek-chat').doStream({
+          prompt: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.',
+              providerOptions: {
+                deepseek: {
+                  name: 'guide',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'alice',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Hello, Alice.' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'assistant',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "You are a helpful assistant.",
+                "name": "guide",
+                "role": "system",
+              },
+              {
+                "content": "Hello",
+                "name": "alice",
+                "role": "user",
+              },
+              {
+                "content": "Hello, Alice.",
+                "name": "assistant",
+                "role": "assistant",
+              },
+            ],
+            "model": "deepseek-chat",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true,
+            },
+          }
+        `);
+      });
+
       it('should pass providerOptions userId as user_id', async () => {
         await provider.chat('deepseek-chat').doStream({
           prompt: TEST_PROMPT,
@@ -1272,6 +1539,76 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('logprobs', () => {
+      beforeEach(() => {
+        prepareChunksFixtureResponse('deepseek-logprobs');
+      });
+
+      it('should send logprobs provider options and collect streamed logprobs', async () => {
+        const result = await provider.chat('deepseek-v4-flash').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: true,
+              topLogprobs: 1,
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          logprobs: true,
+          top_logprobs: 1,
+        });
+        expect(parts.find(part => part.type === 'finish')?.providerMetadata)
+          .toMatchInlineSnapshot(`
+            {
+              "deepseek": {
+                "logprobs": {
+                  "content": [
+                    {
+                      "bytes": [
+                        79,
+                        75,
+                      ],
+                      "logprob": -0.00002467602,
+                      "token": "OK",
+                      "top_logprobs": [
+                        {
+                          "bytes": [
+                            79,
+                            75,
+                          ],
+                          "logprob": -0.00002467602,
+                          "token": "OK",
+                        },
+                      ],
+                    },
+                  ],
+                  "reasoning_content": [
+                    {
+                      "bytes": null,
+                      "logprob": -0.1,
+                      "token": "Reasoning",
+                      "top_logprobs": [
+                        {
+                          "bytes": null,
+                          "logprob": -0.1,
+                          "token": "Reasoning",
+                        },
+                      ],
+                    },
+                  ],
+                },
+                "promptCacheHitTokens": 0,
+                "promptCacheMissTokens": 9,
+              },
+            }
+          `);
       });
     });
 
