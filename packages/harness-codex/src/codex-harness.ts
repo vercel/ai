@@ -8,6 +8,7 @@ import {
   type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
+  type HarnessV1CredentialForwarding,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1PortEndpoint,
@@ -19,6 +20,7 @@ import {
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
+  applyCredentialForwarding,
   classifyDiskLog,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -88,6 +90,12 @@ const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * Additional configuration passed through to Codex as-is. Codex config keys
    * typically use snake_case and must be provided in that form. Values managed
@@ -402,6 +410,11 @@ export function createCodex(
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
           : settings.mintBridgeToken(sandboxId!);
+      const forwardedAuthEnvironment = await applyCredentialForwarding({
+        environment: sandboxAuthEnvironment,
+        credentialEnvironmentVariables: CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        credentialForwarding: settings.credentialForwarding,
+      });
       const codexSkillSetup =
         startOpts.skills && startOpts.skills.length > 0
           ? await writeCodexSkills({
@@ -411,7 +424,7 @@ export function createCodex(
             })
           : undefined;
       const env = {
-        ...sandboxAuthEnvironment,
+        ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),

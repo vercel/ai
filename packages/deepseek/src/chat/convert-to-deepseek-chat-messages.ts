@@ -1,11 +1,14 @@
-import type {
-  LanguageModelV4CallOptions,
-  LanguageModelV4Prompt,
-  SharedV4Warning,
+import {
+  InvalidPromptError,
+  UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Prompt,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
   getTopLevelMediaType,
+  parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
@@ -13,21 +16,26 @@ import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
 } from './deepseek-chat-api-types';
+import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
 
-export function convertToDeepSeekChatMessages({
+export async function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
   modelId,
+  providerOptionsName = 'deepseek',
+  supportsAssistantPrefixCompletion = false,
   supportsStructuredOutputs = false,
 }: {
   prompt: LanguageModelV4Prompt;
   responseFormat: LanguageModelV4CallOptions['responseFormat'];
   modelId: string;
+  providerOptionsName?: string;
+  supportsAssistantPrefixCompletion?: boolean;
   supportsStructuredOutputs?: boolean;
-}): {
+}): Promise<{
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV4Warning>;
-} {
+}> {
   const isDeepSeekV4 = modelId.includes('deepseek-v4');
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
@@ -64,8 +72,22 @@ export function convertToDeepSeekChatMessages({
   }
 
   let index = -1;
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     index++;
+
+    const messageOptions = await parseProviderOptions({
+      provider: providerOptionsName,
+      providerOptions,
+      schema: deepseekAssistantMessageProviderOptions,
+    });
+
+    if (messageOptions?.prefix === true && role !== 'assistant') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'DeepSeek assistant prefix completion requires `prefix: true` on an assistant message.',
+      });
+    }
 
     switch (role) {
       case 'system': {
@@ -148,6 +170,24 @@ export function convertToDeepSeekChatMessages({
         break;
       }
       case 'assistant': {
+        if (messageOptions?.prefix === true) {
+          if (index !== prompt.length - 1) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'DeepSeek assistant prefix completion requires the prefixed assistant message to be the final message.',
+            });
+          }
+
+          if (!supportsAssistantPrefixCompletion) {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'DeepSeek assistant prefix completion',
+              message:
+                'DeepSeek assistant prefix completion requires a beta base URL ending in `/beta`.',
+            });
+          }
+        }
+
         let text = '';
         let reasoning: string | undefined;
 
@@ -195,6 +235,7 @@ export function convertToDeepSeekChatMessages({
         messages.push({
           role: 'assistant',
           content: text,
+          ...(messageOptions?.prefix === true && { prefix: true }),
           reasoning_content: reasoning ?? (isDeepSeekV4 ? '' : undefined),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
