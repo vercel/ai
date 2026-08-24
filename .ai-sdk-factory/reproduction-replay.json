@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19382,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19382-deepseek-sampling-warnings.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19382-deepseek-sampling-warnings.ts",
+    "packages/deepseek/src/chat/__fixtures__/deepseek-v4-sampling-live.json",
+    "packages/deepseek/src/chat/__fixtures__/deepseek-v4-sampling-live.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19382 REPRODUCED: DeepSeek sampling options are silently forwarded without actionable warnings"
+  }
+}
