@@ -1,11 +1,11 @@
-import { deepInfra } from '@ai-sdk/deepinfra';
+import { deepinfra } from '@ai-sdk/deepinfra';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: deepInfra('deepseek-ai/DeepSeek-V3'),
+    model: deepinfra('deepseek-ai/DeepSeek-V3'),
     output: Output.object({
       schema: z.object({
         recipe: z.object({
