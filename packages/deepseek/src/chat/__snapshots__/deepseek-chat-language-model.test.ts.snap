@@ -22,6 +22,7 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
     "deepseek": {
       "promptCacheHitTokens": 0,
       "promptCacheMissTokens": 18,
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -145,6 +146,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
     "deepseek": {
       "promptCacheHitTokens": 0,
       "promptCacheMissTokens": 13,
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -267,6 +269,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
     "deepseek": {
       "promptCacheHitTokens": 320,
       "promptCacheMissTokens": 175,
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -413,6 +416,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
     "deepseek": {
       "promptCacheHitTokens": 320,
       "promptCacheMissTokens": 19,
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -1682,6 +1686,7 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
       "deepseek": {
         "promptCacheHitTokens": 0,
         "promptCacheMissTokens": 18,
+        "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
       },
     },
     "type": "finish",
@@ -3759,6 +3764,7 @@ exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = 
       "deepseek": {
         "promptCacheHitTokens": 0,
         "promptCacheMissTokens": 13,
+        "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
       },
     },
     "type": "finish",
@@ -4075,6 +4081,7 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
       "deepseek": {
         "promptCacheHitTokens": 320,
         "promptCacheMissTokens": 19,
+        "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
       },
     },
     "type": "finish",

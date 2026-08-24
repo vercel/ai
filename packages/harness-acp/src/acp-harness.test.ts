@@ -1300,12 +1300,15 @@ describe('createACP', () => {
   });
 
   it('uses caller-provided artifacts for locked frozen acquisition', async () => {
+    const pnpmWorkspaceYaml =
+      "allowBuilds:\n  '@example/codex-acp@1.2.3': true\n";
     const harness = createACP({
       harnessId: 'codex-acp-locked',
       source: {
         type: 'npm-locked',
         packageJson: lockedPackageJson,
         pnpmLockYaml: lockedPnpmLockYaml,
+        pnpmWorkspaceYaml,
       },
       executable: 'codex-acp',
     });
@@ -1325,6 +1328,13 @@ describe('createACP', () => {
           '.harness-bootstrap/codex-acp-locked/implementation/pnpm-lock.yaml',
       )?.content,
     ).toBe(lockedPnpmLockYaml);
+    expect(
+      bootstrap.files.find(
+        file =>
+          file.path ===
+          '.harness-bootstrap/codex-acp-locked/implementation/pnpm-workspace.yaml',
+      )?.content,
+    ).toBe(pnpmWorkspaceYaml);
     expect(bootstrap.commands.map(command => command.command)).toContain(
       'pnpm --dir implementation install --frozen-lockfile --prod --store-dir ../.pnpm-store',
     );

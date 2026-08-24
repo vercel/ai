@@ -792,21 +792,25 @@ describe('createOpenCode adapter', () => {
         '.harness-bootstrap/opencode/host-tool-mcp.mjs',
         '.harness-bootstrap/opencode/package.json',
         '.harness-bootstrap/opencode/pnpm-lock.yaml',
+        '.harness-bootstrap/opencode/pnpm-workspace.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
+      expect(
+        recipe.files.find(file => file.path.endsWith('pnpm-workspace.yaml'))
+          ?.content,
+      ).toBe("allowBuilds:\n  'opencode-ai@1.18.3': true\n");
     });
 
-    it('runs the OpenCode CLI postinstall during bootstrap', async () => {
+    it('allows the pinned OpenCode build and verifies the installed CLI', async () => {
       const harness = createOpenCode();
       const recipe = await harness.getBootstrap!();
       expect(recipe.commands[0]).toEqual({
         command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       });
       expect(recipe.commands).toContainEqual({
-        command:
-          'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
+        command: './node_modules/.bin/opencode --version',
       });
     });
 
