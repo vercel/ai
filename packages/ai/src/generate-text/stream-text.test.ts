@@ -13381,6 +13381,80 @@ describe('streamText', () => {
   });
 
   describe('options.timeout', () => {
+    it('should remove step timeout cleanup listeners after caller abort', async () => {
+      const longLivedAbortController = new AbortController();
+      const callAbortController = new AbortController();
+      const abortSignal = AbortSignal.any([
+        longLivedAbortController.signal,
+        callAbortController.signal,
+      ]);
+      const activeAbortListeners =
+        new Set<EventListenerOrEventListenerObject>();
+      const originalAddEventListener =
+        abortSignal.addEventListener.bind(abortSignal);
+      const originalRemoveEventListener =
+        abortSignal.removeEventListener.bind(abortSignal);
+
+      abortSignal.addEventListener = ((
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions,
+      ) => {
+        if (type === 'abort') {
+          activeAbortListeners.add(listener);
+        }
+        originalAddEventListener(type, listener, options);
+      }) as AbortSignal['addEventListener'];
+      abortSignal.removeEventListener = ((
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | EventListenerOptions,
+      ) => {
+        if (type === 'abort') {
+          activeAbortListeners.delete(listener);
+        }
+        originalRemoveEventListener(type, listener, options);
+      }) as AbortSignal['removeEventListener'];
+
+      let pullCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                pullCount++;
+
+                if (pullCount === 1) {
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                } else if (pullCount === 2) {
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'partial',
+                  });
+                } else {
+                  callAbortController.abort();
+                  controller.error(
+                    new DOMException(
+                      'The user aborted a request.',
+                      'AbortError',
+                    ),
+                  );
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        abortSignal,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(activeAbortListeners.size).toBe(0);
+    });
+
     it('should forward timeout as abort signal to model', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
