@@ -223,6 +223,7 @@ describe('GoogleBatchLanguageModel', () => {
           },
         },
       ],
+      webhookUrl: 'https://example.com/google-batch-webhook',
       headers: { 'Operation-Header': 'operation' },
       abortSignal: abortController.signal,
     });
@@ -261,6 +262,9 @@ describe('GoogleBatchLanguageModel', () => {
     expect(await server.calls[0].requestBodyJson).toEqual({
       batch: {
         displayName: 'ai-sdk-batch-test-id',
+        webhookConfig: {
+          uris: ['https://example.com/google-batch-webhook'],
+        },
         inputConfig: {
           requests: {
             requests: [
@@ -320,6 +324,9 @@ describe('GoogleBatchLanguageModel', () => {
     const inlineBody = (largePrompt: string) => ({
       batch: {
         displayName: 'ai-sdk-batch-test-id',
+        webhookConfig: {
+          uris: ['https://example.com/google-batch-webhook'],
+        },
         inputConfig: {
           requests: {
             requests: [
@@ -348,14 +355,17 @@ describe('GoogleBatchLanguageModel', () => {
       fetch: mockFetch,
     })('gemini-2.5-flash');
 
-    await model.experimental_doStartBatch({
+    const result = await model.experimental_doStartBatch({
       requests: [
         request('small-request', 'small'),
         request('large-request', prompt),
       ],
+      webhookUrl: 'https://example.com/google-batch-webhook',
       headers: { 'Operation-Header': 'operation' },
       abortSignal: abortController.signal,
     });
+
+    expect(result.warnings).toEqual([]);
 
     expect(server.calls.map(call => call.requestUrl)).toEqual([
       urls.uploadStart,
@@ -384,6 +394,9 @@ describe('GoogleBatchLanguageModel', () => {
     expect(await server.calls[2].requestBodyJson).toEqual({
       batch: {
         displayName: 'ai-sdk-batch-test-id',
+        webhookConfig: {
+          uris: ['https://example.com/google-batch-webhook'],
+        },
         inputConfig: { fileName: 'files/batch-input' },
       },
     });

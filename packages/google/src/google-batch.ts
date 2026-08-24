@@ -171,6 +171,9 @@ export class GoogleBatchLanguageModel
     const inlineBatchBody = {
       batch: {
         displayName,
+        ...(options.webhookUrl != null && {
+          webhookConfig: { uris: [options.webhookUrl] },
+        }),
         inputConfig: {
           requests: { requests: inlinedRequests },
         },
@@ -313,6 +316,9 @@ export class GoogleBatchLanguageModel
         body: {
           batch: {
             displayName,
+            ...(options.webhookUrl != null && {
+              webhookConfig: { uris: [options.webhookUrl] },
+            }),
             inputConfig: {
               fileName: uploadedFile.file.name,
             },
