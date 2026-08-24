@@ -53,7 +53,8 @@ import {
 } from './session-lifecycle';
 
 type ImplementationDescriptor = {
-  readonly executable: string;
+  readonly executablePath: string;
+  readonly privateHome: boolean;
   readonly args: ReadonlyArray<string>;
   readonly envKeys: ReadonlyArray<string>;
 };
@@ -381,10 +382,14 @@ async function ensureSession({
     instructions: start.instructions,
     instructionMapping: start.instructionMapping,
     sessionMeta: bridgeConfiguration.sessionMeta,
-    environment: createChildEnvironment({ launchEnv }),
+    environment: createChildEnvironment({
+      launchEnv,
+      implementationDir,
+      privateHome: implementation.privateHome,
+    }),
   });
   child = spawn(
-    `${implementationDir}/node_modules/.bin/${implementation.executable}`,
+    `${implementationDir}/${implementation.executablePath}`,
     [...implementation.args],
     {
       cwd: workDir,
@@ -686,8 +691,12 @@ function resolveGatewayValues({
 
 function createChildEnvironment({
   launchEnv,
+  implementationDir,
+  privateHome,
 }: {
   launchEnv: Readonly<Record<string, string>>;
+  implementationDir: string;
+  privateHome: boolean;
 }): NodeJS.ProcessEnv {
   const blocked = new Set([
     'BRIDGE_CHANNEL_TOKEN',
@@ -698,13 +707,27 @@ function createChildEnvironment({
     'AI_SDK_ACP_CLIENT_APP_VERSION',
     ACP_BRIDGE_CONFIGURATION_ENV,
   ]);
-  return {
+  const environment = {
     ...Object.fromEntries(
       Object.entries(processEnv).filter(
         ([key, value]) => !blocked.has(key) && value != null,
       ),
     ),
     ...launchEnv,
+  };
+  if (!privateHome) return environment;
+
+  const home = `${implementationDir}/home`;
+  const inheritedPath = environment.PATH;
+  return {
+    ...environment,
+    HOME: home,
+    PATH: [
+      `${home}/.local/bin`,
+      ...(inheritedPath == null || inheritedPath.length === 0
+        ? []
+        : [inheritedPath]),
+    ].join(':'),
   };
 }
 
@@ -798,7 +821,8 @@ async function readImplementationDescriptor({
   }).json();
   if (
     !isRecord(value) ||
-    typeof value.executable !== 'string' ||
+    typeof value.executablePath !== 'string' ||
+    typeof value.privateHome !== 'boolean' ||
     !Array.isArray(value.args) ||
     !value.args.every(item => typeof item === 'string') ||
     !Array.isArray(value.envKeys) ||
@@ -807,7 +831,8 @@ async function readImplementationDescriptor({
     throw new Error('Invalid ACP implementation descriptor.');
   }
   return {
-    executable: value.executable,
+    executablePath: value.executablePath,
+    privateHome: value.privateHome,
     args: value.args as string[],
     envKeys: value.envKeys as string[],
   };

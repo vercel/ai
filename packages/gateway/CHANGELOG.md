@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 4.0.62
+
+### Patch Changes
+
+- a371615: feat (provider/gateway): add Tako Search tool support
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
 ## 4.0.61
 
 ### Patch Changes
