@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19238,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19238-approved-invalid-tool-input.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19238-approved-invalid-tool-input.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19238_REPRODUCED: approved invalid tool input terminated the resumed turn with InvalidToolInputError before repair or model recovery"
+  }
+}
