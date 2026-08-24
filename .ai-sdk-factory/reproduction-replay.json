@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19381,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19381-deepseek-thinking-reasoning.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19381-deepseek-thinking-reasoning.ts",
+    "packages/deepseek/src/chat/__fixtures__/issue-19381-thinking-reasoning.json",
+    "packages/deepseek/src/chat/__fixtures__/issue-19381-thinking-reasoning.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #19381 reproduced: DeepSeek generate/stream requests emit undocumented thinking/reasoning values."
+  }
+}
