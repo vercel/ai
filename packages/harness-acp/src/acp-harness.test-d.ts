@@ -119,4 +119,17 @@ describe('createACP built-in tool inference', () => {
       },
     });
   });
+
+  test('accepts asynchronous credential forwarding', () => {
+    createACP({
+      harnessId: 'credential-forwarding-acp',
+      source: {
+        type: 'npm-simple',
+        packageName: '@example/acp-agent',
+      },
+      executable: 'acp-agent',
+      credentialForwarding: async ({ credential, environmentVariableName }) =>
+        `${environmentVariableName}:${credential}`,
+    });
+  });
 });
