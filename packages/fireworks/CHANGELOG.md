@@ -1,5 +1,12 @@
 # @ai-sdk/fireworks
 
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [ece5bdb]
+  - @ai-sdk/openai-compatible@3.0.36
+
 ## 3.0.38
 
 ### Patch Changes

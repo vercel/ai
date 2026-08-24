@@ -33,6 +33,18 @@ export type ACPBuiltinToolMapping = {
   readonly nativeName?: HarnessV1BuiltinTool['nativeName'];
 
   /**
+   * Stable prefix of the display title emitted by an ACP implementation.
+   * Used only when the implementation omits a programmatic tool name.
+   */
+  readonly title?: HarnessV1BuiltinTool['title'];
+
+  /**
+   * Broad capability category used to compare a built-in with the ACP tool
+   * kind when resolving unnamed calls.
+   */
+  readonly toolUseKind?: HarnessV1BuiltinTool['toolUseKind'];
+
+  /**
    * JSON Schema used to identify tool calls when an ACP implementation does
    * not provide a programmatic tool name. It is optional because built-in
    * definitions are allowed to omit their input schema.
@@ -43,6 +55,8 @@ export type ACPBuiltinToolMapping = {
 const builtinToolSchema: z.ZodType<ACPBuiltinToolMapping> = z.object({
   toolName: z.string(),
   nativeName: z.string().optional(),
+  title: z.string().optional(),
+  toolUseKind: z.enum(['readonly', 'edit', 'bash']).optional(),
   inputSchema: z.json().optional(),
 });
 
