@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 19386,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19386-deepseek-system-fingerprint.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19386-deepseek-system-fingerprint.ts",
+    "packages/deepseek/src/chat/deepseek-system-fingerprint.reproduction.test.ts",
+    "packages/deepseek/src/chat/__fixtures__/deepseek-system-fingerprint.json",
+    "packages/deepseek/src/chat/__fixtures__/deepseek-system-fingerprint.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #19386: DeepSeek system_fingerprint was not preserved in provider metadata for generate and stream."
+  }
+}
