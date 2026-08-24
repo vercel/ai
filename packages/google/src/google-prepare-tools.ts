@@ -7,16 +7,35 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 import type { GoogleModelId } from './google-language-model-options';
 import { getGoogleModelCapabilities } from './google-model-capabilities';
 
+/**
+ * The schema fields of one function declaration.
+ *
+ * `parameters` and `parametersJsonSchema` are mutually exclusive, so exactly
+ * one is emitted. The JSON Schema field is sent verbatim: converting it would
+ * defeat the point, since the conversion is what drops `$ref`/`$defs` and
+ * rewrites unions into shapes the API rejects.
+ */
+function toolParameters(
+  inputSchema: unknown,
+  useParametersJsonSchema: boolean,
+): { parameters: unknown } | { parametersJsonSchema: unknown } {
+  return useParametersJsonSchema
+    ? { parametersJsonSchema: inputSchema }
+    : { parameters: convertJSONSchemaToOpenAPISchema(inputSchema as any) };
+}
+
 export function prepareTools({
   tools,
   toolChoice,
   modelId,
   isVertexProvider = false,
+  useParametersJsonSchema = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
   modelId: GoogleModelId;
   isVertexProvider?: boolean;
+  useParametersJsonSchema?: boolean;
 }): {
   tools:
     | Array<
@@ -24,7 +43,8 @@ export function prepareTools({
             functionDeclarations: Array<{
               name: string;
               description: string;
-              parameters: unknown;
+              parameters?: unknown;
+              parametersJsonSchema?: unknown;
             }>;
           }
         | Record<string, any>
@@ -175,14 +195,15 @@ export function prepareTools({
       const functionDeclarations: Array<{
         name: string;
         description: string;
-        parameters: unknown;
+        parameters?: unknown;
+        parametersJsonSchema?: unknown;
       }> = [];
       for (const tool of tools) {
         if (tool.type === 'function') {
           functionDeclarations.push({
             name: tool.name,
             description: tool.description ?? '',
-            parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
+            ...toolParameters(tool.inputSchema, useParametersJsonSchema),
           });
         }
       }
@@ -241,7 +262,7 @@ export function prepareTools({
         functionDeclarations.push({
           name: tool.name,
           description: tool.description ?? '',
-          parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
+          ...toolParameters(tool.inputSchema, useParametersJsonSchema),
         });
         if (tool.strict === true) {
           hasStrictTools = true;
