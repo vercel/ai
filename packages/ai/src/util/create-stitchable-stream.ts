@@ -12,6 +12,7 @@ export function createStitchableStream<T>(): {
     innerStream: ReadableStream<T>,
     callbacks?: {
       onError?: (error: unknown) => void;
+      onCancel?: () => void;
     },
   ) => void;
   close: () => void;
@@ -20,6 +21,7 @@ export function createStitchableStream<T>(): {
   let innerStreams: Array<{
     reader: ReadableStreamDefaultReader<T>;
     onError?: (error: unknown) => void;
+    onCancel?: () => void;
   }> = [];
   let controller: ReadableStreamDefaultController<T> | null = null;
   let isClosed = false;
@@ -29,7 +31,10 @@ export function createStitchableStream<T>(): {
     isClosed = true;
     waitForNewStream.resolve();
 
-    innerStreams.forEach(({ reader }) => reader.cancel());
+    innerStreams.forEach(({ reader, onCancel }) => {
+      onCancel?.();
+      reader.cancel();
+    });
     innerStreams = [];
     controller?.close();
   };
@@ -83,7 +88,8 @@ export function createStitchableStream<T>(): {
       },
       pull: processPull,
       async cancel() {
-        for (const { reader } of innerStreams) {
+        for (const { reader, onCancel } of innerStreams) {
+          onCancel?.();
           await reader.cancel();
         }
         innerStreams = [];
@@ -94,6 +100,7 @@ export function createStitchableStream<T>(): {
       innerStream: ReadableStream<T>,
       callbacks?: {
         onError?: (error: unknown) => void;
+        onCancel?: () => void;
       },
     ) => {
       if (isClosed) {
