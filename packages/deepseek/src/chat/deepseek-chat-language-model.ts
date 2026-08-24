@@ -50,6 +50,7 @@ export type DeepSeekChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   supportsAssistantPrefixCompletion?: boolean;
+  supportsStrictToolCalls?: boolean;
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
@@ -151,6 +152,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     } = prepareTools({
       tools,
       toolChoice,
+      supportsStrictToolCalls: this.config.supportsStrictToolCalls,
     });
 
     const thinking =
