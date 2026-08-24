@@ -1393,7 +1393,6 @@ class DefaultStreamTextResult<
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
 
-<<<<<<< HEAD
     recordSpan({
       name: 'ai.streamText',
       attributes: selectTelemetryAttributes({
@@ -1404,121 +1403,6 @@ class DefaultStreamTextResult<
           // specific settings that only make sense on the outer level:
           'ai.prompt': {
             input: () => JSON.stringify({ system, prompt, messages }),
-=======
-    (async () => {
-      const initialPrompt = await standardizePrompt({
-        instructions,
-        system,
-        prompt,
-        messages,
-        allowSystemInMessages,
-      } as Prompt);
-
-      const startEvent = {
-        callId,
-        operationId: 'ai.streamText',
-        provider: model.provider,
-        modelId: model.modelId,
-        instructions: initialPrompt.instructions,
-        messages: initialPrompt.messages,
-        tools,
-        toolChoice,
-        activeTools,
-        toolOrder,
-        maxOutputTokens: callSettings.maxOutputTokens,
-        temperature: callSettings.temperature,
-        topP: callSettings.topP,
-        topK: callSettings.topK,
-        presencePenalty: callSettings.presencePenalty,
-        frequencyPenalty: callSettings.frequencyPenalty,
-        stopSequences: callSettings.stopSequences,
-        seed: callSettings.seed,
-        reasoning: callSettings.reasoning,
-        maxRetries,
-        timeout,
-        headers,
-        providerOptions,
-        output,
-        runtimeContext,
-        toolsContext,
-      };
-
-      const streamTextTracingChannelContext =
-        telemetryDispatcher.startTracingChannelContext?.({
-          type: 'streamText',
-          event: startEvent,
-          completion: self._totalUsage.promise.then(() => undefined),
-        });
-      // Re-enter the streamText tracing context after stream setup returns.
-      const runInStreamTextTracingChannelContext = <T>(execute: () => T): T =>
-        streamTextTracingChannelContext?.run(execute) ?? execute();
-      const runInTracingChannelSpanInStreamText =
-        telemetryDispatcher.runInTracingChannelSpan == null
-          ? undefined
-          : <T>(
-              options: Parameters<
-                NonNullable<TelemetryDispatcher['runInTracingChannelSpan']>
-              >[0] & {
-                execute: () => PromiseLike<T>;
-              },
-            ) =>
-              runInStreamTextTracingChannelContext(() =>
-                telemetryDispatcher.runInTracingChannelSpan!(options),
-              );
-
-      await notify({
-        event: startEvent,
-        callbacks: [onStart, telemetryDispatcher.onStart],
-      });
-
-      const initialMessages = initialPrompt.messages;
-      let instructionsForNextStep = initialPrompt.instructions;
-
-      const { approvedToolApprovals, deniedToolApprovals } =
-        collectToolApprovals<TOOLS>({ messages: initialMessages });
-
-      // initial tool execution step stream
-      if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
-        const {
-          approvedToolApprovals: localApprovedToolApprovals,
-          deniedToolApprovals: revalidationDeniedToolApprovals,
-          invalidToolApprovals,
-        } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
-          approvedToolApprovals: approvedToolApprovals.filter(
-            toolApproval => !toolApproval.toolCall.providerExecuted,
-          ),
-          tools,
-          toolApproval,
-          messages: initialMessages,
-          toolsContext,
-          runtimeContext,
-          toolApprovalSecret: experimental_toolApprovalSecret,
-        });
-
-        const localDeniedToolApprovals = [
-          ...deniedToolApprovals.filter(
-            toolApproval => !toolApproval.toolCall.providerExecuted,
-          ),
-          ...revalidationDeniedToolApprovals,
-        ];
-        const localDeniedToolApprovalsWithoutResults =
-          localDeniedToolApprovals.filter(
-            toolApproval => toolApproval.existingToolResult == null,
-          );
-
-        const deniedProviderExecutedToolApprovals = deniedToolApprovals.filter(
-          toolApproval => toolApproval.toolCall.providerExecuted,
-        );
-
-        let toolExecutionStepStreamController:
-          | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
-          | undefined;
-        const toolExecutionStepStream = new ReadableStream<
-          TextStreamPart<TOOLS>
-        >({
-          start(controller) {
-            toolExecutionStepStreamController = controller;
->>>>>>> 96970bb2f5 (fix: invalid approved tool input terminates resumed tool-approval turns (#19280))
           },
         },
       }),
@@ -1576,7 +1460,6 @@ class DefaultStreamTextResult<
         const { approvedToolApprovals, deniedToolApprovals } =
           collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-<<<<<<< HEAD
         // initial tool execution step stream
         if (
           deniedToolApprovals.length > 0 ||
@@ -1589,6 +1472,7 @@ class DefaultStreamTextResult<
           const {
             approvedToolApprovals: localApprovedToolApprovals,
             deniedToolApprovals: revalidationDeniedToolApprovals,
+            invalidToolApprovals,
           } = await validateApprovedToolApprovals<TOOLS>({
             approvedToolApprovals: approvedToolApprovals.filter(
               toolApproval => !toolApproval.toolCall.providerExecuted,
@@ -1598,26 +1482,6 @@ class DefaultStreamTextResult<
             experimental_context,
             toolApprovalSecret: experimental_toolApprovalSecret,
           });
-=======
-          for (const toolApproval of invalidToolApprovals) {
-            toolExecutionStepStreamController?.enqueue({
-              type: 'tool-error',
-              toolCallId: toolApproval.toolCall.toolCallId,
-              toolName: toolApproval.toolCall.toolName,
-              input: toolApproval.toolCall.input,
-              error: getErrorMessage(toolApproval.error),
-              title: toolApproval.toolCall.title,
-              ...(toolApproval.toolCall.dynamic === true
-                ? { dynamic: true as const }
-                : {}),
-              ...(toolApproval.toolCall.toolMetadata != null
-                ? { toolMetadata: toolApproval.toolCall.toolMetadata }
-                : {}),
-            } as TextStreamPart<TOOLS>);
-          }
-
-          const toolOutputs: Array<ToolOutput<TOOLS>> = [];
->>>>>>> 96970bb2f5 (fix: invalid approved tool input terminates resumed tool-approval turns (#19280))
 
           const localDeniedToolApprovals = [
             ...deniedToolApprovals.filter(
@@ -1631,7 +1495,6 @@ class DefaultStreamTextResult<
               toolApproval => toolApproval.toolCall.providerExecuted,
             );
 
-<<<<<<< HEAD
           let toolExecutionStepStreamController:
             | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
             | undefined;
@@ -1642,19 +1505,9 @@ class DefaultStreamTextResult<
               toolExecutionStepStreamController = controller;
             },
           });
-=======
-          // Local tool results (approved + denied) are sent as tool results:
-          if (
-            toolOutputs.length > 0 ||
-            localDeniedToolApprovalsWithoutResults.length > 0 ||
-            invalidToolApprovals.length > 0
-          ) {
-            const localToolContent: ToolContent = [];
->>>>>>> 96970bb2f5 (fix: invalid approved tool input terminates resumed tool-approval turns (#19280))
 
           self.addStream(toolExecutionStepStream);
 
-<<<<<<< HEAD
           try {
             for (const toolApproval of [
               ...localDeniedToolApprovals,
@@ -1662,33 +1515,26 @@ class DefaultStreamTextResult<
             ]) {
               toolExecutionStepStreamController?.enqueue({
                 type: 'tool-output-denied',
-=======
-            // Report invalid approved tool calls to the model without
-            // executing them. Repairing the input after approval would change
-            // the operation that the user authorized.
-            for (const toolApproval of invalidToolApprovals) {
-              localToolContent.push({
-                type: 'tool-result' as const,
-                toolCallId: toolApproval.toolCall.toolCallId,
-                toolName: toolApproval.toolCall.toolName,
-                output: await createToolModelOutput({
-                  toolCallId: toolApproval.toolCall.toolCallId,
-                  input: toolApproval.toolCall.input,
-                  tool: getOwn(tools, toolApproval.toolCall.toolName),
-                  output: toolApproval.error,
-                  errorMode: 'text',
-                }),
-              });
-            }
-
-            // add execution denied tool results for denied local tool approvals:
-            for (const toolApproval of localDeniedToolApprovalsWithoutResults) {
-              localToolContent.push({
-                type: 'tool-result' as const,
->>>>>>> 96970bb2f5 (fix: invalid approved tool input terminates resumed tool-approval turns (#19280))
                 toolCallId: toolApproval.toolCall.toolCallId,
                 toolName: toolApproval.toolCall.toolName,
               } as StaticToolOutputDenied<TOOLS>);
+            }
+
+            for (const toolApproval of invalidToolApprovals) {
+              toolExecutionStepStreamController?.enqueue({
+                type: 'tool-error',
+                toolCallId: toolApproval.toolCall.toolCallId,
+                toolName: toolApproval.toolCall.toolName,
+                input: toolApproval.toolCall.input,
+                error: getErrorMessage(toolApproval.error),
+                title: toolApproval.toolCall.title,
+                ...(toolApproval.toolCall.dynamic === true
+                  ? { dynamic: true as const }
+                  : {}),
+                ...(toolApproval.toolCall.toolMetadata != null
+                  ? { toolMetadata: toolApproval.toolCall.toolMetadata }
+                  : {}),
+              } as TextStreamPart<TOOLS>);
             }
 
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
@@ -1728,7 +1574,11 @@ class DefaultStreamTextResult<
             );
 
             // Local tool results (approved + denied) are sent as tool results:
-            if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
+            if (
+              toolOutputs.length > 0 ||
+              localDeniedToolApprovals.length > 0 ||
+              invalidToolApprovals.length > 0
+            ) {
               const localToolContent: ToolContent = [];
 
               // add regular tool results for approved tool calls:
@@ -1746,6 +1596,24 @@ class DefaultStreamTextResult<
                         ? output.output
                         : output.error,
                     errorMode: output.type === 'tool-error' ? 'text' : 'none',
+                  }),
+                });
+              }
+
+              // Report invalid approved tool calls to the model without
+              // executing them. Repairing the input after approval would change
+              // the operation that the user authorized.
+              for (const toolApproval of invalidToolApprovals) {
+                localToolContent.push({
+                  type: 'tool-result' as const,
+                  toolCallId: toolApproval.toolCall.toolCallId,
+                  toolName: toolApproval.toolCall.toolName,
+                  output: await createToolModelOutput({
+                    toolCallId: toolApproval.toolCall.toolCallId,
+                    input: toolApproval.toolCall.input,
+                    tool: tools?.[toolApproval.toolCall.toolName],
+                    output: toolApproval.error,
+                    errorMode: 'text',
                   }),
                 });
               }

@@ -3,11 +3,7 @@ import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 // Bundle size limits in bytes
-<<<<<<< HEAD
 const LIMIT = 615 * 1024;
-=======
-const LIMIT = 460 * 1024;
->>>>>>> 96970bb2f5 (fix: invalid approved tool input terminates resumed tool-approval turns (#19280))
 
 interface BundleResult {
   size: number;

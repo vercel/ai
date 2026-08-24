@@ -69,26 +69,11 @@ describe('validateApprovedToolApprovals', () => {
       input: { value: 42 },
     });
 
-<<<<<<< HEAD
-    await expect(
-      validateApprovedToolApprovals({
-        approvedToolApprovals: [approval],
-        tools,
-        messages: [],
-        experimental_context: undefined,
-      }),
-    ).rejects.toThrowError(/Invalid input for tool tool1/);
-  });
-
-  it('should move approvals to denied when the tool does not require approval', async () => {
-=======
     const result = await validateApprovedToolApprovals({
       approvedToolApprovals: [approval],
       tools,
-      toolApproval: undefined,
       messages: [],
-      toolsContext: {} as any,
-      runtimeContext: {},
+      experimental_context: undefined,
     });
 
     expect(result.approvedToolApprovals).toHaveLength(0);
@@ -121,10 +106,8 @@ describe('validateApprovedToolApprovals', () => {
     const result = await validateApprovedToolApprovals({
       approvedToolApprovals: [approval],
       tools,
-      toolApproval: undefined,
       messages: [],
-      toolsContext: {} as any,
-      runtimeContext: {},
+      experimental_context: undefined,
     });
 
     expect(result.approvedToolApprovals).toHaveLength(0);
@@ -133,8 +116,7 @@ describe('validateApprovedToolApprovals', () => {
     );
   });
 
-  it('should move approvals to denied when the approval policy denies them', async () => {
->>>>>>> 96970bb2f5 (fix: invalid approved tool input terminates resumed tool-approval turns (#19280))
+  it('should move approvals to denied when the tool does not require approval', async () => {
     const tools = {
       tool1: tool({
         inputSchema: z.object({ value: z.string() }),

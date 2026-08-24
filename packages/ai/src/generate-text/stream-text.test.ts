@@ -21993,21 +21993,16 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
-<<<<<<< HEAD
-    describe('when a single tool needs approval', () => {
-      let result: StreamTextResult<any, any>;
-=======
     it('should stream invalid approved input as a tool error and continue', async () => {
       const executeFunction = vi.fn().mockReturnValue('result1');
-      const prompts: LanguageModelV4Prompt[] = [];
+      const prompts: LanguageModelV3Prompt[] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV4({
+        model: new MockLanguageModelV3({
           doStream: async ({ prompt }) => {
             prompts.push(prompt);
             return {
               stream: convertArrayToReadableStream([
-                { type: 'stream-start', warnings: [] },
                 { type: 'text-start', id: '1' },
                 { type: 'text-delta', id: '1', delta: 'Recovered.' },
                 { type: 'text-end', id: '1' },
@@ -22024,10 +22019,8 @@ describe('streamText', () => {
           deleteFile: tool({
             inputSchema: z.object({ path: z.string() }),
             execute: executeFunction,
+            needsApproval: true,
           }),
-        },
-        toolApproval: {
-          deleteFile: 'user-approval',
         },
         messages: [
           { role: 'user', content: 'test-input' },
@@ -22060,7 +22053,7 @@ describe('streamText', () => {
         ],
       });
 
-      const parts = await convertAsyncIterableToArray(result.stream);
+      const parts = await convertAsyncIterableToArray(result.fullStream);
 
       expect(executeFunction).not.toHaveBeenCalled();
       expect(parts).toContainEqual(
@@ -22093,9 +22086,8 @@ describe('streamText', () => {
       });
     });
 
-    describe('when a single tool needs approval (user-defined)', () => {
-      let result: StreamTextResult<any, any, any>;
->>>>>>> 96970bb2f5 (fix: invalid approved tool input terminates resumed tool-approval turns (#19280))
+    describe('when a single tool needs approval', () => {
+      let result: StreamTextResult<any, any>;
 
       beforeEach(async () => {
         result = streamText({

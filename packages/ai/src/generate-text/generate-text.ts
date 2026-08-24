@@ -569,7 +569,6 @@ export async function generateText<
           deniedToolApprovals: collectedDeniedToolApprovals,
         } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-<<<<<<< HEAD
         // Re-validate approvals reconstructed from the client-supplied message
         // history before executing them: verify the HMAC signature (when a
         // secret is configured), re-validate the input against the tool's
@@ -577,52 +576,10 @@ export async function generateText<
         const {
           approvedToolApprovals: localApprovedToolApprovals,
           deniedToolApprovals: revalidationDeniedToolApprovals,
+          invalidToolApprovals,
         } = await validateApprovedToolApprovals<TOOLS>({
           approvedToolApprovals: approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
-=======
-    try {
-      const initialMessages = initialPrompt.messages;
-      const initialResponseMessages: Array<ResponseMessage> = [];
-
-      const {
-        approvedToolApprovals,
-        deniedToolApprovals: collectedDeniedToolApprovals,
-      } = collectToolApprovals<TOOLS>({ messages: initialMessages });
-
-      const {
-        approvedToolApprovals: localApprovedToolApprovals,
-        deniedToolApprovals: revalidationDeniedToolApprovals,
-        invalidToolApprovals,
-      } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
-        approvedToolApprovals: approvedToolApprovals.filter(
-          toolApproval => !toolApproval.toolCall.providerExecuted,
-        ),
-        tools,
-        toolApproval,
-        messages: initialMessages,
-        toolsContext,
-        runtimeContext,
-        toolApprovalSecret: experimental_toolApprovalSecret,
-      });
-
-      const deniedToolApprovals = [
-        ...collectedDeniedToolApprovals,
-        ...revalidationDeniedToolApprovals,
-      ];
-      const deniedToolApprovalsWithoutResults = deniedToolApprovals.filter(
-        toolApproval => toolApproval.existingToolResult == null,
-      );
-
-      if (
-        deniedToolApprovalsWithoutResults.length > 0 ||
-        localApprovedToolApprovals.length > 0 ||
-        invalidToolApprovals.length > 0
-      ) {
-        const toolResults = await executeTools({
-          toolCalls: localApprovedToolApprovals.map(
-            toolApproval => toolApproval.toolCall,
->>>>>>> 96970bb2f5 (fix: invalid approved tool input terminates resumed tool-approval turns (#19280))
           ),
           tools,
           messages: initialMessages,
@@ -637,7 +594,8 @@ export async function generateText<
 
         if (
           deniedToolApprovals.length > 0 ||
-          localApprovedToolApprovals.length > 0
+          localApprovedToolApprovals.length > 0 ||
+          invalidToolApprovals.length > 0
         ) {
           const toolOutputs = await executeTools({
             toolCalls: localApprovedToolApprovals.map(
@@ -686,6 +644,24 @@ export async function generateText<
             });
           }
 
+          // Report invalid approved tool calls to the model without executing
+          // them. Repairing the input after approval would change the operation
+          // that the user authorized.
+          for (const toolApproval of invalidToolApprovals) {
+            toolContent.push({
+              type: 'tool-result' as const,
+              toolCallId: toolApproval.toolCall.toolCallId,
+              toolName: toolApproval.toolCall.toolName,
+              output: await createToolModelOutput({
+                toolCallId: toolApproval.toolCall.toolCallId,
+                input: toolApproval.toolCall.input,
+                tool: tools?.[toolApproval.toolCall.toolName],
+                output: toolApproval.error,
+                errorMode: 'text',
+              }),
+            });
+          }
+
           // add execution denied tool results for all denied tool approvals:
           for (const toolApproval of deniedToolApprovals) {
             toolContent.push({
@@ -713,7 +689,6 @@ export async function generateText<
           });
         }
 
-<<<<<<< HEAD
         const callSettings = prepareCallSettings(settings);
 
         let currentModelResponse: Awaited<
@@ -878,40 +853,6 @@ export async function generateText<
                     'gen_ai.request.temperature': stepCallSettings.temperature,
                     'gen_ai.request.top_k': stepCallSettings.topK,
                     'gen_ai.request.top_p': stepCallSettings.topP,
-=======
-        // Report invalid approved tool calls to the model without executing
-        // them. Repairing the input after approval would change the operation
-        // that the user authorized.
-        for (const toolApproval of invalidToolApprovals) {
-          toolContent.push({
-            type: 'tool-result' as const,
-            toolCallId: toolApproval.toolCall.toolCallId,
-            toolName: toolApproval.toolCall.toolName,
-            output: await createToolModelOutput({
-              toolCallId: toolApproval.toolCall.toolCallId,
-              input: toolApproval.toolCall.input,
-              tool: getOwn(tools, toolApproval.toolCall.toolName),
-              output: toolApproval.error,
-              errorMode: 'text',
-            }),
-          });
-        }
-
-        // add execution denied tool results for all denied tool approvals:
-        for (const toolApproval of deniedToolApprovalsWithoutResults) {
-          toolContent.push({
-            type: 'tool-result' as const,
-            toolCallId: toolApproval.toolCall.toolCallId,
-            toolName: toolApproval.toolCall.toolName,
-            output: {
-              type: 'execution-denied' as const,
-              reason: toolApproval.approvalResponse.reason,
-              // For provider-executed tools, include approvalId so provider can correlate
-              ...(toolApproval.toolCall.providerExecuted && {
-                providerOptions: {
-                  openai: {
-                    approvalId: toolApproval.approvalResponse.approvalId,
->>>>>>> 96970bb2f5 (fix: invalid approved tool input terminates resumed tool-approval turns (#19280))
                   },
                 }),
                 tracer,
