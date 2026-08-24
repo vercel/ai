@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19330,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19330-angular-chat-structured-clone.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-19330-angular-chat-structured-clone.ts",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19330_REPRODUCED: Angular Chat blocked supported submissions with DataCloneError before transport and deep-cloned an appended user message"
+  }
+}

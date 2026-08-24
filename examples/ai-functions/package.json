@@ -1,0 +1,14 @@
+{
+  "name": "@example/ai-functions",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/angular": "workspace:*",
+    "@angular/core": "^20.3.2",
+    "ai": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "4.19.2",
+    "typescript": "5.8.3"
+  }
+}
