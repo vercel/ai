@@ -80,6 +80,17 @@ DeepSeek language models can be used in the `streamText` function
 
 The following optional provider options are available for DeepSeek models:
 
+- `logprobs` _boolean_
+
+  Optional. Returns log probabilities for generated content and reasoning
+  tokens in `providerMetadata.deepseek.logprobs`.
+
+- `topLogprobs` _number_
+
+  Optional. Returns the specified number of most likely tokens at each token
+  position. Accepts values from `0` through `20` and automatically enables
+  `logprobs`.
+
 - `userId` _string_
 
   Optional. An opaque end-user identifier that DeepSeek uses for content-safety
