@@ -57,6 +57,65 @@ describe('processUIMessageStream', () => {
     });
   };
 
+  describe('finish-step', () => {
+    it('preserves active text and reasoning parts across interleaved step boundaries', async () => {
+      const stream = createUIMessageStream([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'first ' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'thinking ',
+        },
+        { type: 'start-step' },
+        { type: 'finish-step' },
+        { type: 'text-delta', id: 'text-1', delta: 'second' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'continued',
+        },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        {
+          type: 'text',
+          text: 'first second',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        {
+          type: 'reasoning',
+          id: 'reasoning-1',
+          text: 'thinking continued',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        { type: 'step-start' },
+      ]);
+      expect(state.activeTextParts).toEqual({});
+      expect(state.activeReasoningParts).toEqual({});
+    });
+  });
+
   describe('reset-step', () => {
     it('removes parts from the current step and accepts retried parts', async () => {
       const stream = createUIMessageStream([
