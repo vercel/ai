@@ -177,6 +177,7 @@ describe('GoogleBatchLanguageModel', () => {
             requestCount: '1',
             successfulRequestCount: '0',
             failedRequestCount: '0',
+            pendingRequestCount: '1',
           },
         },
         { done: false },
@@ -379,6 +380,7 @@ describe('GoogleBatchLanguageModel', () => {
             requestCount: '7',
             successfulRequestCount: '2',
             failedRequestCount: '3',
+            pendingRequestCount: '2',
           },
         },
         {
@@ -411,6 +413,47 @@ describe('GoogleBatchLanguageModel', () => {
       },
       createdAt: '2026-08-04T12:34:56.123Z',
     });
+  });
+
+  it.each([
+    {
+      name: 'all-failed batch with omitted zero counters',
+      batchStats: {
+        requestCount: '1',
+        failedRequestCount: '1',
+      },
+      requestCounts: {
+        total: 1,
+        pending: 0,
+        completed: 0,
+        failed: 1,
+      },
+    },
+    {
+      name: 'running batch with omitted zero counters',
+      batchStats: {
+        requestCount: '2',
+        pendingRequestCount: '2',
+      },
+      requestCounts: {
+        total: 2,
+        pending: 2,
+        completed: 0,
+        failed: 0,
+      },
+    },
+  ])('normalizes $name', async ({ batchStats, requestCounts }) => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: operation({ batchStats }),
+    };
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    await expect(
+      model.experimental_doGetBatchStatus({
+        batchId: 'batches/batch-123',
+      }),
+    ).resolves.toMatchObject({ requestCounts });
   });
 
   it('rejects result retrieval while the batch is pending', async () => {

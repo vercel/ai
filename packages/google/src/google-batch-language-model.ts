@@ -56,6 +56,7 @@ const googleBatchStatsSchema = z.object({
   requestCount: z.union([z.string(), z.number()]).nullish(),
   successfulRequestCount: z.union([z.string(), z.number()]).nullish(),
   failedRequestCount: z.union([z.string(), z.number()]).nullish(),
+  pendingRequestCount: z.union([z.string(), z.number()]).nullish(),
 });
 
 const googleBatchOutputSchema = z.object({
@@ -472,21 +473,23 @@ function convertGoogleRequestCounts(
   counts: NonNullable<GoogleBatchOperation['metadata']>['batchStats'],
 ): BatchV4Status['requestCounts'] | undefined {
   const total = parseCount(counts?.requestCount);
-  const completed = parseCount(counts?.successfulRequestCount);
-  const failed = parseCount(counts?.failedRequestCount);
+  const completed = parseCount(counts?.successfulRequestCount ?? 0);
+  const failed = parseCount(counts?.failedRequestCount ?? 0);
+  const pending = parseCount(counts?.pendingRequestCount ?? 0);
 
   if (
     total == null ||
     completed == null ||
     failed == null ||
-    completed + failed > total
+    pending == null ||
+    completed + failed + pending !== total
   ) {
     return undefined;
   }
 
   return {
     total,
-    pending: total - completed - failed,
+    pending,
     completed,
     failed,
   };
