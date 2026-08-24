@@ -1,7 +1,9 @@
 import type { JSONSchema7, JSONSchema7Definition } from '@ai-sdk/provider';
 
 /**
- * Recursively adds additionalProperties: false to the JSON schema. This is necessary because some providers (e.g. OpenAI) do not support additionalProperties: true.
+ * Recursively adds additionalProperties: false to object schemas that do not
+ * define a schema for their additional properties. This is necessary because
+ * some providers (e.g. OpenAI) do not support additionalProperties: true.
  */
 export function addAdditionalPropertiesToJsonSchema(
   jsonSchema: JSONSchema7,
@@ -10,7 +12,12 @@ export function addAdditionalPropertiesToJsonSchema(
     jsonSchema.type === 'object' ||
     (Array.isArray(jsonSchema.type) && jsonSchema.type.includes('object'))
   ) {
-    jsonSchema.additionalProperties = false;
+    const { additionalProperties } = jsonSchema;
+    jsonSchema.additionalProperties =
+      additionalProperties != null && typeof additionalProperties !== 'boolean'
+        ? visit(additionalProperties)
+        : false;
+
     const { properties } = jsonSchema;
     if (properties != null) {
       for (const key of Object.keys(properties)) {
