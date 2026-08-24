@@ -1,5 +1,15 @@
 # @ai-sdk/harness-acp
 
+## 1.0.23
+
+### Patch Changes
+
+- 6352c2a: feat(harness-acp): support ACP harnesses that do not have an NPM package via new `install-command` source type
+- Updated dependencies [b74971f]
+- Updated dependencies [fa6af57]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/harness@1.0.85
+
 ## 1.0.22
 
 ### Patch Changes

@@ -47,7 +47,15 @@ export type ACPNpmLockedSource = {
   readonly pnpmLockYaml: string;
 };
 
-export type ACPSource = ACPNpmSimpleSource | ACPNpmLockedSource;
+export type ACPInstallCommandSource = {
+  readonly type: 'install-command';
+  readonly command: string;
+};
+
+export type ACPSource =
+  | ACPNpmSimpleSource
+  | ACPNpmLockedSource
+  | ACPInstallCommandSource;
 
 export type ACPAuthentication = {
   readonly methodId: string;
