@@ -93,6 +93,7 @@ export class DeepSeekFiles implements FilesV4 {
       ...(mediaType != null ? { mediaType } : {}),
       providerMetadata: {
         deepseek: {
+          ...(response.object != null ? { object: response.object } : {}),
           ...(response.filename != null ? { filename: response.filename } : {}),
           ...(response.purpose != null ? { purpose: response.purpose } : {}),
           ...(response.bytes != null ? { bytes: response.bytes } : {}),
