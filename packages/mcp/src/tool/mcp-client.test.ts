@@ -72,6 +72,174 @@ class GetterOnlyProtocolVersionTransport implements MCPTransport {
   }
 }
 
+<<<<<<< HEAD
+=======
+class ProtocolDiscoveryTransport implements MCPTransport {
+  readonly supportsProtocolVersionDiscovery = true;
+  readonly sentMessages: JSONRPCMessage[] = [];
+  protocolVersion?: string;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(
+    private readonly discoveryBehavior:
+      | 'modern'
+      | 'legacy'
+      | 'unsupported' = 'modern',
+    private readonly includeToolListResultType = true,
+  ) {}
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  setProtocolVersion(version: string): void {
+    this.protocolVersion = version;
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.sentMessages.push(message);
+
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'server/discover') {
+      if (this.discoveryBehavior === 'legacy') {
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: { code: -32601, message: 'Method not found' },
+        });
+        return;
+      }
+
+      if (this.discoveryBehavior === 'unsupported') {
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: -32022,
+            message: 'Unsupported protocol version',
+            data: {
+              requested: LATEST_PROTOCOL_VERSION,
+              supported: ['2099-01-01'],
+            },
+          },
+        });
+        return;
+      }
+
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          resultType: 'complete',
+          supportedVersions: [LATEST_PROTOCOL_VERSION],
+          capabilities: { tools: {} },
+          _meta: {
+            'io.modelcontextprotocol/serverInfo': {
+              name: 'modern-test-server',
+              version: '1.0.0',
+            },
+          },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+          serverInfo: { name: 'legacy-test-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          ...(this.includeToolListResultType ? { resultType: 'complete' } : {}),
+          tools: [],
+        },
+      });
+    }
+  }
+}
+
+class PaginatedToolsTransport implements MCPTransport {
+  readonly toolListCursors: Array<string | undefined> = [];
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+          serverInfo: { name: 'paginated-tools-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      const cursor = message.params?.cursor as string | undefined;
+      this.toolListCursors.push(cursor);
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result:
+          cursor == null
+            ? {
+                tools: [
+                  {
+                    name: 'first-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
+                nextCursor: 'second-page',
+              }
+            : {
+                tools: [
+                  {
+                    name: 'second-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
+              },
+      });
+    }
+  }
+}
+
+>>>>>>> 1175434706 (fix: return all tools from paginated MCP tool lists (#19246))
 class FailsFirstToolCallTransport implements MCPTransport {
   toolCallAttempts = 0;
 
@@ -374,6 +542,16 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should return tools from all paginated tool list responses', async () => {
+    const transport = new PaginatedToolsTransport();
+    client = await createMCPClient({ transport });
+
+    const tools = await client.tools();
+
+    expect(Object.keys(tools)).toEqual(['first-page-tool', 'second-page-tool']);
+    expect(transport.toolListCursors).toEqual([undefined, 'second-page']);
   });
 
   it('should expose MCP tool metadata on dynamic tools', async () => {
