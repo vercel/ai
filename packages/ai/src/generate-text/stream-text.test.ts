@@ -86,6 +86,35 @@ function clearObjectPrototypeState() {
   delete objectPrototype.text;
 }
 
+function trackAbortListeners(signal: AbortSignal) {
+  const activeAbortListeners = new Set<EventListenerOrEventListenerObject>();
+  const originalAddEventListener = signal.addEventListener.bind(signal);
+  const originalRemoveEventListener = signal.removeEventListener.bind(signal);
+
+  signal.addEventListener = ((
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions,
+  ) => {
+    if (type === 'abort') {
+      activeAbortListeners.add(listener);
+    }
+    originalAddEventListener(type, listener, options);
+  }) as AbortSignal['addEventListener'];
+  signal.removeEventListener = ((
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | EventListenerOptions,
+  ) => {
+    if (type === 'abort') {
+      activeAbortListeners.delete(listener);
+    }
+    originalRemoveEventListener(type, listener, options);
+  }) as AbortSignal['removeEventListener'];
+
+  return activeAbortListeners;
+}
+
 const testUsage: LanguageModelV3Usage = {
   inputTokens: {
     total: 3,
@@ -13388,33 +13417,7 @@ describe('streamText', () => {
         longLivedAbortController.signal,
         callAbortController.signal,
       ]);
-      const activeAbortListeners =
-        new Set<EventListenerOrEventListenerObject>();
-      const originalAddEventListener =
-        abortSignal.addEventListener.bind(abortSignal);
-      const originalRemoveEventListener =
-        abortSignal.removeEventListener.bind(abortSignal);
-
-      abortSignal.addEventListener = ((
-        type: string,
-        listener: EventListenerOrEventListenerObject,
-        options?: boolean | AddEventListenerOptions,
-      ) => {
-        if (type === 'abort') {
-          activeAbortListeners.add(listener);
-        }
-        originalAddEventListener(type, listener, options);
-      }) as AbortSignal['addEventListener'];
-      abortSignal.removeEventListener = ((
-        type: string,
-        listener: EventListenerOrEventListenerObject,
-        options?: boolean | EventListenerOptions,
-      ) => {
-        if (type === 'abort') {
-          activeAbortListeners.delete(listener);
-        }
-        originalRemoveEventListener(type, listener, options);
-      }) as AbortSignal['removeEventListener'];
+      const activeAbortListeners = trackAbortListeners(abortSignal);
 
       let pullCount = 0;
       const result = streamText({
@@ -13447,6 +13450,78 @@ describe('streamText', () => {
         }),
         prompt: 'test-input',
         abortSignal,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(activeAbortListeners.size).toBe(0);
+    });
+
+    it('should remove step timeout cleanup listeners after a provider stream error', async () => {
+      const longLivedAbortController = new AbortController();
+      const callAbortController = new AbortController();
+      const abortSignal = AbortSignal.any([
+        longLivedAbortController.signal,
+        callAbortController.signal,
+      ]);
+      const activeAbortListeners = trackAbortListeners(abortSignal);
+      const providerError = new Error('simulated provider stream error');
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                controller.error(providerError);
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        abortSignal,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(activeAbortListeners.size).toBe(0);
+    });
+
+    it('should remove step timeout cleanup listeners when the registered step stream is cancelled', async () => {
+      const longLivedAbortController = new AbortController();
+      const callAbortController = new AbortController();
+      const abortSignal = AbortSignal.any([
+        longLivedAbortController.signal,
+        callAbortController.signal,
+      ]);
+      const activeAbortListeners = trackAbortListeners(abortSignal);
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                controller.enqueue({ type: 'stream-start', warnings: [] });
+                controller.enqueue({
+                  type: 'response-metadata',
+                  id: 'response-1',
+                });
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        abortSignal,
+        experimental_transform: ({ stopStream }) =>
+          new TransformStream({
+            transform(chunk, controller) {
+              if (chunk.type === 'start-step') {
+                stopStream();
+              }
+              controller.enqueue(chunk);
+            },
+          }),
         onError: () => {},
       });
 

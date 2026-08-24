@@ -759,6 +759,10 @@ class DefaultStreamTextResult<
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
+    callbacks?: {
+      onError?: (error: unknown) => void;
+      onCancel?: () => void;
+    },
   ) => void;
 
   private readonly closeStream: () => void;
@@ -2348,6 +2352,10 @@ class DefaultStreamTextResult<
                   },
                 }),
               ),
+              {
+                onError: cleanupStepTimeouts,
+                onCancel: cleanupStepTimeouts,
+              },
             );
           } catch (error) {
             // Setup failed before the stream was registered, so neither the

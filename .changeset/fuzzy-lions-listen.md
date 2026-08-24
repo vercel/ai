@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Prevent aborted `streamText` calls from retaining per-call state through abort cleanup listeners.
+Prevent aborted, errored, or cancelled `streamText` calls from retaining per-call state through abort cleanup listeners.
