@@ -962,13 +962,17 @@ describe('createACP', () => {
     expect(harness.builtinTools.bash.nativeName).toBe('shell');
   });
 
-  it('serializes built-in names and input schemas across the bridge', () => {
+  it('serializes built-in matching fields and input schemas across the bridge', () => {
     const builtinTools = {
-      bash: commonTool('bash', {
-        nativeName: 'shell',
-        description: 'Execute a command',
-        inputSchema: z.object({ command: z.string() }),
-      }),
+      bash: {
+        ...commonTool('bash', {
+          nativeName: 'shell',
+          toolUseKind: 'bash',
+          description: 'Execute a command',
+          inputSchema: z.object({ command: z.string() }),
+        }),
+        title: 'Terminal',
+      },
     };
 
     expect(serializeBuiltinTools({ builtinTools })).toMatchInlineSnapshot(`
@@ -988,7 +992,9 @@ describe('createACP', () => {
             "type": "object",
           },
           "nativeName": "shell",
+          "title": "Terminal",
           "toolName": "bash",
+          "toolUseKind": "bash",
         },
       ]
     `);

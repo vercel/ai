@@ -1,5 +1,21 @@
 # @ai-sdk/harness
 
+## 1.0.86
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 1.0.85
+
+### Patch Changes
+
+- fa6af57: fix(harness): emit builtin tool results after approval continuations
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
 ## 1.0.84
 
 ### Patch Changes

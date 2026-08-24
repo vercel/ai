@@ -38,7 +38,10 @@ import {
   type HostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
-import { refreshHostToolCatalog } from './refresh-host-tool-catalog';
+import {
+  promptAndRefreshInitialHostToolCatalog,
+  refreshHostToolCatalog,
+} from './refresh-host-tool-catalog';
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
 import {
@@ -130,8 +133,12 @@ await runBridge<StartMessage>({
 });
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+  let initialHostToolCatalogRefreshRequired: boolean;
   try {
-    await ensureSession({ start, turn });
+    ({ initialHostToolCatalogRefreshRequired } = await ensureSession({
+      start,
+      turn,
+    }));
   } catch (error) {
     if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) throw error;
     throw createACPBridgeError({
@@ -148,6 +155,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     throw new Error(
       'ACP session initialization did not start stderr monitoring.',
     );
+  }
+  const activeHostToolRelay = hostToolRelay;
+  if (activeHostToolRelay == null) {
+    throw new Error('The host tool MCP relay is unavailable.');
   }
   if (start.recoveryMode?.type === 'lossy-rerun') {
     const marker = {
@@ -260,15 +271,35 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     removeCorrelationInvocation:
       emitStreamEvent.removeHostToolCorrelationInvocation,
   };
-  hostToolRelay?.bindTurn({ turn: relayTurn });
+  activeHostToolRelay.bindTurn({ turn: relayTurn });
   try {
     const promptMeta = createOutputSchemaPromptMeta({ start });
-    void promptActiveSession({
-      session: activeSession,
-      agent: connection!.agent,
-      prompt: start.prompt,
-      meta: promptMeta,
-    });
+    const startPrompt = () =>
+      promptActiveSession({
+        session: activeSession,
+        agent: connection!.agent,
+        prompt: start.prompt,
+        meta: promptMeta,
+      });
+    if (initialHostToolCatalogRefreshRequired) {
+      try {
+        await promptAndRefreshInitialHostToolCatalog({
+          startPrompt,
+          relay: activeHostToolRelay,
+          tools: start.tools ?? [],
+          harnessId: bridgeType,
+          timeoutMs: CATALOG_REFRESH_TIMEOUT_MS,
+        });
+      } catch (error) {
+        if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
+          catalogRefreshError = error;
+        }
+        sessionConfigurationFailure = { error };
+        throw error;
+      }
+    } else {
+      void startPrompt();
+    }
     if (turn.abortSignal.aborted) {
       await cancel();
     } else {
@@ -316,7 +347,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   } finally {
     permissionController.cancelAll();
     activePermissionController = undefined;
-    hostToolRelay?.unbindTurn({ turn: relayTurn });
+    activeHostToolRelay.unbindTurn({ turn: relayTurn });
   }
 }
 
@@ -326,7 +357,7 @@ async function ensureSession({
 }: {
   start: StartMessage;
   turn: BridgeTurn;
-}): Promise<void> {
+}): Promise<{ initialHostToolCatalogRefreshRequired: boolean }> {
   if (sessionConfigurationFailure != null) {
     throw sessionConfigurationFailure.error;
   }
@@ -364,7 +395,7 @@ async function ensureSession({
       }
       throw error;
     }
-    return;
+    return { initialHostToolCatalogRefreshRequired: false };
   }
 
   const clientApp = resolveClientApp();
@@ -558,12 +589,6 @@ async function ensureSession({
       .start();
   }
   try {
-    await refreshHostToolCatalog({
-      relay: hostToolRelay,
-      tools,
-      harnessId: bridgeType,
-      timeoutMs: CATALOG_REFRESH_TIMEOUT_MS,
-    });
     if (start.permissionModeMapping != null) {
       await configureACPPermissionMode({
         agent: connection.agent,
@@ -588,6 +613,7 @@ async function ensureSession({
     sessionId: createdSession.sessionId,
   });
   sessionConfigurationFingerprint = fingerprint;
+  return { initialHostToolCatalogRefreshRequired: tools.length > 0 };
 }
 
 function createExternalMcpServers({
