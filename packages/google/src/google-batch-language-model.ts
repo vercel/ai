@@ -40,6 +40,9 @@ import {
 import type { GoogleModelId } from './google-language-model-options';
 
 const googleBatchInputFileMaxBytes = 2 * 1024 * 1024 * 1024;
+const supportedGoogleBatchContentTypes = new Set<
+  LanguageModelV4GenerateResult['content'][number]['type']
+>(['text', 'reasoning', 'source']);
 
 type GoogleBatchRequest = Parameters<
   BatchLanguageModelV4['experimental_doStartBatch']
@@ -395,15 +398,30 @@ export class GoogleBatchLanguageModel
         continue;
       }
 
-      yield {
-        id: line.key,
-        status: 'succeeded',
-        result: this.convertGenerateContentResponse({
-          response: response.value,
-          warnings: [],
-          providerOptionsNames: ['google'],
-        }),
-      };
+      const result = this.convertGenerateContentResponse({
+        response: response.value,
+        warnings: [],
+        providerOptionsNames: ['google'],
+      });
+      const unsupportedPart = result.content.find(
+        part => !supportedGoogleBatchContentTypes.has(part.type),
+      );
+
+      if (unsupportedPart != null) {
+        yield {
+          id: line.key,
+          status: 'failed',
+          error: {
+            message:
+              `Google returned a "${unsupportedPart.type}" content block, ` +
+              'but that content is not supported in AI SDK text batches.',
+            code: 'unsupported_content',
+          },
+        };
+        continue;
+      }
+
+      yield { id: line.key, status: 'succeeded', result };
     }
   }
 

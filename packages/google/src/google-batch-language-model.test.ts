@@ -607,6 +607,59 @@ describe('GoogleBatchLanguageModel', () => {
     ]);
   });
 
+  it('fails an item instead of dropping unsupported content', async () => {
+    prepareOutput([
+      {
+        key: 'image-request',
+        response: {
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [
+                  { text: 'Generated image:' },
+                  {
+                    inlineData: {
+                      mimeType: 'image/png',
+                      data: 'aW1hZ2U=',
+                    },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        },
+      },
+      {
+        key: 'text-request',
+        response: googleResponse({ id: 'response-text', text: 'Paris' }),
+      },
+    ]);
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batches/batch-123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'image-request',
+        status: 'failed',
+        error: {
+          message:
+            'Google returned a "file" content block, but that content is not supported in AI SDK text batches.',
+          code: 'unsupported_content',
+        },
+      },
+      {
+        id: 'text-request',
+        status: 'succeeded',
+        result: { content: [{ type: 'text', text: 'Paris' }] },
+      },
+    ]);
+  });
+
   it('maps numeric gRPC cancellation errors to cancelled results', async () => {
     prepareOutput([
       {
