@@ -85,7 +85,7 @@ const model = cerebras.chat('gpt-oss-120b');
 
 ### Reasoning Models
 
-Cerebras offers reasoning models including `gpt-oss-120b`, `zai-glm-4.7`, and `gemma-4-31b` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
+Cerebras offers reasoning models including `gpt-oss-120b` and `gemma-4-31b` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
 
 For `gpt-oss-120b`, you can control the reasoning depth using the `reasoningEffort` provider option:
 
@@ -189,5 +189,4 @@ const result = await generateText({
 | Model          | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
 | -------------- | ----------- | ----------------- | ---------- | -------------- | --------- |
 | `gpt-oss-120b` | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
-| `zai-glm-4.7`  | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `gemma-4-31b`  | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
