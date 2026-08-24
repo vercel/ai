@@ -65,4 +65,12 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
       }),
     ).toExtend<HarnessAgentAdapter<any>>();
   });
+
+  test('createClaudeCode accepts asynchronous credential forwarding', () => {
+    expectTypeOf(
+      createClaudeCode({
+        credentialForwarding: async ({ credential }) => credential,
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+  });
 });
