@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 19377,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/deepseek-issue-19377.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/deepseek-issue-19377.ts",
+    "packages/deepseek/src/chat/issue-19377-reproduction.test.ts",
+    "packages/deepseek/src/chat/__fixtures__/issue-19377-logprobs.json",
+    "packages/deepseek/src/chat/__fixtures__/issue-19377-logprobs.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #19377 reproduced: DeepSeek logprobs request/response parity is missing"
+  }
+}
