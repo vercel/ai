@@ -576,6 +576,7 @@ export async function generateText<
         const {
           approvedToolApprovals: localApprovedToolApprovals,
           deniedToolApprovals: revalidationDeniedToolApprovals,
+          invalidToolApprovals,
         } = await validateApprovedToolApprovals<TOOLS>({
           approvedToolApprovals: approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
@@ -593,7 +594,8 @@ export async function generateText<
 
         if (
           deniedToolApprovals.length > 0 ||
-          localApprovedToolApprovals.length > 0
+          localApprovedToolApprovals.length > 0 ||
+          invalidToolApprovals.length > 0
         ) {
           const toolOutputs = await executeTools({
             toolCalls: localApprovedToolApprovals.map(
@@ -639,6 +641,24 @@ export async function generateText<
               toolCallId: output.toolCallId,
               toolName: output.toolName,
               output: modelOutput,
+            });
+          }
+
+          // Report invalid approved tool calls to the model without executing
+          // them. Repairing the input after approval would change the operation
+          // that the user authorized.
+          for (const toolApproval of invalidToolApprovals) {
+            toolContent.push({
+              type: 'tool-result' as const,
+              toolCallId: toolApproval.toolCall.toolCallId,
+              toolName: toolApproval.toolCall.toolName,
+              output: await createToolModelOutput({
+                toolCallId: toolApproval.toolCall.toolCallId,
+                input: toolApproval.toolCall.input,
+                tool: tools?.[toolApproval.toolCall.toolName],
+                output: toolApproval.error,
+                errorMode: 'text',
+              }),
             });
           }
 
