@@ -201,6 +201,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
         thinking,
+        ...(deepseekOptions.userId != null && {
+          user_id: deepseekOptions.userId,
+        }),
         ...(thinking?.type !== 'disabled' &&
           reasoningEffort != null && {
             reasoning_effort: reasoningEffort,

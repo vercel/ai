@@ -73,6 +73,60 @@ describe('DeepSeekChatLanguageModel', () => {
         `);
       });
 
+      it('should pass providerOptions userId as user_id', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              userId: 'tenant_123-user',
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          user_id: 'tenant_123-user',
+        });
+      });
+
+      it('should omit user_id when userId is not provided', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'user_id',
+        );
+      });
+
+      it.each([
+        ['', 'userId must match /^[a-zA-Z0-9_-]+$/'],
+        ['contains space', 'userId must match /^[a-zA-Z0-9_-]+$/'],
+        ['a'.repeat(513), 'userId must be at most 512 characters long'],
+      ])(
+        'should reject invalid userId %j before making an API request',
+        async (userId, validationMessage) => {
+          await expect(
+            provider.chat('deepseek-chat').doGenerate({
+              prompt: TEST_PROMPT,
+              providerOptions: {
+                deepseek: {
+                  userId,
+                } satisfies DeepSeekLanguageModelChatOptions,
+              },
+            }),
+          ).rejects.toMatchObject({
+            name: 'AI_InvalidArgumentError',
+            argument: 'providerOptions',
+            message: 'invalid deepseek provider options',
+            cause: {
+              message: expect.stringContaining(validationMessage),
+            },
+          });
+
+          expect(server.calls).toHaveLength(0);
+        },
+      );
+
       it('should extract text content', async () => {
         const result = await provider.chat('deepseek-chat').doGenerate({
           prompt: TEST_PROMPT,
@@ -751,6 +805,22 @@ describe('DeepSeekChatLanguageModel', () => {
             "top_p": 0.3,
           }
         `);
+      });
+
+      it('should pass providerOptions userId as user_id', async () => {
+        await provider.chat('deepseek-chat').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              userId: 'tenant_123-user',
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          stream: true,
+          user_id: 'tenant_123-user',
+        });
       });
 
       it('should stream text', async () => {
