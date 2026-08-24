@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 19421,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/provider-utils-import-without-callable-fetch.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/provider-utils-import-without-callable-fetch.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #19421 reproduced: @ai-sdk/provider-utils import throws when globalThis.fetch is not callable (undefined, non-callable object)"
+  }
+}
