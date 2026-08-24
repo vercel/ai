@@ -198,6 +198,8 @@ describe('DeepSeek Files - uploadFile', () => {
     ['bytes', 1.5],
     ['created_at', -1],
     ['created_at', 1.5],
+    ['expires_at', -1],
+    ['expires_at', 1.5],
     ['filename', 123],
   ])(
     'should reject an invalid %s response field',
