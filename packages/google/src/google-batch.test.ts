@@ -911,6 +911,53 @@ describe('GoogleBatchLanguageModel', () => {
     ]);
   });
 
+  it('encodes response file path segments in the download URL', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify(
+            operation({
+              output: {
+                responsesFile: 'files/batch-output?alt=json#fragment',
+              },
+            }),
+          ),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            key: 'france',
+            response: googleResponse({
+              id: 'response-france',
+              text: 'Paris',
+            }),
+          }),
+        ),
+      );
+    const model = createGoogle({
+      apiKey: 'test-api-key',
+      fetch: mockFetch,
+    })('gemini-2.5-flash');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batches/batch-123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'france',
+        status: 'succeeded',
+      },
+    ]);
+    expect(mockFetch.mock.calls.map(call => call[0])).toEqual([
+      urls.batch,
+      'https://generativelanguage.googleapis.com/download/v1beta/files/batch-output%3Falt%3Djson%23fragment:download?alt=media',
+    ]);
+  });
+
   it('returns an empty stream for a failed batch without output', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',

@@ -388,8 +388,13 @@ export class GoogleBatchLanguageModel
       });
     }
 
+    const encodedResponsesFile = responsesFile
+      .split('/')
+      .map(segment => encodeURIComponent(segment))
+      .join('/');
+
     const { value: stream } = await getFromApi({
-      url: `${this.getBaseOrigin()}/download/v1beta/${responsesFile}:download?alt=media`,
+      url: `${this.getBaseOrigin()}/download/v1beta/${encodedResponsesFile}:download?alt=media`,
       headers: await this.getHeaders(options.headers),
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: rawStreamResponseHandler,
