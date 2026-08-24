@@ -492,29 +492,20 @@ class DefaultMCPClient implements MCPClient {
   }: {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
-<<<<<<< HEAD
     const tools: Record<string, Tool> = {};
-=======
-    let definitions = await this.listTools();
-    const tools = [...definitions.tools];
-
-    while (definitions.nextCursor != null) {
-      definitions = await this.listTools({
-        params: { cursor: definitions.nextCursor },
-      });
-      tools.push(...definitions.tools);
-    }
-
-    return this.toolsFromDefinitions({ ...definitions, tools }, {
-      schemas,
-    } as { schemas?: TOOL_SCHEMAS });
-  }
->>>>>>> 1175434706 (fix: return all tools from paginated MCP tool lists (#19246))
 
     try {
-      const listToolsResult = await this.listTools();
+      let listToolsResult = await this.listTools();
+      const toolDefinitions = [...listToolsResult.tools];
 
-      for (const { name, description, inputSchema } of listToolsResult.tools) {
+      while (listToolsResult.nextCursor != null) {
+        listToolsResult = await this.listTools({
+          params: { cursor: listToolsResult.nextCursor },
+        });
+        toolDefinitions.push(...listToolsResult.tools);
+      }
+
+      for (const { name, description, inputSchema } of toolDefinitions) {
         if (
           schemas !== 'automatic' &&
           !Object.prototype.hasOwnProperty.call(schemas, name)
