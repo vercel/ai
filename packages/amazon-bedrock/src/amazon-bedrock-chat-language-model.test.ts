@@ -4948,6 +4948,70 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
+  it.each(['us.openai.gpt-5.6-luna', 'global.openai.gpt-5.6-luna'])(
+    'maps maxReasoningEffort to reasoning_effort for CRIS OpenAI model %s',
+    async crisOpenAIModelId => {
+      const liveErrorBody = fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-config-error.json',
+        'utf8',
+      );
+      let requestBody: any;
+      const crisOpenAIModel = new AmazonBedrockChatLanguageModel(
+        crisOpenAIModelId,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          fetch: async (_url, init) => {
+            requestBody = JSON.parse(init!.body as string);
+
+            if (
+              requestBody.additionalModelRequestFields?.reasoningConfig != null
+            ) {
+              return new Response(liveErrorBody, {
+                status: 400,
+                headers: { 'content-type': 'application/json' },
+              });
+            }
+
+            return Response.json({
+              output: {
+                message: {
+                  content: [{ text: 'Hello' }],
+                  role: 'assistant',
+                },
+              },
+              stopReason: 'end_turn',
+              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+            });
+          },
+          generateId: () => 'test-id',
+        },
+      );
+
+      await expect(
+        crisOpenAIModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            bedrock: {
+              reasoningConfig: {
+                maxReasoningEffort: 'medium',
+              },
+            },
+          },
+        }),
+      ).resolves.toMatchObject({
+        content: [{ type: 'text', text: 'Hello' }],
+      });
+
+      expect(requestBody.additionalModelRequestFields).toMatchObject({
+        reasoning_effort: 'medium',
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    },
+  );
+
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 
