@@ -14,6 +14,11 @@ const implementationPnpmLockYaml = JSON.stringify(
     new URL('./src/bridge/pnpm-lock.yaml', import.meta.url),
   ).toString(),
 );
+const implementationPnpmWorkspaceYaml = JSON.stringify(
+  readFileSync(
+    new URL('./src/bridge/pnpm-workspace.yaml', import.meta.url),
+  ).toString(),
+);
 
 export default defineConfig({
   entry: { index: 'src/index.ts' },
@@ -25,5 +30,7 @@ export default defineConfig({
     __PACKAGE_VERSION__: packageVersion,
     __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: implementationPackageJson,
     __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: implementationPnpmLockYaml,
+    __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__:
+      implementationPnpmWorkspaceYaml,
   },
 });
