@@ -1,5 +1,6 @@
 import { createMDX } from 'fumadocs-mdx/next';
 import type { NextConfig } from 'next';
+import { withMicrofrontends } from '@vercel/microfrontends/next/config';
 import { exampleRedirects } from './lib/example-redirects';
 
 const withMDX = createMDX();
@@ -236,4 +237,4 @@ const config: NextConfig = {
   ],
 };
 
-export default withMDX(config);
+export default withMicrofrontends(withMDX(config));
