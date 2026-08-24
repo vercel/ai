@@ -31,13 +31,22 @@ export interface DeepSeekContentPartText {
 
 export interface DeepSeekContentPartImage {
   type: 'image_url';
-  image_url: { url: string };
+  image_url: {
+    url: string;
+    detail?: 'low' | 'high' | 'original' | 'auto';
+  };
 }
 
-export interface DeepSeekContentPartFile {
-  type: 'file';
-  file_id: string;
-}
+export type DeepSeekContentPartFile =
+  | {
+      type: 'file';
+      file_id: string;
+    }
+  | {
+      type: 'file';
+      file_data: string;
+      filename?: string;
+    };
 
 export interface DeepSeekAssistantMessage {
   role: 'assistant';

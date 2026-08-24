@@ -16,7 +16,16 @@ import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
 } from './deepseek-chat-api-types';
+import { deepseekFilePartProviderOptions } from './deepseek-file-part-options';
 import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
+
+const supportedImageMediaTypes = new Set([
+  'image/gif',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+]);
 
 export async function convertToDeepSeekChatMessages({
   prompt,
@@ -130,6 +139,12 @@ export async function convertToDeepSeekChatMessages({
             part.type === 'file' &&
             getTopLevelMediaType(part.mediaType) === 'image'
           ) {
+            const filePartOptions = await parseProviderOptions({
+              provider: providerOptionsName,
+              providerOptions: part.providerOptions,
+              schema: deepseekFilePartProviderOptions,
+            });
+
             if (part.data.type === 'reference') {
               userContent.push({
                 type: 'file',
@@ -139,15 +154,77 @@ export async function convertToDeepSeekChatMessages({
                 }),
               });
             } else if (part.data.type === 'url' || part.data.type === 'data') {
-              userContent.push({
-                type: 'image_url',
-                image_url: {
-                  url:
-                    part.data.type === 'url'
-                      ? part.data.url.toString()
-                      : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
-                },
-              });
+              const resolvedMediaType = resolveFullMediaType({ part });
+
+              if (!supportedImageMediaTypes.has(resolvedMediaType)) {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `DeepSeek image media type ${resolvedMediaType}`,
+                  message:
+                    'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
+                });
+              }
+
+              if (part.data.type === 'url') {
+                const url = part.data.url.toString();
+
+                if (url.length > 8192) {
+                  throw new InvalidPromptError({
+                    prompt,
+                    message:
+                      'DeepSeek image URLs must not exceed 8192 characters.',
+                  });
+                }
+
+                if (filePartOptions?.fileData === true) {
+                  throw new InvalidPromptError({
+                    prompt,
+                    message:
+                      'DeepSeek `fileData` image parts require inline data, not a URL.',
+                  });
+                }
+
+                userContent.push({
+                  type: 'image_url',
+                  image_url: {
+                    url,
+                    ...(filePartOptions?.imageDetail != null && {
+                      detail: filePartOptions.imageDetail,
+                    }),
+                  },
+                });
+              } else {
+                const dataUrl = `data:${
+                  resolvedMediaType === 'image/jpg'
+                    ? 'image/jpeg'
+                    : resolvedMediaType
+                };base64,${convertToBase64(part.data.data)}`;
+
+                if (filePartOptions?.fileData === true) {
+                  if (filePartOptions.imageDetail != null) {
+                    throw new InvalidPromptError({
+                      prompt,
+                      message:
+                        'DeepSeek `imageDetail` cannot be combined with `fileData`.',
+                    });
+                  }
+
+                  userContent.push({
+                    type: 'file',
+                    file_data: dataUrl,
+                    ...(part.filename != null && { filename: part.filename }),
+                  });
+                } else {
+                  userContent.push({
+                    type: 'image_url',
+                    image_url: {
+                      url: dataUrl,
+                      ...(filePartOptions?.imageDetail != null && {
+                        detail: filePartOptions.imageDetail,
+                      }),
+                    },
+                  });
+                }
+              }
             } else {
               warnings.push({
                 type: 'unsupported',
