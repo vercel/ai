@@ -988,7 +988,7 @@ describe('GoogleBatchLanguageModel', () => {
         batchId: 'batches/batch-123',
       }),
     ).rejects.toMatchObject({
-      name: 'AI_GoogleBatchMissingOutput',
+      name: 'AI_InvalidResponseDataError',
       message: expect.stringContaining('completed without batch output'),
     });
   });

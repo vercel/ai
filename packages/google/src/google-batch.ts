@@ -1,7 +1,7 @@
 import {
-  AISDKError,
   EmptyResponseBodyError,
   InvalidArgumentError,
+  InvalidResponseDataError,
   type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   type Experimental_BatchV4Error as BatchV4Error,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
@@ -376,8 +376,8 @@ export class GoogleBatchLanguageModel
 
     if (responsesFile == null) {
       if (batchStatus.status === 'completed') {
-        throw new AISDKError({
-          name: 'AI_GoogleBatchMissingOutput',
+        throw new InvalidResponseDataError({
+          data: operation,
           message: `Google batch "${options.batchId}" completed without batch output.`,
         });
       }
@@ -662,8 +662,8 @@ const googleUploadUrlResponseHandler: ResponseHandler<string> = async ({
 }) => {
   const uploadUrl = response.headers.get('x-goog-upload-url');
   if (uploadUrl == null) {
-    throw new AISDKError({
-      name: 'AI_GoogleBatchUploadError',
+    throw new InvalidResponseDataError({
+      data: response.headers,
       message: 'Google did not return a resumable upload URL.',
     });
   }
