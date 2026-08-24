@@ -69,6 +69,7 @@ describe('DeepSeek Files - uploadFile', () => {
       mediaType: 'image/png',
       providerMetadata: {
         deepseek: {
+          object: 'file',
           filename: 'comic-cat.png',
           purpose: 'user_data',
           bytes: 1024,
@@ -77,6 +78,28 @@ describe('DeepSeek Files - uploadFile', () => {
         },
       },
     });
+  });
+
+  it.each([
+    { name: 'missing', object: undefined },
+    { name: 'null', object: null },
+  ])('should omit $name object response metadata', async ({ object }) => {
+    server.urls['https://api.deepseek.com/files'].response = {
+      type: 'json-value',
+      body: {
+        id: 'file-api-abc123',
+        object,
+      },
+    };
+
+    const files = createDeepSeek({ apiKey: 'test-api-key' }).files();
+
+    const result = await files.uploadFile({
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+      mediaType: 'image/png',
+    });
+
+    expect(result.providerMetadata).toEqual({ deepseek: {} });
   });
 
   it('should pass expires_after as bracketed multipart fields', async () => {
