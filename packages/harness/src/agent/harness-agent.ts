@@ -38,6 +38,7 @@ import type {
   HarnessAgentPermissionMode,
   HarnessAgentPrompt,
   HarnessAgentResumeSessionState,
+  HarnessAgentSessionExport,
   HarnessAgentToolSpec,
 } from './harness-agent-types';
 import {
@@ -59,7 +60,10 @@ import {
   validateSandboxBootstrapSettings,
 } from './internal/sandbox-bootstrap';
 import { buildObservability } from './internal/resolve-observability';
-import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
+import {
+  validateLifecycleStateData,
+  validateSessionExportData,
+} from './internal/lifecycle-state-validation';
 import {
   permissionModeNeedsBuiltinSupport,
   resolvePermissionMode,
@@ -104,7 +108,10 @@ export interface HarnessAgentCallExtensions {
  *    harness's `lifecycleStateSchema` before handing it to the adapter.
  *    `createSession({ sessionId, continueFrom })` resumes from state returned
  *    by `session.suspendTurn()` before `continueStream()` /
- *    `continueGenerate()`.
+ *    `continueGenerate()`. `createSession({ sessionId, importFrom })`
+ *    reconstructs a conversation from `session.exportSession()` state in a
+ *    fresh sandbox — sandbox-independent, for when the original sandbox no
+ *    longer exists.
  *  - **Host tool execution.** User tools passed in `settings.tools` are
  *    executed on the host whenever the underlying runtime calls them;
  *    the result is fed back to the harness via `submitToolResult`.
@@ -238,6 +245,13 @@ export class HarnessAgent<
      */
     continueFrom?: HarnessAgentContinueTurnState;
     /**
+     * Export payload returned by a prior `session.exportSession()`. Reconstructs
+     * the exported conversation in a fresh sandbox — unlike `resumeFrom`, it does
+     * not require the original sandbox to still exist. Mutually exclusive with
+     * `resumeFrom` and `continueFrom`.
+     */
+    importFrom?: HarnessAgentSessionExport;
+    /**
      * Existing sandbox session to run the harness in. When provided, the
      * caller retains ownership of the sandbox lifecycle.
      */
@@ -247,6 +261,7 @@ export class HarnessAgent<
     const sessionId = options?.sessionId ?? generateId();
     const resumeFrom = options?.resumeFrom;
     const continueFrom = options?.continueFrom;
+    const importFrom = options?.importFrom;
     const providedSandboxSession = options?.sandboxSession;
     const abortSignal = options?.abortSignal;
     const harness = this.settings.harness;
@@ -258,6 +273,16 @@ export class HarnessAgent<
         'HarnessAgent.createSession: pass either `resumeFrom` or `continueFrom`, not both.',
       );
     }
+    if (importFrom != null && (resumeFrom != null || continueFrom != null)) {
+      throw new Error(
+        'HarnessAgent.createSession: `importFrom` targets a fresh sandbox and cannot be combined with `resumeFrom` or `continueFrom`.',
+      );
+    }
+
+    const validatedImportFrom =
+      importFrom == null
+        ? undefined
+        : validateSessionExportData({ harness, state: importFrom });
 
     let validatedResumeFrom: HarnessAgentResumeSessionState | undefined;
     if (resumeFrom != null) {
@@ -435,6 +460,7 @@ export class HarnessAgent<
         skills: this.settings.skills,
         resumeFrom: validatedResumeFrom,
         continueFrom: effectiveContinueFrom,
+        importFrom: validatedImportFrom,
         permissionMode: this.permissionMode,
         builtinToolFiltering: this.builtinToolFiltering,
         abortSignal,

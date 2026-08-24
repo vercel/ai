@@ -98,7 +98,7 @@ const agent = new HarnessAgent({
 });
 ```
 
-Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. Bridge-backed adapters such as Claude Code, Codex, OpenCode, and DeepAgents require a network sandbox session that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for host-runtime or otherwise non-bridge flows, such as Pi.
+Use `session.detach()` to park a bridge-backed session for later attach, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state. `session.exportSession()` (supported by the OpenCode adapter) snapshots the full conversation as a payload that survives the sandbox — later `agent.createSession({ sessionId, importFrom })` reconstructs it in a fresh sandbox after the original is gone. Bridge-backed adapters such as Claude Code, Codex, OpenCode, and DeepAgents require a network sandbox session that exposes ports — `@ai-sdk/sandbox-vercel` is the supported choice today. `@ai-sdk/sandbox-just-bash` is suitable only for host-runtime or otherwise non-bridge flows, such as Pi.
 
 `sandbox` is an optional `HarnessV1SandboxProvider`. When omitted, pass a `HarnessV1NetworkSandboxSession` to every `agent.createSession({ sandboxSession })` call. Use `sandboxConfig` for agent specific sandbox configuration that works independently from the sandbox provider that is used:
 
@@ -133,6 +133,12 @@ formats carry a caller-provided JSON Schema plus optional name and description;
 the adapter must enforce the schema and emit the resulting JSON through normal
 text parts. If the runtime cannot honor the format, throw
 `HarnessCapabilityUnsupportedError` before starting the turn.
+
+Adapters that can snapshot the runtime's native conversation state expose an
+optional `doExportSession()` on the session; the host persists the returned
+`HarnessV1SessionExport` beyond the sandbox's lifetime and replays it with
+`doStart({ importFrom })` in a fresh sandbox. Absence of the method signals the
+adapter does not support it.
 
 Bootstrap recipe paths may be absolute or relative. Relative `bootstrapDir` and
 file paths are resolved against `sandboxSession.defaultWorkingDirectory`.

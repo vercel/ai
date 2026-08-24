@@ -301,6 +301,12 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
    */
   onStop?(): unknown | Promise<unknown>;
   /**
+   * Produce the adapter-defined session export payload for `export-session`.
+   * The reply is a `bridge-export` control frame answered on the requesting
+   * socket. When omitted, the bridge replies with an error instead.
+   */
+  onExportSession?(): unknown | Promise<unknown>;
+  /**
    * Perform adapter-defined destruction before the bridge exits.
    */
   onDestroy?(): void | Promise<void>;
@@ -334,7 +340,8 @@ type InboundControl =
   | { type: 'abort' }
   | { type: 'stop' }
   | { type: 'destroy' }
-  | { type: 'resume'; lastSeenEventId: number };
+  | { type: 'resume'; lastSeenEventId: number }
+  | { type: 'export-session' };
 
 const WS_OPEN = 1;
 
@@ -354,7 +361,14 @@ export interface BridgeHandle {
 export async function runBridge<TStart extends { type: 'start' }>(
   options: RunBridgeOptions<TStart>,
 ): Promise<BridgeHandle> {
-  const { bridgeType, bridgeStateDir, onStart, onStop, onDestroy } = options;
+  const {
+    bridgeType,
+    bridgeStateDir,
+    onStart,
+    onStop,
+    onExportSession,
+    onDestroy,
+  } = options;
   const expectedToken = options.token ?? procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
   const bridgeWsPort =
     options.port ?? parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
@@ -796,6 +810,29 @@ export async function runBridge<TStart extends { type: 'start' }>(
         const data = (await onStop?.()) ?? {};
         sendControl(ws, { type: 'bridge-stop', data });
         drainThenExit(ws, 1000, 'stop');
+        return;
+      }
+      case 'export-session': {
+        // Control frame: reply only to the requester, never claim the event
+        // stream or disturb an idle/active bridge.
+        if (onExportSession == null) {
+          sendControl(ws, {
+            type: 'bridge-export',
+            error: {
+              message: `The ${bridgeType} bridge does not support session export.`,
+            },
+          });
+          return;
+        }
+        try {
+          const data = await onExportSession();
+          sendControl(ws, { type: 'bridge-export', data });
+        } catch (err) {
+          sendControl(ws, {
+            type: 'bridge-export',
+            error: { message: formatBridgeError(err).message },
+          });
+        }
         return;
       }
     }

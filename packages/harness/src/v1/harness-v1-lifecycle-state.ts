@@ -72,6 +72,20 @@ export type HarnessV1ContinueTurnState = HarnessV1LifecycleStateBase & {
   readonly pendingToolResults?: readonly HarnessV1PendingToolResult[];
 };
 
+/**
+ * Opaque payload returned by `HarnessV1Session.doExportSession` and accepted by
+ * a future `HarnessV1.doStart({ importFrom })` to reconstruct the exported
+ * conversation in a fresh sandbox.
+ *
+ * Unlike the lifecycle states, an export is not tied to the lifetime of the
+ * sandbox that produced it: the host may persist it as JSON indefinitely and
+ * replay it after the original sandbox is gone (snapshot expiry, garbage
+ * collection, or an invalidating template change).
+ */
+export type HarnessV1SessionExport = HarnessV1LifecycleStateBase & {
+  readonly type: 'session-export';
+};
+
 export type HarnessV1LifecycleState =
   | HarnessV1ResumeSessionState
   | HarnessV1ContinueTurnState;

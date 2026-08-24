@@ -8,6 +8,7 @@ import type { HarnessV1ResponseFormat } from './harness-v1-response-format';
 import type {
   HarnessV1ContinueTurnState,
   HarnessV1ResumeSessionState,
+  HarnessV1SessionExport,
 } from './harness-v1-lifecycle-state';
 import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
@@ -48,6 +49,15 @@ export type HarnessV1StartOptions = {
    * in a shape ready for `doContinueTurn` rather than for a fresh prompt.
    */
   readonly continueFrom?: HarnessV1ContinueTurnState;
+
+  /**
+   * Optional export payload returned by a prior session's `doExportSession`.
+   * When provided, the adapter reconstructs the exported conversation in this
+   * sandbox before accepting a new prompt. Unlike `resumeFrom`, the payload is
+   * not tied to the lifetime of the sandbox that produced it, so it can be
+   * replayed into a fresh sandbox after the original one is gone.
+   */
+  readonly importFrom?: HarnessV1SessionExport;
 
   /**
    * Approval policy for built-in adapter-native tool use. Custom host-executed
@@ -197,8 +207,8 @@ export type HarnessV1Session = {
   readonly sessionId: string;
 
   /**
-   * Whether this session was created from `resumeFrom` or `continueFrom`. Fresh
-   * sessions report `false`; resumed sessions report `true`.
+   * Whether this session was created from `resumeFrom`, `continueFrom`, or
+   * `importFrom`. Fresh sessions report `false`; resumed sessions report `true`.
    */
   readonly isResume: boolean;
 
@@ -273,6 +283,18 @@ export type HarnessV1Session = {
    * session handoff. Required on every adapter.
    */
   doSuspendTurn(): PromiseLike<HarnessV1ContinueTurnState>;
+
+  /**
+   * Export the complete conversation state as a payload the host can persist
+   * beyond the lifetime of the sandbox, and later reconstruct with
+   * `HarnessV1.doStart({ importFrom })` in a fresh sandbox.
+   *
+   * Optional — adapters that cannot produce a sandbox-independent export omit
+   * the method, and that absence is the capability signal. Only valid between
+   * turns. Unlike `doDetach`, exporting is non-destructive: the session stays
+   * usable and the underlying runtime keeps running.
+   */
+  doExportSession?(): PromiseLike<HarnessV1SessionExport>;
 
   /**
    * Detach from the underlying runtime without tearing it down, returning a

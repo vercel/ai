@@ -62,5 +62,59 @@ describe('OpenCode bridge protocol', () => {
       toolCallId: 'tool-1',
       output: { ok: true },
     });
+    expect(inboundMessageSchema.parse({ type: 'export-session' })).toEqual({
+      type: 'export-session',
+    });
+  });
+
+  it('accepts importEvents on the start message', () => {
+    expect(
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        importEvents: [
+          {
+            id: 'evt_1',
+            aggregate_id: 'ses_1',
+            seq: 1,
+            type: 'session.created',
+            data: { id: 'ses_1' },
+          },
+        ],
+      }),
+    ).toEqual({
+      type: 'start',
+      prompt: 'hi',
+      importEvents: [
+        {
+          id: 'evt_1',
+          aggregate_id: 'ses_1',
+          seq: 1,
+          type: 'session.created',
+          data: { id: 'ses_1' },
+        },
+      ],
+    });
+  });
+
+  it('validates bridge-export replies', () => {
+    expect(
+      outboundMessageSchema.parse({
+        type: 'bridge-export',
+        data: { openCodeSessionId: 'ses_1', syncEvents: [] },
+      }),
+    ).toEqual({
+      type: 'bridge-export',
+      data: { openCodeSessionId: 'ses_1', syncEvents: [] },
+    });
+    expect(
+      outboundMessageSchema.parse({
+        type: 'bridge-export',
+        error: { message: 'no session' },
+      }),
+    ).toEqual({
+      type: 'bridge-export',
+      error: { message: 'no session' },
+    });
   });
 });
