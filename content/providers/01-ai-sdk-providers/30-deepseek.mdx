@@ -94,6 +94,13 @@ The following optional provider options are available for DeepSeek models:
   `low`, `medium`, `high`, and `xhigh` pass through to DeepSeek's native
   effort values.
 
+DeepSeek has deprecated the top-level `frequencyPenalty` and `presencePenalty`
+settings. The provider omits these settings and returns a deprecation warning
+when they are used. `temperature` and `topP` have no effect while thinking is
+enabled, including the default thinking mode for DeepSeek V4 models, so the
+provider omits them with an unsupported warning. Explicitly set
+`thinking.type` to `'disabled'` to use `temperature` and `topP`.
+
 ```ts highlight="7-12"
 import {
   deepSeek,
