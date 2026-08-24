@@ -17,4 +17,13 @@ describe('stripFileExtension', () => {
   it('should strip a trailing dot', () => {
     expect(stripFileExtension('report.')).toBe('report');
   });
+
+  it('should keep the leading dot for a dotfile with no extension', () => {
+    expect(stripFileExtension('.env')).toBe('.env');
+    expect(stripFileExtension('.gitignore')).toBe('.gitignore');
+  });
+
+  it('should keep the leading dot when stripping a dotfile extension', () => {
+    expect(stripFileExtension('.hidden.txt')).toBe('.hidden');
+  });
 });
