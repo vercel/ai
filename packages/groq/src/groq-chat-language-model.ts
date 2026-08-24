@@ -131,10 +131,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     let reasoningEffort = groqOptions?.reasoningEffort;
     if (reasoningEffort == null && isCustomReasoning(reasoning)) {
       if (reasoning === 'none') {
-        if (
-          this.modelId === 'qwen/qwen3-32b' ||
-          this.modelId === 'qwen/qwen3.6-27b'
-        ) {
+        if (this.modelId === 'qwen/qwen3.6-27b') {
           reasoningEffort = 'none';
         } else {
           warnings.push({
