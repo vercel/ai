@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19330,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19330-angular-chat-structured-clone.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19330-angular-chat-structured-clone.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19330_REPRODUCED: Angular Chat rejected non-cloneable message metadata with DataCloneError before transport invocation"
+  }
+}
