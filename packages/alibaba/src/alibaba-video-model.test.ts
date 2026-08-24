@@ -1214,7 +1214,7 @@ describe('AlibabaVideoModel', () => {
 
       expect(result.status).toBe('completed');
       if (result.status === 'completed') {
-        expect(result.providerMetadata.alibaba.usage).toStrictEqual({
+        expect(result.providerMetadata?.alibaba.usage).toStrictEqual({
           duration: 12,
           outputVideoDuration: 8,
           inputVideoDuration: 4,
