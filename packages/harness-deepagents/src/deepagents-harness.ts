@@ -8,6 +8,7 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
+  type HarnessV1CredentialForwarding,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
@@ -19,6 +20,7 @@ import {
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
+  applyCredentialForwarding,
   markBridgeStarting,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -85,6 +87,12 @@ const SKILLS_SOURCE_PATH = '/.agents/skills';
 
 export type DeepAgentsHarnessSettings = {
   readonly auth?: DeepAgentsAuthOptions;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
   readonly model?: string;
   /**
@@ -360,8 +368,14 @@ export function createDeepAgents(
         skillsPaths.push(homeSkillsRoot);
       }
 
+      const forwardedAuthEnvironment = await applyCredentialForwarding({
+        environment: sandboxAuthEnvironment,
+        credentialEnvironmentVariables:
+          DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        credentialForwarding: settings.credentialForwarding,
+      });
       const env = {
-        ...sandboxAuthEnvironment,
+        ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: DEEPAGENTS_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),

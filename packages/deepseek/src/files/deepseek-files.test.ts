@@ -99,6 +99,7 @@ describe('DeepSeek Files - uploadFile', () => {
       mediaType: 'image/png',
       providerMetadata: {
         deepseek: {
+          object: 'file',
           filename: 'comic-cat.png',
           purpose: 'user_data',
           bytes: 1024,
