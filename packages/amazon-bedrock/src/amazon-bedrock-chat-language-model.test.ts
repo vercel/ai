@@ -93,6 +93,16 @@ const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
 )}/converse`;
 
+const usOpenaiModelId = 'us.openai.gpt-5.6-luna';
+const usOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  usOpenaiModelId,
+)}/converse`;
+
+const globalOpenaiModelId = 'global.openai.gpt-5.6-luna';
+const globalOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  globalOpenaiModelId,
+)}/converse`;
+
 const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
 const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   newerAnthropicModelId,
@@ -126,6 +136,8 @@ const server = createTestServer({
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
+  [usOpenaiGenerateUrl]: {},
+  [globalOpenaiGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
@@ -4947,6 +4959,53 @@ describe('doGenerate', () => {
     ).toBeUndefined();
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
+
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'maps maxReasoningEffort to reasoning_effort for CRIS model %s (generate)',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'stop_sequence',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new AmazonBedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              maxReasoningEffort: 'medium',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        additionalModelRequestFields: {
+          reasoning_effort: 'medium',
+        },
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    },
+  );
 
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
