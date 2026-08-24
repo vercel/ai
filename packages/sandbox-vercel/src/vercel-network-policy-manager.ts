@@ -650,51 +650,7 @@ function cloneNetworkAccessPolicy(
 }
 
 function cloneNetworkPolicy(policy: NetworkPolicy): NetworkPolicy {
-  if (policy === 'allow-all' || policy === 'deny-all') {
-    return policy;
-  }
-  return {
-    ...(policy.allow == null
-      ? {}
-      : Array.isArray(policy.allow)
-        ? { allow: [...policy.allow] }
-        : {
-            allow: Object.fromEntries(
-              Object.entries(policy.allow).map(([host, rules]) => [
-                host,
-                rules.map(rule => ({
-                  ...(rule.match == null
-                    ? {}
-                    : { match: cloneMatch(rule.match) }),
-                  ...(rule.transform == null
-                    ? {}
-                    : {
-                        transform: rule.transform.map(transform => ({
-                          ...(transform.headers == null
-                            ? {}
-                            : { headers: { ...transform.headers } }),
-                        })),
-                      }),
-                  ...(rule.forwardURL == null
-                    ? {}
-                    : { forwardURL: rule.forwardURL }),
-                })),
-              ]),
-            ),
-          }),
-    ...(policy.subnets == null
-      ? {}
-      : {
-          subnets: {
-            ...(policy.subnets.allow == null
-              ? {}
-              : { allow: [...policy.subnets.allow] }),
-            ...(policy.subnets.deny == null
-              ? {}
-              : { deny: [...policy.subnets.deny] }),
-          },
-        }),
-  };
+  return structuredClone(policy);
 }
 
 function cloneMatch(
