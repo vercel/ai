@@ -180,7 +180,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     }
 
     const isAnthropicModel = this.modelId.includes('anthropic');
-    const isOpenAIModel = this.modelId.startsWith('openai.');
+    const isOpenAIModel = this.modelId.includes('openai.');
 
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
       reasoning,

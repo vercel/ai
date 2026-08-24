@@ -1,3 +1,0 @@
-{
-  "message": "The model returned the following errors: {\"error\":{\"code\":\"unknown_parameter\",\"message\":\"Unknown parameter: 'reasoningConfig'.\",\"param\":\"reasoningConfig\",\"type\":\"invalid_request_error\"}}"
-}
