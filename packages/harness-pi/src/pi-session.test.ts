@@ -155,6 +155,69 @@ describe('createPiSession', () => {
     `,
     );
   });
+
+  it('returns image content when the read tool reads an image file', async () => {
+    const pngBytes = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
+    const readBinaryFile = vi.fn(async () => new Uint8Array(pngBytes));
+    let resolvedToolResult: unknown;
+    const prompt = vi.fn(async () => {
+      const readTool = piMock.customTools.find(tool => tool.name === 'read');
+      if (!readTool) throw new Error('Expected read tool.');
+      resolvedToolResult = await readTool.execute(
+        'tool-1',
+        { file_path: 'image.png' },
+        undefined,
+        undefined,
+        undefined as never,
+      );
+    });
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt,
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+
+    const sandboxSession = createSandboxSession();
+    (
+      sandboxSession.readBinaryFile as ReturnType<typeof vi.fn>
+    ).mockImplementation(readBinaryFile);
+    const session = await createPiSession({
+      sessionId: 'session-2',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      isResume: false,
+    });
+
+    const emit = vi.fn();
+    const control = await session.doPromptTurn({
+      prompt: 'go',
+      tools: [],
+      emit,
+    });
+    await control.done;
+    await expect(resolvedToolResult).toEqual({
+      content: [
+        { type: 'text', text: 'Read image file [image/png]' },
+        {
+          type: 'image',
+          data: pngBytes.toString('base64'),
+          mimeType: 'image/png',
+        },
+      ],
+      details: undefined,
+    });
+    expect(readBinaryFile).toHaveBeenCalledWith({
+      path: '/sandbox/work/image.png',
+    });
+  });
 });
 
 function createDeferred<T>() {

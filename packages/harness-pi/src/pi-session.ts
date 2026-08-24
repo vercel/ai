@@ -960,9 +960,11 @@ function isAbortError(value: unknown): boolean {
   return /\baborted\b|AbortError|operation was aborted/i.test(text);
 }
 
-function asPiToolResult(text: string): AgentToolResult<unknown> {
+function asPiToolResult(
+  content: AgentToolResult<unknown>['content'],
+): AgentToolResult<unknown> {
   return {
-    content: [{ type: 'text', text }],
+    content,
     details: undefined,
   };
 }
@@ -983,10 +985,20 @@ function detectImageMimeType(buf: Buffer): string | undefined {
   ) {
     return 'image/png';
   }
-  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+  if (
+    buf.length >= 3 &&
+    buf[0] === 0xff &&
+    buf[1] === 0xd8 &&
+    buf[2] === 0xff
+  ) {
     return 'image/jpeg';
   }
-  if (buf.length >= 6 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) {
+  if (
+    buf.length >= 6 &&
+    buf[0] === 0x47 &&
+    buf[1] === 0x49 &&
+    buf[2] === 0x46
+  ) {
     return 'image/gif';
   }
   if (
@@ -1018,12 +1030,15 @@ async function maybeDenyPiBuiltinTool(input: {
     nativeName: input.nativeName,
   });
   if (decision.approved) return undefined;
-  return asPiToolResult(
-    serializeToolOutput({
-      type: 'execution-denied',
-      reason: decision.reason,
-    }),
-  );
+  return asPiToolResult([
+    {
+      type: 'text',
+      text: serializeToolOutput({
+        type: 'execution-denied',
+        reason: decision.reason,
+      }),
+    },
+  ]);
 }
 
 function piBuiltinToolRequiresApproval(input: {
@@ -1060,21 +1075,24 @@ function buildBuiltinToolDefinition(input: {
           const buf = await input.remoteOps.readBuffer(params.file_path);
           const imageMimeType = detectImageMimeType(buf);
           if (imageMimeType) {
-            const data = buf.toString('base64');
-            if (data.length > INLINE_IMAGE_MAX_BASE64_BYTES) {
-              return asPiToolResult(
-                `Read image file [${imageMimeType}]\n[Image omitted: exceeds the inline image size limit.]`,
-              );
+            if (buf.toString('base64').length > INLINE_IMAGE_MAX_BASE64_BYTES) {
+              return asPiToolResult([
+                {
+                  type: 'text',
+                  text: `Read image file [${imageMimeType}]\n[Image omitted: exceeds the inline image size limit.]`,
+                },
+              ]);
             }
-            return {
-              content: [
-                { type: 'text', text: `Read image file [${imageMimeType}]` },
-                { type: 'image', data, mimeType: imageMimeType },
-              ],
-              details: undefined,
-            };
+            return asPiToolResult([
+              { type: 'text', text: `Read image file [${imageMimeType}]` },
+              {
+                type: 'image',
+                data: buf.toString('base64'),
+                mimeType: imageMimeType,
+              },
+            ]);
           }
-          return asPiToolResult(buf.toString('utf8'));
+          return asPiToolResult([{ type: 'text', text: buf.toString('utf8') }]);
         },
       });
     case 'write':
@@ -1094,7 +1112,9 @@ function buildBuiltinToolDefinition(input: {
           });
           if (denied) return denied;
           await input.remoteOps.writeFile(params.file_path, params.content);
-          return asPiToolResult(`Wrote ${params.file_path}`);
+          return asPiToolResult([
+            { type: 'text', text: `Wrote ${params.file_path}` },
+          ]);
         },
       });
     case 'edit':
@@ -1119,7 +1139,9 @@ function buildBuiltinToolDefinition(input: {
             params.old_string,
             params.new_string,
           );
-          return asPiToolResult(`Edited ${params.file_path}`);
+          return asPiToolResult([
+            { type: 'text', text: `Edited ${params.file_path}` },
+          ]);
         },
       });
     case 'bash':
@@ -1154,7 +1176,7 @@ function buildBuiltinToolDefinition(input: {
           const text = `${out}${
             result.exitCode != null ? `\n\n(exit ${result.exitCode})` : ''
           }`.trim();
-          return asPiToolResult(text);
+          return asPiToolResult([{ type: 'text', text }]);
         },
       });
     case 'grep':
@@ -1179,7 +1201,7 @@ function buildBuiltinToolDefinition(input: {
           });
           if (denied) return denied;
           const out = await input.remoteOps.grepFiles(params.pattern, params);
-          return asPiToolResult(out);
+          return asPiToolResult([{ type: 'text', text: out }]);
         },
       });
     case 'find':
@@ -1204,7 +1226,7 @@ function buildBuiltinToolDefinition(input: {
             params.path ?? '.',
             params.limit ?? 1_000,
           );
-          return asPiToolResult(matches.join('\n'));
+          return asPiToolResult([{ type: 'text', text: matches.join('\n') }]);
         },
       });
     case 'ls':
@@ -1227,7 +1249,7 @@ function buildBuiltinToolDefinition(input: {
             params.path ?? '.',
             params.limit ?? 500,
           );
-          return asPiToolResult(entries.join('\n'));
+          return asPiToolResult([{ type: 'text', text: entries.join('\n') }]);
         },
       });
   }
@@ -1250,7 +1272,9 @@ function buildUserToolDefinition(
     async execute(toolCallId) {
       return new Promise<unknown>(resolve => {
         pending.set(toolCallId, { resolve });
-      }).then(output => asPiToolResult(serializeToolOutput(output)));
+      }).then(output =>
+        asPiToolResult([{ type: 'text', text: serializeToolOutput(output) }]),
+      );
     },
   });
 }
