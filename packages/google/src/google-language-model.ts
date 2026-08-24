@@ -404,7 +404,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // Build content array from all parts
     for (const part of parts) {
       if ('executableCode' in part && part.executableCode?.code) {
-        const toolCallId = this.generateId();
+        const toolCallId = this.config.generateId();
         lastCodeExecutionToolCallId = toolCallId;
 
         content.push({
@@ -518,7 +518,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const sources =
       extractSources({
         groundingMetadata: candidate.groundingMetadata,
-        generateId: this.generateId,
+        generateId: this.config.generateId,
       }) ?? [];
     for (const source of sources) {
       content.push(source);
@@ -636,7 +636,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
 
-    const generateId = this.generateId;
+    const generateId = this.config.generateId;
     let hasToolCalls = false;
     let hasEmittedResponseMetadata = false;
 
