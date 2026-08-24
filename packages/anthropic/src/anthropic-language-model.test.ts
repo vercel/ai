@@ -5832,6 +5832,40 @@ describe('AnthropicLanguageModel', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it('should set service_tier in request body', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            serviceTier: 'priority',
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+          "service_tier": "priority",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
     it('should pass cache_control to request body', async () => {
       prepareJsonFixtureResponse('anthropic-text');
 

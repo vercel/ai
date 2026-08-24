@@ -554,6 +554,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
       }),
+      ...(anthropicOptions?.serviceTier && {
+        service_tier: anthropicOptions.serviceTier,
+      }),
       ...(anthropicOptions?.fallbacks != null &&
         (anthropicOptions.fallbacks === 'default' ||
           anthropicOptions.fallbacks.length > 0) && {

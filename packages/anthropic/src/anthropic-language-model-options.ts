@@ -279,6 +279,20 @@ export const anthropicLanguageModelOptions = z.object({
   inferenceGeo: z.enum(['us', 'global']).optional(),
 
   /**
+   * Determines whether to use priority capacity (if available) or standard
+   * capacity for this request. Sent as `service_tier`.
+   *
+   * Anthropic accepts `"auto"` (use priority capacity if available) and
+   * `"standard_only"` (https://platform.claude.com/docs/en/api/service-tiers).
+   * Anthropic-compatible providers may accept different values — MiniMax
+   * accepts `"standard"` and `"priority"` (priority admission at 1.5x the
+   * standard price).
+   */
+  serviceTier: z
+    .enum(['auto', 'standard_only', 'standard', 'priority'])
+    .optional(),
+
+  /**
    * Server-side fallback configuration.
    *
    * When the primary model's safety classifiers block a turn, the API
