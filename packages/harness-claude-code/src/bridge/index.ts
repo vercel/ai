@@ -517,11 +517,24 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       }
     }
   } catch (err) {
-    if (!(abortCtl.signal.aborted && emittedTerminalError)) {
+    // Same reasoning as `emitTerminalError`: a throw after the host's own
+    // abort (e.g. the hard-abort fallback killing the CLI mid-iteration, or
+    // a rejected `interrupt()`) is the stop the host asked for, not a
+    // malfunction. The host has already settled the turn on its side.
+    if (
+      !turn.abortSignal.aborted &&
+      !(abortCtl.signal.aborted && emittedTerminalError)
+    ) {
       turn.emitError({ error: err, message: 'claude-code turn failed' });
     }
     return;
   } finally {
+    // The turn is over; disarm the host-abort path first. An abort of this
+    // turn's signal arriving after this point (e.g. an `abort` message racing
+    // the next `start`) must not interrupt the disposed query or arm the
+    // hard-abort fallback timer for it.
+    gracefulAbort = undefined;
+    turn.abortSignal.removeEventListener('abort', onHostAbort);
     queryInput.close();
     // Dispose the query explicitly: with streaming input the SDK keeps its
     // CLI subprocess alive for more user messages, and a turn that ended

@@ -823,6 +823,38 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('does not start a bridge turn when the signal is already aborted', async () => {
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    const abort = new AbortController();
+    abort.abort(new Error('stopped before start'));
+
+    const control = await session.doPromptTurn({
+      prompt: 'never runs',
+      emit: () => {},
+      abortSignal: abort.signal,
+    });
+
+    // The turn settles as the caller's own abort…
+    await expect(Promise.resolve(control.done)).rejects.toThrow(
+      'stopped before start',
+    );
+    // …and no `start` is sent: the bridge must not run an unattended turn
+    // the caller has already observed as cancelled.
+    expect(sentMessages.filter(m => m.type === 'start')).toHaveLength(0);
+
+    await session.doDestroy();
+  });
+
   it('sends environment configuration when rerunning a continued turn', async () => {
     const env = { DEPLOYMENT_ENV: 'staging' };
     const harness = createClaudeCode({ env });
