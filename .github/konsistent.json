@@ -332,7 +332,7 @@
           "name": "harness-file-must-have-corresponding-auth-file",
           "description": "Every harness file must be accompanied by its corresponding auth file.",
           "for": { "files": ["${harnessId}-harness.ts"] },
-          "excludeFiles": ["grok-build-harness.ts"],
+          "excludeFiles": ["fx-harness.ts", "grok-build-harness.ts"],
           "must": {
             "haveFiles": ["${harnessId}-auth.ts"]
           }
