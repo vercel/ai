@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19419,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19419-workflow-harness-time-slice.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19419-workflow-harness-time-slice.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Harness session ses_19419 has no unfinished turn to suspend."
+  }
+}
