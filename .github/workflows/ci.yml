@@ -468,12 +468,15 @@ jobs:
           for attempt in $(seq 1 "$ATTEMPTS"); do
             wait_for_apt_locks
             STATUS=0
-            # Preserve PATH because setup-node and setup-pnpm install outside
-            # sudo's secure_path. Running the whole process group as root keeps
-            # Playwright from spawning a nested sudo process for apt-get.
+            # Preserve PATH because setup-node installs outside sudo's
+            # secure_path. Invoke the installed Playwright shim directly so
+            # pnpm does not revalidate the runner-owned modules directory as
+            # root. Running the whole process group as root keeps Playwright
+            # from spawning a nested sudo process for apt-get.
             sudo env "PATH=$PATH" \
               setsid timeout --signal=TERM --kill-after=30s "$PER_ATTEMPT_TIMEOUT" \
-              pnpm exec playwright install-deps chromium || STATUS=$?
+              "$GITHUB_WORKSPACE/node_modules/.bin/playwright" \
+              install-deps chromium || STATUS=$?
             if [ "$STATUS" -eq 0 ]; then
               break
             fi
