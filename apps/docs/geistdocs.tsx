@@ -23,6 +23,8 @@ export const nav: NonNullable<GeistdocsConfig['nav']> = [
   {
     label: 'Resources',
     items: [
+      { label: 'AI Gateway', href: 'https://vercel.com/ai-gateway' },
+      { label: 'Playground', href: '/playground' },
       { label: 'Recipes', href: '/resources/recipes' },
       { label: 'Tools Registry', href: '/resources/tools' },
       { label: 'Templates', href: '/resources/templates' },

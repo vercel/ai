@@ -46,7 +46,9 @@ const proxy = createProxy({
 
 export const config = {
   matcher: [
-    '/((?!api(?:/|$)|_next/static|_next/image|favicon.ico|icon.svg|images(?:/|$)|sitemap.xml|robots.txt).*)',
+    // The microfrontends wrapper rewrites prefixed static assets back to
+    // /_next. Let that rewrite run without adding the default locale first.
+    '/((?!vc-ap-[^/]+(?:/|$)|api(?:/|$)|_next/static|_next/image|favicon.ico|icon.svg|images(?:/|$)|sitemap.xml|robots.txt).*)',
   ],
 };
 

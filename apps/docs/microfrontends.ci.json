@@ -17,7 +17,21 @@
             "/v7/:path*",
             "/docs/:path*",
             "/cookbook/:path*",
-            "/providers/:path*"
+            "/providers/:path*",
+            "/resources/:path*",
+            "/api/chat",
+            "/api/search",
+            "/llms.txt",
+            "/llms.mdx/:path*",
+            "/sitemap.md",
+            "/sitemap.xml",
+            "/robots.txt",
+            "/og/:path*",
+            "/tools-registry/:path*",
+            "/showcase",
+            "/examples/:path*",
+            "/elements/:path*",
+            "/model-library"
           ]
         }
       ]
