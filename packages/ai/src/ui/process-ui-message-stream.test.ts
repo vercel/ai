@@ -62,6 +62,7 @@ describe('processUIMessageStream', () => {
     });
   };
 
+<<<<<<< HEAD
   describe('replay start', () => {
     it.each(['msg-123', undefined])(
       'resets existing state only on the first start with message ID %s',
@@ -73,6 +74,120 @@ describe('processUIMessageStream', () => {
             role: 'assistant',
             metadata: { stale: true },
             parts: [{ type: 'text', text: 'old text', state: 'streaming' }],
+=======
+  describe('finish-step', () => {
+    it('preserves active text and reasoning parts across interleaved step boundaries', async () => {
+      const stream = createUIMessageStream([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'first ' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'thinking ',
+        },
+        { type: 'start-step' },
+        { type: 'finish-step' },
+        { type: 'text-delta', id: 'text-1', delta: 'second' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'continued',
+        },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        {
+          type: 'text',
+          text: 'first second',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        {
+          type: 'reasoning',
+          id: 'reasoning-1',
+          text: 'thinking continued',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        { type: 'step-start' },
+      ]);
+      expect(state.activeTextParts).toEqual({});
+      expect(state.activeReasoningParts).toEqual({});
+    });
+  });
+
+  describe('reset-step', () => {
+    it('removes parts from the current step and accepts retried parts', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        { type: 'text-start', id: 'completed-text' },
+        {
+          type: 'text-delta',
+          id: 'completed-text',
+          delta: 'Completed step',
+        },
+        { type: 'text-end', id: 'completed-text' },
+        { type: 'finish-step' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'stale-tool',
+          toolName: 'deleteFile',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'stale-tool',
+          inputTextDelta: '{"path":"partial',
+        },
+        { type: 'reset-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'retried-tool',
+          toolName: 'deleteFile',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'retried-tool',
+          inputTextDelta: '{"path":"target"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'retried-tool',
+          toolName: 'deleteFile',
+          input: { path: 'target' },
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+>>>>>>> b2515843f6 (fix: preserve active UI message parts across merged stream step boundaries (#19324))
           },
         });
         state.activeTextParts.old = { type: 'text', text: 'old text' };
