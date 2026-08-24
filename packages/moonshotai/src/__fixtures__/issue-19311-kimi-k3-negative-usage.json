@@ -1,0 +1,28 @@
+{
+  "id": "chatcmpl-issue-19311",
+  "object": "chat.completion",
+  "created": 1787414400,
+  "model": "kimi-k3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": ""
+      },
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 951,
+    "completion_tokens": 6000,
+    "total_tokens": 6952,
+    "prompt_tokens_details": {
+      "cached_tokens": 60
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 6001
+    }
+  }
+}

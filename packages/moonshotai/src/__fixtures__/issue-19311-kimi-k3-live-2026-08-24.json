@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-a76c8fb3-ac3d-977e-86d6-9926695dda1d",
+  "object": "chat.completion",
+  "created": 1787593184,
+  "model": "kimi-k3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "323",
+        "reasoning_content": "17*19=323. Need final only number. Ensure no extra text."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 101,
+    "completion_tokens": 32,
+    "total_tokens": 133,
+    "cached_tokens": 101,
+    "completion_tokens_details": {
+      "reasoning_tokens": 16
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 101
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19311,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19311-negative-output-tokens.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19311-negative-output-tokens.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19311_REPRODUCED: negative output text token counts from openai, groq, moonshotai, deepseek, perplexity; aggregated=-1"
+  }
+}

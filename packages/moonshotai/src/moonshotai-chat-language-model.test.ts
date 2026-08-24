@@ -41,6 +41,32 @@ function prepareChunksFixtureResponse(filename: string) {
 }
 
 describe('doGenerate', () => {
+  describe('usage', () => {
+    it('does not report negative text tokens', async () => {
+      prepareJsonFixtureResponse('issue-19311-kimi-k3-negative-usage');
+
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.outputTokens.text).toBeGreaterThanOrEqual(0);
+    });
+
+    it('maps the directly recorded Kimi K3 usage response', async () => {
+      prepareJsonFixtureResponse('issue-19311-kimi-k3-live-2026-08-24');
+
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.outputTokens).toEqual({
+        total: 32,
+        text: 16,
+        reasoning: 16,
+      });
+    });
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('moonshotai-text');
