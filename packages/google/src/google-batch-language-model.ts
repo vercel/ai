@@ -166,6 +166,8 @@ export class GoogleBatchLanguageModel
     }
 
     const inputFile = new Blob(fileParts, { type: 'application/jsonl' });
+    // Blob snapshots the strings, so release the potentially large input array.
+    fileParts.length = 0;
     if (inputFile.size > googleBatchInputFileMaxBytes) {
       throw new InvalidArgumentError({
         argument: 'requests',
