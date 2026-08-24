@@ -176,6 +176,99 @@ describe('translatePiEvent', () => {
     expect(end.map(p => p.type)).toEqual(['tool-result', 'finish-step']);
   });
 
+  it('reports the step tool-call count on every tool-call of the step', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [
+              { type: 'toolCall', id: 'call-1', name: 'create_suite' },
+              { type: 'toolCall', id: 'call-2', name: 'create_suite' },
+            ],
+          },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const starts = emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'call-1',
+          toolName: 'create_suite',
+          args: { name: 'A' },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'call-2',
+          toolName: 'create_suite',
+          args: { name: 'B' },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    expect(
+      starts.map(part =>
+        part.type === 'tool-call'
+          ? { toolCallId: part.toolCallId, count: part.stepToolCallCount }
+          : part.type,
+      ),
+    ).toEqual([
+      { toolCallId: 'call-1', count: 2 },
+      { toolCallId: 'call-2', count: 2 },
+    ]);
+  });
+
+  it('omits the step tool-call count when the step has no tool calls', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'k' }],
+          },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const start = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'orphan',
+        toolName: 'create_suite',
+        args: {},
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(start).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'orphan',
+        toolName: 'create_suite',
+        input: '{}',
+      },
+    ]);
+  });
+
   it('emits finish-step after a built-in approval request pauses the step', () => {
     const state = createPiTranslatorState();
     emit(

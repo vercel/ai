@@ -301,6 +301,23 @@ export function runPrompt<
     let stepText = '';
     let stepReasoning = '';
     let stepToolCalls: TurnContentPart[] = [];
+    /*
+     * A single step can emit several tool calls that each need host input
+     * (approval, or a result for a non-executable tool). Parking the turn on
+     * the first one would drop the rest: the reader is abandoned, so their
+     * `tool-call` events are never read, they never reach `stepToolCalls`, and
+     * no approval request is ever surfaced for them — while runtimes that
+     * resume by rerunning (Pi) refuse to restart the turn until every tool call
+     * in the step has a result, so the turn deadlocks.
+     *
+     * When the runtime declares the step's tool-call count, keep reading until
+     * every one of them has been processed and park once, with all of the
+     * step's requests enqueued. Runtimes that don't declare it park on the
+     * first call needing input, as before.
+     */
+    let stepToolCallCount: number | undefined;
+    let stepToolCallsSeen = 0;
+    let hostInputPauseRequested = false;
     const buildStepContent = (): TurnContentPart[] => {
       const parts: TurnContentPart[] = [];
       if (stepText) parts.push({ type: 'text', text: stepText });
@@ -312,6 +329,8 @@ export function runPrompt<
       stepText = '';
       stepReasoning = '';
       stepToolCalls = [];
+      stepToolCallCount = undefined;
+      stepToolCallsSeen = 0;
     };
     const zeroUsage: LanguageModelV4Usage = {
       inputTokens: {
@@ -367,6 +386,19 @@ export function runPrompt<
         usage: zeroUsage,
       });
       await result.finish();
+    };
+    /*
+     * Park the turn if host input is pending and the step has no further tool
+     * calls to emit. Returns whether the turn was parked, in which case the
+     * caller must return.
+     */
+    const parkIfHostInputPending = async (): Promise<boolean> => {
+      if (!hostInputPauseRequested) return false;
+      if (stepToolCallCount != null && stepToolCallsSeen < stepToolCallCount) {
+        return false;
+      }
+      await finishForHostInputPause({ completeCurrentStep: true });
+      return true;
     };
     const enqueueApprovalRequest = (approval: {
       approvalId: string;
@@ -652,6 +684,16 @@ export function runPrompt<
          * against the sandbox root, so the strip is display-only.
          */
         const displayValue = stripWorkDir(value, input.sessionWorkDir);
+        /*
+         * Tally before the replay skip below, so a step whose earlier tool
+         * calls are replayed (and skipped) still reaches its declared count.
+         */
+        if (value.type === 'tool-call') {
+          stepToolCallsSeen += 1;
+          if (value.stepToolCallCount != null) {
+            stepToolCallCount = value.stepToolCallCount;
+          }
+        }
         const settledHostInputReplay =
           (displayValue.type === 'tool-call' ||
             displayValue.type === 'tool-result' ||
@@ -823,6 +865,7 @@ export function runPrompt<
             );
             if (outcome === 'awaiting-tool-result') return;
             closingResumedStep = true;
+            if (await parkIfHostInputPending()) return;
             continue;
           }
 
@@ -831,8 +874,9 @@ export function runPrompt<
             approvalId: pendingApproval.approvalId,
             toolCall,
           });
-          await finishForHostInputPause({ completeCurrentStep: true });
-          return;
+          hostInputPauseRequested = true;
+          if (await parkIfHostInputPending()) return;
+          continue;
         }
 
         // Drive step boundaries.
@@ -843,6 +887,10 @@ export function runPrompt<
             usage: value.usage,
             providerMetadata: value.harnessMetadata,
           });
+          if (hostInputPauseRequested) {
+            await finishForHostInputPause({ completeCurrentStep: false });
+            return;
+          }
           if (input.stopConditions != null && input.stopConditions.length > 0) {
             pendingStopBoundary = {
               finishReason: value.finishReason,
@@ -882,6 +930,7 @@ export function runPrompt<
               output,
             });
             await telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
+            if (await parkIfHostInputPending()) return;
             continue;
           }
           const customToolApprovalDecision = resolveCustomToolApproval({
@@ -911,6 +960,7 @@ export function runPrompt<
               output,
             });
             await telemetry.toolEnd(toolCall.toolCallId, { ok: true, output });
+            if (await parkIfHostInputPending()) return;
             continue;
           }
           const pendingApproval =
@@ -947,6 +997,7 @@ export function runPrompt<
               );
               if (outcome === 'awaiting-tool-result') return;
               closingResumedStep = true;
+              if (await parkIfHostInputPending()) return;
               continue;
             }
             const pendingParsedToolCall = toolCallsByToolCallId.get(
@@ -962,13 +1013,15 @@ export function runPrompt<
               approvalId: pendingApproval.approvalId,
               toolCall: pendingParsedToolCall,
             });
-            await finishForHostInputPause({ completeCurrentStep: true });
-            return;
+            hostInputPauseRequested = true;
+            if (await parkIfHostInputPending()) return;
+            continue;
           }
           if (!isExecutableTool(activeTools[toolCall.toolName])) {
             recordPendingToolResult({ toolCall });
-            await finishForHostInputPause({ completeCurrentStep: true });
-            return;
+            hostInputPauseRequested = true;
+            if (await parkIfHostInputPending()) return;
+            continue;
           }
           startHostToolExecution(
             (async () => {
@@ -1019,6 +1072,8 @@ export function runPrompt<
             })(),
           );
         }
+
+        if (await parkIfHostInputPending()) return;
       }
       await waitForOutstandingHostToolExecutions();
       const isTurnSuspending = input.isTurnSuspending?.() === true;
