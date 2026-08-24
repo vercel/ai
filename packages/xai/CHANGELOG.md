@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 3.0.125
+
+### Patch Changes
+
+- f33a407: fix(provider/xai): report image moderation blocks as content policy errors
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/openai-compatible@2.0.71
+
 ## 3.0.124
 
 ### Patch Changes

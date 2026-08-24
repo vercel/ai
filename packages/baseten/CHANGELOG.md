@@ -1,5 +1,14 @@
 # @ai-sdk/baseten
 
+## 1.1.8
+
+### Patch Changes
+
+- daf5202: fix(baseten): enable structured outputs so response_format json_schema is forwarded
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/openai-compatible@2.0.71
+
 ## 1.1.7
 
 ### Patch Changes

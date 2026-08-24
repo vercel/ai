@@ -1,5 +1,14 @@
 # @ai-sdk/rsc
 
+## 2.0.265
+
+### Patch Changes
+
+- 0c23c63: Preserve concurrent AI state updates from keyed setters and wrapped actions.
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - ai@6.0.265
+
 ## 2.0.264
 
 ### Patch Changes
