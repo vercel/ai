@@ -490,7 +490,7 @@ describe('StreamingToolCallTracker', () => {
       },
     );
 
-    it('should keep calls with missing ids distinct when an index is reused', () => {
+    it('should keep id-less calls distinct when an index is reused and type is omitted', () => {
       const { parts, controller } = createCollector();
       const generateId = vi
         .fn<() => string>()
@@ -501,17 +501,14 @@ describe('StreamingToolCallTracker', () => {
 
       tracker.processDelta({
         index: 0,
-        type: 'function',
         function: { name: 'read_file', arguments: '{"path":"p0"}' },
       });
       tracker.processDelta({
         index: 0,
-        type: 'function',
         function: { name: 'write_file', arguments: '{"path":"p1"}' },
       });
       tracker.processDelta({
         index: 0,
-        type: 'function',
         function: { name: 'read_file', arguments: '{"path":"p2"}' },
       });
       tracker.flush();

@@ -76,6 +76,11 @@ type ArgumentStructure =
       complete: boolean;
     };
 
+type ToolCallResolution =
+  | { kind: 'existing'; toolCall: TrackedToolCall }
+  | { kind: 'new' }
+  | { kind: 'ambiguous' };
+
 type StreamingToolCallTrackerController = Pick<
   TransformStreamDefaultController<LanguageModelV4StreamPart>,
   'enqueue'
@@ -87,7 +92,8 @@ type StreamingToolCallTrackerController = Pick<
  * emits tool-input-start/delta/end and tool-call events, and finalizes
  * unfinished tool calls on flush.
  *
- * Used by openai, openai-compatible, groq, deepseek, and alibaba providers.
+ * Used by openai, openai-compatible, groq, deepseek, alibaba, mistral, and
+ * moonshotai providers.
  */
 export class StreamingToolCallTracker<
   DELTA extends StreamingToolCallDelta = StreamingToolCallDelta,
@@ -131,24 +137,21 @@ export class StreamingToolCallTracker<
     const name = this.getNonBlankString(wireName);
     const { index } = toolCallDelta;
 
-    const existingToolCall = this.findToolCall({
+    const resolution = this.resolveToolCall({
       wireId,
       index,
       name,
       hasExplicitCallStart:
-        toolCallDelta.type != null &&
         name != null &&
         this.startsWithStructuredArguments(toolCallDelta.function?.arguments),
     });
 
-    // `null` indicates that the available labels match multiple calls or
-    // conflict without enough information to choose safely.
-    if (existingToolCall === null) {
+    if (resolution.kind === 'ambiguous') {
       return;
     }
 
     let toolCall: TrackedToolCall;
-    if (existingToolCall === undefined) {
+    if (resolution.kind === 'new') {
       // Blank names cannot start a usable call, but some providers repeat a
       // blank name on continuations. Correlate those continuations first, then
       // ignore only the unmatched blank-name delta.
@@ -162,7 +165,7 @@ export class StreamingToolCallTracker<
         name,
       });
     } else {
-      toolCall = existingToolCall;
+      toolCall = resolution.toolCall;
       if (wireId != null) {
         this.associateWireId(toolCall, wireId);
       }
@@ -195,7 +198,7 @@ export class StreamingToolCallTracker<
     }
   }
 
-  private findToolCall({
+  private resolveToolCall({
     wireId,
     index,
     name,
@@ -205,7 +208,7 @@ export class StreamingToolCallTracker<
     index: number | null | undefined;
     name: string | undefined;
     hasExplicitCallStart: boolean;
-  }): TrackedToolCall | null | undefined {
+  }): ToolCallResolution {
     const indexedToolCalls =
       index != null ? this.toolCallsByIndex.get(index) : undefined;
     const matchingIndexedToolCalls = this.filterToolCallsByName(
@@ -221,11 +224,11 @@ export class StreamingToolCallTracker<
           const matchingToolCalls = matchingIndexedToolCalls.filter(toolCall =>
             toolCallsWithId.has(toolCall),
           );
-          const matchingToolCall = this.selectMatchingToolCall(
+          const matchingToolCall = this.resolveMatchingToolCall(
             matchingToolCalls,
             hasExplicitCallStart,
           );
-          if (matchingToolCall !== undefined) {
+          if (matchingToolCall.kind !== 'new') {
             return matchingToolCall;
           }
 
@@ -233,17 +236,15 @@ export class StreamingToolCallTracker<
           // wire ID and function name repeat. Providers may reuse IDs across
           // parallel calls, so the ID/name pair cannot override index evidence.
           if (name != null) {
-            return undefined;
+            return { kind: 'new' };
           }
 
           // Conflicting labels on a continuation cannot be resolved safely.
           if (indexedToolCalls != null) {
-            return null;
+            return { kind: 'ambiguous' };
           }
 
-          return toolCallsWithId.size === 1
-            ? toolCallsWithId.values().next().value
-            : null;
+          return this.resolveMatchingToolCall([...toolCallsWithId], false);
         }
 
         if (name != null) {
@@ -251,51 +252,51 @@ export class StreamingToolCallTracker<
             toolCall => toolCall.function.name === name,
           );
 
-          return this.selectMatchingToolCall(
+          return this.resolveMatchingToolCall(
             matchingToolCalls,
             hasExplicitCallStart,
           );
         }
 
-        return toolCallsWithId.size === 1
-          ? toolCallsWithId.values().next().value
-          : null;
+        return this.resolveMatchingToolCall([...toolCallsWithId], false);
       }
 
       if (matchingIndexedToolCalls.length > 0) {
         // IDs can change during a call. A matching index/name continues the
         // call unless the delta has evidence of a fresh structured argument
         // payload, while repeated labels alone are not a call boundary.
-        return this.selectMatchingToolCall(
+        return this.resolveMatchingToolCall(
           matchingIndexedToolCalls,
           hasExplicitCallStart,
         );
       }
 
-      return undefined;
+      return { kind: 'new' };
     }
 
     if (indexedToolCalls != null) {
       // Repeated names are valid on continuations. A different name at the
       // same index is evidence of a new call from a provider that reuses
       // indices across parallel calls.
-      return this.selectMatchingToolCall(
+      return this.resolveMatchingToolCall(
         matchingIndexedToolCalls,
         hasExplicitCallStart,
       );
     }
 
     if (name != null) {
-      return undefined;
+      return { kind: 'new' };
     }
 
     const unfinishedToolCalls = this.toolCalls.filter(
       toolCall => !toolCall.hasFinished,
     );
     if (unfinishedToolCalls.length === 1) {
-      return unfinishedToolCalls[0];
+      return { kind: 'existing', toolCall: unfinishedToolCalls[0] };
     }
-    return unfinishedToolCalls.length > 1 ? null : undefined;
+    return unfinishedToolCalls.length > 1
+      ? { kind: 'ambiguous' }
+      : { kind: 'new' };
   }
 
   private filterToolCallsByName(
@@ -311,19 +312,21 @@ export class StreamingToolCallTracker<
     );
   }
 
-  private selectMatchingToolCall(
+  private resolveMatchingToolCall(
     toolCalls: TrackedToolCall[],
     hasExplicitCallStart: boolean,
-  ): TrackedToolCall | null | undefined {
+  ): ToolCallResolution {
     if (toolCalls.length === 0) {
-      return undefined;
+      return { kind: 'new' };
     }
 
     if (!hasExplicitCallStart) {
-      return toolCalls.length === 1 ? toolCalls[0] : null;
+      return toolCalls.length === 1
+        ? { kind: 'existing', toolCall: toolCalls[0] }
+        : { kind: 'ambiguous' };
     }
 
-    // A repeated type/name can occur on continuations. A fresh structured
+    // A repeated name can occur on continuations. A fresh structured
     // argument prefix is evidence of another call only after the matching call
     // has completed its own structured argument payload.
     const continuableToolCalls = toolCalls.filter(
@@ -333,10 +336,12 @@ export class StreamingToolCallTracker<
     );
 
     if (continuableToolCalls.length === 1) {
-      return continuableToolCalls[0];
+      return { kind: 'existing', toolCall: continuableToolCalls[0] };
     }
 
-    return continuableToolCalls.length > 1 ? null : undefined;
+    return continuableToolCalls.length > 1
+      ? { kind: 'ambiguous' }
+      : { kind: 'new' };
   }
 
   private startsWithStructuredArguments(
