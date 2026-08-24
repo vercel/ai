@@ -706,10 +706,15 @@ describe('createOpenCode adapter', () => {
         '.harness-bootstrap/opencode/host-tool-mcp.mjs',
         '.harness-bootstrap/opencode/package.json',
         '.harness-bootstrap/opencode/pnpm-lock.yaml',
+        '.harness-bootstrap/opencode/pnpm-workspace.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
+      expect(
+        recipe.files.find(file => file.path.endsWith('pnpm-workspace.yaml'))
+          ?.content,
+      ).toBe("allowBuilds:\n  'opencode-ai@1.18.3': true\n");
     });
 
     it('runs the OpenCode CLI postinstall during bootstrap', async () => {

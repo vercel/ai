@@ -27,9 +27,13 @@ describe('createGrokBuild', () => {
       ...settings.source,
       packageJson: JSON.parse(settings.source.packageJson),
       pnpmLockYaml: '<pnpm-lock.yaml>',
+      pnpmWorkspaceYaml: '<pnpm-workspace.yaml>',
     };
     expect(settings.source.pnpmLockYaml).toContain(
       "'@xai-official/grok@0.2.111'",
+    );
+    expect(settings.source.pnpmWorkspaceYaml).toBe(
+      "allowBuilds:\n  '@xai-official/grok@0.2.111': true\n",
     );
 
     expect({
@@ -136,6 +140,7 @@ describe('createGrokBuild', () => {
             "version": "0.0.0",
           },
           "pnpmLockYaml": "<pnpm-lock.yaml>",
+          "pnpmWorkspaceYaml": "<pnpm-workspace.yaml>",
           "type": "npm-locked",
         },
         "version": "v1",

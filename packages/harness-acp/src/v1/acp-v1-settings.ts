@@ -45,6 +45,8 @@ export type ACPNpmLockedSource = {
   readonly type: 'npm-locked';
   readonly packageJson: string;
   readonly pnpmLockYaml: string;
+  /** Optional pnpm workspace configuration required by the locked install. */
+  readonly pnpmWorkspaceYaml?: string;
 };
 
 export type ACPInstallCommandSource = {
