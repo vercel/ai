@@ -14,6 +14,10 @@ npm i @ai-sdk/sandbox-vercel
 
 The factory is synchronous. The returned provider is stable; the actual `@vercel/sandbox` `Sandbox` is created on demand inside `provider.createSession()`.
 
+When neither `runtime` nor `image` is provided, the adapter uses the legacy
+`node24` runtime on both Vercel Sandbox v2 and v3. Pass `image` explicitly to
+opt into a v3 managed image such as `vercel/sandbox/universal`.
+
 ```ts
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
