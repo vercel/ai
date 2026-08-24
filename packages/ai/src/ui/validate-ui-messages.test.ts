@@ -1142,47 +1142,40 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should not re-validate tool input when state is output-available', async () => {
-      const messages = await validateUIMessages<TestMessage>({
-        messages: [
-          {
-            id: '1',
-            role: 'assistant',
-            parts: [
-              {
-                type: 'tool-foo',
-                toolCallId: '1',
-                state: 'output-available',
-                input: {} as { foo: string },
-                output: { result: 'success' },
-              },
-            ],
-          },
-        ],
-        tools: {
-          foo: testTool,
-        },
-      });
-
-      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
-      expect(messages).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "1",
-            "parts": [
-              {
-                "input": {},
-                "output": {
-                  "result": "success",
+    it('should validate tool input when state is output-available', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: { foo: 123 } as unknown as { foo: string },
+                  output: { result: 'success' },
                 },
-                "state": "output-available",
-                "toolCallId": "1",
-                "type": "tool-foo",
-              },
-            ],
-            "role": "assistant",
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
           },
-        ]
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].input (foo, id: "1"): Value: {"foo":123}.
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -1198,7 +1191,7 @@ describe('validateUIMessages', () => {
                   type: 'tool-foo',
                   toolCallId: '1',
                   state: 'output-available',
-                  input: {} as { foo: string },
+                  input: { foo: 'bar' },
                   output: {} as { result: string },
                 },
               ],
