@@ -63,6 +63,7 @@ export class GatewayBatchLanguageModel
     providerOptions,
     headers,
     abortSignal,
+    webhookUrl,
   }: BatchV4StartOptions<LanguageModelV4BatchRequest>): Promise<BatchV4StartResult> {
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
@@ -84,6 +85,7 @@ export class GatewayBatchLanguageModel
             : undefined,
         ),
         body: {
+          ...(webhookUrl != null && { callbackUrl: webhookUrl }),
           modelId: this.modelId,
           requests: requests.map(request => ({
             id: request.id,
