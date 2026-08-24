@@ -170,11 +170,18 @@ const source = {
   type: 'npm-locked',
   packageJson: packageJsonContents,
   pnpmLockYaml: pnpmLockYamlContents,
+  pnpmWorkspaceYaml: pnpmWorkspaceYamlContents,
 } as const;
 ```
 
 A locked source installs the supplied files with
-`pnpm install --frozen-lockfile`.
+`pnpm install --frozen-lockfile`. `pnpmWorkspaceYaml` is optional; provide it
+when the locked installation needs workspace-level pnpm configuration, such as
+an exact-version `allowBuilds` policy for a required dependency build script.
+
+The manifest, lockfile, and optional workspace configuration are persisted
+bootstrap artifacts and participate in lifecycle identity. Do not include
+credentials in these strings.
 
 An install command source runs a trusted Bash command inside the harness's
 deterministic bootstrap directory:
