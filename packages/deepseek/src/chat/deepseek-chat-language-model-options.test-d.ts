@@ -1,5 +1,23 @@
-import { expectTypeOf, it } from 'vitest';
-import type { DeepSeekAssistantMessageProviderOptions } from '../index';
+import { describe, expectTypeOf, it } from 'vitest';
+import type {
+  DeepSeekAssistantMessageProviderOptions,
+  DeepSeekLanguageModelChatOptions,
+} from '../index';
+
+describe('DeepSeekLanguageModelChatOptions', () => {
+  it('only exposes canonical thinking and reasoning effort values', () => {
+    expectTypeOf<DeepSeekLanguageModelChatOptions>().toEqualTypeOf<{
+      logprobs?: boolean;
+      topLogprobs?: number;
+      userId?: string;
+      thinking?: {
+        type?: 'enabled' | 'disabled';
+      };
+      reasoningEffort?: 'low' | 'high' | 'max';
+      strictJsonSchema?: boolean;
+    }>();
+  });
+});
 
 it('should type assistant prefix completion options', () => {
   const options = {
