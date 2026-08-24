@@ -124,6 +124,9 @@
       "path": "../../packages/harness-deepagents"
     },
     {
+      "path": "../../packages/harness-fx"
+    },
+    {
       "path": "../../packages/harness-grok-build"
     },
     {
