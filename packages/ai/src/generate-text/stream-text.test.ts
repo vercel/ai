@@ -26824,6 +26824,11 @@ describe('streamText', () => {
           error: expect.stringMatching(/Invalid input for tool deleteFile/),
         }),
       );
+      expect(
+        parts.find(
+          part => part.type === 'tool-error' && part.toolCallId === 'call-1',
+        ),
+      ).not.toHaveProperty('dynamic');
       expect(await result.text).toBe('Recovered.');
       expect(prompts[0].at(-1)).toMatchObject({
         role: 'tool',

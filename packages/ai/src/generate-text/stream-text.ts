@@ -1774,12 +1774,14 @@ class DefaultStreamTextResult<
               toolName: toolApproval.toolCall.toolName,
               input: toolApproval.toolCall.input,
               error: getErrorMessage(toolApproval.error),
-              dynamic: true,
               title: toolApproval.toolCall.title,
+              ...(toolApproval.toolCall.dynamic === true
+                ? { dynamic: true as const }
+                : {}),
               ...(toolApproval.toolCall.toolMetadata != null
                 ? { toolMetadata: toolApproval.toolCall.toolMetadata }
                 : {}),
-            });
+            } as TextStreamPart<TOOLS>);
           }
 
           const toolOutputs: Array<ToolOutput<TOOLS>> = [];
