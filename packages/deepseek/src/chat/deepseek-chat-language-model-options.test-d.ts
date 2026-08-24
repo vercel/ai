@@ -1,6 +1,8 @@
-<<<<<<< HEAD
 import { describe, expectTypeOf, it } from 'vitest';
-import type { DeepSeekLanguageModelChatOptions } from '../index';
+import type {
+  DeepSeekAssistantMessageProviderOptions,
+  DeepSeekLanguageModelChatOptions,
+} from '../index';
 
 describe('DeepSeekLanguageModelChatOptions', () => {
   it('types log probability options', () => {
@@ -27,9 +29,7 @@ describe('DeepSeekLanguageModelChatOptions', () => {
 
     expectTypeOf(options).not.toMatchTypeOf<DeepSeekLanguageModelChatOptions>();
   });
-=======
-import { expectTypeOf, it } from 'vitest';
-import type { DeepSeekAssistantMessageProviderOptions } from '../index';
+});
 
 it('should type assistant prefix completion options', () => {
   const options = {
@@ -46,5 +46,4 @@ it('should reject prefix false', () => {
   } satisfies DeepSeekAssistantMessageProviderOptions;
 
   expectTypeOf(options.prefix).toEqualTypeOf<false>();
->>>>>>> origin/main
 });
