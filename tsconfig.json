@@ -103,6 +103,9 @@
       "path": "packages/harness-codex"
     },
     {
+      "path": "packages/harness-cursor"
+    },
+    {
       "path": "packages/harness-deepagents"
     },
     {
