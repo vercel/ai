@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.78
+
+### Patch Changes
+
+- 96970bb: Continue approved `generateText`, `streamText`, and `WorkflowAgent` turns with a model-visible tool error when revalidated tool input is invalid.
+- Updated dependencies [e12e068]
+  - @ai-sdk/gateway@4.0.63
+
 ## 7.0.77
 
 ### Patch Changes
