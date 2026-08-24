@@ -207,6 +207,14 @@ const { text } = await generateText({
 
 The optional `expiresAfter` setting specifies the lifetime in seconds. DeepSeek accepts values from 3,600 seconds (one hour) through 2,592,000 seconds (30 days). Files are permanent when no expiration is specified.
 
+DeepSeek file uploads support JPEG (`.jpg` and `.jpeg`), PNG, GIF, and WebP
+images. Each file can be at most 64 MiB, and filenames can contain at most 512
+characters. The AI SDK validates these constraints before sending the upload
+request. The `image/jpg` media type alias is accepted, and a supported filename
+extension is used as a fallback when the media type is generic (for example,
+`application/octet-stream`). Recognizable non-image content is rejected even
+when its declared media type or filename indicates a supported image format.
+
 ## Model Capabilities
 
 | Model                          | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |

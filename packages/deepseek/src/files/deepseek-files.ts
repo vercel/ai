@@ -1,13 +1,15 @@
-import type {
-  FilesV4,
-  FilesV4UploadFileCallOptions,
-  FilesV4UploadFileResult,
+import {
+  InvalidArgumentError,
+  type FilesV4,
+  type FilesV4UploadFileCallOptions,
+  type FilesV4UploadFileResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  detectMediaType,
   parseProviderOptions,
   postFormDataToApi,
   type FetchFunction,
@@ -33,6 +35,34 @@ const deepSeekFailedResponseHandler = createJsonErrorResponseHandler({
     error.error.message,
 });
 
+const MAX_FILE_SIZE_BYTES = 64 * 1024 * 1024;
+const MAX_FILENAME_LENGTH = 512;
+
+const supportedMediaTypes = new Set([
+  'image/gif',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+]);
+
+const genericMediaTypes = new Set([
+  '',
+  'application/binary',
+  'application/octet-stream',
+  'binary/octet-stream',
+  'image',
+  'image/*',
+]);
+
+const supportedFilenameExtensions = new Set([
+  'gif',
+  'jpeg',
+  'jpg',
+  'png',
+  'webp',
+]);
+
 export class DeepSeekFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
 
@@ -55,6 +85,8 @@ export class DeepSeekFiles implements FilesV4 {
     })) as DeepSeekFilesOptions | undefined;
 
     const fileBytes = convertInlineFileDataToUint8Array(data);
+    validateFileUpload({ fileBytes, mediaType, filename });
+
     const blob = new Blob([fileBytes], { type: mediaType });
 
     const formData = new FormData();
@@ -106,4 +138,96 @@ export class DeepSeekFiles implements FilesV4 {
       },
     };
   }
+}
+
+function validateFileUpload({
+  fileBytes,
+  mediaType,
+  filename,
+}: {
+  fileBytes: Uint8Array;
+  mediaType: string;
+  filename: string | undefined;
+}) {
+  if (fileBytes.length > MAX_FILE_SIZE_BYTES) {
+    throw new InvalidArgumentError({
+      argument: 'data',
+      message:
+        `DeepSeek file uploads must not exceed 64 MiB ` +
+        `(${MAX_FILE_SIZE_BYTES.toLocaleString('en-US')} bytes). ` +
+        `Received ${fileBytes.length.toLocaleString('en-US')} bytes.`,
+    });
+  }
+
+  if (filename != null) {
+    const filenameLength = Array.from(filename).length;
+
+    if (filenameLength > MAX_FILENAME_LENGTH) {
+      throw new InvalidArgumentError({
+        argument: 'filename',
+        message:
+          `DeepSeek filenames must not exceed ${MAX_FILENAME_LENGTH} characters. ` +
+          `Received ${filenameLength} characters.`,
+      });
+    }
+  }
+
+  const normalizedMediaType = normalizeMediaType(mediaType);
+  const detectedMediaType = detectMediaType({ data: fileBytes });
+
+  if (
+    detectedMediaType != null &&
+    !supportedMediaTypes.has(detectedMediaType)
+  ) {
+    throw new InvalidArgumentError({
+      argument: 'data',
+      message:
+        `DeepSeek file uploads support JPEG, PNG, GIF, and WebP images. ` +
+        `Detected unsupported file content type "${detectedMediaType}".`,
+    });
+  }
+
+  if (supportedMediaTypes.has(normalizedMediaType)) {
+    return;
+  }
+
+  if (!genericMediaTypes.has(normalizedMediaType)) {
+    throw new InvalidArgumentError({
+      argument: 'mediaType',
+      message:
+        `DeepSeek file uploads support JPEG, PNG, GIF, and WebP images. ` +
+        `Received unsupported media type "${mediaType}".`,
+    });
+  }
+
+  if (detectedMediaType != null || hasSupportedFilenameExtension(filename)) {
+    return;
+  }
+
+  throw new InvalidArgumentError({
+    argument: 'mediaType',
+    message:
+      `DeepSeek file uploads support JPEG, PNG, GIF, and WebP images. ` +
+      `Provide a supported media type or a filename ending in ` +
+      `.jpg, .jpeg, .png, .gif, or .webp. Received "${mediaType}".`,
+  });
+}
+
+function normalizeMediaType(mediaType: string): string {
+  return mediaType.split(';', 1)[0].trim().toLowerCase();
+}
+
+function hasSupportedFilenameExtension(filename: string | undefined): boolean {
+  if (filename == null) {
+    return false;
+  }
+
+  const extensionSeparatorIndex = filename.lastIndexOf('.');
+
+  return (
+    extensionSeparatorIndex !== -1 &&
+    supportedFilenameExtensions.has(
+      filename.slice(extensionSeparatorIndex + 1).toLowerCase(),
+    )
+  );
 }
