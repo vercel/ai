@@ -133,6 +133,7 @@ export type GatewayModelId =
   | 'nvidia/nemotron-3-super-120b-a12b'
   | 'nvidia/nemotron-3-ultra-550b-a55b'
   | 'nvidia/nemotron-3.5-lightning'
+  | 'nvidia/nemotron-3.5-lightning-free'
   | 'nvidia/nemotron-nano-12b-v2-vl'
   | 'nvidia/nemotron-nano-9b-v2'
   | 'openai/gpt-3.5-turbo'
