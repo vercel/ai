@@ -2,9 +2,11 @@ import { z } from 'zod/v4';
 
 // https://api-docs.deepseek.com/quick_start/pricing
 export type DeepSeekChatModelId =
-  | 'deepseek-chat'
-  | 'deepseek-reasoner'
+  | 'deepseek-v4-flash'
+  | 'deepseek-v4-pro'
   | 'deepseek-v4-flash-vision-exp'
+  // Retired aliases remain assignable through the string escape hatch, but are
+  // intentionally omitted from first-class editor suggestions.
   | (string & {});
 
 export const deepseekLanguageModelChatOptions = z.object({
