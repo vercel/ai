@@ -564,6 +564,49 @@ describe('GoogleBatchLanguageModel', () => {
     ]);
   });
 
+  it('fails an invalid response without aborting later results', async () => {
+    prepareOutput([
+      {
+        key: 'invalid-request',
+        response: {
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [{ text: 42 }],
+              },
+            },
+          ],
+        },
+      },
+      {
+        key: 'valid-request',
+        response: googleResponse({ id: 'response-valid', text: 'Paris' }),
+      },
+    ]);
+    const model = createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batches/batch-123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'invalid-request',
+        status: 'failed',
+        error: {
+          message: 'Google returned an invalid GenerateContent batch result.',
+          code: 'invalid_response',
+        },
+      },
+      {
+        id: 'valid-request',
+        status: 'succeeded',
+        result: { content: [{ type: 'text', text: 'Paris' }] },
+      },
+    ]);
+  });
+
   it('maps numeric gRPC cancellation errors to cancelled results', async () => {
     prepareOutput([
       {

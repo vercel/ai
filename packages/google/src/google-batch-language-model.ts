@@ -23,7 +23,6 @@ import {
   postToApi,
   resolve,
   safeValidateTypes,
-  validateTypes,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   zodSchema,
@@ -380,15 +379,27 @@ export class GoogleBatchLanguageModel
         continue;
       }
 
-      const response = await validateTypes({
+      const response = await safeValidateTypes({
         value: line.response,
         schema: responseSchema,
       });
+      if (!response.success) {
+        yield {
+          id: line.key,
+          status: 'failed',
+          error: {
+            message: 'Google returned an invalid GenerateContent batch result.',
+            code: 'invalid_response',
+          },
+        };
+        continue;
+      }
+
       yield {
         id: line.key,
         status: 'succeeded',
         result: this.convertGenerateContentResponse({
-          response,
+          response: response.value,
           warnings: [],
           providerOptionsNames: ['google'],
         }),
