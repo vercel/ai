@@ -1645,12 +1645,23 @@ class DefaultStreamTextResult<
             }
           }
 
+          function clearStepTimeouts() {
+            clearStepTimeout();
+            clearChunkTimeout();
+          }
+
+          function cleanupStepTimeouts() {
+            abortSignal?.removeEventListener('abort', cleanupStepTimeouts);
+            clearStepTimeouts();
+          }
+
           // The step's stream is registered lazily and consumed long after this
-          // function returns, so the step timer must stay armed past setup. When
-          // the merged abort signal fires (any step/chunk/total timeout or caller
-          // abort), drop both step-scoped timers so neither outlives the step.
-          abortSignal?.addEventListener('abort', clearStepTimeout);
-          abortSignal?.addEventListener('abort', clearChunkTimeout);
+          // function returns, so its timers must stay armed past setup. When the
+          // merged abort signal fires, drop all step-scoped timers so none
+          // outlives the step.
+          abortSignal?.addEventListener('abort', cleanupStepTimeouts, {
+            once: true,
+          });
 
           try {
             stepFinish = new DelayedPromise<void>();
@@ -2135,8 +2146,7 @@ class DefaultStreamTextResult<
                       });
 
                       doStreamSpan.end();
-                      clearStepTimeout();
-                      clearChunkTimeout();
+                      cleanupStepTimeouts();
                       self.closeStream();
                       return;
                     }
@@ -2285,9 +2295,8 @@ class DefaultStreamTextResult<
                       }
                     }
 
-                    // Clear the step and chunk timeouts before the next step is started
-                    clearStepTimeout();
-                    clearChunkTimeout();
+                    // Clear this step's timeouts before the next step is started.
+                    cleanupStepTimeouts();
 
                     if (
                       // Continue if:
@@ -2343,8 +2352,7 @@ class DefaultStreamTextResult<
           } catch (error) {
             // Setup failed before the stream was registered, so neither the
             // stream's flush nor an abort will clear the timers — clear them here.
-            clearStepTimeout();
-            clearChunkTimeout();
+            cleanupStepTimeouts();
             throw error;
           }
         }
