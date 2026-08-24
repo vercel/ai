@@ -1,5 +1,14 @@
 # @ai-sdk/cerebras
 
+## 1.0.54
+
+### Patch Changes
+
+- 51bcd94: chore(cerebras): remove deprecated zai glm-4.7 model
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/openai-compatible@1.0.49
+
 ## 1.0.53
 
 ### Patch Changes

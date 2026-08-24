@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.33
+
+### Patch Changes
+
+- 9e8e087: Stop re-exporting `createTestServer` and `TestResponseController` from `@ai-sdk/provider-utils/test` so `ai/test` can load without `msw` or `vitest`. Import these APIs from `@ai-sdk/test-server/with-vitest` instead.
+
 ## 3.0.32
 
 ### Patch Changes
