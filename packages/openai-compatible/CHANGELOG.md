@@ -1,5 +1,19 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.36
+
+### Patch Changes
+
+- ece5bdb: fix: send `reasoning_effort: "none"` when top-level reasoning is disabled
+
+## 3.0.35
+
+### Patch Changes
+
+- 7dd9ec3: feat(openai-compatible): convert video file parts to `video_url` content parts
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
 ## 3.0.34
 
 ### Patch Changes

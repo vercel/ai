@@ -1,5 +1,21 @@
 # @ai-sdk/rsc
 
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 3.0.77
+
+### Patch Changes
+
+- af87f75: Preserve concurrent AI state updates from keyed setters and wrapped actions.
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
 ## 3.0.76
 
 ### Patch Changes

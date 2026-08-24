@@ -309,9 +309,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
         reasoning_effort:
           compatibleOptions.reasoningEffort ??
-          (isCustomReasoning(reasoning) && reasoning !== 'none'
-            ? reasoning
-            : undefined),
+          (isCustomReasoning(reasoning) ? reasoning : undefined),
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:

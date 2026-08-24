@@ -110,6 +110,56 @@ describe('doGenerate', () => {
 
       expect(result.language).toBe('en');
     });
+
+    it('should not send diarize by default', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      const requestUrl = server.calls[0].requestUrl;
+      expect(requestUrl).not.toContain('diarize');
+    });
+
+    it('should pass diarize when explicitly enabled', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          deepgram: {
+            diarize: true,
+          },
+        },
+      });
+
+      const requestUrl = server.calls[0].requestUrl;
+      expect(requestUrl).toContain('diarize=true');
+    });
+
+    it('should pass keyterm, paragraphs, intents, sentiment, and replace as query parameters', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          deepgram: {
+            keyterm: 'galileo',
+            paragraphs: true,
+            intents: true,
+            sentiment: true,
+            redact: 'numbers',
+            replace: '[redacted]',
+          },
+        },
+      });
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.searchParams.get('keyterm')).toBe('galileo');
+      expect(url.searchParams.get('paragraphs')).toBe('true');
+      expect(url.searchParams.get('intents')).toBe('true');
+      expect(url.searchParams.get('sentiment')).toBe('true');
+      expect(url.searchParams.get('redact')).toBe('numbers');
+      expect(url.searchParams.get('replace')).toBe('[redacted]');
+    });
   });
 
   describe('response headers', () => {
