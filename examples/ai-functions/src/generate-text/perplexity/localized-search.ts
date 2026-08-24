@@ -7,21 +7,23 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: perplexity('sonar-pro'),
+    model: perplexity('fast'),
     prompt: 'What are notable public transit updates near me this month?',
     providerOptions: {
       perplexity: {
-        web_search_options: {
-          search_context_size: 'medium',
-          search_type: 'fast',
-          user_location: {
-            country: 'US',
-            region: 'California',
-            city: 'San Francisco',
-            latitude: 37.7749,
-            longitude: -122.4194,
+        tools: [
+          {
+            type: 'web_search',
+            search_context_size: 'medium',
+            user_location: {
+              country: 'US',
+              region: 'California',
+              city: 'San Francisco',
+              latitude: 37.7749,
+              longitude: -122.4194,
+            },
           },
-        },
+        ],
       } satisfies PerplexityLanguageModelOptions,
     },
   });
