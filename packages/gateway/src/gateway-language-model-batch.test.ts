@@ -197,6 +197,56 @@ describe('GatewayBatchLanguageModel', () => {
       });
     });
 
+    it('should send webhookUrl as the top-level callbackUrl body field', async () => {
+      prepareBatchStartResponse({
+        batchId: 'batch_abc123',
+        status: 'pending',
+        warnings: [],
+        providerMetadata: {
+          gateway: {
+            asyncJob: {
+              jobId: 'batch_abc123',
+              status: 'queued',
+              webhookSigningSecret: 'whsec_test',
+            },
+          },
+        },
+      });
+
+      const result = await createTestModel().experimental_doStartBatch({
+        requests: BATCH_PROMPT_REQUESTS,
+        webhookUrl: 'https://example.com/batch-webhook',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        callbackUrl: 'https://example.com/batch-webhook',
+        modelId: 'test-model',
+        requests: BATCH_PROMPT_REQUESTS,
+      });
+      // The webhook signing secret rides back on providerMetadata.
+      expect(result.providerMetadata).toEqual({
+        gateway: {
+          asyncJob: {
+            jobId: 'batch_abc123',
+            status: 'queued',
+            webhookSigningSecret: 'whsec_test',
+          },
+        },
+      });
+    });
+
+    it('should not send a callbackUrl body field when no webhookUrl is provided', async () => {
+      prepareBatchStartResponse();
+
+      await createTestModel().experimental_doStartBatch({
+        requests: BATCH_PROMPT_REQUESTS,
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).callbackUrl,
+      ).toBeUndefined();
+    });
+
     it('should base64-encode Uint8Array file data in batch request prompts', async () => {
       prepareBatchStartResponse();
       const bytes = new Uint8Array([1, 2, 3, 4]);

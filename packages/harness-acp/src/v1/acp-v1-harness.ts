@@ -1583,6 +1583,22 @@ export function serializeBuiltinTools({
       typeof tool.nativeName === 'string'
         ? tool.nativeName
         : undefined;
+    const title =
+      tool != null &&
+      typeof tool === 'object' &&
+      'title' in tool &&
+      typeof tool.title === 'string'
+        ? tool.title
+        : undefined;
+    const toolUseKind =
+      tool != null &&
+      typeof tool === 'object' &&
+      'toolUseKind' in tool &&
+      (tool.toolUseKind === 'readonly' ||
+        tool.toolUseKind === 'edit' ||
+        tool.toolUseKind === 'bash')
+        ? tool.toolUseKind
+        : undefined;
     let inputSchema: ACPBuiltinToolMapping['inputSchema'];
     if (
       tool != null &&
@@ -1599,6 +1615,8 @@ export function serializeBuiltinTools({
     return {
       toolName,
       ...(nativeName == null ? {} : { nativeName }),
+      ...(title == null ? {} : { title }),
+      ...(toolUseKind == null ? {} : { toolUseKind }),
       ...(inputSchema == null ? {} : { inputSchema }),
     };
   });

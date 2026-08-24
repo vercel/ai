@@ -147,6 +147,7 @@ describe('Anthropic Messages batch language model', () => {
         'Operation-Header': 'operation',
         'anthropic-beta': 'operation-header-beta',
       },
+      webhookUrl: 'https://example.com/batch-webhook',
     });
 
     expect(result).toMatchObject({
@@ -160,6 +161,14 @@ describe('Anthropic Messages batch language model', () => {
         failed: 0,
       },
       warnings: [
+        {
+          warning: {
+            type: 'unsupported',
+            feature: 'webhookUrl',
+            details:
+              'The Anthropic Message Batches API does not support completion webhooks.',
+          },
+        },
         {
           requestId: 'france',
           warning: { type: 'unsupported', feature: 'frequencyPenalty' },
