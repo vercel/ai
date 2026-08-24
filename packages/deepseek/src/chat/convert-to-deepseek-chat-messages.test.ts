@@ -1,5 +1,6 @@
-import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
+import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
+import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 
 describe('convertToDeepSeekChatMessages', () => {
   describe('user messages', () => {
@@ -28,7 +29,7 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should warn about unsupported file parts', async () => {
+    it('should convert image data to an image URL content part', async () => {
       const result = convertToDeepSeekChatMessages({
         prompt: [
           {
@@ -54,21 +55,144 @@ describe('convertToDeepSeekChatMessages', () => {
         {
           "messages": [
             {
-              "content": "Hello",
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "image_url": {
+                    "url": "data:image/png;base64,AAECAw==",
+                  },
+                  "type": "image_url",
+                },
+              ],
               "role": "user",
             },
           ],
-          "warnings": [
-            {
-              "feature": "user message part type: file",
-              "type": "unsupported",
-            },
-          ],
+          "warnings": [],
         }
       `);
     });
 
-    it('should accept top-level-only mediaType without error and not read it (category D)', async () => {
+    it('should convert an image URL to an image URL content part', async () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.png'),
+                },
+                mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "image_url": {
+                    "url": "https://example.com/image.png",
+                  },
+                  "type": "image_url",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should convert an image provider reference to a file content part', () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    deepseek: 'file-api-deepseek',
+                    openai: 'file-openai',
+                  },
+                },
+                mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-flash-vision-exp',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "file_id": "file-api-deepseek",
+                  "type": "file",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should throw when an image reference has no DeepSeek identifier', () => {
+      expect(() =>
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'reference',
+                    reference: { openai: 'file-openai' },
+                  },
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-v4-flash-vision-exp',
+        }),
+      ).toThrow(NoSuchProviderReferenceError);
+    });
+
+    it('should warn about unsupported non-image file parts', async () => {
       const result = convertToDeepSeekChatMessages({
         prompt: [
           {
@@ -81,7 +205,7 @@ describe('convertToDeepSeekChatMessages', () => {
                   type: 'data' as const,
                   data: Buffer.from([0, 1, 2, 3]).toString('base64'),
                 },
-                mediaType: 'image',
+                mediaType: 'application/pdf',
               },
             ],
           },
@@ -90,9 +214,22 @@ describe('convertToDeepSeekChatMessages', () => {
         modelId: 'deepseek-chat',
       });
 
-      expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
-      expect(JSON.stringify(result.messages)).not.toContain('image');
-      expect(JSON.stringify(result.messages)).not.toContain('mediaType');
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "warnings": [
+            {
+              "feature": "user message part type: file",
+              "type": "unsupported",
+            },
+          ],
+        }
+      `);
     });
   });
 

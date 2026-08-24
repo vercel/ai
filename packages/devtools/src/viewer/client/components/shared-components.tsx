@@ -29,21 +29,33 @@ import {
   getInputTokenBreakdown,
   getOutputTokenBreakdown,
 } from '../utils';
+import { MediaPreviewList } from './media-components';
 
 export function JsonBlock({
   data,
   compact = false,
   size = 'sm',
+  maxStringLength,
 }: {
   data: unknown;
   compact?: boolean;
   size?: 'sm' | 'base' | 'lg';
+  maxStringLength?: number;
 }) {
   const [copied, setCopied] = useState(false);
 
-  const jsonString = JSON.stringify(data, null, 2);
+  const replacer =
+    maxStringLength == null
+      ? undefined
+      : (_key: string, value: unknown) =>
+          typeof value === 'string' && value.length > maxStringLength
+            ? `${value.slice(0, maxStringLength)}… [${value.length - maxStringLength} characters omitted from the viewer]`
+            : value;
+  const jsonString = JSON.stringify(data, replacer, 2);
   const displayString =
-    compact && jsonString.length > 200 ? JSON.stringify(data) : jsonString;
+    compact && jsonString.length > 200
+      ? JSON.stringify(data, replacer)
+      : jsonString;
 
   const sizeClasses = {
     sm: 'text-xs',
@@ -77,6 +89,15 @@ export function JsonBlock({
       >
         {displayString}
       </pre>
+    </div>
+  );
+}
+
+export function MediaAwareValue({ data }: { data: unknown }) {
+  return (
+    <div className="space-y-3">
+      <MediaPreviewList data={data} />
+      <JsonBlock data={data} maxStringLength={16 * 1024} />
     </div>
   );
 }
@@ -516,7 +537,7 @@ export function CollapsibleToolCall({
       </button>
       {expanded && (
         <div className="p-3 border-t bg-card/50 border-tool/30">
-          <JsonBlock data={parsedData} />
+          <MediaAwareValue data={parsedData} />
         </div>
       )}
     </div>
@@ -559,7 +580,7 @@ export function CollapsibleToolResult({
       </button>
       {expanded && (
         <div className="p-3 border-t bg-card/50 border-success/30">
-          <JsonBlock data={data} />
+          <MediaAwareValue data={data} />
         </div>
       )}
     </div>
