@@ -5,7 +5,10 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
 import { DeepSeekChatLanguageModel } from './deepseek-chat-language-model';
-import type { DeepSeekLanguageModelChatOptions } from './deepseek-chat-language-model-options';
+import type {
+  DeepSeekAssistantMessageProviderOptions,
+  DeepSeekLanguageModelChatOptions,
+} from './deepseek-chat-language-model-options';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -15,8 +18,14 @@ const provider = createDeepSeek({
   apiKey: 'test-api-key',
 });
 
+const betaProvider = createDeepSeek({
+  apiKey: 'test-api-key',
+  baseURL: 'https://api.deepseek.com/beta',
+});
+
 const server = createTestServer({
   'https://api.deepseek.com/chat/completions': {},
+  'https://api.deepseek.com/beta/chat/completions': {},
 });
 
 describe('DeepSeekChatLanguageModel', () => {
@@ -72,6 +81,60 @@ describe('DeepSeekChatLanguageModel', () => {
           }
         `);
       });
+
+      it('should pass providerOptions userId as user_id', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              userId: 'tenant_123-user',
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          user_id: 'tenant_123-user',
+        });
+      });
+
+      it('should omit user_id when userId is not provided', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'user_id',
+        );
+      });
+
+      it.each([
+        ['', 'userId must match /^[a-zA-Z0-9_-]+$/'],
+        ['contains space', 'userId must match /^[a-zA-Z0-9_-]+$/'],
+        ['a'.repeat(513), 'userId must be at most 512 characters long'],
+      ])(
+        'should reject invalid userId %j before making an API request',
+        async (userId, validationMessage) => {
+          await expect(
+            provider.chat('deepseek-chat').doGenerate({
+              prompt: TEST_PROMPT,
+              providerOptions: {
+                deepseek: {
+                  userId,
+                } satisfies DeepSeekLanguageModelChatOptions,
+              },
+            }),
+          ).rejects.toMatchObject({
+            name: 'AI_InvalidArgumentError',
+            argument: 'providerOptions',
+            message: 'invalid deepseek provider options',
+            cause: {
+              message: expect.stringContaining(validationMessage),
+            },
+          });
+
+          expect(server.calls).toHaveLength(0);
+        },
+      );
 
       it('should extract text content', async () => {
         const result = await provider.chat('deepseek-chat').doGenerate({
@@ -726,6 +789,78 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(result).toMatchSnapshot();
       });
     });
+
+    describe('assistant prefix completion', () => {
+      beforeEach(() => {
+        server.urls['https://api.deepseek.com/beta/chat/completions'].response =
+          {
+            type: 'json-value',
+            body: JSON.parse(
+              fs.readFileSync(
+                'src/chat/__fixtures__/deepseek-text.json',
+                'utf8',
+              ),
+            ),
+          };
+      });
+
+      it('should send prefix true on the final assistant message', async () => {
+        await betaProvider.chat('deepseek-chat').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Complete this sentence.' }],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The answer is' }],
+              providerOptions: {
+                deepseek: {
+                  prefix: true,
+                } satisfies DeepSeekAssistantMessageProviderOptions,
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          messages: [
+            {
+              role: 'user',
+              content: 'Complete this sentence.',
+            },
+            {
+              role: 'assistant',
+              content: 'The answer is',
+              prefix: true,
+            },
+          ],
+          model: 'deepseek-chat',
+        });
+      });
+
+      it('should reject prefix completion with the default base URL', async () => {
+        await expect(
+          provider.chat('deepseek-chat').doGenerate({
+            prompt: [
+              {
+                role: 'assistant',
+                content: [{ type: 'text', text: 'The answer is' }],
+                providerOptions: {
+                  deepseek: {
+                    prefix: true,
+                  } satisfies DeepSeekAssistantMessageProviderOptions,
+                },
+              },
+            ],
+          }),
+        ).rejects.toThrow(
+          'DeepSeek assistant prefix completion requires a beta base URL ending in `/beta`.',
+        );
+
+        expect(server.calls).toHaveLength(0);
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -778,6 +913,22 @@ describe('DeepSeekChatLanguageModel', () => {
             "top_p": 0.3,
           }
         `);
+      });
+
+      it('should pass providerOptions userId as user_id', async () => {
+        await provider.chat('deepseek-chat').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              userId: 'tenant_123-user',
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          stream: true,
+          user_id: 'tenant_123-user',
+        });
       });
 
       it('should stream text', async () => {
@@ -873,6 +1024,61 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('assistant prefix completion', () => {
+      beforeEach(() => {
+        const chunks = fs
+          .readFileSync(
+            'src/chat/__fixtures__/deepseek-text.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .map(line => `data: ${line}\n\n`);
+        chunks.push('data: [DONE]\n\n');
+
+        server.urls['https://api.deepseek.com/beta/chat/completions'].response =
+          {
+            type: 'stream-chunks',
+            chunks,
+          };
+      });
+
+      it('should send prefix true on the final assistant message', async () => {
+        await betaProvider.chat('deepseek-chat').doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Complete this sentence.' }],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The answer is' }],
+              providerOptions: {
+                deepseek: {
+                  prefix: true,
+                } satisfies DeepSeekAssistantMessageProviderOptions,
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          messages: [
+            {
+              role: 'user',
+              content: 'Complete this sentence.',
+            },
+            {
+              role: 'assistant',
+              content: 'The answer is',
+              prefix: true,
+            },
+          ],
+          model: 'deepseek-chat',
+          stream: true,
+        });
       });
     });
   });
