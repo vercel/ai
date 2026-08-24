@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 19390,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19390-deepseek-file-object-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19390-deepseek-file-object-metadata.ts",
+    "packages/deepseek/src/files/__fixtures__/deepseek-file-upload.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #19390: DeepSeek upload result discarded response object discriminator \"file\"."
+  }
+}
