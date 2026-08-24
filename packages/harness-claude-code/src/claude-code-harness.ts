@@ -1681,6 +1681,16 @@ function createSession({
         abortSignal: promptOpts.abortSignal,
       });
 
+      /*
+       * A signal that was already aborted has settled the turn inside
+       * `wireTurn`. Sending `start` anyway would run a full unattended turn
+       * in the bridge — consuming tokens and possibly acting on the
+       * workspace — after the caller has already observed the abort.
+       */
+      if (promptOpts.abortSignal?.aborted) {
+        return control;
+      }
+
       const startMessage = {
         type: 'start' as const,
         prompt: extractUserText(promptOpts.prompt),
@@ -1743,7 +1753,9 @@ function createSession({
        * recomputed. This is the rare bridge-died fallback; the common slice path
        * is `attach`.
        */
-      if (rerunContinue) {
+      // Same as `doPromptTurn`: an already-aborted signal settled the turn in
+      // `wireTurn`, so don't re-drive the thread nobody is waiting on.
+      if (rerunContinue && !continueOpts.abortSignal?.aborted) {
         pendingResumeFlag = false;
         channel.send({
           type: 'start' as const,

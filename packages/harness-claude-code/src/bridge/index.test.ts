@@ -21,11 +21,18 @@ const state = vi.hoisted(() => ({
   steering: false,
   acceptedUserMessages: [] as string[],
   queryInputs: [] as unknown[],
+  /** Per-test query factory; falls back to the `state.messages` generator. */
+  createQuery: undefined as ((args: QueryArgs) => unknown) | undefined,
+  /** Per-test turn abort controller; defaults to a fresh, never-aborted one. */
+  turnAbortController: undefined as AbortController | undefined,
+  /** Per-test error sink; defaults to a no-op. */
+  emitError: undefined as ((input: unknown) => void) | undefined,
 }));
 
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
   query: (args: QueryArgs) => {
     state.queryArgs.push(args);
+    if (state.createQuery) return state.createQuery(args);
     return (async function* () {
       if (state.steering) {
         const input = args.prompt[Symbol.asyncIterator]();
@@ -73,7 +80,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     onStart: (start: unknown, turn: unknown) => Promise<void>;
   }) => {
     await onStart(state.start, {
-      abortSignal: new AbortController().signal,
+      abortSignal: (state.turnAbortController ?? new AbortController()).signal,
       experimental_userMessages: {
         pendingCount: state.steering ? 1 : 0,
         close: () => {},
@@ -90,7 +97,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
       firstTurn: true,
       emit: (event: Record<string, unknown>) => state.emitted.push(event),
       emitWarning: () => {},
-      emitError: () => {},
+      emitError: (input: unknown) => state.emitError?.(input),
       requestToolResult: async () => ({ output: {} }),
       requestToolApproval: async () => ({ approved: true }),
     });
@@ -108,6 +115,9 @@ describe('Claude Code bridge configuration', () => {
       },
     ];
     state.queryArgs = [];
+    state.createQuery = undefined;
+    state.turnAbortController = undefined;
+    state.emitError = undefined;
     state.start = {
       prompt: 'Inspect the project.',
       thinking: { type: 'disabled' },
@@ -297,5 +307,47 @@ describe('Claude Code bridge configuration', () => {
         content: [{ type: 'text', text: 'Actually, Paris, Texas.' }],
       },
     });
+  });
+
+  test('a host abort interrupts the query gracefully, stays quiet, and disposes it', async () => {
+    const turnAbort = new AbortController();
+    state.turnAbortController = turnAbort;
+    const emitError = vi.fn();
+    state.emitError = emitError;
+
+    // A query that stays in flight until `interrupt()` is called, then settles
+    // with the error-shaped result an interrupted Claude query reports.
+    let releaseInterrupt!: () => void;
+    const interrupted = new Promise<void>(resolve => {
+      releaseInterrupt = resolve;
+    });
+    const generator = (async function* () {
+      await interrupted;
+      yield {
+        type: 'result',
+        subtype: 'error_during_execution',
+        errors: ['Interrupted by user'],
+      };
+    })();
+    const interrupt = vi.fn(async () => releaseInterrupt());
+    const disposed = vi.fn();
+    const originalReturn = generator.return.bind(generator);
+    generator.return = ((value?: unknown) => {
+      disposed();
+      return originalReturn(value as never);
+    }) as typeof generator.return;
+
+    state.createQuery = () => {
+      // Abort only once the turn holds the query, so the graceful
+      // `interrupt()` path is taken rather than the pre-query hard abort.
+      queueMicrotask(() => turnAbort.abort());
+      return Object.assign(generator, { interrupt });
+    };
+
+    await import('./index');
+
+    expect(interrupt).toHaveBeenCalledTimes(1);
+    expect(emitError).not.toHaveBeenCalled();
+    expect(disposed).toHaveBeenCalled();
   });
 });
