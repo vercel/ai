@@ -140,6 +140,53 @@ for await (const part of result.stream) {
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
+### Chat Prefix Completion
+
+DeepSeek's beta [chat prefix completion](https://api-docs.deepseek.com/guides/chat_prefix_completion/)
+continues the content of a final assistant message. Create a provider with a
+beta base URL and set `prefix: true` in that assistant message's provider
+options:
+
+```ts highlight="8,20-26"
+import {
+  createDeepSeek,
+  type DeepSeekAssistantMessageProviderOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const deepSeek = createDeepSeek({
+  baseURL: 'https://api.deepseek.com/beta',
+});
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-chat'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Write a short sentence about the color of the sky.',
+    },
+    {
+      role: 'assistant',
+      content: 'The sky is',
+      providerOptions: {
+        deepseek: {
+          prefix: true,
+        } satisfies DeepSeekAssistantMessageProviderOptions,
+      },
+    },
+  ],
+});
+```
+
+The prefixed message must be an assistant message and the final message in the
+prompt. The configured `baseURL` must end in `/beta`, including when using a
+proxy. Invalid placement or a non-beta base URL causes the request to fail
+before it is sent.
+
+<Note>
+  Chat prefix completion is a DeepSeek beta feature and its behavior may change.
+</Note>
+
 ### Cache Token Usage
 
 DeepSeek provides context caching on disk technology that can significantly reduce token costs for repeated content. You can access the cache hit/miss metrics through the `providerMetadata` property in the response:
