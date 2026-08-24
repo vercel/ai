@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 19240,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19240-mcp-tools-pagination.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-19240-mcp-tools-pagination.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19240_REPRODUCED: client.tools() omitted page-2 tools"
+  }
+}
