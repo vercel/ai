@@ -114,6 +114,7 @@ export const deepseekChatResponseSchema = z.object({
   created: z.number().nullish(),
   model: z.string().nullish(),
   object: z.literal('chat.completion').nullish(),
+  system_fingerprint: z.string().nullish(),
   choices: z.array(
     z.object({
       index: z.number().nullish(),
@@ -150,6 +151,7 @@ export const deepseekChatChunkSchema = lazySchema(() =>
         created: z.number().nullish(),
         model: z.string().nullish(),
         object: z.literal('chat.completion.chunk').nullish(),
+        system_fingerprint: z.string().nullish(),
         choices: z.array(
           z.object({
             index: z.number().nullish(),

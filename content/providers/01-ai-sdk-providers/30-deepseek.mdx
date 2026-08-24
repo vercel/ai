@@ -90,16 +90,20 @@ The following optional provider options are available for DeepSeek models:
 - `thinking` _object_
 
   Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
-  - `type`: `'adaptive' | 'enabled' | 'disabled'` - Enable, disable, or let the model decide (`adaptive`) when to think. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
+  - `type`: `'enabled' | 'disabled'` - Enable or disable thinking mode. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
 
-- `reasoningEffort` _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+- `reasoningEffort` _'low' | 'high' | 'max'_
 
-  Optional. Controls thinking strength for DeepSeek V4 reasoning models. Per
-  DeepSeek's docs, `low` and `medium` are mapped to `high`, and `xhigh` is
-  mapped to `max` server-side for compatibility with other providers. When
-  using the top-level `reasoning` setting, `minimal` is sent as `low`, and
-  `low`, `medium`, `high`, and `xhigh` pass through to DeepSeek's native
-  effort values.
+  Optional. Controls thinking strength for DeepSeek V4 reasoning models. When
+  using the top-level `reasoning` setting, `minimal` is sent as `low`,
+  `medium` is sent as `high`, and `xhigh` is sent as `max`. A compatibility
+  warning is returned whenever the requested value is mapped.
+
+For backwards compatibility, legacy provider options supplied at runtime are
+also mapped to documented values: `thinking.type: 'adaptive'` becomes
+`'enabled'`, `reasoningEffort: 'medium'` becomes `'high'`, and
+`reasoningEffort: 'xhigh'` becomes `'max'`. Each mapping returns a compatibility
+warning so callers can migrate to a canonical value.
 
 ```ts highlight="7-15"
 import {
@@ -195,9 +199,10 @@ before it is sent.
   Chat prefix completion is a DeepSeek beta feature and its behavior may change.
 </Note>
 
-### Cache Token Usage
+### Provider Metadata
 
-DeepSeek provides context caching on disk technology that can significantly reduce token costs for repeated content. You can access the cache hit/miss metrics through the `providerMetadata` property in the response:
+DeepSeek exposes the response system fingerprint and context cache usage through
+the `providerMetadata` property:
 
 ```ts
 import { deepSeek } from '@ai-sdk/deepseek';
@@ -209,13 +214,24 @@ const result = await generateText({
 });
 
 console.log(result.providerMetadata);
-// Example output: { deepseek: { promptCacheHitTokens: 1856, promptCacheMissTokens: 5 } }
+// Example output:
+// {
+//   deepseek: {
+//     systemFingerprint: 'fp_eaab8d114b_prod0820_fp8_kvcache',
+//     promptCacheHitTokens: 1856,
+//     promptCacheMissTokens: 5,
+//   },
+// }
 ```
 
-The metrics include:
+The metadata includes:
 
+- `systemFingerprint`: The backend configuration fingerprint for the response
 - `promptCacheHitTokens`: Number of input tokens that were cached
 - `promptCacheMissTokens`: Number of input tokens that were not cached
+
+For streamed responses, the latest non-null fingerprint from the response
+chunks is returned.
 
 <Note>
   For more details about DeepSeek's caching system, see the [DeepSeek caching
@@ -274,6 +290,14 @@ const { text } = await generateText({
 ```
 
 The optional `expiresAfter` setting specifies the lifetime in seconds. DeepSeek accepts values from 3,600 seconds (one hour) through 2,592,000 seconds (30 days). Files are permanent when no expiration is specified.
+
+DeepSeek file uploads support JPEG (`.jpg` and `.jpeg`), PNG, GIF, and WebP
+images. Each file can be at most 64 MiB, and filenames can contain at most 512
+characters. The AI SDK validates these constraints before sending the upload
+request. The `image/jpg` media type alias is accepted, and a supported filename
+extension is used as a fallback when the media type is generic (for example,
+`application/octet-stream`). Recognizable non-image content is rejected even
+when its declared media type or filename indicates a supported image format.
 
 ## Model Capabilities
 

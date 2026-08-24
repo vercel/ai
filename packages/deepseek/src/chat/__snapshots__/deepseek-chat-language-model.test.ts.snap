@@ -25,6 +25,7 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
       "promptCacheHitTokens": 0,
       "promptCacheMissTokens": 18,
       "responseObject": "chat.completion",
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -151,6 +152,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
       "promptCacheHitTokens": 0,
       "promptCacheMissTokens": 13,
       "responseObject": "chat.completion",
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -276,6 +278,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
       "promptCacheHitTokens": 320,
       "promptCacheMissTokens": 175,
       "responseObject": "chat.completion",
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -425,6 +428,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
       "promptCacheHitTokens": 320,
       "promptCacheMissTokens": 19,
       "responseObject": "chat.completion",
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
       "toolCallTypes": [
         "function",
       ],
@@ -1700,6 +1704,7 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
         "promptCacheHitTokens": 0,
         "promptCacheMissTokens": 18,
         "responseObject": "chat.completion.chunk",
+        "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
       },
     },
     "type": "finish",
@@ -3780,6 +3785,7 @@ exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = 
         "promptCacheHitTokens": 0,
         "promptCacheMissTokens": 13,
         "responseObject": "chat.completion.chunk",
+        "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
       },
     },
     "type": "finish",
@@ -4099,6 +4105,7 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
         "promptCacheHitTokens": 320,
         "promptCacheMissTokens": 19,
         "responseObject": "chat.completion.chunk",
+        "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
         "toolCallTypes": [
           "function",
         ],
