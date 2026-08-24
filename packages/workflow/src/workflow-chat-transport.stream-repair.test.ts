@@ -78,16 +78,14 @@ async function sendAndConsume(chunks: UIMessageChunk[]) {
 }
 
 // A duplicated/interleaved execution of the stream-producing step lands a
-// `finish-step` in the middle of a text part that reuses id "0", orphaning the
-// rest of the part. This is the exact shape behind
-// "Received text-delta for missing text part with ID 0" (vercel/workflow#2422).
+// `finish-step` in the middle of a text part that reuses id "0".
 const INTERLEAVED: UIMessageChunk[] = [
   { type: 'start', messageId: 'm1' },
   { type: 'start-step' },
   { type: 'text-start', id: '0' },
   { type: 'text-delta', id: '0', delta: 'Hello' },
-  // finish-step from a second/duplicated execution resets the consumer's
-  // active text parts, closing id "0" prematurely.
+  // finish-step from a second/duplicated execution arrives while id "0" is
+  // still active.
   { type: 'finish-step' },
   { type: 'text-delta', id: '0', delta: ' world' },
   { type: 'text-end', id: '0' },
@@ -95,9 +93,7 @@ const INTERLEAVED: UIMessageChunk[] = [
 ];
 
 describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
-  it('demonstrates the raw interleaved stream is fatal to the AI SDK consumer', async () => {
-    // Sanity check on the unrepaired stream: prove the chunk shape really does
-    // trigger the reported error, so the repair test below is meaningful.
+  it('consumes a raw interleaved text stream without losing content', async () => {
     const raw = new ReadableStream<UIMessageChunk>({
       start(controller) {
         for (const chunk of INTERLEAVED) {
@@ -106,10 +102,9 @@ describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
         controller.close();
       },
     });
-    const { consumerError } = await consume(raw);
-    expect(consumerError?.message).toContain(
-      'Received text-delta for missing text part with ID "0"',
-    );
+    const { consumerError, text } = await consume(raw);
+    expect(consumerError).toBeUndefined();
+    expect(text).toBe('Hello world');
   });
 
   it('repairs an interleaved stream so the consumer does not fail the turn', async () => {
@@ -145,7 +140,7 @@ describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
       { type: 'text-delta', id: '0', delta: 'one' },
       { type: 'text-end', id: '0' },
       { type: 'finish-step' },
-      // Second step legitimately reuses id "0" after the consumer reset.
+      // Second step legitimately reuses id "0" after the part ended.
       { type: 'start-step' },
       { type: 'text-start', id: '0' },
       { type: 'text-delta', id: '0', delta: 'two' },
@@ -158,23 +153,21 @@ describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
     expect(text).toBe('onetwo');
   });
 
-  // Reasoning parts have the same fragility as text (the consumer resets
-  // activeReasoningParts on finish-step and ids are reused), so the repair must
-  // cover them too. Drives the real consumer rather than asserting structurally.
+  // Reasoning parts can be interleaved in the same way as text parts. Drive the
+  // real consumer rather than asserting structurally.
   const INTERLEAVED_REASONING: UIMessageChunk[] = [
     { type: 'start', messageId: 'm1' },
     { type: 'start-step' },
     { type: 'reasoning-start', id: '0' },
     { type: 'reasoning-delta', id: '0', delta: 'Think' },
-    // finish-step from a duplicated execution resets activeReasoningParts,
-    // orphaning the rest of id "0".
+    // finish-step from a duplicated execution arrives while id "0" is active.
     { type: 'finish-step' },
     { type: 'reasoning-delta', id: '0', delta: 'ing...' },
     { type: 'reasoning-end', id: '0' },
     { type: 'finish' },
   ];
 
-  it('demonstrates the raw interleaved reasoning stream is fatal to the consumer', async () => {
+  it('consumes a raw interleaved reasoning stream without losing content', async () => {
     const raw = new ReadableStream<UIMessageChunk>({
       start(controller) {
         for (const chunk of INTERLEAVED_REASONING) {
@@ -183,10 +176,9 @@ describe('WorkflowChatTransport UI message stream repair (issue #2422)', () => {
         controller.close();
       },
     });
-    const { consumerError } = await consume(raw);
-    expect(consumerError?.message).toContain(
-      'Received reasoning-delta for missing reasoning part with ID "0"',
-    );
+    const { consumerError, reasoning } = await consume(raw);
+    expect(consumerError).toBeUndefined();
+    expect(reasoning).toBe('Thinking...');
   });
 
   it('repairs an interleaved reasoning stream with no content lost', async () => {
