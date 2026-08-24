@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19358,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19358-validate-ui-message-tool-input.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19358-validate-ui-message-tool-input.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19358_REPRODUCED: safeValidateUIMessages accepted stale tool input and typed access to input.bar.value crashed"
+  }
+}
