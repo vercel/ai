@@ -26,6 +26,15 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
 
 const providerReferenceSchema = z.record(z.string(), z.string());
 
+function isEmptyObject(value: unknown): value is Record<string, never> {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
+  );
+}
+
 const uiMessagesSchema = lazySchema(() =>
   zodSchema(
     z
@@ -472,15 +481,6 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             const toolName = toolPart.type.slice(5);
             const tool = getOwn(tools, toolName);
 
-            if (
-              !tool &&
-              (toolPart.state === 'output-available' ||
-                toolPart.state === 'output-error' ||
-                toolPart.state === 'output-denied')
-            ) {
-              continue;
-            }
-
             // TODO support dynamic tools
             if (!tool) {
               return {
@@ -498,13 +498,14 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             }
 
             // Tool input validation
-            // Note: input is intentionally not re-validated for `output-error`
-            // states. A tool call that failed with an invalid-input error keeps
-            // its (invalid) input, and re-validating it on replay would throw a
-            // TypeValidationError that crashes follow-up messages.
+            // Empty output-available input is retained for compatibility with
+            // aborted tool calls that were persisted before their input was
+            // streamed. Other output-available input is validated so obsolete
+            // persisted schemas cannot be exposed as the current UIMessage type.
             if (
               toolPart.state === 'input-available' ||
-              toolPart.state === 'output-available'
+              (toolPart.state === 'output-available' &&
+                !isEmptyObject(toolPart.input))
             ) {
               await validateTypes({
                 value: toolPart.input,

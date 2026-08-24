@@ -1179,6 +1179,33 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should preserve aborted output-available tool calls with empty input', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: {} as { foo: string },
+              output: { result: 'Tool was aborted by the user.' },
+            },
+          ],
+        },
+      ];
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages).toEqual(inputMessages);
+    });
+
     it('should validate tool output when state is output-available', async () => {
       await expect(
         validateUIMessages<TestMessage>({
@@ -1191,7 +1218,7 @@ describe('validateUIMessages', () => {
                   type: 'tool-foo',
                   toolCallId: '1',
                   state: 'output-available',
-                  input: { foo: 'bar' },
+                  input: {} as { foo: string },
                   output: {} as { result: string },
                 },
               ],
@@ -1448,7 +1475,7 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should skip validation for tool part in output-available state when tool schema is missing', async () => {
+    it('should reject a tool part in output-available state when the current tool is missing', async () => {
       const inputMessages: TestMessage[] = [
         {
           id: '1',
@@ -1466,17 +1493,17 @@ describe('validateUIMessages', () => {
         },
       ];
 
-      const result = await validateUIMessages<TestMessage>({
-        messages: inputMessages,
-        tools: {
-          foo: testTool,
-        },
-      });
-
-      expect(result).toEqual(inputMessages);
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: inputMessages,
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError('No tool schema found for tool part bar');
     });
 
-    it('should skip validation for tool part in output-error state when tool schema is missing', async () => {
+    it('should reject a tool part in output-error state when the current tool is missing', async () => {
       const inputMessages: TestMessage[] = [
         {
           id: '1',
@@ -1494,17 +1521,17 @@ describe('validateUIMessages', () => {
         },
       ];
 
-      const result = await validateUIMessages<TestMessage>({
-        messages: inputMessages,
-        tools: {
-          foo: testTool,
-        },
-      });
-
-      expect(result).toEqual(inputMessages);
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: inputMessages,
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError('No tool schema found for tool part bar');
     });
 
-    it('should skip validation for tool part in output-denied state when tool schema is missing', async () => {
+    it('should reject a tool part in output-denied state when the current tool is missing', async () => {
       const inputMessages: TestMessage[] = [
         {
           id: '1',
@@ -1524,14 +1551,14 @@ describe('validateUIMessages', () => {
         },
       ];
 
-      const result = await validateUIMessages<TestMessage>({
-        messages: inputMessages,
-        tools: {
-          foo: testTool,
-        },
-      });
-
-      expect(result).toEqual(inputMessages);
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: inputMessages,
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError('No tool schema found for tool part bar');
     });
 
     it('should validate automatic approval reasons on output parts', async () => {
