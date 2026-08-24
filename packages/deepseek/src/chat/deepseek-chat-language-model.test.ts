@@ -913,7 +913,7 @@ describe('DeepSeekChatLanguageModel', () => {
           };
       });
 
-      it('should send prefix true on the final assistant message', async () => {
+      it('should send name and prefix on the final assistant message', async () => {
         await betaProvider.chat('deepseek-chat').doGenerate({
           prompt: [
             {
@@ -925,6 +925,7 @@ describe('DeepSeekChatLanguageModel', () => {
               content: [{ type: 'text', text: 'The answer is' }],
               providerOptions: {
                 deepseek: {
+                  name: 'assistant',
                   prefix: true,
                 } satisfies DeepSeekAssistantMessageProviderOptions,
               },
@@ -941,6 +942,7 @@ describe('DeepSeekChatLanguageModel', () => {
             {
               role: 'assistant',
               content: 'The answer is',
+              name: 'assistant',
               prefix: true,
             },
           ],

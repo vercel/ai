@@ -16,10 +16,7 @@ import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
 } from './deepseek-chat-api-types';
-import {
-  deepseekAssistantMessageProviderOptions,
-  deepseekMessageProviderOptions,
-} from './deepseek-chat-language-model-options';
+import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
 
 export async function convertToDeepSeekChatMessages({
   prompt,
@@ -78,22 +75,15 @@ export async function convertToDeepSeekChatMessages({
   for (const { role, content, providerOptions } of prompt) {
     index++;
 
+    // The assistant schema extends the common message schema, so one parse
+    // validates names for every role and the assistant-only prefix option.
     const deepseekMessageOptions = await parseProviderOptions({
-      provider: providerOptionsName,
-      providerOptions,
-      schema: deepseekMessageProviderOptions,
-    });
-
-    const deepseekAssistantMessageOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
       schema: deepseekAssistantMessageProviderOptions,
     });
 
-    if (
-      deepseekAssistantMessageOptions?.prefix === true &&
-      role !== 'assistant'
-    ) {
+    if (deepseekMessageOptions?.prefix === true && role !== 'assistant') {
       throw new InvalidPromptError({
         prompt,
         message:
@@ -197,7 +187,7 @@ export async function convertToDeepSeekChatMessages({
         break;
       }
       case 'assistant': {
-        if (deepseekAssistantMessageOptions?.prefix === true) {
+        if (deepseekMessageOptions?.prefix === true) {
           if (index !== prompt.length - 1) {
             throw new InvalidPromptError({
               prompt,
@@ -265,7 +255,7 @@ export async function convertToDeepSeekChatMessages({
           ...(deepseekMessageOptions?.name != null && {
             name: deepseekMessageOptions.name,
           }),
-          ...(deepseekAssistantMessageOptions?.prefix === true && {
+          ...(deepseekMessageOptions?.prefix === true && {
             prefix: true,
           }),
           reasoning_content: reasoning ?? (isDeepSeekV4 ? '' : undefined),

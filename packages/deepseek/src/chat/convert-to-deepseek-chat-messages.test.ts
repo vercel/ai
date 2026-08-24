@@ -157,6 +157,31 @@ describe('convertToDeepSeekChatMessages', () => {
         }),
       ).rejects.toThrow('invalid deepseek provider options');
     });
+
+    it('should serialize a name from a custom provider options namespace', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              azure: { name: 'alice' },
+            },
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+        providerOptionsName: 'azure',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: 'Hello',
+          name: 'alice',
+        },
+      ]);
+    });
   });
 
   describe('user messages', () => {

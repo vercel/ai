@@ -19,9 +19,11 @@ describe('DeepSeekLanguageModelChatOptions', () => {
 
 it('should type assistant prefix completion options', () => {
   const options = {
+    name: 'assistant',
     prefix: true,
   } satisfies DeepSeekAssistantMessageProviderOptions;
 
+  expectTypeOf(options.name).toEqualTypeOf<string>();
   expectTypeOf(options.prefix).toEqualTypeOf<true>();
 });
 
