@@ -106,6 +106,29 @@ export const deepSeekErrorSchema = z.object({
 
 export type DeepSeekErrorData = z.infer<typeof deepSeekErrorSchema>;
 
+const deepseekChatTopLogprobSchema = z.object({
+  token: z.string(),
+  logprob: z.number(),
+  bytes: z.array(z.number().int()).nullish(),
+});
+
+const deepseekChatLogprobSchema = z.object({
+  token: z.string(),
+  logprob: z.number(),
+  bytes: z.array(z.number().int()).nullish(),
+  top_logprobs: z.array(deepseekChatTopLogprobSchema).nullish(),
+});
+
+const deepseekChatLogprobsSchema = z
+  .object({
+    content: z.array(deepseekChatLogprobSchema).nullish(),
+    reasoning_content: z.array(deepseekChatLogprobSchema).nullish(),
+  })
+  .nullish();
+
+export type DeepSeekChatLogprob = z.infer<typeof deepseekChatLogprobSchema>;
+export type DeepSeekChatLogprobs = z.infer<typeof deepseekChatLogprobsSchema>;
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const deepseekChatResponseSchema = z.object({
@@ -130,6 +153,7 @@ export const deepseekChatResponseSchema = z.object({
           )
           .nullish(),
       }),
+      logprobs: deepseekChatLogprobsSchema,
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -166,6 +190,7 @@ export const deepseekChatChunkSchema = lazySchema(() =>
                   .nullish(),
               })
               .nullish(),
+            logprobs: deepseekChatLogprobsSchema,
             finish_reason: z.string().nullish(),
           }),
         ),

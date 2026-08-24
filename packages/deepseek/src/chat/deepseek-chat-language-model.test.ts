@@ -318,6 +318,168 @@ describe('DeepSeekChatLanguageModel', () => {
       });
     });
 
+    describe('log probabilities', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('deepseek-logprobs');
+      });
+
+      it.each([0, 20])(
+        'should serialize topLogprobs boundary value %s and enable logprobs',
+        async topLogprobs => {
+          await provider.chat('deepseek-chat').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              deepseek: {
+                topLogprobs,
+              } satisfies DeepSeekLanguageModelChatOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.logprobs).toBe(true);
+          expect(requestBody.top_logprobs).toBe(topLogprobs);
+        },
+      );
+
+      it('should serialize logprobs false without top_logprobs', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: false,
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.logprobs).toBe(false);
+        expect(requestBody.top_logprobs).toBeUndefined();
+      });
+
+      it('should omit log probability options by default', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.logprobs).toBeUndefined();
+        expect(requestBody.top_logprobs).toBeUndefined();
+      });
+
+      it.each([-1, 21, 1.5])(
+        'should reject invalid topLogprobs value %s',
+        async topLogprobs => {
+          await expect(
+            provider.chat('deepseek-chat').doGenerate({
+              prompt: TEST_PROMPT,
+              providerOptions: {
+                deepseek: {
+                  topLogprobs,
+                },
+              },
+            }),
+          ).rejects.toThrow('invalid deepseek provider options');
+        },
+      );
+
+      it('should reject topLogprobs when logprobs is false', async () => {
+        await expect(
+          provider.chat('deepseek-chat').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              deepseek: {
+                logprobs: false,
+                topLogprobs: 3,
+              },
+            },
+          }),
+        ).rejects.toThrow('invalid deepseek provider options');
+      });
+
+      it('should preserve content and reasoning log probabilities in provider metadata', async () => {
+        const result = await provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: true,
+              topLogprobs: 2,
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        expect(result.providerMetadata?.deepseek).toStrictEqual({
+          promptCacheHitTokens: 1,
+          promptCacheMissTokens: 2,
+          logprobs: [
+            {
+              token: 'Answer',
+              logprob: -0.2,
+              bytes: null,
+              top_logprobs: [
+                {
+                  token: 'Answer',
+                  logprob: -0.2,
+                },
+              ],
+            },
+          ],
+          reasoningLogprobs: [
+            {
+              token: 'Think',
+              logprob: -0.1,
+              bytes: [84, 104, 105, 110, 107],
+              top_logprobs: [
+                {
+                  token: 'Think',
+                  logprob: -0.1,
+                  bytes: [84, 104, 105, 110, 107],
+                },
+                {
+                  token: 'Consider',
+                  logprob: -1.2,
+                  bytes: null,
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it.each(['null', 'omitted'])(
+        'should not add log probability metadata when response logprobs are %s',
+        async logprobsRepresentation => {
+          const response = JSON.parse(
+            fs.readFileSync(
+              'src/chat/__fixtures__/deepseek-logprobs.json',
+              'utf8',
+            ),
+          );
+
+          if (logprobsRepresentation === 'null') {
+            response.choices[0].logprobs = null;
+          } else {
+            delete response.choices[0].logprobs;
+          }
+
+          server.urls['https://api.deepseek.com/chat/completions'].response = {
+            type: 'json-value',
+            body: response,
+          };
+
+          const result = await provider.chat('deepseek-chat').doGenerate({
+            prompt: TEST_PROMPT,
+          });
+
+          expect(result.providerMetadata?.deepseek).not.toHaveProperty(
+            'logprobs',
+          );
+          expect(result.providerMetadata?.deepseek).not.toHaveProperty(
+            'reasoningLogprobs',
+          );
+        },
+      );
+    });
+
     describe('tool call', () => {
       beforeEach(() => {
         prepareJsonFixtureResponse('deepseek-tool-call');
@@ -777,6 +939,119 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('log probabilities', () => {
+      beforeEach(() => {
+        prepareChunksFixtureResponse('deepseek-logprobs');
+      });
+
+      it('should serialize log probability options for streaming', async () => {
+        await provider.chat('deepseek-chat').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: true,
+              topLogprobs: 3,
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.logprobs).toBe(true);
+        expect(requestBody.top_logprobs).toBe(3);
+      });
+
+      it('should accumulate content and reasoning log probabilities across chunks', async () => {
+        const result = await provider.chat('deepseek-chat').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: true,
+              topLogprobs: 1,
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        const chunks = await convertReadableStreamToArray(result.stream);
+        const finishChunk = chunks.at(-1);
+
+        expect(finishChunk).toMatchObject({
+          type: 'finish',
+          providerMetadata: {
+            deepseek: {
+              promptCacheHitTokens: 1,
+              promptCacheMissTokens: 2,
+              logprobs: [
+                {
+                  token: 'Answer',
+                  logprob: -0.2,
+                  bytes: [65, 110, 115, 119, 101, 114],
+                  top_logprobs: [
+                    {
+                      token: 'Answer',
+                      logprob: -0.2,
+                    },
+                  ],
+                },
+                {
+                  token: '.',
+                  logprob: -0.05,
+                  bytes: [46],
+                  top_logprobs: [],
+                },
+              ],
+              reasoningLogprobs: [
+                {
+                  token: 'Think',
+                  logprob: -0.1,
+                  bytes: [84, 104, 105, 110, 107],
+                },
+                {
+                  token: ' more',
+                  logprob: -0.3,
+                  bytes: null,
+                },
+              ],
+            },
+          },
+        });
+      });
+
+      it('should preserve logprobs false in the streaming request', async () => {
+        await provider.chat('deepseek-chat').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: false,
+            } satisfies DeepSeekLanguageModelChatOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.logprobs).toBe(false);
+        expect(requestBody.top_logprobs).toBeUndefined();
+      });
+
+      it('should omit log probability metadata for null SSE logprobs', async () => {
+        prepareChunksFixtureResponse('deepseek-text');
+
+        const result = await provider.chat('deepseek-chat').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const chunks = await convertReadableStreamToArray(result.stream);
+        const finishChunk = chunks.at(-1);
+        const providerMetadata =
+          finishChunk?.type === 'finish'
+            ? finishChunk.providerMetadata
+            : undefined;
+
+        expect(providerMetadata?.deepseek).not.toHaveProperty('logprobs');
+        expect(providerMetadata?.deepseek).not.toHaveProperty(
+          'reasoningLogprobs',
+        );
       });
     });
 

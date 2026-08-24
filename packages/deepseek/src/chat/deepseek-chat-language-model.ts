@@ -7,6 +7,7 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -34,6 +35,8 @@ import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
   deepSeekErrorSchema,
+  type DeepSeekChatLogprob,
+  type DeepSeekChatLogprobs,
   type DeepSeekChatTokenUsage,
 } from './deepseek-chat-api-types';
 import {
@@ -43,6 +46,34 @@ import {
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
+
+function createDeepSeekProviderMetadata({
+  providerName,
+  usage,
+  logprobs,
+}: {
+  providerName: string;
+  usage: DeepSeekChatTokenUsage | undefined;
+  logprobs: DeepSeekChatLogprobs | undefined;
+}): SharedV4ProviderMetadata {
+  const providerMetadata: SharedV4ProviderMetadata = {
+    [providerName]: {
+      promptCacheHitTokens: usage?.prompt_cache_hit_tokens,
+      promptCacheMissTokens: usage?.prompt_cache_miss_tokens,
+    },
+  };
+
+  if (logprobs?.content != null) {
+    providerMetadata[providerName].logprobs = logprobs.content;
+  }
+
+  if (logprobs?.reasoning_content != null) {
+    providerMetadata[providerName].reasoningLogprobs =
+      logprobs.reasoning_content;
+  }
+
+  return providerMetadata;
+}
 
 export type DeepSeekChatConfig = {
   provider: string;
@@ -174,6 +205,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
           })
         : undefined);
 
+    const logprobs =
+      deepseekOptions.logprobs ??
+      (deepseekOptions.topLogprobs != null ? true : undefined);
+
     return {
       args: {
         model: this.modelId,
@@ -182,6 +217,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         top_p: topP,
         frequency_penalty: frequencyPenalty,
         presence_penalty: presencePenalty,
+        ...(logprobs != null ? { logprobs } : {}),
+        ...(deepseekOptions.topLogprobs != null
+          ? { top_logprobs: deepseekOptions.topLogprobs }
+          : {}),
         response_format:
           responseFormat?.type === 'json'
             ? supportsStructuredOutputs && responseFormat.schema != null
@@ -271,12 +310,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertDeepSeekUsage(responseBody.usage),
-      providerMetadata: {
-        [this.providerOptionsName]: {
-          promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
-          promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
-        },
-      },
+      providerMetadata: createDeepSeekProviderMetadata({
+        providerName: this.providerOptionsName,
+        usage: responseBody.usage,
+        logprobs: choice.logprobs,
+      }),
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -324,6 +362,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let contentLogprobs: Array<DeepSeekChatLogprob> | undefined;
+    let reasoningLogprobs: Array<DeepSeekChatLogprob> | undefined;
 
     return {
       stream: response.pipeThrough(
@@ -379,6 +419,20 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                 unified: mapDeepSeekFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
+            }
+
+            if (choice?.logprobs?.content != null) {
+              contentLogprobs = [
+                ...(contentLogprobs ?? []),
+                ...choice.logprobs.content,
+              ];
+            }
+
+            if (choice?.logprobs?.reasoning_content != null) {
+              reasoningLogprobs = [
+                ...(reasoningLogprobs ?? []),
+                ...choice.logprobs.reasoning_content,
+              ];
             }
 
             if (choice?.delta == null) {
@@ -458,14 +512,17 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertDeepSeekUsage(usage),
-              providerMetadata: {
-                [providerOptionsName]: {
-                  promptCacheHitTokens:
-                    usage?.prompt_cache_hit_tokens ?? undefined,
-                  promptCacheMissTokens:
-                    usage?.prompt_cache_miss_tokens ?? undefined,
-                },
-              },
+              providerMetadata: createDeepSeekProviderMetadata({
+                providerName: providerOptionsName,
+                usage,
+                logprobs:
+                  contentLogprobs != null || reasoningLogprobs != null
+                    ? {
+                        content: contentLogprobs,
+                        reasoning_content: reasoningLogprobs,
+                      }
+                    : undefined,
+              }),
             });
           },
         }),

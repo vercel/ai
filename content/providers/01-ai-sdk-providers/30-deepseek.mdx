@@ -94,7 +94,19 @@ The following optional provider options are available for DeepSeek models:
   `low`, `medium`, `high`, and `xhigh` pass through to DeepSeek's native
   effort values.
 
-```ts highlight="7-12"
+- `logprobs` _boolean_
+
+  Optional. Whether to return log probabilities for generated answer and
+  reasoning tokens. Defaults to `false`.
+
+- `topLogprobs` _number_
+
+  Optional. The number of most likely tokens to return at each token position.
+  Must be an integer from `0` through `20`. Setting `topLogprobs` automatically
+  enables `logprobs` when `logprobs` is omitted. Combining `topLogprobs` with
+  `logprobs: false` is invalid.
+
+```ts highlight="7-14"
 import {
   deepSeek,
   type DeepSeekLanguageModelChatOptions,
@@ -108,10 +120,74 @@ const { text, reasoning } = await generateText({
     deepseek: {
       thinking: { type: 'enabled' },
       reasoningEffort: 'high',
+      logprobs: true,
+      topLogprobs: 3,
     } satisfies DeepSeekLanguageModelChatOptions,
   },
 });
 ```
+
+### Log Probabilities
+
+When log probabilities are enabled, DeepSeek returns them in provider metadata.
+Answer token probabilities are available as `logprobs`, while thinking token
+probabilities are available separately as `reasoningLogprobs`.
+
+```ts
+import {
+  deepSeek,
+  type DeepSeekLanguageModelChatOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: deepSeek('deepseek-chat'),
+  prompt: 'Reply with exactly one word for the color of the daytime sky.',
+  providerOptions: {
+    deepseek: {
+      logprobs: true,
+      topLogprobs: 3,
+    } satisfies DeepSeekLanguageModelChatOptions,
+  },
+});
+
+console.log(result.providerMetadata?.deepseek);
+// {
+//   logprobs: [{ token, logprob, bytes, top_logprobs }],
+//   reasoningLogprobs: [{ token, logprob, bytes, top_logprobs }],
+//   ...
+// }
+```
+
+The same metadata is accumulated across chunks when streaming and is available
+from the final `providerMetadata` promise:
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: deepSeek('deepseek-chat'),
+  prompt: 'Reply with exactly one word for the color of the daytime sky.',
+  providerOptions: {
+    deepseek: {
+      topLogprobs: 3,
+    },
+  },
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log(await result.providerMetadata);
+```
+
+<Note>
+  Log probabilities can substantially increase response and telemetry payload
+  sizes. Reasoning log probabilities can also contain sensitive intermediate
+  model output, so avoid logging provider metadata indiscriminately.
+</Note>
 
 ### Reasoning
 

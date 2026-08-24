@@ -1,0 +1,61 @@
+{
+  "id": "logprobs-response",
+  "object": "chat.completion",
+  "created": 1766500000,
+  "model": "deepseek-chat",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "reasoning_content": "Think",
+        "content": "Answer"
+      },
+      "logprobs": {
+        "reasoning_content": [
+          {
+            "token": "Think",
+            "logprob": -0.1,
+            "bytes": [84, 104, 105, 110, 107],
+            "top_logprobs": [
+              {
+                "token": "Think",
+                "logprob": -0.1,
+                "bytes": [84, 104, 105, 110, 107]
+              },
+              {
+                "token": "Consider",
+                "logprob": -1.2,
+                "bytes": null
+              }
+            ]
+          }
+        ],
+        "content": [
+          {
+            "token": "Answer",
+            "logprob": -0.2,
+            "bytes": null,
+            "top_logprobs": [
+              {
+                "token": "Answer",
+                "logprob": -0.2
+              }
+            ]
+          }
+        ]
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 3,
+    "completion_tokens": 2,
+    "prompt_cache_hit_tokens": 1,
+    "prompt_cache_miss_tokens": 2,
+    "total_tokens": 5,
+    "completion_tokens_details": {
+      "reasoning_tokens": 1
+    }
+  }
+}
