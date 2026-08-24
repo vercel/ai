@@ -1106,6 +1106,8 @@ if (status !== 'pending') {
 
 Starting a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
 
+When the serialized batch creation body is under 20 MB, the provider sends the requests inline. At 20 MB or more, it uploads a JSONL input file through the Gemini Files API.
+
 ## Realtime Models
 
 <Note type="warning">Realtime is an experimental feature.</Note>

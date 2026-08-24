@@ -40,6 +40,7 @@ import {
 import type { GoogleModelId } from './google-language-model-options';
 
 const googleBatchInputFileMaxBytes = 2 * 1024 * 1024 * 1024;
+const googleBatchInlineCreationMaxBytes = 20_000_000;
 const supportedGoogleBatchContentTypes = new Set<
   LanguageModelV4GenerateResult['content'][number]['type']
 >(['text', 'reasoning', 'source']);
@@ -63,6 +64,19 @@ const googleBatchStatsSchema = z.object({
 
 const googleBatchOutputSchema = z.object({
   responsesFile: z.string().nullish(),
+  inlinedResponses: z
+    .object({
+      inlinedResponses: z.array(
+        z.object({
+          metadata: z.object({
+            key: z.string(),
+          }),
+          response: z.unknown().nullish(),
+          error: googleRpcStatusSchema.nullish(),
+        }),
+      ),
+    })
+    .nullish(),
 });
 
 const googleBatchOperationSchema = lazySchema(() =>
@@ -79,7 +93,6 @@ const googleBatchOperationSchema = lazySchema(() =>
         .nullish(),
       done: z.boolean().nullish(),
       error: googleRpcStatusSchema.nullish(),
-      // Some older examples place batch output in the operation response.
       response: googleBatchOutputSchema.nullish(),
     }),
   ),
@@ -149,95 +162,171 @@ export class GoogleBatchLanguageModel
   async experimental_doStartBatch(
     options: BatchV4StartOptions<GoogleBatchRequest>,
   ): Promise<BatchV4StartResult> {
-    const fileParts: string[] = [];
     const warnings: BatchV4StartResult['warnings'] = [];
+    const displayName = `ai-sdk-batch-${this.batchGenerateId()}`;
+    const inlinedRequests: Array<{
+      request: unknown;
+      metadata: { key: string };
+    }> = [];
+    const inlineBatchBody = {
+      batch: {
+        displayName,
+        inputConfig: {
+          requests: { requests: inlinedRequests },
+        },
+      },
+    };
+    const textEncoder = new TextEncoder();
+    let inlineInputBytes = textEncoder.encode(
+      JSON.stringify(inlineBatchBody),
+    ).byteLength;
+    let fileParts: string[] | undefined;
 
     for (const request of options.requests) {
       const preparedRequest = await this.getArgs(request.options);
-      const requestLine = `${JSON.stringify({
-        key: request.id,
+      const inlinedRequest = {
         request: preparedRequest.args,
-      })}\n`;
-      fileParts.push(requestLine);
+        metadata: { key: request.id },
+      };
+
+      if (fileParts == null) {
+        const requestBytes = textEncoder.encode(
+          JSON.stringify(inlinedRequest),
+        ).byteLength;
+        const nextInlineInputBytes =
+          inlineInputBytes +
+          requestBytes +
+          (inlinedRequests.length > 0 ? 1 : 0);
+
+        if (nextInlineInputBytes < googleBatchInlineCreationMaxBytes) {
+          inlinedRequests.push(inlinedRequest);
+          inlineInputBytes = nextInlineInputBytes;
+        } else {
+          fileParts = [];
+          for (const previousRequest of inlinedRequests) {
+            fileParts.push(
+              JSON.stringify({
+                key: previousRequest.metadata.key,
+                request: previousRequest.request,
+              }),
+              '\n',
+            );
+          }
+          inlinedRequests.length = 0;
+          fileParts.push(
+            JSON.stringify({
+              key: request.id,
+              request: preparedRequest.args,
+            }),
+            '\n',
+          );
+        }
+      } else {
+        fileParts.push(
+          JSON.stringify({
+            key: request.id,
+            request: preparedRequest.args,
+          }),
+          '\n',
+        );
+      }
 
       for (const warning of preparedRequest.warnings) {
         warnings.push({ requestId: request.id, warning });
       }
     }
 
-    const inputFile = new Blob(fileParts, { type: 'application/jsonl' });
-    // Blob snapshots the strings, so release the potentially large input array.
-    fileParts.length = 0;
-    if (inputFile.size > googleBatchInputFileMaxBytes) {
-      throw new InvalidArgumentError({
-        argument: 'requests',
-        message: 'Google batch input files must not exceed 2 GB.',
-      });
-    }
-
-    const displayName = `ai-sdk-batch-${this.batchGenerateId()}`;
     const headers = await this.getHeaders(options.headers);
-    const { value: uploadUrl } = await postJsonToApi({
-      url: `${this.getBaseOrigin()}/upload/v1beta/files`,
-      headers: combineHeaders(headers, {
-        'X-Goog-Upload-Protocol': 'resumable',
-        'X-Goog-Upload-Command': 'start',
-        'X-Goog-Upload-Header-Content-Length': String(inputFile.size),
-        'X-Goog-Upload-Header-Content-Type': 'application/jsonl',
-      }),
-      body: {
-        file: {
-          display_name: `${displayName}-input`,
-        },
-      },
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: googleUploadUrlResponseHandler,
-      abortSignal: options.abortSignal,
-      fetch: this.batchConfig.fetch,
-    });
+    const createUrl = `${this.batchConfig.baseURL}/${getModelPath(
+      this.modelId,
+    )}:batchGenerateContent`;
+    let operation: GoogleBatchOperation;
 
-    const { value: uploadedFile } = await postToApi({
-      url: uploadUrl,
-      headers: {
-        'X-Goog-Upload-Offset': '0',
-        'X-Goog-Upload-Command': 'upload, finalize',
-        'Content-Type': 'application/jsonl',
-      },
-      body: {
-        content: inputFile,
-        values: {
-          byteLength: inputFile.size,
-          mediaType: 'application/jsonl',
-        },
-      },
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        googleFileUploadResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.batchConfig.fetch,
-    });
+    if (fileParts == null) {
+      const { value } = await postJsonToApi({
+        url: createUrl,
+        headers,
+        body: inlineBatchBody,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleBatchOperationSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.batchConfig.fetch,
+      });
+      operation = value;
+    } else {
+      const inputFile = new Blob(fileParts, { type: 'application/jsonl' });
+      // Blob snapshots the strings, so release the potentially large input array.
+      fileParts.length = 0;
+      if (inputFile.size > googleBatchInputFileMaxBytes) {
+        throw new InvalidArgumentError({
+          argument: 'requests',
+          message: 'Google batch input files must not exceed 2 GB.',
+        });
+      }
 
-    const { value: operation } = await postJsonToApi({
-      url: `${this.batchConfig.baseURL}/${getModelPath(
-        this.modelId,
-      )}:batchGenerateContent`,
-      headers,
-      body: {
-        batch: {
-          displayName,
-          inputConfig: {
-            fileName: uploadedFile.file.name,
+      const { value: uploadUrl } = await postJsonToApi({
+        url: `${this.getBaseOrigin()}/upload/v1beta/files`,
+        headers: combineHeaders(headers, {
+          'X-Goog-Upload-Protocol': 'resumable',
+          'X-Goog-Upload-Command': 'start',
+          'X-Goog-Upload-Header-Content-Length': String(inputFile.size),
+          'X-Goog-Upload-Header-Content-Type': 'application/jsonl',
+        }),
+        body: {
+          file: {
+            display_name: `${displayName}-input`,
           },
         },
-      },
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        googleBatchOperationSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.batchConfig.fetch,
-    });
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: googleUploadUrlResponseHandler,
+        abortSignal: options.abortSignal,
+        fetch: this.batchConfig.fetch,
+      });
+
+      const { value: uploadedFile } = await postToApi({
+        url: uploadUrl,
+        headers: {
+          'X-Goog-Upload-Offset': '0',
+          'X-Goog-Upload-Command': 'upload, finalize',
+          'Content-Type': 'application/jsonl',
+        },
+        body: {
+          content: inputFile,
+          values: {
+            byteLength: inputFile.size,
+            mediaType: 'application/jsonl',
+          },
+        },
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleFileUploadResponseSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.batchConfig.fetch,
+      });
+
+      const { value } = await postJsonToApi({
+        url: createUrl,
+        headers,
+        body: {
+          batch: {
+            displayName,
+            inputConfig: {
+              fileName: uploadedFile.file.name,
+            },
+          },
+        },
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleBatchOperationSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.batchConfig.fetch,
+      });
+      operation = value;
+    }
 
     return {
       batchId: operation.name,
@@ -265,6 +354,22 @@ export class GoogleBatchLanguageModel
       });
     }
 
+    const inlinedResponses =
+      operation.metadata?.output?.inlinedResponses?.inlinedResponses ??
+      operation.response?.inlinedResponses?.inlinedResponses;
+
+    if (inlinedResponses != null) {
+      return convertAsyncIteratorToReadableStream(
+        this.iterateBatchResults(
+          inlinedResponses.map(result => ({
+            key: result.metadata.key,
+            response: result.response,
+            error: result.error,
+          })),
+        ),
+      );
+    }
+
     const responsesFile =
       operation.metadata?.output?.responsesFile ??
       operation.response?.responsesFile;
@@ -273,7 +378,7 @@ export class GoogleBatchLanguageModel
       if (batchStatus.status === 'completed') {
         throw new AISDKError({
           name: 'AI_GoogleBatchMissingOutput',
-          message: `Google batch "${options.batchId}" completed without an output file.`,
+          message: `Google batch "${options.batchId}" completed without batch output.`,
         });
       }
       return new ReadableStream({
@@ -294,7 +399,7 @@ export class GoogleBatchLanguageModel
     });
 
     return convertAsyncIteratorToReadableStream(
-      this.iterateBatchResults(stream),
+      this.iterateBatchResults(parseJsonLines(stream)),
     );
   }
 
@@ -317,9 +422,11 @@ export class GoogleBatchLanguageModel
   }
 
   private async *iterateBatchResults(
-    stream: ReadableStream<Uint8Array>,
+    results:
+      | Iterable<GoogleBatchResultLine>
+      | AsyncIterable<GoogleBatchResultLine>,
   ): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
-    for await (const line of parseJsonLines(stream)) {
+    for await (const line of results) {
       if (line.error != null) {
         const error = convertGoogleRpcError(
           line.error,
