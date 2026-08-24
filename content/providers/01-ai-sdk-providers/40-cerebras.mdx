@@ -99,11 +99,7 @@ const model = cerebras.chat('llama-3.3-70b');
 
 ### Reasoning Models
 
-<<<<<<< HEAD
-Cerebras offers several reasoning models including `gpt-oss-120b`, `qwen-3-32b`, and `zai-glm-4.7` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
-=======
-Cerebras offers reasoning models including `gpt-oss-120b` and `gemma-4-31b` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
->>>>>>> 9de10a6aab (chore(cerebras): remove deprecated zai glm-4.7 model (#19339))
+Cerebras offers several reasoning models including `gpt-oss-120b` and `qwen-3-32b` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
 
 For `gpt-oss-120b`, you can control the reasoning depth using the `reasoningEffort` provider option:
 
@@ -150,7 +146,6 @@ The following optional provider options are available for Cerebras language mode
 
 ## Model Capabilities
 
-<<<<<<< HEAD
 | Model                            | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
 | -------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `llama3.1-8b`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
@@ -160,7 +155,6 @@ The following optional provider options are available for Cerebras language mode
 | `qwen-3-235b-a22b-instruct-2507` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `qwen-3-235b-a22b-thinking-2507` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `zai-glm-4.6`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `zai-glm-4.7`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The models `qwen-3-32b` and `llama-3.3-70b` are scheduled for deprecation on
@@ -169,9 +163,3 @@ The following optional provider options are available for Cerebras language mode
   the available models and migration guidance. You can also pass any available
   provider model ID as a string if needed.
 </Note>
-=======
-| Model          | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
-| -------------- | ----------- | ----------------- | ---------- | -------------- | --------- |
-| `gpt-oss-120b` | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
-| `gemma-4-31b`  | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
->>>>>>> 9de10a6aab (chore(cerebras): remove deprecated zai glm-4.7 model (#19339))

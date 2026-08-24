@@ -19,19 +19,9 @@ createFeatureTestSuite({
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-<<<<<<< HEAD
       createChatModel('llama3.1-8b'),
       createChatModel('llama3.1-70b'),
       createChatModel('llama-3.3-70b'),
-=======
-      createChatModel('gpt-oss-120b'),
-      createLanguageModelWithCapabilities(provider.chat('gemma-4-31b'), [
-        'imageInput',
-        'objectGeneration',
-        'textCompletion',
-        'toolCalls',
-      ]),
->>>>>>> 9de10a6aab (chore(cerebras): remove deprecated zai glm-4.7 model (#19339))
     ],
   },
   timeout: 30000,
