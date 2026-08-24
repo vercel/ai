@@ -34,6 +34,7 @@ import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
   deepSeekErrorSchema,
+  type DeepSeekChatLogprob,
   type DeepSeekChatTokenUsage,
 } from './deepseek-chat-api-types';
 import {
@@ -177,6 +178,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     return {
       args: {
         model: this.modelId,
+        ...((deepseekOptions.logprobs === true ||
+          deepseekOptions.topLogprobs != null) && { logprobs: true }),
+        ...(deepseekOptions.topLogprobs != null && {
+          top_logprobs: deepseekOptions.topLogprobs,
+        }),
         max_tokens: maxOutputTokens,
         temperature,
         top_p: topP,
@@ -275,6 +281,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         [this.providerOptionsName]: {
           promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
           promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
+          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
         },
       },
       request: { body: args },
@@ -324,6 +331,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    const contentLogprobs: DeepSeekChatLogprob[] = [];
+    const reasoningLogprobs: DeepSeekChatLogprob[] = [];
 
     return {
       stream: response.pipeThrough(
@@ -379,6 +388,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                 unified: mapDeepSeekFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
+            }
+
+            if (choice?.logprobs?.content != null) {
+              contentLogprobs.push(...choice.logprobs.content);
+            }
+
+            if (choice?.logprobs?.reasoning_content != null) {
+              reasoningLogprobs.push(...choice.logprobs.reasoning_content);
             }
 
             if (choice?.delta == null) {
@@ -464,6 +481,17 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                     usage?.prompt_cache_hit_tokens ?? undefined,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? undefined,
+                  ...((contentLogprobs.length > 0 ||
+                    reasoningLogprobs.length > 0) && {
+                    logprobs: {
+                      ...(contentLogprobs.length > 0 && {
+                        content: contentLogprobs,
+                      }),
+                      ...(reasoningLogprobs.length > 0 && {
+                        reasoning_content: reasoningLogprobs,
+                      }),
+                    },
+                  }),
                 },
               },
             });

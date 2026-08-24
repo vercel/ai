@@ -9,6 +9,18 @@ export type DeepSeekChatModelId =
 
 export const deepseekLanguageModelChatOptions = z.object({
   /**
+   * Whether to return log probabilities for generated tokens.
+   */
+  logprobs: z.boolean().optional(),
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   *
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs: z.number().int().min(0).max(20).optional(),
+
+  /**
    * Type of thinking to use. Defaults to `enabled`.
    *
    * See https://api-docs.deepseek.com/guides/thinking_mode for the

@@ -8,6 +8,7 @@
       "index": 0,
       "message": {
         "role": "assistant",
+        "reasoning_content": "Reasoning",
         "content": "OK"
       },
       "logprobs": {
@@ -24,6 +25,20 @@
               }
             ]
           }
+        ],
+        "reasoning_content": [
+          {
+            "token": "Reasoning",
+            "logprob": -0.1,
+            "bytes": null,
+            "top_logprobs": [
+              {
+                "token": "Reasoning",
+                "logprob": -0.1,
+                "bytes": null
+              }
+            ]
+          }
         ]
       },
       "finish_reason": "stop"
@@ -31,13 +46,9 @@
   ],
   "usage": {
     "prompt_tokens": 9,
-    "completion_tokens": 1,
-    "total_tokens": 10,
-    "prompt_tokens_details": {
-      "cached_tokens": 0
-    },
+    "completion_tokens": 2,
+    "total_tokens": 11,
     "prompt_cache_hit_tokens": 0,
     "prompt_cache_miss_tokens": 9
-  },
-  "system_fingerprint": "a26a7955944dc5c60445bff77fac9c8e"
+  }
 }
