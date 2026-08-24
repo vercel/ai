@@ -3,9 +3,161 @@ import { describe, it, expect } from 'vitest';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 
 describe('convertToDeepSeekChatMessages', () => {
+  describe('message names', () => {
+    it('should serialize names for system, user, and assistant messages', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            providerOptions: {
+              deepseek: { name: 'guide' },
+            },
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image.' },
+              {
+                type: 'file',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/image.png'),
+                },
+                mediaType: 'image/png',
+              },
+            ],
+            providerOptions: {
+              deepseek: { name: 'alice' },
+            },
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'I will inspect it.' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'inspectImage',
+                input: { detail: 'high' },
+              },
+            ],
+            providerOptions: {
+              deepseek: { name: 'vision_assistant' },
+            },
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-flash-vision-exp',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "You are a helpful assistant.",
+              "name": "guide",
+              "role": "system",
+            },
+            {
+              "content": [
+                {
+                  "text": "Describe this image.",
+                  "type": "text",
+                },
+                {
+                  "image_url": {
+                    "url": "https://example.com/image.png",
+                  },
+                  "type": "image_url",
+                },
+              ],
+              "name": "alice",
+              "role": "user",
+            },
+            {
+              "content": "I will inspect it.",
+              "name": "vision_assistant",
+              "reasoning_content": "",
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{"detail":"high"}",
+                    "name": "inspectImage",
+                  },
+                  "id": "call-1",
+                  "type": "function",
+                },
+              ],
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should ignore a name on a tool message with an unsupported warning', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                output: { type: 'text', value: 'sunny' },
+              },
+            ],
+            providerOptions: {
+              deepseek: { name: 'weather_tool' },
+            },
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'tool',
+            tool_call_id: 'call-1',
+            content: 'sunny',
+          },
+        ],
+        warnings: [
+          {
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          },
+        ],
+      });
+    });
+
+    it('should reject a non-string name', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: {
+                deepseek: { name: 123 },
+              },
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+        }),
+      ).rejects.toThrow('invalid deepseek provider options');
+    });
+  });
+
   describe('user messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
-      const result = convertToDeepSeekChatMessages({
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -30,7 +182,7 @@ describe('convertToDeepSeekChatMessages', () => {
     });
 
     it('should convert image data to an image URL content part', async () => {
-      const result = convertToDeepSeekChatMessages({
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -76,7 +228,7 @@ describe('convertToDeepSeekChatMessages', () => {
     });
 
     it('should convert an image URL to an image URL content part', async () => {
-      const result = convertToDeepSeekChatMessages({
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -121,8 +273,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should convert an image provider reference to a file content part', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should convert an image provider reference to a file content part', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -168,8 +320,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should throw when an image reference has no DeepSeek identifier', () => {
-      expect(() =>
+    it('should throw when an image reference has no DeepSeek identifier', async () => {
+      await expect(
         convertToDeepSeekChatMessages({
           prompt: [
             {
@@ -189,11 +341,11 @@ describe('convertToDeepSeekChatMessages', () => {
           responseFormat: undefined,
           modelId: 'deepseek-v4-flash-vision-exp',
         }),
-      ).toThrow(NoSuchProviderReferenceError);
+      ).rejects.toThrow(NoSuchProviderReferenceError);
     });
 
     it('should warn about unsupported non-image file parts', async () => {
-      const result = convertToDeepSeekChatMessages({
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -234,8 +386,8 @@ describe('convertToDeepSeekChatMessages', () => {
   });
 
   describe('tool calls', () => {
-    it('should stringify arguments to tool calls', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should stringify arguments to tool calls', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'assistant',
@@ -293,8 +445,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should handle text output type in tool results', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should handle text output type in tool results', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'assistant',
@@ -352,8 +504,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should support reasoning content in tool calls', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should support reasoning content in tool calls', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -423,8 +575,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should filter out reasoning content from turns before the last user message', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should filter out reasoning content from turns before the last user message', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -508,8 +660,8 @@ describe('convertToDeepSeekChatMessages', () => {
     // before the last user message. Stripping it like we do for R1 makes the
     // API reject multi-turn requests with "The `reasoning_content` in the
     // thinking mode must be passed back to the API."
-    it('should preserve reasoning_content from prior turns for deepseek-v4', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should preserve reasoning_content from prior turns for deepseek-v4', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -587,8 +739,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should back-fill empty reasoning_content for deepseek-v4 assistant messages with no reasoning part', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should back-fill empty reasoning_content for deepseek-v4 assistant messages with no reasoning part', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',

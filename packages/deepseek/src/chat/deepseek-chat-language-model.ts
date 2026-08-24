@@ -124,7 +124,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     const supportsStructuredOutputs =
       this.config.supportsStructuredOutputs === true;
 
-    const { messages, warnings } = convertToDeepSeekChatMessages({
+    const { messages, warnings } = await convertToDeepSeekChatMessages({
       prompt,
       responseFormat,
       modelId: this.modelId,

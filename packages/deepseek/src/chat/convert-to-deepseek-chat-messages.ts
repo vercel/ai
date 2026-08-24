@@ -6,6 +6,7 @@ import type {
 import {
   convertToBase64,
   getTopLevelMediaType,
+  parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
@@ -13,8 +14,9 @@ import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
 } from './deepseek-chat-api-types';
+import { deepseekMessageProviderOptions } from './deepseek-chat-language-model-options';
 
-export function convertToDeepSeekChatMessages({
+export async function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
   modelId,
@@ -24,10 +26,10 @@ export function convertToDeepSeekChatMessages({
   responseFormat: LanguageModelV4CallOptions['responseFormat'];
   modelId: string;
   supportsStructuredOutputs?: boolean;
-}): {
+}): Promise<{
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV4Warning>;
-} {
+}> {
   const isDeepSeekV4 = modelId.includes('deepseek-v4');
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
@@ -64,12 +66,24 @@ export function convertToDeepSeekChatMessages({
   }
 
   let index = -1;
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     index++;
+
+    const deepseekMessageOptions = await parseProviderOptions({
+      provider: 'deepseek',
+      providerOptions,
+      schema: deepseekMessageProviderOptions,
+    });
 
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        messages.push({
+          role: 'system',
+          content,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
+        });
         break;
       }
 
@@ -96,7 +110,13 @@ export function convertToDeepSeekChatMessages({
             }
           }
 
-          messages.push({ role: 'user', content: userContent });
+          messages.push({
+            role: 'user',
+            content: userContent,
+            ...(deepseekMessageOptions?.name != null && {
+              name: deepseekMessageOptions.name,
+            }),
+          });
           break;
         }
 
@@ -143,6 +163,9 @@ export function convertToDeepSeekChatMessages({
         messages.push({
           role: 'user',
           content: userContent,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
         });
 
         break;
@@ -195,6 +218,9 @@ export function convertToDeepSeekChatMessages({
         messages.push({
           role: 'assistant',
           content: text,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
           reasoning_content: reasoning ?? (isDeepSeekV4 ? '' : undefined),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
@@ -203,6 +229,13 @@ export function convertToDeepSeekChatMessages({
       }
 
       case 'tool': {
+        if (deepseekMessageOptions?.name != null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          });
+        }
+
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
             continue;

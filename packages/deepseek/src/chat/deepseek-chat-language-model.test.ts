@@ -5,7 +5,10 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
 import { DeepSeekChatLanguageModel } from './deepseek-chat-language-model';
-import type { DeepSeekLanguageModelChatOptions } from './deepseek-chat-language-model-options';
+import type {
+  DeepSeekLanguageModelChatOptions,
+  DeepSeekMessageProviderOptions,
+} from './deepseek-chat-language-model-options';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -69,6 +72,77 @@ describe('DeepSeekChatLanguageModel', () => {
             "model": "deepseek-chat",
             "temperature": 0.5,
             "top_p": 0.3,
+          }
+        `);
+      });
+
+      it('should send message names', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.',
+              providerOptions: {
+                deepseek: {
+                  name: 'guide',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'alice',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Hello, Alice.' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'assistant',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'How are you?' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'alice',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "You are a helpful assistant.",
+                "name": "guide",
+                "role": "system",
+              },
+              {
+                "content": "Hello",
+                "name": "alice",
+                "role": "user",
+              },
+              {
+                "content": "Hello, Alice.",
+                "name": "assistant",
+                "role": "assistant",
+              },
+              {
+                "content": "How are you?",
+                "name": "alice",
+                "role": "user",
+              },
+            ],
+            "model": "deepseek-chat",
           }
         `);
       });
@@ -749,6 +823,67 @@ describe('DeepSeekChatLanguageModel', () => {
             },
             "temperature": 0.5,
             "top_p": 0.3,
+          }
+        `);
+      });
+
+      it('should send message names', async () => {
+        await provider.chat('deepseek-chat').doStream({
+          prompt: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.',
+              providerOptions: {
+                deepseek: {
+                  name: 'guide',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'alice',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Hello, Alice.' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'assistant',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "You are a helpful assistant.",
+                "name": "guide",
+                "role": "system",
+              },
+              {
+                "content": "Hello",
+                "name": "alice",
+                "role": "user",
+              },
+              {
+                "content": "Hello, Alice.",
+                "name": "assistant",
+                "role": "assistant",
+              },
+            ],
+            "model": "deepseek-chat",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true,
+            },
           }
         `);
       });

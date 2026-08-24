@@ -40,3 +40,16 @@ export const deepseekLanguageModelChatOptions = z.object({
 export type DeepSeekLanguageModelChatOptions = z.infer<
   typeof deepseekLanguageModelChatOptions
 >;
+
+export const deepseekMessageProviderOptions = z.object({
+  /**
+   * The name of the participant represented by the message.
+   *
+   * Supported on system, user, and assistant messages.
+   */
+  name: z.string().optional(),
+});
+
+export type DeepSeekMessageProviderOptions = z.infer<
+  typeof deepseekMessageProviderOptions
+>;
