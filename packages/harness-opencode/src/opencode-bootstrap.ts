@@ -36,8 +36,7 @@ export async function getOpenCodeBootstrap(): Promise<HarnessV1Bootstrap> {
         command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       },
       {
-        command:
-          'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
+        command: './node_modules/.bin/opencode --version',
       },
     ],
   };

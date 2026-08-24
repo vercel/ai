@@ -717,15 +717,14 @@ describe('createOpenCode adapter', () => {
       ).toBe("allowBuilds:\n  'opencode-ai@1.18.3': true\n");
     });
 
-    it('runs the OpenCode CLI postinstall during bootstrap', async () => {
+    it('allows the pinned OpenCode build and verifies the installed CLI', async () => {
       const harness = createOpenCode();
       const recipe = await harness.getBootstrap!();
       expect(recipe.commands[0]).toEqual({
         command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       });
       expect(recipe.commands).toContainEqual({
-        command:
-          'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
+        command: './node_modules/.bin/opencode --version',
       });
     });
 
