@@ -33,14 +33,5 @@ export function convertAlibabaUsage(
       cacheWrite: cacheWriteTokens,
       noCache: noCacheTokens,
     },
-<<<<<<< HEAD
-=======
-    outputTokens: {
-      total: completionTokens,
-      text: Math.max(0, completionTokens - reasoningTokens),
-      reasoning: reasoningTokens,
-    },
-    raw: usage,
->>>>>>> 221425865d (fix: prevent negative text output token counts when reasoning exceeds completion usage (#19316))
   };
 }
