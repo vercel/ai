@@ -49,6 +49,67 @@ function prepareVersionMetadataResponse() {
 
 describe('AnthropicSkills', () => {
   describe('uploadSkill', () => {
+    it('should encode skill and version IDs as single URL path segments', async () => {
+      const skillId = 'skill/../../admin';
+      const version = 'v1/../../admin';
+      const requestUrls: string[] = [];
+      let callCount = 0;
+      const anthropic = createAnthropic({
+        apiKey: 'test-api-key',
+        baseURL: 'https://api.anthropic.com/v1',
+        fetch: async input => {
+          requestUrls.push(
+            typeof input === 'string'
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url,
+          );
+
+          callCount++;
+          return callCount === 1
+            ? new Response(
+                JSON.stringify({
+                  id: skillId,
+                  latest_version: version,
+                  source: 'custom',
+                  created_at: '2026-08-24T00:00:00Z',
+                  updated_at: '2026-08-24T00:00:00Z',
+                }),
+                {
+                  status: 200,
+                  headers: { 'content-type': 'application/json' },
+                },
+              )
+            : new Response(
+                JSON.stringify({
+                  type: 'skill_version',
+                  skill_id: skillId,
+                  name: 'test-skill',
+                  description: 'test skill',
+                }),
+                {
+                  status: 200,
+                  headers: { 'content-type': 'application/json' },
+                },
+              );
+        },
+      });
+
+      await anthropic.skills().uploadSkill({
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
+      });
+
+      expect(requestUrls[1]).toBe(
+        `https://api.anthropic.com/v1/skills/${encodeURIComponent(skillId)}/versions/${encodeURIComponent(version)}`,
+      );
+    });
+
     it('should send files as multipart form data', async () => {
       prepareResponse({
         url: 'https://api.anthropic.com/v1/skills',

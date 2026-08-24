@@ -82,6 +82,12 @@ describe('XaiVideoModel', () => {
         body: doneStatusResponse,
       },
     },
+    [`${TEST_BASE_URL}/videos/abc%2F..%2F..%2Finternal`]: {
+      response: {
+        type: 'json-value',
+        body: doneStatusResponse,
+      },
+    },
   });
 
   describe('constructor', () => {
@@ -1224,6 +1230,19 @@ describe('XaiVideoModel', () => {
   });
 
   describe('doStatus', () => {
+    it('should encode the request ID as a single URL path segment', async () => {
+      const model = createModel();
+      const requestId = 'abc/../../internal';
+
+      await model.doStatus({
+        operation: { requestId },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/${encodeURIComponent(requestId)}`,
+      );
+    });
+
     it('should return completed with video data when done', async () => {
       const model = createModel();
 

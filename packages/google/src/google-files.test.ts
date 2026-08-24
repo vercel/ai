@@ -65,7 +65,10 @@ function createMockFiles({
       );
     }
 
-    if (urlString.includes(fileResource.name)) {
+    if (
+      urlString.includes(fileResource.name) ||
+      urlString.includes(encodeURIComponent(fileResource.name))
+    ) {
       pollIndex++;
       const pollState =
         pollIndex < pollResponses.length
@@ -293,6 +296,35 @@ describe('GoogleFiles', () => {
     });
 
     describe('polling', () => {
+      it('should encode the file resource name as a single URL path segment', async () => {
+        const fileResource = {
+          ...defaultFileResource,
+          name: 'files/abc/../../secret',
+        };
+        let pollUrl: string | undefined;
+        const { files } = createMockFiles({
+          fileResource,
+          pollResponses: [{ state: 'PROCESSING' }, { state: 'ACTIVE' }],
+          onRequest: url => {
+            if (url.includes(encodeURIComponent(fileResource.name))) {
+              pollUrl = url;
+            }
+          },
+        });
+
+        await files.uploadFile({
+          data: { type: 'data', data: new Uint8Array([1]) },
+          mediaType: 'application/octet-stream',
+          providerOptions: {
+            google: { pollIntervalMs: 1 },
+          },
+        });
+
+        expect(pollUrl).toBe(
+          `https://generativelanguage.googleapis.com/v1beta/${encodeURIComponent(fileResource.name)}`,
+        );
+      });
+
       it('should poll until file state becomes ACTIVE', async () => {
         let pollCount = 0;
         const { files, fetchFn } = createMockFiles({
@@ -317,6 +349,9 @@ describe('GoogleFiles', () => {
           call[0].toString().includes(defaultFileResource.name),
         );
         expect(pollCalls.length).toBeGreaterThanOrEqual(1);
+        expect(pollCalls[0]?.[0].toString()).toBe(
+          `https://generativelanguage.googleapis.com/v1beta/${defaultFileResource.name}`,
+        );
       });
 
       it('should not poll when file is immediately ACTIVE', async () => {
