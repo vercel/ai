@@ -116,8 +116,6 @@ describe('createAmazonBedrockAnthropicFetch', () => {
     expect(text).toBe('data: [DONE]\n\n');
   });
 
-  // Sends one exception frame through the wrapped fetch and returns the
-  // decoded SSE text.
   async function transformExceptionFrame({
     exceptionType,
     body,
@@ -157,10 +155,6 @@ describe('createAmazonBedrockAnthropicFetch', () => {
   }
 
   it('should transform exception messages into Anthropic error event format', async () => {
-    // Bedrock delivers mid-stream errors as exception frames whose payload is
-    // {"message":"..."} (e.g. "Bedrock is unable to process your request.").
-    // Forwarding the payload string un-parsed fails the Anthropic stream
-    // chunk schema, which requires error to be a { type, message } object.
     const text = await transformExceptionFrame({
       exceptionType: 'modelStreamErrorException',
       body: JSON.stringify({

@@ -10,9 +10,6 @@ const amazonBedrockErrorSchema = z.looseObject({
   message: z.string().optional(),
 });
 
-// Transform a Bedrock error payload into the Anthropic error shape
-// ({ type, message }) so downstream Anthropic handlers and the stream
-// chunk schema can process it.
 async function toAnthropicErrorPayload(
   text: string,
   type = 'error',
@@ -103,8 +100,6 @@ function transformAmazonBedrockEventStreamToSSE(
           controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
         }
       } else if (event.messageType === 'exception') {
-        // Emitting the raw payload string would fail the Anthropic chunk
-        // schema; normalize to the Anthropic error event shape instead.
         controller.enqueue(
           textEncoder.encode(
             `data: ${JSON.stringify({
