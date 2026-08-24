@@ -19,7 +19,7 @@ export function createChildProcess(
   return spawn(config.command, config.args ?? [], {
     env: getEnvironment(config.env),
     stdio: ['pipe', 'pipe', config.stderr ?? 'inherit'],
-    shell: false,
+    shell: config.shell ?? false,
     signal,
     windowsHide: globalThis.process.platform === 'win32' && isElectron(),
     cwd: config.cwd,
