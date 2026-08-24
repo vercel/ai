@@ -5,7 +5,7 @@ import {
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { GoogleBatchLanguageModel } from './google-batch-language-model';
+import { GoogleBatchLanguageModel } from './google-batch';
 import type { GoogleLanguageModelConfig } from './google-language-model';
 import { createGoogle } from './google-provider';
 

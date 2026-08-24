@@ -2,7 +2,7 @@ import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { isUrlSupported } from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createGoogle } from './google-provider';
-import { GoogleBatchLanguageModel } from './google-batch-language-model';
+import { GoogleBatchLanguageModel } from './google-batch';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import { GoogleImageModel } from './google-image-model';
 import { GoogleVideoModel } from './google-video-model';
@@ -19,7 +19,7 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
   };
 });
 
-vi.mock('./google-batch-language-model', () => ({
+vi.mock('./google-batch', () => ({
   GoogleBatchLanguageModel: vi.fn(),
 }));
 

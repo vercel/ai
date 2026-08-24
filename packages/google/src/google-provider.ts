@@ -22,7 +22,7 @@ import {
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
-import { GoogleBatchLanguageModel } from './google-batch-language-model';
+import { GoogleBatchLanguageModel } from './google-batch';
 import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
 
