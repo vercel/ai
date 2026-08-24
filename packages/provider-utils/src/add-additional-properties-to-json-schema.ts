@@ -8,23 +8,14 @@ import type { JSONSchema7 } from '@ai-sdk/provider';
 export function addAdditionalPropertiesToJsonSchema(
   jsonSchema: JSONSchema7,
 ): JSONSchema7 {
-<<<<<<< HEAD
   if (jsonSchema.type === 'object') {
-    jsonSchema.additionalProperties = false;
-    const properties = jsonSchema.properties;
-=======
-  if (
-    jsonSchema.type === 'object' ||
-    (Array.isArray(jsonSchema.type) && jsonSchema.type.includes('object'))
-  ) {
     const { additionalProperties } = jsonSchema;
     jsonSchema.additionalProperties =
       additionalProperties != null && typeof additionalProperties !== 'boolean'
-        ? visit(additionalProperties)
+        ? addAdditionalPropertiesToJsonSchema(additionalProperties)
         : false;
 
-    const { properties } = jsonSchema;
->>>>>>> b74971f7cc (fix: Zod 4 record and catchall value schemas being erased during JSON Schema conversion (#18046))
+    const properties = jsonSchema.properties;
     if (properties != null) {
       for (const property in properties) {
         properties[property] = addAdditionalPropertiesToJsonSchema(
