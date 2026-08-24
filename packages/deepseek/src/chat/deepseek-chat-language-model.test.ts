@@ -143,6 +143,43 @@ describe('DeepSeekChatLanguageModel', () => {
 
         expect(result).toMatchSnapshot();
       });
+
+      it('should include the system fingerprint in provider metadata', async () => {
+        const result = await provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.deepseek.systemFingerprint).toBe(
+          'fp_eaab8d114b_prod0820_fp8_kvcache',
+        );
+      });
+
+      it.each([null, undefined])(
+        'should tolerate a %s system fingerprint',
+        async systemFingerprint => {
+          const responseBody = JSON.parse(
+            fs.readFileSync('src/chat/__fixtures__/deepseek-text.json', 'utf8'),
+          );
+          responseBody.system_fingerprint = systemFingerprint;
+
+          if (systemFingerprint === undefined) {
+            delete responseBody.system_fingerprint;
+          }
+
+          server.urls['https://api.deepseek.com/chat/completions'].response = {
+            type: 'json-value',
+            body: responseBody,
+          };
+
+          const result = await provider.chat('deepseek-chat').doGenerate({
+            prompt: TEST_PROMPT,
+          });
+
+          expect(result.providerMetadata?.deepseek).not.toHaveProperty(
+            'systemFingerprint',
+          );
+        },
+      );
     });
 
     describe('reasoning', () => {
@@ -913,6 +950,83 @@ describe('DeepSeekChatLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+
+      it('should include the repeated system fingerprint in provider metadata', async () => {
+        const result = await provider.chat('deepseek-chat').doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'finish',
+            providerMetadata: {
+              deepseek: expect.objectContaining({
+                systemFingerprint: 'fp_eaab8d114b_prod0820_fp8_kvcache',
+              }),
+            },
+          }),
+        );
+      });
+
+      it('should keep the latest non-null system fingerprint', async () => {
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            'data: {"system_fingerprint":"fp_initial","choices":[{"delta":{"content":"OK"},"finish_reason":null}],"usage":null}\n\n',
+            'data: {"system_fingerprint":null,"choices":[{"delta":{},"finish_reason":null}],"usage":null}\n\n',
+            'data: {"system_fingerprint":"fp_latest","choices":[{"delta":{},"finish_reason":"stop"}],"usage":null}\n\n',
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const result = await provider.chat('deepseek-chat').doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'finish',
+            providerMetadata: {
+              deepseek: expect.objectContaining({
+                systemFingerprint: 'fp_latest',
+              }),
+            },
+          }),
+        );
+      });
+
+      it.each([null, undefined])(
+        'should tolerate a %s system fingerprint',
+        async systemFingerprint => {
+          const chunk: Record<string, unknown> = {
+            system_fingerprint: systemFingerprint,
+            choices: [{ delta: { content: 'OK' }, finish_reason: 'stop' }],
+            usage: null,
+          };
+
+          if (systemFingerprint === undefined) {
+            delete chunk.system_fingerprint;
+          }
+
+          server.urls['https://api.deepseek.com/chat/completions'].response = {
+            type: 'stream-chunks',
+            chunks: [`data: ${JSON.stringify(chunk)}\n\n`, 'data: [DONE]\n\n'],
+          };
+
+          const result = await provider.chat('deepseek-chat').doStream({
+            prompt: TEST_PROMPT,
+          });
+          const parts = await convertReadableStreamToArray(result.stream);
+
+          const finishPart = parts.find(part => part.type === 'finish');
+
+          expect(finishPart?.providerMetadata?.deepseek).not.toHaveProperty(
+            'systemFingerprint',
+          );
+        },
+      );
     });
 
     describe('reasoning', () => {
