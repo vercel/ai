@@ -11,6 +11,7 @@ type DeepInfraChatConfig = {
   url: (options: { path: string; modelId?: string }) => string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
+  supportsStructuredOutputs?: boolean;
 };
 
 export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageModel {
