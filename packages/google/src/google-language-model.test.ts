@@ -2522,6 +2522,30 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should handle a blocked prompt without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toEqual([]);
+    expect(result.finishReason).toEqual({
+      unified: 'content-filter',
+      raw: 'PROHIBITED_CONTENT',
+    });
+    expect(result.providerMetadata?.google.promptFeedback).toEqual({
+      blockReason: 'PROHIBITED_CONTENT',
+    });
+  });
+
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
