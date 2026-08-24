@@ -20,8 +20,11 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
   },
   "providerMetadata": {
     "deepseek": {
+      "choiceIndex": 0,
+      "messageRole": "assistant",
       "promptCacheHitTokens": 0,
       "promptCacheMissTokens": 18,
+      "responseObject": "chat.completion",
     },
   },
   "request": {
@@ -143,8 +146,11 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
   },
   "providerMetadata": {
     "deepseek": {
+      "choiceIndex": 0,
+      "messageRole": "assistant",
       "promptCacheHitTokens": 0,
       "promptCacheMissTokens": 13,
+      "responseObject": "chat.completion",
     },
   },
   "request": {
@@ -265,8 +271,11 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
   },
   "providerMetadata": {
     "deepseek": {
+      "choiceIndex": 0,
+      "messageRole": "assistant",
       "promptCacheHitTokens": 320,
       "promptCacheMissTokens": 175,
+      "responseObject": "chat.completion",
     },
   },
   "request": {
@@ -411,8 +420,14 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
   },
   "providerMetadata": {
     "deepseek": {
+      "choiceIndex": 0,
+      "messageRole": "assistant",
       "promptCacheHitTokens": 320,
       "promptCacheMissTokens": 19,
+      "responseObject": "chat.completion",
+      "toolCallTypes": [
+        "function",
+      ],
     },
   },
   "request": {
@@ -1680,8 +1695,11 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     },
     "providerMetadata": {
       "deepseek": {
+        "choiceIndex": 0,
+        "messageRole": "assistant",
         "promptCacheHitTokens": 0,
         "promptCacheMissTokens": 18,
+        "responseObject": "chat.completion.chunk",
       },
     },
     "type": "finish",
@@ -3757,8 +3775,11 @@ exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = 
     },
     "providerMetadata": {
       "deepseek": {
+        "choiceIndex": 0,
+        "messageRole": "assistant",
         "promptCacheHitTokens": 0,
         "promptCacheMissTokens": 13,
+        "responseObject": "chat.completion.chunk",
       },
     },
     "type": "finish",
@@ -4073,8 +4094,14 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     },
     "providerMetadata": {
       "deepseek": {
+        "choiceIndex": 0,
+        "messageRole": "assistant",
         "promptCacheHitTokens": 320,
         "promptCacheMissTokens": 19,
+        "responseObject": "chat.completion.chunk",
+        "toolCallTypes": [
+          "function",
+        ],
       },
     },
     "type": "finish",

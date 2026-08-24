@@ -282,6 +282,18 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         [this.providerOptionsName]: {
           promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
           promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
         },
       },
       request: { body: args },
@@ -331,6 +343,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let responseObject: 'chat.completion.chunk' | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
 
     return {
       stream: response.pipeThrough(
@@ -379,7 +395,15 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               usage = value.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
             const choice = value.choices[0];
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
+            }
 
             if (choice?.finish_reason != null) {
               finishReason = {
@@ -393,6 +417,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -445,6 +473,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(toolCallDelta.index, toolCallDelta.type);
+                }
                 toolCallTracker.processDelta(toolCallDelta);
               }
             }
@@ -471,6 +502,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                     usage?.prompt_cache_hit_tokens ?? undefined,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? undefined,
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
                 },
               },
             });
