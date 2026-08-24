@@ -7,4 +7,4 @@
 '@ai-sdk/perplexity': patch
 ---
 
-Clamp text output token counts at zero when reported reasoning tokens exceed completion tokens.
+Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.

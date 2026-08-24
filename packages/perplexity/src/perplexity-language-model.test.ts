@@ -446,8 +446,8 @@ describe('doGenerate', () => {
         },
         "outputTokens": {
           "reasoning": 50,
-          "text": 0,
-          "total": 20,
+          "text": 20,
+          "total": 70,
         },
         "raw": {
           "citation_tokens": 30,
@@ -735,8 +735,8 @@ describe('doStream', () => {
         },
         "outputTokens": {
           "reasoning": 50,
-          "text": 0,
-          "total": 21,
+          "text": 21,
+          "total": 71,
         },
         "raw": {
           "citation_tokens": 30,
