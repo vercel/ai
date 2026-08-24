@@ -18,6 +18,7 @@ The AI SDK includes the following harness adapters:
 - [Cline](/providers/ai-sdk-harnesses/cline) (`@ai-sdk/harness-cline`)
 - [Codex](/providers/ai-sdk-harnesses/codex) (`@ai-sdk/harness-codex`)
 - [Deep Agents](/providers/ai-sdk-harnesses/deepagents) (`@ai-sdk/harness-deepagents`)
+- [fx](/providers/ai-sdk-harnesses/fx) (`@ai-sdk/harness-fx`)
 - [Grok Build](/providers/ai-sdk-harnesses/grok-build) (`@ai-sdk/harness-grok-build`)
 - [OpenCode](/providers/ai-sdk-harnesses/opencode) (`@ai-sdk/harness-opencode`)
 - [Pi](/providers/ai-sdk-harnesses/pi) (`@ai-sdk/harness-pi`)
@@ -36,10 +37,7 @@ The AI SDK includes the following harness adapters:
 | [Cline](/providers/ai-sdk-harnesses/cline)             | Host process     | <Check />    | <Check />     | <Check />         | <Check />              | <Check />                    |
 | [Codex](/providers/ai-sdk-harnesses/codex)             | Sandbox bridge   | <Check />    | <Check />     | <Check />         | <Cross />              | <Cross />                    |
 | [Deep Agents](/providers/ai-sdk-harnesses/deepagents)  | Sandbox bridge   | <Check />    | <Check />     | <Check />         | <Check />              | <Check /> via auto-rejection |
+| [fx](/providers/ai-sdk-harnesses/fx)                   | Sandbox via ACP  | <Check />    | <Check />     | <Cross />         | <Check />              | <Cross />                    |
 | [Grok Build](/providers/ai-sdk-harnesses/grok-build)   | Sandbox via ACP  | <Check />    | <Check />     | <Check />         | <Check />              | <Cross />                    |
 | [OpenCode](/providers/ai-sdk-harnesses/opencode)       | Sandbox bridge   | <Check />    | <Check />     | <Check />         | <Check />              | <Check /> via auto-rejection |
 | [Pi](/providers/ai-sdk-harnesses/pi)                   | Host process     | <Check />    | <Check />     | <Cross />         | <Check />              | <Check />                    |
-
-Generic ACP profiles do not support structured output unless they configure an
-implementation-specific prompt metadata mapping; Grok Build includes the
-required mapping, while Codex ACP does not expose one.
