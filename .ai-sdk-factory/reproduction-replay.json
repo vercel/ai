@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 14856,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-14856-scaffold-codemod-missing-directories.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-14856-scaffold-codemod-missing-directories.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_14856_PRIMARY: scaffold crashed when target directories were missing"
+  }
+}
