@@ -8,6 +8,22 @@ import {
 
 type Address = { address: string; family: number };
 
+describe('module initialization', () => {
+  it.each([
+    ['undefined', undefined],
+    ['a non-callable object', {}],
+  ])('succeeds when the global fetch is %s', async (_name, fetch) => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', fetch);
+
+    try {
+      await expect(import('./safe-node-fetch')).resolves.toBeDefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 function createLookup(addresses: Address[]) {
   const lookup = vi.fn((_hostname, options, callback) => {
     callback(null, addresses);
