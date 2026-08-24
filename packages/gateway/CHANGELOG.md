@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 3.0.180
+
+### Patch Changes
+
+- f6efa51: Backport: chore(provider/gateway): update gateway model settings files
+- 3539755: feat (provider/gateway): add Tako Search tool support
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
 ## 3.0.179
 
 ### Patch Changes

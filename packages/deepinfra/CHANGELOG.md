@@ -1,5 +1,14 @@
 # @ai-sdk/deepinfra
 
+## 2.0.75
+
+### Patch Changes
+
+- 82cbd8a: fix(deepinfra): enable structured outputs to forward response_format json_schema
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/openai-compatible@2.0.71
+
 ## 2.0.74
 
 ### Patch Changes
