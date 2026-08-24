@@ -134,8 +134,27 @@ describe('doGenerate', () => {
       );
     });
 
-    it('should not pass top-level reasoning none as reasoning_effort', async () => {
-      await model.doGenerate({
+    it.each(['qwen/qwen3-32b', 'qwen/qwen3.6-27b'])(
+      'should map top-level reasoning none to reasoning_effort for %s',
+      async modelId => {
+        const qwenModel = provider(modelId);
+
+        const result = await qwenModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'none',
+        );
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
+    it('should omit unsupported top-level reasoning none and warn', async () => {
+      const gptOssModel = provider('openai/gpt-oss-120b');
+
+      const result = await gptOssModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'none',
       });
@@ -143,20 +162,28 @@ describe('doGenerate', () => {
       expect(
         (await server.calls[0].requestBodyJson).reasoning_effort,
       ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'reasoning "none" is not supported by this model.',
+      });
     });
 
     it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
-      await model.doGenerate({
+      const gptOssModel = provider('openai/gpt-oss-120b');
+
+      const result = await gptOssModel.doGenerate({
         prompt: TEST_PROMPT,
-        reasoning: 'medium',
+        reasoning: 'none',
         providerOptions: {
-          groq: { reasoningEffort: 'high' },
+          groq: { reasoningEffort: 'none' },
         },
       });
 
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'high',
+        'none',
       );
+      expect(result.warnings).toEqual([]);
     });
   });
 
