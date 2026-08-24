@@ -266,6 +266,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "credentialForwarding": {},
                     "mintBridgeToken": {},
                     "port": { "type": "number" },
                     "portEndpoint": {},
@@ -297,6 +298,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "credentialForwarding": {},
                     "mintBridgeToken": {},
                     "port": { "type": "number" },
                     "portEndpoint": {},

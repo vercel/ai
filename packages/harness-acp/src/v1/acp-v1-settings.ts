@@ -1,4 +1,5 @@
 import type {
+  HarnessV1CredentialForwarding,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
 } from '@ai-sdk/harness';
@@ -45,6 +46,8 @@ export type ACPNpmLockedSource = {
   readonly type: 'npm-locked';
   readonly packageJson: string;
   readonly pnpmLockYaml: string;
+  /** Optional pnpm workspace configuration required by the locked install. */
+  readonly pnpmWorkspaceYaml?: string;
 };
 
 export type ACPInstallCommandSource = {
@@ -125,6 +128,12 @@ export type ACPV1Settings = {
   readonly forwardEnv?: ReadonlyArray<string>;
   readonly credentialEnv?: ReadonlyArray<string>;
   readonly credentialBrokering?: ACPCredentialBrokering;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * Runtime environment values that are safe to persist in bootstrap and
    * lifecycle compatibility identity.
