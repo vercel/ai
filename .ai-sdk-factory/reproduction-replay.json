@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19321,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19321-merged-finish-step.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19321-merged-finish-step.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #19321: merged UI message stream aborted after another source's finish-step"
+  }
+}
