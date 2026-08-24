@@ -1,3 +1,4 @@
+import { APICallError, TypeValidationError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
@@ -11,24 +12,53 @@ const server = createTestServer({
 });
 
 function prepareFileResponse({
+  body,
   id = 'file-api-abc123',
   expiresAt = null,
 }: {
+  body?: Record<string, unknown>;
   id?: string;
   expiresAt?: number | null;
 } = {}) {
   server.urls['https://api.deepseek.com/files'].response = {
     type: 'json-value',
-    body: {
-      id,
-      object: 'file',
-      bytes: 1024,
-      created_at: 1700000000,
-      filename: 'comic-cat.png',
-      purpose: 'user_data',
-      expires_at: expiresAt,
-    },
+    body:
+      body ??
+      ({
+        id,
+        object: 'file',
+        bytes: 1024,
+        created_at: 1700000000,
+        filename: 'comic-cat.png',
+        purpose: 'user_data',
+        expires_at: expiresAt,
+      } satisfies Record<string, unknown>),
   };
+}
+
+async function expectInvalidResponseField(
+  upload: PromiseLike<unknown>,
+  field: string,
+) {
+  let error: unknown;
+  try {
+    await upload;
+  } catch (caughtError) {
+    error = caughtError;
+  }
+
+  expect(APICallError.isInstance(error)).toBe(true);
+  if (!APICallError.isInstance(error)) {
+    throw error;
+  }
+
+  expect(error.message).toBe('Invalid JSON response');
+  expect(TypeValidationError.isInstance(error.cause)).toBe(true);
+  if (!TypeValidationError.isInstance(error.cause)) {
+    throw error.cause;
+  }
+
+  expect(error.cause.message).toContain(`"${field}"`);
 }
 
 describe('DeepSeek Files - uploadFile', () => {
@@ -77,6 +107,107 @@ describe('DeepSeek Files - uploadFile', () => {
         },
       },
     });
+  });
+
+  it.each([
+    {
+      name: 'omitted',
+      body: {
+        id: 'file-api-incomplete',
+      },
+    },
+    {
+      name: 'null',
+      body: {
+        id: 'file-api-incomplete',
+        object: null,
+        bytes: null,
+        created_at: null,
+        filename: null,
+        purpose: null,
+        expires_at: null,
+      },
+    },
+  ])(
+    'should tolerate $name optional response metadata and fall back to the request filename',
+    async ({ body }) => {
+      prepareFileResponse({ body });
+
+      const files = createDeepSeek({ apiKey: 'test-api-key' }).files();
+
+      const result = await files.uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'image/png',
+        filename: 'request-filename.png',
+      });
+
+      expect(result).toEqual({
+        warnings: [],
+        providerReference: { deepseek: 'file-api-incomplete' },
+        filename: 'request-filename.png',
+        mediaType: 'image/png',
+        providerMetadata: {
+          deepseek: {},
+        },
+      });
+    },
+  );
+
+  it.each([
+    ['object', 'document'],
+    ['purpose', 'assistants'],
+    ['bytes', -1],
+    ['bytes', 1.5],
+    ['created_at', -1],
+    ['created_at', 1.5],
+    ['filename', 123],
+  ])(
+    'should reject an invalid %s response field',
+    async (field, invalidValue) => {
+      prepareFileResponse({
+        body: {
+          id: 'file-api-invalid',
+          object: 'file',
+          bytes: 1024,
+          created_at: 1700000000,
+          filename: 'comic-cat.png',
+          purpose: 'user_data',
+          [field]: invalidValue,
+        },
+      });
+
+      const files = createDeepSeek({ apiKey: 'test-api-key' }).files();
+
+      await expectInvalidResponseField(
+        files.uploadFile({
+          data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+          mediaType: 'image/png',
+        }),
+        field,
+      );
+    },
+  );
+
+  it('should reject a response without a file id', async () => {
+    prepareFileResponse({
+      body: {
+        object: 'file',
+        bytes: 1024,
+        created_at: 1700000000,
+        filename: 'comic-cat.png',
+        purpose: 'user_data',
+      },
+    });
+
+    const files = createDeepSeek({ apiKey: 'test-api-key' }).files();
+
+    await expectInvalidResponseField(
+      files.uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'image/png',
+      }),
+      'id',
+    );
   });
 
   it('should pass expires_after as bracketed multipart fields', async () => {
