@@ -1,0 +1,37 @@
+{
+  "id": "chatcmpl-1c3dada5-e92a-42f7-8378-fe0ab56b9d1c",
+  "object": "chat.completion",
+  "created": 1787594830,
+  "model": "qwen/qwen3.6-27b",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning": "Here's a thinking process:\n\n1.  **Understand the User Request:**\n   - The user asks: \"What is 17 times 19? Explain your calculation, then answer.\"\n   - I need to compute 17 × 19, explain the method/calculation process"
+      },
+      "logprobs": null,
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.469115043,
+    "prompt_tokens": 27,
+    "prompt_time": 0.002253896,
+    "completion_tokens": 64,
+    "completion_time": 0.141174868,
+    "total_tokens": 91,
+    "total_time": 0.143428764,
+    "completion_tokens_details": {
+      "reasoning_tokens": 64
+    }
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_b545673577",
+  "x_groq": {
+    "id": "req_01m0tf8wb1e5r8bd32g6a983sz",
+    "seed": 1937480571
+  },
+  "service_tier": "on_demand"
+}

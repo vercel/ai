@@ -1,0 +1,33 @@
+{
+  "id": "chatcmpl-2a4f57ae-54bd-4935-b111-e7b8f561424b",
+  "object": "chat.completion",
+  "created": 1787594836,
+  "model": "qwen/qwen3.6-27b",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "To calculate $17 \\times 19$, we can use a few different methods to ensure accuracy. Here are two common approaches:\n\n### Method 1: Decomposition (Distributive Property)\n\nWe can break down the numbers to make multiplication easier. Let's treat 19 as $20"
+      },
+      "logprobs": null,
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.003839846,
+    "prompt_tokens": 29,
+    "prompt_time": 0.001949866,
+    "completion_tokens": 64,
+    "completion_time": 0.137555244,
+    "total_tokens": 93,
+    "total_time": 0.13950511
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_56957dc726",
+  "x_groq": {
+    "id": "req_01m0tf92p4e8xaf14nvq2s4bvg",
+    "seed": 1098143431
+  },
+  "service_tier": "on_demand"
+}
