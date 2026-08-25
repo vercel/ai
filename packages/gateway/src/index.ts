@@ -42,6 +42,10 @@ export type {
   GatewayProviderSettings,
 } from './gateway-provider';
 export type {
+  GatewayAsyncJobMetadata,
+  GatewayProviderMetadata,
+} from './gateway-provider-metadata';
+export type {
   GatewayProviderOptions,
   /** @deprecated Use `GatewayProviderOptions` instead. */
   GatewayProviderOptions as GatewayLanguageModelOptions,

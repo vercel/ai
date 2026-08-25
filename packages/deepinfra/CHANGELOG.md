@@ -1,5 +1,13 @@
 # @ai-sdk/deepinfra
 
+## 3.0.36
+
+### Patch Changes
+
+- 3dd9d89: fix(deepinfra): enable structured outputs to forward response_format json_schema
+- Updated dependencies [ece5bdb]
+  - @ai-sdk/openai-compatible@3.0.36
+
 ## 3.0.35
 
 ### Patch Changes

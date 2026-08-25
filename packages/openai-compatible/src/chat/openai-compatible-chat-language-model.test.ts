@@ -1336,7 +1336,7 @@ describe('doGenerate', () => {
       );
     });
 
-    it('should not pass top-level reasoning none as reasoning_effort', async () => {
+    it('should pass top-level reasoning none as reasoning_effort', async () => {
       prepareJsonResponse({ content: 'test' });
 
       await model.doGenerate({
@@ -1344,9 +1344,9 @@ describe('doGenerate', () => {
         reasoning: 'none',
       });
 
-      expect(
-        (await server.calls[0].requestBodyJson).reasoning_effort,
-      ).toBeUndefined();
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
     });
 
     it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
