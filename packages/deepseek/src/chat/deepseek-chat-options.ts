@@ -38,3 +38,16 @@ export const deepseekChatOptions = z.object({
 });
 
 export type DeepSeekChatOptions = z.infer<typeof deepseekChatOptions>;
+
+export const deepseekAssistantMessageProviderOptions = z.object({
+  /**
+   * Whether the assistant message content is a prefix that DeepSeek should
+   * continue. This beta feature is only supported on the final assistant
+   * message when using a beta base URL.
+   */
+  prefix: z.literal(true).optional(),
+});
+
+export type DeepSeekAssistantMessageProviderOptions = z.infer<
+  typeof deepseekAssistantMessageProviderOptions
+>;

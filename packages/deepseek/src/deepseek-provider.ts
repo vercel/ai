@@ -56,9 +56,8 @@ Creates a DeepSeek chat model for text generation.
 export function createDeepSeek(
   options: DeepSeekProviderSettings = {},
 ): DeepSeekProvider {
-  const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.deepseek.com',
-  );
+  const baseURL =
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.deepseek.com';
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -79,6 +78,7 @@ export function createDeepSeek(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      supportsAssistantPrefixCompletion: baseURL.endsWith('/beta'),
     });
   };
 
