@@ -676,6 +676,7 @@ const xaiUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
+  cost_in_usd_ticks: z.number().nullish(),
   prompt_tokens_details: z
     .object({
       text_tokens: z.number().nullish(),
@@ -696,7 +697,7 @@ const xaiUsageSchema = z.object({
 
 export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
-const xaiChatResponseSchema = z.object({
+export const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -732,6 +733,8 @@ const xaiChatResponseSchema = z.object({
   code: z.string().nullish(),
   error: z.string().nullish(),
 });
+
+export type XaiChatResponse = z.infer<typeof xaiChatResponseSchema>;
 
 const xaiChatChunkSchema = z.object({
   id: z.string().nullish(),

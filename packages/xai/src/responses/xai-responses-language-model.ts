@@ -41,7 +41,7 @@ import {
 } from './xai-responses-language-model-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
-type XaiResponsesConfig = {
+export type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
   headers?: () => Record<string, string | undefined>;
@@ -88,7 +88,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     'text/*': [/^https?:\/\/.*$/],
   };
 
-  private async getArgs({
+  protected async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
