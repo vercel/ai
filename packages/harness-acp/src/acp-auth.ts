@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 import type {
-  ACPAuthOptions,
+  ACPAuthOptions as ACPV1AuthOptions,
   ACPAuthentication,
   ACPProviderAuthentication,
   ACPProviderAuthenticationMode,
@@ -9,6 +9,8 @@ import type {
 import type { ACPResolvedProviderAuthentication } from './v1/bridge/acp-v1-bridge-environment';
 
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
+
+export type ACPAuthOptions = ACPV1AuthOptions;
 
 export type ACPClientApp = {
   readonly name: string;

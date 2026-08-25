@@ -1,5 +1,5 @@
 export { createACP } from './acp-harness';
-export type { ACPClientApp } from './acp-auth';
+export type { ACPAuthOptions, ACPClientApp } from './acp-auth';
 export type { ACPHarnessSettings } from './acp-harness';
 export type {
   ACPAnnotations,
@@ -22,7 +22,6 @@ export type {
 export type {
   ACPCredentialBrokering,
   ACPAuthentication,
-  ACPAuthOptions,
   ACPGatewayAuthenticationOptions,
   ACPInstallCommandSource,
   ACPInstructionMapping,
