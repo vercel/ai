@@ -34,7 +34,7 @@ import {
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
 import {
-  getModelThinkingKeepSupport,
+  getMoonshotAIModelFamily,
   isMoonshotAIKimiModel,
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
@@ -153,23 +153,112 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
       toolWarnings,
     } = prepareTools({ tools, toolChoice });
 
-    // Thinking is configured through explicit provider options only.
-    const thinking = moonshotOptions.thinking;
+    const modelFamily = getMoonshotAIModelFamily(this.modelId);
+    const requestedThinking = moonshotOptions.thinking;
+    const requestedReasoningEffort = moonshotOptions.reasoningEffort;
+    const preserveReasoning = moonshotOptions.reasoningHistory === 'preserved';
 
-    // Moonshot has no reasoning_history field; the API silently ignores it
-    // (verified against the live API). Preserved Thinking maps to
-    // thinking.keep, which only accepts 'all' and only on some models
-    // (verified: k2.6, k2.7-code, k3 accept it; k2.5 rejects it). Other
-    // reasoningHistory values use the server default.
-    let keep: 'all' | undefined;
-    if (moonshotOptions.reasoningHistory === 'preserved') {
-      if (getModelThinkingKeepSupport(this.modelId)) {
-        keep = 'all';
-      } else {
+    if (requestedThinking?.budgetTokens != null) {
+      allWarnings.push({
+        type: 'other',
+        message:
+          'providerOptions.moonshotai.thinking.budgetTokens is deprecated because Moonshot Chat Completions does not support budget_tokens. The option has been omitted.',
+      });
+    }
+
+    let thinking: { type: 'enabled' | 'disabled'; keep?: 'all' } | undefined;
+    let reasoningEffort: 'low' | 'high' | 'max' | undefined;
+
+    const warnUnsupportedReasoningEffort = () => {
+      if (requestedReasoningEffort != null) {
         allWarnings.push({
           type: 'unsupported',
-          feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
+          feature: 'reasoningEffort',
+          details: `reasoningEffort is only supported by Kimi K3 and has been omitted for model "${this.modelId}".`,
         });
+      }
+    };
+
+    switch (modelFamily) {
+      case 'kimi-k3': {
+        if (requestedThinking != null) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: 'thinking',
+            details:
+              'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
+          });
+        }
+        reasoningEffort = requestedReasoningEffort;
+        break;
+      }
+      case 'kimi-k2.7': {
+        warnUnsupportedReasoningEffort();
+        if (requestedThinking?.type === 'disabled') {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: 'thinking.type "disabled"',
+            details: 'Kimi K2.7 thinking cannot be disabled.',
+          });
+        } else if (requestedThinking?.type === 'enabled') {
+          thinking = { type: 'enabled' };
+        }
+        break;
+      }
+      case 'kimi-k2.6': {
+        warnUnsupportedReasoningEffort();
+        const thinkingType = requestedThinking?.type;
+        if (thinkingType != null || preserveReasoning) {
+          thinking = {
+            type: thinkingType ?? 'enabled',
+            ...(preserveReasoning ? { keep: 'all' as const } : {}),
+          };
+        }
+        break;
+      }
+      case 'kimi-k2.5': {
+        warnUnsupportedReasoningEffort();
+        const thinkingType = requestedThinking?.type;
+        if (thinkingType != null) {
+          thinking = { type: thinkingType };
+        }
+        if (preserveReasoning) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
+          });
+        }
+        break;
+      }
+      case 'moonshot-v1': {
+        warnUnsupportedReasoningEffort();
+        if (requestedThinking != null) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: 'thinking',
+            details: `thinking is not supported by model "${this.modelId}" and has been omitted.`,
+          });
+        }
+        if (preserveReasoning) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
+          });
+        }
+        break;
+      }
+      case 'unknown': {
+        reasoningEffort = requestedReasoningEffort;
+        if (requestedThinking?.type != null) {
+          thinking = { type: requestedThinking.type };
+        }
+        if (preserveReasoning) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
+          });
+        }
+        break;
       }
     }
 
@@ -216,19 +305,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
         messages,
         tools: moonshotTools,
         tool_choice: moonshotToolChoice,
-        ...(thinking != null || keep != null
-          ? {
-              thinking: {
-                ...(thinking?.type != null && { type: thinking.type }),
-                ...(thinking?.budgetTokens !== undefined && {
-                  budget_tokens: thinking.budgetTokens,
-                }),
-                ...(keep != null && { keep }),
-              },
-            }
-          : {}),
-        ...(moonshotOptions.reasoningEffort != null && {
-          reasoning_effort: moonshotOptions.reasoningEffort,
+        ...(thinking != null ? { thinking } : {}),
+        ...(reasoningEffort != null && {
+          reasoning_effort: reasoningEffort,
         }),
         ...(moonshotOptions.promptCacheKey != null && {
           prompt_cache_key: moonshotOptions.promptCacheKey,

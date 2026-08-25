@@ -13,9 +13,8 @@ run(async () => {
       moonshotai: {
         thinking: {
           type: 'enabled',
-          budgetTokens: 2048,
         },
-        reasoningHistory: 'interleaved',
+        reasoningHistory: 'preserved',
       } satisfies MoonshotAILanguageModelOptions,
     },
   });
