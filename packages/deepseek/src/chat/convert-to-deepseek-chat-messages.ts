@@ -11,6 +11,15 @@ import type {
   DeepSeekContentPart,
 } from './deepseek-chat-api-types';
 import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-options';
+import { deepseekFilePartProviderOptions } from './deepseek-file-part-options';
+
+const supportedImageMediaTypes = new Set([
+  'image/gif',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+]);
 
 export async function convertToDeepSeekChatMessages({
   prompt,
@@ -130,20 +139,86 @@ export async function convertToDeepSeekChatMessages({
             part.type === 'file' &&
             (part.mediaType === 'image' || part.mediaType.startsWith('image/'))
           ) {
-            const mediaType =
+            const filePartOptions = await parseProviderOptions({
+              provider: providerOptionsName,
+              providerOptions: part.providerOptions,
+              schema: deepseekFilePartProviderOptions,
+            });
+
+            const resolvedMediaType =
               part.mediaType === 'image' || part.mediaType === 'image/*'
                 ? 'image/jpeg'
                 : part.mediaType;
 
-            userContent.push({
-              type: 'image_url',
-              image_url: {
-                url:
-                  part.data instanceof URL
-                    ? part.data.toString()
-                    : `data:${mediaType};base64,${convertToBase64(part.data)}`,
-              },
-            });
+            if (!supportedImageMediaTypes.has(resolvedMediaType)) {
+              throw new UnsupportedFunctionalityError({
+                functionality: `DeepSeek image media type ${resolvedMediaType}`,
+                message:
+                  'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
+              });
+            }
+
+            if (part.data instanceof URL) {
+              const url = part.data.toString();
+
+              if (url.length > 8192) {
+                throw new InvalidPromptError({
+                  prompt,
+                  message:
+                    'DeepSeek image URLs must not exceed 8192 characters.',
+                });
+              }
+
+              if (filePartOptions?.fileData === true) {
+                throw new InvalidPromptError({
+                  prompt,
+                  message:
+                    'DeepSeek `fileData` image parts require inline data, not a URL.',
+                });
+              }
+
+              userContent.push({
+                type: 'image_url',
+                image_url: {
+                  url,
+                  ...(filePartOptions?.imageDetail != null && {
+                    detail: filePartOptions.imageDetail,
+                  }),
+                },
+              });
+            } else {
+              const dataUrl = `data:${
+                resolvedMediaType === 'image/jpg'
+                  ? 'image/jpeg'
+                  : resolvedMediaType
+              };base64,${convertToBase64(part.data)}`;
+
+              if (filePartOptions?.fileData === true) {
+                if (filePartOptions.imageDetail != null) {
+                  throw new InvalidPromptError({
+                    prompt,
+                    message:
+                      'DeepSeek `imageDetail` cannot be combined with `fileData`.',
+                  });
+                }
+
+                userContent.push({
+                  type: 'file',
+                  file_data: dataUrl,
+                  ...(part.filename != null && { filename: part.filename }),
+                });
+              } else {
+                userContent.push({
+                  type: 'image_url',
+                  image_url: {
+                    url: dataUrl,
+                    ...(filePartOptions?.imageDetail != null && {
+                      detail: filePartOptions.imageDetail,
+                    }),
+                  },
+                });
+              }
+            }
           } else {
             warnings.push({
               type: 'other',
