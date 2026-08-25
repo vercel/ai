@@ -40,41 +40,43 @@ export type OpenResponsesExtensionStreamPart = Exclude<
 >;
 
 /**
- * Codec for an explicitly registered, implementation-specific Open Responses
- * tool and its namespaced items and streaming events.
+ * Codec for explicitly registered, implementation-specific Open Responses
+ * tools, items, and streaming events.
+ *
+ * Tool, item, and event capabilities are independent. An extension only needs
+ * to register the capabilities that its endpoint implements.
  */
 export interface OpenResponsesExtension {
   /**
-   * AI SDK provider-tool ID, in `<implementor>.<tool>` format.
+   * Extension ID in `<implementor>.<extension>` format. For extensions that
+   * encode a provider tool, this is also the AI SDK provider-tool ID.
    */
   id: LanguageModelV4ProviderTool['id'];
 
   /**
    * Namespaced Open Responses tool type, in `<implementor>:<tool>` format.
+   * Must be provided together with `encodeTool`.
    */
-  toolType: OpenResponsesNamespacedType;
+  toolType?: OpenResponsesNamespacedType;
 
   /**
-   * Namespaced item types decoded by this extension.
+   * Namespaced item types decoded by this extension. Must be provided together
+   * with `decodeItem`.
    */
-  itemTypes: readonly OpenResponsesNamespacedType[];
+  itemTypes?: readonly OpenResponsesNamespacedType[];
 
   /**
-   * Namespaced streaming event types decoded by this extension.
+   * Namespaced streaming event types decoded by this extension. Must be
+   * provided together with `decodeEvent`.
    */
   eventTypes?: readonly OpenResponsesNamespacedType[];
-
-  /**
-   * Whether tool calls decoded by this extension are executed by the endpoint.
-   */
-  providerExecuted: boolean;
 
   /**
    * Encodes a registered AI SDK provider tool. Return `undefined` when the
    * supplied arguments cannot be encoded. The adapter adds `toolType` and
    * omits any specific tool choice that selected the omitted tool.
    */
-  encodeTool(options: {
+  encodeTool?(options: {
     name: string;
     args: Record<string, unknown>;
   }): MaybePromiseLike<JSONObject | undefined>;
@@ -93,7 +95,7 @@ export interface OpenResponsesExtension {
    * prepends a durable custom replay part containing the original item and
    * adds lightweight replay references to the returned parts.
    */
-  decodeItem(options: {
+  decodeItem?(options: {
     item: OpenResponsesExtensionItem;
     mode: 'generate' | 'stream';
   }): MaybePromiseLike<OpenResponsesExtensionContentPart[] | undefined>;
@@ -122,10 +124,29 @@ export interface OpenResponsesExtension {
 }
 
 export type OpenResponsesExtensionRegistry = {
-  byEventType: Map<OpenResponsesNamespacedType, OpenResponsesExtension>;
-  byId: Map<LanguageModelV4ProviderTool['id'], OpenResponsesExtension>;
-  byItemType: Map<OpenResponsesNamespacedType, OpenResponsesExtension>;
-  byToolType: Map<OpenResponsesNamespacedType, OpenResponsesExtension>;
+  byEventType: Map<OpenResponsesNamespacedType, OpenResponsesEventExtension>;
+  byExtensionId: Map<LanguageModelV4ProviderTool['id'], OpenResponsesExtension>;
+  byItemType: Map<OpenResponsesNamespacedType, OpenResponsesItemExtension>;
+  byProviderToolId: Map<
+    LanguageModelV4ProviderTool['id'],
+    OpenResponsesToolExtension
+  >;
+  byToolType: Map<OpenResponsesNamespacedType, OpenResponsesToolExtension>;
+};
+
+type OpenResponsesToolExtension = OpenResponsesExtension & {
+  toolType: OpenResponsesNamespacedType;
+  encodeTool: NonNullable<OpenResponsesExtension['encodeTool']>;
+};
+
+type OpenResponsesItemExtension = OpenResponsesExtension & {
+  itemTypes: readonly OpenResponsesNamespacedType[];
+  decodeItem: NonNullable<OpenResponsesExtension['decodeItem']>;
+};
+
+type OpenResponsesEventExtension = OpenResponsesExtension & {
+  eventTypes: readonly OpenResponsesNamespacedType[];
+  decodeEvent: NonNullable<OpenResponsesExtension['decodeEvent']>;
 };
 
 export function createOpenResponsesExtensionRegistry(
@@ -133,62 +154,136 @@ export function createOpenResponsesExtensionRegistry(
 ): OpenResponsesExtensionRegistry {
   const registry: OpenResponsesExtensionRegistry = {
     byEventType: new Map(),
-    byId: new Map(),
+    byExtensionId: new Map(),
     byItemType: new Map(),
+    byProviderToolId: new Map(),
     byToolType: new Map(),
   };
 
   for (const extension of extensions ?? []) {
-    const namespace = extension.id.slice(0, extension.id.indexOf('.'));
-
-    assertNamespacedType({
-      extensionId: extension.id,
-      namespace,
-      type: extension.toolType,
-      field: 'toolType',
-    });
+    const namespaceSeparatorIndex = extension.id.indexOf('.');
+    if (namespaceSeparatorIndex <= 0) {
+      throw new Error(
+        `Open Responses extension ID ${extension.id} must use <implementor>.<extension> format.`,
+      );
+    }
+    const namespace = extension.id.slice(0, namespaceSeparatorIndex);
 
     registerUnique({
-      map: registry.byId,
+      map: registry.byExtensionId,
       key: extension.id,
       extension,
       field: 'id',
     });
-    registerUnique({
-      map: registry.byToolType,
-      key: extension.toolType,
-      extension,
-      field: 'toolType',
-    });
 
-    for (const itemType of extension.itemTypes) {
+    const hasToolType = extension.toolType != null;
+    const hasToolEncoder = extension.encodeTool != null;
+    if (hasToolType !== hasToolEncoder) {
+      throw new Error(
+        `Open Responses extension ${extension.id} must provide toolType and encodeTool together.`,
+      );
+    }
+
+    if (extension.encodeToolChoice != null && !hasToolEncoder) {
+      throw new Error(
+        `Open Responses extension ${extension.id} cannot provide encodeToolChoice without toolType and encodeTool.`,
+      );
+    }
+
+    if (hasToolType && hasToolEncoder) {
+      const toolExtension = extension as OpenResponsesToolExtension;
       assertNamespacedType({
         extensionId: extension.id,
         namespace,
-        type: itemType,
-        field: 'itemTypes',
+        type: toolExtension.toolType,
+        field: 'toolType',
       });
       registerUnique({
-        map: registry.byItemType,
-        key: itemType,
-        extension,
-        field: 'item type',
+        map: registry.byProviderToolId,
+        key: extension.id,
+        extension: toolExtension,
+        field: 'provider-tool id',
+      });
+      registerUnique({
+        map: registry.byToolType,
+        key: toolExtension.toolType,
+        extension: toolExtension,
+        field: 'toolType',
       });
     }
 
-    for (const eventType of extension.eventTypes ?? []) {
-      assertNamespacedType({
-        extensionId: extension.id,
-        namespace,
-        type: eventType,
-        field: 'eventTypes',
-      });
-      registerUnique({
-        map: registry.byEventType,
-        key: eventType,
-        extension,
-        field: 'event type',
-      });
+    const hasItemTypes = extension.itemTypes != null;
+    const hasItemDecoder = extension.decodeItem != null;
+    if (hasItemTypes !== hasItemDecoder) {
+      throw new Error(
+        `Open Responses extension ${extension.id} must provide itemTypes and decodeItem together.`,
+      );
+    }
+
+    if (extension.encodeInputItem != null && !hasItemDecoder) {
+      throw new Error(
+        `Open Responses extension ${extension.id} cannot provide encodeInputItem without itemTypes and decodeItem.`,
+      );
+    }
+
+    if (hasItemTypes && hasItemDecoder) {
+      const itemExtension = extension as OpenResponsesItemExtension;
+      if (itemExtension.itemTypes.length === 0) {
+        throw new Error(
+          `Open Responses extension ${extension.id} must register at least one item type.`,
+        );
+      }
+      for (const itemType of itemExtension.itemTypes) {
+        assertNamespacedType({
+          extensionId: extension.id,
+          namespace,
+          type: itemType,
+          field: 'itemTypes',
+        });
+        registerUnique({
+          map: registry.byItemType,
+          key: itemType,
+          extension: itemExtension,
+          field: 'item type',
+        });
+      }
+    }
+
+    const hasEventTypes = extension.eventTypes != null;
+    const hasEventDecoder = extension.decodeEvent != null;
+    if (hasEventTypes !== hasEventDecoder) {
+      throw new Error(
+        `Open Responses extension ${extension.id} must provide eventTypes and decodeEvent together.`,
+      );
+    }
+
+    if (hasEventTypes && hasEventDecoder) {
+      const eventExtension = extension as OpenResponsesEventExtension;
+      if (eventExtension.eventTypes.length === 0) {
+        throw new Error(
+          `Open Responses extension ${extension.id} must register at least one event type.`,
+        );
+      }
+      for (const eventType of eventExtension.eventTypes) {
+        assertNamespacedType({
+          extensionId: extension.id,
+          namespace,
+          type: eventType,
+          field: 'eventTypes',
+        });
+        registerUnique({
+          map: registry.byEventType,
+          key: eventType,
+          extension: eventExtension,
+          field: 'event type',
+        });
+      }
+    }
+
+    if (!hasToolEncoder && !hasItemDecoder && !hasEventDecoder) {
+      throw new Error(
+        `Open Responses extension ${extension.id} must register a tool, item, or event capability.`,
+      );
     }
   }
 
@@ -213,15 +308,15 @@ function assertNamespacedType({
   }
 }
 
-function registerUnique<K>({
+function registerUnique<K, Extension extends OpenResponsesExtension>({
   map,
   key,
   extension,
   field,
 }: {
-  map: Map<K, OpenResponsesExtension>;
+  map: Map<K, Extension>;
   key: K;
-  extension: OpenResponsesExtension;
+  extension: Extension;
   field: string;
 }) {
   const existing = map.get(key);

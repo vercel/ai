@@ -2,7 +2,7 @@ import type { LanguageModelV4Content } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import {
   createOpenResponses,
-  type OpenResponsesExtension,
+  type Experimental_OpenResponsesExtension,
   type OpenResponsesProviderSettings,
 } from './index';
 
@@ -13,7 +13,6 @@ describe('OpenResponsesExtension', () => {
       toolType: 'acme:search',
       itemTypes: ['acme:search_call'],
       eventTypes: ['acme:search_delta'],
-      providerExecuted: true,
       encodeTool: ({ name, args }) => ({
         name,
         configured: Object.keys(args).length > 0,
@@ -24,14 +23,16 @@ describe('OpenResponsesExtension', () => {
           toolCallId: item.id,
           toolName: 'search',
           input: '{}',
+          providerExecuted: true,
         },
       ],
-    } satisfies OpenResponsesExtension;
+      decodeEvent: () => undefined,
+    } satisfies Experimental_OpenResponsesExtension;
 
     const settings = {
       name: 'acme',
       url: 'https://example.com/v1/responses',
-      extensions: [extension],
+      experimental_extensions: [extension],
     } satisfies OpenResponsesProviderSettings;
 
     expectTypeOf(settings).toMatchTypeOf<OpenResponsesProviderSettings>();

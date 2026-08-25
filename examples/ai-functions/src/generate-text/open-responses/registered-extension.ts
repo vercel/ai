@@ -1,16 +1,15 @@
 import {
   createOpenResponses,
-  type OpenResponsesExtension,
+  type Experimental_OpenResponsesExtension,
 } from '@ai-sdk/open-responses';
 import { generateText, tool, type ModelMessage } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
-const documentSearchExtension: OpenResponsesExtension = {
+const documentSearchExtension: Experimental_OpenResponsesExtension = {
   id: 'acme.document_search',
   toolType: 'acme:document_search',
   itemTypes: ['acme:document_search_source', 'acme:document_search_receipt'],
-  providerExecuted: true,
   encodeTool: ({ name, args }) => ({
     name,
     index: args.index as string,
@@ -32,6 +31,7 @@ const documentSearchExtension: OpenResponsesExtension = {
             toolCallId: item.call_id as string,
             toolName: item.name as string,
             input: JSON.stringify(item.query),
+            providerExecuted: true,
           },
           {
             type: 'tool-result',
@@ -47,7 +47,7 @@ const requestBodies: Array<Record<string, unknown>> = [];
 const openResponses = createOpenResponses({
   name: 'acme',
   url: 'https://example.com/v1/responses',
-  extensions: [documentSearchExtension],
+  experimental_extensions: [documentSearchExtension],
   fetch: async (_url, init) => {
     requestBodies.push(JSON.parse(init!.body as string));
     const firstTurn = requestBodies.length === 1;

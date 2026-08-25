@@ -2,4 +2,4 @@
 '@ai-sdk/open-responses': patch
 ---
 
-add opt-in codecs for namespaced Open Responses tools, items, streaming events, and lossless history replay
+add experimental opt-in codecs for independently registered namespaced Open Responses tools, items, streaming events, and lossless history replay

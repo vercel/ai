@@ -38,7 +38,6 @@ import {
   type OpenResponsesExtensionItem,
   type OpenResponsesExtensionRecord,
   type OpenResponsesExtensionRegistry,
-  type OpenResponsesExtensionStreamPart,
 } from '../open-responses-extension';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
@@ -63,7 +62,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
   private readonly extensionRegistry: OpenResponsesExtensionRegistry;
 
   static [WORKFLOW_SERIALIZE](model: OpenResponsesLanguageModel) {
-    if (model.extensionRegistry.byId.size > 0) {
+    if (model.extensionRegistry.byExtensionId.size > 0) {
       throw new SerializationError({
         message:
           'Open Responses models with registered extensions cannot be serialized across workflow boundaries. Recreate the provider with its extension codecs inside the workflow step.',
@@ -154,7 +153,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     const encodedProviderToolsByName = new Map<
       string,
       {
-        extension: OpenResponsesExtension;
+        toolType: OpenResponsesExtensionRecord['type'];
+        encodeToolChoice: OpenResponsesExtension['encodeToolChoice'];
         tool: Extract<
           NonNullable<LanguageModelV4CallOptions['tools']>[number],
           { type: 'provider' }
@@ -164,7 +164,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     for (const tool of tools ?? []) {
       if (tool.type === 'provider') {
-        const extension = this.extensionRegistry.byId.get(tool.id);
+        const extension = this.extensionRegistry.byProviderToolId.get(tool.id);
         let encoded: OpenResponsesExtensionRecord | undefined;
 
         if (extension != null) {
@@ -192,7 +192,11 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           });
         } else if (extension != null) {
           convertedTools.push(encoded);
-          encodedProviderToolsByName.set(tool.name, { extension, tool });
+          encodedProviderToolsByName.set(tool.name, {
+            toolType: extension.toolType,
+            encodeToolChoice: extension.encodeToolChoice,
+            tool,
+          });
         }
       } else {
         convertedTools.push({
@@ -220,11 +224,11 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           };
         }
       } else {
-        const { extension, tool } = registeredTool;
+        const { encodeToolChoice, tool, toolType } = registeredTool;
         let fields: unknown = {};
 
         try {
-          fields = await extension.encodeToolChoice?.({
+          fields = await encodeToolChoice?.({
             name: tool.name,
             args: tool.args,
           });
@@ -232,10 +236,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           fields = undefined;
         }
 
-        if (
-          extension.encodeToolChoice != null &&
-          !isOpenResponsesJSONObject(fields)
-        ) {
+        if (encodeToolChoice != null && !isOpenResponsesJSONObject(fields)) {
           warnings.push({
             type: 'unsupported',
             feature: `tool choice for provider-defined tool ${tool.id}`,
@@ -243,7 +244,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         } else {
           convertedToolChoice = {
             ...(isOpenResponsesJSONObject(fields) ? fields : {}),
-            type: extension.toolType,
+            type: toolType,
           };
         }
       }
@@ -613,14 +614,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                     state: extensionStreamState,
                   });
                   for (const part of decoded ?? []) {
-                    const normalized = normalizeExtensionStreamPart({
-                      extension,
-                      part,
-                    });
-                    controller.enqueue(normalized);
+                    controller.enqueue(part);
                     hasToolCalls ||=
-                      normalized.type === 'tool-call' ||
-                      normalized.type === 'tool-input-start';
+                      part.type === 'tool-call' ||
+                      part.type === 'tool-input-start';
                   }
                 } catch (error) {
                   controller.enqueue({ type: 'error', error });
@@ -927,17 +924,10 @@ function addExtensionItemReferenceMetadata({
   part: OpenResponsesExtensionContentPart;
   providerOptionsName: string;
 }): OpenResponsesExtensionContentPart {
-  const normalized =
-    part.type === 'tool-call'
-      ? {
-          ...part,
-          providerExecuted: extension.providerExecuted,
-        }
-      : part;
-  const providerMetadata = normalized.providerMetadata ?? {};
+  const providerMetadata = part.providerMetadata ?? {};
 
   return {
-    ...normalized,
+    ...part,
     providerMetadata: {
       ...providerMetadata,
       [providerOptionsName]: {
@@ -949,23 +939,6 @@ function addExtensionItemReferenceMetadata({
       },
     },
   };
-}
-
-function normalizeExtensionStreamPart({
-  extension,
-  part,
-}: {
-  extension: OpenResponsesExtension;
-  part: OpenResponsesExtensionStreamPart;
-}): OpenResponsesExtensionStreamPart {
-  if (part.type === 'tool-call' || part.type === 'tool-input-start') {
-    return {
-      ...part,
-      providerExecuted: extension.providerExecuted,
-    };
-  }
-
-  return part;
 }
 
 function getOutputTextAnnotations(value: unknown): Annotation[] {

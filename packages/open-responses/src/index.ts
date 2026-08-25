@@ -5,14 +5,14 @@ export type {
   OpenResponsesProviderSettings,
 } from './open-responses-provider';
 export type {
-  OpenResponsesExtension,
-  OpenResponsesExtensionContentPart,
-  OpenResponsesExtensionEvent,
-  OpenResponsesExtensionInputPart,
-  OpenResponsesExtensionItem,
-  OpenResponsesExtensionRecord,
-  OpenResponsesExtensionStreamPart,
-  OpenResponsesNamespacedType,
+  OpenResponsesExtension as Experimental_OpenResponsesExtension,
+  OpenResponsesExtensionContentPart as Experimental_OpenResponsesExtensionContentPart,
+  OpenResponsesExtensionEvent as Experimental_OpenResponsesExtensionEvent,
+  OpenResponsesExtensionInputPart as Experimental_OpenResponsesExtensionInputPart,
+  OpenResponsesExtensionItem as Experimental_OpenResponsesExtensionItem,
+  OpenResponsesExtensionRecord as Experimental_OpenResponsesExtensionRecord,
+  OpenResponsesExtensionStreamPart as Experimental_OpenResponsesExtensionStreamPart,
+  OpenResponsesNamespacedType as Experimental_OpenResponsesNamespacedType,
 } from './open-responses-extension';
 export type {
   OpenResponsesLanguageModelOptions,

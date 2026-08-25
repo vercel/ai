@@ -60,7 +60,6 @@ describe('OpenResponsesLanguageModel', () => {
         'acme:document_search_receipt',
       ],
       eventTypes: ['acme:document_search_input'],
-      providerExecuted,
       encodeTool: ({ name, args }) => ({
         name,
         ...(args as {}),
@@ -74,6 +73,10 @@ describe('OpenResponsesLanguageModel', () => {
               toolCallId: item.call_id as string,
               toolName: item.name as string,
               input: JSON.stringify(item.query),
+              providerExecuted:
+                typeof item.provider_executed === 'boolean'
+                  ? item.provider_executed
+                  : providerExecuted,
             },
           ];
         }
@@ -95,6 +98,10 @@ describe('OpenResponsesLanguageModel', () => {
             toolCallId: item.call_id as string,
             toolName: item.name as string,
             input: JSON.stringify(item.query),
+            providerExecuted:
+              typeof item.provider_executed === 'boolean'
+                ? item.provider_executed
+                : providerExecuted,
           },
           {
             type: 'tool-result',
@@ -132,6 +139,10 @@ describe('OpenResponsesLanguageModel', () => {
           type: 'tool-input-start',
           id: event.call_id as string,
           toolName: event.name as string,
+          providerExecuted:
+            typeof event.provider_executed === 'boolean'
+              ? event.provider_executed
+              : providerExecuted,
         },
         {
           type: 'tool-input-delta',
@@ -505,6 +516,7 @@ describe('OpenResponsesLanguageModel', () => {
           status: 'completed',
           call_id: 'call_1',
           name: 'documentSearch',
+          provider_executed: false,
           query: { text: 'climate' },
           result: {
             documents: [{ id: 'doc_1', score: 0.9 }],
@@ -539,7 +551,7 @@ describe('OpenResponsesLanguageModel', () => {
             toolCallId: 'call_1',
             toolName: 'documentSearch',
             input: '{"text":"climate"}',
-            providerExecuted: true,
+            providerExecuted: false,
             providerMetadata: {
               lmstudio: {
                 openResponsesExtension: {
@@ -582,7 +594,7 @@ describe('OpenResponsesLanguageModel', () => {
                   toolCallId: 'call_1',
                   toolName: 'documentSearch',
                   input: { text: 'climate' },
-                  providerExecuted: true,
+                  providerExecuted: false,
                   providerOptions: first.content[1].providerMetadata,
                 },
                 {

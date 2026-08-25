@@ -161,7 +161,7 @@ export async function convertToOpenResponsesInput({
             const extension =
               providerTool == null
                 ? undefined
-                : extensionRegistry?.byId.get(providerTool.id);
+                : extensionRegistry?.byProviderToolId.get(providerTool.id);
 
             if (providerTool != null && extension != null) {
               flushAssistantContent();
@@ -323,7 +323,7 @@ export async function convertToOpenResponsesInput({
             const extension =
               providerTool == null
                 ? undefined
-                : extensionRegistry?.byId.get(providerTool.id);
+                : extensionRegistry?.byProviderToolId.get(providerTool.id);
 
             if (providerTool != null && extension != null) {
               const encoded = await encodeExtensionInputPart({
@@ -455,13 +455,15 @@ async function encodeExtensionInputPart({
   part: OpenResponsesExtensionInputPart;
   providerTool: LanguageModelV4ProviderTool;
 }): Promise<OpenResponsesExtensionItem[] | undefined> {
-  const extension = extensionRegistry?.byId.get(providerTool.id);
-  if (extension?.encodeInputItem == null) {
+  const extension = extensionRegistry?.byProviderToolId.get(providerTool.id);
+  const encodeInputItem = extension?.encodeInputItem;
+  const itemTypes = extension?.itemTypes;
+  if (encodeInputItem == null || itemTypes == null) {
     return undefined;
   }
 
   try {
-    const value = await extension.encodeInputItem({
+    const value = await encodeInputItem({
       part,
       tool: providerTool,
     });
@@ -473,8 +475,7 @@ async function encodeExtensionInputPart({
       items.length === 0 ||
       !items.every(
         item =>
-          isOpenResponsesExtensionItem(item) &&
-          extension.itemTypes.includes(item.type),
+          isOpenResponsesExtensionItem(item) && itemTypes.includes(item.type),
       )
     ) {
       return undefined;
@@ -520,7 +521,7 @@ function getExtensionReplay({
     return undefined;
   }
 
-  const extension = extensionRegistry?.byId.get(
+  const extension = extensionRegistry?.byExtensionId.get(
     id as LanguageModelV4ProviderTool['id'],
   );
 
@@ -530,7 +531,7 @@ function getExtensionReplay({
 
   if (
     isOpenResponsesExtensionItem(item) &&
-    extension.itemTypes.includes(item.type)
+    extension.itemTypes?.includes(item.type)
   ) {
     return { item };
   }

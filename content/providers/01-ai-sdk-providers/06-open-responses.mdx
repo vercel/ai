@@ -239,11 +239,12 @@ file's media type. Provider file references, such as OpenAI file IDs, and
 file data in `{ type: 'text', text: '...' }` format are not supported by this
 provider.
 
-## Registered Extensions
+## Experimental Registered Extensions
 
 Open Responses implementations can add namespaced tools, items, and streaming
-events. Register an `OpenResponsesExtension` when an endpoint documents these
-wire formats and you want the generic adapter to encode and decode them.
+events. Register an `Experimental_OpenResponsesExtension` when an endpoint
+documents these wire formats and you want the generic adapter to encode and
+decode them. This API is experimental and may change in a future release.
 Extensions are opt-in; unregistered provider tools continue to produce
 `unsupported` warnings and are omitted from the request.
 
@@ -255,17 +256,15 @@ in an extension must use the same implementor namespace as its `id`.
 ```ts
 import {
   createOpenResponses,
-  type OpenResponsesExtension,
+  type Experimental_OpenResponsesExtension,
 } from '@ai-sdk/open-responses';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
-const documentSearchExtension: OpenResponsesExtension = {
+const documentSearchExtension: Experimental_OpenResponsesExtension = {
   id: 'acme.document_search',
   toolType: 'acme:document_search',
   itemTypes: ['acme:document_search_receipt'],
-  providerExecuted: true,
-
   encodeTool: ({ name, args }) => ({
     name,
     index: args.index as string,
@@ -277,6 +276,7 @@ const documentSearchExtension: OpenResponsesExtension = {
       toolCallId: item.call_id as string,
       toolName: item.name as string,
       input: JSON.stringify(item.query),
+      providerExecuted: true,
     },
     {
       type: 'tool-result',
@@ -290,7 +290,7 @@ const documentSearchExtension: OpenResponsesExtension = {
 const acme = createOpenResponses({
   name: 'acme',
   url: 'https://api.acme.example/v1/responses',
-  extensions: [documentSearchExtension],
+  experimental_extensions: [documentSearchExtension],
 });
 
 const documentSearch = tool({
@@ -316,9 +316,9 @@ const result = await generateText({
 });
 ```
 
-Set `providerExecuted: true` for hosted tools that the endpoint executes, or
-`false` for tools that the application executes. The adapter applies this
-value to decoded tool calls.
+Set `providerExecuted` on each decoded `tool-call` or `tool-input-start` part.
+This lets a codec determine execution ownership from the individual item or
+event instead of applying one value to the entire extension.
 
 An extension codec can define:
 
@@ -336,6 +336,11 @@ An extension codec can define:
 - `decodeEvent` to map registered namespaced streaming events to AI SDK stream
   parts. Its `state` map is unique to the current response stream and can
   accumulate extension-specific deltas.
+
+Tool, item, and event capabilities are independent. For example, an extension
+that only decodes response receipts can provide `itemTypes` and `decodeItem`
+without registering `toolType` or `encodeTool`. Paired fields must always be
+provided together.
 
 For every decoded item, the provider adds an
 `open-responses.extension-replay` custom part that stores the original JSON

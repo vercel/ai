@@ -49,8 +49,10 @@ export interface OpenResponsesProviderSettings {
   /**
    * Explicitly registered codecs for implementation-specific, namespaced Open
    * Responses tools, items, and streaming events.
+   *
+   * @experimental This API may change in a future release.
    */
-  extensions?: readonly OpenResponsesExtension[];
+  experimental_extensions?: readonly OpenResponsesExtension[];
 }
 
 export function createOpenResponses(
@@ -58,7 +60,7 @@ export function createOpenResponses(
 ): OpenResponsesProvider {
   const providerName = options.name;
   const extensionRegistry = createOpenResponsesExtensionRegistry(
-    options.extensions,
+    options.experimental_extensions,
   );
 
   const getHeaders = () =>
