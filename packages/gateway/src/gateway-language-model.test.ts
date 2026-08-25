@@ -657,6 +657,36 @@ describe('GatewayLanguageModel', () => {
       `);
     });
 
+    it('should preserve explicit mid-stream provider error metadata', async () => {
+      const error = {
+        message: 'Upstream provider overloaded',
+        type: 'provider_overloaded',
+        statusCode: 503,
+        isRetryable: true,
+      };
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            textDelta: 'Partial output',
+          })}\n\n`,
+          `data: ${JSON.stringify({ type: 'error', error })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        { type: 'text-delta', textDelta: 'Partial output' },
+        { type: 'error', error },
+      ]);
+    });
+
     it('should pass streaming headers', async () => {
       prepareStreamResponse({
         content: ['Test'],

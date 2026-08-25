@@ -1368,6 +1368,10 @@ export const anthropicChunkSchema = lazySchema(() =>
         error: z.object({
           type: z.string(),
           message: z.string(),
+          code: z.union([z.string(), z.number()]).nullish(),
+          statusCode: z.number().nullish(),
+          isRetryable: z.boolean().nullish(),
+          data: z.unknown().nullish(),
         }),
       }),
       z.object({
