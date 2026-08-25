@@ -34,6 +34,7 @@ import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
   deepSeekErrorSchema,
+  type DeepSeekChatLogprob,
   type DeepSeekChatTokenUsage,
 } from './deepseek-chat-api-types';
 import {
@@ -51,6 +52,7 @@ export type DeepSeekChatConfig = {
   fetch?: FetchFunction;
   supportsAssistantPrefixCompletion?: boolean;
   supportsStrictToolCalls?: boolean;
+  supportsPenaltySampling?: boolean;
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
@@ -150,6 +152,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
 
     const supportsStructuredOutputs =
       this.config.supportsStructuredOutputs === true;
+    const supportsPenaltySampling =
+      this.config.supportsPenaltySampling === true;
 
     const { messages, warnings } = await convertToDeepSeekChatMessages({
       prompt,
@@ -168,6 +172,24 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
 
     if (seed != null) {
       allWarnings.push({ type: 'unsupported', feature: 'seed' });
+    }
+
+    if (!supportsPenaltySampling && frequencyPenalty != null) {
+      allWarnings.push({
+        type: 'deprecated',
+        setting: 'frequencyPenalty',
+        message:
+          'frequencyPenalty is deprecated by DeepSeek and has been omitted. Remove frequencyPenalty from the request.',
+      });
+    }
+
+    if (!supportsPenaltySampling && presencePenalty != null) {
+      allWarnings.push({
+        type: 'deprecated',
+        setting: 'presencePenalty',
+        message:
+          'presencePenalty is deprecated by DeepSeek and has been omitted. Remove presencePenalty from the request.',
+      });
     }
 
     const {
@@ -199,6 +221,31 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
             ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
             : undefined;
 
+    const isThinkingEnabled =
+      this.config.supportsThinking !== false &&
+      thinking?.type !== 'disabled' &&
+      (thinking != null ||
+        this.modelId === 'deepseek-reasoner' ||
+        this.modelId.includes('deepseek-v4'));
+
+    if (isThinkingEnabled && temperature != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'temperature',
+        details:
+          "temperature has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use temperature.",
+      });
+    }
+
+    if (isThinkingEnabled && topP != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'topP',
+        details:
+          "topP has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use topP.",
+      });
+    }
+
     const reasoningEffort =
       deepseekOptions.reasoningEffort != null
         ? mapDeepSeekProviderReasoningEffort({
@@ -222,11 +269,18 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     return {
       args: {
         model: this.modelId,
+        ...((deepseekOptions.logprobs === true ||
+          deepseekOptions.topLogprobs != null) && { logprobs: true }),
+        ...(deepseekOptions.topLogprobs != null && {
+          top_logprobs: deepseekOptions.topLogprobs,
+        }),
         max_tokens: maxOutputTokens,
-        temperature,
-        top_p: topP,
-        frequency_penalty: frequencyPenalty,
-        presence_penalty: presencePenalty,
+        temperature: isThinkingEnabled ? undefined : temperature,
+        top_p: isThinkingEnabled ? undefined : topP,
+        frequency_penalty: supportsPenaltySampling
+          ? frequencyPenalty
+          : undefined,
+        presence_penalty: supportsPenaltySampling ? presencePenalty : undefined,
         response_format:
           responseFormat?.type === 'json'
             ? supportsStructuredOutputs && responseFormat.schema != null
@@ -323,6 +377,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         [this.providerOptionsName]: {
           promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
           promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
+          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
           ...(responseBody.system_fingerprint != null && {
             systemFingerprint: responseBody.system_fingerprint,
           }),
@@ -376,6 +431,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    const contentLogprobs: DeepSeekChatLogprob[] = [];
+    const reasoningLogprobs: DeepSeekChatLogprob[] = [];
 
     return {
       stream: response.pipeThrough(
@@ -437,6 +494,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                 unified: mapDeepSeekFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
+            }
+
+            if (choice?.logprobs?.content != null) {
+              contentLogprobs.push(...choice.logprobs.content);
+            }
+
+            if (choice?.logprobs?.reasoning_content != null) {
+              reasoningLogprobs.push(...choice.logprobs.reasoning_content);
             }
 
             if (choice?.delta == null) {
@@ -522,6 +587,17 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                     usage?.prompt_cache_hit_tokens ?? undefined,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? undefined,
+                  ...((contentLogprobs.length > 0 ||
+                    reasoningLogprobs.length > 0) && {
+                    logprobs: {
+                      ...(contentLogprobs.length > 0 && {
+                        content: contentLogprobs,
+                      }),
+                      ...(reasoningLogprobs.length > 0 && {
+                        reasoning_content: reasoningLogprobs,
+                      }),
+                    },
+                  }),
                   ...(systemFingerprint != null && { systemFingerprint }),
                 },
               },

@@ -2,12 +2,26 @@ import { z } from 'zod/v4';
 
 // https://api-docs.deepseek.com/quick_start/pricing
 export type DeepSeekChatModelId =
-  | 'deepseek-chat'
-  | 'deepseek-reasoner'
+  | 'deepseek-v4-flash'
+  | 'deepseek-v4-pro'
   | 'deepseek-v4-flash-vision-exp'
+  // Retired aliases remain assignable through the string escape hatch, but are
+  // intentionally omitted from first-class editor suggestions.
   | (string & {});
 
 export const deepseekLanguageModelChatOptions = z.object({
+  /**
+   * Whether to return log probabilities for generated tokens.
+   */
+  logprobs: z.boolean().optional(),
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   *
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs: z.number().int().min(0).max(20).optional(),
+
   /**
    * An opaque identifier for the end user. DeepSeek uses this identifier for
    * content-safety tracing and request isolation.
@@ -51,6 +65,18 @@ export const deepseekLanguageModelChatOptions = z.object({
 
 export type DeepSeekLanguageModelChatOptions = {
   /**
+   * Whether to return log probabilities for generated tokens.
+   */
+  logprobs?: boolean;
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   *
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs?: number;
+
+  /**
    * An opaque identifier for the end user. DeepSeek uses this identifier for
    * content-safety tracing and request isolation.
    *
@@ -79,14 +105,28 @@ export type DeepSeekLanguageModelChatOptions = {
   strictJsonSchema?: boolean;
 };
 
-export const deepseekAssistantMessageProviderOptions = z.object({
+export const deepseekMessageProviderOptions = z.object({
   /**
-   * Whether the assistant message content is a prefix that DeepSeek should
-   * continue. This beta feature is only supported on the final assistant
-   * message when using a beta base URL.
+   * The name of the participant represented by the message.
+   *
+   * Supported on system, user, and assistant messages.
    */
-  prefix: z.literal(true).optional(),
+  name: z.string().optional(),
 });
+
+export type DeepSeekMessageProviderOptions = z.infer<
+  typeof deepseekMessageProviderOptions
+>;
+
+export const deepseekAssistantMessageProviderOptions =
+  deepseekMessageProviderOptions.extend({
+    /**
+     * Whether the assistant message content is a prefix that DeepSeek should
+     * continue. This beta feature is only supported on the final assistant
+     * message when using a beta base URL.
+     */
+    prefix: z.literal(true).optional(),
+  });
 
 export type DeepSeekAssistantMessageProviderOptions = z.infer<
   typeof deepseekAssistantMessageProviderOptions

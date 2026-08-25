@@ -62,7 +62,7 @@ import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -70,15 +70,30 @@ const { text } = await generateText({
 You can also use the `.chat()` or `.languageModel()` factory methods:
 
 ```ts
-const model = deepSeek.chat('deepseek-chat');
+const model = deepSeek.chat('deepseek-v4-flash');
 // or
-const model = deepSeek.languageModel('deepseek-chat');
+const model = deepSeek.languageModel('deepseek-v4-flash');
 ```
 
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+DeepSeek retired the `deepseek-chat` and `deepseek-reasoner` aliases on July 24, 2026. Use `deepseek-v4-flash` or `deepseek-v4-pro` for the current API. Custom
+and legacy model IDs remain accepted as strings for compatibility with custom
+endpoints.
+
 The following optional provider options are available for DeepSeek models:
+
+- `logprobs` _boolean_
+
+  Optional. Returns log probabilities for generated content and reasoning
+  tokens in `providerMetadata.deepseek.logprobs`.
+
+- `topLogprobs` _number_
+
+  Optional. Returns the specified number of most likely tokens at each token
+  position. Accepts values from `0` through `20` and automatically enables
+  `logprobs`.
 
 - `userId` _string_
 
@@ -89,7 +104,7 @@ The following optional provider options are available for DeepSeek models:
 
 - `thinking` _object_
 
-  Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
+  Optional. Controls thinking mode (chain-of-thought reasoning) for DeepSeek V4 models.
   - `type`: `'enabled' | 'disabled'` - Enable or disable thinking mode. See [DeepSeek's thinking mode docs](https://api-docs.deepseek.com/guides/thinking_mode).
 
 - `reasoningEffort` _'low' | 'high' | 'max'_
@@ -105,6 +120,13 @@ also mapped to documented values: `thinking.type: 'adaptive'` becomes
 `reasoningEffort: 'xhigh'` becomes `'max'`. Each mapping returns a compatibility
 warning so callers can migrate to a canonical value.
 
+DeepSeek has deprecated the top-level `frequencyPenalty` and `presencePenalty`
+settings. The provider omits these settings and returns a deprecation warning
+when they are used. `temperature` and `topP` have no effect while thinking is
+enabled, including the default thinking mode for DeepSeek V4 models, so the
+provider omits them with an unsupported warning. Explicitly set
+`thinking.type` to `'disabled'` to use `temperature` and `topP`.
+
 ```ts highlight="7-15"
 import {
   deepSeek,
@@ -113,7 +135,7 @@ import {
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'How many "r"s are in the word "strawberry"?',
   providerOptions: {
     deepseek: {
@@ -125,16 +147,106 @@ const { text, reasoning } = await generateText({
 });
 ```
 
+### Message Names
+
+DeepSeek supports optional participant names on system, user, and assistant
+messages. Set `providerOptions.deepseek.name` on each message that should
+include a name:
+
+```ts
+import {
+  deepSeek,
+  type DeepSeekMessageProviderOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-chat'),
+  instructions: {
+    role: 'system',
+    content: 'Help the customer plan a short trip.',
+    providerOptions: {
+      deepseek: {
+        name: 'travel_planner',
+      } satisfies DeepSeekMessageProviderOptions,
+    },
+  },
+  messages: [
+    {
+      role: 'user',
+      content: 'I want to visit Lisbon for a weekend.',
+      providerOptions: {
+        deepseek: {
+          name: 'customer',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+    {
+      role: 'assistant',
+      content: 'What kinds of activities do you enjoy?',
+      providerOptions: {
+        deepseek: {
+          name: 'travel_planner',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+    {
+      role: 'user',
+      content: 'Food, architecture, and walking.',
+      providerOptions: {
+        deepseek: {
+          name: 'customer',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+  ],
+});
+```
+
+The same message option works with `streamText`:
+
+```ts
+import {
+  deepSeek,
+  type DeepSeekMessageProviderOptions,
+} from '@ai-sdk/deepseek';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: deepSeek('deepseek-chat'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Suggest a name for my neighborhood book club.',
+      providerOptions: {
+        deepseek: {
+          name: 'organizer',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+  ],
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+Names are omitted when the option is not set. The `name` value must be a
+string. DeepSeek does not support names on tool messages, so the provider
+ignores that placement and returns an unsupported-feature warning. Avoid
+including unnecessary personal or identifying information in message names.
+
 ### Reasoning
 
-DeepSeek has reasoning support for the `deepseek-reasoner` model. The reasoning is exposed through streaming:
+DeepSeek V4 models support reasoning. The reasoning is exposed through streaming:
 
 ```ts
 import { deepSeek } from '@ai-sdk/deepseek';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: deepSeek('deepseek-reasoner'),
+  model: deepSeek('deepseek-v4-pro'),
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
 
@@ -171,7 +283,7 @@ const deepSeek = createDeepSeek({
 });
 
 const { text } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   messages: [
     {
       role: 'user',
@@ -241,7 +353,7 @@ import { deepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-v4-flash'),
   prompt: 'Your prompt here',
 });
 
@@ -310,6 +422,12 @@ const { text } = await generateText({
 
 The optional `expiresAfter` setting specifies the lifetime in seconds. DeepSeek accepts values from 3,600 seconds (one hour) through 2,592,000 seconds (30 days). Files are permanent when no expiration is specified.
 
+The provider requires a valid file ID in successful upload responses. It also
+validates returned `object` and `purpose` discriminators and numeric metadata.
+Other response metadata remains optional for compatibility with incomplete
+responses; omitted values are not included in `providerMetadata`, and an
+omitted response filename falls back to the filename supplied to `uploadFile`.
+
 DeepSeek file uploads support JPEG (`.jpg` and `.jpeg`), PNG, GIF, and WebP
 images. Each file can be at most 64 MiB, and filenames can contain at most 512
 characters. The AI SDK validates these constraints before sending the upload
@@ -322,8 +440,8 @@ when its declared media type or filename indicates a supported image format.
 
 | Model                          | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |
 | ------------------------------ | --------------- | ----------------- | ----------- | ---------- | -------------- |
-| `deepseek-chat`                | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
-| `deepseek-reasoner`            | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+| `deepseek-v4-flash`            | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+| `deepseek-v4-pro`              | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
 | `deepseek-v4-flash-vision-exp` | <Check />       | <Check />         | <Check />   | <Check />  | <Check />      |
 
 <Note>
