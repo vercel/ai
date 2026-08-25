@@ -1,5 +1,15 @@
 # @ai-sdk/groq
 
+## 4.0.31
+
+### Patch Changes
+
+- 2214258: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- 9e9bf11: fix: disable reasoning for supported Groq models when top-level reasoning is set to `none`
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 4.0.30
 
 ### Patch Changes

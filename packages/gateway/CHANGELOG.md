@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 4.0.64
+
+### Patch Changes
+
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 4.0.63
 
 ### Patch Changes
