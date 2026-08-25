@@ -106,6 +106,26 @@ describe('openaiResponses schema alignment', () => {
 
     expectTypeOf<ChunkLogprobs>().toEqualTypeOf<ResponseLogprobs>();
   });
+
+  it('aligns local_shell_call between added, done, and response schemas', () => {
+    type AddedLocalShellCall = Extract<
+      Extract<Chunk, { type: 'response.output_item.added' }>['item'],
+      { type: 'local_shell_call' }
+    >;
+
+    type DoneLocalShellCall = Extract<
+      Extract<Chunk, { type: 'response.output_item.done' }>['item'],
+      { type: 'local_shell_call' }
+    >;
+
+    type ResponseLocalShellCall = Extract<
+      NonNullable<Response['output']>[number],
+      { type: 'local_shell_call' }
+    >;
+
+    expectTypeOf<AddedLocalShellCall>().toEqualTypeOf<DoneLocalShellCall>();
+    expectTypeOf<DoneLocalShellCall>().toEqualTypeOf<ResponseLocalShellCall>();
+  });
 });
 
 describe('openaiResponsesChunkSchema', () => {
@@ -153,6 +173,52 @@ describe('openaiResponsesChunkSchema', () => {
       });
     },
   );
+
+  describe.each([
+    'response.output_item.added',
+    'response.output_item.done',
+  ] as const)('%s local_shell_call', type => {
+    const item = {
+      id: 'item_1',
+      type: 'local_shell_call',
+      call_id: 'call_1',
+      status:
+        type === 'response.output_item.added' ? 'in_progress' : 'completed',
+      action: {
+        type: 'exec',
+        command: ['ls'],
+        env: {},
+      },
+    };
+
+    it('accepts valid events', async () => {
+      const result = await safeValidateTypes({
+        value: {
+          type,
+          output_index: 0,
+          item,
+        },
+        schema: openaiResponsesChunkSchema,
+      });
+
+      expect(result).toMatchObject({
+        success: true,
+        value: {
+          type,
+          item: { type: 'local_shell_call' },
+        },
+      });
+    });
+
+    it('rejects events without output_index', async () => {
+      const result = await safeValidateTypes({
+        value: { type, item },
+        schema: openaiResponsesChunkSchema,
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
 
   it('accepts valid function call arguments done events', async () => {
     const event = {
