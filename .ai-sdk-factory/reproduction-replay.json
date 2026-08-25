@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "issueId": 19403,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-openai-cris-reasoning-effort.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/amazon-bedrock-openai-cris-reasoning-effort.ts",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-openai-cris-reasoning-config-error.json",
+    "packages/amazon-bedrock/src/bedrock-chat-language-model-event-stream.test.ts",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #19403 reproduced: CRIS OpenAI reasoning request failed because AI SDK sent reasoningConfig instead of reasoning.effort"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@example/ai-functions",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@ai-sdk/amazon-bedrock": "workspace:*",
+    "@smithy/eventstream-codec": "^4.0.1",
+    "@smithy/util-utf8": "^4.0.0",
+    "ai": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.24",
+    "tsx": "4.19.2",
+    "typescript": "5.8.3"
+  }
+}

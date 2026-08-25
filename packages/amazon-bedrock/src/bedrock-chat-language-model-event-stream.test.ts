@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
@@ -50,7 +51,96 @@ function createModel(responseChunks: Uint8Array[]) {
   );
 }
 
+const openAIReasoningConfigError = fs.readFileSync(
+  'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-config-error.json',
+  'utf8',
+);
+
+function createOpenAIReasoningModel(modelId: string, requestBodies: unknown[]) {
+  return new BedrockChatLanguageModel(modelId, {
+    baseUrl: () => 'https://bedrock-runtime.us-west-2.amazonaws.com',
+    headers: {},
+    fetch: async (_input, init) => {
+      const body = JSON.parse(String(init?.body));
+      requestBodies.push(body);
+
+      const additionalFields = body.additionalModelRequestFields;
+      const hasExpectedReasoningEffort =
+        additionalFields?.reasoning?.effort === 'high' &&
+        additionalFields?.reasoningConfig == null &&
+        additionalFields?.reasoning_effort == null;
+
+      if (!hasExpectedReasoningEffort) {
+        return new Response(openAIReasoningConfigError, {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      return new Response(
+        createStream([
+          createEvent('contentBlockDelta', {
+            contentBlockIndex: 0,
+            delta: { text: 'OK' },
+          }),
+          createEvent('contentBlockStop', { contentBlockIndex: 0 }),
+          createEvent('messageStop', { stopReason: 'end_turn' }),
+        ]),
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/vnd.amazon.eventstream',
+          },
+        },
+      );
+    },
+    generateId: () => 'test-id',
+  });
+}
+
 describe('BedrockChatLanguageModel doStream event stream handling', () => {
+  it.each(['us.openai.gpt-5.6-luna', 'global.openai.gpt-5.6-luna'])(
+    'streams with nested reasoning.effort for CRIS model %s',
+    async modelId => {
+      const requestBodies: unknown[] = [];
+      const { stream } = await createOpenAIReasoningModel(
+        modelId,
+        requestBodies,
+      ).doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              maxReasoningEffort: 'high',
+            },
+          },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.filter(part => part.type === 'error')).toStrictEqual([]);
+      expect(parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'OK',
+          }),
+        ]),
+      );
+      expect(requestBodies).toEqual([
+        expect.objectContaining({
+          additionalModelRequestFields: {
+            reasoning: {
+              effort: 'high',
+            },
+          },
+        }),
+      ]);
+    },
+  );
+
   it('surfaces event stream decoding failures', async () => {
     const corruptedFrame = createEvent('contentBlockDelta', {
       contentBlockIndex: 0,
