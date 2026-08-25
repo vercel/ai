@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 8529,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8529-tool-call-telemetry-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-8529-tool-call-telemetry-metadata.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #8529 reproduced: ai.toolCall is missing ai.telemetry.metadata.requestId"
+  }
+}
