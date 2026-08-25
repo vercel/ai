@@ -290,6 +290,18 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
             responseBody.usage?.prompt_cache_hit_tokens ?? null,
           promptCacheMissTokens:
             responseBody.usage?.prompt_cache_miss_tokens ?? null,
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
           ...(responseBody.system_fingerprint != null && {
             systemFingerprint: responseBody.system_fingerprint,
           }),
@@ -348,6 +360,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let responseObject: 'chat.completion.chunk' | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
 
     return {
       stream: response.pipeThrough(
@@ -393,6 +409,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
               usage = value.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
             // The fingerprint is repeated on stream chunks; keep the latest
             // non-null value in case it changes during the response.
             if (value.system_fingerprint != null) {
@@ -400,6 +420,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
             }
 
             const choice = value.choices[0];
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
+            }
 
             if (choice?.finish_reason != null) {
               finishReason = mapDeepSeekFinishReason(choice.finish_reason);
@@ -410,6 +434,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -462,6 +490,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(toolCallDelta.index, toolCallDelta.type);
+                }
+
                 const index = toolCallDelta.index;
 
                 if (toolCalls[index] == null) {
@@ -616,6 +648,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
                   promptCacheHitTokens: usage?.prompt_cache_hit_tokens ?? null,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? null,
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
                   ...(systemFingerprint != null && { systemFingerprint }),
                 },
               },

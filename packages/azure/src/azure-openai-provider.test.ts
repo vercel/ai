@@ -321,6 +321,8 @@ describe('deepseek', () => {
     expect(result.providerMetadata).toMatchInlineSnapshot(`
       {
         "azure": {
+          "choiceIndex": 0,
+          "messageRole": "assistant",
           "promptCacheHitTokens": 2,
           "promptCacheMissTokens": 6,
         },
@@ -492,8 +494,11 @@ describe('deepseek', () => {
         "finishReason": "error",
         "providerMetadata": {
           "azure": {
+            "choiceIndex": 0,
+            "messageRole": "assistant",
             "promptCacheHitTokens": 2,
             "promptCacheMissTokens": 6,
+            "responseObject": "chat.completion.chunk",
           },
         },
         "type": "finish",
