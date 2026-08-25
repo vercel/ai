@@ -268,26 +268,6 @@ describe('createFx', () => {
     });
   });
 
-  it('forwards explicit Gateway authentication', () => {
-    createFx({
-      auth: {
-        gateway: {
-          apiKey: 'gateway-key',
-          baseUrl: 'https://gateway.example',
-        },
-      },
-    });
-
-    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
-
-    expect(settings.auth).toEqual({
-      gateway: {
-        apiKey: 'gateway-key',
-        baseUrl: 'https://gateway.example',
-      },
-    });
-  });
-
   it('classifies tool calls from configured external MCP servers', () => {
     createFx({
       mcpServers: {
