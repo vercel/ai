@@ -197,11 +197,19 @@ export async function embedMany({
       });
 
       try {
-        const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all(
-          [model.maxEmbeddingsPerCall, model.supportsParallelCalls],
-        );
+        const [maxEmbeddingsPerCall, maxTokensPerCall, supportsParallelCalls] =
+          await Promise.all([
+            model.maxEmbeddingsPerCall,
+            model.maxTokensPerCall,
+            model.supportsParallelCalls,
+          ]);
 
-        if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
+        const hasEmbeddingLimit =
+          maxEmbeddingsPerCall != null && maxEmbeddingsPerCall !== Infinity;
+        const hasTokenLimit =
+          maxTokensPerCall != null && maxTokensPerCall !== Infinity;
+
+        if (!hasEmbeddingLimit && !hasTokenLimit) {
           const { embeddings, usage, warnings, response, providerMetadata } =
             await retry(async () => {
               const embedCallId = generateCallId();
@@ -283,7 +291,15 @@ export async function embedMany({
           });
         }
 
-        const valueChunks = splitArray(values, maxEmbeddingsPerCall);
+        let valueChunks = hasEmbeddingLimit
+          ? splitArray(values, maxEmbeddingsPerCall)
+          : [values];
+
+        if (hasTokenLimit) {
+          valueChunks = valueChunks.flatMap(chunk =>
+            splitByTokenLimit(chunk, maxTokensPerCall),
+          );
+        }
 
         const embeddings: Array<Embedding> = [];
         const warnings: Array<Warning> = [];
@@ -413,6 +429,47 @@ export async function embedMany({
       }
     },
   });
+}
+
+const textEncoder = new TextEncoder();
+
+function splitByTokenLimit(
+  values: Array<string>,
+  maxTokensPerCall: number,
+): Array<Array<string>> {
+  if (maxTokensPerCall <= 0) {
+    throw new Error('maxTokensPerCall must be greater than 0');
+  }
+
+  if (values.length === 0) {
+    return [values];
+  }
+
+  const chunks: Array<Array<string>> = [];
+  let currentChunk: Array<string> = [];
+  let currentEstimatedTokens = 0;
+
+  for (const value of values) {
+    // OpenAI tokenizers encode UTF-8 byte sequences, so byte length is a
+    // conservative upper bound that avoids adding a tokenizer dependency.
+    const estimatedTokens = textEncoder.encode(value).length;
+
+    if (
+      currentChunk.length > 0 &&
+      currentEstimatedTokens + estimatedTokens > maxTokensPerCall
+    ) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentEstimatedTokens = 0;
+    }
+
+    currentChunk.push(value);
+    currentEstimatedTokens += estimatedTokens;
+  }
+
+  chunks.push(currentChunk);
+
+  return chunks;
 }
 
 class DefaultEmbedManyResult implements EmbedManyResult {

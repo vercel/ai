@@ -33,6 +33,14 @@ export type EmbeddingModelV4Middleware = {
   }) => PromiseLike<number | undefined> | number | undefined;
 
   /**
+   * Override the limit of how many input tokens can be sent in a single API call if desired.
+   * @param options.model - The embedding model instance.
+   */
+  overrideMaxTokensPerCall?: (options: {
+    model: EmbeddingModelV4;
+  }) => PromiseLike<number | undefined> | number | undefined;
+
+  /**
    * Override support for handling multiple embedding calls in parallel, if desired..
    * @param options.model - The embedding model instance.
    */

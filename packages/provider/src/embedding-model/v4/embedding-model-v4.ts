@@ -38,6 +38,17 @@ export type EmbeddingModelV4 = {
     | undefined;
 
   /**
+   * Limit of how many input tokens can be sent in a single API call.
+   *
+   * `embedMany` uses the UTF-8 byte length of each value as a conservative
+   * token estimate when this limit is set.
+   */
+  readonly maxTokensPerCall?:
+    | PromiseLike<number | undefined>
+    | number
+    | undefined;
+
+  /**
    * True if the model can handle multiple embedding calls in parallel.
    */
   readonly supportsParallelCalls: PromiseLike<boolean> | boolean;

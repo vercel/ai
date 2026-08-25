@@ -45,6 +45,10 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
     return this.config.provider;
   }
 
+  get maxTokensPerCall(): number | undefined {
+    return this.config.maxEmbeddingTokensPerCall;
+  }
+
   constructor(modelId: OpenAIEmbeddingModelId, config: OpenAIConfig) {
     this.modelId = modelId;
     this.config = config;

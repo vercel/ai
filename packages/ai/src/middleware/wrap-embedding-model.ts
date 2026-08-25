@@ -47,6 +47,7 @@ const doWrap = ({
     overrideProvider,
     overrideModelId,
     overrideMaxEmbeddingsPerCall,
+    overrideMaxTokensPerCall,
     overrideSupportsParallelCalls,
   },
   modelId,
@@ -71,6 +72,8 @@ const doWrap = ({
     modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,
     maxEmbeddingsPerCall:
       overrideMaxEmbeddingsPerCall?.({ model }) ?? model.maxEmbeddingsPerCall,
+    maxTokensPerCall:
+      overrideMaxTokensPerCall?.({ model }) ?? model.maxTokensPerCall,
     supportsParallelCalls:
       overrideSupportsParallelCalls?.({ model }) ?? model.supportsParallelCalls,
     async doEmbed(
