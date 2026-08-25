@@ -247,6 +247,18 @@ chunks is returned.
   documentation](https://api-docs.deepseek.com/guides/kv_cache#checking-cache-hit-status).
 </Note>
 
+### Chat Response Metadata
+
+DeepSeek preserves provider-specific response fields in
+`providerMetadata.deepseek` for generated and streamed responses:
+
+- `responseObject`: `chat.completion` or `chat.completion.chunk`
+- `choiceIndex`: the selected response choice index
+- `messageRole`: the response message role, when supplied
+- `toolCallTypes`: the tool-call type for each returned call
+
+These fields remain in provider metadata because they are specific to
+DeepSeek's Chat Completions response rather than shared AI SDK result fields.
 ## Model Capabilities
 
 | Model                          | Text Generation     | Object Generation   | Image Input         | Tool Usage          | Tool Streaming      |
