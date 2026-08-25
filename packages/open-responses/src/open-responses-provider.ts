@@ -47,8 +47,7 @@ export interface OpenResponsesProviderSettings {
   fetch?: FetchFunction;
 
   /**
-   * Explicitly registered codecs for implementation-specific, namespaced Open
-   * Responses tools, items, and streaming events.
+   * Codecs for Open Responses extension tools, items, and streaming events.
    *
    * @experimental This API may change in a future release.
    */

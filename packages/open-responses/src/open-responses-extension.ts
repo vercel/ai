@@ -40,11 +40,9 @@ export type OpenResponsesExtensionStreamPart = Exclude<
 >;
 
 /**
- * Codec for explicitly registered, implementation-specific Open Responses
- * tools, items, and streaming events.
+ * Defines how the provider encodes and decodes an Open Responses extension.
  *
- * Tool, item, and event capabilities are independent. An extension only needs
- * to register the capabilities that its endpoint implements.
+ * Tool, item, and event codecs can be registered independently.
  */
 export interface OpenResponsesExtension {
   /**
@@ -72,9 +70,9 @@ export interface OpenResponsesExtension {
   eventTypes?: readonly OpenResponsesNamespacedType[];
 
   /**
-   * Encodes a registered AI SDK provider tool. Return `undefined` when the
-   * supplied arguments cannot be encoded. The adapter adds `toolType` and
-   * omits any specific tool choice that selected the omitted tool.
+   * Encodes an AI SDK provider tool. Return `undefined` when its arguments
+   * cannot be encoded. The adapter adds `toolType` and omits a specific tool
+   * choice that selects the omitted tool.
    */
   encodeTool?(options: {
     name: string;
@@ -82,8 +80,8 @@ export interface OpenResponsesExtension {
   }): MaybePromiseLike<JSONObject | undefined>;
 
   /**
-   * Optionally encodes a specific `toolChoice` for this extension. The adapter
-   * adds `toolType`. Defaults to an object containing only `toolType`.
+   * Encodes a specific `toolChoice`. The adapter adds `toolType`. The default
+   * is an object containing only `toolType`.
    */
   encodeToolChoice?(options: {
     name: string;
@@ -92,8 +90,8 @@ export interface OpenResponsesExtension {
 
   /**
    * Decodes a completed namespaced item into AI SDK content parts. The adapter
-   * prepends a durable custom replay part containing the original item and
-   * adds lightweight replay references to the returned parts.
+   * adds a custom replay part containing the original item and reference
+   * metadata to the returned parts.
    */
   decodeItem?(options: {
     item: OpenResponsesExtensionItem;
@@ -112,10 +110,9 @@ export interface OpenResponsesExtension {
   >;
 
   /**
-   * Decodes a registered namespaced streaming event.
+   * Decodes a namespaced streaming event.
    *
-   * `state` is unique to the response stream and can be used to accumulate
-   * extension-specific deltas.
+   * `state` persists for the lifetime of one response stream.
    */
   decodeEvent?(options: {
     event: OpenResponsesExtensionEvent;
