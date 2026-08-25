@@ -476,6 +476,64 @@ describe('runBridge', () => {
     expect(replayedSeqs).toEqual([3, 4]);
   });
 
+  it('serializes a start racing a slow turn teardown behind the old turn', async () => {
+    // Reproduces the abort-then-immediate-retry race: the host settles an
+    // aborted turn instantly, but the bridge's teardown (e.g. a graceful
+    // interrupt) is still running when the caller's next `start` arrives.
+    // Without a fence, the two turns overlap: the old turn keeps emitting
+    // into the new turn's cleared event log while two runtime processes run
+    // side by side.
+    let active = 0;
+    let maxActive = 0;
+    let releaseTeardown!: () => void;
+    const teardownGate = new Promise<void>(resolve => {
+      releaseTeardown = resolve;
+    });
+    let turnNo = 0;
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        if (++turnNo === 1) {
+          // Wind down only after the host abort AND a further delay — the
+          // window in which the replacement `start` arrives.
+          await new Promise<void>(resolve => {
+            if (turn.abortSignal.aborted) return resolve();
+            turn.abortSignal.addEventListener('abort', () => resolve(), {
+              once: true,
+            });
+          });
+          await teardownGate;
+          turn.emit({ type: 'text-delta', delta: 'late-from-old-turn' });
+        } else {
+          turn.emit({ type: 'text-delta', delta: 'new-turn' });
+          turn.emit({ type: 'finish' });
+        }
+        active--;
+      },
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+
+    client.send({ type: 'start' }); // turn 1
+    client.send({ type: 'abort' }); // host settles the abort instantly…
+    client.send({ type: 'start' }); // …and retries while teardown still runs
+    setTimeout(releaseTeardown, 50);
+
+    await client.waitFor(f => f.type === 'finish');
+
+    // The turns never overlapped…
+    expect(maxActive).toBe(1);
+    // …and the old turn's late event was emitted before the new turn began,
+    // so the new turn's log holds only its own events.
+    const deltas = client.frames
+      .filter(f => f.type === 'text-delta')
+      .map(f => f.delta);
+    expect(deltas.indexOf('late-from-old-turn')).toBeLessThan(
+      deltas.indexOf('new-turn'),
+    );
+  });
+
   it('emits bridge-stop runtime resume data from onStop', async () => {
     let exited = false;
     const handle = await runBridge<{ type: 'start' }>({
