@@ -10780,6 +10780,40 @@ describe('AnthropicLanguageModel', () => {
         });
       },
     );
+
+    it('should preserve explicit metadata from an Anthropic-compatible transport', async () => {
+      const data = {
+        message: 'The model stream failed',
+        originalStatusCode: 503,
+      };
+      const error = {
+        type: 'modelStreamErrorException',
+        code: 'bedrock_stream_error',
+        message: data.message,
+        statusCode: 424,
+        isRetryable: true,
+        data,
+      };
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `event: error\n`,
+          `data: ${JSON.stringify({ type: 'error', error })}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const chunks = await convertReadableStreamToArray(stream);
+      const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+      expect(errorPart?.type).toBe('error');
+      if (errorPart?.type !== 'error') {
+        expect.fail('Expected an error part');
+      }
+      expect(errorPart.error).toMatchObject(error);
+    });
   });
 
   describe('transformRequestBody', () => {

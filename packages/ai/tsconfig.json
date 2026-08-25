@@ -25,16 +25,28 @@
   ],
   "references": [
     {
+      "path": "../amazon-bedrock"
+    },
+    {
       "path": "../deepseek"
     },
     {
       "path": "../gateway"
     },
     {
+      "path": "../google"
+    },
+    {
       "path": "../groq"
     },
     {
+      "path": "../huggingface"
+    },
+    {
       "path": "../moonshotai"
+    },
+    {
+      "path": "../open-responses"
     },
     {
       "path": "../openai"

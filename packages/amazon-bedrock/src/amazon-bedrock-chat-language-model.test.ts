@@ -1028,10 +1028,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "internalServerException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Internal Server Error",
+                "name": "InternalServerException",
+              },
+            },
+            "isRetryable": true,
             "message": "Internal Server Error",
-            "name": "InternalServerException",
+            "statusCode": 500,
+            "type": "internalServerException",
           },
           "type": "error",
         },
@@ -1095,10 +1104,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "modelStreamErrorException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Model Stream Error",
+                "name": "ModelStreamErrorException",
+              },
+            },
+            "isRetryable": true,
             "message": "Model Stream Error",
-            "name": "ModelStreamErrorException",
+            "statusCode": 424,
+            "type": "modelStreamErrorException",
           },
           "type": "error",
         },
@@ -1162,10 +1180,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "throttlingException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Throttling Error",
+                "name": "ThrottlingException",
+              },
+            },
+            "isRetryable": true,
             "message": "Throttling Error",
-            "name": "ThrottlingException",
+            "statusCode": 429,
+            "type": "throttlingException",
           },
           "type": "error",
         },
@@ -1229,10 +1256,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "validationException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Validation Error",
+                "name": "ValidationException",
+              },
+            },
+            "isRetryable": false,
             "message": "Validation Error",
-            "name": "ValidationException",
+            "statusCode": 400,
+            "type": "validationException",
           },
           "type": "error",
         },

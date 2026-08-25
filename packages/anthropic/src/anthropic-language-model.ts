@@ -71,12 +71,23 @@ import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 
-function createAnthropicStreamError(error: { message: string; type: string }) {
+function createAnthropicStreamError(error: {
+  message: string;
+  type: string;
+  code?: string | number | null;
+  statusCode?: number | null;
+  isRetryable?: boolean | null;
+  data?: unknown;
+}) {
+  const inferredMetadata = getAnthropicStreamErrorMetadata(error.type);
+
   return createProviderStreamError({
     message: error.message,
     type: error.type,
-    ...getAnthropicStreamErrorMetadata(error.type),
-    data: error,
+    code: error.code ?? undefined,
+    statusCode: error.statusCode ?? inferredMetadata.statusCode,
+    isRetryable: error.isRetryable ?? inferredMetadata.isRetryable,
+    data: 'data' in error ? error.data : error,
   });
 }
 

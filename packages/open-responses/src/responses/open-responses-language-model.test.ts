@@ -2,6 +2,7 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -1048,6 +1049,66 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    it.each([
+      {
+        event: {
+          type: 'response.failed',
+          sequence_number: 1,
+          response: {
+            status: 'failed',
+            error: {
+              code: '429',
+              message: 'Rate limit reached',
+            },
+          },
+        },
+        expectedType: 'response.failed',
+        expectedMessage: 'Rate limit reached',
+        expectedCode: '429',
+      },
+      {
+        event: {
+          type: 'error',
+          sequence_number: 1,
+          error: {
+            code: '503',
+            message: 'Service unavailable',
+          },
+        },
+        expectedType: 'error',
+        expectedMessage: 'Service unavailable',
+        expectedCode: '503',
+      },
+    ])('preserves $expectedType stream errors', async testCase => {
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify(testCase.event)}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel().doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(result.stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart?.type).toBe('error');
+      if (errorPart?.type !== 'error') {
+        expect.fail('Expected an error part');
+      }
+      expect(isProviderStreamError(errorPart.error)).toBe(true);
+      expect(errorPart.error).toMatchObject({
+        message: testCase.expectedMessage,
+        type: testCase.expectedType,
+        code: testCase.expectedCode,
+        data: testCase.event,
+      });
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
       });
     });
 

@@ -1,22 +1,57 @@
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createGateway } from '@ai-sdk/gateway';
+import { createGoogle } from '@ai-sdk/google';
 import { createGroq } from '@ai-sdk/groq';
+import { createHuggingFace } from '@ai-sdk/huggingface';
 import { createMoonshotAI } from '@ai-sdk/moonshotai';
+import { createOpenResponses } from '@ai-sdk/open-responses';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModelV4 } from '@ai-sdk/provider';
 import { convertAsyncIterableToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createXai } from '@ai-sdk/xai';
+import { EventStreamCodec } from '@smithy/eventstream-codec';
+import { fromUtf8, toUtf8 } from '@smithy/util-utf8';
 import { describe, expect, it } from 'vitest';
 import { StreamProviderError } from '../error';
 import { streamText } from './stream-text';
 
+const amazonBedrockEventStreamCodec = new EventStreamCodec(toUtf8, fromUtf8);
+
+function createAmazonBedrockExceptionStream({
+  type,
+  data,
+}: {
+  type: string;
+  data: unknown;
+}): ReadableStream<Uint8Array<ArrayBufferLike>> {
+  const frame = amazonBedrockEventStreamCodec.encode({
+    headers: {
+      ':message-type': { type: 'string', value: 'exception' },
+      ':exception-type': { type: 'string', value: type },
+      ':content-type': { type: 'string', value: 'application/json' },
+    },
+    body: fromUtf8(JSON.stringify(data)),
+  });
+
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(frame);
+      controller.close();
+    },
+  });
+}
+
 describe('stream provider error integration', () => {
   const server = createTestServer({
     'https://api.test.com/deepseek/chat/completions': {},
+    'https://api.test.com/google/interactions': {},
     'https://api.test.com/groq/v1/chat/completions': {},
+    'https://api.test.com/huggingface/responses': {},
     'https://api.test.com/language-model': {},
     'https://api.test.com/moonshot/v1/chat/completions': {},
+    'https://api.test.com/open-responses': {},
     'https://api.test.com/openai/v1/responses': {},
     'https://api.test.com/xai/v1/responses': {},
   });
@@ -111,6 +146,134 @@ describe('stream provider error integration', () => {
       data,
     });
     expect(onErrorValue).toBe(errorPart.error);
+  });
+
+  it('normalizes an actual Amazon Bedrock modeled exception with its documented metadata', async () => {
+    const type = 'modelStreamErrorException';
+    const details = {
+      message: 'The model stream failed',
+      originalStatusCode: 503,
+      originalMessage: 'Upstream service unavailable',
+    };
+    const data = { [type]: details };
+
+    await expectNormalizedProviderError({
+      model: createAmazonBedrock({
+        apiKey: 'test-api-key',
+        region: 'us-east-1',
+        baseURL: 'https://api.test.com/bedrock',
+        fetch: async () =>
+          new Response(
+            createAmazonBedrockExceptionStream({ type, data: details }),
+            {
+              status: 200,
+              headers: {
+                'content-type': 'application/vnd.amazon.eventstream',
+              },
+            },
+          ),
+      })('anthropic.claude-3-haiku-20240307-v1:0'),
+      expected: {
+        message: details.message,
+        type,
+        statusCode: 424,
+        isRetryable: true,
+        data,
+      },
+    });
+  });
+
+  it('normalizes an actual Open Responses error event without merging type and code', async () => {
+    const data = {
+      type: 'error',
+      sequence_number: 1,
+      error: {
+        code: '429',
+        message: 'Rate limit reached',
+      },
+    };
+
+    server.urls['https://api.test.com/open-responses'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
+    };
+
+    await expectNormalizedProviderError({
+      model: createOpenResponses({
+        name: 'test-open-responses',
+        url: 'https://api.test.com/open-responses',
+        apiKey: 'test-api-key',
+      })('test-model'),
+      expected: {
+        message: data.error.message,
+        type: data.type,
+        code: data.error.code,
+        statusCode: 429,
+        isRetryable: true,
+        data,
+      },
+    });
+  });
+
+  it('normalizes an actual Hugging Face Responses error event without merging type and code', async () => {
+    const data = {
+      type: 'error',
+      code: '503',
+      message: 'Service unavailable',
+      param: null,
+      sequence_number: 1,
+    };
+
+    server.urls['https://api.test.com/huggingface/responses'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: ${JSON.stringify(data)}\n\n`],
+    };
+
+    await expectNormalizedProviderError({
+      model: createHuggingFace({
+        apiKey: 'test-api-key',
+        baseURL: 'https://api.test.com/huggingface',
+      }).responses('test-model'),
+      expected: {
+        message: data.message,
+        type: data.type,
+        code: data.code,
+        statusCode: 503,
+        isRetryable: true,
+        data,
+      },
+    });
+  });
+
+  it('normalizes an actual Google Interactions error event without merging type and code', async () => {
+    const data = {
+      event_type: 'error',
+      event_id: 'event-error',
+      error: {
+        code: '429',
+        message: 'Rate limit reached',
+      },
+    };
+
+    server.urls['https://api.test.com/google/interactions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: ${JSON.stringify(data)}\n\n`],
+    };
+
+    await expectNormalizedProviderError({
+      model: createGoogle({
+        apiKey: 'test-api-key',
+        baseURL: 'https://api.test.com/google',
+      }).interactions('gemini-2.5-flash'),
+      expected: {
+        message: data.error.message,
+        type: data.event_type,
+        code: data.error.code,
+        statusCode: 429,
+        isRetryable: true,
+        data,
+      },
+    });
   });
 
   it('normalizes an actual OpenAI Responses rate-limit event with provider-owned metadata', async () => {

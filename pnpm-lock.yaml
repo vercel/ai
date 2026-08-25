@@ -1790,15 +1790,27 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/amazon-bedrock':
+        specifier: workspace:*
+        version: link:../amazon-bedrock
       '@ai-sdk/deepseek':
         specifier: workspace:*
         version: link:../deepseek
+      '@ai-sdk/google':
+        specifier: workspace:*
+        version: link:../google
       '@ai-sdk/groq':
         specifier: workspace:*
         version: link:../groq
+      '@ai-sdk/huggingface':
+        specifier: workspace:*
+        version: link:../huggingface
       '@ai-sdk/moonshotai':
         specifier: workspace:*
         version: link:../moonshotai
+      '@ai-sdk/open-responses':
+        specifier: workspace:*
+        version: link:../open-responses
       '@ai-sdk/openai':
         specifier: workspace:*
         version: link:../openai
@@ -1811,6 +1823,12 @@ importers:
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
+      '@smithy/eventstream-codec':
+        specifier: ^4.3.3
+        version: 4.3.3
+      '@smithy/util-utf8':
+        specifier: ^4.3.3
+        version: 4.3.3
       '@types/json-schema':
         specifier: 7.0.15
         version: 7.0.15
