@@ -197,6 +197,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       // mistral-specific provider options:
       document_image_limit: options.documentImageLimit,
       document_page_limit: options.documentPageLimit,
+      ...(options.promptCacheKey !== undefined
+        ? { prompt_cache_key: options.promptCacheKey }
+        : {}),
 
       // messages:
       messages: convertToMistralChatMessages(prompt),

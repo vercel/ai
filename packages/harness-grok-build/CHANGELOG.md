@@ -1,5 +1,25 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.24
+
+### Patch Changes
+
+- 79186d1: Allow pinned OpenCode and Grok Build install scripts during pnpm 11 sandbox bootstrap.
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [79186d1]
+- Updated dependencies [b6396ff]
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness-acp@1.0.25
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.23
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+- @ai-sdk/harness-acp@1.0.24
+
 ## 1.0.22
 
 ### Patch Changes

@@ -1587,6 +1587,50 @@ describe('doGenerate', () => {
     },
   );
 
+  it('should send recursive tool schemas as JSON Schema', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    const inputSchema = {
+      type: 'object',
+      properties: {
+        condition: { $ref: '#/$defs/Condition' },
+      },
+      required: ['condition'],
+      $defs: {
+        Condition: {
+          type: 'object',
+          properties: {
+            children: {
+              type: 'array',
+              items: { $ref: '#/$defs/Condition' },
+            },
+          },
+        },
+      },
+    } as JSONSchema7;
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'search',
+          description: 'Search with a condition tree',
+          inputSchema,
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(server.calls).toHaveLength(1);
+    expect(
+      (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0],
+    ).toEqual({
+      name: 'search',
+      description: 'Search with a condition tree',
+      parametersJsonSchema: inputSchema,
+    });
+  });
+
   it('should set response mime type with responseFormat', async () => {
     prepareJsonFixtureResponse('google-text');
 

@@ -1,5 +1,22 @@
 # @ai-sdk/baseten
 
+## 2.1.15
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/openai-compatible@3.0.37
+  - @ai-sdk/provider-utils@5.0.30
+
+## 2.1.14
+
+### Patch Changes
+
+- c8cc95f: fix(baseten): enable structured outputs so response_format json_schema is forwarded
+- Updated dependencies [ece5bdb]
+  - @ai-sdk/openai-compatible@3.0.36
+
 ## 2.1.13
 
 ### Patch Changes

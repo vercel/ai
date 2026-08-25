@@ -207,6 +207,194 @@ const { text } = await generateText({
 
 AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
 
+## Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+AI Gateway supports durable text batches through `experimental_startTextBatch`, `experimental_getBatchStatus`, and `experimental_getBatchResults`. See the [AI Gateway batch processing guide](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing) for supported models, limits, and the complete lifecycle.
+
+Pass a publicly reachable HTTPS `webhookUrl` when starting a batch to receive a terminal notification instead of polling. AI Gateway sends `batch.completed`, `batch.failed`, or `batch.cancelled`. The event contains terminal status information but not batch results. Completion webhooks are an AI Gateway capability; direct Anthropic and OpenAI batch providers return an unsupported warning when this option is provided.
+
+```ts filename="start-batch.ts"
+import { randomUUID } from 'node:crypto';
+import {
+  experimental_startTextBatch as startTextBatch,
+  type Experimental_TextBatchReference as TextBatchReference,
+  type GatewayProviderMetadata,
+} from 'ai';
+
+// The receiver uses this token to look up the expected batch and signing
+// secret before trusting anything in the webhook body.
+const token = randomUUID();
+const model = 'anthropic/claude-haiku-4.5' as const;
+
+// Reserve the token before starting so an early delivery finds a retryable
+// pending record rather than an unknown callback.
+await reserveBatchWebhook(token);
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'france', prompt: 'What is the capital of France?' },
+    { id: 'germany', prompt: 'What is the capital of Germany?' },
+  ],
+  providerOptions: {
+    gateway: { idempotencyKey: token },
+  },
+  webhookUrl: `https://example.com/api/batch-webhook?token=${token}`,
+});
+
+const gatewayMetadata = batch.providerMetadata?.gateway as
+  | GatewayProviderMetadata
+  | undefined;
+const signingSecret = gatewayMetadata?.asyncJob?.webhookSigningSecret;
+
+if (typeof signingSecret !== 'string') {
+  throw new Error('AI Gateway did not return a webhook signing secret.');
+}
+
+// Keep sensitive provider metadata out of the receiver queue and logs.
+const batchReference = {
+  version: batch.version,
+  type: batch.type,
+  id: batch.id,
+  provider: batch.provider,
+  modelId: batch.modelId,
+} satisfies TextBatchReference;
+
+await completeBatchWebhookReservation(token, {
+  batch: batchReference,
+  model,
+  signingSecret,
+});
+```
+
+The signing secret is returned only in the start response. Reserve the callback token before submitting the batch, then persist the secret, model, and minimal `batch` reference before the process exits. The stable `providerOptions.gateway.idempotencyKey` makes retrying an ambiguous start safe. Reuse the reserved token when retrying; do not generate a new one. Delete the reservation after a definitive start failure. While the reservation is still pending, the receiver should return a retryable response so an early delivery is sent again after setup completes.
+
+The receiver must verify the `x-ai-gateway-signature` header against a bounded raw request body before trusting the event:
+
+```ts filename="app/api/batch-webhook/route.ts"
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+const MAX_AGE_SECONDS = 5 * 60;
+const MAX_BODY_BYTES = 64 * 1024;
+
+export async function POST(request: Request) {
+  const token = new URL(request.url).searchParams.get('token');
+  if (token == null) return new Response(null, { status: 401 });
+
+  const record = await loadBatchWebhook(token);
+  if (record == null) return new Response(null, { status: 401 });
+  if (record.state !== 'ready') return new Response(null, { status: 503 });
+
+  const declaredLength = request.headers.get('content-length');
+  if (declaredLength != null && Number(declaredLength) > MAX_BODY_BYTES) {
+    return new Response(null, { status: 413 });
+  }
+
+  const rawBody = await readBodyWithLimit(request, MAX_BODY_BYTES);
+  if (rawBody == null) return new Response(null, { status: 413 });
+
+  const signature = request.headers.get('x-ai-gateway-signature');
+  if (
+    signature == null ||
+    !verifySignature({
+      header: signature,
+      rawBody,
+      secret: record.signingSecret,
+    })
+  ) {
+    return new Response(null, { status: 401 });
+  }
+
+  let event: { data?: { jobId?: string; status?: string } };
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return new Response(null, { status: 400 });
+  }
+
+  const jobId = event.data?.jobId;
+  const status = event.data?.status;
+  if (
+    jobId !== record.batch.id ||
+    (status !== 'cancelled' && status !== 'completed' && status !== 'failed')
+  ) {
+    return new Response(null, { status: 401 });
+  }
+
+  // The header is not signed, so require it to match the signed event body.
+  const deliveryId = `${jobId}-${status}`;
+  if (request.headers.get('x-ai-gateway-idempotency-key') !== deliveryId) {
+    return new Response(null, { status: 401 });
+  }
+
+  await enqueueBatchResultFetch({
+    batch: record.batch,
+    deliveryId,
+    model: record.model,
+  });
+
+  return new Response(null, { status: 204 });
+}
+
+async function readBodyWithLimit(request: Request, maxBytes: number) {
+  if (request.body == null) return '';
+
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let body = '';
+  let size = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return body + decoder.decode();
+
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel();
+        return undefined;
+      }
+
+      body += decoder.decode(value, { stream: true });
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function verifySignature({
+  header,
+  rawBody,
+  secret,
+}: {
+  header: string;
+  rawBody: string;
+  secret: string;
+}) {
+  const timestamp = header.match(/(?:^|,)t=(\d+)/)?.[1];
+  const digest = header.match(/(?:^|,)v1=([0-9a-f]{64})(?:,|$)/)?.[1];
+  if (timestamp == null || digest == null) return false;
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestamp}.${rawBody}`, 'utf8')
+    .digest('hex');
+  const provided = Buffer.from(digest, 'hex');
+  const computed = Buffer.from(expected, 'hex');
+  if (provided.length !== computed.length) return false;
+  if (!timingSafeEqual(provided, computed)) return false;
+
+  return Math.abs(Date.now() / 1000 - Number(timestamp)) <= MAX_AGE_SECONDS;
+}
+```
+
+The signature header has the form `t=<unix seconds>,v1=<hex digest>`, where `v1` is the HMAC-SHA256 digest of `"<t>.<raw body>"`. Verify a size-limited raw request body rather than a re-serialized object, use a timing-safe comparison, reject stale timestamps, and reject events whose `data.jobId` does not match the persisted `batch.id`.
+
+AI Gateway expects a 2xx response within 10 seconds and retries failed deliveries. It does not follow redirects, so the callback endpoint itself must return the 2xx response. Retries carry the same `x-ai-gateway-idempotency-key` value (`<jobId>-<status>`), which receivers can use for deduplication. After verification, pass the persisted model and `batch` reference to `experimental_getBatchStatus` and `experimental_getBatchResults`. Delivery is best-effort, so periodically reconcile persisted batches by status as a fallback for a notification that exhausts its retries.
+
 ## Reranking Models
 
 You can create reranking models using the `rerankingModel` method on the provider instance:
@@ -829,9 +1017,9 @@ The Tako Search tool supports these optional configuration options:
   - **includeContents** _boolean_ - Inline each page's extracted full text in `content`. **articleContentMaxChars** caps it, defaulting to 30,000 characters (maximum 1,000,000).
 - **sources.data** _object_ - Configure data results:
   - **count** _number_ - Maximum data results, 1-20. Defaults to 5.
-  - **includeContents** _boolean_ - Inline each card's underlying rows in `content.dataset` as typed, unit-labeled columns.
+  - **includeContents** _boolean_ - Inline each card's underlying rows in `content.dataset` as typed, unit-labeled columns. This adds a data surcharge based on the row count and dataset source. To estimate cost, first search with `includeContents: false` and inspect `cards.content.export_pricing`. Because this applies to every returned card, use `count` and `maxRows` to control cost.
   - **contentFormat** _'json_compact' | 'json_records' | 'csv' | 'card_json'_ - Serialization for inlined card data. Defaults to `'json_compact'`.
-  - **maxRows** _number_ - Row cap for inlined card data. Omit to use your account's default inline cap (20 rows on the standard plan); maximum 2,000.
+  - **maxRows** _number_ - Row cap per result. Omit to use the allowance in `cards.content.export_pricing`. A data surcharge applies per 1,000 exported rows; lower values reduce cost.
   - **nodeIds** _string[]_ - Data Graph node IDs to prioritize. Up to 20.
   - **strict** _boolean_ - Only return cards matching `nodeIds`. Requires at least one `nodeIds` value.
 - **location** _object_ - End-user `{ latitude, longitude }` coordinates for localized results.

@@ -312,7 +312,7 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('completes the time slice: suspends at the budget and carries the cursor forward', async () => {
-    const session = fakeSession();
+    const session = fakeSession({ unfinishedTurn: true });
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }, { type: 'text-delta', id: 't', delta: 'a' }],
       blockAfter: true,
@@ -348,6 +348,69 @@ describe('runHarnessAgentTimeSlice', () => {
     // It must also NOT close the output stream — the next slice keeps writing
     // to the same run stream; closing here would end the response mid-turn.
     expect(isClosed()).toBe(false);
+  });
+
+  test('finishes normally when the turn completes before the time-slice deadline while the stream remains open', async () => {
+    vi.useFakeTimers();
+    try {
+      const sessionOptions = { unfinishedTurn: true };
+      const session = fakeSession(sessionOptions);
+      let closeStream!: () => void;
+      let resolveStreamStarted!: () => void;
+      const streamStarted = new Promise<void>(resolve => {
+        resolveStreamStarted = resolve;
+      });
+      const result: HarnessWorkflowStreamResult = {
+        toUIMessageStream() {
+          return new ReadableStream<HarnessWorkflowChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: 't',
+                delta: 'done',
+              });
+              closeStream = () => controller.close();
+              resolveStreamStarted();
+            },
+          });
+        },
+        finishReason: Promise.resolve('stop'),
+        totalUsage: Promise.resolve({
+          inputTokens: { total: 11 },
+          outputTokens: { total: 7 },
+        }),
+      };
+      const agent: HarnessWorkflowAgent = {
+        createSession: vi.fn(async () => session),
+        stream: vi.fn(async () => result),
+        continueStream: vi.fn(async () => result),
+      };
+
+      const { writable, isClosed } = collectingWritable();
+      const runPromise = runHarnessAgentTimeSlice({
+        agent,
+        state: createHarnessWorkflowState({
+          prompt: 'hi',
+          sessionId: 'ses_1',
+        }),
+        timeSliceSeconds: 0.1,
+        writable,
+      });
+
+      await streamStarted;
+      sessionOptions.unfinishedTurn = false;
+      await vi.advanceTimersByTimeAsync(100);
+      closeStream();
+
+      const next = await runPromise;
+      expect(next.status).toBe('finished');
+      expect(isClosed()).toBe(true);
+      expect(session.suspendCalls).toBe(0);
+      expect(session.detachCalls).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test('mid-turn slice continues (no new prompt) and can finish', async () => {
@@ -390,7 +453,7 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('continued slice reopens active parts and preserves aggregate token usage', async () => {
-    const firstSession = fakeSession();
+    const firstSession = fakeSession({ unfinishedTurn: true });
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
@@ -483,7 +546,7 @@ describe('runHarnessAgentTimeSlice', () => {
   });
 
   test('continued slice emits a pending tool input only once across the time-slice boundary', async () => {
-    const firstSession = fakeSession();
+    const firstSession = fakeSession({ unfinishedTurn: true });
     const { result: firstResult, closeForSuspend } = streamResult({
       chunks: [
         { type: 'start' },
@@ -696,7 +759,7 @@ describe('runHarnessAgentStep', () => {
 
 describe('runHarnessAgentSlice', () => {
   test('supports sliceTimeoutSeconds and maps ready_for_next_step to timed_out', async () => {
-    const session = fakeSession();
+    const session = fakeSession({ unfinishedTurn: true });
     const { result, closeForSuspend } = streamResult({
       chunks: [{ type: 'start' }],
       blockAfter: true,

@@ -1,5 +1,19 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.0.36
+
+### Patch Changes
+
+- ece5bdb: fix: send `reasoning_effort: "none"` when top-level reasoning is disabled
+
 ## 3.0.35
 
 ### Patch Changes
