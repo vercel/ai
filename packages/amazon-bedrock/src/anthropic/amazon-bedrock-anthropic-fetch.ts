@@ -101,19 +101,14 @@ function transformAmazonBedrockEventStreamToSSE(
         // Unwrap the message and emit the Anthropic error event shape,
         // carrying the eventstream's exception type through as the error
         // type.
-        let message = event.data;
-        try {
-          const parsed: unknown = JSON.parse(event.data);
-          if (
-            parsed != null &&
-            typeof parsed === 'object' &&
-            typeof (parsed as { message?: unknown }).message === 'string'
-          ) {
-            message = (parsed as { message: string }).message;
-          }
-        } catch {
-          // not JSON; keep the raw string as the message
-        }
+        const parsed = await safeParseJSON({
+          text: event.data,
+          schema: amazonBedrockErrorSchema,
+        });
+        const message =
+          parsed.success && parsed.value.message
+            ? parsed.value.message
+            : event.data;
         controller.enqueue(
           textEncoder.encode(
             `data: ${JSON.stringify({
