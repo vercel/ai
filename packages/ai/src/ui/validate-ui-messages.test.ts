@@ -3,6 +3,7 @@ import type { InferUITool, UIMessage } from './ui-messages';
 import {
   safeValidateUIMessages,
   validateUIMessages,
+  validateUIMessagesForAgent,
 } from './validate-ui-messages';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
@@ -1179,8 +1180,20 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should preserve aborted output-available tool calls with empty input', async () => {
-      const inputMessages: TestMessage[] = [
+    it('should preserve identifiable legacy aborted output-available tool calls with empty input', async () => {
+      const abortingTool = {
+        name: 'foo',
+        inputSchema: z.object({ foo: z.string() }),
+        outputSchema: z.string(),
+      };
+
+      type AbortingMessage = UIMessage<
+        never,
+        never,
+        { foo: InferUITool<typeof abortingTool> }
+      >;
+
+      const inputMessages: AbortingMessage[] = [
         {
           id: '1',
           role: 'assistant',
@@ -1190,20 +1203,47 @@ describe('validateUIMessages', () => {
               toolCallId: '1',
               state: 'output-available',
               input: {} as { foo: string },
-              output: { result: 'Tool was aborted by the user.' },
+              output: '{"error":"Tool was aborted by the user."}',
             },
           ],
         },
       ];
 
-      const messages = await validateUIMessages<TestMessage>({
+      const messages = await validateUIMessages<AbortingMessage>({
         messages: inputMessages,
         tools: {
-          foo: testTool,
+          foo: abortingTool,
         },
       });
 
       expect(messages).toEqual(inputMessages);
+    });
+
+    it('should reject completed output-available tool calls with stale empty input', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: {} as { foo: string },
+                  output: { result: 'success' },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Type validation failed for messages[0].parts[0].input',
+      );
     });
 
     it('should validate tool output when state is output-available', async () => {
@@ -1218,7 +1258,7 @@ describe('validateUIMessages', () => {
                   type: 'tool-foo',
                   toolCallId: '1',
                   state: 'output-available',
-                  input: {} as { foo: string },
+                  input: { foo: 'bar' },
                   output: {} as { result: string },
                 },
               ],
@@ -1559,6 +1599,50 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowError('No tool schema found for tool part bar');
+    });
+
+    it('should preserve terminal calls from tools unavailable during agent continuation', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-bar' as 'tool-foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: {} as { foo: string },
+              output: { result: 'success' },
+            },
+            {
+              type: 'tool-bar' as 'tool-foo',
+              toolCallId: '2',
+              state: 'output-error',
+              input: undefined,
+              errorText: 'Tool execution failed',
+            },
+            {
+              type: 'tool-bar' as 'tool-foo',
+              toolCallId: '3',
+              state: 'output-denied',
+              input: {} as { foo: string },
+              approval: {
+                id: 'approval-1',
+                approved: false,
+              },
+            },
+          ],
+        },
+      ];
+
+      const messages = await validateUIMessagesForAgent<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages).toEqual(inputMessages);
     });
 
     it('should validate automatic approval reasons on output parts', async () => {

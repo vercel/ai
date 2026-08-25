@@ -26,12 +26,22 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
 
 const providerReferenceSchema = z.record(z.string(), z.string());
 
-function isEmptyObject(value: unknown): value is Record<string, never> {
+const legacyAbortedToolOutput = '{"error":"Tool was aborted by the user."}';
+
+function isLegacyAbortedToolCall(
+  toolPart: ToolUIPart,
+): toolPart is ToolUIPart & {
+  state: 'output-available';
+  input: Record<string, never>;
+  output: typeof legacyAbortedToolOutput;
+} {
   return (
-    value != null &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    Object.keys(value).length === 0
+    toolPart.state === 'output-available' &&
+    toolPart.input != null &&
+    typeof toolPart.input === 'object' &&
+    !Array.isArray(toolPart.input) &&
+    Object.keys(toolPart.input).length === 0 &&
+    toolPart.output === legacyAbortedToolOutput
   );
 }
 
@@ -383,17 +393,7 @@ export type SafeValidateUIMessagesResult<UI_MESSAGE extends UIMessage> =
       error: Error;
     };
 
-/**
- * Validates a list of UI messages like `validateUIMessages`,
- * but instead of throwing it returns `{ success: true, data }`
- * or `{ success: false, error }`.
- */
-export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
-  messages,
-  metadataSchema,
-  dataSchemas,
-  tools,
-}: {
+type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
   messages: unknown;
   metadataSchema?: FlexibleSchema<UIMessage['metadata']>;
   dataSchemas?: {
@@ -407,7 +407,23 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
       InferUIMessageTools<UI_MESSAGE>[NAME]['output']
     >;
   };
-}): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
+};
+
+async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
+  {
+    messages,
+    metadataSchema,
+    dataSchemas,
+    tools,
+  }: ValidateUIMessagesOptions<UI_MESSAGE>,
+  {
+    allowMissingTerminalTools,
+    validateTerminalToolInputs,
+  }: {
+    allowMissingTerminalTools: boolean;
+    validateTerminalToolInputs: boolean;
+  },
+): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
   try {
     if (messages == null) {
       return {
@@ -480,6 +496,14 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             >;
             const toolName = toolPart.type.slice(5);
             const tool = getOwn(tools, toolName);
+            const isTerminal =
+              toolPart.state === 'output-available' ||
+              toolPart.state === 'output-error' ||
+              toolPart.state === 'output-denied';
+
+            if (!tool && allowMissingTerminalTools && isTerminal) {
+              continue;
+            }
 
             // TODO support dynamic tools
             if (!tool) {
@@ -498,14 +522,15 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             }
 
             // Tool input validation
-            // Empty output-available input is retained for compatibility with
-            // aborted tool calls that were persisted before their input was
-            // streamed. Other output-available input is validated so obsolete
-            // persisted schemas cannot be exposed as the current UIMessage type.
+            // The legacy abort path persisted an exact synthetic output with
+            // empty input. Only that identifiable terminal shape is exempt;
+            // completed empty-input calls are still checked against the current
+            // schema.
             if (
               toolPart.state === 'input-available' ||
-              (toolPart.state === 'output-available' &&
-                !isEmptyObject(toolPart.input))
+              (validateTerminalToolInputs &&
+                toolPart.state === 'output-available' &&
+                !isLegacyAbortedToolCall(toolPart))
             ) {
               await validateTypes({
                 value: toolPart.input,
@@ -550,37 +575,47 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
 }
 
 /**
+ * Validates a list of UI messages like `validateUIMessages`,
+ * but instead of throwing it returns `{ success: true, data }`
+ * or `{ success: false, error }`.
+ */
+export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>(
+  options: ValidateUIMessagesOptions<UI_MESSAGE>,
+): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
+  return safeValidateUIMessagesInternal(options, {
+    allowMissingTerminalTools: false,
+    validateTerminalToolInputs: true,
+  });
+}
+
+/**
  * Validates a list of UI messages.
  *
  * Metadata, data parts, and generic tool call structures are only validated if
  * the corresponding schemas are provided. Otherwise, they are assumed to be
  * valid.
  */
-export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
-  messages,
-  metadataSchema,
-  dataSchemas,
-  tools,
-}: {
-  messages: unknown;
-  metadataSchema?: FlexibleSchema<UIMessage['metadata']>;
-  dataSchemas?: {
-    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?: FlexibleSchema<
-      InferUIMessageData<UI_MESSAGE>[NAME]
-    >;
-  };
-  tools?: {
-    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
-      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
-    >;
-  };
-}): Promise<Array<UI_MESSAGE>> {
-  const response = await safeValidateUIMessages({
-    messages,
-    metadataSchema,
-    dataSchemas,
-    tools,
+export async function validateUIMessages<UI_MESSAGE extends UIMessage>(
+  options: ValidateUIMessagesOptions<UI_MESSAGE>,
+): Promise<Array<UI_MESSAGE>> {
+  const response = await safeValidateUIMessages(options);
+
+  if (!response.success) throw response.error;
+
+  return response.data;
+}
+
+export async function validateUIMessagesForAgent<UI_MESSAGE extends UIMessage>(
+  options: ValidateUIMessagesOptions<UI_MESSAGE>,
+): Promise<Array<UI_MESSAGE>> {
+  const response = await safeValidateUIMessagesInternal(options, {
+    // Agent tool sets can include ephemeral tools (for example, tools from a
+    // disconnected MCP server), so terminal history must remain loadable when
+    // those tools are no longer registered.
+    allowMissingTerminalTools: true,
+    // Agent continuation historically accepts terminal calls with incomplete
+    // or stale input because they are never executed again.
+    validateTerminalToolInputs: false,
   });
 
   if (!response.success) throw response.error;
