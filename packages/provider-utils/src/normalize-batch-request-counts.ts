@@ -18,21 +18,21 @@ export function normalizeBatchRequestCounts({
   failed: number | null | undefined;
 }): BatchV4Status['requestCounts'] | undefined {
   if (
-    !isNonNegativeSafeInteger(total) ||
-    !isNonNegativeSafeInteger(pending) ||
-    !isNonNegativeSafeInteger(completed) ||
-    !isNonNegativeSafeInteger(failed) ||
-    pending + completed + failed !== total
+    isNonNegativeSafeInteger(total) &&
+    isNonNegativeSafeInteger(pending) &&
+    isNonNegativeSafeInteger(completed) &&
+    isNonNegativeSafeInteger(failed) &&
+    pending + completed + failed === total
   ) {
-    return undefined;
+    return {
+      total,
+      pending,
+      completed,
+      failed,
+    };
   }
 
-  return {
-    total,
-    pending,
-    completed,
-    failed,
-  };
+  return undefined;
 }
 
 function isNonNegativeSafeInteger(
