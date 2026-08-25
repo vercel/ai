@@ -672,28 +672,32 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
 }
 
 // XAI API Response Schemas
-const xaiUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  cost_in_usd_ticks: z.number().nullish(),
-  prompt_tokens_details: z
-    .object({
-      text_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      image_tokens: z.number().nullish(),
-      cached_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  completion_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      accepted_prediction_tokens: z.number().nullish(),
-      rejected_prediction_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const xaiUsageSchema = z
+  .object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+    cost_in_usd_ticks: z.number().nullish(),
+    prompt_tokens_details: z
+      .object({
+        text_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        image_tokens: z.number().nullish(),
+        cached_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+    completion_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        accepted_prediction_tokens: z.number().nullish(),
+        rejected_prediction_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+  })
+  .catchall(z.json());
 
 export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
