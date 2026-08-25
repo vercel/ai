@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 1.0.74
+
+### Patch Changes
+
+- e7d359e: Fetch all paginated tool definitions when creating an MCP tool set.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
 ## 1.0.73
 
 ### Patch Changes
