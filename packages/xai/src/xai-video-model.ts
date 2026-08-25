@@ -39,6 +39,17 @@ interface XaiVideoModelConfig {
   };
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 const RESOLUTION_MAP: Record<string, string> = {
   '1920x1080': '1080p',
   '1280x720': '720p',
@@ -538,7 +549,7 @@ export class XaiVideoModel implements VideoModelV4 {
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${baseURL}/videos/${encodeURIComponent(requestId)}`,
+      url: `${baseURL}/videos/${encodePathSegment(requestId)}`,
       validateUrl: false,
       headers: combineHeaders(this.config.headers(), options.headers),
       successfulResponseHandler: xaiVideoStatusResponseHandler,
