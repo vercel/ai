@@ -29,6 +29,39 @@ const server = createTestServer({
 });
 
 describe('DeepSeekChatLanguageModel', () => {
+  describe('model IDs', () => {
+    it.each(['deepseek-v4-flash', 'deepseek-v4-pro'] as const)(
+      'should forward the %s model ID',
+      async modelId => {
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'json-value',
+          body: {
+            id: 'test-id',
+            choices: [
+              {
+                finish_reason: 'stop',
+                index: 0,
+                message: { content: 'Hello', role: 'assistant' },
+              },
+            ],
+            created: 0,
+            model: modelId,
+            object: 'chat.completion',
+            usage: {
+              completion_tokens: 1,
+              prompt_tokens: 1,
+              total_tokens: 2,
+            },
+          },
+        };
+
+        await provider.chat(modelId).doGenerate({ prompt: TEST_PROMPT });
+
+        expect((await server.calls[0].requestBodyJson).model).toBe(modelId);
+      },
+    );
+  });
+
   describe('supportedUrls', () => {
     it('should natively support HTTP image URLs', () => {
       expect(provider.chat('deepseek-chat').supportedUrls).toEqual({
