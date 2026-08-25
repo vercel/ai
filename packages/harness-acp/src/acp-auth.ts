@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 import type {
+  ACPAuthOptions,
   ACPAuthentication,
   ACPProviderAuthentication,
   ACPProviderAuthenticationMode,
@@ -8,8 +9,6 @@ import type {
 import type { ACPResolvedProviderAuthentication } from './v1/bridge/acp-v1-bridge-environment';
 
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
-
-export type ACPAuthOptions = ACPProviderAuthenticationMode;
 
 export type ACPClientApp = {
   readonly name: string;
@@ -114,7 +113,7 @@ export function resolveACPProviderAuthentication({
     };
   }
 
-  const mode = auth.mode ?? 'auto';
+  const mode = resolveACPProviderAuthenticationMode(auth.mode);
   if (mode === 'direct') {
     return {
       providerAuthentication: { type: 'direct' },
@@ -122,16 +121,20 @@ export function resolveACPProviderAuthentication({
     };
   }
 
+  const resolvedEnv = resolveACPProviderAuthenticationEnvironment({
+    auth: auth.mode,
+    env,
+  });
   const gateway =
     compatibility?.type === 'ai-gateway'
       ? {
           apiKey: resolveGatewayCredential({
-            env,
+            env: resolvedEnv,
             credentialSource: compatibility.credentialSource,
           }),
           baseUrl: compatibility.baseUrl,
         }
-      : getAiGatewayAuthFromEnv({ env });
+      : getAiGatewayAuthFromEnv({ env: resolvedEnv });
   const apiKey = gateway.apiKey;
   if (compatibility == null && mode === 'auto' && apiKey == null) {
     return {
@@ -166,20 +169,22 @@ export function resolveACPProviderAuthenticationCompatibility({
   providerAuthentication,
   env,
 }: {
-  auth?: ACPProviderAuthenticationMode;
+  auth?: ACPAuthOptions;
   providerAuthentication: ACPProviderAuthentication | undefined;
   env: Record<string, string | undefined>;
 }): ACPProviderAuthenticationCompatibility | undefined {
   if (providerAuthentication == null) return undefined;
 
-  const mode = auth;
+  const mode = resolveACPProviderAuthenticationMode(auth);
   if (mode === 'direct') {
     return { type: 'direct', mode };
   }
 
-  const credentialSource = resolveGatewayCredentialSource({
+  const resolvedEnv = resolveACPProviderAuthenticationEnvironment({
+    auth,
     env,
   });
+  const credentialSource = resolveGatewayCredentialSource({ env: resolvedEnv });
   if (mode === 'auto' && credentialSource == null) {
     return { type: 'direct', mode };
   }
@@ -189,7 +194,34 @@ export function resolveACPProviderAuthenticationCompatibility({
     mode,
     env: providerAuthentication.gateway.env,
     credentialSource,
-    baseUrl: env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
+    baseUrl: resolvedEnv.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
+  };
+}
+
+function resolveACPProviderAuthenticationMode(
+  auth: ACPAuthOptions | undefined,
+): ACPProviderAuthenticationMode {
+  return typeof auth === 'string' || auth == null
+    ? (auth ?? 'auto')
+    : 'ai-gateway';
+}
+
+function resolveACPProviderAuthenticationEnvironment({
+  auth,
+  env,
+}: {
+  auth: ACPAuthOptions | undefined;
+  env: Record<string, string | undefined>;
+}): Record<string, string | undefined> {
+  if (typeof auth === 'string' || auth == null) return env;
+  return {
+    ...env,
+    ...(auth.gateway.apiKey == null
+      ? {}
+      : { AI_GATEWAY_API_KEY: auth.gateway.apiKey }),
+    ...(auth.gateway.baseUrl == null
+      ? {}
+      : { AI_GATEWAY_BASE_URL: auth.gateway.baseUrl }),
   };
 }
 

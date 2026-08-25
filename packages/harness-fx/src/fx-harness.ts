@@ -6,15 +6,15 @@ import {
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
-import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthOptions } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
 
 const FX_CLIENT_APP = `ai-sdk/harness-fx/${VERSION}`;
+const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
+
+export type FxAuthOptions = ACPAuthOptions;
 
 function sanitizeFxMcpToolNameSegment(value: string): string {
   if (value.length === 0) return 'server';
@@ -36,10 +36,11 @@ function sanitizeFxMcpToolNameSegment(value: string): string {
 export type FxHarnessSettings = {
   /**
    * Selects direct or AI Gateway authentication. Both routes use AI Gateway
-   * because fx does not connect to model providers directly. Defaults to
-   * automatic environment-based selection.
+   * because fx does not connect to model providers directly. Pass a Gateway
+   * object to supply credentials explicitly, or omit it for automatic
+   * environment-based selection.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: FxAuthOptions;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -586,7 +587,7 @@ export function createFx(
       if (!credential) return [];
       return [
         createCredentialRequestTransformation({
-          baseUrl: 'https://ai-gateway.vercel.sh',
+          baseUrl: env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
           headers: {
             Authorization: `Bearer ${credential}`,
             'x-client-app': FX_CLIENT_APP,
@@ -598,6 +599,7 @@ export function createFx(
       gateway: {
         env: {
           AI_GATEWAY_API_KEY: { $source: 'gateway-api-key' },
+          AI_GATEWAY_BASE_URL: { $source: 'gateway-base-url' },
         },
       },
     },

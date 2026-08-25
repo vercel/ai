@@ -68,6 +68,15 @@ export type ACPAuthentication = {
 
 export type ACPProviderAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
 
+export type ACPGatewayAuthenticationOptions = {
+  readonly apiKey?: string;
+  readonly baseUrl?: string;
+};
+
+export type ACPAuthOptions =
+  | ACPProviderAuthenticationMode
+  | { readonly gateway: ACPGatewayAuthenticationOptions };
+
 export type ACPProviderAuthentication = {
   readonly gateway: {
     readonly env: Readonly<Record<string, ACPProfileValue>>;
@@ -121,7 +130,7 @@ export type ACPV1Settings = {
   readonly harnessId: string;
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: ACPAuthOptions;
   readonly source: ACPSource;
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;

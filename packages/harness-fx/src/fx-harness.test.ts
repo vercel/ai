@@ -211,6 +211,9 @@ describe('createFx', () => {
               "AI_GATEWAY_API_KEY": {
                 "$source": "gateway-api-key",
               },
+              "AI_GATEWAY_BASE_URL": {
+                "$source": "gateway-base-url",
+              },
             },
           },
         },
@@ -262,6 +265,26 @@ describe('createFx', () => {
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
+    });
+  });
+
+  it('forwards explicit Gateway authentication', () => {
+    createFx({
+      auth: {
+        gateway: {
+          apiKey: 'gateway-key',
+          baseUrl: 'https://gateway.example',
+        },
+      },
+    });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(settings.auth).toEqual({
+      gateway: {
+        apiKey: 'gateway-key',
+        baseUrl: 'https://gateway.example',
+      },
     });
   });
 
@@ -339,6 +362,25 @@ describe('createFx', () => {
     ).toEqual([
       {
         match: { host: 'ai-gateway.vercel.sh' },
+        transform: {
+          headers: {
+            Authorization: 'Bearer gateway-secret',
+            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+          },
+        },
+      },
+    ]);
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          AI_GATEWAY_API_KEY: 'gateway-secret',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+        },
+      }),
+    ).toEqual([
+      {
+        match: { host: 'gateway.example', path: { startsWith: '/v1' } },
         transform: {
           headers: {
             Authorization: 'Bearer gateway-secret',
