@@ -237,36 +237,55 @@ describe('DeepSeekChatLanguageModel', () => {
         prepareJsonFixtureResponse('deepseek-text');
       });
 
-      it.each(['low', 'medium', 'xhigh'] as const)(
-        'should pass providerOptions reasoningEffort %s through to the API',
-        async effort => {
-          await provider.chat('deepseek-reasoner').doGenerate({
+      it.each([
+        { input: 'low', output: 'low', warning: false },
+        { input: 'medium', output: 'high', warning: true },
+        { input: 'xhigh', output: 'max', warning: true },
+      ] as const)(
+        'should map providerOptions reasoningEffort $input to $output',
+        async ({ input, output, warning }) => {
+          const result = await provider.chat('deepseek-reasoner').doGenerate({
             prompt: TEST_PROMPT,
             providerOptions: {
               deepseek: {
-                reasoningEffort: effort,
-              } satisfies DeepSeekChatOptions,
+                reasoningEffort: input,
+              },
             },
           });
 
           expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-            effort,
+            output,
+          );
+          expect(result.warnings).toEqual(
+            warning
+              ? [
+                  {
+                    type: 'other',
+                    message: `reasoningEffort "${input}" is not a canonical DeepSeek value. mapped to "${output}".`,
+                  },
+                ]
+              : [],
           );
         },
       );
 
-      it('should pass providerOptions thinking.type=adaptive through to the API', async () => {
-        await provider.chat('deepseek-reasoner').doGenerate({
+      it('should map legacy providerOptions thinking.type=adaptive to enabled with a compatibility warning', async () => {
+        const result = await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             deepseek: {
               thinking: { type: 'adaptive' },
-            } satisfies DeepSeekChatOptions,
+            },
           },
         });
 
         expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
-          type: 'adaptive',
+          type: 'enabled',
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'other',
+          message:
+            'thinking.type "adaptive" is not a canonical DeepSeek value. mapped to "enabled".',
         });
       });
 
@@ -926,6 +945,39 @@ describe('DeepSeekChatLanguageModel', () => {
     describe('reasoning', () => {
       beforeEach(() => {
         prepareChunksFixtureResponse('deepseek-reasoning');
+      });
+
+      it('should map legacy provider options to canonical request values', async () => {
+        const result = await provider.chat('deepseek-reasoner').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'adaptive' },
+              reasoningEffort: 'medium',
+            },
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toStrictEqual({ type: 'enabled' });
+        expect(requestBody.reasoning_effort).toBe('high');
+
+        const streamParts = await convertReadableStreamToArray(result.stream);
+        expect(streamParts[0]).toStrictEqual({
+          type: 'stream-start',
+          warnings: [
+            {
+              type: 'other',
+              message:
+                'thinking.type "adaptive" is not a canonical DeepSeek value. mapped to "enabled".',
+            },
+            {
+              type: 'other',
+              message:
+                'reasoningEffort "medium" is not a canonical DeepSeek value. mapped to "high".',
+            },
+          ],
+        });
       });
 
       it('should stream reasoning', async () => {
