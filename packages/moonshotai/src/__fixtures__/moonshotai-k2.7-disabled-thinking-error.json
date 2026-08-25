@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "invalid thinking: only type=enabled is allowed for this model",
+    "type": "invalid_request_error"
+  }
+}
