@@ -585,6 +585,63 @@ describe('doGenerate', () => {
       prepareJsonFixtureResponse('moonshotai-tool-call');
     });
 
+    it.each([
+      'kimi-k2.6',
+      'kimi-k2.7-code',
+      'kimi-k2.7-code-highspeed',
+    ] as const)(
+      'should omit required tool choice and warn for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the weather',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+          toolChoice: { type: 'required' },
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'tool_choice',
+        );
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: `tool choice "required" for model "${modelId}"`,
+            details:
+              'Moonshot AI rejects required tool choice for this model. The setting has been omitted; use "auto" or select a specific tool instead.',
+          },
+        ]);
+      },
+    );
+
+    it.each(['kimi-k3', 'custom-kimi-model'] as const)(
+      'should preserve required tool choice for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the weather',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+          toolChoice: { type: 'required' },
+        });
+
+        expect((await server.calls[0].requestBodyJson).tool_choice).toBe(
+          'required',
+        );
+        expect(result.warnings).toStrictEqual([]);
+      },
+    );
+
     it('should normalize tuple tool schemas to prefixItems on the wire', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
