@@ -112,6 +112,7 @@ Response: I'll go with "Hello" as it's a common greeting and keeps it simple.",
         "rejected_prediction_tokens": 0,
       },
       "cost_in_usd_ticks": 1176500,
+      "num_sources_used": 0,
       "prompt_tokens": 12,
       "prompt_tokens_details": {
         "audio_tokens": 0,
@@ -254,6 +255,7 @@ I should call this function to advance the user's request.",
         "rejected_prediction_tokens": 0,
       },
       "cost_in_usd_ticks": 1399000,
+      "num_sources_used": 0,
       "prompt_tokens": 291,
       "prompt_tokens_details": {
         "audio_tokens": 0,
@@ -353,6 +355,7 @@ exports[`XaiChatLanguageModel > doStream > text > should stream text content 1`]
           "rejected_prediction_tokens": 0,
         },
         "cost_in_usd_ticks": 1466250,
+        "num_sources_used": 0,
         "prompt_tokens": 12,
         "prompt_tokens_details": {
           "audio_tokens": 0,
@@ -459,6 +462,7 @@ exports[`XaiChatLanguageModel > doStream > tool call > should stream tool call c
           "rejected_prediction_tokens": 0,
         },
         "cost_in_usd_ticks": 1330500,
+        "num_sources_used": 0,
         "prompt_tokens": 291,
         "prompt_tokens_details": {
           "audio_tokens": 0,
