@@ -1,0 +1,24 @@
+{
+  "metrics": {
+    "latencyMs": 489
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "OK"
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "inputTokens": 11,
+    "outputTokens": 5,
+    "serverToolUsage": {},
+    "totalTokens": 16
+  }
+}

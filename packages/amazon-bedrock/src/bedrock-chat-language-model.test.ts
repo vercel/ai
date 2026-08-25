@@ -4738,6 +4738,78 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
+  it.each(['us.openai.gpt-5.6-luna', 'global.openai.gpt-5.6-luna'])(
+    'maps maxReasoningEffort to reasoning.effort for CRIS OpenAI model %s',
+    async crisModelId => {
+      const reasoningConfigError = fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-config-error.json',
+        'utf8',
+      );
+      const reasoningEffortError = fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-effort-error.json',
+        'utf8',
+      );
+      const success = fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-success.json',
+        'utf8',
+      );
+      let requestBody: any;
+
+      const crisModel = new BedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
+          const fields = requestBody.additionalModelRequestFields;
+
+          if (
+            fields?.reasoning?.effort === 'high' &&
+            fields.reasoningConfig == null &&
+            fields.reasoning_effort == null
+          ) {
+            return new Response(success, {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+
+          return new Response(
+            fields?.reasoningConfig != null
+              ? reasoningConfigError
+              : reasoningEffortError,
+            {
+              status: 400,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+        generateId: () => 'test-id',
+      });
+
+      const result = await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              maxReasoningEffort: 'high',
+            },
+          },
+        },
+      });
+
+      expect(result.content).toEqual([{ type: 'text', text: 'OK' }]);
+      expect(requestBody.additionalModelRequestFields).toMatchObject({
+        reasoning: { effort: 'high' },
+      });
+      expect(
+        requestBody.additionalModelRequestFields.reasoningConfig,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields.reasoning_effort,
+      ).toBeUndefined();
+    },
+  );
+
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 

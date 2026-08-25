@@ -1,0 +1,3 @@
+{
+  "message": "The model returned the following errors: {\"error\":{\"code\":\"unknown_parameter\",\"message\":\"Unknown parameter: 'reasoning_effort'.\",\"param\":\"reasoning_effort\",\"type\":\"invalid_request_error\"}}"
+}
