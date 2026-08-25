@@ -180,7 +180,10 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     }
 
     const isAnthropicModel = this.modelId.includes('anthropic');
-    const isOpenAIModel = this.modelId.includes('openai.');
+    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
+    const isOpenAIModel = openAIModelId != null;
+    const isOpenAIGptOssModel =
+      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
 
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
       reasoning,
@@ -329,11 +332,20 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           },
         };
       } else if (isOpenAIModel) {
-        // OpenAI models on Bedrock expect `reasoning_effort` as a flat value
-        amazonBedrockOptions.additionalModelRequestFields = {
-          ...amazonBedrockOptions.additionalModelRequestFields,
-          reasoning_effort: maxReasoningEffort,
-        };
+        // gpt-oss models expect `reasoning_effort` as a flat value, while
+        // GPT-5.x models expect a nested `reasoning.effort` object.
+        amazonBedrockOptions.additionalModelRequestFields = isOpenAIGptOssModel
+          ? {
+              ...amazonBedrockOptions.additionalModelRequestFields,
+              reasoning_effort: maxReasoningEffort,
+            }
+          : {
+              ...amazonBedrockOptions.additionalModelRequestFields,
+              reasoning: {
+                ...amazonBedrockOptions.additionalModelRequestFields?.reasoning,
+                effort: maxReasoningEffort,
+              },
+            };
       } else {
         // other models (such as Nova 2) use reasoningConfig format
         amazonBedrockOptions.additionalModelRequestFields = {

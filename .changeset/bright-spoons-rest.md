@@ -2,4 +2,4 @@
 '@ai-sdk/amazon-bedrock': patch
 ---
 
-Detect CRIS-prefixed OpenAI model IDs when mapping reasoning effort for Converse requests.
+Send nested reasoning effort for CRIS-prefixed OpenAI GPT-5.x Converse requests while preserving the flat gpt-oss format.
