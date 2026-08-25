@@ -34,7 +34,10 @@ export type AlibabaVideoModelOptions = {
   shotType?: 'single' | 'multi' | null;
   /** Whether to add watermark to generated video. Defaults to false. */
   watermark?: boolean | null;
-  /** Enable audio generation (for I2V/R2V models). */
+  /**
+   * Enable audio generation (I2V/R2V and wan3 models;
+   * wan2.7 models always generate audio). Defaults to true on wan3.
+   */
   audio?: boolean | null;
   /**
    * Reference URLs for reference-to-video mode.
@@ -43,22 +46,34 @@ export type AlibabaVideoModelOptions = {
    */
   referenceUrls?: string[] | null;
   /**
-   * Explicit media array for reference-to-video mode (wan2.7 models).
-   * Overrides the automatic mapping from `inputReferences` and `frameImages`.
+   * Explicit media array (wan2.7 and wan3 models). Overrides the automatic
+   * mapping from `inputReferences` and `frameImages`.
    * Use `Image 1`, `Video 1`, etc. in prompts to reference media items
-   * (images and videos are counted separately, in array order).
+   * (images, videos, and audio are counted separately, in array order).
+   *
+   * `reference_audio`, `file`, and `link` are wan3-only and have no top-level
+   * call option, so they can only be passed here. wan3 also rejects mixing
+   * `reference_*`/`file`/`link` with `first_frame`/`last_frame`.
    */
   media?: Array<{
-    type: 'reference_image' | 'reference_video' | 'first_frame';
+    type:
+      | 'reference_image'
+      | 'reference_video'
+      | 'reference_audio'
+      | 'first_frame'
+      | 'last_frame'
+      | 'file'
+      | 'link';
     /** Public URL, or a `data:{mime};base64,{data}` URI for images. */
     url: string;
     /** URL to an audio file used as voice reference for this media item. */
     referenceVoice?: string | null;
   }> | null;
   /**
-   * Aspect ratio (wan2.7 text-to-video and reference-to-video models).
+   * Aspect ratio (wan2.7 text-to-video and reference-to-video models, and
+   * every wan3 generation). `adaptive` is wan3-only, and is its default.
    */
-  ratio?: '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | null;
+  ratio?: 'adaptive' | '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | null;
   /** Polling interval in milliseconds. Defaults to 5000 (5 seconds). */
   pollIntervalMs?: number | null;
   /** Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes). */
@@ -83,14 +98,20 @@ const alibabaVideoModelOptionsSchema = lazySchema(() =>
               type: z.enum([
                 'reference_image',
                 'reference_video',
+                'reference_audio',
                 'first_frame',
+                'last_frame',
+                'file',
+                'link',
               ]),
               url: z.string(),
               referenceVoice: z.string().nullish(),
             }),
           )
           .nullish(),
-        ratio: z.enum(['16:9', '9:16', '1:1', '4:3', '3:4']).nullish(),
+        ratio: z
+          .enum(['adaptive', '16:9', '9:16', '1:1', '4:3', '3:4'])
+          .nullish(),
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
       })
@@ -246,8 +267,8 @@ function getFirstFrameImage(
 }
 
 function getLastFrameImage(
-  options: VideoModelV4CallOptions,
-): VideoModelV4File | undefined {
+  options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+): Experimental_VideoModelV3File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'last_frame')
     ?.image;
 }
@@ -267,12 +288,11 @@ function isVideoUrl(url: string): boolean {
 function resolveMedia(
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
   alibabaOptions: AlibabaVideoModelOptions | undefined,
-<<<<<<< HEAD
   warnings: SharedV3Warning[],
-=======
-  warnings: SharedV4Warning[],
-  frames: { first?: VideoModelV4File; last?: VideoModelV4File },
->>>>>>> 37892136ad (feat(alibaba): support wan3 all-in-one video generation (#19445))
+  frames: {
+    first?: Experimental_VideoModelV3File;
+    last?: Experimental_VideoModelV3File;
+  },
 ): Array<Record<string, unknown>> | undefined {
   if (alibabaOptions?.media != null && alibabaOptions.media.length > 0) {
     return alibabaOptions.media.map(item => ({
@@ -589,99 +609,8 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-<<<<<<< HEAD
     // Step 1: Create task
     const { value: createResponse } = await postJsonToApi({
-=======
-    return { input, parameters, warnings, alibabaOptions };
-  }
-
-  private buildCompletedResult(
-    statusResponse: AlibabaVideoTaskStatusResponse,
-    responseHeaders: Record<string, string> | undefined,
-    warnings: SharedV4Warning[],
-    currentDate: Date,
-  ): {
-    status: 'completed';
-    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
-    warnings: SharedV4Warning[];
-    providerMetadata: SharedV4ProviderMetadata;
-    response: {
-      timestamp: Date;
-      modelId: string;
-      headers: Record<string, string> | undefined;
-    };
-  } {
-    const taskId = statusResponse.output?.task_id;
-    const videoUrl = statusResponse.output?.video_url;
-
-    if (!videoUrl) {
-      throw new AISDKError({
-        name: 'ALIBABA_VIDEO_GENERATION_ERROR',
-        message: `No video URL in response. Task ID: ${taskId}`,
-      });
-    }
-
-    return {
-      status: 'completed',
-      videos: [
-        {
-          type: 'url',
-          url: videoUrl,
-          mediaType: 'video/mp4',
-        },
-      ],
-      warnings,
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-      },
-      providerMetadata: {
-        alibaba: {
-          taskId,
-          videoUrl,
-          ...(statusResponse.output?.actual_prompt
-            ? { actualPrompt: statusResponse.output.actual_prompt }
-            : {}),
-          ...(statusResponse.usage
-            ? {
-                usage: {
-                  duration: statusResponse.usage.duration,
-                  outputVideoDuration:
-                    statusResponse.usage.output_video_duration,
-                  resolution: statusResponse.usage.SR,
-                  size: statusResponse.usage.size,
-                  // wan3-only. Spread rather than set to undefined so the
-                  // metadata shape for older wan models is unchanged.
-                  ...(statusResponse.usage.input_video_duration != null
-                    ? {
-                        inputVideoDuration:
-                          statusResponse.usage.input_video_duration,
-                      }
-                    : {}),
-                  ...(statusResponse.usage.fps != null
-                    ? { fps: statusResponse.usage.fps }
-                    : {}),
-                  ...(statusResponse.usage.ratio != null
-                    ? { ratio: statusResponse.usage.ratio }
-                    : {}),
-                },
-              }
-            : {}),
-        },
-      },
-    };
-  }
-
-  async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
-  ): Promise<VideoModelV4OperationStartResult> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { input, parameters, warnings } = await this.buildRequest(options);
-
-    const { value: createResponse, responseHeaders } = await postJsonToApi({
->>>>>>> 37892136ad (feat(alibaba): support wan3 all-in-one video generation (#19445))
       url: `${this.config.baseURL}/api/v1/services/aigc/video-generation/video-synthesis`,
       headers: combineHeaders(
         await resolve(this.config.headers),
@@ -798,6 +727,20 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
                     finalResponse.usage.output_video_duration,
                   resolution: finalResponse.usage.SR,
                   size: finalResponse.usage.size,
+                  // wan3-only. Spread rather than set to undefined so the
+                  // metadata shape for older wan models is unchanged.
+                  ...(finalResponse.usage.input_video_duration != null
+                    ? {
+                        inputVideoDuration:
+                          finalResponse.usage.input_video_duration,
+                      }
+                    : {}),
+                  ...(finalResponse.usage.fps != null
+                    ? { fps: finalResponse.usage.fps }
+                    : {}),
+                  ...(finalResponse.usage.ratio != null
+                    ? { ratio: finalResponse.usage.ratio }
+                    : {}),
                 },
               }
             : {}),
