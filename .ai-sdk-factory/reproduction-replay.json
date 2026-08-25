@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 17938,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/prodia-seed-warning-issue-17938.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/prodia-seed-warning-issue-17938.ts",
+    "packages/prodia/src/__fixtures__/prodia-language-model-nano-banana-issue-17938-live.json",
+    "packages/prodia/src/prodia-language-model.issue-17938.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17938_REPRODUCED: Prodia silently drops seed without an unsupported-setting warning in generateText and streamText."
+  }
+}
