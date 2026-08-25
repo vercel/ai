@@ -105,14 +105,28 @@ export type DeepSeekLanguageModelOptions = {
   strictJsonSchema?: boolean;
 };
 
-export const deepseekAssistantMessageProviderOptions = z.object({
+export const deepseekMessageProviderOptions = z.object({
   /**
-   * Whether the assistant message content is a prefix that DeepSeek should
-   * continue. This beta feature is only supported on the final assistant
-   * message when using a beta base URL.
+   * The name of the participant represented by the message.
+   *
+   * Supported on system, user, and assistant messages.
    */
-  prefix: z.literal(true).optional(),
+  name: z.string().optional(),
 });
+
+export type DeepSeekMessageProviderOptions = z.infer<
+  typeof deepseekMessageProviderOptions
+>;
+
+export const deepseekAssistantMessageProviderOptions =
+  deepseekMessageProviderOptions.extend({
+    /**
+     * Whether the assistant message content is a prefix that DeepSeek should
+     * continue. This beta feature is only supported on the final assistant
+     * message when using a beta base URL.
+     */
+    prefix: z.literal(true).optional(),
+  });
 
 export type DeepSeekAssistantMessageProviderOptions = z.infer<
   typeof deepseekAssistantMessageProviderOptions
