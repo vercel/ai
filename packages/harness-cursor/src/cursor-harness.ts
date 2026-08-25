@@ -2,6 +2,7 @@ import {
   commonTool,
   type HarnessV1,
   type HarnessV1BuiltinTool,
+  type HarnessV1CredentialForwarding,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import {
@@ -20,6 +21,12 @@ export type CursorHarnessSettings = {
    * cannot change this setting and warns for explicit routing modes.
    */
   readonly auth?: ACPProviderAuthenticationMode;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * Cursor model id selected through ACP. Unset preserves Cursor's default.
    */
@@ -365,6 +372,7 @@ export function createCursor(
   }
 
   return createACP({
+    credentialForwarding: settings.credentialForwarding,
     modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,

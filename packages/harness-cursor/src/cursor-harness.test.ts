@@ -109,8 +109,14 @@ describe('createCursor', () => {
 
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
+    const credentialForwarding = async ({
+      credential,
+    }: {
+      credential: string;
+    }) => `ephemeral-${credential}`;
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
     createCursor({
+      credentialForwarding,
       model: 'claude-4-sonnet',
       port: 4319,
       portEndpoint,
@@ -121,6 +127,7 @@ describe('createCursor', () => {
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
     expect({
+      credentialForwarding: settings.credentialForwarding,
       modelId: settings.modelId,
       port: settings.port,
       portEndpoint: settings.portEndpoint,
@@ -128,6 +135,7 @@ describe('createCursor', () => {
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
+      credentialForwarding,
       modelId: 'claude-4-sonnet',
       port: 4319,
       portEndpoint,

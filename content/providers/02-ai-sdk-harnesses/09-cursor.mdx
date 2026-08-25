@@ -84,6 +84,14 @@ Settings:
   cannot change Cursor's provider authentication route. Explicit `direct` and
   `ai-gateway` values emit a configuration reminder; `auto` does not because it
   does not declare an expected route.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
 - `model`: Cursor model id selected through ACP. When omitted, Cursor chooses
   its own default model.
 - `mcpServers`: MCP server definitions keyed by server name.

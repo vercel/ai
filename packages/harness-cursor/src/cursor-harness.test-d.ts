@@ -3,6 +3,7 @@ import { createCursor } from './cursor-harness';
 
 test('preserves Cursor built-in tool types', () => {
   const harness = createCursor({
+    credentialForwarding: async ({ credential }) => credential,
     mintBridgeToken: sandboxId => sandboxId,
   });
 
