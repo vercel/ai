@@ -1,0 +1,25 @@
+{
+  "type": "inference.nano-banana.img2img.v2",
+  "created_at": "2026-08-25T05:32:33.693Z",
+  "updated_at": "2026-08-25T05:32:41.896Z",
+  "expires_at": "2026-08-25T05:37:33.693Z",
+  "id": "35fa678f-4a56-4244-b030-018f0ba48ed4",
+  "state": {
+    "current": "completed",
+    "history": null
+  },
+  "config": {
+    "include_messages": true,
+    "prompt": "Make this image look like a watercolor painting.",
+    "aspect_ratio": "auto",
+    "output_message_count": 0,
+    "output_image_count": 1
+  },
+  "metrics": {
+    "elapsed": 7.534816741943359
+  },
+  "price": {
+    "product": "inference-nano-banana",
+    "dollars": 0.039
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 17938,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/prodia-seed-warning-issue-17938.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/prodia-seed-warning-issue-17938.ts",
+    "packages/prodia/src/__fixtures__/prodia-language-model-nano-banana-live.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17938: missing unsupported seed warning in generateText and streamText"
+  }
+}
