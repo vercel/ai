@@ -410,34 +410,6 @@ describe('Anthropic Messages batch language model', () => {
     });
   });
 
-  it('rejects result retrieval while the batch is pending', async () => {
-    server.urls[urls.batch].response = {
-      type: 'json-value',
-      body: batchResponse({
-        processing_status: 'in_progress',
-        request_counts: {
-          processing: 1,
-          succeeded: 0,
-          errored: 0,
-          canceled: 0,
-          expired: 0,
-        },
-        results_url: null,
-      }),
-    };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
-
-    await expect(
-      model.experimental_doGetBatchResults({ batchId: 'msgbatch_123' }),
-    ).rejects.toMatchObject({
-      name: 'AI_InvalidArgumentError',
-      argument: 'batchId',
-      message: 'Anthropic batch "msgbatch_123" is not complete.',
-    });
-  });
-
   it('rejects result retrieval after Anthropic archives the result file', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
@@ -583,104 +555,6 @@ describe('Anthropic Messages batch language model', () => {
     ]);
   });
 
-  it('fails an item instead of silently dropping tool content', async () => {
-    server.urls[urls.batch].response = {
-      type: 'json-value',
-      body: batchResponse(),
-    };
-    server.urls[urls.results].response = {
-      type: 'stream-chunks',
-      chunks: [
-        JSON.stringify({
-          custom_id: 'tool-call',
-          result: {
-            type: 'succeeded',
-            message: {
-              ...messageResultBody(''),
-              content: [
-                {
-                  type: 'tool_use',
-                  id: 'toolu_123',
-                  name: 'get_weather',
-                  input: { city: 'Paris' },
-                },
-              ],
-              stop_reason: 'tool_use',
-            },
-          },
-        }),
-      ],
-    };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
-
-    const stream = await model.experimental_doGetBatchResults({
-      batchId: 'msgbatch_123',
-    });
-
-    await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
-      {
-        id: 'tool-call',
-        status: 'failed',
-        error: {
-          message:
-            'Anthropic returned a "tool_use" content block, but tool content is not supported in AI SDK text batches.',
-          code: 'unsupported_tool_content',
-        },
-      },
-    ]);
-  });
-
-  it('fails an invalid succeeded item without aborting later results', async () => {
-    server.urls[urls.batch].response = {
-      type: 'json-value',
-      body: batchResponse(),
-    };
-    server.urls[urls.results].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `${JSON.stringify({
-          custom_id: 'invalid',
-          result: {
-            type: 'succeeded',
-            message: { type: 'message' },
-          },
-        })}\n`,
-        JSON.stringify({
-          custom_id: 'valid',
-          result: {
-            type: 'succeeded',
-            message: messageResultBody('Paris'),
-          },
-        }),
-      ],
-    };
-    const model = createAnthropic({ apiKey: 'test-api-key' })(
-      'claude-3-haiku-20240307',
-    );
-
-    const stream = await model.experimental_doGetBatchResults({
-      batchId: 'msgbatch_123',
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toMatchObject([
-      {
-        id: 'invalid',
-        status: 'failed',
-        error: {
-          message: 'Anthropic returned an invalid Message batch result.',
-          code: 'invalid_response',
-        },
-      },
-      {
-        id: 'valid',
-        status: 'succeeded',
-        result: { content: [{ type: 'text', text: 'Paris' }] },
-      },
-    ]);
-  });
-
   it('forwards operation headers and the abort signal while retrieving results', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
@@ -755,5 +629,175 @@ describe('Anthropic Messages batch language model', () => {
     expect(model.experimental_doGetBatchStatus).toBeTypeOf('function');
     expect(model.experimental_doGetBatchResults).toBeTypeOf('function');
     expect(model.doGenerate).toBeTypeOf('function');
+  });
+
+  describe('batch result lifecycle', () => {
+    it('rejects result retrieval while the batch is pending', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse({
+          processing_status: 'in_progress',
+          request_counts: {
+            processing: 1,
+            succeeded: 0,
+            errored: 0,
+            canceled: 0,
+            expired: 0,
+          },
+          results_url: null,
+        }),
+      };
+      const model = createAnthropic({ apiKey: 'test-api-key' })(
+        'claude-3-haiku-20240307',
+      );
+
+      await expect(
+        model.experimental_doGetBatchResults({ batchId: 'msgbatch_123' }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'batchId',
+        message: 'Anthropic batch "msgbatch_123" is not complete.',
+      });
+    });
+
+    it('fails an invalid item and continues with later results', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `${JSON.stringify({
+            custom_id: 'invalid',
+            result: {
+              type: 'succeeded',
+              message: { type: 'message' },
+            },
+          })}\n`,
+          JSON.stringify({
+            custom_id: 'valid',
+            result: {
+              type: 'succeeded',
+              message: messageResultBody('Paris'),
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({ apiKey: 'test-api-key' })(
+        'claude-3-haiku-20240307',
+      );
+
+      const stream = await model.experimental_doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toHaveLength(2);
+      expect(results).toMatchObject([
+        {
+          id: 'invalid',
+          status: 'failed',
+          error: {
+            message: 'Anthropic returned an invalid Message batch result.',
+            code: 'invalid_response',
+          },
+        },
+        {
+          id: 'valid',
+          status: 'succeeded',
+          result: { content: [{ type: 'text', text: 'Paris' }] },
+        },
+      ]);
+    });
+
+    it('rejects a completed batch without output', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse({ results_url: null }),
+      };
+      const model = createAnthropic({ apiKey: 'test-api-key' })(
+        'claude-3-haiku-20240307',
+      );
+
+      await expect(
+        model.experimental_doGetBatchResults({ batchId: 'msgbatch_123' }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidResponseDataError',
+        message:
+          'Anthropic batch "msgbatch_123" completed without batch output.',
+      });
+    });
+
+    it('fails unsupported items and continues with later results', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse({
+          request_counts: {
+            processing: 0,
+            succeeded: 2,
+            errored: 0,
+            canceled: 0,
+            expired: 0,
+          },
+        }),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `${JSON.stringify({
+            custom_id: 'tool-call',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody(''),
+                content: [
+                  {
+                    type: 'tool_use',
+                    id: 'toolu_123',
+                    name: 'get_weather',
+                    input: { city: 'Paris' },
+                  },
+                ],
+                stop_reason: 'tool_use',
+              },
+            },
+          })}\n`,
+          JSON.stringify({
+            custom_id: 'valid',
+            result: {
+              type: 'succeeded',
+              message: messageResultBody('Paris'),
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({ apiKey: 'test-api-key' })(
+        'claude-3-haiku-20240307',
+      );
+
+      const stream = await model.experimental_doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toHaveLength(2);
+      expect(results).toMatchObject([
+        {
+          id: 'tool-call',
+          status: 'failed',
+          error: {
+            message:
+              'Anthropic returned a "tool_use" content block, but tool content is not supported in AI SDK text batches.',
+            code: 'unsupported_content',
+          },
+        },
+        {
+          id: 'valid',
+          status: 'succeeded',
+          result: { content: [{ type: 'text', text: 'Paris' }] },
+        },
+      ]);
+    });
   });
 });
