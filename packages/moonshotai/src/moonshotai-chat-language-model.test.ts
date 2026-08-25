@@ -369,6 +369,69 @@ describe('doGenerate', () => {
       prepareJsonFixtureResponse('moonshotai-tool-call');
     });
 
+    it('should preserve official chat response metadata without changing content or raw response', async () => {
+      prepareJsonFixtureResponse('moonshotai-metadata-live');
+      const fixture = JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/moonshotai-metadata-live.json',
+          'utf8',
+        ),
+      );
+
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toEqual({
+        moonshotai: {
+          responseObject: 'chat.completion',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+          toolCallTypes: ['function'],
+        },
+      });
+      expect(result.content).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'get_weather_0',
+          toolName: 'get_weather',
+          input: '{"city": "Paris"}',
+        },
+      ]);
+      expect(result.response?.body).toEqual(fixture);
+    });
+
+    it('should safely omit missing or null response metadata', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-null-metadata',
+          object: null,
+          created: 1787685041,
+          model: 'kimi-k3',
+          choices: [
+            {
+              index: null,
+              message: {
+                role: null,
+                content: 'Hello',
+                tool_calls: null,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: null,
+        },
+      };
+
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([{ type: 'text', text: 'Hello' }]);
+      expect(result.finishReason).toEqual({ unified: 'stop', raw: 'stop' });
+    });
+
     it('should normalize tuple tool schemas to prefixItems on the wire', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
@@ -495,6 +558,69 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('should accumulate official chat response metadata without changing content or raw chunks', async () => {
+    prepareChunksFixtureResponse('moonshotai-metadata-live');
+    const fixtureChunks = fs
+      .readFileSync(
+        'src/__fixtures__/moonshotai-metadata-live.chunks.txt',
+        'utf8',
+      )
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line));
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(
+      parts.filter(part => part.type === 'raw').map(part => part.rawValue),
+    ).toEqual(fixtureChunks);
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'get_weather_0',
+      toolName: 'get_weather',
+      input: '{"city": "Paris"}',
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      providerMetadata: {
+        moonshotai: {
+          responseObject: 'chat.completion.chunk',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+          toolCallTypes: ['function'],
+        },
+      },
+    });
+  });
+
+  it('should safely omit missing or null streamed response metadata', async () => {
+    server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"id":"chatcmpl-null-metadata","object":null,"created":1787685041,"model":"kimi-k3","choices":[{"index":null,"delta":{"role":null,"content":"Hello"},"finish_reason":null}]}\n\n',
+        'data: {"id":"chatcmpl-null-metadata","object":null,"created":1787685041,"model":"kimi-k3","choices":[],"usage":null}\n\n',
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+    });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts).toContainEqual({ type: 'text-start', id: 'txt-0' });
+    expect(parts).toContainEqual({
+      type: 'text-delta',
+      id: 'txt-0',
+      delta: 'Hello',
+    });
+    expect(parts.at(-1)).toMatchObject({ type: 'finish' });
+  });
+
   it('should stream reasoning and text deltas with usage', async () => {
     prepareChunksFixtureResponse('moonshotai-stream');
 

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19559,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/moonshotai-preserve-chat-response-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/moonshotai-preserve-chat-response-metadata.ts",
+    "packages/moonshotai/src/__fixtures__/moonshotai-metadata-live.json",
+    "packages/moonshotai/src/__fixtures__/moonshotai-metadata-live.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19559 REPRODUCED: Moonshot generate and stream results dropped official chat response metadata"
+  }
+}

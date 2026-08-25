@@ -1,0 +1,32 @@
+{
+  "id": "chatcmpl-551fc78d-053e-9152-bd83-996c90376744",
+  "object": "chat.completion",
+  "created": 1787685041,
+  "model": "kimi-k3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "get_weather_0",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 99,
+    "completion_tokens": 44,
+    "total_tokens": 143
+  }
+}
