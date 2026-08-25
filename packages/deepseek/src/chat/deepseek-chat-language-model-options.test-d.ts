@@ -1,19 +1,35 @@
-import { expectTypeOf, it } from 'vitest';
-import type { DeepSeekAssistantMessageProviderOptions } from '../index';
+import { describe, expectTypeOf, it } from 'vitest';
+import type {
+  DeepSeekAssistantMessageProviderOptions,
+  DeepSeekLanguageModelOptions,
+} from '../index';
 
-it('should type assistant prefix completion options', () => {
-  const options = {
-    prefix: true,
-  } satisfies DeepSeekAssistantMessageProviderOptions;
+describe('DeepSeekLanguageModelOptions', () => {
+  it('only exposes canonical thinking and reasoning effort values', () => {
+    expectTypeOf<DeepSeekLanguageModelOptions>().toEqualTypeOf<{
+      userId?: string;
+      thinking?: {
+        type?: 'enabled' | 'disabled';
+      };
+      reasoningEffort?: 'low' | 'high' | 'max';
+      strictJsonSchema?: boolean;
+    }>();
+  });
 
-  expectTypeOf(options.prefix).toEqualTypeOf<true>();
-});
+  it('should type assistant prefix completion options', () => {
+    const options = {
+      prefix: true,
+    } satisfies DeepSeekAssistantMessageProviderOptions;
 
-it('should reject prefix false', () => {
-  const options = {
-    // @ts-expect-error - DeepSeek only supports enabling prefix completion
-    prefix: false,
-  } satisfies DeepSeekAssistantMessageProviderOptions;
+    expectTypeOf(options.prefix).toEqualTypeOf<true>();
+  });
 
-  expectTypeOf(options.prefix).toEqualTypeOf<false>();
+  it('should reject prefix false', () => {
+    const options = {
+      // @ts-expect-error - DeepSeek only supports enabling prefix completion
+      prefix: false,
+    } satisfies DeepSeekAssistantMessageProviderOptions;
+
+    expectTypeOf(options.prefix).toEqualTypeOf<false>();
+  });
 });
