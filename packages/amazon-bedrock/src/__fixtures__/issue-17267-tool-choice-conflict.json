@@ -1,3 +1,0 @@
-{
-  "message": "The additional field tool_choice/type conflicts with the existing field toolConfig.toolChoice.auto. Remove tool_choice/type and try again."
-}
