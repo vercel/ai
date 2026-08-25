@@ -14,15 +14,31 @@ export type TakoContentFormat =
   | 'json_records';
 
 export interface TakoDataSourceConfig {
-  /** Maximum number of data cards to return (1-20). */
+  /**
+   * Maximum number of data results to return (1-20). When includeContents is
+   * true, each additional result adds its own data surcharge.
+   */
   count?: number;
-  /** Inline underlying card data in the response. This can add a data charge. */
+  /**
+   * Inline the rows behind each data result. Data contents incur additional
+   * data surcharges based on number of rows requested and the underlying
+   * dataset source. To estimate the cost before requesting the data, search
+   * with includeContents disabled and check the cards.content.export_pricing
+   * response field for details. sources.data.includeContents applies to all
+   * cards returned by the search, so use sources.data.count and
+   * sources.data.maxRows to further clamp down on data export costs.
+   */
   includeContents?: boolean;
   /** Requested delivery mode for card data. Search cards are always inlined. */
   mode?: 'inline' | 'url';
   /** Serialization for inlined card data. */
   contentFormat?: TakoContentFormat;
-  /** Maximum rows for inlined card data. The service clamps large values. */
+  /**
+   * Maximum rows to inline per result. Omit it to return the max allowance set
+   * by cards.content.export_pricing. Data surcharge is applied per 1000 rows
+   * exported. Lower it to request a smaller number of rows and decrease data
+   * surcharges.
+   */
   maxRows?: number;
   /** Data Graph node IDs to prioritize. */
   nodeIds?: string[];
@@ -190,7 +206,6 @@ export interface TakoCard {
   relevance?: 'High' | 'Low' | 'Medium' | null;
   content?: TakoResultContent | null;
   exportable?: boolean;
-  relevance_score?: number | null;
   nodes?: Array<{
     id: string;
     type: 'entity' | 'metric';
@@ -215,7 +230,6 @@ export interface TakoWebResult {
   source_name?: string | null;
   publish_date?: string | null;
   content?: TakoResultContent | null;
-  citation_number?: number | null;
 }
 
 export interface TakoSearchResponse {
@@ -254,11 +268,15 @@ const takoDataSourceInputSchema = z.object({
   count: z
     .number()
     .optional()
-    .describe('Maximum number of data cards to return (1-20).'),
+    .describe(
+      'Maximum number of data results to return (1-20). When include_contents is true, each additional result adds its own data surcharge.',
+    ),
   include_contents: z
     .boolean()
     .optional()
-    .describe('Inline underlying card data. This can add a data charge.'),
+    .describe(
+      'Inline the rows behind each data result. Data contents incur additional data surcharges based on number of rows requested and the underlying dataset source. To estimate the cost before requesting the data, search with include_contents disabled and check the cards.content.export_pricing response field for details. sources.data.include_contents applies to all cards returned by the search, so use sources.data.count and sources.data.max_rows to further clamp down on data export costs.',
+    ),
   mode: z
     .enum(['inline', 'url'])
     .optional()
@@ -272,7 +290,9 @@ const takoDataSourceInputSchema = z.object({
   max_rows: z
     .number()
     .optional()
-    .describe('Maximum rows for inlined card data.'),
+    .describe(
+      'Maximum rows to inline per result. Omit it to return the max allowance set by cards.content.export_pricing. Data surcharge is applied per 1000 rows exported. Lower it to request a smaller number of rows and decrease data surcharges.',
+    ),
   node_ids: z
     .array(z.string())
     .optional()
@@ -493,7 +513,6 @@ const takoCardSchema = z
     relevance: z.enum(['High', 'Low', 'Medium']).nullish(),
     content: takoResultContentSchema.nullish(),
     exportable: z.boolean().optional(),
-    relevance_score: z.number().nullish(),
     nodes: z
       .array(
         z.object({
@@ -525,7 +544,6 @@ const takoWebResultSchema = z
     source_name: z.string().nullish(),
     publish_date: z.string().nullish(),
     content: takoResultContentSchema.nullish(),
-    citation_number: z.number().nullish(),
   })
   .passthrough();
 
