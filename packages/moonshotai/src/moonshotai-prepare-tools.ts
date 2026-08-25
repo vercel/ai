@@ -3,14 +3,17 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
+import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
 import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 
 export function prepareTools({
   tools,
   toolChoice,
+  modelId,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
+  modelId: MoonshotAIChatModelId;
 }): {
   tools:
     | undefined
@@ -78,7 +81,25 @@ export function prepareTools({
   switch (type) {
     case 'auto':
     case 'none':
+      return { tools: moonshotTools, toolChoice: type, toolWarnings };
     case 'required':
+      if (
+        modelId === 'kimi-k2.6' ||
+        modelId === 'kimi-k2.7-code' ||
+        modelId === 'kimi-k2.7-code-highspeed'
+      ) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `tool choice "required" for model "${modelId}"`,
+          details:
+            'Moonshot AI rejects required tool choice for this model. The setting has been omitted; use "auto" or select a specific tool instead.',
+        });
+        return {
+          tools: moonshotTools,
+          toolChoice: undefined,
+          toolWarnings,
+        };
+      }
       return { tools: moonshotTools, toolChoice: type, toolWarnings };
     case 'tool':
       return {

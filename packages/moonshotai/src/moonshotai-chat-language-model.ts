@@ -171,7 +171,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       tools: moonshotTools,
       toolChoice: moonshotToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
     // Thinking is configured through explicit provider options only.
     const thinking = moonshotOptions.thinking;
