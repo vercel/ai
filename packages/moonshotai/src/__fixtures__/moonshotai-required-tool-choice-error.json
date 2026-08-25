@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "tool_choice 'required' is incompatible with thinking enabled",
+    "type": "invalid_request_error"
+  }
+}
