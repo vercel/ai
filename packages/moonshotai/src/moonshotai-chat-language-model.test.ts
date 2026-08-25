@@ -525,16 +525,23 @@ describe('doGenerate', () => {
       prepareJsonFixtureResponse('moonshotai-text');
     });
 
-    it('should strip the $schema keyword from json schemas', async () => {
+    it('should normalize json schemas and enable strict mode by default', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
           name: 'recipe',
+          description: 'A recipe',
           schema: {
             $schema: 'http://json-schema.org/draft-07/schema#',
             type: 'object',
-            properties: { name: { type: 'string' } },
+            properties: {
+              name: { type: 'string' },
+              coordinates: {
+                type: 'array',
+                items: [{ type: 'number' }, { type: 'number' }],
+              },
+            },
           },
         },
       });
@@ -544,10 +551,40 @@ describe('doGenerate', () => {
         type: 'json_schema',
         json_schema: {
           name: 'recipe',
+          strict: true,
           schema: {
             type: 'object',
-            properties: { name: { type: 'string' } },
+            properties: {
+              name: { type: 'string' },
+              coordinates: {
+                type: 'array',
+                prefixItems: [{ type: 'number' }, { type: 'number' }],
+              },
+            },
           },
+        },
+      });
+    });
+
+    it('should allow strict json schema validation to be disabled', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: { type: 'object', properties: {} },
+        },
+        providerOptions: {
+          moonshotai: { strictJsonSchema: false },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.response_format).toStrictEqual({
+        type: 'json_schema',
+        json_schema: {
+          name: 'response',
+          strict: false,
+          schema: { type: 'object', properties: {} },
         },
       });
     });

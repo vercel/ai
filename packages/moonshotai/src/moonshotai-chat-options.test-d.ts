@@ -10,6 +10,7 @@ describe('MoonshotAILanguageModelOptions', () => {
         budgetTokens?: number;
       };
       reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
+      strictJsonSchema?: boolean;
       promptCacheKey?: string;
       safetyIdentifier?: string;
     }>();

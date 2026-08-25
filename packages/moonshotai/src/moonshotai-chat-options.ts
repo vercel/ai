@@ -54,6 +54,12 @@ export const moonshotaiLanguageModelOptions = z.object({
   reasoningHistory: z.enum(['disabled', 'interleaved', 'preserved']).optional(),
 
   /**
+   * Whether to use strict JSON schema validation for structured outputs.
+   * Defaults to true.
+   */
+  strictJsonSchema: z.boolean().optional(),
+
+  /**
    * Used to cache responses for similar requests to optimize cache hit rates.
    * Typically a session or task id.
    */
@@ -82,6 +88,11 @@ export type MoonshotAILanguageModelOptions = {
   };
 
   reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
+  /**
+   * Whether to use strict JSON schema validation for structured outputs.
+   * Defaults to true.
+   */
+  strictJsonSchema?: boolean;
   promptCacheKey?: string;
   safetyIdentifier?: string;
 };

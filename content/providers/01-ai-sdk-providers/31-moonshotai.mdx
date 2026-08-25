@@ -92,6 +92,11 @@ unchanged.
 
 Native structured outputs are enabled for Moonshot models whose model ID starts with `kimi-`.
 
+Moonshot validates structured-output schemas strictly by default. The provider
+normalizes schemas to Moonshot's supported JSON Schema subset before sending
+them. Set the `strictJsonSchema` provider option to `false` to opt out of strict
+validation.
+
 For other Moonshot models, object generation falls back to JSON mode instead of schema-constrained decoding.
 
 For best reliability, it is strongly recommended to include your schema requirements in your prompt in addition to passing the schema through `Output`.
@@ -224,6 +229,11 @@ The following optional provider options are available for Moonshot AI language m
   - `'interleaved'`: Include reasoning between tool calls within a single turn
   - `'preserved'`: Keep all reasoning in history. For Kimi K2.6, this maps to
     `thinking.keep: 'all'`. Kimi K2.7 and K3 always preserve reasoning.
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation for structured outputs. Defaults
+  to `true`.
 
 ## Model Capabilities
 
