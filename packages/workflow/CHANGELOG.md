@@ -1,5 +1,17 @@
 # @ai-sdk/workflow
 
+## 2.0.9
+
+### Patch Changes
+
+- b251584: Preserve active text and reasoning parts when another merged UI message stream finishes a step, and align workflow stream normalization with the explicit part end chunks.
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 2.0.8
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.87
+
+### Patch Changes
+
+- 7ab0f88: Add support for `@vercel/sandbox` v3 while preserving the adapter's existing Node 24 runtime default.
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 1.0.86
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/alibaba
 
+## 2.0.35
+
+### Patch Changes
+
+- 3789213: feat(provider/alibaba): support wan3 all-in-one video generation
+- 2214258: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 2.0.34
 
 ### Patch Changes

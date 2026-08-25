@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 4.0.51
+
+### Patch Changes
+
+- e7fc90e: feat(google): support the Gemini Batch API with experimental_startTextBatch
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 4.0.50
 
 ### Patch Changes
