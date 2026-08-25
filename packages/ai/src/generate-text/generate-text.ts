@@ -1189,6 +1189,7 @@ export async function generateText<
               clearTimeout(stepTimeoutId);
             }
           }
+<<<<<<< HEAD
         } while (
           // Continue if:
           // 1. There are client tool calls that have all been executed, OR
@@ -1198,6 +1199,105 @@ export async function generateText<
             pendingDeferredToolCalls.size > 0) &&
           // continue until a stop condition is met:
           !(await isStopConditionMet({ stopConditions, steps }))
+=======
+        }
+      } while (
+        // Continue only after all client tool calls have been executed or denied,
+        // and if there are client results or pending deferred provider results.
+        clientToolOutputs.length + deniedToolApprovalResponses.length ===
+          clientToolCalls.length &&
+        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
+        // continue until a stop condition is met:
+        !(await isStopConditionMet({ stopConditions, steps }))
+      );
+
+      const lastStep = steps[steps.length - 1];
+
+      const totalUsage = steps.reduce(
+        (totalUsage, step) => {
+          return addLanguageModelUsage(totalUsage, step.usage);
+        },
+        {
+          inputTokens: undefined,
+          inputTokenDetails: {
+            noCacheTokens: undefined,
+            cacheReadTokens: undefined,
+            cacheWriteTokens: undefined,
+          },
+          outputTokens: undefined,
+          outputTokenDetails: {
+            textTokens: undefined,
+            reasoningTokens: undefined,
+          },
+          totalTokens: undefined,
+        } as LanguageModelUsage,
+      );
+
+      const files = steps.flatMap(step => step.files);
+      const sources = steps.flatMap(step => step.sources);
+      const toolCalls = steps.flatMap(step => step.toolCalls);
+      const staticToolCalls = steps.flatMap(step => step.staticToolCalls);
+      const dynamicToolCalls = steps.flatMap(step => step.dynamicToolCalls);
+      const toolResults = steps.flatMap(step => step.toolResults);
+      const staticToolResults = steps.flatMap(step => step.staticToolResults);
+      const dynamicToolResults = steps.flatMap(step => step.dynamicToolResults);
+      const warnings = steps.flatMap(step => step.warnings ?? []);
+
+      const onEndEvent = {
+        callId,
+        stepNumber: lastStep.stepNumber,
+        model: lastStep.model,
+        runtimeContext: lastStep.runtimeContext,
+        finishReason: lastStep.finishReason,
+        rawFinishReason: lastStep.rawFinishReason,
+        usage: totalUsage,
+        totalUsage,
+        content: steps.flatMap(step => step.content),
+        text: lastStep.text,
+        reasoning: lastStep.reasoning,
+        reasoningText: lastStep.reasoningText,
+        files,
+        sources,
+        toolCalls,
+        staticToolCalls,
+        dynamicToolCalls,
+        toolResults,
+        staticToolResults,
+        dynamicToolResults,
+        responseMessages: [
+          ...initialResponseMessages,
+          ...steps.flatMap(step => step.response.messages),
+        ],
+        warnings,
+        request: lastStep.request,
+        response: lastStep.response,
+        providerMetadata: lastStep.providerMetadata,
+        steps,
+        finalStep: lastStep,
+        toolsContext,
+      };
+
+      await notify({
+        event: onEndEvent,
+        callbacks: [onEnd, telemetryDispatcher.onEnd],
+      });
+
+      // parse output for stop responses and non-empty responses that are not
+      // tool calls:
+      let resolvedOutput;
+      if (
+        lastStep.finishReason === 'stop' ||
+        (lastStep.finishReason !== 'tool-calls' && lastStep.text.length > 0)
+      ) {
+        const outputSpecification = output ?? text();
+        resolvedOutput = await outputSpecification.parseCompleteOutput(
+          { text: lastStep.text },
+          {
+            response: lastStep.response,
+            usage: lastStep.usage,
+            finishReason: lastStep.finishReason,
+          },
+>>>>>>> eed79505be (fix: generateText loses structured-output diagnostics for truncated responses (#19307))
         );
 
         // Add response information to the span:

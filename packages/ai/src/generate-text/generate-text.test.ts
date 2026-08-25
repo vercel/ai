@@ -1,11 +1,21 @@
 import {
   InvalidPromptError,
+<<<<<<< HEAD
   LanguageModelV3,
   type LanguageModelV3CallOptions,
   type LanguageModelV3FunctionTool,
   type LanguageModelV3Prompt,
   type LanguageModelV3ProviderTool,
   type LanguageModelV3Usage,
+=======
+  JSONParseError,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ProviderTool,
+  type LanguageModelV4Usage,
+>>>>>>> eed79505be (fix: generateText loses structured-output diagnostics for truncated responses (#19307))
 } from '@ai-sdk/provider';
 import {
   DelayedPromise,
@@ -27,6 +37,12 @@ import {
   vi,
   vitest,
 } from 'vitest';
+<<<<<<< HEAD
+=======
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
+import { signToolApproval } from './tool-approval-signature';
+>>>>>>> eed79505be (fix: generateText loses structured-output diagnostics for truncated responses (#19307))
 import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -5557,6 +5573,66 @@ describe('generateText', () => {
         expect(result.output).toEqual({ value: 'test-value' });
       });
 
+<<<<<<< HEAD
+=======
+      it('should expose parse diagnostics when output is truncated', async () => {
+        const truncatedText = '{"value":"test';
+
+        try {
+          await generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: async () => ({
+                ...dummyResponseValues,
+                finishReason: { unified: 'length', raw: 'length' },
+                content: [{ type: 'text', text: truncatedText }],
+              }),
+            }),
+            prompt: 'prompt',
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+          });
+
+          assert.fail('must throw error');
+        } catch (error) {
+          expect(NoObjectGeneratedError.isInstance(error)).toBe(true);
+
+          if (!NoObjectGeneratedError.isInstance(error)) {
+            return;
+          }
+
+          expect(error.message).toBe(
+            'No object generated: could not parse the response.',
+          );
+          expect(error.cause).toBeInstanceOf(JSONParseError);
+          expect(error.text).toBe(truncatedText);
+          expect(error.finishReason).toBe('length');
+          expect(error.usage?.outputTokens).toBe(10);
+        }
+      });
+
+      it('should parse the output when the finish reason is missing', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              finishReason: {
+                unified: undefined,
+                raw: undefined,
+              } as unknown as LanguageModelV4FinishReason,
+              content: [{ type: 'text', text: `{ "value": "test-value" }` }],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.output).toEqual({ value: 'test-value' });
+      });
+
+>>>>>>> eed79505be (fix: generateText loses structured-output diagnostics for truncated responses (#19307))
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
         let callOptions: LanguageModelV3CallOptions;
 
@@ -5779,13 +5855,19 @@ describe('generateText', () => {
       });
     });
 
-    it('should not parse output when finish reason is tool-calls', async () => {
+    it('should not parse mixed text and tool calls as output', async () => {
+      const explanatoryText = 'I will use the test tool.';
+
       const result = await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             finishReason: { unified: 'tool-calls', raw: undefined },
             content: [
+              {
+                type: 'text',
+                text: explanatoryText,
+              },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -5808,7 +5890,9 @@ describe('generateText', () => {
         },
       });
 
-      // output should be undefined when finish reason is tool-calls
+      expect(result.text).toBe(explanatoryText);
+
+      // output should be unavailable when finish reason is tool-calls
       expect(() => {
         result.output;
       }).toThrow('No output generated');
