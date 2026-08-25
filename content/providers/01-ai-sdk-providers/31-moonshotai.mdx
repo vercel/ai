@@ -7,7 +7,7 @@ description: Learn how to use Moonshot AI models with the AI SDK.
 
 The [Moonshot AI](https://www.moonshot.ai) provider offers access to powerful language models through the Moonshot API, including the Kimi series of models with reasoning capabilities.
 
-API keys can be obtained from the [Moonshot Platform](https://platform.moonshot.ai).
+API keys can be obtained from the [Kimi API Platform](https://platform.kimi.ai/console/api-keys).
 
 ## Setup
 
@@ -88,8 +88,8 @@ For best reliability, it is strongly recommended to include your schema requirem
 
 ### Reasoning Models
 
-Kimi K3 always reasons. It currently supports only the `max` reasoning effort,
-which you can configure through provider options:
+Kimi K3 always reasons and supports `low`, `high`, and `max` reasoning effort.
+The default is `max`. You can configure the effort through provider options:
 
 ```ts
 import {
@@ -102,7 +102,7 @@ const { text, reasoningText } = await generateText({
   model: moonshotai('kimi-k3'),
   providerOptions: {
     moonshotai: {
-      reasoningEffort: 'max',
+      reasoningEffort: 'high',
     } satisfies MoonshotAILanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
@@ -112,28 +112,34 @@ console.log(reasoningText);
 console.log(text);
 ```
 
-Moonshot AI offers thinking models like `kimi-k2-thinking` that generate intermediate reasoning tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
+Kimi K2.6 supports thinking and non-thinking modes. Kimi K2.7 Code always has
+thinking enabled and uses Preserved Thinking, so keep reasoning history in
+multi-turn conversations. The reasoning output is exposed through the standard
+AI SDK reasoning parts.
 
 ```ts
 import {
   moonshotai,
   type MoonshotAILanguageModelOptions,
 } from '@ai-sdk/moonshotai';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 
-const { text, reasoningText } = await generateText({
-  model: moonshotai('kimi-k2-thinking'),
+const result = streamText({
+  model: moonshotai('kimi-k2.7-code'),
   providerOptions: {
     moonshotai: {
-      thinking: { type: 'enabled', budgetTokens: 2048 },
-      reasoningHistory: 'interleaved',
+      thinking: { type: 'enabled' },
+      reasoningHistory: 'preserved',
     } satisfies MoonshotAILanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
 
-console.log(reasoningText);
-console.log(text);
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning-delta') {
+    process.stdout.write(part.text);
+  }
+}
 ```
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
@@ -180,28 +186,33 @@ You can also pass a URL. Since Moonshot AI does not fetch external URLs, the AI 
 <Note>
   Moonshot AI recommends videos up to 1080p. For larger videos, or videos you
   reuse across many requests, upload them with the [Moonshot Files
-  API](https://platform.moonshot.ai/docs/api/files) instead. Audio and PDF
-  inputs are not supported by Moonshot AI chat completions.
+  API](https://platform.kimi.ai/docs/api/files) instead. Audio and PDF inputs
+  are not supported by Moonshot AI chat completions.
 </Note>
 
 ### Provider Options
 
 The following optional provider options are available for Moonshot AI language models:
 
-- **reasoningEffort** _'max'_
+- **reasoningEffort** _'low' | 'high' | 'max'_
 
-  Reasoning effort for Kimi K3. Currently, only `'max'` is supported.
+  Reasoning effort for Kimi K3. Defaults to `'max'`.
 
 - **thinking** _object_
 
-  Configuration for thinking/reasoning models like Kimi K2 Thinking.
+  Configuration for Kimi K2.x thinking models. Kimi K2.5 and Kimi K2.6
+  support enabled and disabled thinking. Kimi K2.7 Code always has thinking
+  enabled.
   - **type** _'enabled' | 'disabled'_
 
-    Whether to enable thinking mode
+    Whether to enable thinking mode. For Kimi K2.7 Code, only `'enabled'` is
+    accepted.
 
   - **budgetTokens** _number_
 
-    Maximum number of tokens for thinking (minimum 1024)
+    Deprecated. Current hosted Kimi models do not document `budget_tokens`.
+    This option remains available for backwards compatibility with legacy or
+    custom Moonshot-compatible endpoints.
 
 - **reasoningHistory** _'disabled' | 'interleaved' | 'preserved'_
 
@@ -209,26 +220,34 @@ The following optional provider options are available for Moonshot AI language m
   - `'disabled'`: Remove reasoning from history
   - `'interleaved'`: Include reasoning between tool calls within a single turn
   - `'preserved'`: Keep all reasoning in history. Mapped to Moonshot's
-    `thinking.keep: 'all'` request field.
+    `thinking.keep: 'all'` request field for supported Kimi K2.x models. Kimi
+    K3 uses Preserved Thinking by default.
 
 ## Model Capabilities
 
-| Model                    | Image Input | Video Input | Object Generation | Tool Usage | Tool Streaming |
-| ------------------------ | ----------- | ----------- | ----------------- | ---------- | -------------- |
-| `moonshot-v1-8k`         | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `moonshot-v1-32k`        | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `moonshot-v1-128k`       | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2`                | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2.5`              | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2-thinking`       | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2-thinking-turbo` | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2-turbo`          | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2.6`              | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2.7-code`         | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k3`                | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+The Moonshot V1 series and Kimi K2.5 are unavailable to newly registered users
+and are scheduled for full platform sunset on August 31, 2026. They remain
+listed because they are still part of the Chat Completions API model surface,
+but new applications should use Kimi K3, Kimi K2.7 Code, or Kimi K2.6.
+
+| Model                             | Image Input | Video Input | Object Generation | Tool Usage | Tool Streaming |
+| --------------------------------- | ----------- | ----------- | ----------------- | ---------- | -------------- |
+| `moonshot-v1-auto`                | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `moonshot-v1-8k`                  | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `moonshot-v1-32k`                 | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `moonshot-v1-128k`                | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `moonshot-v1-8k-vision-preview`   | <Check />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `moonshot-v1-32k-vision-preview`  | <Check />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `moonshot-v1-128k-vision-preview` | <Check />   | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2.5`                       | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2.6`                       | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2.7-code`                  | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k2.7-code-highspeed`        | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k3`                         | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
 
 <Note>
-  Please see the [Moonshot AI docs](https://platform.moonshot.ai/docs/intro) for
-  a full list of available models. You can also pass any available provider
-  model ID as a string if needed.
+  See the [Kimi model list](https://platform.kimi.ai/docs/models) and [model
+  parameter reference](https://platform.kimi.ai/docs/api/models-overview) for
+  current availability and model-specific constraints. You can also pass custom
+  or retired provider model IDs as strings when needed.
 </Note>
