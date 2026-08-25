@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19619,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/moonshot-usage-raw-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/moonshot-usage-raw-metadata.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19619_REPRODUCED: usage.raw stripped provider metadata in non-streaming response, streaming finish chunk, separate streaming usage chunk"
+  }
+}

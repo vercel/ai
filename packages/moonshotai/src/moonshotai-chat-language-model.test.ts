@@ -151,6 +151,80 @@ describe('doGenerate', () => {
         outputTokens: { total: 5, text: 5, reasoning: 0 },
       });
     });
+
+    it('should preserve complete raw usage metadata', async () => {
+      const usage = {
+        prompt_tokens: 20,
+        completion_tokens: 30,
+        total_tokens: 50,
+        cached_tokens: 6,
+        provider_usage_metadata: { tier: 'sentinel-tier' },
+        prompt_tokens_details: {
+          cached_tokens: 6,
+          provider_prompt_metadata: 'sentinel-prompt',
+        },
+        completion_tokens_details: {
+          reasoning_tokens: 7,
+          provider_completion_metadata: 'sentinel-completion',
+        },
+      };
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-usage',
+          created: 1,
+          model: 'kimi-k3',
+          choices: [
+            {
+              message: { role: 'assistant', content: 'OK' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage,
+        },
+      };
+
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage).toStrictEqual({
+        inputTokens: {
+          total: 20,
+          noCache: 14,
+          cacheRead: 6,
+          cacheWrite: undefined,
+        },
+        outputTokens: { total: 30, text: 23, reasoning: 7 },
+        raw: usage,
+      });
+    });
+
+    it('should continue validating known usage field types', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-invalid-usage',
+          created: 1,
+          model: 'kimi-k3',
+          choices: [
+            {
+              message: { role: 'assistant', content: 'OK' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: '20',
+            completion_tokens: 30,
+            total_tokens: 50,
+          },
+        },
+      };
+
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow();
+    });
   });
 
   describe('video input', () => {
@@ -612,4 +686,98 @@ describe('doStream', () => {
       include_usage: true,
     });
   });
+
+  it.each([
+    {
+      location: 'finish chunk',
+      chunks: [
+        {
+          id: 'chatcmpl-stream-usage',
+          created: 1,
+          model: 'kimi-k3',
+          choices: [
+            {
+              delta: { content: 'OK' },
+              finish_reason: 'stop',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      location: 'separate usage chunk',
+      chunks: [
+        {
+          id: 'chatcmpl-stream-usage',
+          created: 1,
+          model: 'kimi-k3',
+          choices: [
+            {
+              delta: { content: 'OK' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: null,
+        },
+        {
+          id: 'chatcmpl-stream-usage',
+          created: 1,
+          model: 'kimi-k3',
+          choices: [],
+        },
+      ],
+    },
+  ])(
+    'should preserve complete raw usage metadata from $location',
+    async test => {
+      const usage = {
+        prompt_tokens: 20,
+        completion_tokens: 30,
+        total_tokens: 50,
+        cached_tokens: 6,
+        provider_usage_metadata: { tier: 'sentinel-tier' },
+        prompt_tokens_details: {
+          cached_tokens: 6,
+          provider_prompt_metadata: 'sentinel-prompt',
+        },
+        completion_tokens_details: {
+          reasoning_tokens: 7,
+          provider_completion_metadata: 'sentinel-completion',
+        },
+      };
+      const chunks = test.chunks.map((chunk, index) => {
+        const isUsageChunk =
+          test.location === 'finish chunk' || index === test.chunks.length - 1;
+        return `data: ${JSON.stringify({
+          ...chunk,
+          ...(isUsageChunk && { usage }),
+        })}\n\n`;
+      });
+      chunks.push('data: [DONE]\n\n');
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks,
+      };
+
+      const result = await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts.at(-1)).toStrictEqual({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: {
+          inputTokens: {
+            total: 20,
+            noCache: 14,
+            cacheRead: 6,
+            cacheWrite: undefined,
+          },
+          outputTokens: { total: 30, text: 23, reasoning: 7 },
+          raw: usage,
+        },
+      });
+    },
+  );
 });
