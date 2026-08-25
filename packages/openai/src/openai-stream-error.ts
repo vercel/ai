@@ -28,7 +28,8 @@ export function createOpenAIProviderStreamError(
 
   return createProviderStreamError({
     message: streamError.message,
-    type: getErrorDiscriminator(streamError),
+    type: streamError.type ?? undefined,
+    code: streamError.code ?? undefined,
     statusCode,
     isRetryable: isRetryableStreamError(streamError, statusCode),
     data: frame,
@@ -229,16 +230,6 @@ function parseStreamError(frame: unknown): StreamError | undefined {
         type: typeof error.type === 'string' ? error.type : undefined,
       }
     : undefined;
-}
-
-function getErrorDiscriminator(error: StreamError): string | undefined {
-  return typeof error.code === 'string' &&
-    error.code.length > 0 &&
-    getHttpStatusCode(error.code) == null
-    ? error.code
-    : typeof error.type === 'string' && error.type.length > 0
-      ? error.type
-      : undefined;
 }
 
 function getStatusCode(error: StreamError): number {

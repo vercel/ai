@@ -2588,6 +2588,7 @@ describe('streamText', () => {
                 error: createProviderStreamError({
                   message: 'Overloaded',
                   type: 'overloaded_error',
+                  code: 'provider_overloaded',
                   statusCode: 529,
                   isRetryable: true,
                   data: {
@@ -2617,6 +2618,7 @@ describe('streamText', () => {
       expect(errorPart.error).toMatchObject({
         message: 'Overloaded',
         type: 'overloaded_error',
+        code: 'provider_overloaded',
         statusCode: 529,
         isRetryable: true,
       });

@@ -3,6 +3,7 @@ const marker = Symbol.for('vercel.ai.providerStreamError');
 export type ProviderStreamError = {
   readonly message: string;
   readonly type?: string;
+  readonly code?: string | number;
   readonly statusCode?: number;
   readonly isRetryable?: boolean;
   readonly data: unknown;
@@ -15,12 +16,14 @@ export type ProviderStreamError = {
 export function createProviderStreamError({
   message,
   type,
+  code,
   statusCode,
   isRetryable,
   data,
 }: {
   message: string;
   type?: string;
+  code?: string | number;
   statusCode?: number;
   isRetryable?: boolean;
   data: unknown;
@@ -28,6 +31,7 @@ export function createProviderStreamError({
   const error = {
     message,
     type,
+    code,
     statusCode,
     isRetryable,
     data,

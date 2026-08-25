@@ -9,12 +9,14 @@ describe('normalizeStreamProviderError', () => {
     const data = {
       message: 'Overloaded',
       type: 'overloaded_error',
+      code: 'provider_overloaded',
     };
 
     const error = normalizeStreamProviderError(
       createProviderStreamError({
         message: data.message,
         type: data.type,
+        code: data.code,
         statusCode: 529,
         isRetryable: true,
         data,
@@ -25,6 +27,7 @@ describe('normalizeStreamProviderError', () => {
     expect(error).toMatchObject({
       message: 'Overloaded',
       type: 'overloaded_error',
+      code: 'provider_overloaded',
       statusCode: 529,
       isRetryable: true,
       data,
@@ -67,6 +70,7 @@ describe('normalizeStreamProviderError', () => {
     expect(error).toMatchObject({
       message,
       type: undefined,
+      code: undefined,
       statusCode,
       isRetryable: true,
     });
@@ -103,14 +107,15 @@ describe('normalizeStreamProviderError', () => {
 
     expect(error).toMatchObject({
       message: 'Try again later',
-      type: 'rate_limit_exceeded',
+      type: 'response.failed',
+      code: 'rate_limit_exceeded',
       statusCode: undefined,
       isRetryable: false,
       data,
     });
   });
 
-  it('uses a provider code as the public discriminator', () => {
+  it('preserves provider type and code as separate discriminators', () => {
     const data = {
       type: 'error',
       code: 'rate_limit_exceeded',
@@ -121,30 +126,35 @@ describe('normalizeStreamProviderError', () => {
 
     expect(error).toMatchObject({
       message: 'Rate limit reached',
-      type: 'rate_limit_exceeded',
+      type: 'error',
+      code: 'rate_limit_exceeded',
       statusCode: undefined,
       isRetryable: false,
       data,
     });
   });
 
-  it('preserves the provider type when code contains a numeric HTTP status', () => {
-    const data = {
-      message: 'Rate limit reached',
-      type: 'rate_limit_error',
-      code: '429',
-    };
+  it.each(['429', 429])(
+    'preserves the provider type and code when code is HTTP status %p',
+    code => {
+      const data = {
+        message: 'Rate limit reached',
+        type: 'rate_limit_error',
+        code,
+      };
 
-    const error = normalizeStreamProviderError(data);
+      const error = normalizeStreamProviderError(data);
 
-    expect(error).toMatchObject({
-      message: 'Rate limit reached',
-      type: 'rate_limit_error',
-      statusCode: 429,
-      isRetryable: true,
-      data,
-    });
-  });
+      expect(error).toMatchObject({
+        message: 'Rate limit reached',
+        type: 'rate_limit_error',
+        code,
+        statusCode: 429,
+        isRetryable: true,
+        data,
+      });
+    },
+  );
 
   it('uses explicit status metadata for non-retryable provider errors', () => {
     const error = normalizeStreamProviderError({

@@ -1499,6 +1499,7 @@ describe('doStream', () => {
         },
         {
           "error": {
+            "code": undefined,
             "data": {
               "error": {
                 "message": "Rate limit reached",

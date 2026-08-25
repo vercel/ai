@@ -1309,7 +1309,8 @@ describe('DeepSeekChatLanguageModel', () => {
       expect(isProviderStreamError(errorPart.error)).toBe(true);
       expect(errorPart.error).toMatchObject({
         message: 'Rate limit reached',
-        type: 'rate_limit_exceeded',
+        type: 'rate_limit_error',
+        code: 'rate_limit_exceeded',
         statusCode: 429,
         isRetryable: true,
         data,
@@ -1340,7 +1341,8 @@ describe('DeepSeekChatLanguageModel', () => {
         type: 'error',
         error: {
           message: data.error.message,
-          type: data.error.code,
+          type: data.error.type,
+          code: data.error.code,
           statusCode: 429,
           isRetryable: false,
           data,
@@ -1373,6 +1375,7 @@ describe('DeepSeekChatLanguageModel', () => {
         error: {
           message: data.error.message,
           type: data.error.type,
+          code: data.error.code,
           statusCode: 429,
           isRetryable: true,
           data,

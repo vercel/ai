@@ -6,11 +6,13 @@ describe('StreamProviderError', () => {
     const data = {
       message: 'Overloaded',
       type: 'overloaded_error',
+      code: 'provider_overloaded',
     };
 
     const error = new StreamProviderError({
       message: data.message,
       type: data.type,
+      code: data.code,
       statusCode: 529,
       data,
     });
@@ -18,6 +20,7 @@ describe('StreamProviderError', () => {
     expect(error).toBeInstanceOf(Error);
     expect(error.message).toBe('Overloaded');
     expect(error.type).toBe('overloaded_error');
+    expect(error.code).toBe('provider_overloaded');
     expect(error.statusCode).toBe(529);
     expect(error.isRetryable).toBe(true);
     expect(error.data).toBe(data);

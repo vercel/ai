@@ -594,6 +594,7 @@ describe('doStream', () => {
         },
         {
           "error": {
+            "code": undefined,
             "data": {
               "code": null,
               "message": "stream failed after output",

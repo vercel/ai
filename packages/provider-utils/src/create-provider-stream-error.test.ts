@@ -9,11 +9,13 @@ describe('createProviderStreamError', () => {
     const data = {
       message: 'Overloaded',
       type: 'overloaded_error',
+      code: 'provider_overloaded',
     };
 
     const error = createProviderStreamError({
       message: data.message,
       type: data.type,
+      code: data.code,
       statusCode: 529,
       isRetryable: true,
       data,
@@ -23,6 +25,7 @@ describe('createProviderStreamError', () => {
     expect(error).toMatchObject({
       message: 'Overloaded',
       type: 'overloaded_error',
+      code: 'provider_overloaded',
       statusCode: 529,
       isRetryable: true,
       data,

@@ -9,4 +9,4 @@
 '@ai-sdk/xai': patch
 ---
 
-feat: normalize mid-stream provider error events into public StreamProviderError instances and preserve provider-owned status, retry, and raw payload metadata
+feat: normalize mid-stream provider error events into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata

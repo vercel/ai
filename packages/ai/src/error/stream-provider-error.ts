@@ -11,10 +11,14 @@ export class StreamProviderError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   /**
-   * Provider-defined error type or code discriminator, when supplied by the
-   * provider.
+   * Provider-defined error type, when supplied by the provider.
    */
   readonly type?: string;
+
+  /**
+   * Provider-defined error code, when supplied by the provider.
+   */
+  readonly code?: string | number;
 
   /**
    * HTTP-equivalent status code, when supplied by or inferable from the
@@ -35,6 +39,7 @@ export class StreamProviderError extends AISDKError {
   constructor({
     message,
     type,
+    code,
     statusCode,
     isRetryable = isRetryableStatusCode(statusCode),
     data,
@@ -42,6 +47,7 @@ export class StreamProviderError extends AISDKError {
   }: {
     message: string;
     type?: string;
+    code?: string | number;
     statusCode?: number;
     isRetryable?: boolean;
     data?: unknown;
@@ -50,6 +56,7 @@ export class StreamProviderError extends AISDKError {
     super({ name, message, cause });
 
     this.type = type;
+    this.code = code;
     this.statusCode = statusCode;
     this.isRetryable = isRetryable;
     this.data = data;

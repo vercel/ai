@@ -65,12 +65,8 @@ function createXaiResponsesStreamError({
 
   return createProviderStreamError({
     message,
-    type:
-      code != null && statusCode == null
-        ? code
-        : eventType === 'response.failed'
-          ? eventType
-          : undefined,
+    type: eventType,
+    code: code ?? undefined,
     ...(statusCode != null
       ? {
           statusCode,

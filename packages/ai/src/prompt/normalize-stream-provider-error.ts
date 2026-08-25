@@ -31,11 +31,8 @@ export function normalizeStreamProviderError(error: unknown): unknown {
     return error;
   }
 
-  const type =
-    getNonStatusCode(details.code) ??
-    getString(details.type) ??
-    getNonStatusCode(outer.code) ??
-    (outer.type !== 'error' ? getString(outer.type) : undefined);
+  const type = getString(details.type) ?? getString(outer.type);
+  const code = getStringOrNumber(details.code) ?? getStringOrNumber(outer.code);
   const explicitStatusCode =
     getHttpStatusCode(details.statusCode) ??
     getHttpStatusCode(outer.statusCode) ??
@@ -56,6 +53,7 @@ export function normalizeStreamProviderError(error: unknown): unknown {
   return new StreamProviderError({
     message: details.message,
     type,
+    code,
     statusCode,
     isRetryable:
       explicitRetryability ??
@@ -110,9 +108,10 @@ function getString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
-function getNonStatusCode(value: unknown): string | undefined {
-  const code = getString(value);
-  return code != null && getHttpStatusCode(code) == null ? code : undefined;
+function getStringOrNumber(value: unknown): string | number | undefined {
+  return typeof value === 'string' || typeof value === 'number'
+    ? value
+    : undefined;
 }
 
 function getBoolean(value: unknown): boolean | undefined {

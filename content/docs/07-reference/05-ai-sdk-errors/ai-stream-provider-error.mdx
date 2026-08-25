@@ -12,7 +12,8 @@ parts and callbacks such as the `streamText` `onError` callback.
 ## Properties
 
 - `message`: The provider error message
-- `type`: The provider-defined error type or code discriminator (optional)
+- `type`: The provider-defined error type (optional)
+- `code`: The provider-defined error code as a string or number (optional)
 - `statusCode`: The HTTP-equivalent status code when supplied by or inferable from provider metadata (optional)
 - `isRetryable`: Whether retrying the model call may succeed
 - `data`: The original provider error payload (optional)
@@ -44,6 +45,8 @@ const result = streamText({
 Providers may not include enough metadata to determine a status code. In that
 case, `statusCode` is `undefined`, and retryability is classified
 conservatively. Provider-specific status and retry mappings are supplied by the
-provider adapter rather than inferred from arbitrary provider error-code
-substrings. Errors that are already `Error` instances and malformed or unknown
-provider values are preserved unchanged.
+provider adapter rather than inferred from arbitrary provider error type or code
+substrings. Provider `type` and `code` values are preserved independently, even
+when a numeric code is also used to determine `statusCode`. Errors that are
+already `Error` instances and malformed or unknown provider values are
+preserved unchanged.

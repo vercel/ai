@@ -8474,6 +8474,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             {
               "error": {
+                "code": "server_error",
                 "data": {
                   "error": {
                     "code": "server_error",

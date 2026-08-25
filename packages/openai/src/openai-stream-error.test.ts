@@ -237,7 +237,8 @@ describe('createOpenAIProviderStreamError', () => {
 
     expect(createOpenAIProviderStreamError(data)).toMatchObject({
       message: 'Rate limit reached',
-      type: 'rate_limit_exceeded',
+      type: 'error',
+      code: 'rate_limit_exceeded',
       statusCode: 429,
       isRetryable: true,
       data,
@@ -254,7 +255,8 @@ describe('createOpenAIProviderStreamError', () => {
 
     expect(createOpenAIProviderStreamError(data)).toMatchObject({
       message: 'You exceeded your current quota.',
-      type: 'insufficient_quota',
+      type: 'error',
+      code: 'insufficient_quota',
       statusCode: 429,
       isRetryable: false,
       data,
@@ -271,6 +273,7 @@ describe('createOpenAIProviderStreamError', () => {
     expect(createOpenAIProviderStreamError(data)).toMatchObject({
       message: 'Rate limit reached',
       type: 'rate_limit_error',
+      code: '429',
       statusCode: 429,
       isRetryable: true,
       data,
@@ -290,7 +293,8 @@ describe('createOpenAIProviderStreamError', () => {
 
     expect(createOpenAIProviderStreamError(data)).toMatchObject({
       message: 'Response failed',
-      type: 'server_error',
+      type: 'response.failed',
+      code: 'server_error',
       statusCode: 500,
       isRetryable: true,
       data,

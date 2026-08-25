@@ -8163,6 +8163,7 @@ describe('AnthropicLanguageModel', () => {
           },
           {
             "error": {
+              "code": undefined,
               "data": {
                 "message": "test error",
                 "type": "error",

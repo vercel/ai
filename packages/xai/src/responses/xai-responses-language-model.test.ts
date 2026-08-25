@@ -4811,7 +4811,8 @@ describe('XaiResponsesLanguageModel', () => {
         type: 'error',
         error: {
           message: responseFailedEvent.response.error.message,
-          type: responseFailedEvent.response.error.code,
+          type: responseFailedEvent.type,
+          code: responseFailedEvent.response.error.code,
           statusCode: 500,
           isRetryable: true,
           data: responseFailedEvent,
@@ -4855,7 +4856,8 @@ describe('XaiResponsesLanguageModel', () => {
         type: 'error',
         error: {
           message: responseFailedEvent.response.error.message,
-          type: responseFailedEvent.response.error.code,
+          type: responseFailedEvent.type,
+          code: responseFailedEvent.response.error.code,
           statusCode: 429,
           isRetryable: false,
           data: responseFailedEvent,
@@ -4937,7 +4939,8 @@ describe('XaiResponsesLanguageModel', () => {
         type: 'error',
         error: {
           message: errorEvent.message,
-          type: errorEvent.code,
+          type: errorEvent.type,
+          code: errorEvent.code,
           statusCode: 500,
           isRetryable: true,
           data: errorEvent,

@@ -70,12 +70,8 @@ function createDeepSeekStreamError(
 
   return createProviderStreamError({
     message: error.message,
-    type:
-      typeof error.code === 'string' &&
-      error.code.length > 0 &&
-      getHttpStatusCode(error.code) == null
-        ? error.code
-        : (error.type ?? undefined),
+    type: error.type ?? undefined,
+    code: error.code ?? undefined,
     ...metadata,
     data,
   });

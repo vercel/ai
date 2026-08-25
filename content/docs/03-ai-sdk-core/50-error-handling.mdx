@@ -76,6 +76,7 @@ try {
         if (StreamProviderError.isInstance(error)) {
           console.error(error.message, {
             type: error.type,
+            code: error.code,
             statusCode: error.statusCode,
             isRetryable: error.isRetryable,
           });

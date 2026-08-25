@@ -29,6 +29,7 @@ describe('stream provider error integration', () => {
     expected: {
       message: string;
       type: string;
+      code?: string | number;
       statusCode: number;
       isRetryable: boolean;
       data: unknown;
@@ -60,6 +61,7 @@ describe('stream provider error integration', () => {
     const data = {
       message: 'Upstream provider overloaded',
       type: 'provider_overloaded',
+      code: 'upstream_overloaded',
       statusCode: 503,
       isRetryable: true,
     };
@@ -103,6 +105,7 @@ describe('stream provider error integration', () => {
     expect(errorPart.error).toMatchObject({
       message: data.message,
       type: data.type,
+      code: data.code,
       statusCode: data.statusCode,
       isRetryable: data.isRetryable,
       data,
@@ -149,7 +152,8 @@ describe('stream provider error integration', () => {
       }).responses('gpt-4o-mini'),
       expected: {
         message: data.message,
-        type: data.code,
+        type: data.type,
+        code: data.code,
         statusCode: 429,
         isRetryable: true,
         data,
@@ -196,7 +200,8 @@ describe('stream provider error integration', () => {
       }).responses('gpt-4o-mini'),
       expected: {
         message: data.message,
-        type: data.code,
+        type: data.type,
+        code: data.code,
         statusCode: 429,
         isRetryable: false,
         data,
@@ -237,7 +242,8 @@ describe('stream provider error integration', () => {
       }).chat('deepseek-chat'),
       expected: {
         message: data.error.message,
-        type: data.error.code,
+        type: data.error.type,
+        code: data.error.code,
         statusCode: 429,
         isRetryable: true,
         data,
@@ -351,7 +357,8 @@ describe('stream provider error integration', () => {
       }).responses('grok-4-fast-non-reasoning'),
       expected: {
         message: data.response.error.message,
-        type: data.response.error.code,
+        type: data.type,
+        code: data.response.error.code,
         statusCode: 500,
         isRetryable: true,
         data,
