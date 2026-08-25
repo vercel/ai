@@ -1,4 +1,7 @@
-import { moonshotai } from '@ai-sdk/moonshotai';
+import {
+  moonshotai,
+  type MoonshotAILanguageModelOptions,
+} from '@ai-sdk/moonshotai';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -12,6 +15,11 @@ run(async () => {
         traditions: z.array(z.string()),
       }),
     }),
+    providerOptions: {
+      moonshotai: {
+        strictJsonSchema: true,
+      } satisfies MoonshotAILanguageModelOptions,
+    },
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
