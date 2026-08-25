@@ -392,7 +392,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         ...(moonshotOptions.prediction != null && {
           prediction: moonshotOptions.prediction,
         }),
-        max_tokens: maxOutputTokens,
+        max_completion_tokens: maxOutputTokens,
         temperature: supportsSamplingOptions ? temperature : undefined,
         top_p: supportsSamplingOptions ? topP : undefined,
         frequency_penalty: supportsSamplingOptions

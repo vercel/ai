@@ -75,6 +75,27 @@ describe('doGenerate', () => {
       `);
     });
 
+    it('should send maxOutputTokens as max_completion_tokens', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 512,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.max_completion_tokens).toBe(512);
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should omit token limit fields when maxOutputTokens is undefined', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('max_completion_tokens');
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
     it.each([
       'kimi-k2.5',
       'kimi-k2.6',
@@ -1191,6 +1212,19 @@ describe('doStream', () => {
     expect(requestBody.stream_options).toStrictEqual({
       include_usage: true,
     });
+  });
+
+  it('should send maxOutputTokens as max_completion_tokens when streaming', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream');
+
+    await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 256,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.max_completion_tokens).toBe(256);
+    expect(requestBody).not.toHaveProperty('max_tokens');
   });
 
   it('should assemble index-less tool calls and use choice-level usage', async () => {
