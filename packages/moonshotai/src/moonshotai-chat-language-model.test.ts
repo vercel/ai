@@ -495,6 +495,100 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('should preserve explicit tool-call index behavior', async () => {
+    prepareChunksFixtureResponse('moonshotai-issue-19546-explicit-index-live');
+
+    const result = await provider.chatModel('kimi-k2.5').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+    expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'weather_0',
+        toolName: 'weather',
+        input: '{"location": "San Francisco"}',
+      },
+    ]);
+  });
+
+  it('should assemble tool calls without explicit indices', async () => {
+    prepareChunksFixtureResponse('moonshotai-issue-19546-indexless-tool-calls');
+
+    const result = await provider.chatModel('kimi-k2.5').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+    expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'weather_0',
+        toolName: 'weather',
+        input: '{"location":"San Francisco"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'time_1',
+        toolName: 'time',
+        input: '{"zone":"UTC"}',
+      },
+    ]);
+  });
+
+  it('should collect usage from a choice when top-level usage is absent', async () => {
+    prepareChunksFixtureResponse('moonshotai-issue-19546-choice-usage-live');
+
+    const result = await provider.chatModel('kimi-k2.5').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      usage: {
+        inputTokens: { total: 12 },
+        outputTokens: { total: 5, reasoning: 1 },
+      },
+    });
+  });
+
+  it('should prefer top-level usage over choice-level usage', async () => {
+    prepareChunksFixtureResponse('moonshotai-issue-19546-usage-precedence');
+
+    const result = await provider.chatModel('kimi-k2.5').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      usage: {
+        inputTokens: { total: 99 },
+        outputTokens: { total: 33 },
+      },
+    });
+  });
+
+  it('should continue surfacing malformed tool-call indices', async () => {
+    prepareChunksFixtureResponse('moonshotai-issue-19546-malformed');
+
+    const result = await provider.chatModel('kimi-k2.5').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts.some(part => part.type === 'error')).toBe(true);
+  });
+
   it('should stream reasoning and text deltas with usage', async () => {
     prepareChunksFixtureResponse('moonshotai-stream');
 
