@@ -1,5 +1,28 @@
 # @ai-sdk/mcp
 
+## 2.0.37
+
+### Patch Changes
+
+- 1175434: Fetch all paginated tool definitions when creating an MCP tool set.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 2.0.36
+
+### Patch Changes
+
+- b352a6a: fix(mcp): support spawning command shims such as `npx` on Windows
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 2.0.35
+
+### Patch Changes
+
+- 76fb75d: fix(mcp): reject SSE requests when POST responses are unsuccessful
+
 ## 2.0.34
 
 ### Patch Changes

@@ -259,6 +259,7 @@ export function runPrompt<
       ]),
     );
     const settledHostToolCallIds = new Set<string>();
+    const settledBuiltinApprovalToolCallIds = new Set<string>();
     let closingResumedStep = false;
     let pendingStopBoundary:
       | {
@@ -486,9 +487,9 @@ export function runPrompt<
       onToolApprovalSettled(approval.approvalId);
       pendingApprovalsByApprovalId.delete(approval.approvalId);
       pendingApprovalsByToolCallId.delete(approval.toolCallId);
-      settledHostToolCallIds.add(approval.toolCallId);
 
       if (approval.kind === 'builtin') {
+        settledBuiltinApprovalToolCallIds.add(approval.toolCallId);
         if (control.submitToolApproval == null) {
           throw new Error(
             `Harness '${input.harness.harnessId}' emitted a built-in tool approval request but does not support approval responses.`,
@@ -502,6 +503,7 @@ export function runPrompt<
         return 'continued';
       }
 
+      settledHostToolCallIds.add(approval.toolCallId);
       if (!continuation.approvalResponse.approved) {
         await control.submitToolResult({
           toolCallId: approval.toolCallId,
@@ -655,8 +657,12 @@ export function runPrompt<
             displayValue.type === 'tool-result' ||
             displayValue.type === 'tool-approval-request') &&
           settledHostToolCallIds.has(displayValue.toolCallId);
+        const settledBuiltinApprovalReplay =
+          (displayValue.type === 'tool-call' ||
+            displayValue.type === 'tool-approval-request') &&
+          settledBuiltinApprovalToolCallIds.has(displayValue.toolCallId);
 
-        if (settledHostInputReplay) {
+        if (settledHostInputReplay || settledBuiltinApprovalReplay) {
           continue;
         }
 

@@ -1064,6 +1064,65 @@ The following Zod features are known to not work with Google:
   available provider model ID as a string if needed.
 </Note>
 
+### Text Batches
+
+<Note type="warning">
+  Text batch APIs are experimental and may change in future releases.
+</Note>
+
+The Google provider supports the [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api) for text generation.
+
+```ts
+import { google } from '@ai-sdk/google';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+
+const model = google('gemini-3.6-flash');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'france', prompt: 'What is the capital of France?' },
+    { id: 'germany', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+// Persist `batch` and check its status later, or poll for status updates.
+const { status } = await getBatchStatus({ model, batch });
+
+if (status !== 'pending') {
+  for await (const item of getBatchResults({ model, batch })) {
+    if (item.status === 'succeeded') {
+      console.log(item.id, item.text);
+    } else {
+      console.error(item.id, item.error);
+    }
+  }
+}
+```
+
+Starting a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
+
+You can pass a `webhookUrl` to receive a notification when the batch reaches a terminal state:
+
+```ts
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'france', prompt: 'What is the capital of France?' },
+    { id: 'germany', prompt: 'What is the capital of Germany?' },
+  ],
+  webhookUrl: 'https://example.com/api/google-batch-webhook',
+});
+```
+
+Google sends a thin event to the webhook URL. After receiving and verifying the event, use the persisted batch reference with `getBatchStatus` or `getBatchResults`. Your application is responsible for handling the webhook and [verifying Google's dynamic webhook signature](https://ai.google.dev/gemini-api/docs/webhooks#verify_dynamic_signatures_jwks).
+
+When the serialized batch creation body is under 20 MB, the provider sends the requests inline. At 20 MB or more, it uploads a JSONL input file through the Gemini Files API.
+
 ## Realtime Models
 
 <Note type="warning">Realtime is an experimental feature.</Note>
@@ -1902,61 +1961,8 @@ The following optional provider options are available for Google embedding model
 You can create image models that call the Google Generative AI API using the `.image()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
-The Google provider supports two types of image models:
-
-- **Imagen models**: Dedicated image generation models using the `:predict` API
-- **Gemini image models**: Multimodal language models with image output capabilities using the `:generateContent` API
-
-### Imagen Models
-
-[Imagen](https://ai.google.dev/gemini-api/docs/imagen) models are dedicated image generation models.
-
-```ts
-import { google } from '@ai-sdk/google';
-import { generateImage } from 'ai';
-
-const { image } = await generateImage({
-  model: google.image('imagen-4.0-generate-001'),
-  prompt: 'A futuristic cityscape at sunset',
-  aspectRatio: '16:9',
-});
-```
-
-Further configuration can be done using Google provider options. You can validate the provider options using the `GoogleImageModelOptions` type.
-
-```ts
-import { google } from '@ai-sdk/google';
-import { GoogleImageModelOptions } from '@ai-sdk/google';
-import { generateImage } from 'ai';
-
-const { image } = await generateImage({
-  model: google.image('imagen-4.0-generate-001'),
-  providerOptions: {
-    google: {
-      personGeneration: 'dont_allow',
-    } satisfies GoogleImageModelOptions,
-  },
-  // ...
-});
-```
-
-The following provider options are available for Imagen models:
-
-- **personGeneration** `allow_adult` | `allow_all` | `dont_allow`
-  Whether to allow person generation. Defaults to `allow_adult`.
-
-<Note>
-  Imagen models do not support the `size` parameter. Use the `aspectRatio`
-  parameter instead.
-</Note>
-
-#### Imagen Model Capabilities
-
-| Model                           | Aspect Ratios             |
-| ------------------------------- | ------------------------- |
-| `imagen-4.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-ultra-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+The `.image()` factory supports Gemini multimodal language models with image
+output capabilities through the `:generateContent` API.
 
 ### Gemini Image Models
 
@@ -2023,7 +2029,7 @@ const { image } = await generateImage({
 Gemini image models support [Google Search grounding](#google-search) through `providerOptions.google.googleSearch`. The value matches the args of `google.tools.googleSearch(...)`; pass `{}` to enable with defaults, or `{ searchTypes: { imageSearch: {} } }` to ground on reference photos.
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google, type GoogleImageModelOptions } from '@ai-sdk/google';
 import { generateImage } from 'ai';
 
 const result = await generateImage({
@@ -2033,7 +2039,7 @@ const result = await generateImage({
   providerOptions: {
     google: {
       googleSearch: { searchTypes: { imageSearch: {} } },
-    },
+    } satisfies GoogleImageModelOptions,
   },
 });
 

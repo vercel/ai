@@ -1160,6 +1160,35 @@ class DefaultStreamTextResult<
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
 
+    // provider-assigned text/reasoning part IDs are only unique within a
+    // single model call (e.g. Anthropic uses the content block index, which
+    // restarts at 0 for every call), so colliding IDs are remapped to keep
+    // them unique across the whole multi-step stream:
+    const createPartIdReserver = () => {
+      const usedIds = new Set<string>();
+
+      return (id: string) => {
+        if (!usedIds.has(id)) {
+          usedIds.add(id);
+          return id;
+        }
+
+        const generatedId = generateId();
+        let uniqueId = generatedId;
+        let suffix = 0;
+
+        while (usedIds.has(uniqueId)) {
+          uniqueId = `${generatedId}-${++suffix}`;
+        }
+
+        usedIds.add(uniqueId);
+        return uniqueId;
+      };
+    };
+
+    const reserveTextPartId = createPartIdReserver();
+    const reserveReasoningPartId = createPartIdReserver();
+
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
     // These tools may not return their results in the same turn as their call.
@@ -1685,6 +1714,7 @@ class DefaultStreamTextResult<
         const {
           approvedToolApprovals: localApprovedToolApprovals,
           deniedToolApprovals: revalidationDeniedToolApprovals,
+          invalidToolApprovals,
         } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
           approvedToolApprovals: approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
@@ -1737,6 +1767,23 @@ class DefaultStreamTextResult<
             } as StaticToolOutputDenied<TOOLS>);
           }
 
+          for (const toolApproval of invalidToolApprovals) {
+            toolExecutionStepStreamController?.enqueue({
+              type: 'tool-error',
+              toolCallId: toolApproval.toolCall.toolCallId,
+              toolName: toolApproval.toolCall.toolName,
+              input: toolApproval.toolCall.input,
+              error: getErrorMessage(toolApproval.error),
+              title: toolApproval.toolCall.title,
+              ...(toolApproval.toolCall.dynamic === true
+                ? { dynamic: true as const }
+                : {}),
+              ...(toolApproval.toolCall.toolMetadata != null
+                ? { toolMetadata: toolApproval.toolCall.toolMetadata }
+                : {}),
+            } as TextStreamPart<TOOLS>);
+          }
+
           const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
           await Promise.all(
@@ -1775,7 +1822,8 @@ class DefaultStreamTextResult<
           // Local tool results (approved + denied) are sent as tool results:
           if (
             toolOutputs.length > 0 ||
-            localDeniedToolApprovalsWithoutResults.length > 0
+            localDeniedToolApprovalsWithoutResults.length > 0 ||
+            invalidToolApprovals.length > 0
           ) {
             const localToolContent: ToolContent = [];
 
@@ -1794,6 +1842,24 @@ class DefaultStreamTextResult<
                       ? output.output
                       : output.error,
                   errorMode: output.type === 'tool-error' ? 'text' : 'none',
+                }),
+              });
+            }
+
+            // Report invalid approved tool calls to the model without
+            // executing them. Repairing the input after approval would change
+            // the operation that the user authorized.
+            for (const toolApproval of invalidToolApprovals) {
+              localToolContent.push({
+                type: 'tool-result' as const,
+                toolCallId: toolApproval.toolCall.toolCallId,
+                toolName: toolApproval.toolCall.toolName,
+                output: await createToolModelOutput({
+                  toolCallId: toolApproval.toolCall.toolCallId,
+                  input: toolApproval.toolCall.input,
+                  tool: getOwn(tools, toolApproval.toolCall.toolName),
+                  output: toolApproval.error,
+                  errorMode: 'text',
                 }),
               });
             }
@@ -2189,6 +2255,11 @@ class DefaultStreamTextResult<
             modelId: model.modelId,
           };
 
+          // maps provider-assigned IDs to stream-unique IDs for the text and
+          // reasoning parts that are active in this step
+          const textPartIds = new Map<string, string>();
+          const reasoningPartIds = new Map<string, string>();
+
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
@@ -2228,11 +2299,6 @@ class DefaultStreamTextResult<
                     case 'file':
                     case 'custom':
                     case 'source':
-                    case 'text-start':
-                    case 'text-end':
-                    case 'reasoning-start':
-                    case 'reasoning-end':
-                    case 'reasoning-delta':
                     case 'reasoning-file':
                     case 'tool-input-start':
                     case 'tool-input-end':
@@ -2242,13 +2308,56 @@ class DefaultStreamTextResult<
                       break;
                     }
 
+                    case 'text-start': {
+                      const id = reserveTextPartId(chunk.id);
+                      textPartIds.set(chunk.id, id);
+                      controller.enqueue({ ...chunk, id });
+                      break;
+                    }
+
                     case 'text-delta': {
                       if (
                         chunk.text.length > 0 ||
                         chunk.providerMetadata != null
                       ) {
-                        controller.enqueue(chunk);
+                        controller.enqueue({
+                          ...chunk,
+                          id: textPartIds.get(chunk.id) ?? chunk.id,
+                        });
                       }
+                      break;
+                    }
+
+                    case 'text-end': {
+                      controller.enqueue({
+                        ...chunk,
+                        id: textPartIds.get(chunk.id) ?? chunk.id,
+                      });
+                      textPartIds.delete(chunk.id);
+                      break;
+                    }
+
+                    case 'reasoning-start': {
+                      const id = reserveReasoningPartId(chunk.id);
+                      reasoningPartIds.set(chunk.id, id);
+                      controller.enqueue({ ...chunk, id });
+                      break;
+                    }
+
+                    case 'reasoning-delta': {
+                      controller.enqueue({
+                        ...chunk,
+                        id: reasoningPartIds.get(chunk.id) ?? chunk.id,
+                      });
+                      break;
+                    }
+
+                    case 'reasoning-end': {
+                      controller.enqueue({
+                        ...chunk,
+                        id: reasoningPartIds.get(chunk.id) ?? chunk.id,
+                      });
+                      reasoningPartIds.delete(chunk.id);
                       break;
                     }
 

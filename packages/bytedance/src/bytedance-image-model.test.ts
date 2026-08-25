@@ -225,6 +225,87 @@ describe('ByteDanceImageModel', () => {
         headers: expect.any(Object),
       });
     });
+
+    describe('usage', () => {
+      it('should map Ark token usage, leaving inputTokens undefined', async () => {
+        server.urls['https://api.example.com/images/generations'].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }],
+            usage: {
+              generated_images: 1,
+              output_tokens: 4096,
+              total_tokens: 4096,
+            },
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        // Ark reports no input token count for image generation.
+        expect(result.usage).toStrictEqual({
+          inputTokens: undefined,
+          outputTokens: 4096,
+          totalTokens: 4096,
+        });
+      });
+
+      it('should not map generated_images into usage', async () => {
+        server.urls['https://api.example.com/images/generations'].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }, { b64_json: 'test5678' }],
+            usage: {
+              generated_images: 2,
+              output_tokens: 8192,
+              total_tokens: 8192,
+            },
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        // `generated_images` is an image counter, not a token counter.
+        expect(result.usage).toStrictEqual({
+          inputTokens: undefined,
+          outputTokens: 8192,
+          totalTokens: 8192,
+        });
+        expect(result.images).toHaveLength(2);
+      });
+
+      it('should return undefined usage when Ark omits it', async () => {
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.usage).toBeUndefined();
+      });
+
+      it('should map null token fields to undefined', async () => {
+        server.urls['https://api.example.com/images/generations'].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }],
+            usage: {
+              generated_images: 1,
+              output_tokens: null,
+              total_tokens: null,
+            },
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.usage).toStrictEqual({
+          inputTokens: undefined,
+          outputTokens: undefined,
+          totalTokens: undefined,
+        });
+      });
+    });
   });
 
   describe('image editing', () => {

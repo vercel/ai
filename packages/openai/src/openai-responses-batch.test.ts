@@ -149,6 +149,7 @@ describe('OpenAI batch language models', () => {
         },
       ],
       headers: { 'Operation-Header': 'operation' },
+      webhookUrl: 'https://example.com/batch-webhook',
     });
 
     expect(result).toEqual({
@@ -164,6 +165,14 @@ describe('OpenAI batch language models', () => {
       createdAt: '2023-11-14T22:13:20.000Z',
       expiresAt: '2023-11-15T22:13:20.000Z',
       warnings: [
+        {
+          warning: {
+            type: 'unsupported',
+            feature: 'webhookUrl',
+            details:
+              'The OpenAI Batch API does not support per-batch webhook URLs.',
+          },
+        },
         {
           requestId: 'germany',
           warning: { type: 'unsupported', feature: 'topK' },

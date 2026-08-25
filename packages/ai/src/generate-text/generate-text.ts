@@ -713,6 +713,7 @@ export async function generateText<
       const {
         approvedToolApprovals: localApprovedToolApprovals,
         deniedToolApprovals: revalidationDeniedToolApprovals,
+        invalidToolApprovals,
       } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
         approvedToolApprovals: approvedToolApprovals.filter(
           toolApproval => !toolApproval.toolCall.providerExecuted,
@@ -735,7 +736,8 @@ export async function generateText<
 
       if (
         deniedToolApprovalsWithoutResults.length > 0 ||
-        localApprovedToolApprovals.length > 0
+        localApprovedToolApprovals.length > 0 ||
+        invalidToolApprovals.length > 0
       ) {
         const toolResults = await executeTools({
           toolCalls: localApprovedToolApprovals.map(
@@ -787,6 +789,24 @@ export async function generateText<
             toolCallId: output.toolCallId,
             toolName: output.toolName,
             output: modelOutput,
+          });
+        }
+
+        // Report invalid approved tool calls to the model without executing
+        // them. Repairing the input after approval would change the operation
+        // that the user authorized.
+        for (const toolApproval of invalidToolApprovals) {
+          toolContent.push({
+            type: 'tool-result' as const,
+            toolCallId: toolApproval.toolCall.toolCallId,
+            toolName: toolApproval.toolCall.toolName,
+            output: await createToolModelOutput({
+              toolCallId: toolApproval.toolCall.toolCallId,
+              input: toolApproval.toolCall.input,
+              tool: getOwn(tools, toolApproval.toolCall.toolName),
+              output: toolApproval.error,
+              errorMode: 'text',
+            }),
           });
         }
 
@@ -1518,9 +1538,13 @@ export async function generateText<
         callbacks: [onEnd, telemetryDispatcher.onEnd],
       });
 
-      // parse output only if the last step was finished with "stop":
+      // parse output for stop responses and non-empty responses that are not
+      // tool calls:
       let resolvedOutput;
-      if (lastStep.finishReason === 'stop') {
+      if (
+        lastStep.finishReason === 'stop' ||
+        (lastStep.finishReason !== 'tool-calls' && lastStep.text.length > 0)
+      ) {
         const outputSpecification = output ?? text();
         resolvedOutput = await outputSpecification.parseCompleteOutput(
           { text: lastStep.text },
