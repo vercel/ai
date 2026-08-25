@@ -17,6 +17,24 @@ const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
   ]),
 );
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+const openaiResponsesLocalShellCallSchema = z.object({
+  type: z.literal('local_shell_call'),
+  id: z.string(),
+  call_id: z.string(),
+  action: z.object({
+    type: z.literal('exec'),
+    command: z.array(z.string()),
+    timeout_ms: z.number().optional(),
+    user: z.string().optional(),
+    working_directory: z.string().optional(),
+    env: z.record(z.string(), z.string()).optional(),
+  }),
+});
+
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
 export type OpenAIResponsesInputItem =
@@ -190,19 +208,9 @@ export type OpenAIResponsesComputerCall = {
   status?: string;
 };
 
-export type OpenAIResponsesLocalShellCall = {
-  type: 'local_shell_call';
-  id: string;
-  call_id: string;
-  action: {
-    type: 'exec';
-    command: string[];
-    timeout_ms?: number;
-    user?: string;
-    working_directory?: string;
-    env?: Record<string, string>;
-  };
-};
+export type OpenAIResponsesLocalShellCall = InferSchema<
+  typeof openaiResponsesLocalShellCallSchema
+>;
 
 export type OpenAIResponsesLocalShellCallOutput = {
   type: 'local_shell_call_output';
@@ -555,7 +563,8 @@ const openaiResponsesNestedErrorChunkSchema = z.object({
 });
 
 // Current OpenAI OpenAPI docs define ResponseErrorEvent with top-level
-// code/message/param fields.
+// code/message/param fields:
+// https://developers.openai.com/api/reference/resources/responses/streaming-events
 const openaiResponsesErrorChunkSchema = z.object({
   type: z.literal('error'),
   sequence_number: z.number(),
@@ -563,6 +572,82 @@ const openaiResponsesErrorChunkSchema = z.object({
   message: z.string(),
   param: z.string().nullish(),
 });
+
+/**
+ * Chunk types explicitly modeled by openaiResponsesChunkSchema. Keep this set
+ * in sync with the union below. OpenAI's complete event catalog:
+ * https://developers.openai.com/api/reference/resources/responses/streaming-events
+ */
+const openaiResponsesModeledChunkTypes = new Set([
+  'error',
+  'response.apply_patch_call_operation_diff.delta',
+  'response.apply_patch_call_operation_diff.done',
+  'response.code_interpreter_call_code.delta',
+  'response.code_interpreter_call_code.done',
+  'response.completed',
+  'response.created',
+  'response.custom_tool_call_input.delta',
+  'response.failed',
+  'response.function_call_arguments.delta',
+  'response.function_call_arguments.done',
+  'response.image_generation_call.partial_image',
+  'response.incomplete',
+  'response.output_item.added',
+  'response.output_item.done',
+  'response.output_text.annotation.added',
+  'response.output_text.delta',
+  'response.reasoning_summary_part.added',
+  'response.reasoning_summary_part.done',
+  'response.reasoning_summary_text.delta',
+]);
+
+/**
+ * Output item types explicitly modeled by both output item event schemas below.
+ * OpenAI's complete ResponseOutputItem schema:
+ * https://developers.openai.com/api/reference/resources/responses#(resource)%20responses%20%3E%20(model)%20response_output_item%20%3E%20(schema)
+ */
+const openaiResponsesModeledOutputItemTypes = new Set([
+  'apply_patch_call',
+  'code_interpreter_call',
+  'computer_call',
+  'custom_tool_call',
+  'file_search_call',
+  'function_call',
+  'image_generation_call',
+  'local_shell_call',
+  'mcp_approval_request',
+  'mcp_call',
+  'mcp_list_tools',
+  'message',
+  'reasoning',
+  'shell_call',
+  'shell_call_output',
+  'tool_search_call',
+  'tool_search_output',
+  'web_search_call',
+]);
+
+function isModeledOpenAIResponsesChunk(value: Record<string, unknown>) {
+  if (
+    typeof value.type !== 'string' ||
+    !openaiResponsesModeledChunkTypes.has(value.type)
+  ) {
+    return false;
+  }
+
+  if (
+    value.type !== 'response.output_item.added' &&
+    value.type !== 'response.output_item.done'
+  ) {
+    return true;
+  }
+
+  if (!isRecord(value.item) || typeof value.item.type !== 'string') {
+    return true;
+  }
+
+  return openaiResponsesModeledOutputItemTypes.has(value.item.type);
+}
 
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
@@ -700,6 +785,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('file_search_call'),
             id: z.string(),
           }),
+          openaiResponsesLocalShellCallSchema,
           z.object({
             type: z.literal('image_generation_call'),
             id: z.string(),
@@ -908,19 +994,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               )
               .nullish(),
           }),
-          z.object({
-            type: z.literal('local_shell_call'),
-            id: z.string(),
-            call_id: z.string(),
-            action: z.object({
-              type: z.literal('exec'),
-              command: z.array(z.string()),
-              timeout_ms: z.number().optional(),
-              user: z.string().optional(),
-              working_directory: z.string().optional(),
-              env: z.record(z.string(), z.string()).optional(),
-            }),
-          }),
+          openaiResponsesLocalShellCallSchema,
           z.object({
             type: z.literal('computer_call'),
             id: z.string(),
@@ -1056,6 +1130,14 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         delta: z.string(),
       }),
       z.object({
+        // `name` is documented as required but omitted from live API events:
+        // https://github.com/openai/openai-openapi/issues/545
+        type: z.literal('response.function_call_arguments.done'),
+        item_id: z.string(),
+        output_index: z.number(),
+        arguments: z.string(),
+      }),
+      z.object({
         type: z.literal('response.custom_tool_call_input.delta'),
         item_id: z.string(),
         output_index: z.number(),
@@ -1144,6 +1226,9 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       z
         .object({ type: z.string() })
         .loose()
+        .refine(value => !isModeledOpenAIResponsesChunk(value), {
+          message: 'Known response chunk failed schema validation',
+        })
         .transform(value => ({
           type: 'unknown_chunk' as const,
           message: value.type,
@@ -1315,19 +1400,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               id: z.string(),
               result: z.string(),
             }),
-            z.object({
-              type: z.literal('local_shell_call'),
-              id: z.string(),
-              call_id: z.string(),
-              action: z.object({
-                type: z.literal('exec'),
-                command: z.array(z.string()),
-                timeout_ms: z.number().optional(),
-                user: z.string().optional(),
-                working_directory: z.string().optional(),
-                env: z.record(z.string(), z.string()).optional(),
-              }),
-            }),
+            openaiResponsesLocalShellCallSchema,
             z.object({
               type: z.literal('function_call'),
               call_id: z.string(),
