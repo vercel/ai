@@ -676,6 +676,7 @@ const xaiUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
+  cost_in_usd_ticks: z.number().nullish(),
   prompt_tokens_details: z
     .object({
       text_tokens: z.number().nullish(),

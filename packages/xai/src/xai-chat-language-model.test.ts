@@ -118,6 +118,7 @@ describe('XaiChatLanguageModel', () => {
               "reasoning_tokens": 228,
               "rejected_prediction_tokens": 0,
             },
+            "cost_in_usd_ticks": 1176500,
             "prompt_tokens": 12,
             "prompt_tokens_details": {
               "audio_tokens": 0,
@@ -1644,6 +1645,7 @@ describe('XaiChatLanguageModel', () => {
               "reasoning_tokens": 228,
               "rejected_prediction_tokens": 0,
             },
+            "cost_in_usd_ticks": 1176500,
             "prompt_tokens": 12,
             "prompt_tokens_details": {
               "audio_tokens": 0,

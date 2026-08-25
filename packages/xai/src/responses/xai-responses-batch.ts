@@ -38,12 +38,6 @@ import {
 } from '../xai-chat-language-model';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { xaiFilesResponseSchema } from '../files/xai-files-api';
-import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
-import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
-import {
-  xaiResponsesResponseSchema,
-  type XaiResponsesResponse,
-} from './xai-responses-api';
 import {
   XaiResponsesLanguageModel,
   type XaiResponsesConfig,
@@ -103,7 +97,6 @@ const xaiBatchResultSchema = z.object({
       response: z
         .object({
           chat_get_completion: z.unknown().nullish(),
-          responses: z.unknown().nullish(),
         })
         .nullish(),
       error: xaiBatchErrorSchema.nullish(),
@@ -310,29 +303,6 @@ class XaiResponsesBatch {
     }
 
     const response = result.batch_result?.response;
-    if (response?.responses != null) {
-      const validation = await safeValidateTypes({
-        value: response.responses,
-        schema: xaiResponsesResponseSchema,
-      });
-      if (!validation.success) {
-        return invalidXaiBatchResult(result.batch_request_id);
-      }
-
-      const conversion = convertXaiResponsesBatchResponse(validation.value);
-      return conversion.success
-        ? {
-            id: result.batch_request_id,
-            status: 'succeeded',
-            result: conversion.result,
-          }
-        : {
-            id: result.batch_request_id,
-            status: 'failed',
-            error: conversion.error,
-          };
-    }
-
     if (response?.chat_get_completion != null) {
       const validation = await safeValidateTypes({
         value: response.chat_get_completion,
@@ -496,89 +466,6 @@ function invalidXaiBatchResult(
   };
 }
 
-function convertXaiResponsesBatchResponse(
-  response: XaiResponsesResponse,
-): XaiBatchResponseConversion {
-  const content: LanguageModelV4Content[] = [];
-
-  for (const part of response.output) {
-    if (part.type === 'message') {
-      for (const contentPart of part.content) {
-        if (contentPart.text) {
-          content.push({ type: 'text', text: contentPart.text });
-        }
-        for (const annotation of contentPart.annotations ?? []) {
-          if (annotation.type === 'url_citation' && 'url' in annotation) {
-            content.push({
-              type: 'source',
-              sourceType: 'url',
-              id: annotation.url,
-              url: annotation.url,
-              title: annotation.title ?? annotation.url,
-            });
-          }
-        }
-      }
-      continue;
-    }
-
-    if (part.type === 'reasoning') {
-      const text = (
-        part.summary.length > 0 ? part.summary : (part.content ?? [])
-      )
-        .map(item => item.text)
-        .filter(Boolean)
-        .join('');
-      if (text || part.encrypted_content) {
-        content.push({
-          type: 'reasoning',
-          text,
-          providerMetadata: {
-            xai: {
-              ...(part.encrypted_content != null
-                ? { reasoningEncryptedContent: part.encrypted_content }
-                : {}),
-              itemId: part.id,
-            },
-          },
-        });
-      }
-      continue;
-    }
-
-    return unsupportedXaiBatchContent(part.type);
-  }
-
-  return {
-    success: true,
-    result: {
-      content,
-      finishReason: {
-        unified: mapXaiResponsesFinishReason(response.status),
-        raw: response.status,
-      },
-      usage: response.usage
-        ? convertXaiResponsesUsage(response.usage)
-        : createNullLanguageModelUsage(),
-      response: getResponseMetadata(response),
-      warnings: [],
-      ...((response.usage?.cost_in_usd_ticks != null ||
-        response.service_tier != null) && {
-        providerMetadata: {
-          xai: {
-            ...(response.usage?.cost_in_usd_ticks != null
-              ? { costInUsdTicks: response.usage.cost_in_usd_ticks }
-              : {}),
-            ...(response.service_tier != null
-              ? { serviceTier: response.service_tier }
-              : {}),
-          },
-        } satisfies SharedV4ProviderMetadata,
-      }),
-    },
-  };
-}
-
 function convertXaiChatBatchResponse(
   response: XaiChatResponse,
 ): XaiBatchResponseConversion {
@@ -639,10 +526,16 @@ function convertXaiChatBatchResponse(
         : createNullLanguageModelUsage(),
       response: getResponseMetadata(response),
       warnings: [],
-      ...(response.service_tier != null && {
+      ...((response.usage?.cost_in_usd_ticks != null ||
+        response.service_tier != null) && {
         providerMetadata: {
           xai: {
-            serviceTier: response.service_tier,
+            ...(response.usage?.cost_in_usd_ticks != null
+              ? { costInUsdTicks: response.usage.cost_in_usd_ticks }
+              : {}),
+            ...(response.service_tier != null
+              ? { serviceTier: response.service_tier }
+              : {}),
           },
         } satisfies SharedV4ProviderMetadata,
       }),
