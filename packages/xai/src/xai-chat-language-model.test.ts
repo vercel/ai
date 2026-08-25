@@ -132,6 +132,46 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should preserve complete raw usage from the response schema', async () => {
+      prepareJsonFixtureResponse('issue-19639-generate');
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      const providerUsage = JSON.parse(
+        fs.readFileSync('src/__fixtures__/issue-19639-generate.json', 'utf8'),
+      ).usage;
+
+      expect(usage.raw).toEqual(providerUsage);
+    });
+
+    it('should preserve documented num_sources_used in raw usage', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage.raw).toMatchObject({ num_sources_used: 0 });
+    });
+
+    it('should continue validating known usage fields', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync('src/__fixtures__/issue-19639-generate.json', 'utf8'),
+      );
+      fixture.usage.prompt_tokens = '675';
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: fixture,
+      };
+
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrow('Invalid JSON response');
+    });
+
     it('should send additional response information', async () => {
       prepareJsonFixtureResponse('xai-text');
 
@@ -1000,6 +1040,42 @@ describe('XaiChatLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
+    });
+
+    it('should preserve complete raw usage from the streaming schema', async () => {
+      prepareChunksFixtureResponse('issue-19639-stream');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const chunks = await convertReadableStreamToArray(stream);
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+      const providerUsage = JSON.parse(
+        fs
+          .readFileSync(
+            'src/__fixtures__/issue-19639-stream.chunks.txt',
+            'utf8',
+          )
+          .trim()
+          .split('\n')
+          .at(-1)!,
+      ).usage;
+
+      expect(finish?.usage.raw).toEqual(providerUsage);
+    });
+
+    it('should preserve documented num_sources_used in streaming raw usage', async () => {
+      prepareChunksFixtureResponse('xai-text');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const chunks = await convertReadableStreamToArray(stream);
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+
+      expect(finish?.usage.raw).toMatchObject({ num_sources_used: 0 });
     });
 
     describe('tool call', () => {
