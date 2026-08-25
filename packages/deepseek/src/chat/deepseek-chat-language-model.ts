@@ -43,6 +43,7 @@ export type DeepSeekChatConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  supportsAssistantPrefixCompletion?: boolean;
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
@@ -103,10 +104,13 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     const supportsStructuredOutputs =
       this.config.supportsStructuredOutputs === true;
 
-    const { messages, warnings } = convertToDeepSeekChatMessages({
+    const { messages, warnings } = await convertToDeepSeekChatMessages({
       prompt,
       responseFormat,
       modelId: this.modelId,
+      providerOptionsName: this.providerOptionsName,
+      supportsAssistantPrefixCompletion:
+        this.config.supportsAssistantPrefixCompletion,
       supportsStructuredOutputs,
     });
 

@@ -53,3 +53,16 @@ export const deepseekLanguageModelOptions = z.object({
 export type DeepSeekLanguageModelOptions = z.infer<
   typeof deepseekLanguageModelOptions
 >;
+
+export const deepseekAssistantMessageProviderOptions = z.object({
+  /**
+   * Whether the assistant message content is a prefix that DeepSeek should
+   * continue. This beta feature is only supported on the final assistant
+   * message when using a beta base URL.
+   */
+  prefix: z.literal(true).optional(),
+});
+
+export type DeepSeekAssistantMessageProviderOptions = z.infer<
+  typeof deepseekAssistantMessageProviderOptions
+>;
