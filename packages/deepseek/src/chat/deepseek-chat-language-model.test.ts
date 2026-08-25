@@ -107,6 +107,88 @@ describe('DeepSeekChatLanguageModel', () => {
         );
       });
 
+      it('should reject strict tools on the standard endpoint before fetching', async () => {
+        await expect(
+          provider.chat('deepseek-chat').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function',
+                name: 'getWeather',
+                inputSchema: { type: 'object', properties: {} },
+                strict: true,
+              },
+            ],
+          }),
+        ).rejects.toThrow(
+          'DeepSeek strict tool calls require a beta base URL ending in `/beta`.',
+        );
+
+        expect(server.calls).toHaveLength(0);
+      });
+
+      it('should send all-strict tools on the beta endpoint', async () => {
+        server.urls['https://api.deepseek.com/beta/chat/completions'].response =
+          {
+            type: 'json-value',
+            body: JSON.parse(
+              fs.readFileSync(
+                'src/chat/__fixtures__/deepseek-text.json',
+                'utf8',
+              ),
+            ),
+          };
+
+        await betaProvider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'getWeather',
+              inputSchema: { type: 'object', properties: {} },
+              strict: true,
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'getWeather',
+                strict: true,
+              },
+            },
+          ],
+        });
+      });
+
+      it('should reject mixed strict tools in streaming requests', async () => {
+        await expect(
+          betaProvider.chat('deepseek-chat').doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function',
+                name: 'strictTool',
+                inputSchema: { type: 'object', properties: {} },
+                strict: true,
+              },
+              {
+                type: 'function',
+                name: 'nonStrictTool',
+                inputSchema: { type: 'object', properties: {} },
+              },
+            ],
+          }),
+        ).rejects.toThrow(
+          'DeepSeek strict mode requires every function tool in the request to set `strict: true`.',
+        );
+
+        expect(server.calls).toHaveLength(0);
+      });
+
       it.each([
         ['', 'userId must match /^[a-zA-Z0-9_-]+$/'],
         ['contains space', 'userId must match /^[a-zA-Z0-9_-]+$/'],

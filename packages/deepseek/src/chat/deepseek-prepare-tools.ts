@@ -1,15 +1,28 @@
 import {
+<<<<<<< HEAD
   type LanguageModelV2CallOptions,
   type LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
+=======
+  UnsupportedFunctionalityError,
+  type LanguageModelV3CallOptions,
+  type SharedV3Warning,
+>>>>>>> 7d45c74e32 (Backport: fix(provider/deepseek): guard strict tool calls (#19461))
 } from '@ai-sdk/provider';
 
 export function prepareTools({
   tools,
   toolChoice,
+  supportsStrictToolCalls,
 }: {
+<<<<<<< HEAD
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+=======
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  supportsStrictToolCalls?: boolean;
+>>>>>>> 7d45c74e32 (Backport: fix(provider/deepseek): guard strict tool calls (#19461))
 }): {
   tools:
     | undefined
@@ -38,6 +51,7 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
+<<<<<<< HEAD
   const deepseekTools: Array<{
     type: 'function';
     function: {
@@ -46,6 +60,32 @@ export function prepareTools({
       parameters: unknown;
     };
   }> = [];
+=======
+  const functionTools = tools.filter(tool => tool.type === 'function');
+  const hasStrictTool = functionTools.some(tool => tool.strict === true);
+
+  if (hasStrictTool && supportsStrictToolCalls === false) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'DeepSeek strict tool calls',
+      message:
+        'DeepSeek strict tool calls require a beta base URL ending in `/beta`.',
+    });
+  }
+
+  if (
+    hasStrictTool &&
+    supportsStrictToolCalls === true &&
+    functionTools.some(tool => tool.strict !== true)
+  ) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'mixed DeepSeek strict and non-strict tool calls',
+      message:
+        'DeepSeek strict mode requires every function tool in the request to set `strict: true`.',
+    });
+  }
+
+  const deepseekTools: Array<DeepSeekFunctionTool> = [];
+>>>>>>> 7d45c74e32 (Backport: fix(provider/deepseek): guard strict tool calls (#19461))
 
   for (const tool of tools) {
     if (tool.type === 'provider-defined') {

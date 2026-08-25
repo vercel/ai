@@ -42,6 +42,11 @@ export type DeepSeekChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   supportsAssistantPrefixCompletion?: boolean;
+<<<<<<< HEAD
+=======
+  supportsPenaltySampling?: boolean;
+  supportsStrictToolCalls?: boolean;
+>>>>>>> 7d45c74e32 (Backport: fix(provider/deepseek): guard strict tool calls (#19461))
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
@@ -151,6 +156,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
+      supportsStrictToolCalls: this.config.supportsStrictToolCalls,
     });
     const allWarnings = [...warnings, ...toolWarnings];
 
