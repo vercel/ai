@@ -1,0 +1,25 @@
+{
+  "id": "chatcmpl-6a39a6e4-cd31-9e4c-b8b1-cb7d2024fa62",
+  "object": "chat.completion",
+  "created": 1787687117,
+  "model": "kimi-k3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"pair\":[\"age\",42]}",
+        "reasoning_content": "The user wants a JSON object with pair equal to [\"age\", 42]. This matches the schema perfectly. I just need to output the raw JSON."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 194,
+    "completion_tokens": 48,
+    "total_tokens": 242,
+    "completion_tokens_details": {
+      "reasoning_tokens": 31
+    }
+  }
+}

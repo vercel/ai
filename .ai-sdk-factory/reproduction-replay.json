@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19544,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19544-moonshot-structured-output.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19544-moonshot-structured-output.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #19544: Moonshot rejected the AI SDK structured-output tuple schema even though the equivalent MFJS-normalized request succeeded."
+  }
+}
