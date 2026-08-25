@@ -3,4 +3,4 @@
 '@ai-sdk/harness': patch
 ---
 
-fix(harness): stop diagnosing caller-initiated aborts as bridge errors
+fix(harness): stop diagnosing caller-initiated aborts as bridge errors, and serialize bridge turns so a start racing an aborted turn's teardown no longer overlaps it

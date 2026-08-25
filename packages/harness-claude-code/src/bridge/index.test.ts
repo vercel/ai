@@ -350,4 +350,54 @@ describe('Claude Code bridge configuration', () => {
     expect(emitError).not.toHaveBeenCalled();
     expect(disposed).toHaveBeenCalled();
   });
+
+  test('falls back to a hard abort when interrupt() rejects, staying quiet', async () => {
+    const turnAbort = new AbortController();
+    state.turnAbortController = turnAbort;
+    const emitError = vi.fn();
+    state.emitError = emitError;
+
+    // A query whose `interrupt()` rejects; the hard-abort fallback fires the
+    // query's abort signal, on which the SDK iteration throws — exactly what
+    // the real CLI does when its process is killed mid-turn.
+    const interrupt = vi.fn(async () => {
+      throw new Error('interrupt is not supported');
+    });
+    const disposed = vi.fn();
+    state.createQuery = args => {
+      const abortSignal = (args.options as { abortSignal: AbortSignal })
+        .abortSignal;
+      const generator = (async function* () {
+        await new Promise<void>(resolve => {
+          if (abortSignal.aborted) return resolve();
+          abortSignal.addEventListener('abort', () => resolve(), {
+            once: true,
+          });
+        });
+        // The promise above settles only on abort, so the throw always fires.
+        if (abortSignal.aborted) {
+          throw Object.assign(new Error('This operation was aborted'), {
+            name: 'AbortError',
+          });
+        }
+        yield undefined as never;
+      })();
+      const originalReturn = generator.return.bind(generator);
+      generator.return = ((value?: unknown) => {
+        disposed();
+        return originalReturn(value as never);
+      }) as typeof generator.return;
+      queueMicrotask(() => turnAbort.abort());
+      return Object.assign(generator, { interrupt });
+    };
+
+    await import('./index');
+
+    // The graceful path was attempted, the hard abort took over…
+    expect(interrupt).toHaveBeenCalledTimes(1);
+    // …and neither the rejected interrupt nor the aborted iteration was
+    // reported as a turn failure: the stop is the host's own.
+    expect(emitError).not.toHaveBeenCalled();
+    expect(disposed).toHaveBeenCalled();
+  });
 });

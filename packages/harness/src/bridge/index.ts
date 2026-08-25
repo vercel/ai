@@ -384,6 +384,12 @@ export async function runBridge<TStart extends { type: 'start' }>(
   let isFirstTurn = true;
   let turnAbort: AbortController | undefined;
   let currentUserMessages: InternalBridgeUserMessageQueue | undefined;
+  /**
+   * Settles when the in-flight turn has fully wound down — `onStart`
+   * returned or threw AND its completion state was recorded. `undefined`
+   * between turns. A new `start` fences on this so turns never overlap.
+   */
+  let activeTurn: Promise<void> | undefined;
 
   // Diagnostics. Resolved per turn from `start.debug` with a sandbox-side
   // env fallback; gates console capture + structured `debug-event`s.
@@ -658,10 +664,30 @@ export async function runBridge<TStart extends { type: 'start' }>(
   ): Promise<void> => {
     switch (msg.type) {
       case 'start': {
+        /*
+         * A new turn replaces the active one — but only after the active one
+         * has fully wound down. Inbound frames are dispatched concurrently,
+         * and the host settles a caller abort immediately, so a retry's
+         * `start` can arrive while the aborted turn is still tearing down
+         * (e.g. a graceful interrupt). Without this fence the old turn would
+         * keep emitting into the new turn's cleared event log, two runtime
+         * processes would run side by side, and the old turn's completion
+         * would mark the bridge `waiting` underneath the new turn. Abort the
+         * old turn to hasten its teardown; adapters bound that teardown
+         * themselves (e.g. a hard-abort fallback), which bounds this wait.
+         */
+        for (;;) {
+          const pendingTurn = activeTurn;
+          if (pendingTurn == null) break;
+          turnAbort?.abort();
+          currentUserMessages?.close(
+            new Error('A new bridge turn replaced the active turn.'),
+          );
+          await pendingTurn;
+        }
+        let turnFinished!: () => void;
+        activeTurn = new Promise<void>(resolve => (turnFinished = resolve));
         activeSocket = ws; // asking for a turn claims the event stream
-        currentUserMessages?.close(
-          new Error('A new bridge turn replaced the active turn.'),
-        );
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
@@ -729,6 +755,8 @@ export async function runBridge<TStart extends { type: 'start' }>(
           }
           currentTurnState = 'waiting';
           void writeBridgeMeta('waiting');
+          activeTurn = undefined;
+          turnFinished();
         }
         return;
       }

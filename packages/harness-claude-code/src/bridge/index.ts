@@ -262,6 +262,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // query is a no-op — and the immediate path when the abort arrives before
   // the query exists.
   let gracefulAbort: (() => void) | undefined;
+  let hardAbortTimer: ReturnType<typeof setTimeout> | undefined;
   const onHostAbort = (): void => {
     if (gracefulAbort) {
       gracefulAbort();
@@ -409,7 +410,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     // requested, fall back to the hard abort. Aborting an already-settled
     // query is a no-op, and `unref` keeps the timer from pinning the bridge
     // process open on its own.
-    const hardAbortTimer = setTimeout(() => abortCtl.abort(), 5000);
+    hardAbortTimer = setTimeout(() => abortCtl.abort(), 5000);
     hardAbortTimer.unref?.();
     void Promise.resolve()
       .then(() => q.interrupt())
@@ -534,6 +535,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     // the next `start`) must not interrupt the disposed query or arm the
     // hard-abort fallback timer for it.
     gracefulAbort = undefined;
+    if (hardAbortTimer != null) clearTimeout(hardAbortTimer);
     turn.abortSignal.removeEventListener('abort', onHostAbort);
     queryInput.close();
     // Dispose the query explicitly: with streaming input the SDK keeps its
