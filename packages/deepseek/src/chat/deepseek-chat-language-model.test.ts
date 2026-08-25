@@ -79,7 +79,7 @@ describe('DeepSeekChatLanguageModel', () => {
           providerOptions: {
             deepseek: {
               userId: 'tenant_123-user',
-            } satisfies DeepSeekLanguageModelChatOptions,
+            } satisfies DeepSeekLanguageModelOptions,
           },
         });
 
@@ -111,7 +111,7 @@ describe('DeepSeekChatLanguageModel', () => {
               providerOptions: {
                 deepseek: {
                   userId,
-                } satisfies DeepSeekLanguageModelChatOptions,
+                } satisfies DeepSeekLanguageModelOptions,
               },
             }),
           ).rejects.toMatchObject({
@@ -707,7 +707,7 @@ describe('DeepSeekChatLanguageModel', () => {
           providerOptions: {
             deepseek: {
               userId: 'tenant_123-user',
-            } satisfies DeepSeekLanguageModelChatOptions,
+            } satisfies DeepSeekLanguageModelOptions,
           },
         });
 

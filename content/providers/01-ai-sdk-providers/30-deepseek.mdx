@@ -114,16 +114,8 @@ The following optional provider options are available for DeepSeek models:
   `low`, `medium`, `high`, and `xhigh` pass through to DeepSeek's native
   effort values. Ignored when thinking is explicitly disabled.
 
-<<<<<<< HEAD
-```ts highlight="7-12"
+```ts highlight="7-13"
 import { deepseek, type DeepSeekLanguageModelOptions } from '@ai-sdk/deepseek';
-=======
-```ts highlight="7-15"
-import {
-  deepSeek,
-  type DeepSeekLanguageModelChatOptions,
-} from '@ai-sdk/deepseek';
->>>>>>> 068be494a5 (feat: add validated DeepSeek user ID chat option (#19397))
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
