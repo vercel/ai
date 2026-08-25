@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19543,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19543-moonshot-sampling.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19543-moonshot-sampling.ts",
+    "packages/moonshotai/src/__fixtures__/moonshotai-unsupported-sampling-error.json",
+    "packages/moonshotai/src/__fixtures__/moonshotai-text.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19543 REPRODUCED: Moonshot rejected sampling parameters forwarded by the AI SDK for kimi-k2.6"
+  }
+}

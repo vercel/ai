@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "invalid temperature: only 0.6 is allowed for this model",
+    "type": "invalid_request_error"
+  }
+}
