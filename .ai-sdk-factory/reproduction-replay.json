@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 10082,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-10082-embed-many-token-limit.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-10082-embed-many-token-limit.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_10082_REPRODUCED: OpenAI rejected an automatically split embedMany request above the 300000-token aggregate limit"
+  }
+}
