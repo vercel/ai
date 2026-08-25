@@ -14,7 +14,11 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
-import { moonshotaiAssistantMessageProviderOptions } from './moonshotai-chat-options';
+import {
+  moonshotaiAllMessageProviderOptions,
+  type MoonshotAIModelFamily,
+} from './moonshotai-chat-options';
+import { prepareTools } from './moonshotai-prepare-tools';
 
 const supportedImageMediaTypes = new Set([
   'image/jpeg',
@@ -66,6 +70,7 @@ function validateReferenceMediaType({
 export async function convertToMoonshotAIChatMessages(
   prompt: LanguageModelV4Prompt,
   responseFormat?: LanguageModelV4CallOptions['responseFormat'],
+  modelFamily: MoonshotAIModelFamily = 'unknown',
 ): Promise<MoonshotAIMessages> {
   const messages: MoonshotAIMessages = [];
   let index = -1;
@@ -74,7 +79,7 @@ export async function convertToMoonshotAIChatMessages(
     const messageOptions = await parseProviderOptions({
       provider: 'moonshotai',
       providerOptions,
-      schema: moonshotaiAssistantMessageProviderOptions,
+      schema: moonshotaiAllMessageProviderOptions,
     });
 
     if (messageOptions?.partial === true && role !== 'assistant') {
@@ -82,6 +87,14 @@ export async function convertToMoonshotAIChatMessages(
         prompt,
         message:
           'Moonshot Partial Mode requires `partial: true` on an assistant message.',
+      });
+    }
+
+    if (messageOptions?.dynamicTools != null && role !== 'system') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'Moonshot dynamic tools must be configured on a system message.',
       });
     }
 
@@ -93,6 +106,30 @@ export async function convertToMoonshotAIChatMessages(
 
     switch (role) {
       case 'system': {
+        if (messageOptions?.dynamicTools != null) {
+          if (modelFamily !== 'kimi-k3') {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'Moonshot dynamic tool loading',
+              message: `Moonshot dynamic tool loading is only supported by Kimi K3; received model family "${modelFamily}".`,
+            });
+          }
+
+          if (content.length > 0) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+            });
+          }
+
+          const { tools } = prepareTools({
+            modelFamily,
+            tools: messageOptions.dynamicTools,
+          });
+          messages.push({ role: 'system', tools: tools ?? [] });
+          break;
+        }
+
         messages.push({
           role: 'system',
           content,

@@ -302,6 +302,38 @@ const partialMessage = {
 };
 ```
 
+#### Dynamic Tool Loading
+
+Kimi K3 can load function tools at a specific point in a conversation. Use an
+empty system message with `dynamicTools`; the provider omits the placeholder
+content and normalizes the tool schemas before sending them. Other models are
+rejected locally because Moonshot documents dynamic loading only for K3.
+
+```ts
+import type { MoonshotAISystemMessageProviderOptions } from '@ai-sdk/moonshotai';
+
+const dynamicToolMessage = {
+  role: 'system' as const,
+  content: '',
+  providerOptions: {
+    moonshotai: {
+      dynamicTools: [
+        {
+          type: 'function' as const,
+          name: 'calculator',
+          description: 'Evaluate an arithmetic expression',
+          inputSchema: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+          },
+        },
+      ],
+    } satisfies MoonshotAISystemMessageProviderOptions,
+  },
+};
+```
+
 ## Model Capabilities
 
 | Model                    | Image Input | Video Input | Object Generation | Tool Usage | Tool Streaming |

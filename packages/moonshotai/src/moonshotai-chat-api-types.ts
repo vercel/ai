@@ -9,10 +9,25 @@ export type MoonshotAIMessage =
   | MoonshotAIAssistantMessage
   | MoonshotAIToolMessage;
 
-export interface MoonshotAISystemMessage {
-  role: 'system';
-  content: string;
-  name?: string;
+export type MoonshotAISystemMessage =
+  | {
+      role: 'system';
+      content: string;
+      name?: string;
+    }
+  | {
+      role: 'system';
+      tools: Array<MoonshotAIFunctionTool>;
+    };
+
+export interface MoonshotAIFunctionTool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string | undefined;
+    parameters: unknown;
+    strict?: boolean;
+  };
 }
 
 export interface MoonshotAIUserMessage {

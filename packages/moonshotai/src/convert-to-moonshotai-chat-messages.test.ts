@@ -477,6 +477,111 @@ describe('system messages', () => {
 
     expect(result).toEqual([{ role: 'system', content: 'You are Kimi.' }]);
   });
+
+  it('should serialize and normalize K3 dynamic tools without content', async () => {
+    const result = await convertToMoonshotAIChatMessages(
+      [
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              dynamicTools: [
+                {
+                  type: 'function',
+                  name: 'locate',
+                  description: 'Locate coordinates',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {
+                      coordinates: {
+                        type: 'array',
+                        items: [{ type: 'number' }, { type: 'number' }],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+      undefined,
+      'kimi-k3',
+    );
+
+    expect(result).toEqual([
+      {
+        role: 'system',
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'locate',
+              description: 'Locate coordinates',
+              parameters: {
+                type: 'object',
+                properties: {
+                  coordinates: {
+                    type: 'array',
+                    prefixItems: [{ type: 'number' }, { type: 'number' }],
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should reject dynamic tools for non-K3 models', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages(
+        [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                dynamicTools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        undefined,
+        'kimi-k2.6',
+      ),
+    ).rejects.toThrow(
+      'Moonshot dynamic tool loading is only supported by Kimi K3; received model family "kimi-k2.6".',
+    );
+  });
+
+  it('should reject content alongside dynamic tools', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages(
+        [
+          {
+            role: 'system',
+            content: 'Do not send this.',
+            providerOptions: {
+              moonshotai: { dynamicTools: [] },
+            },
+          },
+        ],
+        undefined,
+        'kimi-k3',
+      ),
+    ).rejects.toThrow(
+      'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+    );
+  });
 });
 
 describe('message names', () => {

@@ -921,6 +921,84 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('dynamic tool loading', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-tool-call');
+    });
+
+    it('should send normalized dynamic tools in a K3 system message', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Calculate.' }] },
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                dynamicTools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    description: 'Evaluate an expression',
+                    inputSchema: {
+                      type: 'object',
+                      properties: {
+                        values: {
+                          type: 'array',
+                          items: [{ type: 'number' }, { type: 'number' }],
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages.at(-1)).toEqual({
+        role: 'system',
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'calculator',
+              description: 'Evaluate an expression',
+              parameters: {
+                type: 'object',
+                properties: {
+                  values: {
+                    type: 'array',
+                    prefixItems: [{ type: 'number' }, { type: 'number' }],
+                  },
+                },
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it('should reject dynamic tools for non-K3 official models', async () => {
+      await expect(
+        provider.chatModel('kimi-k2.6').doGenerate({
+          prompt: [
+            {
+              role: 'system',
+              content: '',
+              providerOptions: {
+                moonshotai: { dynamicTools: [] },
+              },
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        'Moonshot dynamic tool loading is only supported by Kimi K3',
+      );
+    });
+  });
+
   describe('logprobs', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('moonshotai-logprobs');

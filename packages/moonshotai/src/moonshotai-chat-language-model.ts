@@ -128,9 +128,12 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         schema: moonshotaiLanguageModelOptions,
       })) ?? {};
 
+    const modelFamily = getMoonshotAIModelFamily(this.modelId);
+
     const messages = await convertToMoonshotAIChatMessages(
       prompt,
       responseFormat,
+      modelFamily,
     );
 
     const allWarnings: SharedV4Warning[] = [];
@@ -171,8 +174,6 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         details: `presencePenalty is fixed by model "${this.modelId}" and has been omitted.`,
       });
     }
-
-    const modelFamily = getMoonshotAIModelFamily(this.modelId);
 
     const {
       tools: moonshotTools,
