@@ -280,6 +280,40 @@ describe('doGenerate', () => {
         },
       ]);
     });
+
+    it('should send provider references and text file parts', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference' as const,
+                  reference: { moonshotai: 'file-video-123' },
+                },
+                mediaType: 'video/mp4',
+              },
+              {
+                type: 'file',
+                data: { type: 'text' as const, text: 'Transcript text' },
+                mediaType: 'text/plain',
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        {
+          type: 'video_url',
+          video_url: { url: 'ms://file-video-123' },
+        },
+        { type: 'text', text: 'Transcript text' },
+      ]);
+    });
   });
 
   describe('thinking options', () => {

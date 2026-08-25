@@ -7,6 +7,8 @@ import { run } from '../../lib/run';
 // file parts. Inline bytes are sent as a base64 data URI; URL parts are
 // downloaded and inlined by the AI SDK (Moonshot AI does not fetch URLs).
 run(async () => {
+  const uploadedFileId = process.env.MOONSHOT_FILE_ID;
+
   const result = await generateText({
     model: moonshotai('kimi-k3'),
     messages: [
@@ -16,7 +18,10 @@ run(async () => {
           { type: 'text', text: 'Summarize what happens in this video.' },
           {
             type: 'file',
-            data: fs.readFileSync('data/prudence.mp4'),
+            data:
+              uploadedFileId == null
+                ? fs.readFileSync('data/prudence.mp4')
+                : { moonshotai: uploadedFileId },
             mediaType: 'video/mp4',
           },
         ],

@@ -7,6 +7,7 @@ import {
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
+  resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
@@ -32,6 +33,28 @@ const supportedVideoMediaTypes = new Set([
   'video/wmv',
   'video/3gpp',
 ]);
+
+function validateReferenceMediaType({
+  mediaType,
+  topLevel,
+  supportedMediaTypes,
+}: {
+  mediaType: string;
+  topLevel: 'image' | 'video';
+  supportedMediaTypes: Set<string>;
+}) {
+  if (
+    mediaType === topLevel ||
+    mediaType === `${topLevel}/*` ||
+    supportedMediaTypes.has(mediaType)
+  ) {
+    return;
+  }
+
+  throw new UnsupportedFunctionalityError({
+    functionality: `file part media type ${mediaType}`,
+  });
+}
 
 // Moonshot AI chat completions accepts text, image_url, and video_url content
 // parts only. Anything else (audio, PDF, other file types) throws here rather
@@ -66,14 +89,45 @@ export function convertToMoonshotAIChatMessages(
               case 'file': {
                 switch (part.data.type) {
                   case 'reference': {
+                    const reference = resolveProviderReference({
+                      reference: part.data.reference,
+                      provider: 'moonshotai',
+                    });
+                    const url = reference.startsWith('ms://')
+                      ? reference
+                      : `ms://${reference}`;
+                    const topLevel = getTopLevelMediaType(part.mediaType);
+
+                    if (topLevel === 'image') {
+                      validateReferenceMediaType({
+                        mediaType: part.mediaType,
+                        topLevel,
+                        supportedMediaTypes: supportedImageMediaTypes,
+                      });
+                      return {
+                        type: 'image_url' as const,
+                        image_url: { url },
+                      };
+                    }
+
+                    if (topLevel === 'video') {
+                      validateReferenceMediaType({
+                        mediaType: part.mediaType,
+                        topLevel,
+                        supportedMediaTypes: supportedVideoMediaTypes,
+                      });
+                      return {
+                        type: 'video_url' as const,
+                        video_url: { url },
+                      };
+                    }
+
                     throw new UnsupportedFunctionalityError({
-                      functionality: 'file parts with provider references',
+                      functionality: `file part media type ${part.mediaType}`,
                     });
                   }
                   case 'text': {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'text file parts',
-                    });
+                    return { type: 'text' as const, text: part.data.text };
                   }
                   case 'url':
                   case 'data': {

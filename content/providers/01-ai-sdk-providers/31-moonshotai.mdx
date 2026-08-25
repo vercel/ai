@@ -199,6 +199,20 @@ You can also pass a URL. Since Moonshot AI does not fetch external URLs, the AI 
 }
 ```
 
+For files already uploaded through the Moonshot Files API, pass the file ID as
+a provider reference. The provider converts it to Moonshot's native `ms://`
+URL:
+
+```ts
+{
+  type: 'file',
+  data: { moonshotai: 'file-abc123' },
+  mediaType: 'video/mp4',
+}
+```
+
+File parts containing inline text are sent as ordinary text content parts.
+
 <Note>
   Moonshot AI recommends videos up to 1080p. For larger videos, or videos you
   reuse across many requests, upload them with the [Moonshot Files
