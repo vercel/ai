@@ -151,22 +151,10 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     }
 
     const isAnthropicModel = this.modelId.includes('anthropic');
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
-=======
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
       openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
-
-    amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
-      reasoning,
-      amazonBedrockOptions,
-      warnings,
-      isAnthropicModel,
-      modelId: this.modelId,
-    });
-
->>>>>>> dee4c16e56 (fix: send model-specific OpenAI reasoning formats for Bedrock Converse (#19420)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     const isThinkingEnabled =
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
@@ -295,7 +283,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
-    const isOpenAIModel = this.modelId.startsWith('openai.');
 
     if (maxReasoningEffort != null) {
       if (isAnthropicModel) {
@@ -307,28 +294,20 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           },
         };
       } else if (isOpenAIModel) {
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
-        // OpenAI models on Bedrock expect `reasoning_effort` as a flat value
-        bedrockOptions.additionalModelRequestFields = {
-          ...bedrockOptions.additionalModelRequestFields,
-          reasoning_effort: maxReasoningEffort,
-        };
-=======
         // gpt-oss models expect `reasoning_effort` as a flat value, while
         // GPT-5.x models expect a nested `reasoning.effort` object.
-        amazonBedrockOptions.additionalModelRequestFields = isOpenAIGptOssModel
+        bedrockOptions.additionalModelRequestFields = isOpenAIGptOssModel
           ? {
-              ...amazonBedrockOptions.additionalModelRequestFields,
+              ...bedrockOptions.additionalModelRequestFields,
               reasoning_effort: maxReasoningEffort,
             }
           : {
-              ...amazonBedrockOptions.additionalModelRequestFields,
+              ...bedrockOptions.additionalModelRequestFields,
               reasoning: {
-                ...amazonBedrockOptions.additionalModelRequestFields?.reasoning,
+                ...bedrockOptions.additionalModelRequestFields?.reasoning,
                 effort: maxReasoningEffort,
               },
             };
->>>>>>> dee4c16e56 (fix: send model-specific OpenAI reasoning formats for Bedrock Converse (#19420)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
       } else {
         // other models (such as Nova 2) use reasoningConfig format
         bedrockOptions.additionalModelRequestFields = {
