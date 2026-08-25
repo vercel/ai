@@ -718,6 +718,80 @@ const openaiResponsesErrorChunkSchema = z.object({
   param: z.string().nullish(),
 });
 
+const openaiResponsesKnownChunkTypes = new Set([
+  'error',
+  'response.apply_patch_call_operation_diff.delta',
+  'response.apply_patch_call_operation_diff.done',
+  'response.code_interpreter_call_code.delta',
+  'response.code_interpreter_call_code.done',
+  'response.completed',
+  'response.created',
+  'response.custom_tool_call_input.delta',
+  'response.failed',
+  'response.function_call_arguments.delta',
+  'response.image_generation_call.partial_image',
+  'response.in_progress',
+  'response.incomplete',
+  'response.output_item.added',
+  'response.output_item.done',
+  'response.output_text.annotation.added',
+  'response.output_text.delta',
+  'response.reasoning_summary_part.added',
+  'response.reasoning_summary_part.done',
+  'response.reasoning_summary_text.delta',
+]);
+
+const openaiResponsesAddedOutputItemTypes = new Set([
+  'apply_patch_call',
+  'code_interpreter_call',
+  'compaction',
+  'computer_call',
+  'custom_tool_call',
+  'file_search_call',
+  'function_call',
+  'image_generation_call',
+  'mcp_approval_request',
+  'mcp_call',
+  'mcp_list_tools',
+  'message',
+  'program',
+  'program_output',
+  'reasoning',
+  'shell_call',
+  'shell_call_output',
+  'tool_search_call',
+  'tool_search_output',
+  'web_search_call',
+]);
+
+const openaiResponsesDoneOutputItemTypes = new Set([
+  ...openaiResponsesAddedOutputItemTypes,
+  'local_shell_call',
+]);
+
+function isKnownOpenAIResponsesChunk(value: Record<string, unknown>) {
+  if (
+    value.type === 'response.output_item.added' ||
+    value.type === 'response.output_item.done'
+  ) {
+    const item =
+      typeof value.item === 'object' && value.item != null
+        ? (value.item as Record<string, unknown>)
+        : undefined;
+    const knownItemTypes =
+      value.type === 'response.output_item.added'
+        ? openaiResponsesAddedOutputItemTypes
+        : openaiResponsesDoneOutputItemTypes;
+
+    return typeof item?.type === 'string' && knownItemTypes.has(item.type);
+  }
+
+  return (
+    typeof value.type === 'string' &&
+    openaiResponsesKnownChunkTypes.has(value.type)
+  );
+}
+
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
@@ -1319,6 +1393,9 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       z
         .object({ type: z.string() })
         .loose()
+        .refine(value => !isKnownOpenAIResponsesChunk(value), {
+          message: 'Known response chunk failed schema validation',
+        })
         .transform(value => ({
           type: 'unknown_chunk' as const,
           message: value.type,
