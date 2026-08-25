@@ -36,6 +36,7 @@ export interface DeepSeekContentPartImage {
 export interface DeepSeekAssistantMessage {
   role: 'assistant';
   content?: string | null;
+  prefix?: true;
   reasoning_content?: string;
   tool_calls?: Array<DeepSeekMessageToolCall>;
 }

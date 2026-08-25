@@ -9,6 +9,19 @@ export type DeepSeekChatModelId =
 
 export const deepseekLanguageModelOptions = z.object({
   /**
+   * An opaque identifier for the end user. DeepSeek uses this identifier for
+   * content-safety tracing and request isolation.
+   *
+   * Must contain only ASCII letters, numbers, underscores, and hyphens, and
+   * must be at most 512 characters long.
+   */
+  userId: z
+    .string()
+    .regex(/^[a-zA-Z0-9_-]+$/, 'userId must match /^[a-zA-Z0-9_-]+$/')
+    .max(512, 'userId must be at most 512 characters long')
+    .optional(),
+
+  /**
    * Type of thinking to use. Defaults to `enabled`.
    *
    * See https://api-docs.deepseek.com/guides/thinking_mode for the
@@ -39,4 +52,17 @@ export const deepseekLanguageModelOptions = z.object({
 
 export type DeepSeekLanguageModelOptions = z.infer<
   typeof deepseekLanguageModelOptions
+>;
+
+export const deepseekAssistantMessageProviderOptions = z.object({
+  /**
+   * Whether the assistant message content is a prefix that DeepSeek should
+   * continue. This beta feature is only supported on the final assistant
+   * message when using a beta base URL.
+   */
+  prefix: z.literal(true).optional(),
+});
+
+export type DeepSeekAssistantMessageProviderOptions = z.infer<
+  typeof deepseekAssistantMessageProviderOptions
 >;
