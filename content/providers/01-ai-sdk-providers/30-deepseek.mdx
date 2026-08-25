@@ -157,6 +157,96 @@ const { text, reasoning } = await generateText({
 });
 ```
 
+### Message Names
+
+DeepSeek supports optional participant names on system, user, and assistant
+messages. Set `providerOptions.deepseek.name` on each message that should
+include a name:
+
+```ts
+import {
+  deepSeek,
+  type DeepSeekMessageProviderOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-chat'),
+  instructions: {
+    role: 'system',
+    content: 'Help the customer plan a short trip.',
+    providerOptions: {
+      deepseek: {
+        name: 'travel_planner',
+      } satisfies DeepSeekMessageProviderOptions,
+    },
+  },
+  messages: [
+    {
+      role: 'user',
+      content: 'I want to visit Lisbon for a weekend.',
+      providerOptions: {
+        deepseek: {
+          name: 'customer',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+    {
+      role: 'assistant',
+      content: 'What kinds of activities do you enjoy?',
+      providerOptions: {
+        deepseek: {
+          name: 'travel_planner',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+    {
+      role: 'user',
+      content: 'Food, architecture, and walking.',
+      providerOptions: {
+        deepseek: {
+          name: 'customer',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+  ],
+});
+```
+
+The same message option works with `streamText`:
+
+```ts
+import {
+  deepSeek,
+  type DeepSeekMessageProviderOptions,
+} from '@ai-sdk/deepseek';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: deepSeek('deepseek-chat'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Suggest a name for my neighborhood book club.',
+      providerOptions: {
+        deepseek: {
+          name: 'organizer',
+        } satisfies DeepSeekMessageProviderOptions,
+      },
+    },
+  ],
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+Names are omitted when the option is not set. The `name` value must be a
+string. DeepSeek does not support names on tool messages, so the provider
+ignores that placement and returns an unsupported-feature warning. Avoid
+including unnecessary personal or identifying information in message names.
+
 ### Reasoning
 
 DeepSeek has reasoning support for the `deepseek-v4-pro` model. The reasoning is exposed through streaming:

@@ -8,6 +8,7 @@ import { DeepSeekChatLanguageModel } from './deepseek-chat-language-model';
 import type {
   DeepSeekAssistantMessageProviderOptions,
   DeepSeekChatOptions,
+  DeepSeekMessageProviderOptions,
 } from './deepseek-chat-options';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -187,6 +188,77 @@ describe('DeepSeekChatLanguageModel', () => {
               'presencePenalty is deprecated by DeepSeek and has been omitted. Remove presencePenalty from the request.',
           },
         ]);
+      });
+
+      it('should send message names', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.',
+              providerOptions: {
+                deepseek: {
+                  name: 'guide',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'alice',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Hello, Alice.' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'assistant',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'How are you?' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'alice',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "You are a helpful assistant.",
+                "name": "guide",
+                "role": "system",
+              },
+              {
+                "content": "Hello",
+                "name": "alice",
+                "role": "user",
+              },
+              {
+                "content": "Hello, Alice.",
+                "name": "assistant",
+                "role": "assistant",
+              },
+              {
+                "content": "How are you?",
+                "name": "alice",
+                "role": "user",
+              },
+            ],
+            "model": "deepseek-chat",
+          }
+        `);
       });
 
       it('should pass providerOptions userId as user_id', async () => {
@@ -933,7 +1005,7 @@ describe('DeepSeekChatLanguageModel', () => {
           };
       });
 
-      it('should send prefix true on the final assistant message', async () => {
+      it('should send name and prefix on the final assistant message', async () => {
         await betaProvider.chat('deepseek-chat').doGenerate({
           prompt: [
             {
@@ -945,6 +1017,7 @@ describe('DeepSeekChatLanguageModel', () => {
               content: [{ type: 'text', text: 'The answer is' }],
               providerOptions: {
                 deepseek: {
+                  name: 'assistant',
                   prefix: true,
                 } satisfies DeepSeekAssistantMessageProviderOptions,
               },
@@ -961,6 +1034,7 @@ describe('DeepSeekChatLanguageModel', () => {
             {
               role: 'assistant',
               content: 'The answer is',
+              name: 'assistant',
               prefix: true,
             },
           ],
@@ -1128,6 +1202,67 @@ describe('DeepSeekChatLanguageModel', () => {
             },
           ],
         });
+      });
+
+      it('should send message names', async () => {
+        await provider.chat('deepseek-chat').doStream({
+          prompt: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.',
+              providerOptions: {
+                deepseek: {
+                  name: 'guide',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'alice',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Hello, Alice.' }],
+              providerOptions: {
+                deepseek: {
+                  name: 'assistant',
+                } satisfies DeepSeekMessageProviderOptions,
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "You are a helpful assistant.",
+                "name": "guide",
+                "role": "system",
+              },
+              {
+                "content": "Hello",
+                "name": "alice",
+                "role": "user",
+              },
+              {
+                "content": "Hello, Alice.",
+                "name": "assistant",
+                "role": "assistant",
+              },
+            ],
+            "model": "deepseek-chat",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true,
+            },
+          }
+        `);
       });
 
       it('should pass providerOptions userId as user_id', async () => {
