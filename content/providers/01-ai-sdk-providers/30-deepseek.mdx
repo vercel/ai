@@ -311,6 +311,38 @@ before it is sent.
   Chat prefix completion is a DeepSeek beta feature and its behavior may change.
 </Note>
 
+### Strict Tool Calls
+
+DeepSeek's strict tool-call mode is a beta feature. Create the provider with a
+beta base URL and set `strict: true` on every function tool in the request:
+
+```ts highlight="5,14"
+import { createDeepSeek } from '@ai-sdk/deepseek';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const deepSeek = createDeepSeek({
+  baseURL: 'https://api.deepseek.com/beta',
+});
+
+const result = await generateText({
+  model: deepSeek('deepseek-chat'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    weather: tool({
+      description: 'Get the weather for a location.',
+      inputSchema: z.object({ location: z.string() }),
+      strict: true,
+      execute: async ({ location }) => ({ location, temperature: 18 }),
+    }),
+  },
+});
+```
+
+Strict tools fail locally when the base URL does not end in `/beta`. When any
+function tool is strict, every function tool in the same request must set
+`strict: true`.
+
 ### Provider Metadata
 
 DeepSeek exposes the response system fingerprint and context cache usage through

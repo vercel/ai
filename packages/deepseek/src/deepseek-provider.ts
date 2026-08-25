@@ -92,6 +92,7 @@ export function createDeepSeek(
       headers: getHeaders,
       fetch: options.fetch,
       supportsAssistantPrefixCompletion: baseURL.endsWith('/beta'),
+      supportsStrictToolCalls: baseURL.endsWith('/beta'),
     });
   };
 
