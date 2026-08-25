@@ -20,13 +20,11 @@ export interface TakoDataSourceConfig {
    */
   count?: number;
   /**
-   * Inline the rows behind each data result. Data contents incur additional
-   * data surcharges based on number of rows requested and the underlying
-   * dataset source. To estimate the cost before requesting the data, search
-   * with includeContents disabled and check the cards.content.export_pricing
-   * response field for details. sources.data.includeContents applies to all
-   * cards returned by the search, so use sources.data.count and
-   * sources.data.maxRows to further clamp down on data export costs.
+   * Inline rows for each data result. This adds a data surcharge based on row
+   * count and dataset source. To estimate cost, search with includeContents
+   * disabled and inspect cards.content.export_pricing. This applies to every
+   * returned card; limit sources.data.count and sources.data.maxRows to control
+   * cost.
    */
   includeContents?: boolean;
   /** Requested delivery mode for card data. Search cards are always inlined. */
@@ -34,10 +32,9 @@ export interface TakoDataSourceConfig {
   /** Serialization for inlined card data. */
   contentFormat?: TakoContentFormat;
   /**
-   * Maximum rows to inline per result. Omit it to return the max allowance set
-   * by cards.content.export_pricing. Data surcharge is applied per 1000 rows
-   * exported. Lower it to request a smaller number of rows and decrease data
-   * surcharges.
+   * Maximum rows to inline per result. Omit to use the allowance in
+   * cards.content.export_pricing. A data surcharge applies per 1,000 exported
+   * rows; lower values reduce cost.
    */
   maxRows?: number;
   /** Data Graph node IDs to prioritize. */
@@ -275,7 +272,7 @@ const takoDataSourceInputSchema = z.object({
     .boolean()
     .optional()
     .describe(
-      'Inline the rows behind each data result. Data contents incur additional data surcharges based on number of rows requested and the underlying dataset source. To estimate the cost before requesting the data, search with include_contents disabled and check the cards.content.export_pricing response field for details. sources.data.include_contents applies to all cards returned by the search, so use sources.data.count and sources.data.max_rows to further clamp down on data export costs.',
+      'Inline rows for each data result. This adds a data surcharge based on row count and dataset source. To estimate cost, search with include_contents disabled and inspect cards.content.export_pricing. This applies to every returned card; limit sources.data.count and sources.data.max_rows to control cost.',
     ),
   mode: z
     .enum(['inline', 'url'])
@@ -291,7 +288,7 @@ const takoDataSourceInputSchema = z.object({
     .number()
     .optional()
     .describe(
-      'Maximum rows to inline per result. Omit it to return the max allowance set by cards.content.export_pricing. Data surcharge is applied per 1000 rows exported. Lower it to request a smaller number of rows and decrease data surcharges.',
+      'Maximum rows to inline per result. Omit to use the allowance in cards.content.export_pricing. A data surcharge applies per 1,000 exported rows; lower values reduce cost.',
     ),
   node_ids: z
     .array(z.string())

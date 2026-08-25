@@ -3,4 +3,6 @@
 ---
 
 Remove the internal-only `relevance_score` and `citation_number` fields from
-Tako Search response types and schemas, and document data surcharge controls.
+published Tako Search response types and schemas. Code that reads either field
+must be updated; Gateway responses still pass the values through at runtime,
+but they are no longer typed. Also document data surcharge controls.
