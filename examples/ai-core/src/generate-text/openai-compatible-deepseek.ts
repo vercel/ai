@@ -12,7 +12,7 @@ const deepSeek = createOpenAICompatible({
 
 async function main() {
   const { text, usage } = await generateText({
-    model: deepSeek('deepseek-chat'),
+    model: deepSeek('deepseek-v4-flash'),
     prompt: 'Write a "Hello, World!" program in TypeScript.',
   });
 
