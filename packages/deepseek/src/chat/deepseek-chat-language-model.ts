@@ -1,6 +1,7 @@
 import {
   type APICallError,
   type LanguageModelV2,
+  type LanguageModelV2CallWarning,
   type LanguageModelV2Content,
   type LanguageModelV2FinishReason,
   type LanguageModelV2StreamPart,
@@ -44,6 +45,30 @@ export type DeepSeekChatConfig = {
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
+
+function mapDeepSeekProviderReasoningEffort({
+  reasoningEffort,
+  warnings,
+}: {
+  reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  warnings: LanguageModelV2CallWarning[];
+}): 'low' | 'high' | 'max' {
+  const mapped =
+    reasoningEffort === 'medium'
+      ? 'high'
+      : reasoningEffort === 'xhigh'
+        ? 'max'
+        : reasoningEffort;
+
+  if (mapped !== reasoningEffort) {
+    warnings.push({
+      type: 'other',
+      message: `reasoningEffort "${reasoningEffort}" is not a canonical DeepSeek value. mapped to "${mapped}".`,
+    });
+  }
+
+  return mapped;
+}
 
 export class DeepSeekChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -127,13 +152,31 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
       tools,
       toolChoice,
     });
+    const allWarnings = [...warnings, ...toolWarnings];
+
+    const thinkingType = deepseekOptions.thinking?.type;
+    if (thinkingType === 'adaptive') {
+      allWarnings.push({
+        type: 'other',
+        message:
+          'thinking.type "adaptive" is not a canonical DeepSeek value. mapped to "enabled".',
+      });
+    }
 
     const thinking =
       this.config.supportsThinking === false
         ? undefined
-        : deepseekOptions.thinking?.type != null
-          ? { type: deepseekOptions.thinking.type }
+        : thinkingType != null
+          ? { type: thinkingType === 'adaptive' ? 'enabled' : thinkingType }
           : undefined;
+
+    const reasoningEffort =
+      deepseekOptions.reasoningEffort != null
+        ? mapDeepSeekProviderReasoningEffort({
+            reasoningEffort: deepseekOptions.reasoningEffort,
+            warnings: allWarnings,
+          })
+        : undefined;
 
     return {
       args: {
@@ -166,11 +209,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
           user_id: deepseekOptions.userId,
         }),
         ...(thinking?.type !== 'disabled' &&
-          deepseekOptions.reasoningEffort != null && {
-            reasoning_effort: deepseekOptions.reasoningEffort,
+          reasoningEffort != null && {
+            reasoning_effort: reasoningEffort,
           }),
       },
-      warnings: [...warnings, ...toolWarnings],
+      warnings: allWarnings,
     };
   }
 
