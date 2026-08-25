@@ -851,6 +851,39 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should omit assistant messages that only contain unsigned reasoning and blank text', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'First question' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Unsigned reasoning',
+          },
+          { type: 'text', text: '\n ' },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Follow-up question' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'First question' }, { text: 'Follow-up question' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should strip invalid characters from tool call names', async () => {
     const result = await convertToBedrockChatMessages([
       {
