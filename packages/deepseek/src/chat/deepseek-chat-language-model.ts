@@ -47,8 +47,38 @@ export type DeepSeekChatConfig = {
   supportsStructuredOutputs?: boolean;
 };
 
+<<<<<<< HEAD
 export class DeepSeekChatLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
+=======
+function mapDeepSeekProviderReasoningEffort({
+  reasoningEffort,
+  warnings,
+}: {
+  reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  warnings: SharedV4Warning[];
+}): 'low' | 'high' | 'max' {
+  const mapped =
+    reasoningEffort === 'medium'
+      ? 'high'
+      : reasoningEffort === 'xhigh'
+        ? 'max'
+        : reasoningEffort;
+
+  if (mapped !== reasoningEffort) {
+    warnings.push({
+      type: 'compatibility',
+      feature: 'reasoningEffort',
+      details: `reasoningEffort "${reasoningEffort}" is not a canonical DeepSeek value. mapped to "${mapped}".`,
+    });
+  }
+
+  return mapped;
+}
+
+export class DeepSeekChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
+>>>>>>> 560fc396e1 (fix: align DeepSeek thinking and reasoning effort options with the documented V4 contract (#19412))
 
   readonly modelId: DeepSeekChatModelId;
 
@@ -127,11 +157,48 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       toolChoice,
     });
 
+    const thinkingType = deepseekOptions.thinking?.type;
+    if (thinkingType === 'adaptive') {
+      allWarnings.push({
+        type: 'compatibility',
+        feature: 'thinking.type',
+        details:
+          'thinking.type "adaptive" is not a canonical DeepSeek value. mapped to "enabled".',
+      });
+    }
+
     const thinking =
       this.config.supportsThinking === false
         ? undefined
+<<<<<<< HEAD
         : deepseekOptions.thinking?.type != null
           ? { type: deepseekOptions.thinking.type }
+=======
+        : thinkingType != null
+          ? { type: thinkingType === 'adaptive' ? 'enabled' : thinkingType }
+          : isCustomReasoning(reasoning)
+            ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
+            : undefined;
+
+    const reasoningEffort =
+      deepseekOptions.reasoningEffort != null
+        ? mapDeepSeekProviderReasoningEffort({
+            reasoningEffort: deepseekOptions.reasoningEffort,
+            warnings: allWarnings,
+          })
+        : isCustomReasoning(reasoning) && reasoning !== 'none'
+          ? mapReasoningToProviderEffort({
+              reasoning,
+              effortMap: {
+                minimal: 'low',
+                low: 'low',
+                medium: 'high',
+                high: 'high',
+                xhigh: 'max',
+              },
+              warnings: allWarnings,
+            })
+>>>>>>> 560fc396e1 (fix: align DeepSeek thinking and reasoning effort options with the documented V4 contract (#19412))
           : undefined;
 
     return {
