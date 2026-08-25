@@ -117,7 +117,7 @@ export class GoogleFiles implements FilesV4 {
         'X-Goog-Upload-Offset': '0',
         'X-Goog-Upload-Command': 'upload, finalize',
       },
-      body: fileBytes,
+      body: ensureArrayBufferBacked(fileBytes),
     });
 
     if (!uploadResponse.ok) {
@@ -197,6 +197,14 @@ export class GoogleFiles implements FilesV4 {
       },
     };
   }
+}
+
+function ensureArrayBufferBacked(data: Uint8Array): Uint8Array<ArrayBuffer> {
+  if (data.buffer instanceof ArrayBuffer) {
+    return data as Uint8Array<ArrayBuffer>;
+  }
+
+  return new Uint8Array(data);
 }
 
 type GoogleFileResource = {
