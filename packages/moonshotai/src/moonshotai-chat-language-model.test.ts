@@ -306,7 +306,7 @@ describe('doGenerate', () => {
 
   describe('structured outputs', () => {
     beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-text');
+      prepareJsonFixtureResponse('moonshotai-v1-structured-output');
     });
 
     it('should strip the $schema keyword from json schemas', async () => {
@@ -348,18 +348,41 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should fall back to json_object for models without structured outputs', async () => {
-      await provider.chatModel('moonshot-v1-8k').doGenerate({
+    it.each([
+      'moonshot-v1-8k',
+      'moonshot-v1-32k',
+      'moonshot-v1-128k',
+      'moonshot-v1-auto',
+      'moonshot-v1-8k-vision-preview',
+      'moonshot-v1-32k-vision-preview',
+      'moonshot-v1-128k-vision-preview',
+    ])('should send json_schema for official model %s', async modelId => {
+      await provider.chatModel(modelId).doGenerate({
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
-          schema: { type: 'object', properties: {} },
+          name: 'greeting_response',
+          schema: {
+            type: 'object',
+            properties: { greeting: { type: 'string', const: 'hello' } },
+            required: ['greeting'],
+            additionalProperties: false,
+          },
         },
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.response_format).toStrictEqual({
-        type: 'json_object',
+        type: 'json_schema',
+        json_schema: {
+          name: 'greeting_response',
+          schema: {
+            type: 'object',
+            properties: { greeting: { type: 'string', const: 'hello' } },
+            required: ['greeting'],
+            additionalProperties: false,
+          },
+        },
       });
     });
   });

@@ -1,0 +1,21 @@
+{
+  "id": "chatcmpl-6a8de89527e9ba7a4ffb948e",
+  "object": "chat.completion",
+  "created": 1787685013,
+  "model": "moonshot-v1-8k",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"greeting\": \"hello\"\n}"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 16,
+    "completion_tokens": 12,
+    "total_tokens": 28
+  }
+}
