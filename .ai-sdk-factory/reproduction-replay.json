@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17951,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/windows-clean-rm.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/windows-clean-rm.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #17951 reproduced: clean scripts fail when rm is unavailable: @ai-sdk/test-server, @ai-sdk/mcp, @ai-sdk/huggingface, @ai-sdk/baseten"
+  }
+}
