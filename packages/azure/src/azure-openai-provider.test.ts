@@ -617,8 +617,11 @@ describe('deepseek', () => {
         },
         "providerMetadata": {
           "azure": {
+            "choiceIndex": 0,
+            "messageRole": "assistant",
             "promptCacheHitTokens": undefined,
             "promptCacheMissTokens": undefined,
+            "responseObject": "chat.completion.chunk",
           },
         },
         "type": "finish",

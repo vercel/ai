@@ -16,7 +16,16 @@ import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
 } from './deepseek-chat-api-types';
+import { deepseekFilePartProviderOptions } from './deepseek-file-part-options';
 import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
+
+const supportedImageMediaTypes = new Set([
+  'image/gif',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+]);
 
 export async function convertToDeepSeekChatMessages({
   prompt,
@@ -75,13 +84,15 @@ export async function convertToDeepSeekChatMessages({
   for (const { role, content, providerOptions } of prompt) {
     index++;
 
-    const messageOptions = await parseProviderOptions({
+    // The assistant schema extends the common message schema, so one parse
+    // validates names for every role and the assistant-only prefix option.
+    const deepseekMessageOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
       schema: deepseekAssistantMessageProviderOptions,
     });
 
-    if (messageOptions?.prefix === true && role !== 'assistant') {
+    if (deepseekMessageOptions?.prefix === true && role !== 'assistant') {
       throw new InvalidPromptError({
         prompt,
         message:
@@ -91,7 +102,13 @@ export async function convertToDeepSeekChatMessages({
 
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        messages.push({
+          role: 'system',
+          content,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
+        });
         break;
       }
 
@@ -118,7 +135,13 @@ export async function convertToDeepSeekChatMessages({
             }
           }
 
-          messages.push({ role: 'user', content: userContent });
+          messages.push({
+            role: 'user',
+            content: userContent,
+            ...(deepseekMessageOptions?.name != null && {
+              name: deepseekMessageOptions.name,
+            }),
+          });
           break;
         }
 
@@ -130,6 +153,12 @@ export async function convertToDeepSeekChatMessages({
             part.type === 'file' &&
             getTopLevelMediaType(part.mediaType) === 'image'
           ) {
+            const filePartOptions = await parseProviderOptions({
+              provider: providerOptionsName,
+              providerOptions: part.providerOptions,
+              schema: deepseekFilePartProviderOptions,
+            });
+
             if (part.data.type === 'reference') {
               userContent.push({
                 type: 'file',
@@ -139,15 +168,77 @@ export async function convertToDeepSeekChatMessages({
                 }),
               });
             } else if (part.data.type === 'url' || part.data.type === 'data') {
-              userContent.push({
-                type: 'image_url',
-                image_url: {
-                  url:
-                    part.data.type === 'url'
-                      ? part.data.url.toString()
-                      : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
-                },
-              });
+              const resolvedMediaType = resolveFullMediaType({ part });
+
+              if (!supportedImageMediaTypes.has(resolvedMediaType)) {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `DeepSeek image media type ${resolvedMediaType}`,
+                  message:
+                    'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
+                });
+              }
+
+              if (part.data.type === 'url') {
+                const url = part.data.url.toString();
+
+                if (url.length > 8192) {
+                  throw new InvalidPromptError({
+                    prompt,
+                    message:
+                      'DeepSeek image URLs must not exceed 8192 characters.',
+                  });
+                }
+
+                if (filePartOptions?.fileData === true) {
+                  throw new InvalidPromptError({
+                    prompt,
+                    message:
+                      'DeepSeek `fileData` image parts require inline data, not a URL.',
+                  });
+                }
+
+                userContent.push({
+                  type: 'image_url',
+                  image_url: {
+                    url,
+                    ...(filePartOptions?.imageDetail != null && {
+                      detail: filePartOptions.imageDetail,
+                    }),
+                  },
+                });
+              } else {
+                const dataUrl = `data:${
+                  resolvedMediaType === 'image/jpg'
+                    ? 'image/jpeg'
+                    : resolvedMediaType
+                };base64,${convertToBase64(part.data.data)}`;
+
+                if (filePartOptions?.fileData === true) {
+                  if (filePartOptions.imageDetail != null) {
+                    throw new InvalidPromptError({
+                      prompt,
+                      message:
+                        'DeepSeek `imageDetail` cannot be combined with `fileData`.',
+                    });
+                  }
+
+                  userContent.push({
+                    type: 'file',
+                    file_data: dataUrl,
+                    ...(part.filename != null && { filename: part.filename }),
+                  });
+                } else {
+                  userContent.push({
+                    type: 'image_url',
+                    image_url: {
+                      url: dataUrl,
+                      ...(filePartOptions?.imageDetail != null && {
+                        detail: filePartOptions.imageDetail,
+                      }),
+                    },
+                  });
+                }
+              }
             } else {
               warnings.push({
                 type: 'unsupported',
@@ -165,12 +256,15 @@ export async function convertToDeepSeekChatMessages({
         messages.push({
           role: 'user',
           content: userContent,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
         });
 
         break;
       }
       case 'assistant': {
-        if (messageOptions?.prefix === true) {
+        if (deepseekMessageOptions?.prefix === true) {
           if (index !== prompt.length - 1) {
             throw new InvalidPromptError({
               prompt,
@@ -235,7 +329,12 @@ export async function convertToDeepSeekChatMessages({
         messages.push({
           role: 'assistant',
           content: text,
-          ...(messageOptions?.prefix === true && { prefix: true }),
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
+          ...(deepseekMessageOptions?.prefix === true && {
+            prefix: true,
+          }),
           reasoning_content: reasoning ?? (isDeepSeekV4 ? '' : undefined),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
@@ -244,6 +343,13 @@ export async function convertToDeepSeekChatMessages({
       }
 
       case 'tool': {
+        if (deepseekMessageOptions?.name != null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          });
+        }
+
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
             continue;

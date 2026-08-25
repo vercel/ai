@@ -7,6 +7,183 @@ import { describe, it, expect } from 'vitest';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 
 describe('convertToDeepSeekChatMessages', () => {
+  describe('message names', () => {
+    it('should serialize names for system, user, and assistant messages', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            providerOptions: {
+              deepseek: { name: 'guide' },
+            },
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image.' },
+              {
+                type: 'file',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/image.png'),
+                },
+                mediaType: 'image/png',
+              },
+            ],
+            providerOptions: {
+              deepseek: { name: 'alice' },
+            },
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'I will inspect it.' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'inspectImage',
+                input: { detail: 'high' },
+              },
+            ],
+            providerOptions: {
+              deepseek: { name: 'vision_assistant' },
+            },
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-flash-vision-exp',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "You are a helpful assistant.",
+              "name": "guide",
+              "role": "system",
+            },
+            {
+              "content": [
+                {
+                  "text": "Describe this image.",
+                  "type": "text",
+                },
+                {
+                  "image_url": {
+                    "url": "https://example.com/image.png",
+                  },
+                  "type": "image_url",
+                },
+              ],
+              "name": "alice",
+              "role": "user",
+            },
+            {
+              "content": "I will inspect it.",
+              "name": "vision_assistant",
+              "reasoning_content": "",
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{"detail":"high"}",
+                    "name": "inspectImage",
+                  },
+                  "id": "call-1",
+                  "type": "function",
+                },
+              ],
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should ignore a name on a tool message with an unsupported warning', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                output: { type: 'text', value: 'sunny' },
+              },
+            ],
+            providerOptions: {
+              deepseek: { name: 'weather_tool' },
+            },
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'tool',
+            tool_call_id: 'call-1',
+            content: 'sunny',
+          },
+        ],
+        warnings: [
+          {
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          },
+        ],
+      });
+    });
+
+    it('should reject a non-string name', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: {
+                deepseek: { name: 123 },
+              },
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+        }),
+      ).rejects.toThrow('invalid deepseek provider options');
+    });
+
+    it('should serialize a name from a custom provider options namespace', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              azure: { name: 'alice' },
+            },
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+        providerOptionsName: 'azure',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: 'Hello',
+          name: 'alice',
+        },
+      ]);
+    });
+  });
+
   describe('user messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
       const result = await convertToDeepSeekChatMessages({
@@ -123,6 +300,164 @@ describe('convertToDeepSeekChatMessages', () => {
           "warnings": [],
         }
       `);
+    });
+
+    it('should pass imageDetail to image URL content parts', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'url' as const,
+                  url: new URL('https://example.com/image.webp'),
+                },
+                mediaType: 'image/webp',
+                providerOptions: {
+                  deepseek: { imageDetail: 'low' },
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-flash-vision-exp',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: {
+                url: 'https://example.com/image.webp',
+                detail: 'low',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert inline image data to file_data and preserve its filename', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([0, 1, 2, 3]),
+                },
+                filename: 'sample.jpg',
+                mediaType: 'image/jpg',
+                providerOptions: {
+                  deepseek: { fileData: true },
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-flash-vision-exp',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file_data: 'data:image/jpeg;base64,AAECAw==',
+              filename: 'sample.jpg',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should reject imageDetail together with fileData', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'data' as const,
+                    data: new Uint8Array([0, 1, 2, 3]),
+                  },
+                  mediaType: 'image/png',
+                  providerOptions: {
+                    deepseek: { fileData: true, imageDetail: 'high' },
+                  },
+                },
+              ],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-v4-flash-vision-exp',
+        }),
+      ).rejects.toThrow(
+        'DeepSeek `imageDetail` cannot be combined with `fileData`.',
+      );
+    });
+
+    it('should reject image URLs longer than 8192 characters', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url' as const,
+                    url: new URL(`https://example.com/${'a'.repeat(8192)}`),
+                  },
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-v4-flash-vision-exp',
+        }),
+      ).rejects.toThrow('DeepSeek image URLs must not exceed 8192 characters.');
+    });
+
+    it('should reject unsupported image formats', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'data' as const,
+                    data: new Uint8Array([0, 1, 2, 3]),
+                  },
+                  mediaType: 'image/svg+xml',
+                },
+              ],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-v4-flash-vision-exp',
+        }),
+      ).rejects.toThrow(
+        'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
+      );
     });
 
     it('should convert an image provider reference to a file content part', async () => {

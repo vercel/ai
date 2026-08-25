@@ -1,5 +1,14 @@
 # @ai-sdk/moonshotai
 
+## 3.0.38
+
+### Patch Changes
+
+- 2214258: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 3.0.37
 
 ### Patch Changes
