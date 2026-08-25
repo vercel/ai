@@ -247,6 +247,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
             responseBody.usage?.prompt_cache_hit_tokens ?? null,
           promptCacheMissTokens:
             responseBody.usage?.prompt_cache_miss_tokens ?? null,
+          ...(responseBody.system_fingerprint != null && {
+            systemFingerprint: responseBody.system_fingerprint,
+          }),
         },
       },
       request: { body: args },
@@ -297,6 +300,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: DeepSeekChatTokenUsage | undefined = undefined;
+    let systemFingerprint: string | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
@@ -344,6 +348,12 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
 
             if (value.usage != null) {
               usage = value.usage;
+            }
+
+            // The fingerprint is repeated on stream chunks; keep the latest
+            // non-null value in case it changes during the response.
+            if (value.system_fingerprint != null) {
+              systemFingerprint = value.system_fingerprint;
             }
 
             const choice = value.choices[0];
@@ -563,6 +573,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
                   promptCacheHitTokens: usage?.prompt_cache_hit_tokens ?? null,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? null,
+                  ...(systemFingerprint != null && { systemFingerprint }),
                 },
               },
             });
