@@ -6,7 +6,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
-    model: deepseek('deepseek-reasoner'),
+    model: deepseek('deepseek-v4-pro'),
     tools: { weather: weatherTool },
     stopWhen: stepCountIs(5),
     output: Output.json(),
