@@ -3,20 +3,15 @@ import {
   type LanguageModelV3CallOptions,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
-<<<<<<< HEAD
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
-=======
 import {
   convertJSONSchemaToOpenAPISchema,
   isRecursiveJSONSchemaReferenceError,
 } from './convert-json-schema-to-openapi-schema';
-import type { GoogleModelId } from './google-language-model-options';
->>>>>>> 92e08e6f2e (fix: prevent recursive Google tool schemas from aborting model calls (#19490))
+import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 import { getGoogleModelCapabilities } from './google-model-capabilities';
 
 type FunctionTool = Extract<
-  NonNullable<LanguageModelV4CallOptions['tools']>[number],
+  NonNullable<LanguageModelV3CallOptions['tools']>[number],
   { type: 'function' }
 >;
 
