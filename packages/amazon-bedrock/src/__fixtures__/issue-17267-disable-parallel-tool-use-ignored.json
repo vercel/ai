@@ -1,0 +1,46 @@
+{
+  "metrics": {
+    "latencyMs": 2202
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "Sure! I'll look up both values at the same time right away!"
+        },
+        {
+          "toolUse": {
+            "input": {
+              "ref": "R1"
+            },
+            "name": "get_resistor_value",
+            "toolUseId": "tooluse_CpSCQ7nnV3WhQdQh2xOOUN",
+            "type": "tool_use"
+          }
+        },
+        {
+          "toolUse": {
+            "input": {
+              "ref": "C1"
+            },
+            "name": "get_capacitor_value",
+            "toolUseId": "tooluse_u2jQ7EvwMucQ7kW7n7KdRl",
+            "type": "tool_use"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 706,
+    "outputTokens": 113,
+    "serverToolUsage": {},
+    "totalTokens": 819
+  }
+}
