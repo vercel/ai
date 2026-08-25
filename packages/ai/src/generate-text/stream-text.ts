@@ -21,6 +21,7 @@ import {
   type ToolContent,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
+import type * as asyncHooksModule from 'node:async_hooks';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
@@ -972,6 +973,30 @@ function createOutputTransformStream<
   });
 }
 
+type AsyncLocalStorage<T> = asyncHooksModule.AsyncLocalStorage<T>;
+
+function createAsyncLocalStorage<T>(): AsyncLocalStorage<T> | undefined {
+  const processWithBuiltins = globalThis.process as
+    | {
+        getBuiltinModule?: (id: string) => unknown;
+      }
+    | undefined;
+
+  try {
+    const asyncHooks = processWithBuiltins?.getBuiltinModule?.(
+      'node:async_hooks',
+    ) as typeof asyncHooksModule | undefined;
+
+    return asyncHooks == null
+      ? undefined
+      : new asyncHooks.AsyncLocalStorage<T>();
+  } catch {
+    return undefined;
+  }
+}
+
+const onEndCallbackContext = createAsyncLocalStorage<object>();
+
 class DefaultStreamTextResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
@@ -995,9 +1020,9 @@ class DefaultStreamTextResult<
   private readonly _onEndCompleted = new DelayedPromise<void>();
 
   private outputPromise: Promise<InferCompleteOutput<OUTPUT>> | undefined;
+  private readonly onEndCallbackContextToken = {};
+  private readonly hasOnEndCallback: boolean;
   private isOnEndCallbackExecuting = false;
-  private canOnEndCallbackAccessOutput = false;
-  private hasOnEndCallbackStarted = false;
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
@@ -1156,6 +1181,7 @@ class DefaultStreamTextResult<
     onToolExecutionEnd: undefined | OnToolExecutionEndCallback<TOOLS>;
   }) {
     this.outputSpecification = output;
+    this.hasOnEndCallback = onEnd != null;
     this.tools = tools;
     const resolvedToolCallers = resolveToolCallerConfiguration({
       tools,
@@ -1524,13 +1550,20 @@ class DefaultStreamTextResult<
                       ? undefined
                       : await self.getOutputPromise().catch(() => undefined);
 
-                  self.hasOnEndCallbackStarted = true;
                   self.isOnEndCallbackExecuting = true;
                   try {
-                    await onEnd({
-                      ...event,
-                      ...(output != null ? { output: parsedOutput } : {}),
-                    });
+                    const callback = () =>
+                      onEnd({
+                        ...event,
+                        ...(output != null ? { output: parsedOutput } : {}),
+                      });
+
+                    await (onEndCallbackContext == null
+                      ? callback()
+                      : onEndCallbackContext.run(
+                          self.onEndCallbackContextToken,
+                          callback,
+                        ));
                   } finally {
                     self.isOnEndCallbackExecuting = false;
                   }
@@ -2944,16 +2977,17 @@ class DefaultStreamTextResult<
       return this.getOutputPromise();
     }
 
-    // A structured-output read that started before onEnd is already waiting
-    // for callback completion. Let the callback consume one direct read so it
-    // can await result.output without creating a dependency cycle.
-    if (this.isOnEndCallbackExecuting && this.canOnEndCallbackAccessOutput) {
-      this.canOnEndCallbackAccessOutput = false;
+    if (!this.hasOnEndCallback) {
       return this.getOutputPromise();
     }
 
-    if (!this.hasOnEndCallbackStarted) {
-      this.canOnEndCallbackAccessOutput = true;
+    // Callback reads must use the parsed output directly to avoid a dependency
+    // cycle. External reads continue to wait for callback completion.
+    if (
+      onEndCallbackContext?.getStore() === this.onEndCallbackContextToken ||
+      (onEndCallbackContext == null && this.isOnEndCallbackExecuting)
+    ) {
+      return this.getOutputPromise();
     }
 
     return this._onEndCompleted.promise.then(() => this.getOutputPromise());

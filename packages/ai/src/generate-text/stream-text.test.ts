@@ -20898,6 +20898,73 @@ describe('streamText', () => {
         await consumePromise;
       });
 
+      it('should distinguish callback output access from concurrent external access', async () => {
+        const output = Output.object({
+          schema: z.object({ value: z.string() }),
+        });
+        const callbackStarted = new DelayedPromise<void>();
+        const allowCallbackOutputAccess = new DelayedPromise<void>();
+        const callbackReadOutput = new DelayedPromise<void>();
+        const finishCallback = new DelayedPromise<void>();
+        let callbackOutput: { value: string } | undefined;
+        let callbackCompleted = false;
+        let result!: StreamTextResult<any, any, typeof output>;
+
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output,
+          prompt: 'prompt',
+          onFinish: async () => {
+            callbackStarted.resolve();
+            await allowCallbackOutputAccess.promise;
+            callbackOutput = await result.output;
+            callbackReadOutput.resolve();
+            await finishCallback.promise;
+            callbackCompleted = true;
+          },
+        });
+
+        const consumePromise = result.consumeStream();
+        await callbackStarted.promise;
+
+        let externalOutputSettled = false;
+        const externalOutputPromise = Promise.resolve(result.output).then(
+          output => {
+            externalOutputSettled = true;
+            return output;
+          },
+        );
+
+        allowCallbackOutputAccess.resolve();
+        await callbackReadOutput.promise;
+
+        expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+        expect(externalOutputSettled).toBe(false);
+
+        finishCallback.resolve();
+
+        expect(await externalOutputPromise).toStrictEqual({
+          value: 'Hello, world!',
+        });
+        expect(callbackCompleted).toBe(true);
+        await consumePromise;
+      });
+
       it('should not delay default text output for an active onFinish callback', async () => {
         const callbackStarted = new DelayedPromise<void>();
         const finishCallback = new DelayedPromise<void>();
@@ -21002,8 +21069,10 @@ describe('streamText', () => {
           },
         });
 
-        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
+        await result.consumeStream();
+
         expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
       });
 
       it('should allow onFinish to await the output promise after asynchronous work', async () => {
@@ -21038,8 +21107,10 @@ describe('streamText', () => {
           },
         });
 
-        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
+        await result.consumeStream();
+
         expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
       });
 
       it('should call onFinish with the correct content', async () => {
