@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19488,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-recursive-tool-schema.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-recursive-tool-schema.ts",
+    "packages/google/src/__fixtures__/google-recursive-tool-call.json",
+    "packages/google/src/__fixtures__/google-recursive-tool-call.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19488 REPRODUCED: recursive Google tool schema aborted generateText, streamText, and lazy activation before request"
+  }
+}

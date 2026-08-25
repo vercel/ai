@@ -1587,6 +1587,77 @@ describe('doGenerate', () => {
     },
   );
 
+  it('should complete a Gemini Developer API call with a recursive tool schema', async () => {
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/google-recursive-tool-call.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    const result = await provider.chat('gemini-3.7-flash').doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'search',
+          description: 'Search with a condition tree.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              condition: { $ref: '#/definitions/Condition' },
+            },
+            required: ['condition'],
+            definitions: {
+              Condition: {
+                anyOf: [
+                  {
+                    type: 'object',
+                    properties: { term: { type: 'string' } },
+                    required: ['term'],
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      and: {
+                        type: 'array',
+                        items: { $ref: '#/definitions/Condition' },
+                      },
+                    },
+                    required: ['and'],
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      or: {
+                        type: 'array',
+                        items: { $ref: '#/definitions/Condition' },
+                      },
+                    },
+                    required: ['or'],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(server.calls).toHaveLength(1);
+    expect(result.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-call',
+          toolName: 'search',
+        }),
+      ]),
+    );
+  });
+
   it('should set response mime type with responseFormat', async () => {
     prepareJsonFixtureResponse('google-text');
 

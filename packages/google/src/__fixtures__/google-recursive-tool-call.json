@@ -1,0 +1,48 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "name": "search",
+              "args": {
+                "condition": {
+                  "or": [
+                    {
+                      "term": "x"
+                    },
+                    {
+                      "term": "y"
+                    }
+                  ]
+                }
+              },
+              "id": "call_15475"
+            },
+            "thoughtSignature": "<redacted>"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0,
+      "finishMessage": "Model generated function call(s)."
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 694,
+    "candidatesTokenCount": 26,
+    "totalTokenCount": 936,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 694
+      }
+    ],
+    "thoughtsTokenCount": 216,
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.7-flash",
+  "responseId": "<redacted>"
+}
