@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 19556,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/moonshot-max-completion-tokens.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/moonshot-max-completion-tokens.ts",
+    "packages/moonshotai/src/__fixtures__/moonshotai-max-completion-tokens.json",
+    "packages/moonshotai/src/__fixtures__/moonshotai-max-completion-tokens.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Error: Moonshot request serialization bug: non-streaming serialized maxOutputTokens as max_tokens=17 instead of only max_completion_tokens=17; streaming serialized maxOutputTokens as max_tokens=17 instead of only max_completion_tokens=17"
+  }
+}
