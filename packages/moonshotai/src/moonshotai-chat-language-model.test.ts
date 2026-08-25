@@ -665,8 +665,36 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should fall back to json_object for models without structured outputs', async () => {
-      await provider.chatModel('moonshot-v1-8k').doGenerate({
+    it.each([
+      'moonshot-v1-auto',
+      'moonshot-v1-8k',
+      'moonshot-v1-32k',
+      'moonshot-v1-128k',
+      'moonshot-v1-8k-vision-preview',
+      'moonshot-v1-32k-vision-preview',
+      'moonshot-v1-128k-vision-preview',
+    ])('should use json_schema for %s', async modelId => {
+      await provider.chatModel(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: { type: 'object', properties: {} },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.response_format).toStrictEqual({
+        type: 'json_schema',
+        json_schema: {
+          name: 'response',
+          strict: true,
+          schema: { type: 'object', properties: {} },
+        },
+      });
+    });
+
+    it('should fall back to json_object for unknown models', async () => {
+      await provider.chatModel('moonshot-v1-custom').doGenerate({
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',

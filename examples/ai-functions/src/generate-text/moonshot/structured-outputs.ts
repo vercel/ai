@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: moonshotai('kimi-k3'),
+    model: moonshotai('moonshot-v1-auto'),
     output: Output.object({
       schema: z.object({
         holiday: z.string(),
