@@ -47,9 +47,3 @@ export {
 } from './workflow-chat-transport.js';
 
 export { normalizeUIMessageStreamParts } from './normalize-ui-message-stream.js';
-
-export {
-  experimental_generateVideo,
-  type WorkflowGenerateVideoOptions,
-  type WorkflowGenerateVideoResult,
-} from './generate-video.js';

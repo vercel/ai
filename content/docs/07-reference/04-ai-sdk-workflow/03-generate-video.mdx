@@ -17,7 +17,7 @@ them in another step without serializing the video bytes through workflow step
 boundaries.
 
 ```ts
-import { experimental_generateVideo as generateVideo } from '@ai-sdk/workflow';
+import { experimental_generateVideo as generateVideo } from '@ai-sdk/workflow/video';
 
 export async function videoWorkflow(prompt: string) {
   'use workflow';
@@ -38,7 +38,7 @@ provider webhooks. The helper must be called from a Workflow SDK workflow.
 ## Import
 
 <Snippet
-  text={`import { experimental_generateVideo as generateVideo } from "@ai-sdk/workflow"`}
+  text={`import { experimental_generateVideo as generateVideo } from "@ai-sdk/workflow/video"`}
   prompt={false}
 />
 

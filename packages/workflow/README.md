@@ -49,7 +49,7 @@ workflow until a provider webhook arrives, and returns the provider's video
 data without downloading hosted URLs.
 
 ```typescript
-import { experimental_generateVideo as generateVideo } from '@ai-sdk/workflow';
+import { experimental_generateVideo as generateVideo } from '@ai-sdk/workflow/video';
 
 export async function videoWorkflow(prompt: string) {
   'use workflow';
