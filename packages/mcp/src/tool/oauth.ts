@@ -27,16 +27,11 @@ import {
   resourceUrlStripSlash,
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
-<<<<<<< HEAD
-import { parseJSON, type FetchFunction } from '@ai-sdk/provider-utils';
-
-=======
 import {
   parseJSON,
   validateDownloadUrl,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
->>>>>>> fe6934280c (fix(mcp): reject private OAuth endpoints before sending credentials (#19500))
 export type AuthResult = 'AUTHORIZED' | 'REDIRECT';
 
 export interface OAuthAuthorizationServerInformation {
@@ -131,8 +126,6 @@ function normalizeUrl(url: string | URL): string {
   return new URL(url).href;
 }
 
-<<<<<<< HEAD
-=======
 /** Allow loopback HTTP(S) for local MCP OAuth (RFC 8252 §7.3, RFC 6761 §6.3). */
 function isOAuthLoopbackHost(hostname: string): boolean {
   const normalized = hostname.toLowerCase().replace(/\.+$/, '');
@@ -172,21 +165,6 @@ function assertSafeOAuthEndpoint(endpointUrl: URL): void {
   }
 }
 
-function validateAuthorizationResponseIssuer({
-  callbackIssuer,
-  expectedIssuer,
-}: {
-  callbackIssuer: string | undefined;
-  expectedIssuer: string;
-}): void {
-  if (callbackIssuer != null && callbackIssuer !== expectedIssuer) {
-    throw new MCPClientOAuthError({
-      message: `OAuth authorization response issuer ${callbackIssuer} does not match expected issuer ${expectedIssuer}`,
-    });
-  }
-}
-
->>>>>>> fe6934280c (fix(mcp): reject private OAuth endpoints before sending credentials (#19500))
 function createAuthorizationServerInformation(
   authorizationServerUrl: string | URL,
   metadata?: AuthorizationServerMetadata,
@@ -1125,15 +1103,8 @@ export async function registerClient(
     headers: {
       'Content-Type': 'application/json',
     },
-<<<<<<< HEAD
     body: JSON.stringify(clientMetadata),
-=======
-    body: JSON.stringify({
-      ...clientMetadata,
-      application_type: applicationType,
-    }),
     redirect: 'error',
->>>>>>> fe6934280c (fix(mcp): reject private OAuth endpoints before sending credentials (#19500))
   });
 
   if (!response.ok) {
@@ -1143,22 +1114,6 @@ export async function registerClient(
   return OAuthClientInformationFullSchema.parse(await response.json());
 }
 
-<<<<<<< HEAD
-=======
-function inferOAuthApplicationType(redirectUris: string[]): 'native' | 'web' {
-  const isNativeRedirectUri = (redirectUri: string): boolean => {
-    const url = new URL(redirectUri);
-    return (
-      ((url.protocol === 'http:' || url.protocol === 'https:') &&
-        isOAuthLoopbackHost(url.hostname)) ||
-      (url.protocol !== 'http:' && url.protocol !== 'https:')
-    );
-  };
-
-  return redirectUris.every(isNativeRedirectUri) ? 'native' : 'web';
-}
-
->>>>>>> fe6934280c (fix(mcp): reject private OAuth endpoints before sending credentials (#19500))
 export async function auth(
   provider: OAuthClientProvider,
   options: {
