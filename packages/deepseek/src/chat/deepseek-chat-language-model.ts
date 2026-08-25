@@ -44,6 +44,7 @@ export type DeepSeekChatConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  supportsAssistantPrefixCompletion?: boolean;
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
@@ -129,10 +130,13 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     const supportsStructuredOutputs =
       this.config.supportsStructuredOutputs === true;
 
-    const { messages, warnings } = convertToDeepSeekChatMessages({
+    const { messages, warnings } = await convertToDeepSeekChatMessages({
       prompt,
       responseFormat,
       modelId: this.modelId,
+      providerOptionsName: this.providerOptionsName,
+      supportsAssistantPrefixCompletion:
+        this.config.supportsAssistantPrefixCompletion,
       supportsStructuredOutputs,
     });
 
@@ -206,6 +210,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
         thinking,
+        ...(deepseekOptions.userId != null && {
+          user_id: deepseekOptions.userId,
+        }),
         ...(thinking?.type !== 'disabled' &&
           reasoningEffort != null && {
             reasoning_effort: reasoningEffort,
@@ -280,6 +287,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         [this.providerOptionsName]: {
           promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
           promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
+          ...(responseBody.system_fingerprint != null && {
+            systemFingerprint: responseBody.system_fingerprint,
+          }),
         },
       },
       request: { body: args },
@@ -333,6 +343,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       raw: undefined,
     };
     let usage: DeepSeekChatTokenUsage | undefined = undefined;
+    let systemFingerprint: string | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
@@ -380,6 +391,12 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
 
             if (value.usage != null) {
               usage = value.usage;
+            }
+
+            // The fingerprint is repeated on stream chunks; keep the latest
+            // non-null value in case it changes during the response.
+            if (value.system_fingerprint != null) {
+              systemFingerprint = value.system_fingerprint;
             }
 
             const choice = value.choices[0];
@@ -558,6 +575,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
                     usage?.prompt_cache_hit_tokens ?? undefined,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? undefined,
+                  ...(systemFingerprint != null && { systemFingerprint }),
                 },
               },
             });

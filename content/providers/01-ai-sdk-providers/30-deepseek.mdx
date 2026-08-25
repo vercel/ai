@@ -93,6 +93,13 @@ DeepSeek language models can be used in the `streamText` function
 
 The following optional provider options are available for DeepSeek models:
 
+- `userId` _string_
+
+  Optional. An opaque end-user identifier that DeepSeek uses for content-safety
+  tracing, KV-cache isolation, and scheduling isolation. The value must match
+  `^[a-zA-Z0-9_-]+$` and contain at most 512 characters. Do not include names,
+  email addresses, or other private user information.
+
 - `thinking` _object_
 
   Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
@@ -110,7 +117,7 @@ also mapped to documented values: `thinking.type: 'adaptive'` becomes
 `reasoningEffort: 'xhigh'` becomes `'max'`. Each mapping returns a compatibility
 warning so callers can migrate to a canonical value.
 
-```ts highlight="7-12"
+```ts highlight="7-13"
 import { deepseek, type DeepSeekLanguageModelOptions } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
@@ -119,6 +126,7 @@ const { text, reasoning } = await generateText({
   prompt: 'How many "r"s are in the word "strawberry"?',
   providerOptions: {
     deepseek: {
+      userId: 'tenant_123-user',
       thinking: { type: 'enabled' },
       reasoningEffort: 'high',
     } satisfies DeepSeekLanguageModelOptions,
@@ -153,9 +161,57 @@ for await (const part of result.fullStream) {
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
-### Cache Token Usage
+### Chat Prefix Completion
 
-DeepSeek provides context caching on disk technology that can significantly reduce token costs for repeated content. You can access the cache hit/miss metrics through the `providerMetadata` property in the response:
+DeepSeek's beta [chat prefix completion](https://api-docs.deepseek.com/guides/chat_prefix_completion/)
+continues the content of a final assistant message. Create a provider with a
+beta base URL and set `prefix: true` in that assistant message's provider
+options:
+
+```ts highlight="8,20-26"
+import {
+  createDeepSeek,
+  type DeepSeekAssistantMessageProviderOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const deepSeek = createDeepSeek({
+  baseURL: 'https://api.deepseek.com/beta',
+});
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-chat'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Write a short sentence about the color of the sky.',
+    },
+    {
+      role: 'assistant',
+      content: 'The sky is',
+      providerOptions: {
+        deepseek: {
+          prefix: true,
+        } satisfies DeepSeekAssistantMessageProviderOptions,
+      },
+    },
+  ],
+});
+```
+
+The prefixed message must be an assistant message and the final message in the
+prompt. The configured `baseURL` must end in `/beta`, including when using a
+proxy. Invalid placement or a non-beta base URL causes the request to fail
+before it is sent.
+
+<Note>
+  Chat prefix completion is a DeepSeek beta feature and its behavior may change.
+</Note>
+
+### Provider Metadata
+
+DeepSeek exposes the response system fingerprint and context cache usage through
+the `providerMetadata` property:
 
 ```ts
 import { deepseek } from '@ai-sdk/deepseek';
@@ -167,13 +223,24 @@ const result = await generateText({
 });
 
 console.log(result.providerMetadata);
-// Example output: { deepseek: { promptCacheHitTokens: 1856, promptCacheMissTokens: 5 } }
+// Example output:
+// {
+//   deepseek: {
+//     systemFingerprint: 'fp_eaab8d114b_prod0820_fp8_kvcache',
+//     promptCacheHitTokens: 1856,
+//     promptCacheMissTokens: 5,
+//   },
+// }
 ```
 
-The metrics include:
+The metadata includes:
 
+- `systemFingerprint`: The backend configuration fingerprint for the response
 - `promptCacheHitTokens`: Number of input tokens that were cached
 - `promptCacheMissTokens`: Number of input tokens that were not cached
+
+For streamed responses, the latest non-null fingerprint from the response
+chunks is returned.
 
 <Note>
   For more details about DeepSeek's caching system, see the [DeepSeek caching

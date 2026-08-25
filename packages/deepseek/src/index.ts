@@ -5,6 +5,7 @@ export type {
 } from './deepseek-provider';
 export { VERSION } from './version';
 export type {
+  DeepSeekAssistantMessageProviderOptions,
   DeepSeekLanguageModelOptions,
   /** @deprecated Use `DeepSeekLanguageModelOptions` instead. */
   DeepSeekLanguageModelOptions as DeepSeekChatOptions,
