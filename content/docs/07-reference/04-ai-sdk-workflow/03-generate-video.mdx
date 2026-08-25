@@ -22,6 +22,7 @@ import { experimental_generateVideo as generateVideo } from '@ai-sdk/workflow';
 export async function videoWorkflow(prompt: string) {
   'use workflow';
 
+  // The workflow suspends while the video renders, consuming no compute.
   const result = await generateVideo({
     model: 'klingai/kling-v3.0-t2v',
     prompt,
