@@ -2201,6 +2201,45 @@ describe('generateText', () => {
       `);
     });
 
+    it('should record telemetry metadata on tool call spans', async () => {
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          metadata: { requestId: 'request-1' },
+          tracer,
+        },
+      });
+
+      const toolCallSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.toolCall',
+      );
+
+      expect(toolCallSpan?.attributes).toMatchObject({
+        'ai.telemetry.metadata.requestId': 'request-1',
+      });
+    });
+
     it('should record error on tool call', async () => {
       await generateText({
         model: new MockLanguageModelV2({

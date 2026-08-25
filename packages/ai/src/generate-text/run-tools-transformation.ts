@@ -10,6 +10,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
+import { getTelemetryMetadataAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import type { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -215,6 +216,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             operationId: 'ai.toolCall',
             telemetry,
           }),
+          ...getTelemetryMetadataAttributes(telemetry),
           'ai.toolCall.name': toolCall.toolName,
           'ai.toolCall.id': toolCall.toolCallId,
           'ai.toolCall.args': {

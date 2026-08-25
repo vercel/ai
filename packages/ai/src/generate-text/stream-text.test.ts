@@ -9799,6 +9799,55 @@ describe('streamText', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should record telemetry metadata on tool call spans', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          },
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          metadata: { requestId: 'request-1' },
+          tracer,
+        },
+        _internal: { now: mockValues(0, 100, 500) },
+      });
+
+      await result.consumeStream();
+
+      const toolCallSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.toolCall',
+      );
+
+      expect(toolCallSpan?.attributes).toMatchObject({
+        'ai.telemetry.metadata.requestId': 'request-1',
+      });
+    });
+
     it('should record error on tool call', async () => {
       const result = streamText({
         model: createTestModel({
