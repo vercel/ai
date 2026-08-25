@@ -211,6 +211,30 @@ describe('GoogleFiles', () => {
       expect(Array.from(body)).toEqual([10, 20, 30]);
     });
 
+    it('should preserve ArrayBuffer-backed upload data', async () => {
+      let capturedUploadInit: RequestInit | undefined;
+      const uploadUrl = 'https://upload.example.com/resume-session';
+      const { files } = createMockFiles({
+        uploadUrl,
+        onRequest: (url, init) => {
+          if (url === uploadUrl) {
+            capturedUploadInit = init;
+          }
+        },
+      });
+
+      const bytes = new Uint8Array(new ArrayBuffer(5), 1, 3);
+      bytes.set([10, 20, 30]);
+
+      await files.uploadFile({
+        data: { type: 'data', data: bytes },
+        mediaType: 'application/octet-stream',
+        providerOptions: {},
+      });
+
+      expect(capturedUploadInit?.body).toBe(bytes);
+    });
+
     it('should return providerReference with google key set to file URI', async () => {
       const { files } = createMockFiles();
 
