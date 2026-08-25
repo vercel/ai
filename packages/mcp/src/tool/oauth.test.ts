@@ -1809,6 +1809,97 @@ describe('auth function', () => {
     expect(authorizationUrl.searchParams.get('scope')).toBe(expectedScope);
   });
 
+  it.each([
+    {
+      name: 'provided challenge scope',
+      scope: 'mcp.challenge',
+      resourceScopes: ['mcp.read', 'mcp.write'],
+      expectedScope: 'mcp.challenge',
+    },
+    {
+      name: 'protected resource metadata scopes',
+      scope: undefined,
+      resourceScopes: ['mcp.read', 'mcp.write'],
+      expectedScope: 'mcp.read mcp.write',
+    },
+    {
+      name: 'no discovered scope',
+      scope: undefined,
+      resourceScopes: undefined,
+      expectedScope: null,
+    },
+  ])(
+    'uses $name for dynamic registration and authorization',
+    async ({ scope, resourceScopes, expectedScope }) => {
+      let registrationBody: Record<string, unknown> | undefined;
+
+      mockFetch.mockImplementation((url, init) => {
+        const urlString = url.toString();
+        if (urlString.includes('/.well-known/oauth-protected-resource')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              resource: 'https://resource.example.com',
+              authorization_servers: ['https://auth.example.com'],
+              ...(resourceScopes == null
+                ? {}
+                : { scopes_supported: resourceScopes }),
+            }),
+          });
+        }
+
+        if (urlString.includes('/.well-known/oauth-authorization-server')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              issuer: 'https://auth.example.com',
+              authorization_endpoint: 'https://auth.example.com/authorize',
+              token_endpoint: 'https://auth.example.com/token',
+              registration_endpoint: 'https://auth.example.com/register',
+              response_types_supported: ['code'],
+              code_challenge_methods_supported: ['S256'],
+            }),
+          });
+        }
+
+        if (urlString === 'https://auth.example.com/register') {
+          registrationBody = JSON.parse(init.body);
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              ...registrationBody,
+              client_id: 'test-client',
+            }),
+          });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      });
+
+      (mockProvider.clientInformation as Mock).mockResolvedValue(undefined);
+      (mockProvider.tokens as Mock).mockResolvedValue(undefined);
+      mockProvider.saveClientInformation = vi.fn();
+      (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
+      (mockProvider.redirectToAuthorization as Mock).mockResolvedValue(
+        undefined,
+      );
+
+      const result = await auth(mockProvider, {
+        serverUrl: 'https://resource.example.com',
+        scope,
+      });
+
+      expect(result).toBe('REDIRECT');
+      expect(registrationBody?.scope ?? null).toBe(expectedScope);
+      const authorizationUrl = (mockProvider.redirectToAuthorization as Mock)
+        .mock.calls[0][0] as URL;
+      expect(authorizationUrl.searchParams.get('scope')).toBe(expectedScope);
+    },
+  );
+
   it('includes resource in token exchange when authorization code is provided', async () => {
     // Mock successful metadata discovery and token exchange - need protected resource metadata
     mockFetch.mockImplementation(url => {
