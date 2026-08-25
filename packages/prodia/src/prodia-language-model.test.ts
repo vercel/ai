@@ -295,6 +295,7 @@ describe('ProdiaLanguageModel', () => {
         temperature: 0.5,
         topP: 0.9,
         topK: 40,
+        seed: 42,
         maxOutputTokens: 1000,
         stopSequences: ['stop'],
         presencePenalty: 0.1,
@@ -314,6 +315,7 @@ describe('ProdiaLanguageModel', () => {
       const warningSettings = result.warnings.map(w =>
         w.type === 'unsupported-setting' ? w.setting : undefined,
       );
+<<<<<<< HEAD
       expect(warningSettings).toContain('temperature');
       expect(warningSettings).toContain('topP');
       expect(warningSettings).toContain('topK');
@@ -324,6 +326,20 @@ describe('ProdiaLanguageModel', () => {
       expect(warningSettings).toContain('tools');
       expect(warningSettings).toContain('toolChoice');
       expect(warningSettings).toContain('responseFormat');
+=======
+      expect(warningFeatures).toContain('temperature');
+      expect(warningFeatures).toContain('topP');
+      expect(warningFeatures).toContain('topK');
+      expect(warningFeatures).toContain('seed');
+      expect(warningFeatures).toContain('maxOutputTokens');
+      expect(warningFeatures).toContain('stopSequences');
+      expect(warningFeatures).toContain('presencePenalty');
+      expect(warningFeatures).toContain('frequencyPenalty');
+      expect(warningFeatures).toContain('tools');
+      expect(warningFeatures).toContain('toolChoice');
+      expect(warningFeatures).toContain('responseFormat');
+      expect(warningFeatures).toContain('reasoning');
+>>>>>>> e663df8eaa (fix: Prodia language models silently ignore seed settings (#19487))
     });
 
     it('passes aspectRatio from provider options', async () => {
