@@ -1222,6 +1222,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   })
                 : chunk.error;
 
+              encounteredStreamError = true;
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error });
               return;
@@ -2189,13 +2190,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ] = 'can-conclude';
               }
             } else if (isResponseFinishedChunk(value)) {
-              finishReason = {
-                unified: mapOpenAIResponseFinishReason({
-                  finishReason: value.response.incomplete_details?.reason,
-                  hasFunctionCall,
-                }),
-                raw: value.response.incomplete_details?.reason ?? undefined,
-              };
+              if (!encounteredStreamError) {
+                finishReason = {
+                  unified: mapOpenAIResponseFinishReason({
+                    finishReason: value.response.incomplete_details?.reason,
+                    hasFunctionCall,
+                  }),
+                  raw: value.response.incomplete_details?.reason ?? undefined,
+                };
+              }
               usage = value.response.usage;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
