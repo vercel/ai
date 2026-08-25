@@ -5,4 +5,4 @@
 'ai': patch
 ---
 
-Split embedding requests by provider aggregate token limits in addition to input count limits.
+Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.

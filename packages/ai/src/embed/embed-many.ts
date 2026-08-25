@@ -26,8 +26,9 @@ const originalGenerateCallId = createIdGenerator({
  * Embed several values using an embedding model. The type of the value is defined
  * by the embedding model.
  *
- * `embedMany` automatically splits large requests into smaller chunks if the model
- * has a limit on how many embeddings can be generated in a single call.
+ * `embedMany` automatically splits large requests into smaller chunks when the
+ * model has a limit on either the number of embeddings or the UTF-8 input bytes
+ * that can be processed in a single call.
  *
  * @param model - The embedding model to use.
  * @param values - The values that should be embedded.

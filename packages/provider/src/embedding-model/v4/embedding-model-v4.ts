@@ -42,6 +42,7 @@ export type EmbeddingModelV4 = {
    *
    * Providers can use a conservative byte budget derived from an aggregate
    * token limit without requiring a provider-specific tokenizer in core.
+   * Individual values larger than this budget are sent in their own call.
    */
   readonly maxInputBytesPerCall?:
     | PromiseLike<number | undefined>
