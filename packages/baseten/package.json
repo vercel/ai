@@ -13,7 +13,13 @@
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
+<<<<<<< HEAD
     "clean": "rm -rf dist *.tsbuildinfo",
+=======
+    "clean": "del-cli dist docs *.tsbuildinfo",
+    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/170-baseten.mdx ./docs/",
+    "postpack": "del-cli docs",
+>>>>>>> 6e2713554d (fix: make package clean scripts work on Windows (#19540))
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
