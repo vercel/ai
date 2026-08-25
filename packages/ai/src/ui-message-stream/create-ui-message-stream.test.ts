@@ -850,4 +850,30 @@ describe('createUIMessageStream', () => {
       error: processingError,
     });
   });
+
+  it('reports message ID injection failures as failed after completion was declared', async () => {
+    const onEnd = vi.fn();
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        writer.write(Object.freeze({ type: 'start' }));
+      },
+      generateId: () => 'generated-message-id',
+      onEnd,
+    });
+
+    let processingError: unknown;
+    try {
+      await convertReadableStreamToArray(stream);
+    } catch (error) {
+      processingError = error;
+    }
+
+    expect(processingError).toBeInstanceOf(TypeError);
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: processingError,
+    });
+  });
 });

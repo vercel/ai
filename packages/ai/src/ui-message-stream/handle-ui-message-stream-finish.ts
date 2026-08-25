@@ -73,6 +73,13 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   }
 
   let isAborted = false;
+  let hasProcessingFailure = false;
+  let processingError: unknown;
+
+  const recordProcessingFailure = (error: unknown) => {
+    hasProcessingFailure = true;
+    processingError = error;
+  };
 
   const idInjectedStream = stream.pipeThrough(
     new TransformStream<
@@ -80,21 +87,26 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       InferUIMessageChunk<UI_MESSAGE>
     >({
       transform(chunk, controller) {
-        // when there is no messageId in the start chunk,
-        // but the user checked for persistence,
-        // inject the messageId into the chunk
-        if (chunk.type === 'start') {
-          const startChunk = chunk as UIMessageChunk & { type: 'start' };
-          if (startChunk.messageId == null && messageId != null) {
-            startChunk.messageId = messageId;
+        try {
+          // when there is no messageId in the start chunk,
+          // but the user checked for persistence,
+          // inject the messageId into the chunk
+          if (chunk.type === 'start') {
+            const startChunk = chunk as UIMessageChunk & { type: 'start' };
+            if (startChunk.messageId == null && messageId != null) {
+              startChunk.messageId = messageId;
+            }
           }
-        }
 
-        if (chunk.type === 'abort') {
-          isAborted = true;
-        }
+          if (chunk.type === 'abort') {
+            isAborted = true;
+          }
 
-        controller.enqueue(chunk);
+          controller.enqueue(chunk);
+        } catch (error) {
+          recordProcessingFailure(error);
+          throw error;
+        }
       },
     }),
   );
@@ -114,9 +126,6 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     messageId: messageId ?? '', // will be overridden by the stream
   });
 
-  let hasProcessingFailure = false;
-  let processingError: unknown;
-
   const runUpdateMessageJob = async (
     job: (options: {
       state: StreamingUIMessageState<UI_MESSAGE>;
@@ -126,8 +135,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     try {
       await job({ state, write: () => {} });
     } catch (error) {
-      hasProcessingFailure = true;
-      processingError = error;
+      recordProcessingFailure(error);
       throw error;
     }
   };
