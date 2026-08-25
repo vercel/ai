@@ -4756,24 +4756,6 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
-<<<<<<< HEAD
-  it.each(['us.openai.gpt-5.6-luna', 'global.openai.gpt-5.6-luna'])(
-    'maps maxReasoningEffort to reasoning.effort for CRIS OpenAI model %s',
-    async crisModelId => {
-      const reasoningConfigError = fs.readFileSync(
-        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-config-error.json',
-        'utf8',
-      );
-      const reasoningEffortError = fs.readFileSync(
-        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-effort-error.json',
-        'utf8',
-      );
-      const success = fs.readFileSync(
-        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-success.json',
-        'utf8',
-      );
-      let requestBody: any;
-=======
   it.each([
     [usOpenaiModelId, usOpenaiGenerateUrl],
     [globalOpenaiModelId, globalOpenaiGenerateUrl],
@@ -4790,12 +4772,60 @@ describe('doGenerate', () => {
           usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         },
       };
->>>>>>> origin/release-v6.0
 
       const crisModel = new BedrockChatLanguageModel(crisModelId, {
         baseUrl: () => baseUrl,
         headers: {},
-<<<<<<< HEAD
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              maxReasoningEffort: 'medium',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        additionalModelRequestFields: {
+          reasoning: { effort: 'medium' },
+        },
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.reasoning_effort,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    },
+  );
+
+  it.each([usOpenaiModelId, globalOpenaiModelId])(
+    'generates successfully with reasoning.effort for CRIS OpenAI model %s',
+    async crisModelId => {
+      const reasoningConfigError = fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-config-error.json',
+        'utf8',
+      );
+      const reasoningEffortError = fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-effort-error.json',
+        'utf8',
+      );
+      const success = fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-openai-cris-reasoning-success.json',
+        'utf8',
+      );
+      let requestBody: any;
+
+      const crisModel = new BedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
         fetch: async (_input, init) => {
           requestBody = JSON.parse(String(init?.body));
           const fields = requestBody.additionalModelRequestFields;
@@ -4825,28 +4855,16 @@ describe('doGenerate', () => {
       });
 
       const result = await crisModel.doGenerate({
-=======
-        fetch: fakeFetchWithAuth,
-        generateId: () => 'test-id',
-      });
-
-      await crisModel.doGenerate({
->>>>>>> origin/release-v6.0
         prompt: TEST_PROMPT,
         providerOptions: {
           bedrock: {
             reasoningConfig: {
-<<<<<<< HEAD
               maxReasoningEffort: 'high',
-=======
-              maxReasoningEffort: 'medium',
->>>>>>> origin/release-v6.0
             },
           },
         },
       });
 
-<<<<<<< HEAD
       expect(result.content).toEqual([{ type: 'text', text: 'OK' }]);
       expect(requestBody.additionalModelRequestFields).toMatchObject({
         reasoning: { effort: 'high' },
@@ -4856,25 +4874,10 @@ describe('doGenerate', () => {
       ).toBeUndefined();
       expect(
         requestBody.additionalModelRequestFields.reasoning_effort,
-=======
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody).toMatchObject({
-        additionalModelRequestFields: {
-          reasoning: { effort: 'medium' },
-        },
-      });
-      expect(
-        requestBody.additionalModelRequestFields?.reasoning_effort,
-      ).toBeUndefined();
-      expect(
-        requestBody.additionalModelRequestFields?.reasoningConfig,
->>>>>>> origin/release-v6.0
       ).toBeUndefined();
     },
   );
 
-<<<<<<< HEAD
-=======
   it('does not classify custom model IDs containing openai. as OpenAI models', async () => {
     server.urls[customOpenaiSubstringGenerateUrl].response = {
       type: 'json-value',
@@ -4920,7 +4923,6 @@ describe('doGenerate', () => {
     ).toBeUndefined();
   });
 
->>>>>>> origin/release-v6.0
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 
