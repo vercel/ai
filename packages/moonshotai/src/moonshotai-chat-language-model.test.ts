@@ -139,6 +139,71 @@ describe('doGenerate', () => {
       });
     });
 
+    it.each([
+      { modelId: 'kimi-k2.6', modelFamily: 'kimi-k2.6' },
+      { modelId: 'kimi-k2.7-code', modelFamily: 'kimi-k2.7' },
+      { modelId: 'kimi-k2.7-code-highspeed', modelFamily: 'kimi-k2.7' },
+    ] as const)(
+      'should omit required tool choice and warn for $modelId',
+      async ({ modelId, modelFamily }) => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'getWeather',
+              description: 'Get the weather in a location',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+                required: ['location'],
+              },
+            },
+          ],
+          toolChoice: { type: 'required' },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).not.toHaveProperty('tool_choice');
+        expect(requestBody.tools).toHaveLength(1);
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details: `Required tool choice is not supported by ${modelFamily} models and has been omitted.`,
+          },
+        ]);
+      },
+    );
+
+    it.each(['kimi-k3', 'custom-model'] as const)(
+      'should preserve required tool choice for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'getWeather',
+              description: 'Get the weather in a location',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+                required: ['location'],
+              },
+            },
+          ],
+          toolChoice: { type: 'required' },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: modelId,
+          tool_choice: 'required',
+        });
+        expect(result.warnings).toStrictEqual([]);
+      },
+    );
+
     it('should extract text content, finish reason, and usage', async () => {
       const result = await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,

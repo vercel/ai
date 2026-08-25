@@ -167,13 +167,14 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       });
     }
 
+    const modelFamily = getMoonshotAIModelFamily(this.modelId);
+
     const {
       tools: moonshotTools,
       toolChoice: moonshotToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools({ modelFamily, tools, toolChoice });
 
-    const modelFamily = getMoonshotAIModelFamily(this.modelId);
     const requestedThinking = moonshotOptions.thinking;
     const requestedReasoningEffort = moonshotOptions.reasoningEffort;
     const preserveReasoning = moonshotOptions.reasoningHistory === 'preserved';
