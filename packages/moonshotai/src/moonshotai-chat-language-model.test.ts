@@ -153,6 +153,77 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('text and provider-reference file inputs', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-file-reference-live');
+    });
+
+    it('should send text file data as a text content part', async () => {
+      await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'text' as const,
+                  text: 'inline document text',
+                },
+                mediaType: 'text/plain',
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        { type: 'text', text: 'inline document text' },
+      ]);
+    });
+
+    it('should send Moonshot image and video provider references as URL parts', async () => {
+      await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference' as const,
+                  reference: { moonshotai: 'ms://image-file-id' },
+                },
+                mediaType: 'image/png',
+              },
+              {
+                type: 'file',
+                data: {
+                  type: 'reference' as const,
+                  reference: { moonshotai: 'ms://video-file-id' },
+                },
+                mediaType: 'video/mp4',
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        {
+          type: 'image_url',
+          image_url: { url: 'ms://image-file-id' },
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'ms://video-file-id' },
+        },
+      ]);
+    });
+  });
+
   describe('thinking options', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('moonshotai-reasoning');

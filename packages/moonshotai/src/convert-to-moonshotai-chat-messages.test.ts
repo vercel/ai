@@ -244,7 +244,71 @@ describe('user messages', () => {
     );
   });
 
-  it('should throw for file parts with provider references', () => {
+  it('should convert Moonshot image and video provider references', () => {
+    const result = convertToMoonshotAIChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'reference' as const,
+              reference: { moonshotai: 'ms://image-file-id' },
+            },
+            mediaType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: {
+              type: 'reference' as const,
+              reference: { moonshotai: 'ms://video-file-id' },
+            },
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: 'ms://image-file-id' },
+          },
+          {
+            type: 'video_url',
+            video_url: { url: 'ms://video-file-id' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert text file parts to text content parts', () => {
+    const result = convertToMoonshotAIChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'text' as const, text: 'hello' },
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'hello' }],
+      },
+    ]);
+  });
+
+  it('should reject foreign provider references', () => {
     expect(() =>
       convertToMoonshotAIChatMessages([
         {
@@ -254,19 +318,17 @@ describe('user messages', () => {
               type: 'file',
               data: {
                 type: 'reference' as const,
-                reference: { moonshotai: 'file-123' },
+                reference: { openai: 'ms://foreign-file-id' },
               },
               mediaType: 'image/png',
             },
           ],
         },
       ]),
-    ).toThrow(
-      "'file parts with provider references' functionality not supported",
-    );
+    ).toThrow();
   });
 
-  it('should throw for text file parts', () => {
+  it('should reject non-ms Moonshot provider references', () => {
     expect(() =>
       convertToMoonshotAIChatMessages([
         {
@@ -274,13 +336,38 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              data: { type: 'text' as const, text: 'hello' },
-              mediaType: 'text/plain',
+              data: {
+                type: 'reference' as const,
+                reference: {
+                  moonshotai: 'https://example.com/not-ms-reference',
+                },
+              },
+              mediaType: 'image/png',
             },
           ],
         },
       ]),
-    ).toThrow("'text file parts' functionality not supported");
+    ).toThrow();
+  });
+
+  it('should reject provider references with unsupported media types', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference' as const,
+                reference: { moonshotai: 'ms://unsupported-file-id' },
+              },
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ]),
+    ).toThrow();
   });
 });
 

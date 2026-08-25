@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19549,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19549-moonshot-file-parts.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19549-moonshot-file-parts.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE 19549 REPRODUCED: Moonshot rejects supported text/provider-reference file parts before request serialization"
+  }
+}
