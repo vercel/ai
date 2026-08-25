@@ -38,6 +38,22 @@ export function getMoonshotAIModelFamily(
 }
 
 export const moonshotaiLanguageModelOptions = z.object({
+  /** Static content that the model's response is expected to match. */
+  prediction: z
+    .object({
+      type: z.literal('content'),
+      content: z.union([
+        z.string(),
+        z.array(
+          z.object({
+            type: z.literal('text'),
+            text: z.string(),
+          }),
+        ),
+      ]),
+    })
+    .optional(),
+
   /** Whether to return log probabilities for generated tokens. */
   logprobs: z.boolean().optional(),
 
@@ -83,6 +99,12 @@ export const moonshotaiLanguageModelOptions = z.object({
 });
 
 export type MoonshotAILanguageModelOptions = {
+  /** Static content that the model's response is expected to match. */
+  prediction?: {
+    type: 'content';
+    content: string | Array<{ type: 'text'; text: string }>;
+  };
+
   /** Whether to return log probabilities for generated tokens. */
   logprobs?: boolean;
 

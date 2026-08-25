@@ -843,6 +843,54 @@ describe('doGenerate', () => {
       expect(requestBody.safety_identifier).toBe('user-hash-7');
     });
 
+    it.each([
+      ['a string', 'The expected response.'],
+      [
+        'text content parts',
+        [
+          { type: 'text', text: 'The expected ' },
+          { type: 'text', text: 'response.' },
+        ],
+      ],
+    ])('should forward predicted output with %s', async (_name, content) => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            prediction: { type: 'content', content },
+          },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).prediction).toEqual({
+        type: 'content',
+        content,
+      });
+    });
+
+    it('should not send prediction by default', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'prediction',
+      );
+    });
+
+    it.each([
+      { type: 'unsupported', content: 'text' },
+      { type: 'content', content: [{ type: 'image', image_url: 'x' }] },
+      { type: 'content', content: 42 },
+    ])('should reject invalid predicted output %#', async prediction => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: { prediction },
+          },
+        }),
+      ).rejects.toThrow('invalid moonshotai provider options');
+    });
+
     it('should send participant names on supported message roles', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
         prompt: [

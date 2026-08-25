@@ -224,6 +224,13 @@ File parts containing inline text are sent as ordinary text content parts.
 
 The following optional provider options are available for Moonshot AI language models:
 
+- **prediction** _object_
+
+  Static content that the generated response is expected to match. Use
+  `{ type: 'content', content }`, where `content` is a string or an array of
+  `{ type: 'text', text }` parts. Predicted output can reduce latency when most
+  of a response is already known, such as when regenerating a file.
+
 - **reasoningEffort** _'low' | 'high' | 'max'_
 
   Reasoning effort for Kimi K3.
