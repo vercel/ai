@@ -115,6 +115,16 @@ export async function* normalizeUIMessageStreamParts(
 
   for await (const chunk of source) {
     switch (chunk.type) {
+      case 'reset-step':
+        // A retried model-call step starts a new frame. Forget parts from the
+        // invalidated attempt so reused ids are framed normally.
+        text.open.clear();
+        text.ended.clear();
+        reasoning.open.clear();
+        reasoning.ended.clear();
+        yield chunk;
+        break;
+
       case 'finish-step':
         // The consumer clears its active-part maps here, so part ids may be
         // legitimately reused in the next step. Reset to match.

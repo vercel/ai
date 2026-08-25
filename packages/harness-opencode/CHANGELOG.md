@@ -1,5 +1,28 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
+## 1.0.77
+
+### Patch Changes
+
+- 0cb7c76: fix(harness-opencode): prevent interrupted resumed turns from replaying a previous assistant response as a successful reply
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+
 ## 1.0.75
 
 ### Patch Changes

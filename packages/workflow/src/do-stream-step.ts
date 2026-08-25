@@ -6,7 +6,7 @@ import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  type Experimental_LanguageModelStreamPart,
   type FinishReason,
   type LanguageModel,
   type LanguageModelUsage,
@@ -22,7 +22,10 @@ import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
-export type { Experimental_LanguageModelStreamPart as ModelCallStreamPart } from 'ai';
+
+export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
+  | Experimental_LanguageModelStreamPart<TTools>
+  | { type: 'reset-step' };
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
 
@@ -248,6 +251,11 @@ export async function doStreamStep(
   const writer = writable?.getWriter();
 
   try {
+    // A workflow step can be retried after already writing partial output.
+    // Reset the current UI step before every attempt so a retry invalidates
+    // chunks left behind by an earlier execution.
+    await writer?.write({ type: 'reset-step' });
+
     for await (const part of modelStream) {
       switch (part.type) {
         case 'text-delta':
