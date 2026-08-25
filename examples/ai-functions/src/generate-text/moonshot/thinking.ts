@@ -11,7 +11,13 @@ run(async () => {
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       moonshotai: {
+<<<<<<< HEAD
         thinking: { type: 'enabled' },
+=======
+        thinking: {
+          type: 'enabled',
+        },
+>>>>>>> origin/main
         reasoningHistory: 'preserved',
       } satisfies MoonshotAILanguageModelOptions,
     },

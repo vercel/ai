@@ -12,7 +12,13 @@ run(async () => {
       'Solve this problem step by step: If a train travels 120 miles in 2 hours, how far will it travel in 5 hours at the same speed?',
     providerOptions: {
       moonshotai: {
+<<<<<<< HEAD
         thinking: { type: 'enabled' },
+=======
+        thinking: {
+          type: 'enabled',
+        },
+>>>>>>> origin/main
         reasoningHistory: 'preserved',
       } satisfies MoonshotAILanguageModelOptions,
     },
