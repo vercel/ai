@@ -4,6 +4,68 @@
 
 ### Patch Changes
 
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@7.0.77
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [9566914]
 - Updated dependencies [b181020]
 - Updated dependencies [7054073]

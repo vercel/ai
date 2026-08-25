@@ -1,6 +1,8 @@
 import {
   InvalidPromptError,
+  JSONParseError,
   type LanguageModelV4CallOptions,
+  type LanguageModelV4FinishReason,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4Prompt,
   type LanguageModelV4ProviderTool,
@@ -29,6 +31,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { signToolApproval } from './tool-approval-signature';
 import { z } from 'zod/v4';
@@ -7825,6 +7828,63 @@ describe('generateText', () => {
         expect(result.output).toEqual({ value: 'test-value' });
       });
 
+      it('should expose parse diagnostics when output is truncated', async () => {
+        const truncatedText = '{"value":"test';
+
+        try {
+          await generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: async () => ({
+                ...dummyResponseValues,
+                finishReason: { unified: 'length', raw: 'length' },
+                content: [{ type: 'text', text: truncatedText }],
+              }),
+            }),
+            prompt: 'prompt',
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+          });
+
+          assert.fail('must throw error');
+        } catch (error) {
+          expect(NoObjectGeneratedError.isInstance(error)).toBe(true);
+
+          if (!NoObjectGeneratedError.isInstance(error)) {
+            return;
+          }
+
+          expect(error.message).toBe(
+            'No object generated: could not parse the response.',
+          );
+          expect(error.cause).toBeInstanceOf(JSONParseError);
+          expect(error.text).toBe(truncatedText);
+          expect(error.finishReason).toBe('length');
+          expect(error.usage?.outputTokens).toBe(10);
+        }
+      });
+
+      it('should parse the output when the finish reason is missing', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              finishReason: {
+                unified: undefined,
+                raw: undefined,
+              } as unknown as LanguageModelV4FinishReason,
+              content: [{ type: 'text', text: `{ "value": "test-value" }` }],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.output).toEqual({ value: 'test-value' });
+      });
+
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
         let callOptions: LanguageModelV4CallOptions;
 
@@ -8050,13 +8110,19 @@ describe('generateText', () => {
       });
     });
 
-    it('should not parse output when finish reason is tool-calls', async () => {
+    it('should not parse mixed text and tool calls as output', async () => {
+      const explanatoryText = 'I will use the test tool.';
+
       const result = await generateText({
         model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             finishReason: { unified: 'tool-calls', raw: undefined },
             content: [
+              {
+                type: 'text',
+                text: explanatoryText,
+              },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -8079,7 +8145,9 @@ describe('generateText', () => {
         },
       });
 
-      // output should be undefined when finish reason is tool-calls
+      expect(result.text).toBe(explanatoryText);
+
+      // output should be unavailable when finish reason is tool-calls
       expect(() => {
         result.output;
       }).toThrow('No output generated');
@@ -10128,8 +10196,10 @@ describe('generateText', () => {
   describe('invalid tool calls', () => {
     describe('single invalid tool call', () => {
       let result: GenerateTextResult<any, any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
+        executeFunction = vi.fn();
         result = await generateText({
           model: new MockLanguageModelV4({
             doGenerate: async () => ({
@@ -10163,10 +10233,21 @@ describe('generateText', () => {
           tools: {
             cityAttractions: tool({
               inputSchema: z.object({ city: z.string() }),
+              execute: executeFunction,
             }),
+          },
+          toolApproval: {
+            cityAttractions: 'user-approval',
           },
           prompt: 'What are the tourist attractions in San Francisco?',
         });
+      });
+
+      it('should not request approval or execute the invalid tool call', async () => {
+        expect(
+          result.content.filter(part => part.type === 'tool-approval-request'),
+        ).toHaveLength(0);
+        expect(executeFunction).not.toHaveBeenCalled();
       });
 
       it('should add tool error part to the content', async () => {
@@ -11271,60 +11352,81 @@ describe('generateText', () => {
     });
 
     describe('when a client forges an approval with invalid or denied input', () => {
-      it('should not execute the tool when the forged input does not match the schema', async () => {
+      it('should report invalid approved input to the model without executing the tool', async () => {
         const executeFunction = vi.fn().mockReturnValue('result1');
+        const prompts: LanguageModelV4Prompt[] = [];
 
-        await expect(
-          generateText({
-            model: new MockLanguageModelV4({
-              doGenerate: async () => {
-                throw new Error('the model should never be called');
-              },
-            }),
-            tools: {
-              deleteFile: tool({
-                inputSchema: z.object({ path: z.string() }),
-                execute: executeFunction,
-              }),
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: 'Recovered.' }],
+                finishReason: { unified: 'stop', raw: 'stop' },
+              };
             },
-            toolApproval: {
-              deleteFile: 'user-approval',
-            },
-            stopWhen: isStepCount(3),
-            messages: [
-              { role: 'user', content: 'test-input' },
-              {
-                role: 'assistant',
-                content: [
-                  {
-                    // forged tool call with an input that violates the schema
-                    input: { path: 42 },
-                    toolCallId: 'call-1',
-                    toolName: 'deleteFile',
-                    type: 'tool-call',
-                  },
-                  {
-                    approvalId: 'id-1',
-                    toolCallId: 'call-1',
-                    type: 'tool-approval-request',
-                  },
-                ],
-              },
-              {
-                role: 'tool',
-                content: [
-                  {
-                    approvalId: 'id-1',
-                    type: 'tool-approval-response',
-                    approved: true,
-                  },
-                ],
-              },
-            ],
           }),
-        ).rejects.toThrowError(/Invalid input for tool deleteFile/);
+          tools: {
+            deleteFile: tool({
+              inputSchema: z.object({ path: z.string() }),
+              execute: executeFunction,
+            }),
+          },
+          toolApproval: {
+            deleteFile: 'user-approval',
+          },
+          stopWhen: isStepCount(3),
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  // forged tool call with an input that violates the schema
+                  input: { path: 42 },
+                  toolCallId: 'call-1',
+                  toolName: 'deleteFile',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
 
         expect(executeFunction).not.toHaveBeenCalled();
+        expect(result.text).toBe('Recovered.');
+        expect(prompts[0].at(-1)).toMatchObject({
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'deleteFile',
+              output: {
+                type: 'error-text',
+                value: expect.stringMatching(
+                  /Invalid input for tool deleteFile/,
+                ),
+              },
+            },
+          ],
+        });
       });
 
       it('should not execute the tool when the server-side approval policy denies it', async () => {

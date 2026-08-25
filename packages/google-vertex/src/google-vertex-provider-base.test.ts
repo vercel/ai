@@ -406,10 +406,10 @@ describe('google-vertex-provider-base', () => {
       project: 'test-project',
       location: 'test-location',
     });
-    provider.image('imagen-3.0-generate-002');
+    provider.image('gemini-2.5-flash-image');
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:
@@ -461,10 +461,10 @@ describe('google-vertex-provider-base', () => {
       project: 'test-project',
       location: 'global',
     });
-    provider.image('imagen-3.0-generate-002');
+    provider.image('gemini-2.5-flash-image');
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
+      'gemini-2.5-flash-image',
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:

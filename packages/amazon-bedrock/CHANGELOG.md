@@ -1,5 +1,33 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.62
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+- Updated dependencies [2214258]
+  - @ai-sdk/anthropic@4.0.42
+  - @ai-sdk/openai@4.0.47
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 5.0.61
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/anthropic@4.0.41
+  - @ai-sdk/openai@4.0.46
+
+## 5.0.60
+
+### Patch Changes
+
+- 8ca1352: fix(amazon-bedrock): surface modeled event-stream exceptions
+- Updated dependencies [6be0f51]
+  - @ai-sdk/openai@4.0.45
+
 ## 5.0.59
 
 ### Patch Changes

@@ -1,5 +1,42 @@
 # @ai-sdk/deepseek
 
+## 3.0.32
+
+### Patch Changes
+
+- 0e36ab5: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- 068be49: feat(provider/deepseek): add the `userId` chat option and serialize it as `user_id`
+- 56d47f5: feat(provider/deepseek): add DeepSeek V4 Flash and Pro model IDs
+- 49ba214: Validate DeepSeek file upload formats, sizes, and filename lengths before sending requests.
+- 1ca2519: Add provider-specific names for DeepSeek system, user, and assistant messages.
+- f2a2598: Validate DeepSeek strict tool calls against beta endpoint requirements.
+- f8e24b6: Preserve documented DeepSeek chat response metadata for generate and stream.
+- 320b700: Add DeepSeek chat completion log probability request and response support.
+- f70bd8a: Add support for DeepSeek beta assistant prefix completion through message provider options.
+- 2214258: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- f1cadd0: Preserve the file object discriminator in DeepSeek upload provider metadata.
+- 01fa8de: Validate DeepSeek file response discriminators and numeric metadata while preserving compatibility with omitted optional metadata.
+- 348dacb: Expose DeepSeek response system fingerprints in provider metadata for generated and streamed text.
+- 560fc39: Align DeepSeek thinking and reasoning effort options with the documented API values while mapping legacy options with compatibility warnings.
+- 2814b2d: Add DeepSeek image detail and inline file-data content part support.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 3.0.30
+
+### Patch Changes
+
+- 9a4337d: feat: add DeepSeek V4 Flash Vision Exp image input and Files API support
+
 ## 3.0.29
 
 ### Patch Changes

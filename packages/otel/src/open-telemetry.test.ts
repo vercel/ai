@@ -20,6 +20,7 @@ import {
 import { z } from 'zod/v4';
 import {
   embed,
+  embedMany,
   generateObject,
   generateText,
   streamObject,
@@ -1363,7 +1364,7 @@ describe('OpenTelemetry', () => {
   });
 
   describe('onStart (embed)', () => {
-    it('creates an embeddings span', () => {
+    it('creates an embeddings operation span', () => {
       integration.onStart!(
         makeOnStartEvent({
           operationId: 'ai.embed',
@@ -2094,6 +2095,96 @@ describe('OpenTelemetry', () => {
   });
 
   describe('embed integration', () => {
+    it('reports usage only on the provider request span', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await embed({
+        model: new MockEmbeddingModelV4({
+          provider: 'openai',
+          modelId: 'text-embedding-model',
+          doEmbed: {
+            embeddings: [[0.1, 0.2, 0.3]],
+            usage: { tokens: 14 },
+            warnings: [],
+          },
+        }),
+        value: 'sunny day at the beach',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      expect(
+        sdkTrace.exporter.getFinishedSpans().map(span => ({
+          name: span.name,
+          operation: span.attributes['gen_ai.operation.name'],
+          inputTokens: span.attributes['gen_ai.usage.input_tokens'],
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "inputTokens": 14,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+          {
+            "inputTokens": undefined,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+        ]
+      `);
+    });
+
+    it('reports batched usage only on provider request spans', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await embedMany({
+        model: new MockEmbeddingModelV4({
+          provider: 'openai',
+          modelId: 'text-embedding-model',
+          maxEmbeddingsPerCall: 2,
+          doEmbed: async ({ values }) => ({
+            embeddings: values.map(() => [0.1, 0.2, 0.3]),
+            usage: { tokens: values.length * 14 },
+            warnings: [],
+          }),
+        }),
+        values: ['sunny', 'day', 'beach'],
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      expect(
+        sdkTrace.exporter.getFinishedSpans().map(span => ({
+          name: span.name,
+          operation: span.attributes['gen_ai.operation.name'],
+          inputTokens: span.attributes['gen_ai.usage.input_tokens'],
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "inputTokens": 28,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+          {
+            "inputTokens": 14,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+          {
+            "inputTokens": undefined,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+        ]
+      `);
+    });
+
     it('omits usage attributes when the provider does not return usage', async () => {
       const sdkTrace = createSdkTracer();
       integration = new OpenTelemetry({ tracer: sdkTrace.tracer });

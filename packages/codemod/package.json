@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/codemod",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "files": [
@@ -37,7 +37,7 @@
     "ai": "workspace:*",
     "msw": "2.6.4",
     "tsup": "^8.5.1",
-    "tsx": "4.19.2",
+    "tsx": "4.23.12",
     "typescript": "5.8.3",
     "vitest": "^4.1.6"
   },
