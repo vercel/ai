@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   UnsupportedFunctionalityError,
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
@@ -6,6 +7,19 @@ import {
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import type { GoogleModelId } from './google-language-model-options';
 import { getGoogleModelCapabilities } from './google-model-capabilities';
+
+function isValidToolName(name: string): boolean {
+  return /^[a-zA-Z_][a-zA-Z0-9_.:-]{0,63}$/.test(name);
+}
+
+function validateToolName(name: string): void {
+  if (!isValidToolName(name)) {
+    throw new InvalidArgumentError({
+      argument: 'tools',
+      message: `Invalid tool name: "${name}". Tool names must start with a letter or underscore, contain only alphanumeric characters, underscores, dots, colons, or dashes, and have a maximum length of 64 characters.`,
+    });
+  }
+}
 
 export function prepareTools({
   tools,
@@ -179,6 +193,8 @@ export function prepareTools({
       }> = [];
       for (const tool of tools) {
         if (tool.type === 'function') {
+          validateToolName(tool.name);
+
           functionDeclarations.push({
             name: tool.name,
             description: tool.description ?? '',
@@ -238,6 +254,8 @@ export function prepareTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function':
+        validateToolName(tool.name);
+
         functionDeclarations.push({
           name: tool.name,
           description: tool.description ?? '',
