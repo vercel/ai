@@ -820,4 +820,34 @@ describe('createUIMessageStream', () => {
       }
     `);
   });
+
+  it('reports invalid chunk processing as failed after completion was declared', async () => {
+    const onEnd = vi.fn();
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        writer.write({ type: 'finish' });
+        writer.write({
+          type: 'text-delta',
+          id: 'missing',
+          delta: 'text',
+        });
+      },
+      onEnd,
+    });
+
+    let processingError: unknown;
+    try {
+      await convertReadableStreamToArray(stream);
+    } catch (error) {
+      processingError = error;
+    }
+
+    expect(processingError).toBeInstanceOf(Error);
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      status: 'failed',
+      error: processingError,
+    });
+  });
 });

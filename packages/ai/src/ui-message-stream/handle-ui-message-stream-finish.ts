@@ -114,13 +114,22 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     messageId: messageId ?? '', // will be overridden by the stream
   });
 
+  let hasProcessingFailure = false;
+  let processingError: unknown;
+
   const runUpdateMessageJob = async (
     job: (options: {
       state: StreamingUIMessageState<UI_MESSAGE>;
       write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => {
-    await job({ state, write: () => {} });
+    try {
+      await job({ state, write: () => {} });
+    } catch (error) {
+      hasProcessingFailure = true;
+      processingError = error;
+      throw error;
+    }
   };
 
   let finishCalled = false;
@@ -133,8 +142,9 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 
     const isContinuation = state.message.id === lastMessage?.id;
     const declaredOutcome = getOutcome?.() ?? { status: 'unknown' };
-    const outcome: UIMessageStreamOutcome =
-      declaredOutcome.status === 'unknown' && isAborted
+    const outcome: UIMessageStreamOutcome = hasProcessingFailure
+      ? { status: 'failed', error: processingError }
+      : declaredOutcome.status === 'unknown' && isAborted
         ? { status: 'aborted' }
         : declaredOutcome;
 
