@@ -404,6 +404,50 @@ DeepSeek preserves provider-specific response fields in
 
 These fields remain in provider metadata because they are specific to
 DeepSeek's Chat Completions response rather than shared AI SDK result fields.
+
+### Vision File Parts
+
+For inline images or image URLs, use file-part provider options to select the
+image processing detail. DeepSeek supports `low`, `high`, `original`, and
+`auto`:
+
+```ts highlight="2,13-17"
+import {
+  deepseek,
+  type DeepSeekFilePartProviderOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepseek('deepseek-v4-flash-vision-exp'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe this image.' },
+        {
+          type: 'file',
+          data: new URL('https://example.com/image.webp'),
+          mediaType: 'image/webp',
+          providerOptions: {
+            deepseek: {
+              imageDetail: 'low',
+            } satisfies DeepSeekFilePartProviderOptions,
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+Set `fileData: true` on an inline image file part to use DeepSeek's
+`file_data` content-part representation. This preserves the file part's
+`filename`. `fileData` cannot be used with image URLs or `imageDetail`.
+
+DeepSeek accepts JPEG, PNG, GIF, and WebP image inputs. HTTP image URLs can be
+at most 8,192 characters.
+
 ## Model Capabilities
 
 | Model                          | Text Generation     | Object Generation   | Image Input         | Tool Usage          | Tool Streaming      |
