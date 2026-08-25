@@ -11,6 +11,18 @@ export type DeepSeekChatModelId =
 
 export const deepseekChatOptions = z.object({
   /**
+   * Whether to return log probabilities for generated tokens.
+   */
+  logprobs: z.boolean().optional(),
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   *
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs: z.number().int().min(0).max(20).optional(),
+
+  /**
    * An opaque identifier for the end user. DeepSeek uses this identifier for
    * content-safety tracing and request isolation.
    *
@@ -52,6 +64,18 @@ export const deepseekChatOptions = z.object({
 });
 
 export type DeepSeekChatOptions = {
+  /**
+   * Whether to return log probabilities for generated tokens.
+   */
+  logprobs?: boolean;
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   *
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs?: number;
+
   /**
    * An opaque identifier for the end user. DeepSeek uses this identifier for
    * content-safety tracing and request isolation.
