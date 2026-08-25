@@ -177,6 +177,63 @@ The metrics include:
   documentation](https://api-docs.deepseek.com/guides/kv_cache#checking-cache-hit-status).
 </Note>
 
+<<<<<<< HEAD
+=======
+### File Uploads
+
+You can upload images using the [DeepSeek Files API](https://api-docs.deepseek.com/guides/files_api) and pass the returned provider reference to `deepseek-v4-flash-vision-exp`. This avoids sending the image bytes again in each request.
+
+```ts
+import { deepSeek, type DeepSeekFilesOptions } from '@ai-sdk/deepseek';
+import { generateText, uploadFile } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const { providerReference, mediaType } = await uploadFile({
+  api: deepSeek.files(),
+  data: await readFile('./image.png'),
+  filename: 'image.png',
+  providerOptions: {
+    deepseek: {
+      expiresAfter: 3600,
+    } satisfies DeepSeekFilesOptions,
+  },
+});
+
+const { text } = await generateText({
+  model: deepSeek('deepseek-v4-flash-vision-exp'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe this image.' },
+        {
+          type: 'file',
+          mediaType: mediaType ?? 'image/png',
+          data: providerReference,
+        },
+      ],
+    },
+  ],
+});
+```
+
+The optional `expiresAfter` setting specifies the lifetime in seconds. DeepSeek accepts values from 3,600 seconds (one hour) through 2,592,000 seconds (30 days). Files are permanent when no expiration is specified.
+
+The provider requires a valid file ID in successful upload responses. It also
+validates returned `object` and `purpose` discriminators and numeric metadata.
+Other response metadata remains optional for compatibility with incomplete
+responses; omitted values are not included in `providerMetadata`, and an
+omitted response filename falls back to the filename supplied to `uploadFile`.
+
+DeepSeek file uploads support JPEG (`.jpg` and `.jpeg`), PNG, GIF, and WebP
+images. Each file can be at most 64 MiB, and filenames can contain at most 512
+characters. The AI SDK validates these constraints before sending the upload
+request. The `image/jpg` media type alias is accepted, and a supported filename
+extension is used as a fallback when the media type is generic (for example,
+`application/octet-stream`). Recognizable non-image content is rejected even
+when its declared media type or filename indicates a supported image format.
+
+>>>>>>> 01fa8de5e7 (feat: align DeepSeek file response validation with the documented response contract (#19400))
 ## Model Capabilities
 
 | Model                          | Text Generation     | Object Generation   | Image Input         | Tool Usage          | Tool Streaming      |
