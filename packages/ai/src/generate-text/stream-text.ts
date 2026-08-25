@@ -995,7 +995,9 @@ class DefaultStreamTextResult<
   private readonly _onEndCompleted = new DelayedPromise<void>();
 
   private outputPromise: Promise<InferCompleteOutput<OUTPUT>> | undefined;
-  private isOnEndCallbackBeingInvoked = false;
+  private isOnEndCallbackExecuting = false;
+  private canOnEndCallbackAccessOutput = false;
+  private hasOnEndCallbackStarted = false;
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
@@ -1522,20 +1524,16 @@ class DefaultStreamTextResult<
                       ? undefined
                       : await self.getOutputPromise().catch(() => undefined);
 
-                  // Allow result.output to be obtained synchronously from the
-                  // callback without letting concurrent external reads bypass
-                  // callback completion.
-                  let callbackResult: PromiseLike<void> | void;
-                  self.isOnEndCallbackBeingInvoked = true;
+                  self.hasOnEndCallbackStarted = true;
+                  self.isOnEndCallbackExecuting = true;
                   try {
-                    callbackResult = onEnd({
+                    await onEnd({
                       ...event,
                       ...(output != null ? { output: parsedOutput } : {}),
                     });
                   } finally {
-                    self.isOnEndCallbackBeingInvoked = false;
+                    self.isOnEndCallbackExecuting = false;
                   }
-                  await callbackResult;
                 };
 
           const onEndEvent = {
@@ -2942,9 +2940,23 @@ class DefaultStreamTextResult<
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
     this.consumeStream();
 
-    return this.isOnEndCallbackBeingInvoked
-      ? this.getOutputPromise()
-      : this._onEndCompleted.promise.then(() => this.getOutputPromise());
+    if (this.outputSpecification == null) {
+      return this.getOutputPromise();
+    }
+
+    // A structured-output read that started before onEnd is already waiting
+    // for callback completion. Let the callback consume one direct read so it
+    // can await result.output without creating a dependency cycle.
+    if (this.isOnEndCallbackExecuting && this.canOnEndCallbackAccessOutput) {
+      this.canOnEndCallbackAccessOutput = false;
+      return this.getOutputPromise();
+    }
+
+    if (!this.hasOnEndCallbackStarted) {
+      this.canOnEndCallbackAccessOutput = true;
+    }
+
+    return this._onEndCompleted.promise.then(() => this.getOutputPromise());
   }
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({

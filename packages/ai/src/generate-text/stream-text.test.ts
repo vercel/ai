@@ -20898,6 +20898,43 @@ describe('streamText', () => {
         await consumePromise;
       });
 
+      it('should not delay default text output for an active onFinish callback', async () => {
+        const callbackStarted = new DelayedPromise<void>();
+        const finishCallback = new DelayedPromise<void>();
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello, world!',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'prompt',
+          onFinish: async () => {
+            callbackStarted.resolve();
+            await finishCallback.promise;
+          },
+        });
+
+        const outputPromise = Promise.resolve(result.output);
+        await callbackStarted.promise;
+
+        expect(await outputPromise).toBe('Hello, world!');
+
+        finishCallback.resolve();
+        await result.consumeStream();
+      });
+
       it('should parse complete output once for onFinish and the output promise', async () => {
         const output = Output.object({
           schema: z.object({ value: z.string() }),
@@ -20961,6 +20998,42 @@ describe('streamText', () => {
           output,
           prompt: 'prompt',
           onFinish: async () => {
+            callbackOutput = await result.output;
+          },
+        });
+
+        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
+        expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+      });
+
+      it('should allow onFinish to await the output promise after asynchronous work', async () => {
+        const output = Output.object({
+          schema: z.object({ value: z.string() }),
+        });
+        let callbackOutput: { value: string } | undefined;
+        let result!: StreamTextResult<any, any, typeof output>;
+
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output,
+          prompt: 'prompt',
+          onFinish: async () => {
+            await delay(1);
             callbackOutput = await result.output;
           },
         });
