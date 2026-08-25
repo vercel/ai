@@ -175,7 +175,7 @@ describe('GoogleFiles', () => {
       expect(JSON.parse(capturedBody!)).toEqual({ file: {} });
     });
 
-    it('should let fetch derive the content length for the upload body', async () => {
+    it('should send ArrayBuffer-backed data and let fetch derive its content length', async () => {
       let capturedUploadInit: RequestInit | undefined;
       const uploadUrl = 'https://upload.example.com/resume-session';
       const { files } = createMockFiles({
@@ -187,7 +187,9 @@ describe('GoogleFiles', () => {
         },
       });
 
-      const bytes = new Uint8Array([10, 20, 30]);
+      const bytes = new Uint8Array(new SharedArrayBuffer(3));
+      bytes.set([10, 20, 30]);
+
       await files.uploadFile({
         data: { type: 'data', data: bytes },
         mediaType: 'application/octet-stream',
@@ -199,7 +201,14 @@ describe('GoogleFiles', () => {
       expect(headers).not.toHaveProperty('Content-Length');
       expect(headers['X-Goog-Upload-Offset']).toBe('0');
       expect(headers['X-Goog-Upload-Command']).toBe('upload, finalize');
-      expect(capturedUploadInit?.body).toEqual(bytes);
+
+      const body = capturedUploadInit?.body;
+      expect(body).toBeInstanceOf(Uint8Array);
+      if (!(body instanceof Uint8Array)) {
+        throw new Error('Expected upload body to be a Uint8Array');
+      }
+      expect(body.buffer).toBeInstanceOf(ArrayBuffer);
+      expect(Array.from(body)).toEqual([10, 20, 30]);
     });
 
     it('should return providerReference with google key set to file URI', async () => {
