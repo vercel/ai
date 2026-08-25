@@ -147,9 +147,11 @@ export const deepseekChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
+  object: z.literal('chat.completion').nullish(),
   system_fingerprint: z.string().nullish(),
   choices: z.array(
     z.object({
+      index: z.number().nullish(),
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
@@ -158,6 +160,7 @@ export const deepseekChatResponseSchema = z.object({
           .array(
             z.object({
               id: z.string().nullish(),
+              type: z.literal('function').nullish(),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
@@ -182,9 +185,11 @@ export const deepseekChatChunkSchema = lazySchema(() =>
         id: z.string().nullish(),
         created: z.number().nullish(),
         model: z.string().nullish(),
+        object: z.literal('chat.completion.chunk').nullish(),
         system_fingerprint: z.string().nullish(),
         choices: z.array(
           z.object({
+            index: z.number().nullish(),
             delta: z
               .object({
                 role: z.enum(['assistant']).nullish(),
@@ -195,6 +200,7 @@ export const deepseekChatChunkSchema = lazySchema(() =>
                     z.object({
                       index: z.number(),
                       id: z.string().nullish(),
+                      type: z.literal('function').nullish(),
                       function: z.object({
                         name: z.string().nullish(),
                         arguments: z.string().nullish(),

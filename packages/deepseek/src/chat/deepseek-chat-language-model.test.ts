@@ -1650,6 +1650,7 @@ describe('DeepSeekChatLanguageModel', () => {
           .toMatchInlineSnapshot(`
             {
               "deepseek": {
+                "choiceIndex": 0,
                 "logprobs": {
                   "content": [
                     {
@@ -1686,8 +1687,10 @@ describe('DeepSeekChatLanguageModel', () => {
                     },
                   ],
                 },
+                "messageRole": "assistant",
                 "promptCacheHitTokens": 0,
                 "promptCacheMissTokens": 9,
+                "responseObject": "chat.completion.chunk",
               },
             }
           `);
