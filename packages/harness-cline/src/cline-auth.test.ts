@@ -45,6 +45,26 @@ describe('resolveClineEnv', () => {
     });
   });
 
+  it('uses explicit Gateway credentials without mutating the environment', () => {
+    const env = { AI_GATEWAY_API_KEY: 'ambient-gateway-key' };
+
+    expect(
+      resolveClineEnv({
+        auth: {
+          gateway: {
+            apiKey: 'explicit-gateway-key',
+            baseUrl: 'https://explicit.example',
+          },
+        },
+        env,
+      }),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'explicit-gateway-key',
+      AI_GATEWAY_BASE_URL: 'https://explicit.example',
+    });
+    expect(env).toEqual({ AI_GATEWAY_API_KEY: 'ambient-gateway-key' });
+  });
+
   it('prefers AI Gateway credentials in auto mode', () => {
     expect(
       resolveClineEnv({

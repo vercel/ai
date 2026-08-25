@@ -10,4 +10,8 @@ export const cline = createCline();
 export { createCline } from './cline-harness';
 export { VERSION } from './version';
 export type { ClineHarnessSettings } from './cline-harness';
-export type { ClineAuthenticationMode, ClineAuthOptions } from './cline-auth';
+export type {
+  ClineAuthenticationMode,
+  ClineAuthOptions,
+  ClineGatewayAuthenticationOptions,
+} from './cline-auth';

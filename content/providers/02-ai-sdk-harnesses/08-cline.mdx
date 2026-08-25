@@ -127,6 +127,22 @@ environment:
 const harness = createCline({ auth: 'ai-gateway' });
 ```
 
+Pass an explicit Gateway credential when the host resolves authentication at
+runtime:
+
+```ts
+const harness = createCline({
+  auth: {
+    gateway: {
+      apiKey: await resolveGatewayToken(),
+      baseUrl: 'https://ai-gateway.vercel.sh',
+    },
+  },
+});
+```
+
+The explicit credential is resolved without mutating `process.env`.
+
 `CLINE_API_BASE_URL` is Cline's backend root URL; the SDK's `/api/v1` provider
 path is appended to it. For AI Gateway, the adapter instead overrides Cline's
 in-process provider configuration with the Gateway credential and its `/v1`

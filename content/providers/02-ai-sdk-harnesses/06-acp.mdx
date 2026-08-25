@@ -232,6 +232,23 @@ With the default `auth: 'auto'`, the adapter uses AI Gateway when
 `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` is available and otherwise uses
 direct authentication.
 
+Applications that resolve credentials at runtime can pass them without
+mutating `process.env`:
+
+```ts
+const harness = createACP({
+  // ...implementation settings
+  auth: {
+    gateway: {
+      apiKey: await resolveGatewayToken(),
+      baseUrl: 'https://ai-gateway.vercel.sh',
+    },
+  },
+});
+```
+
+Explicit credentials are excluded from bootstrap and lifecycle identity.
+
 For direct authentication, configure `credentialEnv` with the host environment
 variable names that the underlying ACP implementation reads, and use
 `credentialBrokering` to map their values to outbound request headers. When the

@@ -146,6 +146,20 @@ const directHarness = createGrokBuild({ auth: 'direct' });
 const gatewayHarness = createGrokBuild({ auth: 'ai-gateway' });
 ```
 
+Pass an explicit Gateway credential when the host resolves authentication at
+runtime:
+
+```ts
+const gatewayHarness = createGrokBuild({
+  auth: {
+    gateway: {
+      apiKey: await resolveGatewayToken(),
+      baseUrl: 'https://ai-gateway.vercel.sh',
+    },
+  },
+});
+```
+
 ## Sandbox
 
 Grok Build runs inside the sandbox through `@ai-sdk/harness-acp`. It requires a

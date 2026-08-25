@@ -167,6 +167,26 @@ describe('createGrokBuild', () => {
     ]);
   });
 
+  it('forwards explicit Gateway authentication', () => {
+    createGrokBuild({
+      auth: {
+        gateway: {
+          apiKey: 'gateway-key',
+          baseUrl: 'https://gateway.example',
+        },
+      },
+    });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(settings.auth).toEqual({
+      gateway: {
+        apiKey: 'gateway-key',
+        baseUrl: 'https://gateway.example',
+      },
+    });
+  });
+
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
     const credentialForwarding = async ({
