@@ -13,6 +13,11 @@ import {
   type MoonshotAIChatModelId,
   type MoonshotAIProviderOptions,
 } from './moonshotai-chat-options';
+<<<<<<< HEAD
+=======
+import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
+import { prepareTools } from './moonshotai-prepare-tools';
+>>>>>>> 462c49855d (fix: Moonshot structured outputs reject compatible schemas and omit strict validation (#19607))
 
 function prepareSamplingOptions({
   modelId,
@@ -150,6 +155,7 @@ function prepareReasoningOptions({
       reasoningEffort = requestedReasoningEffort;
       break;
     }
+<<<<<<< HEAD
     case 'kimi-k2.7': {
       warnUnsupportedReasoningEffort();
       if (requestedThinking?.type === 'disabled') {
@@ -171,6 +177,29 @@ function prepareReasoningOptions({
         thinking = {
           type: thinkingType ?? 'enabled',
           ...(preserveReasoning ? { keep: 'all' as const } : {}),
+=======
+
+    let response_format: Record<string, unknown> | undefined;
+    if (responseFormat?.type === 'json') {
+      if (
+        this.config.supportsStructuredOutputs === true &&
+        responseFormat.schema != null
+      ) {
+        // kimi-k2.5 produces nonsensical output when the top-level `$schema`
+        // keyword injected by the AI SDK is present, even though it otherwise
+        // supports structured outputs. Strip it from the schema sent to
+        // Moonshot; the full original schema is still used for result
+        // validation.
+        const { $schema: _$schema, ...schemaWithoutDollarSchema } =
+          responseFormat.schema;
+        response_format = {
+          type: 'json_schema',
+          json_schema: {
+            name: responseFormat.name ?? 'response',
+            strict: moonshotOptions.strictJsonSchema ?? true,
+            schema: normalizeJsonSchemaForMFJS(schemaWithoutDollarSchema),
+          },
+>>>>>>> 462c49855d (fix: Moonshot structured outputs reject compatible schemas and omit strict validation (#19607))
         };
       }
       break;

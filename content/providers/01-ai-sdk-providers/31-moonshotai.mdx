@@ -97,9 +97,26 @@ sampling parameters; the provider omits those settings for Kimi requests and
 returns an unsupported-setting warning when they are supplied.
 
 Kimi K3 supports `toolChoice: 'required'`. Kimi K2.6 and the Kimi K2.7 Code
+<<<<<<< HEAD
 models reject that setting, so the provider omits it and returns an
 unsupported-setting warning for those model IDs. Other tool choice modes are
 passed through unchanged.
+=======
+models reject that setting, so the provider omits it and returns an unsupported
+warning for those model IDs. Other tool choice modes are passed through
+unchanged.
+
+#### Structured Outputs
+
+Native structured outputs are enabled for Moonshot models whose model ID starts with `kimi-`.
+
+The provider normalizes schemas to Moonshot's supported JSON Schema subset and
+enables strict schema validation by default.
+
+For other Moonshot models, object generation falls back to JSON mode instead of schema-constrained decoding.
+
+For best reliability, it is strongly recommended to include your schema requirements in your prompt in addition to passing the schema through `Output`.
+>>>>>>> 462c49855d (fix: Moonshot structured outputs reject compatible schemas and omit strict validation (#19607))
 
 ### Reasoning Models
 
@@ -152,6 +169,11 @@ See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on 
 ### Provider Options
 
 The following optional provider options are available for Moonshot AI language models:
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation for structured outputs. Defaults
+  to `true`.
 
 - **reasoningEffort** _'low' | 'high' | 'max'_
 

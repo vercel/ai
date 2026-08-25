@@ -10,6 +10,20 @@ describe('MoonshotAIProviderOptions', () => {
         budgetTokens?: number;
       };
       reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
+<<<<<<< HEAD
+=======
+      strictJsonSchema?: boolean;
+      promptCacheKey?: string;
+      safetyIdentifier?: string;
+>>>>>>> 462c49855d (fix: Moonshot structured outputs reject compatible schemas and omit strict validation (#19607))
     }>();
+  });
+
+  it('rejects non-boolean strictJsonSchema values', () => {
+    const invalidOptions: MoonshotAILanguageModelOptions = {
+      // @ts-expect-error strictJsonSchema must be a boolean
+      strictJsonSchema: 'false',
+    };
+    invalidOptions;
   });
 });
