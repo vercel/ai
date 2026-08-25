@@ -729,6 +729,7 @@ const openaiResponsesKnownChunkTypes = new Set([
   'response.custom_tool_call_input.delta',
   'response.failed',
   'response.function_call_arguments.delta',
+  'response.function_call_arguments.done',
   'response.image_generation_call.partial_image',
   'response.in_progress',
   'response.incomplete',
@@ -774,16 +775,22 @@ function isKnownOpenAIResponsesChunk(value: Record<string, unknown>) {
     value.type === 'response.output_item.added' ||
     value.type === 'response.output_item.done'
   ) {
-    const item =
-      typeof value.item === 'object' && value.item != null
-        ? (value.item as Record<string, unknown>)
-        : undefined;
+    if (typeof value.item !== 'object' || value.item == null) {
+      return true;
+    }
+
+    const item = value.item as Record<string, unknown>;
+
+    if (typeof item.type !== 'string') {
+      return true;
+    }
+
     const knownItemTypes =
       value.type === 'response.output_item.added'
         ? openaiResponsesAddedOutputItemTypes
         : openaiResponsesDoneOutputItemTypes;
 
-    return typeof item?.type === 'string' && knownItemTypes.has(item.type);
+    return knownItemTypes.has(item.type);
   }
 
   return (
@@ -1300,6 +1307,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         item_id: z.string(),
         output_index: z.number(),
         delta: z.string(),
+      }),
+      z.object({
+        type: z.literal('response.function_call_arguments.done'),
+        item_id: z.string(),
+        output_index: z.number(),
+        arguments: z.string(),
       }),
       z.object({
         type: z.literal('response.custom_tool_call_input.delta'),

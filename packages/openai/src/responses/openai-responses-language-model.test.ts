@@ -6158,6 +6158,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             delta: '{"city":"Berlin"}',
           })}\n\n`,
           `data: ${JSON.stringify({
+            type: 'response.function_call_arguments.done',
+            item_id: 'fc_1',
+            arguments: '{"city":"Berlin"}',
+          })}\n\n`,
+          `data: ${JSON.stringify({
             type: 'response.output_item.done',
             item: functionCall,
           })}\n\n`,
@@ -6178,9 +6183,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const events = await convertReadableStreamToArray(stream);
 
-      expect(events.filter(event => event.type === 'error')).not.toHaveLength(
-        0,
-      );
+      expect(events.filter(event => event.type === 'error')).toHaveLength(4);
       expect(events.some(event => event.type === 'tool-call')).toBe(false);
       expect(events.at(-1)).toMatchObject({
         type: 'finish',
