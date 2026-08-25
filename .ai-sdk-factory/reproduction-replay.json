@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19548,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19548-moonshot-mime-validation.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19548-moonshot-mime-validation.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19548 REPRODUCED: unsupported image/svg+xml was sent to Moonshot instead of being rejected locally"
+  }
+}

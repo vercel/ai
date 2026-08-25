@@ -1,4 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
@@ -150,6 +153,44 @@ describe('doGenerate', () => {
           video_url: { url: 'https://example.com/video.mp4' },
         },
       ]);
+    });
+  });
+
+  describe('unsupported media input', () => {
+    it('should reject SVG locally before sending a request', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'error',
+        status: 400,
+        body: fs.readFileSync(
+          'src/__fixtures__/moonshotai-unsupported-svg-error.json',
+          'utf8',
+        ),
+      };
+
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Describe this image.' },
+                {
+                  type: 'file',
+                  data: {
+                    type: 'data' as const,
+                    data: new TextEncoder().encode(
+                      '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+                    ),
+                  },
+                  mediaType: 'image/svg+xml',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toSatisfy(UnsupportedFunctionalityError.isInstance);
+
+      expect(server.calls).toHaveLength(0);
     });
   });
 

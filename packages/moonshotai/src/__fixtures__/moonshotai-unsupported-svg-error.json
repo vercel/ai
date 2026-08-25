@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "Invalid request: unsupported image format: text/plain; charset=utf-8",
+    "type": "invalid_request_error"
+  }
+}
