@@ -39,6 +39,41 @@ describe('user messages', () => {
     ]);
   });
 
+  it.each([
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/bmp',
+    'image/heic',
+    'image/heif',
+  ])('should accept the supported image media type %s', mediaType => {
+    const result = convertToMoonshotAIChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: new Uint8Array([0, 1]) },
+            mediaType,
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: `data:${mediaType};base64,AAE=` },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should pass through image URLs', () => {
     const result = convertToMoonshotAIChatMessages([
       {
@@ -92,6 +127,43 @@ describe('user messages', () => {
           {
             type: 'video_url',
             video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it.each([
+    'video/mp4',
+    'video/mpeg',
+    'video/mov',
+    'video/avi',
+    'video/x-flv',
+    'video/mpg',
+    'video/webm',
+    'video/wmv',
+    'video/3gpp',
+  ])('should accept the supported video media type %s', mediaType => {
+    const result = convertToMoonshotAIChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: new Uint8Array([0, 1]) },
+            mediaType,
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'video_url',
+            video_url: { url: `data:${mediaType};base64,AAE=` },
           },
         ],
       },
@@ -198,6 +270,48 @@ describe('user messages', () => {
         },
       ]),
     ).toThrow("'file part media type audio/mp3' functionality not supported");
+  });
+
+  it('should throw for unsupported image media types', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+              mediaType: 'image/svg+xml',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "'file part media type image/svg+xml' functionality not supported",
+    );
+  });
+
+  it('should throw for unsupported video media types', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+              mediaType: 'video/ogg',
+            },
+          ],
+        },
+      ]),
+    ).toThrow("'file part media type video/ogg' functionality not supported");
   });
 
   it('should throw for PDF file parts (rejected by the API)', () => {

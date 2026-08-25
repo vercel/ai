@@ -159,6 +159,10 @@ See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on 
 
 Kimi K3, Kimi K2.7 Code, Kimi K2.6, and Kimi K2.5 support video input. Pass the video as a `file` content part with a video media type:
 
+Supported image media types are JPEG, PNG, GIF, WebP, BMP, HEIC, and HEIF.
+Supported video media types are MP4, MPEG, MOV, AVI, FLV, MPG, WebM, WMV, and
+3GPP. Other image and video media types, including SVG, are rejected locally.
+
 ```ts
 import { moonshotai } from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';

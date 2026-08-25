@@ -11,6 +11,28 @@ import {
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
 
+const supportedImageMediaTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/bmp',
+  'image/heic',
+  'image/heif',
+]);
+
+const supportedVideoMediaTypes = new Set([
+  'video/mp4',
+  'video/mpeg',
+  'video/mov',
+  'video/avi',
+  'video/x-flv',
+  'video/mpg',
+  'video/webm',
+  'video/wmv',
+  'video/3gpp',
+]);
+
 // Moonshot AI chat completions accepts text, image_url, and video_url content
 // parts only. Anything else (audio, PDF, other file types) throws here rather
 // than being rejected by the API with a 400.
@@ -58,25 +80,53 @@ export function convertToMoonshotAIChatMessages(
                     const topLevel = getTopLevelMediaType(part.mediaType);
 
                     if (topLevel === 'image') {
+                      const mediaType =
+                        part.data.type === 'url' && part.mediaType === 'image/*'
+                          ? undefined
+                          : resolveFullMediaType({ part });
+
+                      if (
+                        mediaType != null &&
+                        !supportedImageMediaTypes.has(mediaType)
+                      ) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: `file part media type ${mediaType}`,
+                        });
+                      }
+
                       return {
                         type: 'image_url' as const,
                         image_url: {
                           url:
                             part.data.type === 'url'
                               ? part.data.url.toString()
-                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                              : `data:${mediaType};base64,${convertToBase64(part.data.data)}`,
                         },
                       };
                     }
 
                     if (topLevel === 'video') {
+                      const mediaType =
+                        part.data.type === 'url' && part.mediaType === 'video/*'
+                          ? undefined
+                          : resolveFullMediaType({ part });
+
+                      if (
+                        mediaType != null &&
+                        !supportedVideoMediaTypes.has(mediaType)
+                      ) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: `file part media type ${mediaType}`,
+                        });
+                      }
+
                       return {
                         type: 'video_url' as const,
                         video_url: {
                           url:
                             part.data.type === 'url'
                               ? part.data.url.toString()
-                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                              : `data:${mediaType};base64,${convertToBase64(part.data.data)}`,
                         },
                       };
                     }
