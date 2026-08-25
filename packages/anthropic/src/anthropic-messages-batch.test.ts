@@ -841,7 +841,7 @@ describe('Anthropic Messages batch language model', () => {
     ]);
   });
 
-  it('preserves text citations as URL sources', async () => {
+  it('preserves web search citations without attaching document citations to text metadata', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
       body: batchResponse(),
@@ -860,6 +860,14 @@ describe('Anthropic Messages batch language model', () => {
                   type: 'text',
                   text: 'Paris is sunny.',
                   citations: [
+                    {
+                      type: 'page_location',
+                      cited_text: 'Paris is sunny.',
+                      document_index: 0,
+                      document_title: 'Weather report',
+                      start_page_number: 1,
+                      end_page_number: 1,
+                    },
                     {
                       type: 'web_search_result_location',
                       cited_text: 'Paris is sunny.',

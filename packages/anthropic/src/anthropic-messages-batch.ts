@@ -586,12 +586,18 @@ function convertAnthropicBatchResponse(
   for (const part of response.content) {
     switch (part.type) {
       case 'text':
+        const webSearchCitations = part.citations?.filter(
+          citation => citation.type === 'web_search_result_location',
+        );
+
         content.push({
           type: 'text',
           text: part.text,
-          ...(part.citations != null &&
-            part.citations.length > 0 && {
-              providerMetadata: { anthropic: { citations: part.citations } },
+          ...(webSearchCitations != null &&
+            webSearchCitations.length > 0 && {
+              providerMetadata: {
+                anthropic: { citations: webSearchCitations },
+              },
             }),
         });
         for (const citation of part.citations ?? []) {
