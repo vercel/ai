@@ -1,5 +1,6 @@
 import {
   commonTool,
+  type HarnessAuthenticationEnvironment,
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
@@ -17,10 +18,13 @@ const CURSOR_CLIENT_APP = `ai-sdk/harness-cursor/${VERSION}`;
 
 export type CursorHarnessSettings = {
   /**
-   * Declares the provider authentication configured in Cursor. The adapter
-   * cannot change this setting and warns for explicit routing modes.
+   * Declares the provider authentication configured in Cursor, or supplies an
+   * isolated environment for Cursor CLI authentication. The adapter cannot
+   * change provider routing and warns for explicit routing modes.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?:
+    | ACPProviderAuthenticationMode
+    | HarnessAuthenticationEnvironment;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -372,6 +376,7 @@ export function createCursor(
   }
 
   return createACP({
+    auth: typeof settings.auth === 'string' ? undefined : settings.auth,
     credentialForwarding: settings.credentialForwarding,
     modelId: settings.model,
     port: settings.port,

@@ -130,16 +130,14 @@ describe('resolveACPProviderAuthentication', () => {
     });
   });
 
-  it('uses explicit Gateway credentials without mutating the environment', () => {
+  it('uses a supplied authentication environment without reading the host environment', () => {
     const env = { AI_GATEWAY_API_KEY: 'ambient-gateway-key' };
 
     expect(
       resolve({
         mode: {
-          gateway: {
-            apiKey: 'explicit-gateway-key',
-            baseUrl: 'https://explicit.example',
-          },
+          AI_GATEWAY_API_KEY: 'explicit-gateway-key',
+          AI_GATEWAY_BASE_URL: 'https://explicit.example',
         },
         env,
       }).env,
@@ -249,23 +247,19 @@ describe('resolveACPProviderAuthenticationCompatibility', () => {
     expect(JSON.stringify(configured)).not.toContain('ambient-secret');
   });
 
-  it('excludes explicit Gateway credentials from compatibility identity', () => {
+  it('excludes supplied credentials from compatibility identity', () => {
     const first = resolveACPProviderAuthenticationCompatibility({
       auth: {
-        gateway: {
-          apiKey: 'first-secret',
-          baseUrl: 'https://gateway.example',
-        },
+        AI_GATEWAY_API_KEY: 'first-secret',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example',
       },
       providerAuthentication: { gateway: { env: gatewayEnv } },
       env: {},
     });
     const rotated = resolveACPProviderAuthenticationCompatibility({
       auth: {
-        gateway: {
-          apiKey: 'rotated-secret',
-          baseUrl: 'https://gateway.example',
-        },
+        AI_GATEWAY_API_KEY: 'rotated-secret',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example',
       },
       providerAuthentication: { gateway: { env: gatewayEnv } },
       env: {},
@@ -274,7 +268,7 @@ describe('resolveACPProviderAuthenticationCompatibility', () => {
     expect(first).toEqual(rotated);
     expect(first).toMatchObject({
       type: 'ai-gateway',
-      mode: 'ai-gateway',
+      mode: 'auto',
       credentialSource: 'AI_GATEWAY_API_KEY',
       baseUrl: 'https://gateway.example',
     });

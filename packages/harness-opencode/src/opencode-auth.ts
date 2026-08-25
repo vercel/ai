@@ -1,7 +1,11 @@
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessAuthenticationEnvironment,
+  HarnessV1RequestTransformation,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
+  isHarnessAuthenticationEnvironment,
 } from '@ai-sdk/harness/utils';
 
 export const OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
@@ -94,6 +98,7 @@ export type LegacyOpenCodeAuthOptions = {
 
 export type OpenCodeAuthOptions =
   | OpenCodeAuthenticationMode
+  | HarnessAuthenticationEnvironment
   | LegacyOpenCodeAuthOptions;
 
 export function resolveOpenCodeProvider({
@@ -146,20 +151,35 @@ export function resolveOpenCodeEnv({
   provider?: string;
   processEnv?: Record<string, string | undefined>;
 }): Record<string, string> {
-  const normalizedAuth = normalizeOpenCodeAuthToLegacyAuth(auth);
+  const suppliedEnvironment = isHarnessAuthenticationEnvironment(auth);
+  const authenticationEnvironment = suppliedEnvironment ? auth : processEnv;
+  const normalizedAuth = suppliedEnvironment
+    ? undefined
+    : normalizeOpenCodeAuthToLegacyAuth(auth);
   const selectedProvider = resolveOpenCodeProvider({ model, provider });
   if (normalizedAuth?.openaiCompatible) {
-    return pickOpenAICompatible(normalizedAuth.openaiCompatible, processEnv);
+    return pickOpenAICompatible(
+      normalizedAuth.openaiCompatible,
+      authenticationEnvironment,
+    );
   }
   if (selectedProvider === 'openai') {
     if (normalizedAuth?.openai) {
-      return pickOpenAI({ explicit: normalizedAuth.openai, processEnv });
+      return pickOpenAI({
+        explicit: normalizedAuth.openai,
+        processEnv: authenticationEnvironment,
+      });
     }
   } else if (normalizedAuth?.anthropic) {
-    return pickAnthropic({ explicit: normalizedAuth.anthropic, processEnv });
+    return pickAnthropic({
+      explicit: normalizedAuth.anthropic,
+      processEnv: authenticationEnvironment,
+    });
   }
 
-  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
+    env: authenticationEnvironment,
+  });
   if (normalizedAuth?.gateway) {
     return pickGateway({
       explicit: normalizedAuth.gateway,
@@ -170,8 +190,8 @@ export function resolveOpenCodeEnv({
     return pickGateway({ explicit: {}, gatewayAuthFromEnv });
   }
   return selectedProvider === 'openai'
-    ? pickOpenAI({ processEnv })
-    : pickAnthropic({ processEnv });
+    ? pickOpenAI({ processEnv: authenticationEnvironment })
+    : pickAnthropic({ processEnv: authenticationEnvironment });
 }
 
 export function resolveOpenCodeAuthenticationMode({
@@ -185,6 +205,11 @@ export function resolveOpenCodeAuthenticationMode({
   provider?: string;
   processEnv?: Record<string, string | undefined>;
 }): OpenCodeResolvedAuthenticationMode {
+  if (isHarnessAuthenticationEnvironment(auth)) {
+    return getAiGatewayAuthFromEnv({ env: auth }).apiKey
+      ? 'ai-gateway'
+      : resolveOpenCodeProvider({ model, provider });
+  }
   if (typeof auth !== 'string' && auth?.openaiCompatible) {
     return 'openai';
   }

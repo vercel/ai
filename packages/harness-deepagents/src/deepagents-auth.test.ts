@@ -79,6 +79,23 @@ describe('resolveDeepAgentsEnv', () => {
     expect(env).toEqual({ ANTHROPIC_API_KEY: 'ambient-ant' });
   });
 
+  it('uses a supplied authentication environment instead of ambient credentials', () => {
+    const auth = { ANTHROPIC_API_KEY: 'programmatic-anthropic-key' };
+
+    expect(
+      resolveDeepAgentsEnv({
+        auth,
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toEqual({ ANTHROPIC_API_KEY: 'programmatic-anthropic-key' });
+    expect(
+      resolveDeepAgentsAuthenticationMode({
+        auth,
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toBe('anthropic');
+  });
+
   it('supports string authentication modes', () => {
     expect(
       resolveDeepAgentsEnv({

@@ -2,10 +2,14 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessAuthenticationEnvironment,
+  HarnessV1RequestTransformation,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
+  isHarnessAuthenticationEnvironment,
 } from '@ai-sdk/harness/utils';
 
 export const CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
@@ -61,6 +65,7 @@ export type LegacyClaudeCodeAuthOptions = {
 
 export type ClaudeCodeAuthOptions =
   | ClaudeCodeAuthenticationMode
+  | HarnessAuthenticationEnvironment
   | LegacyClaudeCodeAuthOptions;
 
 /**
@@ -89,18 +94,26 @@ export function resolveClaudeCodeEnv(
   processEnv: Record<string, string | undefined> = process.env,
   options: ResolveClaudeCodeEnvOptions = {},
 ): Record<string, string> {
-  const normalizedAuth = normalizeClaudeCodeAuthToLegacyAuth(auth);
+  const suppliedEnvironment = isHarnessAuthenticationEnvironment(auth);
+  const authenticationEnvironment = suppliedEnvironment ? auth : processEnv;
+  const normalizedAuth = suppliedEnvironment
+    ? undefined
+    : normalizeClaudeCodeAuthToLegacyAuth(auth);
 
-  const readApiKey = options.readApiKeyHelper ?? readApiKeyHelper;
+  const readApiKey = suppliedEnvironment
+    ? () => undefined
+    : (options.readApiKeyHelper ?? readApiKeyHelper);
   if (normalizedAuth?.anthropic) {
     return pickAnthropic({
       explicit: normalizedAuth.anthropic,
-      processEnv,
+      processEnv: authenticationEnvironment,
       readApiKey,
     });
   }
 
-  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
+    env: authenticationEnvironment,
+  });
   if (normalizedAuth?.gateway) {
     return pickGateway({
       explicit: normalizedAuth.gateway,
@@ -114,13 +127,21 @@ export function resolveClaudeCodeEnv(
     });
   }
 
-  return pickAnthropic({ processEnv, readApiKey });
+  return pickAnthropic({
+    processEnv: authenticationEnvironment,
+    readApiKey,
+  });
 }
 
 export function resolveClaudeCodeAuthenticationMode(
   auth: ClaudeCodeAuthOptions | undefined,
   processEnv: Record<string, string | undefined> = process.env,
 ): ClaudeCodeResolvedAuthenticationMode {
+  if (isHarnessAuthenticationEnvironment(auth)) {
+    return getAiGatewayAuthFromEnv({ env: auth }).apiKey
+      ? 'ai-gateway'
+      : 'direct';
+  }
   if (auth === 'direct' || (typeof auth !== 'string' && auth?.anthropic)) {
     return 'direct';
   }

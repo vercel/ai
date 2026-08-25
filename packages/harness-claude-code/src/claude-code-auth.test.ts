@@ -88,6 +88,25 @@ describe('resolveClaudeCodeEnv', () => {
     expect(env).toEqual({ ANTHROPIC_API_KEY: 'sk-auto' });
   });
 
+  it('uses a supplied authentication environment without ambient or helper fallback', () => {
+    const helper = vi.fn(() => 'helper-key');
+    const auth = { ANTHROPIC_API_KEY: 'programmatic-anthropic-key' };
+
+    expect(
+      resolveClaudeCodeEnv(
+        auth,
+        { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+        { readApiKeyHelper: helper },
+      ),
+    ).toEqual({ ANTHROPIC_API_KEY: 'programmatic-anthropic-key' });
+    expect(helper).not.toHaveBeenCalled();
+    expect(
+      resolveClaudeCodeAuthenticationMode(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toBe('direct');
+  });
+
   it('forwards host ANTHROPIC_BASE_URL alongside the api key', () => {
     const env = resolveClaudeCodeEnv(
       undefined,

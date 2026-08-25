@@ -5,7 +5,10 @@ import {
   type HarnessV1CredentialForwarding,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
-import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
+import {
+  createCredentialRequestTransformation,
+  isHarnessAuthenticationEnvironment,
+} from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthOptions } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -36,9 +39,9 @@ function sanitizeFxMcpToolNameSegment(value: string): string {
 export type FxHarnessSettings = {
   /**
    * Selects direct or AI Gateway authentication. Both routes use AI Gateway
-   * because fx does not connect to model providers directly. Pass a Gateway
-   * object to supply credentials explicitly, or omit it for automatic
-   * environment-based selection.
+   * because fx does not connect to model providers directly. Pass an
+   * authentication environment to supply credentials programmatically, or
+   * omit it for automatic host-environment selection.
    */
   readonly auth?: FxAuthOptions;
   /**
@@ -553,8 +556,9 @@ export function createFx(
 ): HarnessV1<typeof FX_BUILTIN_TOOLS> {
   const clientAppSegments = FX_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
-  const hasExplicitGatewayAuth =
-    settings.auth != null && typeof settings.auth !== 'string';
+  const suppliedAuthenticationEnvironment = isHarnessAuthenticationEnvironment(
+    settings.auth,
+  );
   const mcpToolTitlePrefixes = Object.keys(settings.mcpServers ?? {}).map(
     serverName => `mcp_${sanitizeFxMcpToolNameSegment(serverName)}_`,
   );
@@ -585,8 +589,8 @@ export function createFx(
     args: ['acp'],
     credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
     credentialBrokering: ({ env }) => {
-      const credential = hasExplicitGatewayAuth
-        ? env.AI_GATEWAY_API_KEY
+      const credential = suppliedAuthenticationEnvironment
+        ? (env.AI_GATEWAY_API_KEY ?? env.VERCEL_OIDC_TOKEN)
         : (env.VERCEL_OIDC_TOKEN ?? env.AI_GATEWAY_API_KEY);
       if (!credential) return [];
       return [

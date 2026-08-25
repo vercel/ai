@@ -373,13 +373,11 @@ describe('createFx', () => {
     expect(settings.credentialBrokering?.({ env: {} })).toEqual([]);
   });
 
-  it('brokers an explicit Gateway key instead of ambient OIDC', () => {
+  it('brokers the Gateway key selected from a supplied authentication environment', () => {
     createFx({
       auth: {
-        gateway: {
-          apiKey: 'explicit-gateway-key',
-          baseUrl: 'https://gateway.example/v1',
-        },
+        AI_GATEWAY_API_KEY: 'explicit-gateway-key',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
       },
     });
 

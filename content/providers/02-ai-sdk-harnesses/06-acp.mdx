@@ -95,6 +95,8 @@ try {
     are available.
   - `ai-gateway`: always use AI Gateway and throw when Gateway credentials are
     unavailable. This requires `providerAuthentication` configuration.
+  - An authentication environment: auto-detect from the supplied record
+    instead of the host process environment.
 - `providerAuthentication`: declarative runtime-specific Gateway environment.
 - `modelId`: a known implementation model identifier for Harness metadata.
 - `instructionMapping`: optional mapping from `HarnessAgent` instructions to
@@ -239,15 +241,16 @@ mutating `process.env`:
 const harness = createACP({
   // ...implementation settings
   auth: {
-    gateway: {
-      apiKey: await resolveGatewayToken(),
-      baseUrl: 'https://ai-gateway.vercel.sh',
-    },
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
   },
 });
 ```
 
-Explicit credentials are excluded from bootstrap and lifecycle identity.
+The supplied record replaces the host environment for authentication
+discovery. `credentialEnv` reads from this record while `forwardEnv` continues
+to read non-authentication runtime configuration from the host. Credential
+values are excluded from bootstrap and lifecycle identity.
 
 For direct authentication, configure `credentialEnv` with the host environment
 variable names that the underlying ACP implementation reads, and use

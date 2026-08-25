@@ -3,7 +3,6 @@ export type {
   ACPCredentialBrokering,
   ACPAuthentication,
   ACPAuthOptions,
-  ACPGatewayAuthenticationOptions,
   ACPInstallCommandSource,
   ACPInstructionMapping,
   ACPNpmLockedSource,

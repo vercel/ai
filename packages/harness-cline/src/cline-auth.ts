@@ -1,15 +1,11 @@
+import type { HarnessAuthenticationEnvironment } from '@ai-sdk/harness';
 import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 
 export type ClineAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
 
-export type ClineGatewayAuthenticationOptions = {
-  readonly apiKey?: string;
-  readonly baseUrl?: string;
-};
-
 export type ClineAuthOptions =
   | ClineAuthenticationMode
-  | { readonly gateway: ClineGatewayAuthenticationOptions };
+  | HarnessAuthenticationEnvironment;
 
 export function resolveClineEnv({
   auth = 'auto',
@@ -19,19 +15,10 @@ export function resolveClineEnv({
   env?: Record<string, string | undefined>;
 }): Record<string, string> {
   if (typeof auth !== 'string') {
-    return toGatewayClineEnv(
-      getAiGatewayAuthFromEnv({
-        env: {
-          ...env,
-          ...(auth.gateway.apiKey == null
-            ? {}
-            : { AI_GATEWAY_API_KEY: auth.gateway.apiKey }),
-          ...(auth.gateway.baseUrl == null
-            ? {}
-            : { AI_GATEWAY_BASE_URL: auth.gateway.baseUrl }),
-        },
-      }),
-    );
+    const gatewayAuth = getAiGatewayAuthFromEnv({ env: auth });
+    return gatewayAuth.apiKey
+      ? toGatewayClineEnv(gatewayAuth)
+      : pickDirectClineEnv({ env: auth });
   }
   if (auth === 'direct') {
     return pickDirectClineEnv({ env });

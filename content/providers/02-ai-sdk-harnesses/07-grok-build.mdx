@@ -88,9 +88,10 @@ const harness = createGrokBuild({
 
 Settings:
 
-- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication. The default
-  is `auto`, which selects AI Gateway when Gateway credentials are present and
-  direct xAI authentication otherwise.
+- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication, or accepts
+  an isolated authentication environment. The default is `auto`, which selects
+  AI Gateway when Gateway credentials are present and direct xAI
+  authentication otherwise.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -146,19 +147,20 @@ const directHarness = createGrokBuild({ auth: 'direct' });
 const gatewayHarness = createGrokBuild({ auth: 'ai-gateway' });
 ```
 
-Pass an explicit Gateway credential when the host resolves authentication at
+Pass an authentication environment when the host resolves credentials at
 runtime:
 
 ```ts
 const gatewayHarness = createGrokBuild({
   auth: {
-    gateway: {
-      apiKey: await resolveGatewayToken(),
-      baseUrl: 'https://ai-gateway.vercel.sh',
-    },
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
   },
 });
 ```
+
+The supplied record replaces the host environment for authentication
+discovery, so it can also select direct authentication with `XAI_API_KEY`.
 
 ## Sandbox
 

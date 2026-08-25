@@ -1,7 +1,11 @@
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessAuthenticationEnvironment,
+  HarnessV1RequestTransformation,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
+  isHarnessAuthenticationEnvironment,
 } from '@ai-sdk/harness/utils';
 
 export const DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES = [
@@ -57,6 +61,7 @@ export type LegacyDeepAgentsAuthOptions = {
 
 export type DeepAgentsAuthOptions =
   | DeepAgentsAuthenticationMode
+  | HarnessAuthenticationEnvironment
   | LegacyDeepAgentsAuthOptions;
 
 // DeepAgents always drives the Anthropic client. Non-Anthropic models reach it
@@ -69,13 +74,22 @@ export function resolveDeepAgentsEnv({
   auth?: DeepAgentsAuthOptions;
   processEnv?: Record<string, string | undefined>;
 }): Record<string, string> {
-  const normalizedAuth = normalizeDeepAgentsAuthToLegacyAuth(auth);
+  const suppliedEnvironment = isHarnessAuthenticationEnvironment(auth);
+  const authenticationEnvironment = suppliedEnvironment ? auth : processEnv;
+  const normalizedAuth = suppliedEnvironment
+    ? undefined
+    : normalizeDeepAgentsAuthToLegacyAuth(auth);
 
   if (normalizedAuth?.anthropic) {
-    return pickAnthropic({ explicit: normalizedAuth.anthropic, processEnv });
+    return pickAnthropic({
+      explicit: normalizedAuth.anthropic,
+      processEnv: authenticationEnvironment,
+    });
   }
 
-  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env: processEnv });
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
+    env: authenticationEnvironment,
+  });
   if (normalizedAuth?.gateway) {
     return pickGateway({
       explicit: normalizedAuth.gateway,
@@ -86,7 +100,7 @@ export function resolveDeepAgentsEnv({
     return pickGateway({ explicit: {}, gatewayAuthFromEnv });
   }
 
-  return pickAnthropic({ processEnv });
+  return pickAnthropic({ processEnv: authenticationEnvironment });
 }
 
 export function resolveDeepAgentsAuthenticationMode({
@@ -96,6 +110,11 @@ export function resolveDeepAgentsAuthenticationMode({
   auth?: DeepAgentsAuthOptions;
   processEnv?: Record<string, string | undefined>;
 }): DeepAgentsResolvedAuthenticationMode {
+  if (isHarnessAuthenticationEnvironment(auth)) {
+    return getAiGatewayAuthFromEnv({ env: auth }).apiKey
+      ? 'ai-gateway'
+      : 'anthropic';
+  }
   if (auth === 'anthropic' || (typeof auth !== 'string' && auth?.anthropic)) {
     return 'anthropic';
   }

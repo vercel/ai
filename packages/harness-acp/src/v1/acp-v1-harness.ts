@@ -39,6 +39,7 @@ import {
 import { WebSocket } from 'ws';
 import {
   createACPAuthenticationProfileIdentity,
+  resolveACPAuthenticationEnvironment,
   resolveACPProviderAuthentication,
   resolveACPProviderAuthenticationCompatibility,
   type ACPAuthenticationProfileIdentity,
@@ -188,6 +189,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       const permissionMode = startOptions.permissionMode ?? 'allow-all';
       const env = { ...process.env };
+      const authenticationEnvironment = resolveACPAuthenticationEnvironment({
+        auth: settings.auth,
+        env,
+      });
       const providerAuthenticationCompatibility =
         resolveACPProviderAuthenticationCompatibility({
           auth: settings.auth,
@@ -240,6 +245,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const implementationEnvironment = resolveImplementationEnvironment({
         implementation,
         env,
+        credentialEnv: authenticationEnvironment,
       });
       let sandboxImplementationEnvironment = implementationEnvironment;
       let sandboxProviderAuthenticationEnvironment =

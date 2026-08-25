@@ -1,4 +1,5 @@
 import type {
+  HarnessAuthenticationEnvironment,
   HarnessV1CredentialForwarding,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
@@ -68,14 +69,9 @@ export type ACPAuthentication = {
 
 export type ACPProviderAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
 
-export type ACPGatewayAuthenticationOptions = {
-  readonly apiKey?: string;
-  readonly baseUrl?: string;
-};
-
 export type ACPAuthOptions =
   | ACPProviderAuthenticationMode
-  | { readonly gateway: ACPGatewayAuthenticationOptions };
+  | HarnessAuthenticationEnvironment;
 
 export type ACPProviderAuthentication = {
   readonly gateway: {

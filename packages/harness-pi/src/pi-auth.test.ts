@@ -138,6 +138,15 @@ describe('resolvePiEnv', () => {
     expect(resolvePiEnv({ options: undefined, env: {} })).toEqual({});
   });
 
+  it('uses a supplied authentication environment instead of ambient credentials', () => {
+    expect(
+      resolvePiEnv({
+        options: { OPENAI_API_KEY: 'programmatic-openai-key' },
+        env: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toEqual({ OPENAI_API_KEY: 'programmatic-openai-key' });
+  });
+
   it('supports string authentication modes', () => {
     expect(
       resolvePiEnv({
@@ -194,6 +203,22 @@ describe('resolvePiEnv', () => {
 });
 
 describe('registerPiProviders', () => {
+  it('does not register ambient providers for a supplied authentication environment', async () => {
+    clearAmbientProviderCredentials();
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'ambient-gateway-key');
+    const options = {
+      OPENAI_API_KEY: 'programmatic-openai-key',
+    } satisfies PiAuthOptions;
+    const resolvedEnv = resolvePiEnv({ options, env: process.env });
+    const registries = await registerProviders({ options, resolvedEnv });
+
+    expect(registries.setRuntimeApiKey).toHaveBeenCalledTimes(1);
+    expect(registries.setRuntimeApiKey).toHaveBeenCalledWith(
+      'openai',
+      'programmatic-openai-key',
+    );
+  });
+
   it('registers resolved gateway auth', async () => {
     const options = {
       gateway: { apiKey: 'gw-key', baseUrl: 'https://gw.example' },

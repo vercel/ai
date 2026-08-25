@@ -85,6 +85,25 @@ describe('OpenCode auth', () => {
     });
   });
 
+  it('uses a supplied authentication environment instead of ambient credentials', () => {
+    const auth = { OPENAI_API_KEY: 'programmatic-openai-key' };
+
+    expect(
+      resolveOpenCodeEnv({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toEqual({ OPENAI_API_KEY: 'programmatic-openai-key' });
+    expect(
+      resolveOpenCodeAuthenticationMode({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toBe('openai');
+  });
+
   it('normalizes OpenCode gateway base URLs to /v1', () => {
     expect(toOpenCodeGatewayBaseUrl('https://ai-gateway.vercel.sh')).toBe(
       'https://ai-gateway.vercel.sh/v1',

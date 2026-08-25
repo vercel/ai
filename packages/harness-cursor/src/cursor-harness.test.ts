@@ -174,6 +174,16 @@ describe('createCursor', () => {
     warn.mockRestore();
   });
 
+  it('forwards a supplied authentication environment for Cursor credentials', () => {
+    const auth = { CURSOR_API_KEY: 'programmatic-cursor-key' };
+
+    createCursor({ auth });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    expect(settings.auth).toBe(auth);
+    expect(settings.providerAuthentication).toBeUndefined();
+  });
+
   it('classifies Cursor MCP calls from their raw input', () => {
     createCursor();
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;

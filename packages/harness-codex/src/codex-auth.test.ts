@@ -94,6 +94,19 @@ describe('resolveCodexEnv', () => {
     expect(env).toEqual({ CODEX_API_KEY: 'sk-auto' });
   });
 
+  it('uses a supplied authentication environment instead of ambient credentials', () => {
+    const auth = { OPENAI_API_KEY: 'programmatic-openai-key' };
+
+    expect(
+      resolveCodexEnv(auth, { AI_GATEWAY_API_KEY: 'ambient-gateway-key' }),
+    ).toEqual({ CODEX_API_KEY: 'programmatic-openai-key' });
+    expect(
+      resolveCodexAuthenticationMode(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toBe('direct');
+  });
+
   it('forwards host OPENAI_BASE_URL alongside the api key', () => {
     const env = resolveCodexEnv(undefined, {
       OPENAI_API_KEY: 'sk-auto',

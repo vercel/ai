@@ -1,7 +1,11 @@
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessAuthenticationEnvironment,
+  HarnessV1RequestTransformation,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
+  isHarnessAuthenticationEnvironment,
 } from '@ai-sdk/harness/utils';
 
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh/v1';
@@ -55,7 +59,10 @@ export type LegacyCodexAuthOptions = {
   };
 };
 
-export type CodexAuthOptions = CodexAuthenticationMode | LegacyCodexAuthOptions;
+export type CodexAuthOptions =
+  | CodexAuthenticationMode
+  | HarnessAuthenticationEnvironment
+  | LegacyCodexAuthOptions;
 
 /**
  * Resolve the environment-variable blob the codex bridge needs. Precedence:
@@ -71,16 +78,26 @@ export function resolveCodexEnv(
   auth: CodexAuthOptions | undefined,
   processEnv: Record<string, string | undefined> = process.env,
 ): Record<string, string> {
-  const normalizedAuth = normalizeCodexAuthToLegacyAuth(auth);
+  const suppliedEnvironment = isHarnessAuthenticationEnvironment(auth);
+  const authenticationEnvironment = suppliedEnvironment ? auth : processEnv;
+  const normalizedAuth = suppliedEnvironment
+    ? undefined
+    : normalizeCodexAuthToLegacyAuth(auth);
 
   if (normalizedAuth?.openaiCompatible) {
-    return pickOpenAICompatible(normalizedAuth.openaiCompatible, processEnv);
+    return pickOpenAICompatible(
+      normalizedAuth.openaiCompatible,
+      authenticationEnvironment,
+    );
   }
   if (normalizedAuth?.openai) {
-    return pickOpenAI({ explicit: normalizedAuth.openai, processEnv });
+    return pickOpenAI({
+      explicit: normalizedAuth.openai,
+      processEnv: authenticationEnvironment,
+    });
   }
   const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
-    env: processEnv,
+    env: authenticationEnvironment,
   });
   if (normalizedAuth?.gateway) {
     return pickGateway({
@@ -94,13 +111,18 @@ export function resolveCodexEnv(
       gatewayAuthFromEnv,
     });
   }
-  return pickOpenAI({ processEnv });
+  return pickOpenAI({ processEnv: authenticationEnvironment });
 }
 
 export function resolveCodexAuthenticationMode(
   auth: CodexAuthOptions | undefined,
   processEnv: Record<string, string | undefined> = process.env,
 ): CodexResolvedAuthenticationMode {
+  if (isHarnessAuthenticationEnvironment(auth)) {
+    return getAiGatewayAuthFromEnv({ env: auth }).apiKey
+      ? 'ai-gateway'
+      : 'direct';
+  }
   if (typeof auth !== 'string' && auth?.openaiCompatible) {
     return 'direct';
   }

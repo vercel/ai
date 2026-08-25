@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import {
+  getAiGatewayAuthFromEnv,
+  isHarnessAuthenticationEnvironment,
+} from '@ai-sdk/harness/utils';
 import type {
   ACPAuthOptions as ACPV1AuthOptions,
   ACPAuthentication,
@@ -123,7 +126,7 @@ export function resolveACPProviderAuthentication({
     };
   }
 
-  const resolvedEnv = resolveACPProviderAuthenticationEnvironment({
+  const resolvedEnv = resolveACPAuthenticationEnvironment({
     auth: auth.mode,
     env,
   });
@@ -182,7 +185,7 @@ export function resolveACPProviderAuthenticationCompatibility({
     return { type: 'direct', mode };
   }
 
-  const resolvedEnv = resolveACPProviderAuthenticationEnvironment({
+  const resolvedEnv = resolveACPAuthenticationEnvironment({
     auth,
     env,
   });
@@ -203,28 +206,17 @@ export function resolveACPProviderAuthenticationCompatibility({
 function resolveACPProviderAuthenticationMode(
   auth: ACPAuthOptions | undefined,
 ): ACPProviderAuthenticationMode {
-  return typeof auth === 'string' || auth == null
-    ? (auth ?? 'auto')
-    : 'ai-gateway';
+  return typeof auth === 'string' || auth == null ? (auth ?? 'auto') : 'auto';
 }
 
-function resolveACPProviderAuthenticationEnvironment({
+export function resolveACPAuthenticationEnvironment({
   auth,
   env,
 }: {
   auth: ACPAuthOptions | undefined;
   env: Record<string, string | undefined>;
 }): Record<string, string | undefined> {
-  if (typeof auth === 'string' || auth == null) return env;
-  return {
-    ...env,
-    ...(auth.gateway.apiKey == null
-      ? {}
-      : { AI_GATEWAY_API_KEY: auth.gateway.apiKey }),
-    ...(auth.gateway.baseUrl == null
-      ? {}
-      : { AI_GATEWAY_BASE_URL: auth.gateway.baseUrl }),
-  };
+  return isHarnessAuthenticationEnvironment(auth) ? auth : env;
 }
 
 export function resolveACPEnv({

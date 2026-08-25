@@ -2,7 +2,11 @@ import type {
   ModelRegistry,
   ModelRuntime,
 } from '@earendil-works/pi-coding-agent';
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type { HarnessAuthenticationEnvironment } from '@ai-sdk/harness';
+import {
+  getAiGatewayAuthFromEnv,
+  isHarnessAuthenticationEnvironment,
+} from '@ai-sdk/harness/utils';
 import { VERSION } from './version';
 
 type ProviderConfigInput = Parameters<ModelRegistry['registerProvider']>[1];
@@ -39,7 +43,10 @@ export type LegacyPiAuthOptions = {
   readonly customEnv?: Record<string, string>;
 };
 
-export type PiAuthOptions = PiAuthenticationMode | LegacyPiAuthOptions;
+export type PiAuthOptions =
+  | PiAuthenticationMode
+  | HarnessAuthenticationEnvironment
+  | LegacyPiAuthOptions;
 
 const DEFAULT_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
@@ -100,14 +107,20 @@ export function resolvePiEnv({
   options: PiAuthOptions | undefined;
   env: NodeJS.ProcessEnv;
 }): Record<string, string> {
-  const normalizedOptions = normalizePiAuthToLegacyAuth(options);
+  const suppliedEnvironment = isHarnessAuthenticationEnvironment(options);
+  const authenticationEnvironment = suppliedEnvironment ? options : env;
+  const normalizedOptions = suppliedEnvironment
+    ? undefined
+    : normalizePiAuthToLegacyAuth(options);
   const customEnvConfigured = hasConfiguredValue(normalizedOptions?.customEnv);
   if (customEnvConfigured) {
     return resolveCustomEnv({ customEnv: normalizedOptions!.customEnv ?? {} });
   }
 
   const gatewayConfigured = hasConfiguredValue(normalizedOptions?.gateway);
-  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env });
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
+    env: authenticationEnvironment,
+  });
   if (gatewayConfigured) {
     const apiKey =
       normalizedOptions!.gateway?.apiKey ?? gatewayAuthFromEnv.apiKey;
@@ -123,31 +136,37 @@ export function resolvePiEnv({
   if (typeof options === 'string') {
     switch (options) {
       case 'openai':
-        if (env.OPENAI_API_KEY) {
+        if (authenticationEnvironment.OPENAI_API_KEY) {
           return {
-            OPENAI_API_KEY: env.OPENAI_API_KEY,
-            ...(env.OPENAI_BASE_URL
-              ? { OPENAI_BASE_URL: env.OPENAI_BASE_URL }
+            OPENAI_API_KEY: authenticationEnvironment.OPENAI_API_KEY,
+            ...(authenticationEnvironment.OPENAI_BASE_URL
+              ? { OPENAI_BASE_URL: authenticationEnvironment.OPENAI_BASE_URL }
               : {}),
           };
         }
         return {};
       case 'anthropic':
-        if (env.ANTHROPIC_API_KEY) {
+        if (authenticationEnvironment.ANTHROPIC_API_KEY) {
           return {
-            ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY,
-            ...(env.ANTHROPIC_BASE_URL
-              ? { ANTHROPIC_BASE_URL: env.ANTHROPIC_BASE_URL }
+            ANTHROPIC_API_KEY: authenticationEnvironment.ANTHROPIC_API_KEY,
+            ...(authenticationEnvironment.ANTHROPIC_BASE_URL
+              ? {
+                  ANTHROPIC_BASE_URL:
+                    authenticationEnvironment.ANTHROPIC_BASE_URL,
+                }
               : {}),
-            ...(env.ANTHROPIC_AUTH_TOKEN
-              ? { ANTHROPIC_AUTH_TOKEN: env.ANTHROPIC_AUTH_TOKEN }
+            ...(authenticationEnvironment.ANTHROPIC_AUTH_TOKEN
+              ? {
+                  ANTHROPIC_AUTH_TOKEN:
+                    authenticationEnvironment.ANTHROPIC_AUTH_TOKEN,
+                }
               : {}),
           };
         }
         return {};
       case 'custom': {
         const result: Record<string, string> = {};
-        for (const [key, value] of Object.entries(env)) {
+        for (const [key, value] of Object.entries(authenticationEnvironment)) {
           if (
             value &&
             (key.endsWith('_API_KEY') ||
@@ -183,7 +202,7 @@ export function resolvePiEnv({
 
   // 'auto' fallback: pick up any other provider credentials from the env.
   const ambient: Record<string, string> = {};
-  for (const [key, value] of Object.entries(env)) {
+  for (const [key, value] of Object.entries(authenticationEnvironment)) {
     if (
       value &&
       (key.endsWith('_API_KEY') ||
@@ -207,7 +226,11 @@ export async function registerPiProviders({
   registries: PiRegistries;
   clientApp?: string;
 }): Promise<void> {
-  const normalizedOptions = normalizePiAuthToLegacyAuth(options);
+  const suppliedEnvironment = isHarnessAuthenticationEnvironment(options);
+  const authenticationEnvironment = suppliedEnvironment ? options : process.env;
+  const normalizedOptions = suppliedEnvironment
+    ? undefined
+    : normalizePiAuthToLegacyAuth(options);
   if (hasConfiguredValue(normalizedOptions?.customEnv)) {
     await registerCustomProviders({
       customEnv: normalizedOptions!.customEnv ?? {},
@@ -221,13 +244,17 @@ export async function registerPiProviders({
   // string modes pass through, `undefined` is 'auto', and legacy gateway
   // objects fall through to the trailing gateway-registration block.
   const mode =
-    typeof options === 'string' ? options : options == null ? 'auto' : 'legacy';
+    typeof options === 'string'
+      ? options
+      : options == null || suppliedEnvironment
+        ? 'auto'
+        : 'legacy';
 
   switch (mode) {
     case 'openai': {
       const env = pickOpenAIEnv(resolvedEnv);
       await registerCustomProviders({
-        customEnv: { ...pickOpenAIEnv(process.env), ...env },
+        customEnv: { ...pickOpenAIEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
       });
@@ -236,7 +263,7 @@ export async function registerPiProviders({
     case 'anthropic': {
       const env = pickAnthropicEnv(resolvedEnv);
       await registerCustomProviders({
-        customEnv: { ...pickAnthropicEnv(process.env), ...env },
+        customEnv: { ...pickAnthropicEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
       });
@@ -246,14 +273,16 @@ export async function registerPiProviders({
       // 'custom' registers every provider with credentials in the env.
       const env = pickProviderEnv(resolvedEnv);
       await registerCustomProviders({
-        customEnv: { ...pickProviderEnv(process.env), ...env },
+        customEnv: { ...pickProviderEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
       });
       return;
     }
     case 'ai-gateway': {
-      const gatewayAuth = getAiGatewayAuthFromEnv({ env: process.env });
+      const gatewayAuth = getAiGatewayAuthFromEnv({
+        env: authenticationEnvironment,
+      });
       const gatewayApiKey =
         resolvedEnv.AI_GATEWAY_API_KEY ?? gatewayAuth.apiKey;
       const gatewayBaseUrl =
@@ -277,7 +306,9 @@ export async function registerPiProviders({
     default: {
       // 'auto' (the default): prefer the AI Gateway; only when no gateway
       // credentials exist, fall back to other providers found in the env.
-      const gatewayAuth = getAiGatewayAuthFromEnv({ env: process.env });
+      const gatewayAuth = getAiGatewayAuthFromEnv({
+        env: authenticationEnvironment,
+      });
       const gatewayApiKey =
         resolvedEnv.AI_GATEWAY_API_KEY ?? gatewayAuth.apiKey;
       const gatewayBaseUrl =
@@ -297,7 +328,7 @@ export async function registerPiProviders({
       }
       const env = pickProviderEnv(resolvedEnv);
       await registerCustomProviders({
-        customEnv: { ...pickProviderEnv(process.env), ...env },
+        customEnv: { ...pickProviderEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
       });
