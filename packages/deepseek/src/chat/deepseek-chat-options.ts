@@ -36,11 +36,7 @@ export const deepseekLanguageModelOptions = z.object({
   strictJsonSchema: z.boolean().optional(),
 });
 
-<<<<<<< HEAD:packages/deepseek/src/chat/deepseek-chat-options.ts
-export type DeepSeekLanguageModelOptions = z.infer<
-  typeof deepseekLanguageModelOptions
-=======
-export type DeepSeekLanguageModelChatOptions = {
+export type DeepSeekLanguageModelOptions = {
   /**
    * An opaque identifier for the end user. DeepSeek uses this identifier for
    * content-safety tracing and request isolation.
@@ -81,5 +77,4 @@ export const deepseekAssistantMessageProviderOptions = z.object({
 
 export type DeepSeekAssistantMessageProviderOptions = z.infer<
   typeof deepseekAssistantMessageProviderOptions
->>>>>>> 560fc396e1 (fix: align DeepSeek thinking and reasoning effort options with the documented V4 contract (#19412)):packages/deepseek/src/chat/deepseek-chat-language-model-options.ts
 >;
