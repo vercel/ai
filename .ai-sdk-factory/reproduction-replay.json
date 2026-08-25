@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 17951,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17951-windows-clean.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-17951-windows-clean.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Windows-compatible clean failed because \"rm\" is unavailable: @ai-sdk/test-server, @ai-sdk/mcp, @ai-sdk/huggingface, @ai-sdk/baseten"
+  }
+}
