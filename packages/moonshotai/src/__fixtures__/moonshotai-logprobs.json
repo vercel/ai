@@ -1,0 +1,31 @@
+{
+  "id": "chatcmpl-logprobs",
+  "object": "chat.completion",
+  "created": 1785880004,
+  "model": "moonshot-v1-8k",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "Hello" },
+      "logprobs": {
+        "content": [
+          {
+            "token": "Hello",
+            "logprob": -0.01,
+            "bytes": [72, 101, 108, 108, 111],
+            "top_logprobs": [
+              {
+                "token": "Hello",
+                "logprob": -0.01,
+                "bytes": [72, 101, 108, 108, 111]
+              }
+            ]
+          }
+        ],
+        "refusal": null
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": { "prompt_tokens": 9, "completion_tokens": 1, "total_tokens": 10 }
+}

@@ -94,6 +94,28 @@ export const moonshotAIErrorSchema = z.object({
 
 export type MoonshotAIErrorData = z.infer<typeof moonshotAIErrorSchema>;
 
+const moonshotAIChatLogprobSchema = z.object({
+  token: z.string(),
+  logprob: z.number(),
+  bytes: z.array(z.number()).nullish(),
+  top_logprobs: z.array(
+    z.object({
+      token: z.string(),
+      logprob: z.number(),
+      bytes: z.array(z.number()).nullish(),
+    }),
+  ),
+});
+
+const moonshotAIChatLogprobsSchema = z
+  .object({
+    content: z.array(moonshotAIChatLogprobSchema).nullish(),
+    refusal: z.array(moonshotAIChatLogprobSchema).nullish(),
+  })
+  .nullish();
+
+export type MoonshotAIChatLogprob = z.infer<typeof moonshotAIChatLogprobSchema>;
+
 export const moonshotAIChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
@@ -116,6 +138,7 @@ export const moonshotAIChatResponseSchema = z.object({
           )
           .nullish(),
       }),
+      logprobs: moonshotAIChatLogprobsSchema,
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -152,6 +175,7 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
               .nullish(),
             finish_reason: z.string().nullish(),
             usage: tokenUsageSchema,
+            logprobs: moonshotAIChatLogprobsSchema,
           }),
         ),
         usage: tokenUsageSchema,

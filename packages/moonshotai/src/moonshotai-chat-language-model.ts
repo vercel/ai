@@ -36,6 +36,7 @@ import {
   moonshotAIChatChunkSchema,
   moonshotAIChatResponseSchema,
   moonshotAIErrorSchema,
+  type MoonshotAIChatLogprob,
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
 import {
@@ -379,6 +380,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     return {
       args: {
         model: this.modelId,
+        ...((moonshotOptions.logprobs === true ||
+          moonshotOptions.topLogprobs != null) && { logprobs: true }),
+        ...(moonshotOptions.topLogprobs != null && {
+          top_logprobs: moonshotOptions.topLogprobs,
+        }),
         max_tokens: maxOutputTokens,
         temperature: supportsSamplingOptions ? temperature : undefined,
         top_p: supportsSamplingOptions ? topP : undefined,
@@ -464,6 +470,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertMoonshotAIChatUsage(responseBody.usage),
+      ...(choice.logprobs != null && {
+        providerMetadata: {
+          [this.providerOptionsName]: { logprobs: choice.logprobs },
+        },
+      }),
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -510,6 +521,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     };
     let usage: MoonshotAIChatTokenUsage | undefined = undefined;
     let hasTopLevelUsage = false;
+    const contentLogprobs: MoonshotAIChatLogprob[] = [];
+    const refusalLogprobs: MoonshotAIChatLogprob[] = [];
+    const providerOptionsName = this.providerOptionsName;
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
@@ -571,6 +585,14 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
                 unified: mapMoonshotAIFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
+            }
+
+            if (choice?.logprobs?.content != null) {
+              contentLogprobs.push(...choice.logprobs.content);
+            }
+
+            if (choice?.logprobs?.refusal != null) {
+              refusalLogprobs.push(...choice.logprobs.refusal);
             }
 
             if (choice?.delta == null) {
@@ -653,6 +675,21 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertMoonshotAIChatUsage(usage),
+              ...((contentLogprobs.length > 0 ||
+                refusalLogprobs.length > 0) && {
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    logprobs: {
+                      ...(contentLogprobs.length > 0 && {
+                        content: contentLogprobs,
+                      }),
+                      ...(refusalLogprobs.length > 0 && {
+                        refusal: refusalLogprobs,
+                      }),
+                    },
+                  },
+                },
+              }),
             });
           },
         }),

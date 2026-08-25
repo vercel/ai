@@ -37,6 +37,15 @@ export function getMoonshotAIModelFamily(
 }
 
 export const moonshotaiLanguageModelOptions = z.object({
+  /** Whether to return log probabilities for generated tokens. */
+  logprobs: z.boolean().optional(),
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs: z.number().int().min(0).max(20).optional(),
+
   /**
    * Reasoning effort for Kimi K3.
    */
@@ -73,6 +82,15 @@ export const moonshotaiLanguageModelOptions = z.object({
 });
 
 export type MoonshotAILanguageModelOptions = {
+  /** Whether to return log probabilities for generated tokens. */
+  logprobs?: boolean;
+
+  /**
+   * Number of most likely tokens to return at each token position (0-20).
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs?: number;
+
   /** Reasoning effort for Kimi K3. */
   reasoningEffort?: 'low' | 'high' | 'max';
 

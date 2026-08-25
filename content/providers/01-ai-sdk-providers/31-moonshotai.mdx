@@ -228,6 +228,16 @@ The following optional provider options are available for Moonshot AI language m
 
   Reasoning effort for Kimi K3.
 
+- **logprobs** _boolean_
+
+  Whether to return log probabilities for generated tokens. Returned values are
+  available at `result.providerMetadata.moonshotai.logprobs`.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return at each token position, from `0` to
+  `20`. Setting this option automatically enables `logprobs`.
+
 - **thinking** _object_
 
   Configuration for Kimi K2.5 and K2.6. Kimi K2.7 accepts only `enabled`

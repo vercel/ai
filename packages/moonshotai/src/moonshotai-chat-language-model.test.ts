@@ -844,6 +844,68 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('logprobs', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-logprobs');
+    });
+
+    it('should send logprobs provider options', async () => {
+      const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { logprobs: true, topLogprobs: 1 },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        logprobs: true,
+        top_logprobs: 1,
+      });
+      expect(result.content).toEqual([{ type: 'text', text: 'Hello' }]);
+      expect(result.providerMetadata?.moonshotai.logprobs).toEqual({
+        content: [
+          {
+            token: 'Hello',
+            logprob: -0.01,
+            bytes: [72, 101, 108, 108, 111],
+            top_logprobs: [
+              {
+                token: 'Hello',
+                logprob: -0.01,
+                bytes: [72, 101, 108, 108, 111],
+              },
+            ],
+          },
+        ],
+        refusal: null,
+      });
+    });
+
+    it('should enable logprobs when topLogprobs is set', async () => {
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { moonshotai: { topLogprobs: 20 } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        logprobs: true,
+        top_logprobs: 20,
+      });
+    });
+
+    it.each([-1, 21, 1.5])(
+      'should reject invalid topLogprobs value %s',
+      async topLogprobs => {
+        await expect(
+          provider.chatModel('moonshot-v1-8k').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: { moonshotai: { topLogprobs } },
+          }),
+        ).rejects.toThrow();
+      },
+    );
+  });
+
   describe('supportedUrls', () => {
     it('should natively support ms:// file references', () => {
       expect(provider.chatModel('kimi-k3').supportedUrls).toEqual({
@@ -972,6 +1034,46 @@ describe('doStream', () => {
     expect(parts.at(-1)).toMatchObject({
       type: 'finish',
       finishReason: { unified: 'error' },
+    });
+  });
+
+  it('should collect streamed logprobs without changing text output', async () => {
+    prepareChunksFixtureResponse('moonshotai-logprobs');
+
+    const result = await provider.chatModel('moonshot-v1-8k').doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        moonshotai: { topLogprobs: 1 },
+      },
+    });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      logprobs: true,
+      top_logprobs: 1,
+    });
+    expect(
+      parts
+        .filter(part => part.type === 'text-delta')
+        .map(part => part.delta)
+        .join(''),
+    ).toBe('Hello');
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      providerMetadata: {
+        moonshotai: {
+          logprobs: {
+            content: [
+              {
+                token: 'Hel',
+                logprob: -0.02,
+                bytes: [72, 101, 108],
+              },
+              { token: 'lo', logprob: -0.03, bytes: null },
+            ],
+          },
+        },
+      },
     });
   });
 });
