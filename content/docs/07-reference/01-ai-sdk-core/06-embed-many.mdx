@@ -7,8 +7,12 @@ description: API Reference for embedMany.
 
 Embed several values using an embedding model.
 
-`embedMany` automatically splits large requests into smaller chunks if the model
-has a limit on how many embeddings can be generated in a single call.
+`embedMany` automatically splits large requests into smaller chunks when the
+model has a limit on either the number of embeddings or the UTF-8 input bytes
+that can be processed in a single call. Providers can use a conservative byte
+budget to keep requests below aggregate token limits without adding a tokenizer
+to the AI SDK core package. An individual value larger than the byte budget is
+sent in its own call because splitting it would change the resulting embedding.
 
 ```ts
 import { embedMany } from 'ai';

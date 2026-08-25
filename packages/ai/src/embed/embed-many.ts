@@ -3,6 +3,7 @@ import {
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
+import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -21,8 +22,9 @@ import { VERSION } from '../version';
  * Embed several values using an embedding model. The type of the value is defined
  * by the embedding model.
  *
- * `embedMany` automatically splits large requests into smaller chunks if the model
- * has a limit on how many embeddings can be generated in a single call.
+ * `embedMany` automatically splits large requests into smaller chunks when the
+ * model has a limit on either the number of embeddings or the UTF-8 input bytes
+ * that can be processed in a single call.
  *
  * @param model - The embedding model to use.
  * @param values - The values that should be embedded.
@@ -139,6 +141,7 @@ export async function embedMany({
         model.supportsParallelCalls,
       ]);
 
+<<<<<<< HEAD
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
       if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
@@ -151,6 +154,152 @@ export async function embedMany({
                 telemetry,
                 attributes: {
                   ...assembleOperationName({
+=======
+  return await runInTracingChannelSpan({
+    type: 'embedMany',
+    event: startEvent,
+    execute: async () => {
+      await notify({
+        event: startEvent,
+        callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
+      });
+
+      try {
+        const [
+          maxEmbeddingsPerCall,
+          maxInputBytesPerCall,
+          supportsParallelCalls,
+        ] = await Promise.all([
+          model.maxEmbeddingsPerCall,
+          getEmbeddingModelMaxInputBytesPerCall(model),
+          model.supportsParallelCalls,
+        ]);
+
+        const hasEmbeddingLimit =
+          maxEmbeddingsPerCall != null && maxEmbeddingsPerCall !== Infinity;
+        const hasInputByteLimit =
+          maxInputBytesPerCall != null && maxInputBytesPerCall !== Infinity;
+
+        if (!hasEmbeddingLimit && !hasInputByteLimit) {
+          const { embeddings, usage, warnings, response, providerMetadata } =
+            await retry(async () => {
+              const embedCallId = generateCallId();
+
+              await notify({
+                event: {
+                  callId,
+                  embedCallId,
+                  operationId: 'ai.embedMany.doEmbed',
+                  provider: model.provider,
+                  modelId: model.modelId,
+                  values,
+                },
+                callbacks: [telemetryDispatcher.onEmbedStart],
+              });
+
+              const modelResponse = await model.doEmbed({
+                values,
+                abortSignal,
+                headers: headersWithUserAgent,
+                providerOptions,
+              });
+
+              const embeddings = modelResponse.embeddings;
+              const usage = modelResponse.usage ?? { tokens: NaN };
+
+              await notify({
+                event: {
+                  callId,
+                  embedCallId,
+                  operationId: 'ai.embedMany.doEmbed',
+                  provider: model.provider,
+                  modelId: model.modelId,
+                  values,
+                  embeddings,
+                  usage,
+                },
+                callbacks: [telemetryDispatcher.onEmbedEnd],
+              });
+
+              return {
+                embeddings,
+                usage,
+                warnings: modelResponse.warnings ?? [],
+                providerMetadata: modelResponse.providerMetadata,
+                response: modelResponse.response,
+              };
+            });
+
+          logWarnings({
+            warnings,
+            provider: model.provider,
+            model: model.modelId,
+          });
+
+          await notify({
+            event: {
+              callId,
+              operationId: 'ai.embedMany',
+              provider: model.provider,
+              modelId: model.modelId,
+              value: values,
+              embedding: embeddings,
+              usage,
+              warnings,
+              providerMetadata,
+              response: [response],
+            },
+            callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
+          });
+
+          return new DefaultEmbedManyResult({
+            values,
+            embeddings,
+            usage,
+            warnings,
+            providerMetadata,
+            responses: [response],
+          });
+        }
+
+        const valueChunks = splitByEmbeddingLimits({
+          values,
+          maxEmbeddingsPerCall: hasEmbeddingLimit
+            ? maxEmbeddingsPerCall
+            : Infinity,
+          maxInputBytesPerCall: hasInputByteLimit
+            ? maxInputBytesPerCall
+            : Infinity,
+        });
+
+        const embeddings: Array<Embedding> = [];
+        const warnings: Array<Warning> = [];
+        const responses: Array<
+          | {
+              headers?: Record<string, string>;
+              body?: unknown;
+            }
+          | undefined
+        > = [];
+        let tokens = 0;
+        let providerMetadata: ProviderMetadata | undefined;
+
+        const parallelChunks = splitArray(
+          valueChunks,
+          supportsParallelCalls ? maxParallelCalls : 1,
+        );
+
+        for (const parallelChunk of parallelChunks) {
+          const results = await Promise.all(
+            parallelChunk.map(chunk => {
+              return retry(async () => {
+                const embedCallId = generateCallId();
+
+                await notify({
+                  event: {
+                    callId,
+                    embedCallId,
+>>>>>>> d2f335310d (fix: split large embedding batches that exceed provider aggregate token limits (#19565))
                     operationId: 'ai.embedMany.doEmbed',
                     telemetry,
                   }),
@@ -361,6 +510,55 @@ export async function embedMany({
       });
     },
   });
+}
+
+const textEncoder = new TextEncoder();
+
+function splitByEmbeddingLimits({
+  values,
+  maxEmbeddingsPerCall,
+  maxInputBytesPerCall,
+}: {
+  values: Array<string>;
+  maxEmbeddingsPerCall: number;
+  maxInputBytesPerCall: number;
+}): Array<Array<string>> {
+  if (maxEmbeddingsPerCall <= 0) {
+    throw new Error('maxEmbeddingsPerCall must be greater than 0');
+  }
+
+  if (maxInputBytesPerCall <= 0) {
+    throw new Error('maxInputBytesPerCall must be greater than 0');
+  }
+
+  if (values.length === 0) {
+    return [];
+  }
+
+  const chunks: Array<Array<string>> = [];
+  let currentChunk: Array<string> = [];
+  let currentInputBytes = 0;
+
+  for (const value of values) {
+    const inputBytes = textEncoder.encode(value).length;
+
+    if (
+      currentChunk.length > 0 &&
+      (currentChunk.length >= maxEmbeddingsPerCall ||
+        currentInputBytes + inputBytes > maxInputBytesPerCall)
+    ) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentInputBytes = 0;
+    }
+
+    currentChunk.push(value);
+    currentInputBytes += inputBytes;
+  }
+
+  chunks.push(currentChunk);
+
+  return chunks;
 }
 
 class DefaultEmbedManyResult implements EmbedManyResult {

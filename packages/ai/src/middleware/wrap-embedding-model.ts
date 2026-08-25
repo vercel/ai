@@ -2,6 +2,18 @@ import type {
   EmbeddingModelV3,
   EmbeddingModelV3CallOptions,
 } from '@ai-sdk/provider';
+<<<<<<< HEAD
+=======
+import {
+  asArray,
+  EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+} from '@ai-sdk/provider-utils';
+import { asEmbeddingModelV4 } from '../model/as-embedding-model-v4';
+import {
+  getEmbeddingModelMaxInputBytesPerCall,
+  type EmbeddingModelWithMaxInputBytesPerCall,
+} from '../model/get-embedding-model-max-input-bytes-per-call';
+>>>>>>> d2f335310d (fix: split large embedding batches that exceed provider aggregate token limits (#19565))
 import type { EmbeddingModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
@@ -52,7 +64,11 @@ const doWrap = ({
   middleware: EmbeddingModelMiddleware;
   modelId?: string;
   providerId?: string;
+<<<<<<< HEAD
 }): EmbeddingModelV3 => {
+=======
+}): EmbeddingModelWithMaxInputBytesPerCall => {
+>>>>>>> d2f335310d (fix: split large embedding batches that exceed provider aggregate token limits (#19565))
   async function doTransform({
     params,
   }: {
@@ -67,6 +83,8 @@ const doWrap = ({
     modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,
     maxEmbeddingsPerCall:
       overrideMaxEmbeddingsPerCall?.({ model }) ?? model.maxEmbeddingsPerCall,
+    [EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL]:
+      getEmbeddingModelMaxInputBytesPerCall(model),
     supportsParallelCalls:
       overrideSupportsParallelCalls?.({ model }) ?? model.supportsParallelCalls,
     async doEmbed(
