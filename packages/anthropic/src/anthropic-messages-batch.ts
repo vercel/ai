@@ -145,6 +145,7 @@ export class AnthropicMessagesBatchLanguageModel
     providerOptions,
     headers,
     abortSignal,
+    webhookUrl,
   }: Parameters<
     BatchLanguageModelV4['experimental_doStartBatch']
   >[0]): Promise<BatchV4StartResult> {
@@ -161,7 +162,19 @@ export class AnthropicMessagesBatchLanguageModel
       custom_id: string;
       params: Record<string, unknown>;
     }> = [];
-    const batchWarnings: BatchV4StartResult['warnings'] = [];
+    const batchWarnings: BatchV4StartResult['warnings'] =
+      webhookUrl == null
+        ? []
+        : [
+            {
+              warning: {
+                type: 'unsupported',
+                feature: 'webhookUrl',
+                details:
+                  'The Anthropic Message Batches API does not support completion webhooks.',
+              },
+            },
+          ];
 
     for (const request of requests) {
       const requestBetas = await getAnthropicBatchProviderBetas({

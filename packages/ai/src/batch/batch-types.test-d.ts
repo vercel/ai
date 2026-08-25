@@ -13,6 +13,7 @@ import {
   experimental_getBatchResults as getBatchResults,
   experimental_getBatchStatus as getBatchStatus,
   experimental_startTextBatch as startTextBatch,
+  type GatewayProviderMetadata,
   type Experimental_BatchError as BatchError,
   type Experimental_BatchLanguageModel as BatchLanguageModel,
   type Experimental_BatchOperationOptions as BatchOperationOptions,
@@ -28,6 +29,12 @@ import {
 } from '../index';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 
+it('exposes typed Gateway async-job metadata', () => {
+  expectTypeOf<
+    NonNullable<GatewayProviderMetadata['asyncJob']>['webhookSigningSecret']
+  >().toEqualTypeOf<string | undefined>();
+});
+
 it('keeps text batch references as the current batch reference variant', () => {
   expectTypeOf<BatchReference>().toEqualTypeOf<TextBatchReference>();
   expectTypeOf<TextBatch>().toMatchTypeOf<BatchReference>();
@@ -40,6 +47,9 @@ it('keeps batch start non-retrying', () => {
   expectTypeOf<'maxRetries'>().not.toMatchTypeOf<keyof StartTextBatchOptions>();
   expectTypeOf<StartTextBatchOptions['timeout']>().toEqualTypeOf<
     number | { totalMs?: number } | undefined
+  >();
+  expectTypeOf<StartTextBatchOptions['webhookUrl']>().toEqualTypeOf<
+    string | undefined
   >();
 });
 

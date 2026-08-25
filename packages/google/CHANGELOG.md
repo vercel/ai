@@ -1,5 +1,33 @@
 # @ai-sdk/google
 
+## 4.0.51
+
+### Patch Changes
+
+- e7fc90e: feat(google): support the Gemini Batch API with experimental_startTextBatch
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.49
+
+### Patch Changes
+
+- f607a12: chore(google): drop support for Imagen models and their integration following API shutdown
+
+## 4.0.48
+
+### Patch Changes
+
+- 6c5a1ed: Inline local JSON Schema references in Google tool and structured-output schemas.
+
 ## 4.0.47
 
 ### Patch Changes

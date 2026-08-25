@@ -1,5 +1,74 @@
 # @ai-sdk/workflow
 
+## 2.0.9
+
+### Patch Changes
+
+- b251584: Preserve active text and reasoning parts when another merged UI message stream finishes a step, and align workflow stream normalization with the explicit part end chunks.
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 2.0.8
+
+### Patch Changes
+
+- 96970bb: Continue approved `generateText`, `streamText`, and `WorkflowAgent` turns with a model-visible tool error when revalidated tool input is invalid.
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 2.0.4
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 2.0.3
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 2.0.2
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 2.0.1
+
+### Patch Changes
+
+- 4233a40: Resume transformed WorkflowAgent streams using UI message chunk indexes.
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
 ## 2.0.0
 
 ### Major Changes

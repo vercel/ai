@@ -1,5 +1,71 @@
 # @ai-sdk/angular
 
+## 3.0.79
+
+### Patch Changes
+
+- 4396fe0: Avoid deep-cloning chat messages before submission so non-cloneable metadata does not prevent requests.
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 3.0.77
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
+## 3.0.76
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 3.0.75
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 3.0.74
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 3.0.73
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 3.0.72
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 3.0.71
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
 ## 3.0.70
 
 ### Patch Changes

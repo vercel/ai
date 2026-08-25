@@ -5,11 +5,12 @@ import type {
 } from '../acp-auth';
 import type { ACPPermissionModeMapping } from './acp-v1-settings';
 import {
-  type ACPNpmImplementation,
+  type ACPImplementation,
   createImplementationDescriptor,
   createImplementationIdentity,
   createImplementationInstallCommand,
   createImplementationManifest,
+  getImplementationInstallScript,
   getImplementationLockfile,
   resolveImplementationEnvironment,
   validateACPV1Implementation,
@@ -27,7 +28,7 @@ const simpleImplementation = {
   env: {
     PROVIDER_BASE_URL: 'https://provider.example',
   },
-} as const satisfies ACPNpmImplementation;
+} as const satisfies ACPImplementation;
 
 const unpinnedImplementation = {
   source: {
@@ -40,7 +41,7 @@ const unpinnedImplementation = {
   env: {
     PROVIDER_BASE_URL: 'https://provider.example',
   },
-} as const satisfies ACPNpmImplementation;
+} as const satisfies ACPImplementation;
 
 const packageJson = `{
   "name": "locked-acp-agent",
@@ -71,7 +72,17 @@ const lockedImplementation = {
   env: {
     PROVIDER_BASE_URL: 'https://provider.example',
   },
-} as const satisfies ACPNpmImplementation;
+} as const satisfies ACPImplementation;
+
+const installCommandImplementation = {
+  source: {
+    type: 'install-command',
+    command: 'curl https://example.com/install -fsS | bash',
+  },
+  executable: 'acp-agent',
+  args: ['stdio'],
+  credentialEnv: ['PROVIDER_API_KEY'],
+} as const satisfies ACPImplementation;
 
 const clientApp = {
   name: 'ai-sdk/harness-acp',
@@ -85,7 +96,7 @@ function identity({
   providerAuthentication,
   permissionModeMapping,
 }: {
-  implementation?: ACPNpmImplementation;
+  implementation?: ACPImplementation;
   harnessId?: string;
   clientApp?: ACPClientApp;
   providerAuthentication?: ACPProviderAuthenticationCompatibility;
@@ -101,7 +112,7 @@ function identity({
   });
 }
 
-describe('ACP npm implementation', () => {
+describe('ACP implementation', () => {
   it('creates a manifest for a simple exact-version installation', () => {
     expect(
       createImplementationManifest({
@@ -197,6 +208,45 @@ describe('ACP npm implementation', () => {
     ).toBe(
       'pnpm --dir /tmp/harness/example/implementation install --frozen-lockfile --prod --store-dir /tmp/harness/example/.pnpm-store',
     );
+  });
+
+  it('creates an isolated bash installation for an install command source', () => {
+    expect(
+      createImplementationManifest({
+        implementation: installCommandImplementation,
+      }),
+    ).toBeUndefined();
+    expect(
+      getImplementationLockfile({
+        implementation: installCommandImplementation,
+      }),
+    ).toBeUndefined();
+    expect(
+      createImplementationInstallCommand({
+        implementationDir: '/tmp/harness/example/implementation',
+        storeDir: '/tmp/harness/example/.pnpm-store',
+        implementation: installCommandImplementation,
+      }),
+    ).toBe('bash implementation/install.sh');
+
+    const script = getImplementationInstallScript({
+      implementation: installCommandImplementation,
+    });
+    expect(script).toContain('set -euo pipefail');
+    expect(script).toContain('ACP_INSTALL_HOME="$ACP_IMPLEMENTATION_DIR/home"');
+    expect(script).toContain(
+      'export PATH="$ACP_INSTALL_HOME/.local/bin:$PATH"',
+    );
+    expect(script).toContain('curl https://example.com/install -fsS | bash');
+  });
+
+  it('rejects an empty install command', () => {
+    expect(() =>
+      validateACPV1Implementation({
+        ...installCommandImplementation,
+        source: { type: 'install-command', command: '  \n' },
+      }),
+    ).toThrow('source.command must not be empty');
   });
 
   it('requires exact versions only for a simple npm source', () => {
@@ -331,6 +381,22 @@ describe('ACP npm implementation', () => {
     expect(descriptor).not.toContain('https://provider.example');
   });
 
+  it('uses source-specific paths in a common launch descriptor', () => {
+    expect(
+      createImplementationDescriptor({ implementation: simpleImplementation }),
+    ).toContain('"executablePath": "node_modules/.bin/acp-agent"');
+    expect(
+      createImplementationDescriptor({
+        implementation: installCommandImplementation,
+      }),
+    ).toContain('"executablePath": "home/.local/bin/acp-agent"');
+    expect(
+      createImplementationDescriptor({
+        implementation: installCommandImplementation,
+      }),
+    ).toContain('"privateHome": true');
+  });
+
   it('identifies every non-secret acquisition and launch input', () => {
     const baseIdentity = identity();
 
@@ -363,6 +429,20 @@ describe('ACP npm implementation', () => {
     expect(identity({ implementation: lockedImplementation })).not.toBe(
       baseIdentity,
     );
+    expect(identity({ implementation: installCommandImplementation })).not.toBe(
+      baseIdentity,
+    );
+    expect(
+      identity({
+        implementation: {
+          ...installCommandImplementation,
+          source: {
+            type: 'install-command',
+            command: 'curl https://example.com/other -fsS | bash',
+          },
+        },
+      }),
+    ).not.toBe(identity({ implementation: installCommandImplementation }));
     expect(
       identity({
         implementation: {
@@ -440,7 +520,7 @@ describe('ACP npm implementation', () => {
     ).not.toBe(baseIdentity);
   });
 
-  it('identifies locked manifest and lockfile content independently', () => {
+  it('identifies every locked acquisition artifact independently', () => {
     const lockedIdentity = identity({
       implementation: lockedImplementation,
     });
@@ -463,6 +543,18 @@ describe('ACP npm implementation', () => {
           source: {
             ...lockedImplementation.source,
             pnpmLockYaml: `${pnpmLockYaml}\n# changed\n`,
+          },
+        },
+      }),
+    ).not.toBe(lockedIdentity);
+    expect(
+      identity({
+        implementation: {
+          ...lockedImplementation,
+          source: {
+            ...lockedImplementation.source,
+            pnpmWorkspaceYaml:
+              "allowBuilds:\n  '@example/acp-agent@1.2.3': true\n",
           },
         },
       }),
