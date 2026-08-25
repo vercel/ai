@@ -1,6 +1,9 @@
 import { JSONParseError } from '@ai-sdk/provider';
 import { WORKFLOW_DESERIALIZE } from '@ai-sdk/provider-utils';
-import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import {
+  convertReadableStreamToArray,
+  testBatchLanguageModelV4ResultConformance,
+} from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
@@ -366,41 +369,6 @@ describe('OpenAI batch language models', () => {
     });
   });
 
-  it('rejects result retrieval while the batch is pending', async () => {
-    server.urls[urls.batch].response = {
-      type: 'json-value',
-      body: batchResponse({
-        status: 'in_progress',
-        output_file_id: null,
-        request_counts: { total: 2, completed: 1, failed: 0 },
-      }),
-    };
-    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
-
-    await expect(
-      model.experimental_doGetBatchResults({ batchId: 'batch_123' }),
-    ).rejects.toMatchObject({
-      name: 'AI_InvalidArgumentError',
-      argument: 'batchId',
-      message: 'OpenAI batch "batch_123" is not complete.',
-    });
-  });
-
-  it('returns an empty stream for a terminal batch without result files', async () => {
-    server.urls[urls.batch].response = {
-      type: 'json-value',
-      body: batchResponse(),
-    };
-    const model = createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6');
-
-    const stream = await model.experimental_doGetBatchResults({
-      batchId: 'batch_123',
-    });
-
-    await expect(convertReadableStreamToArray(stream)).resolves.toEqual([]);
-    expect(server.calls.map(call => call.requestUrl)).toEqual([urls.batch]);
-  });
-
   it('incrementally parses Responses results across chunk boundaries', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
@@ -463,24 +431,7 @@ describe('OpenAI batch language models', () => {
     ]);
   });
 
-  it.each([
-    {
-      type: 'function_call',
-      id: 'function-call',
-      call_id: 'call-123',
-      name: 'get_weather',
-      arguments: '{"city":"Paris"}',
-      namespace: null,
-      caller: null,
-    },
-    {
-      type: 'custom_tool_call',
-      id: 'custom-tool-call',
-      call_id: 'call-123',
-      name: 'shell',
-      input: 'echo Paris',
-    },
-  ])('fails a batch item containing a $type', async toolCall => {
+  it('preserves reasoning output and its provider metadata', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
       body: batchResponse({ output_file_id: 'file-output' }),
@@ -489,10 +440,20 @@ describe('OpenAI batch language models', () => {
       type: 'stream-chunks',
       chunks: [
         resultLine({
-          id: 'france',
+          id: 'reasoning',
           body: {
-            ...responsesResultBody(''),
-            output: [toolCall],
+            ...responsesResultBody('Paris'),
+            output: [
+              {
+                type: 'reasoning',
+                id: 'reasoning-123',
+                encrypted_content: 'encrypted-reasoning',
+                summary: [
+                  { type: 'summary_text', text: 'I should answer directly.' },
+                ],
+              },
+              ...responsesResultBody('Paris').output,
+            ],
           },
         }),
       ],
@@ -503,14 +464,24 @@ describe('OpenAI batch language models', () => {
       batchId: 'batch_123',
     });
 
-    await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
       {
-        id: 'france',
-        status: 'failed',
-        error: {
-          message:
-            'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
-          code: 'unsupported_tool_call',
+        id: 'reasoning',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'reasoning',
+              text: 'I should answer directly.',
+              providerMetadata: {
+                openai: {
+                  itemId: 'reasoning-123',
+                  reasoningEncryptedContent: 'encrypted-reasoning',
+                },
+              },
+            },
+            { type: 'text', text: 'Paris' },
+          ],
         },
       },
     ]);
@@ -705,5 +676,158 @@ describe('OpenAI batch language models', () => {
     ]({ modelId: 'gpt-5.6', config });
 
     expect(responsesModel.experimental_doStartBatch).toBeTypeOf('function');
+  });
+
+  testBatchLanguageModelV4ResultConformance({
+    name: 'OpenAI Responses',
+    pendingBatch: {
+      errorMessage: 'OpenAI batch "batch_123" is not complete.',
+      prepare: () => {
+        server.urls[urls.batch].response = {
+          type: 'json-value',
+          body: batchResponse({
+            status: 'in_progress',
+            request_counts: { total: 2, completed: 1, failed: 0 },
+          }),
+        };
+        return {
+          model: createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6'),
+          batchId: 'batch_123',
+        };
+      },
+    },
+    invalidResponseBatch: {
+      invalidItem: {
+        id: 'invalid',
+        error: {
+          message: 'OpenAI returned an invalid Responses batch result.',
+          code: 'invalid_response',
+        },
+      },
+      validItem: { id: 'valid', text: 'Paris' },
+      prepare: () => {
+        server.urls[urls.batch].response = {
+          type: 'json-value',
+          body: batchResponse({ output_file_id: 'file-output' }),
+        };
+        server.urls[urls.output].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `${resultLine({ id: 'invalid', body: { output: 42 } })}\n`,
+            resultLine({ id: 'valid', body: responsesResultBody('Paris') }),
+          ],
+        };
+        return {
+          model: createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6'),
+          batchId: 'batch_123',
+        };
+      },
+    },
+    completedWithoutOutputBatch: {
+      errorMessage: 'OpenAI batch "batch_123" completed without batch output.',
+      prepare: () => {
+        server.urls[urls.batch].response = {
+          type: 'json-value',
+          body: batchResponse(),
+        };
+        return {
+          model: createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6'),
+          batchId: 'batch_123',
+        };
+      },
+    },
+    unsupportedContentBatch: {
+      unsupportedItems: [
+        {
+          id: 'function-call',
+          error: {
+            message:
+              'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
+            code: 'unsupported_content',
+          },
+        },
+        {
+          id: 'custom-tool-call',
+          error: {
+            message:
+              'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
+            code: 'unsupported_content',
+          },
+        },
+        {
+          id: 'image',
+          error: {
+            message:
+              'OpenAI returned an unsupported "image_generation_call" output item in an AI SDK text batch.',
+            code: 'unsupported_content',
+          },
+        },
+      ],
+      validItem: { id: 'valid', text: 'Paris' },
+      prepare: () => {
+        server.urls[urls.batch].response = {
+          type: 'json-value',
+          body: batchResponse({
+            output_file_id: 'file-output',
+            request_counts: { total: 4, completed: 4, failed: 0 },
+          }),
+        };
+        server.urls[urls.output].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `${resultLine({
+              id: 'function-call',
+              body: {
+                ...responsesResultBody(''),
+                output: [
+                  {
+                    type: 'function_call',
+                    id: 'function-call',
+                    call_id: 'call-123',
+                    name: 'get_weather',
+                    arguments: '{"city":"Paris"}',
+                    namespace: null,
+                    caller: null,
+                  },
+                ],
+              },
+            })}\n`,
+            `${resultLine({
+              id: 'custom-tool-call',
+              body: {
+                ...responsesResultBody(''),
+                output: [
+                  {
+                    type: 'custom_tool_call',
+                    id: 'custom-tool-call',
+                    call_id: 'call-123',
+                    name: 'shell',
+                    input: 'echo Paris',
+                  },
+                ],
+              },
+            })}\n`,
+            `${resultLine({
+              id: 'image',
+              body: {
+                ...responsesResultBody(''),
+                output: [
+                  {
+                    type: 'image_generation_call',
+                    id: 'image-123',
+                    result: 'aW1hZ2U=',
+                  },
+                ],
+              },
+            })}\n`,
+            resultLine({ id: 'valid', body: responsesResultBody('Paris') }),
+          ],
+        };
+        return {
+          model: createOpenAI({ apiKey: 'test-api-key' })('gpt-5.6'),
+          batchId: 'batch_123',
+        };
+      },
+    },
   });
 });
