@@ -126,9 +126,9 @@ describe('wrapEmbeddingModel', () => {
   describe('max input bytes per call capability', () => {
     it('should pass through by default', async () => {
       const wrappedModel = wrapEmbeddingModel({
-        model: new MockEmbeddingModelV4({ maxInputBytesPerCall: 2 }),
+        model: new MockEmbeddingModelV3({ maxInputBytesPerCall: 2 }),
         middleware: {
-          specificationVersion: 'v4',
+          specificationVersion: 'v3',
         },
       });
 

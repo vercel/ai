@@ -11,14 +11,11 @@ export { convertImageModelFileToDataUri } from './convert-image-model-file-to-da
 export { convertToFormData } from './convert-to-form-data';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
-<<<<<<< HEAD
 export {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
-=======
 export { EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from './embedding-model-capabilities';
->>>>>>> d2f335310d (fix: split large embedding batches that exceed provider aggregate token limits (#19565))
 export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
