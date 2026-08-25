@@ -23,6 +23,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
+  readonly maxTokensPerCall = 300_000;
   readonly supportsParallelCalls = true;
 
   private readonly config: OpenAIConfig;
@@ -43,10 +44,6 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  get maxTokensPerCall(): number | undefined {
-    return this.config.maxEmbeddingTokensPerCall;
   }
 
   constructor(modelId: OpenAIEmbeddingModelId, config: OpenAIConfig) {

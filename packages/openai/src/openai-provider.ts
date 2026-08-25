@@ -241,7 +241,6 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      maxEmbeddingTokensPerCall: 300_000,
     });
 
   const createImageModel = (modelId: OpenAIImageModelId) =>

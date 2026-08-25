@@ -1,4 +1,5 @@
 ---
+'@ai-sdk/azure': patch
 '@ai-sdk/openai': patch
 '@ai-sdk/provider': patch
 'ai': patch

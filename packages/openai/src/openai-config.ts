@@ -10,7 +10,6 @@ export type OpenAIConfig = {
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
   generateId?: () => string;
-  maxEmbeddingTokensPerCall?: number;
   /**
    * This is soft-deprecated. Use provider references (e.g. `{ openai: 'file-abc123' }`)
    * in file part data instead. File ID prefixes used to identify file IDs
