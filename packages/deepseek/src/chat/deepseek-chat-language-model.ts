@@ -29,6 +29,7 @@ import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
   deepSeekErrorSchema,
+  type DeepSeekChatLogprob,
   type DeepSeekChatTokenUsage,
 } from './deepseek-chat-api-types';
 import {
@@ -231,6 +232,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     return {
       args: {
         model: this.modelId,
+        ...((deepseekOptions.logprobs === true ||
+          deepseekOptions.topLogprobs != null) && { logprobs: true }),
+        ...(deepseekOptions.topLogprobs != null && {
+          top_logprobs: deepseekOptions.topLogprobs,
+        }),
         max_tokens: maxOutputTokens,
         temperature: isThinkingEnabled ? undefined : temperature,
         top_p: isThinkingEnabled ? undefined : topP,
@@ -346,6 +352,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
               .map(toolCall => toolCall.type)
               .filter(type => type != null),
           }),
+          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
           ...(responseBody.system_fingerprint != null && {
             systemFingerprint: responseBody.system_fingerprint,
           }),
@@ -411,6 +418,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     let choiceIndex: number | undefined;
     let messageRole: 'assistant' | undefined;
     const toolCallTypes = new Map<number, 'function'>();
+    const contentLogprobs: DeepSeekChatLogprob[] = [];
+    const reasoningLogprobs: DeepSeekChatLogprob[] = [];
 
     return {
       stream: response.pipeThrough(
@@ -477,6 +486,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
                 unified: mapDeepSeekFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
+            }
+
+            if (choice?.logprobs?.content != null) {
+              contentLogprobs.push(...choice.logprobs.content);
+            }
+
+            if (choice?.logprobs?.reasoning_content != null) {
+              reasoningLogprobs.push(...choice.logprobs.reasoning_content);
             }
 
             if (choice?.delta == null) {
@@ -661,6 +678,17 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
                     toolCallTypes: [...toolCallTypes.entries()]
                       .sort(([left], [right]) => left - right)
                       .map(([, type]) => type),
+                  }),
+                  ...((contentLogprobs.length > 0 ||
+                    reasoningLogprobs.length > 0) && {
+                    logprobs: {
+                      ...(contentLogprobs.length > 0 && {
+                        content: contentLogprobs,
+                      }),
+                      ...(reasoningLogprobs.length > 0 && {
+                        reasoning_content: reasoningLogprobs,
+                      }),
+                    },
                   }),
                   ...(systemFingerprint != null && { systemFingerprint }),
                 },

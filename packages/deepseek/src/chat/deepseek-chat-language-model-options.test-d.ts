@@ -7,6 +7,8 @@ import type {
 describe('DeepSeekLanguageModelOptions', () => {
   it('only exposes canonical thinking and reasoning effort values', () => {
     expectTypeOf<DeepSeekLanguageModelOptions>().toEqualTypeOf<{
+      logprobs?: boolean;
+      topLogprobs?: number;
       userId?: string;
       thinking?: {
         type?: 'enabled' | 'disabled';
