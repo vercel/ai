@@ -123,3 +123,13 @@ export const moonshotaiMessageProviderOptions = z.object({
 export type MoonshotAIMessageProviderOptions = z.infer<
   typeof moonshotaiMessageProviderOptions
 >;
+
+export const moonshotaiAssistantMessageProviderOptions =
+  moonshotaiMessageProviderOptions.extend({
+    /** Continue the final assistant message from its existing content. */
+    partial: z.literal(true).optional(),
+  });
+
+export type MoonshotAIAssistantMessageProviderOptions = z.infer<
+  typeof moonshotaiAssistantMessageProviderOptions
+>;

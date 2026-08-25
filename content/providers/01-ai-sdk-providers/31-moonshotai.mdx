@@ -282,6 +282,26 @@ const message = {
 };
 ```
 
+#### Partial Mode
+
+Set `partial: true` on the final assistant message to continue from prefilled
+assistant content. Partial Mode cannot be combined with `Output.object` or
+another JSON response format; the provider rejects that combination locally.
+
+```ts
+import type { MoonshotAIAssistantMessageProviderOptions } from '@ai-sdk/moonshotai';
+
+const partialMessage = {
+  role: 'assistant' as const,
+  content: [{ type: 'text' as const, text: '{' }],
+  providerOptions: {
+    moonshotai: {
+      partial: true,
+    } satisfies MoonshotAIAssistantMessageProviderOptions,
+  },
+};
+```
+
 ## Model Capabilities
 
 | Model                    | Image Input | Video Input | Object Generation | Tool Usage | Tool Streaming |

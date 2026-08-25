@@ -1,5 +1,7 @@
 import {
+  InvalidPromptError,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
@@ -12,7 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
-import { moonshotaiMessageProviderOptions } from './moonshotai-chat-options';
+import { moonshotaiAssistantMessageProviderOptions } from './moonshotai-chat-options';
 
 const supportedImageMediaTypes = new Set([
   'image/jpeg',
@@ -63,14 +65,25 @@ function validateReferenceMediaType({
 // than being rejected by the API with a 400.
 export async function convertToMoonshotAIChatMessages(
   prompt: LanguageModelV4Prompt,
+  responseFormat?: LanguageModelV4CallOptions['responseFormat'],
 ): Promise<MoonshotAIMessages> {
   const messages: MoonshotAIMessages = [];
+  let index = -1;
   for (const { role, content, providerOptions } of prompt) {
+    index++;
     const messageOptions = await parseProviderOptions({
       provider: 'moonshotai',
       providerOptions,
-      schema: moonshotaiMessageProviderOptions,
+      schema: moonshotaiAssistantMessageProviderOptions,
     });
+
+    if (messageOptions?.partial === true && role !== 'assistant') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'Moonshot Partial Mode requires `partial: true` on an assistant message.',
+      });
+    }
 
     if (role === 'tool' && messageOptions?.name != null) {
       throw new UnsupportedFunctionalityError({
@@ -235,6 +248,24 @@ export async function convertToMoonshotAIChatMessages(
       }
 
       case 'assistant': {
+        if (messageOptions?.partial === true) {
+          if (index !== prompt.length - 1) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'Moonshot Partial Mode requires the partial assistant message to be the final message.',
+            });
+          }
+
+          if (responseFormat?.type === 'json') {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'Moonshot Partial Mode cannot be combined with a JSON response format.',
+            });
+          }
+        }
+
         let text = '';
         let reasoning = '';
         const toolCalls: Array<{
@@ -271,6 +302,7 @@ export async function convertToMoonshotAIChatMessages(
           role: 'assistant',
           content: toolCalls.length > 0 ? text || null : text,
           ...(messageOptions?.name != null && { name: messageOptions.name }),
+          ...(messageOptions?.partial === true && { partial: true as const }),
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });

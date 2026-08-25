@@ -539,6 +539,59 @@ describe('message names', () => {
 });
 
 describe('assistant messages', () => {
+  it('should serialize partial true on the final assistant message', async () => {
+    const result = await convertToMoonshotAIChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Return a JSON object.' }],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: '{' }],
+        providerOptions: { moonshotai: { partial: true } },
+      },
+    ]);
+
+    expect(result.at(-1)).toEqual({
+      role: 'assistant',
+      content: '{',
+      partial: true,
+      tool_calls: undefined,
+    });
+  });
+
+  it('should reject partial on a non-final assistant message', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages([
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'prefix' }],
+          providerOptions: { moonshotai: { partial: true } },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'continue' }] },
+      ]),
+    ).rejects.toThrow(
+      'Moonshot Partial Mode requires the partial assistant message to be the final message.',
+    );
+  });
+
+  it('should reject partial with a JSON response format', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages(
+        [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+        { type: 'json' },
+      ),
+    ).rejects.toThrow(
+      'Moonshot Partial Mode cannot be combined with a JSON response format.',
+    );
+  });
+
   it('should emit reasoning_content for reasoning parts', async () => {
     const result = await convertToMoonshotAIChatMessages([
       {

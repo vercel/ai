@@ -876,6 +876,51 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('Partial Mode', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-text');
+    });
+
+    it('should send partial true on the final assistant message', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Return JSON.' }] },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages.at(-1)).toEqual({
+        role: 'assistant',
+        content: '{',
+        partial: true,
+      });
+    });
+
+    it('should reject partial with structured outputs before the request', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: '{' }],
+              providerOptions: { moonshotai: { partial: true } },
+            },
+          ],
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object', properties: {} },
+          },
+        }),
+      ).rejects.toThrow(
+        'Moonshot Partial Mode cannot be combined with a JSON response format.',
+      );
+    });
+  });
+
   describe('logprobs', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('moonshotai-logprobs');
