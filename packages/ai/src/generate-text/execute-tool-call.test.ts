@@ -601,6 +601,34 @@ describe('executeToolCall', () => {
       });
     });
 
+    it('should include telemetry metadata attributes', async () => {
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        tracer,
+        telemetry: {
+          isEnabled: true,
+          metadata: {
+            requestId: 'request-123',
+            cached: false,
+          },
+        },
+        messages: [],
+        abortSignal: undefined,
+        experimental_context: undefined,
+      });
+
+      expect(tracer.spans[0].attributes).toMatchObject({
+        'ai.telemetry.metadata.requestId': 'request-123',
+        'ai.telemetry.metadata.cached': false,
+      });
+    });
+
     it('should record error on span when tool fails', async () => {
       const toolError = new Error('test error');
 
