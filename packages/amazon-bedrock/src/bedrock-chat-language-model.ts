@@ -151,6 +151,10 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     }
 
     const isAnthropicModel = this.modelId.includes('anthropic');
+    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
+    const isOpenAIModel = openAIModelId != null;
+    const isOpenAIGptOssModel =
+      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
     const isThinkingEnabled =
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
@@ -279,7 +283,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
-    const isOpenAIModel = this.modelId.startsWith('openai.');
 
     if (maxReasoningEffort != null) {
       if (isAnthropicModel) {
@@ -291,11 +294,20 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           },
         };
       } else if (isOpenAIModel) {
-        // OpenAI models on Bedrock expect `reasoning_effort` as a flat value
-        bedrockOptions.additionalModelRequestFields = {
-          ...bedrockOptions.additionalModelRequestFields,
-          reasoning_effort: maxReasoningEffort,
-        };
+        // gpt-oss models expect `reasoning_effort` as a flat value, while
+        // GPT-5.x models expect a nested `reasoning.effort` object.
+        bedrockOptions.additionalModelRequestFields = isOpenAIGptOssModel
+          ? {
+              ...bedrockOptions.additionalModelRequestFields,
+              reasoning_effort: maxReasoningEffort,
+            }
+          : {
+              ...bedrockOptions.additionalModelRequestFields,
+              reasoning: {
+                ...bedrockOptions.additionalModelRequestFields?.reasoning,
+                effort: maxReasoningEffort,
+              },
+            };
       } else {
         // other models (such as Nova 2) use reasoningConfig format
         bedrockOptions.additionalModelRequestFields = {
