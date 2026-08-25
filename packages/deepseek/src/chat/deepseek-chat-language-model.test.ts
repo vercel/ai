@@ -1316,6 +1316,70 @@ describe('DeepSeekChatLanguageModel', () => {
       });
     });
 
+    it('should classify insufficient quota as non-retryable', async () => {
+      const data = {
+        error: {
+          message: 'You exceeded your current quota.',
+          type: 'rate_limit_error',
+          code: 'insufficient_quota',
+        },
+      };
+
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
+      };
+
+      const result = await provider.chat('deepseek-chat').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const chunks = await convertReadableStreamToArray(result.stream);
+      const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: data.error.message,
+          type: data.error.code,
+          statusCode: 429,
+          isRetryable: false,
+          data,
+        },
+      });
+    });
+
+    it('should preserve the provider type when code is an HTTP status', async () => {
+      const data = {
+        error: {
+          message: 'Rate limit reached',
+          type: 'rate_limit_error',
+          code: '429',
+        },
+      };
+
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
+      };
+
+      const result = await provider.chat('deepseek-chat').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const chunks = await convertReadableStreamToArray(result.stream);
+      const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: data.error.message,
+          type: data.error.type,
+          statusCode: 429,
+          isRetryable: true,
+          data,
+        },
+      });
+    });
+
     describe('text', () => {
       beforeEach(() => {
         prepareChunksFixtureResponse('deepseek-text');

@@ -88,8 +88,9 @@ function getXaiResponsesStreamErrorMetadata(code?: string | null): {
   switch (code) {
     case 'rate_limit_exceeded':
     case 'rate_limit_error':
-    case 'insufficient_quota':
       return { statusCode: 429, isRetryable: true };
+    case 'insufficient_quota':
+      return { statusCode: 429, isRetryable: false };
     case 'api_error':
     case 'internal_server_error':
     case 'server_error':

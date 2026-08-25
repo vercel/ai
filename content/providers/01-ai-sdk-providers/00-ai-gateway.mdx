@@ -207,13 +207,12 @@ const { text } = await generateText({
 
 AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
 
-<<<<<<< HEAD
 When an upstream provider reports a well-formed error after streaming has
 started, AI SDK Core exposes it as a
 [`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error).
 Use its `type`, `statusCode`, and `isRetryable` metadata to classify the
 failure without inspecting the Gateway's serialized error payload.
-=======
+
 ## Text Batches
 
 <Note type="warning">
@@ -401,7 +400,6 @@ function verifySignature({
 The signature header has the form `t=<unix seconds>,v1=<hex digest>`, where `v1` is the HMAC-SHA256 digest of `"<t>.<raw body>"`. Verify a size-limited raw request body rather than a re-serialized object, use a timing-safe comparison, reject stale timestamps, and reject events whose `data.jobId` does not match the persisted `batch.id`.
 
 AI Gateway expects a 2xx response within 10 seconds and retries failed deliveries. It does not follow redirects, so the callback endpoint itself must return the 2xx response. Retries carry the same `x-ai-gateway-idempotency-key` value (`<jobId>-<status>`), which receivers can use for deduplication. After verification, pass the persisted model and `batch` reference to `experimental_getBatchStatus` and `experimental_getBatchResults`. Delivery is best-effort, so periodically reconcile persisted batches by status as a fallback for a notification that exhausts its retries.
->>>>>>> origin/main
 
 ## Reranking Models
 

@@ -157,6 +157,53 @@ describe('stream provider error integration', () => {
     });
   });
 
+  it('exposes OpenAI insufficient quota as non-retryable to callbacks and consumers', async () => {
+    const data = {
+      type: 'error',
+      sequence_number: 2,
+      code: 'insufficient_quota',
+      message: 'You exceeded your current quota.',
+      param: null,
+    };
+
+    server.urls['https://api.test.com/openai/v1/responses'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          type: 'response.created',
+          sequence_number: 0,
+          response: {
+            id: 'resp_quota',
+            created_at: 1_741_269_019,
+            model: 'gpt-4o-mini',
+            service_tier: null,
+          },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          type: 'response.output_item.added',
+          sequence_number: 1,
+          output_index: 0,
+          item: { id: 'msg_quota', type: 'message' },
+        })}\n\n`,
+        `data: ${JSON.stringify(data)}\n\n`,
+      ],
+    };
+
+    await expectNormalizedProviderError({
+      model: createOpenAI({
+        apiKey: 'test-api-key',
+        baseURL: 'https://api.test.com/openai/v1',
+      }).responses('gpt-4o-mini'),
+      expected: {
+        message: data.message,
+        type: data.code,
+        statusCode: 429,
+        isRetryable: false,
+        data,
+      },
+    });
+  });
+
   it('normalizes an actual DeepSeek rate-limit event with provider-owned metadata', async () => {
     const data = {
       error: {

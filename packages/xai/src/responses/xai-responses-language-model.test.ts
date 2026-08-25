@@ -4819,6 +4819,50 @@ describe('XaiResponsesLanguageModel', () => {
       });
     });
 
+    it('should classify insufficient quota as non-retryable', async () => {
+      const responseFailedEvent = {
+        type: 'response.failed',
+        response: {
+          error: {
+            code: 'insufficient_quota',
+            message: 'You exceeded your current quota.',
+          },
+          usage: { input_tokens: 50, output_tokens: 0 },
+        },
+      } as const;
+
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify(responseFailedEvent),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: responseFailedEvent.response.error.message,
+          type: responseFailedEvent.response.error.code,
+          statusCode: 429,
+          isRetryable: false,
+          data: responseFailedEvent,
+        },
+      });
+    });
+
     it('should map incomplete_details reason on failed response', async () => {
       prepareStreamChunks([
         JSON.stringify({

@@ -30,7 +30,7 @@ export function createOpenAIProviderStreamError(
     message: streamError.message,
     type: getErrorDiscriminator(streamError),
     statusCode,
-    isRetryable: isRetryableStatusCode(statusCode),
+    isRetryable: isRetryableStreamError(streamError, statusCode),
     data: frame,
   });
 }
@@ -192,6 +192,7 @@ function createOpenAIStreamError({
     responseHeaders,
     responseBody: JSON.stringify(frame),
     data: frame,
+    isRetryable: streamError?.isRetryable,
   });
 }
 
@@ -231,7 +232,9 @@ function parseStreamError(frame: unknown): StreamError | undefined {
 }
 
 function getErrorDiscriminator(error: StreamError): string | undefined {
-  return typeof error.code === 'string' && error.code.length > 0
+  return typeof error.code === 'string' &&
+    error.code.length > 0 &&
+    getHttpStatusCode(error.code) == null
     ? error.code
     : typeof error.type === 'string' && error.type.length > 0
       ? error.type
@@ -239,15 +242,9 @@ function getErrorDiscriminator(error: StreamError): string | undefined {
 }
 
 function getStatusCode(error: StreamError): number {
-  if (typeof error.code === 'number' && isHttpErrorStatusCode(error.code)) {
-    return error.code;
-  }
-
-  if (typeof error.code === 'string' && /^\d{3}$/.test(error.code)) {
-    const numericCode = Number(error.code);
-    if (isHttpErrorStatusCode(numericCode)) {
-      return numericCode;
-    }
+  const explicitStatusCode = getHttpStatusCode(error.code);
+  if (explicitStatusCode != null) {
+    return explicitStatusCode;
   }
 
   const discriminator = [error.code, error.type]
@@ -294,6 +291,15 @@ function isHttpErrorStatusCode(value: number): boolean {
   return Number.isInteger(value) && value >= 400 && value <= 599;
 }
 
+function getHttpStatusCode(value: string | number | null | undefined) {
+  const statusCode =
+    typeof value === 'string' && /^\d{3}$/.test(value) ? Number(value) : value;
+
+  return typeof statusCode === 'number' && isHttpErrorStatusCode(statusCode)
+    ? statusCode
+    : undefined;
+}
+
 function isRetryableStatusCode(statusCode: number): boolean {
   return (
     statusCode === 408 ||
@@ -301,4 +307,18 @@ function isRetryableStatusCode(statusCode: number): boolean {
     statusCode === 429 ||
     statusCode >= 500
   );
+}
+
+function isRetryableStreamError(
+  error: StreamError,
+  statusCode: number,
+): boolean {
+  if (
+    error.code === 'insufficient_quota' ||
+    error.type === 'insufficient_quota'
+  ) {
+    return false;
+  }
+
+  return isRetryableStatusCode(statusCode);
 }

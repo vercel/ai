@@ -58,7 +58,6 @@ export type DeepSeekChatConfig = {
   supportsStructuredOutputs?: boolean;
 };
 
-<<<<<<< HEAD
 function createDeepSeekStreamError(
   error: {
     message: string;
@@ -72,7 +71,9 @@ function createDeepSeekStreamError(
   return createProviderStreamError({
     message: error.message,
     type:
-      typeof error.code === 'string' && error.code.length > 0
+      typeof error.code === 'string' &&
+      error.code.length > 0 &&
+      getHttpStatusCode(error.code) == null
         ? error.code
         : (error.type ?? undefined),
     ...metadata,
@@ -87,6 +88,13 @@ function getDeepSeekStreamErrorMetadata(error: {
   statusCode?: number;
   isRetryable?: boolean;
 } {
+  if (
+    error.code === 'insufficient_quota' ||
+    error.type === 'insufficient_quota'
+  ) {
+    return { statusCode: 429, isRetryable: false };
+  }
+
   const explicitStatusCode = getHttpStatusCode(error.code);
   if (explicitStatusCode != null) {
     return {
@@ -99,7 +107,6 @@ function getDeepSeekStreamErrorMetadata(error: {
     switch (discriminator) {
       case 'rate_limit_exceeded':
       case 'rate_limit_error':
-      case 'insufficient_quota':
         return { statusCode: 429, isRetryable: true };
       case 'server_error':
       case 'api_error':
@@ -148,7 +155,8 @@ function isRetryableStatusCode(statusCode: number): boolean {
     statusCode === 429 ||
     statusCode >= 500
   );
-=======
+}
+
 function mapDeepSeekProviderReasoningEffort({
   reasoningEffort,
   warnings,
@@ -172,7 +180,6 @@ function mapDeepSeekProviderReasoningEffort({
   }
 
   return mapped;
->>>>>>> origin/main
 }
 
 export class DeepSeekChatLanguageModel implements LanguageModelV4 {

@@ -244,6 +244,39 @@ describe('createOpenAIProviderStreamError', () => {
     });
   });
 
+  it('classifies insufficient quota as non-retryable', () => {
+    const data = {
+      type: 'error',
+      code: 'insufficient_quota',
+      message: 'You exceeded your current quota.',
+      param: null,
+    };
+
+    expect(createOpenAIProviderStreamError(data)).toMatchObject({
+      message: 'You exceeded your current quota.',
+      type: 'insufficient_quota',
+      statusCode: 429,
+      isRetryable: false,
+      data,
+    });
+  });
+
+  it('preserves the provider type when code is an HTTP status', () => {
+    const data = {
+      type: 'rate_limit_error',
+      code: '429',
+      message: 'Rate limit reached',
+    };
+
+    expect(createOpenAIProviderStreamError(data)).toMatchObject({
+      message: 'Rate limit reached',
+      type: 'rate_limit_error',
+      statusCode: 429,
+      isRetryable: true,
+      data,
+    });
+  });
+
   it('classifies a response.failed server error by its provider code', () => {
     const data = {
       type: 'response.failed',
