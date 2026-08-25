@@ -3,12 +3,15 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
+import type { MoonshotAIModelFamily } from './moonshotai-chat-options';
 import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 
 export function prepareTools({
+  modelFamily,
   tools,
   toolChoice,
 }: {
+  modelFamily: MoonshotAIModelFamily;
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
 }): {
@@ -78,7 +81,20 @@ export function prepareTools({
   switch (type) {
     case 'auto':
     case 'none':
+      return { tools: moonshotTools, toolChoice: type, toolWarnings };
     case 'required':
+      if (modelFamily === 'kimi-k2.6' || modelFamily === 'kimi-k2.7') {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: 'toolChoice',
+          details: `Required tool choice is not supported by ${modelFamily} models and has been omitted.`,
+        });
+        return {
+          tools: moonshotTools,
+          toolChoice: undefined,
+          toolWarnings,
+        };
+      }
       return { tools: moonshotTools, toolChoice: type, toolWarnings };
     case 'tool':
       return {
