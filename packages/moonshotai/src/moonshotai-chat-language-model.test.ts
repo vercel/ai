@@ -47,7 +47,7 @@ describe('doGenerate', () => {
     });
 
     it('should send correct request body', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
         prompt: [
           { role: 'system', content: 'You are a helpful assistant.' },
           { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -68,11 +68,75 @@ describe('doGenerate', () => {
               "role": "user",
             },
           ],
-          "model": "kimi-k3",
+          "model": "moonshot-v1-8k",
           "temperature": 0.5,
           "top_p": 0.3,
         }
       `);
+    });
+
+    it.each([
+      'kimi-k2.5',
+      'kimi-k2.6',
+      'kimi-k2.7-code',
+      'kimi-k2.7-code-highspeed',
+      'kimi-k3',
+    ] as const)(
+      'should omit fixed sampling options and warn for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.2,
+          topP: 0.4,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.6,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: modelId,
+          messages: [{ role: 'user', content: 'Hello' }],
+        });
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'temperature',
+            details: `temperature is fixed by model "${modelId}" and has been omitted.`,
+          },
+          {
+            type: 'unsupported',
+            feature: 'topP',
+            details: `topP is fixed by model "${modelId}" and has been omitted.`,
+          },
+          {
+            type: 'unsupported',
+            feature: 'frequencyPenalty',
+            details: `frequencyPenalty is fixed by model "${modelId}" and has been omitted.`,
+          },
+          {
+            type: 'unsupported',
+            feature: 'presencePenalty',
+            details: `presencePenalty is fixed by model "${modelId}" and has been omitted.`,
+          },
+        ]);
+      },
+    );
+
+    it('should preserve sampling options for custom model IDs', async () => {
+      await provider.chatModel('custom-model').doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.2,
+        topP: 0.4,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.6,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'custom-model',
+        temperature: 0.2,
+        top_p: 0.4,
+        frequency_penalty: 0.5,
+        presence_penalty: 0.6,
+      });
     });
 
     it('should extract text content, finish reason, and usage', async () => {

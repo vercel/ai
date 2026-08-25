@@ -40,6 +40,7 @@ import {
 } from './moonshotai-chat-api-types';
 import {
   getModelThinkingKeepSupport,
+  isMoonshotAIKimiModel,
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
 } from './moonshotai-chat-options';
@@ -135,6 +136,37 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       allWarnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
+    const supportsSamplingOptions = !isMoonshotAIKimiModel(this.modelId);
+
+    if (!supportsSamplingOptions && temperature != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'temperature',
+        details: `temperature is fixed by model "${this.modelId}" and has been omitted.`,
+      });
+    }
+    if (!supportsSamplingOptions && topP != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'topP',
+        details: `topP is fixed by model "${this.modelId}" and has been omitted.`,
+      });
+    }
+    if (!supportsSamplingOptions && frequencyPenalty != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+        details: `frequencyPenalty is fixed by model "${this.modelId}" and has been omitted.`,
+      });
+    }
+    if (!supportsSamplingOptions && presencePenalty != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+        details: `presencePenalty is fixed by model "${this.modelId}" and has been omitted.`,
+      });
+    }
+
     const {
       tools: moonshotTools,
       toolChoice: moonshotToolChoice,
@@ -219,10 +251,12 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       args: {
         model: this.modelId,
         max_tokens: maxOutputTokens,
-        temperature,
-        top_p: topP,
-        frequency_penalty: frequencyPenalty,
-        presence_penalty: presencePenalty,
+        temperature: supportsSamplingOptions ? temperature : undefined,
+        top_p: supportsSamplingOptions ? topP : undefined,
+        frequency_penalty: supportsSamplingOptions
+          ? frequencyPenalty
+          : undefined,
+        presence_penalty: supportsSamplingOptions ? presencePenalty : undefined,
         response_format,
         stop: stopSequences,
         messages,
