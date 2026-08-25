@@ -302,6 +302,8 @@ class XaiResponsesBatch {
       };
     }
 
+    // xAI returns text batch results in chat completion format, including for
+    // requests submitted to the Responses API endpoint.
     const response = result.batch_result?.response;
     if (response?.chat_get_completion != null) {
       const validation = await safeValidateTypes({
