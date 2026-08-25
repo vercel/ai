@@ -1,5 +1,6 @@
 ---
 '@ai-sdk/amazon-bedrock': patch
+'@ai-sdk/azure': patch
 '@ai-sdk/black-forest-labs': patch
 '@ai-sdk/bytedance': patch
 '@ai-sdk/deepinfra': patch

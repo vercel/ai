@@ -299,6 +299,12 @@ export function createAzure(
       url,
       headers: getHeaders,
       fetch,
+      // Azure model IDs are user-defined deployment names, so OpenAI model
+      // family capabilities cannot be inferred from them.
+      imageInputCapabilities: {
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
     });
 
   const createTranscriptionModel = (modelId: string) =>
