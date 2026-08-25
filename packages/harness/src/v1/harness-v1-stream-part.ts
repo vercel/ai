@@ -60,9 +60,14 @@ export type HarnessV1StreamPart =
 
   // Tool calls, approvals, results — reuse V4 primitives.
   //
-  // `nativeName` is the only harness-only extension on `tool-call`. It lets
-  // adapters surface the runtime's native name for a builtin when it differs
-  // from the wire `toolName` (e.g. `toolName: 'bash'`, `nativeName: 'Bash'`).
+  // `nativeName` lets adapters surface the runtime's native name for a builtin
+  // when it differs from the wire `toolName` (e.g. `toolName: 'bash'`,
+  // `nativeName: 'Bash'`).
+  //
+  // `stepToolCallCount` lets adapters that know a step's complete tool-call
+  // set up front report its cardinality. The host uses it to collect every
+  // approval/result request from the step before pausing; adapters that cannot
+  // know the count omit it and retain pause-on-first behavior.
   //
   // Whether the call was executed by the underlying runtime (Claude Code's
   // built-in `Bash`, Codex's `shell`) vs. needs host dispatch is signalled by
@@ -70,6 +75,11 @@ export type HarnessV1StreamPart =
   // `true` for runtime-executed builtins, false/undefined for host tools.
   | (LanguageModelV4ToolCall & {
       nativeName?: string;
+      /**
+       * Total tool calls in the current model step, when known before tool
+       * execution begins. Populate this on every tool call in the step.
+       */
+      stepToolCallCount?: number;
     })
   | LanguageModelV4ToolApprovalRequest
   | LanguageModelV4ToolResult
@@ -267,6 +277,7 @@ export const harnessV1ToolCallPartSchema = z.object({
   dynamic: z.boolean().optional(),
   providerMetadata: harnessV1ProviderMetadataSchema.optional(),
   nativeName: z.string().optional(),
+  stepToolCallCount: z.number().int().positive().optional(),
 });
 
 export const harnessV1ToolApprovalRequestPartSchema = z.object({

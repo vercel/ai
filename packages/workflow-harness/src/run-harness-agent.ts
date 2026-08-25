@@ -156,7 +156,9 @@ export async function runHarnessAgent(
     options.timeSliceSeconds == null
       ? undefined
       : setTimeout(() => {
-          suspendPromise = session.suspendTurn();
+          if (session.hasUnfinishedTurn()) {
+            suspendPromise = session.suspendTurn();
+          }
         }, options.timeSliceSeconds * 1000);
   (timer as { unref?: () => void } | undefined)?.unref?.();
 

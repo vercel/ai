@@ -1,6 +1,6 @@
 import {
-  EmptyResponseBodyError,
   InvalidArgumentError,
+  InvalidResponseDataError,
   type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
@@ -15,19 +15,18 @@ import {
 import {
   combineHeaders,
   convertAsyncIteratorToReadableStream,
+  createJsonLinesResponseHandler,
   createJsonResponseHandler,
   getFromApi,
   lazySchema,
-  parseJSON,
+  normalizeBatchRequestCounts,
   postJsonToApi,
   postToApi,
   safeValidateTypes,
-  validateTypes,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   zodSchema,
   type InferSchema,
-  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -44,6 +43,7 @@ import {
 } from './responses/openai-responses-api';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
+import type { ResponsesReasoningProviderMetadata } from './responses/openai-responses-provider-metadata';
 
 const openaiBatchEndpoint = '/v1/responses';
 const openaiBatchInputFileExpiresAfterSeconds = 48 * 60 * 60;
@@ -241,7 +241,9 @@ class OpenAIResponsesBatch {
   ): Promise<ReadableStream<BatchV4ItemResult<LanguageModelV4GenerateResult>>> {
     const batch = await this.retrieveBatch(options);
 
-    if (convertOpenAIBatchStatus(batch).status === 'pending') {
+    const batchStatus = convertOpenAIBatchStatus(batch);
+
+    if (batchStatus.status === 'pending') {
       throw new InvalidArgumentError({
         argument: 'batchId',
         message: `OpenAI batch "${options.batchId}" is not complete.`,
@@ -251,6 +253,14 @@ class OpenAIResponsesBatch {
     const fileIds = [batch.output_file_id, batch.error_file_id].filter(
       (fileId): fileId is string => fileId != null,
     );
+
+    if (batchStatus.status === 'completed' && fileIds.length === 0) {
+      throw new InvalidResponseDataError({
+        data: batch,
+        message: `OpenAI batch "${options.batchId}" completed without batch output.`,
+      });
+    }
+
     const iterator = this.iterateBatchResults({ fileIds, options });
 
     return convertAsyncIteratorToReadableStream(iterator);
@@ -282,20 +292,22 @@ class OpenAIResponsesBatch {
     options: BatchV4OperationOptions;
   }): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
     for (const fileId of fileIds) {
-      const { value: stream } = await getFromApi({
+      const { value: lines } = await getFromApi({
         url: this.getUrl(`/files/${encodeURIComponent(fileId)}/content`),
         headers: combineHeaders(
           this.options.config.headers?.(),
           options.headers,
         ),
         failedResponseHandler: openaiFailedResponseHandler,
-        successfulResponseHandler: rawStreamResponseHandler,
+        successfulResponseHandler: createJsonLinesResponseHandler(
+          openaiBatchResultLineSchema,
+        ),
         abortSignal: options.abortSignal,
         fetch: this.options.config.fetch,
         validateUrl: false,
       });
 
-      for await (const line of parseJsonLines(stream)) {
+      for await (const line of lines) {
         yield await this.convertResultLine(line);
       }
     }
@@ -468,24 +480,15 @@ function convertOpenAIRequestCounts(
   const completed = counts?.completed;
   const failed = counts?.failed;
 
-  if (
-    total == null ||
-    completed == null ||
-    failed == null ||
-    total < 0 ||
-    completed < 0 ||
-    failed < 0 ||
-    completed + failed > total
-  ) {
-    return undefined;
-  }
-
-  return {
+  return normalizeBatchRequestCounts({
     total,
-    pending: total - completed - failed,
+    pending:
+      total != null && completed != null && failed != null
+        ? total - completed - failed
+        : undefined,
     completed,
     failed,
-  };
+  });
 }
 
 function convertUnixTimestamp(value: number | null | undefined) {
@@ -530,10 +533,22 @@ async function convertOpenAIErrorResponse({
 async function convertOpenAIResponsesBatchResponse(
   body: unknown,
 ): Promise<OpenAIBatchResponseConversion> {
-  const response = await validateTypes({
+  const validation = await safeValidateTypes({
     value: body,
     schema: openaiResponsesResponseSchema,
   });
+
+  if (!validation.success) {
+    return {
+      success: false,
+      error: {
+        message: 'OpenAI returned an invalid Responses batch result.',
+        code: 'invalid_response',
+      },
+    };
+  }
+
+  const response = validation.value;
 
   if (response.error != null) {
     return {
@@ -564,25 +579,59 @@ async function convertOpenAIResponsesBatchResponse(
   const logprobs: Array<NonNullable<OpenAIResponsesLogprobs>> = [];
 
   for (const part of response.output) {
-    if (part.type === 'message') {
-      for (const contentPart of part.content) {
-        content.push({ type: 'text', text: contentPart.text });
-        if (contentPart.logprobs != null) {
-          logprobs.push(contentPart.logprobs);
+    switch (part.type) {
+      case 'reasoning': {
+        const summaries =
+          part.summary.length > 0
+            ? part.summary
+            : [{ type: 'summary_text' as const, text: '' }];
+
+        for (const summary of summaries) {
+          content.push({
+            type: 'reasoning',
+            text: summary.text,
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+                reasoningEncryptedContent: part.encrypted_content ?? null,
+              } satisfies ResponsesReasoningProviderMetadata,
+            },
+          });
         }
+        break;
       }
-    } else if (
-      part.type === 'function_call' ||
-      part.type === 'custom_tool_call'
-    ) {
-      return {
-        success: false,
-        error: {
-          message:
-            'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
-          code: 'unsupported_tool_call',
-        },
-      };
+
+      case 'message': {
+        for (const contentPart of part.content) {
+          content.push({ type: 'text', text: contentPart.text });
+          if (contentPart.logprobs != null) {
+            logprobs.push(contentPart.logprobs);
+          }
+        }
+        break;
+      }
+
+      case 'function_call':
+      case 'custom_tool_call':
+        return {
+          success: false,
+          error: {
+            message:
+              'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
+            code: 'unsupported_content',
+          },
+        };
+
+      default:
+        return {
+          success: false,
+          error: {
+            message:
+              `OpenAI returned an unsupported "${part.type}" output item ` +
+              'in an AI SDK text batch.',
+            code: 'unsupported_content',
+          },
+        };
     }
   }
 
@@ -623,65 +672,4 @@ async function convertOpenAIResponsesBatchResponse(
       warnings: [],
     },
   };
-}
-
-const rawStreamResponseHandler: ResponseHandler<
-  ReadableStream<Uint8Array>
-> = async ({ response }) => {
-  if (response.body == null) {
-    throw new EmptyResponseBodyError();
-  }
-
-  return { value: response.body };
-};
-
-async function* parseJsonLines(
-  stream: ReadableStream<Uint8Array>,
-): AsyncGenerator<OpenAIBatchResultLine> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let finished = false;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
-        finished = true;
-        buffer += decoder.decode();
-        break;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-
-      let lineEnd = buffer.indexOf('\n');
-      while (lineEnd !== -1) {
-        const line = buffer.slice(0, lineEnd).replace(/\r$/, '');
-        buffer = buffer.slice(lineEnd + 1);
-
-        if (line.trim().length > 0) {
-          yield await parseJSON({
-            text: line,
-            schema: openaiBatchResultLineSchema,
-          });
-        }
-
-        lineEnd = buffer.indexOf('\n');
-      }
-    }
-
-    const finalLine = buffer.replace(/\r$/, '');
-    if (finalLine.trim().length > 0) {
-      yield await parseJSON({
-        text: finalLine,
-        schema: openaiBatchResultLineSchema,
-      });
-    }
-  } finally {
-    if (!finished) {
-      await reader.cancel().catch(() => {});
-    }
-    reader.releaseLock();
-  }
 }

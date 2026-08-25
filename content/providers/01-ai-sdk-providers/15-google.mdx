@@ -1067,10 +1067,13 @@ The following Zod features are known to not work with Google:
 ### Text Batches
 
 <Note type="warning">
-  Text batch APIs are experimental and may change in future releases.
+  Text batch support is experimental and the API may change in patch releases.
 </Note>
 
-The Google provider supports the [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api) for text generation.
+The Google provider supports asynchronous text generation through the
+[Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api). Use the
+experimental text batch APIs to start a batch, poll its status, and stream its
+results:
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -1079,32 +1082,39 @@ import {
   experimental_getBatchStatus as getBatchStatus,
   experimental_startTextBatch as startTextBatch,
 } from 'ai';
+import { setTimeout } from 'node:timers/promises';
 
 const model = google('gemini-3.6-flash');
 
 const batch = await startTextBatch({
   model,
   requests: [
-    { id: 'france', prompt: 'What is the capital of France?' },
-    { id: 'germany', prompt: 'What is the capital of Germany?' },
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
   ],
 });
 
-// Persist `batch` and check its status later, or poll for status updates.
-const { status } = await getBatchStatus({ model, batch });
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
 
-if (status !== 'pending') {
-  for await (const item of getBatchResults({ model, batch })) {
-    if (item.status === 'succeeded') {
-      console.log(item.id, item.text);
-    } else {
-      console.error(item.id, item.error);
-    }
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
   }
 }
 ```
 
-Starting a batch returns a serializable reference that can be persisted and used to retrieve the batch results later, or poll for status updates.
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check the batch status or retrieve its results from another process. Results
+can arrive in a different order from the input requests, so match each result by
+its `id`.
+
+#### Webhooks
 
 You can pass a `webhookUrl` to receive a notification when the batch reaches a terminal state:
 
@@ -1112,14 +1122,16 @@ You can pass a `webhookUrl` to receive a notification when the batch reaches a t
 const batch = await startTextBatch({
   model,
   requests: [
-    { id: 'france', prompt: 'What is the capital of France?' },
-    { id: 'germany', prompt: 'What is the capital of Germany?' },
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
   ],
   webhookUrl: 'https://example.com/api/google-batch-webhook',
 });
 ```
 
 Google sends a thin event to the webhook URL. After receiving and verifying the event, use the persisted batch reference with `getBatchStatus` or `getBatchResults`. Your application is responsible for handling the webhook and [verifying Google's dynamic webhook signature](https://ai.google.dev/gemini-api/docs/webhooks#verify_dynamic_signatures_jwks).
+
+#### Large Batches
 
 When the serialized batch creation body is under 20 MB, the provider sends the requests inline. At 20 MB or more, it uploads a JSONL input file through the Gemini Files API.
 
