@@ -116,16 +116,22 @@ describe('createAmazonBedrockAnthropicFetch', () => {
     expect(text).toBe('data: [DONE]\n\n');
   });
 
-  it('should handle exception messages', async () => {
+  async function transformExceptionFrame({
+    exceptionType,
+    body,
+  }: {
+    exceptionType?: string;
+    body: string;
+  }): Promise<string> {
     const codec = new EventStreamCodec(toUtf8, fromUtf8);
-
-    const errorData = JSON.stringify({ message: 'Rate limit exceeded' });
     const amazonBedrockEvent = codec.encode({
       headers: {
         ':message-type': { type: 'string', value: 'exception' },
-        ':exception-type': { type: 'string', value: 'ThrottlingException' },
+        ...(exceptionType != null && {
+          ':exception-type': { type: 'string', value: exceptionType },
+        }),
       },
-      body: fromUtf8(errorData),
+      body: fromUtf8(body),
     });
 
     const stream = new ReadableStream({
@@ -139,16 +145,58 @@ describe('createAmazonBedrockAnthropicFetch', () => {
       stream,
       'application/vnd.amazon.eventstream',
     );
-    const baseFetch = createMockFetch(mockResponse);
-    const wrappedFetch = createAmazonBedrockAnthropicFetch(baseFetch);
+    const wrappedFetch = createAmazonBedrockAnthropicFetch(
+      createMockFetch(mockResponse),
+    );
 
     const response = await wrappedFetch('https://example.com', {});
-    const reader = response.body!.getReader();
-    const { value } = await reader.read();
-    const text = new TextDecoder().decode(value);
+    const { value } = await response.body!.getReader().read();
+    return new TextDecoder().decode(value);
+  }
+
+  it('should transform exception messages into Anthropic error event format', async () => {
+    const text = await transformExceptionFrame({
+      exceptionType: 'modelStreamErrorException',
+      body: JSON.stringify({
+        message: 'Bedrock is unable to process your request.',
+      }),
+    });
 
     expect(text).toBe(
-      `data: ${JSON.stringify({ type: 'error', error: errorData })}\n\n`,
+      `data: ${JSON.stringify({
+        type: 'error',
+        error: {
+          type: 'modelStreamErrorException',
+          message: 'Bedrock is unable to process your request.',
+        },
+      })}\n\n`,
+    );
+  });
+
+  it('should use raw exception data as message when it has no message field', async () => {
+    const errorData = JSON.stringify({ code: 'InternalFailure' });
+
+    const text = await transformExceptionFrame({
+      exceptionType: 'internalServerException',
+      body: errorData,
+    });
+
+    expect(text).toBe(
+      `data: ${JSON.stringify({
+        type: 'error',
+        error: { type: 'internalServerException', message: errorData },
+      })}\n\n`,
+    );
+  });
+
+  it('should fall back to type "error" and raw text for a non-JSON exception without :exception-type header', async () => {
+    const text = await transformExceptionFrame({ body: 'not valid json' });
+
+    expect(text).toBe(
+      `data: ${JSON.stringify({
+        type: 'error',
+        error: { type: 'error', message: 'not valid json' },
+      })}\n\n`,
     );
   });
 

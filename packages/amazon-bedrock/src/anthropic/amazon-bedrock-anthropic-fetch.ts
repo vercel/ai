@@ -10,6 +10,21 @@ const amazonBedrockErrorSchema = z.looseObject({
   message: z.string().optional(),
 });
 
+async function toAnthropicErrorPayload(
+  text: string,
+  type = 'error',
+): Promise<{ type: string; message: string }> {
+  const parsed = await safeParseJSON({
+    text,
+    schema: amazonBedrockErrorSchema,
+  });
+
+  const message =
+    parsed.success && parsed.value.message ? parsed.value.message : text;
+
+  return { type, message };
+}
+
 export function createAmazonBedrockAnthropicFetch(
   baseFetch: FetchFunction,
 ): FetchFunction {
@@ -20,17 +35,9 @@ export function createAmazonBedrockAnthropicFetch(
     // so that anthropicFailedResponseHandler can extract the message.
     if (!response.ok) {
       const text = await response.text();
-      const parsed = await safeParseJSON({
-        text,
-        schema: amazonBedrockErrorSchema,
-      });
-
-      const message =
-        parsed.success && parsed.value.message ? parsed.value.message : text;
-
       const anthropicError = JSON.stringify({
         type: 'error',
-        error: { type: 'error', message },
+        error: await toAnthropicErrorPayload(text),
       });
 
       return new Response(anthropicError, {
@@ -95,7 +102,13 @@ function transformAmazonBedrockEventStreamToSSE(
       } else if (event.messageType === 'exception') {
         controller.enqueue(
           textEncoder.encode(
-            `data: ${JSON.stringify({ type: 'error', error: event.data })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'error',
+              error: await toAnthropicErrorPayload(
+                event.data,
+                event.exceptionType,
+              ),
+            })}\n\n`,
           ),
         );
       }
