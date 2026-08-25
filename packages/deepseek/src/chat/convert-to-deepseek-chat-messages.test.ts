@@ -1,10 +1,19 @@
+<<<<<<< HEAD
+=======
+import {
+  InvalidPromptError,
+  NoSuchProviderReferenceError,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
+import { describe, it, expect } from 'vitest';
+>>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 import { describe, it, expect } from 'vitest';
 
 describe('convertToDeepSeekChatMessages', () => {
   describe('user messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
-      const result = convertToDeepSeekChatMessages({
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -28,8 +37,13 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
+<<<<<<< HEAD
     it('should convert image data to an image URL content part', () => {
       const result = convertToDeepSeekChatMessages({
+=======
+    it('should convert image data to an image URL content part', async () => {
+      const result = await convertToDeepSeekChatMessages({
+>>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
         prompt: [
           {
             role: 'user',
@@ -71,8 +85,13 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
+<<<<<<< HEAD
     it('should convert an image URL to an image URL content part', () => {
       const result = convertToDeepSeekChatMessages({
+=======
+    it('should convert an image URL to an image URL content part', async () => {
+      const result = await convertToDeepSeekChatMessages({
+>>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
         prompt: [
           {
             role: 'user',
@@ -114,8 +133,13 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
+<<<<<<< HEAD
     it('should warn about unsupported non-image file parts', () => {
       const result = convertToDeepSeekChatMessages({
+=======
+    it('should convert an image provider reference to a file content part', async () => {
+      const result = await convertToDeepSeekChatMessages({
+>>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
         prompt: [
           {
             role: 'user',
@@ -123,7 +147,85 @@ describe('convertToDeepSeekChatMessages', () => {
               { type: 'text', text: 'Hello' },
               {
                 type: 'file',
+<<<<<<< HEAD
                 data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+=======
+                data: {
+                  type: 'reference',
+                  reference: {
+                    deepseek: 'file-api-deepseek',
+                    openai: 'file-openai',
+                  },
+                },
+                mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-v4-flash-vision-exp',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "file_id": "file-api-deepseek",
+                  "type": "file",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should throw when an image reference has no DeepSeek identifier', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'reference',
+                    reference: { openai: 'file-openai' },
+                  },
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-v4-flash-vision-exp',
+        }),
+      ).rejects.toThrow(NoSuchProviderReferenceError);
+    });
+
+    it('should warn about unsupported non-image file parts', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                },
+>>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
                 mediaType: 'application/pdf',
               },
             ],
@@ -153,8 +255,8 @@ describe('convertToDeepSeekChatMessages', () => {
   });
 
   describe('tool calls', () => {
-    it('should stringify arguments to tool calls', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should stringify arguments to tool calls', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'assistant',
@@ -212,8 +314,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should handle text output type in tool results', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should handle text output type in tool results', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'assistant',
@@ -271,8 +373,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should support reasoning content in tool calls', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should support reasoning content in tool calls', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -342,8 +444,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should filter out reasoning content from turns before the last user message', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should filter out reasoning content from turns before the last user message', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -427,8 +529,8 @@ describe('convertToDeepSeekChatMessages', () => {
     // before the last user message. Stripping it like we do for R1 makes the
     // API reject multi-turn requests with "The `reasoning_content` in the
     // thinking mode must be passed back to the API."
-    it('should preserve reasoning_content from prior turns for deepseek-v4', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should preserve reasoning_content from prior turns for deepseek-v4', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -506,8 +608,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should back-fill empty reasoning_content for deepseek-v4 assistant messages with no reasoning part', () => {
-      const result = convertToDeepSeekChatMessages({
+    it('should back-fill empty reasoning_content for deepseek-v4 assistant messages with no reasoning part', async () => {
+      const result = await convertToDeepSeekChatMessages({
         prompt: [
           {
             role: 'user',
@@ -547,6 +649,114 @@ describe('convertToDeepSeekChatMessages', () => {
           "warnings": [],
         }
       `);
+    });
+  });
+
+  describe('assistant prefix completion', () => {
+    it('should serialize prefix true on the final assistant message', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Complete this sentence.' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'The answer is' }],
+            providerOptions: {
+              deepseek: {
+                prefix: true,
+              },
+            },
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+        supportsAssistantPrefixCompletion: true,
+      });
+
+      expect(result).toStrictEqual({
+        messages: [
+          {
+            role: 'user',
+            content: 'Complete this sentence.',
+          },
+          {
+            role: 'assistant',
+            content: 'The answer is',
+            prefix: true,
+            reasoning_content: undefined,
+            tool_calls: undefined,
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should reject prefix completion on a non-assistant message', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Complete this sentence.' }],
+              providerOptions: {
+                deepseek: {
+                  prefix: true,
+                },
+              },
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+          supportsAssistantPrefixCompletion: true,
+        }),
+      ).rejects.toSatisfy(InvalidPromptError.isInstance);
+    });
+
+    it('should reject prefix completion on a non-final assistant message', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The answer is' }],
+              providerOptions: {
+                deepseek: {
+                  prefix: true,
+                },
+              },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Continue.' }],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+          supportsAssistantPrefixCompletion: true,
+        }),
+      ).rejects.toSatisfy(InvalidPromptError.isInstance);
+    });
+
+    it('should reject prefix completion without a beta base URL capability', async () => {
+      await expect(
+        convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The answer is' }],
+              providerOptions: {
+                deepseek: {
+                  prefix: true,
+                },
+              },
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+        }),
+      ).rejects.toSatisfy(UnsupportedFunctionalityError.isInstance);
     });
   });
 });
