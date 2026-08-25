@@ -48,6 +48,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
       'black-forest-labs/FLUX-pro',
       'black-forest-labs/FLUX.1-Kontext-dev',
       'black-forest-labs/FLUX.1-Kontext-pro',
+      'Qwen/Qwen-Image-Edit',
       'stabilityai/sd3.5-medium',
       'stabilityai/sdxl-turbo',
     ].includes(this.modelId)

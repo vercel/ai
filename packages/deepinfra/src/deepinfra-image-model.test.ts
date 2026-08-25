@@ -46,6 +46,11 @@ describe('DeepInfraImageModel', () => {
         supportsMaskInputs: true,
       },
       {
+        modelId: 'Qwen/Qwen-Image-Edit',
+        supportsFileInputs: true,
+        supportsMaskInputs: true,
+      },
+      {
         modelId: 'custom-image-model',
         supportsFileInputs: undefined,
         supportsMaskInputs: undefined,
