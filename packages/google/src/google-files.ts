@@ -34,6 +34,17 @@ interface GoogleFilesConfig {
   fetch?: FetchFunction;
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 export class GoogleFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
 
@@ -137,8 +148,14 @@ export class GoogleFiles implements FilesV4 {
 
       await delay(pollIntervalMs);
 
+      const fileNameMatch = /^files\/([^/]+)$/.exec(file.name);
+      const filePath =
+        fileNameMatch != null
+          ? `files/${encodePathSegment(fileNameMatch[1])}`
+          : encodePathSegment(file.name);
+
       const { value: fileStatus } = await getFromApi({
-        url: `${this.config.baseURL}/${file.name}`,
+        url: `${this.config.baseURL}/${filePath}`,
         validateUrl: false,
         headers: combineHeaders(resolvedHeaders),
         successfulResponseHandler: createJsonResponseHandler(

@@ -30,6 +30,8 @@ export interface PiTranslatorState {
   observedToolNames: Map<string, string>;
   /** Tool ids requested by the current assistant message but not yet completed. */
   pendingStepToolCallIds: Set<string>;
+  /** Total tool calls requested by the current assistant message. */
+  stepToolCallCount: number | undefined;
   /** Whether the current assistant message has opened a visible step. */
   stepOpen: boolean;
   /**
@@ -84,6 +86,7 @@ export function createPiTranslatorState(
     reasoningStarted: false,
     observedToolNames: new Map(),
     pendingStepToolCallIds: new Set(),
+    stepToolCallCount: undefined,
     stepOpen: false,
     hostToolResults: new Map(),
     dynamicToolCallIds: new Set(),
@@ -155,6 +158,7 @@ function finishStep(state: PiTranslatorState): HarnessV1StreamPart[] {
   if (!state.stepOpen || state.pendingStepToolCallIds.size > 0) return [];
   state.stepOpen = false;
   state.pendingStepToolCallIds.clear();
+  state.stepToolCallCount = undefined;
   return [
     {
       type: 'finish-step',
@@ -215,6 +219,7 @@ export function translatePiEvent(
       if (event.type === 'message_start') {
         state.stepOpen = true;
         state.pendingStepToolCallIds.clear();
+        state.stepToolCallCount = undefined;
       }
       state.streamedAssistantText = '';
       state.currentTextId = undefined;
@@ -308,11 +313,15 @@ export function translatePiEvent(
         state.currentReasoningId = undefined;
       }
       if (event.type === 'message_end') {
-        for (const toolCallId of extractPiToolCallIds(event.message)) {
+        const toolCallIds = extractPiToolCallIds(event.message);
+        state.stepToolCallCount =
+          toolCallIds.length > 0 ? toolCallIds.length : undefined;
+        for (const toolCallId of toolCallIds) {
           state.pendingStepToolCallIds.add(toolCallId);
         }
       } else {
         state.pendingStepToolCallIds.clear();
+        state.stepToolCallCount = undefined;
         parts.push(...finishStep(state));
       }
       return parts;
@@ -337,6 +346,9 @@ export function translatePiEvent(
           ...(wire !== native ? { nativeName: native } : {}),
           ...(providerExecuted ? { providerExecuted: true } : {}),
           ...(isMcpTool ? { dynamic: true } : {}),
+          ...(state.stepToolCallCount != null
+            ? { stepToolCallCount: state.stepToolCallCount }
+            : {}),
         } as HarnessV1StreamPart,
       ];
     }

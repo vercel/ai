@@ -65,7 +65,9 @@ function createMockFiles({
       );
     }
 
-    if (urlString.includes(fileResource.name)) {
+    if (
+      urlString.startsWith('https://generativelanguage.googleapis.com/v1beta/')
+    ) {
       pollIndex++;
       const pollState =
         pollIndex < pollResponses.length
@@ -293,6 +295,51 @@ describe('GoogleFiles', () => {
     });
 
     describe('polling', () => {
+      it.each([
+        {
+          name: 'files/abc/../../secret',
+          expectedPath: 'files%2Fabc%2F..%2F..%2Fsecret',
+        },
+        { name: 'files/.', expectedPath: 'files/%252E' },
+        { name: 'files/..', expectedPath: 'files/%252E%252E' },
+        { name: '.', expectedPath: '%252E' },
+        { name: '..', expectedPath: '%252E%252E' },
+      ])(
+        'should preserve $name in the polling URL',
+        async ({ name, expectedPath }) => {
+          const fileResource = {
+            ...defaultFileResource,
+            name,
+          };
+          let pollUrl: string | undefined;
+          const { files } = createMockFiles({
+            fileResource,
+            pollResponses: [{ state: 'PROCESSING' }, { state: 'ACTIVE' }],
+            onRequest: url => {
+              if (
+                url.startsWith(
+                  'https://generativelanguage.googleapis.com/v1beta/',
+                )
+              ) {
+                pollUrl = url;
+              }
+            },
+          });
+
+          await files.uploadFile({
+            data: { type: 'data', data: new Uint8Array([1]) },
+            mediaType: 'application/octet-stream',
+            providerOptions: {
+              google: { pollIntervalMs: 1 },
+            },
+          });
+
+          expect(pollUrl).toBe(
+            `https://generativelanguage.googleapis.com/v1beta/${expectedPath}`,
+          );
+        },
+      );
+
       it('should poll until file state becomes ACTIVE', async () => {
         let pollCount = 0;
         const { files, fetchFn } = createMockFiles({
@@ -317,6 +364,9 @@ describe('GoogleFiles', () => {
           call[0].toString().includes(defaultFileResource.name),
         );
         expect(pollCalls.length).toBeGreaterThanOrEqual(1);
+        expect(pollCalls[0]?.[0].toString()).toBe(
+          `https://generativelanguage.googleapis.com/v1beta/${defaultFileResource.name}`,
+        );
       });
 
       it('should not poll when file is immediately ACTIVE', async () => {
