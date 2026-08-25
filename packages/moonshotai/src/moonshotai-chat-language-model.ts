@@ -477,11 +477,23 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertMoonshotAIChatUsage(responseBody.usage),
-      ...(choice.logprobs != null && {
-        providerMetadata: {
-          [this.providerOptionsName]: { logprobs: choice.logprobs },
+      providerMetadata: {
+        [this.providerOptionsName]: {
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
+          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
         },
-      }),
+      },
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -531,6 +543,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     const contentLogprobs: MoonshotAIChatLogprob[] = [];
     const refusalLogprobs: MoonshotAIChatLogprob[] = [];
     const providerOptionsName = this.providerOptionsName;
+    let responseObject: string | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
@@ -587,6 +603,14 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               usage = choice.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
+            }
+
             if (choice?.finish_reason != null) {
               finishReason = {
                 unified: mapMoonshotAIFinishReason(choice.finish_reason),
@@ -607,6 +631,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -659,9 +687,13 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
+                const toolCallIndex = toolCallDelta.index ?? index;
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(toolCallIndex, toolCallDelta.type);
+                }
                 toolCallTracker.processDelta({
                   ...toolCallDelta,
-                  index: toolCallDelta.index ?? index,
+                  index: toolCallIndex,
                 });
               }
             }
@@ -682,10 +714,18 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertMoonshotAIChatUsage(usage),
-              ...((contentLogprobs.length > 0 ||
-                refusalLogprobs.length > 0) && {
-                providerMetadata: {
-                  [providerOptionsName]: {
+              providerMetadata: {
+                [providerOptionsName]: {
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
+                  ...((contentLogprobs.length > 0 ||
+                    refusalLogprobs.length > 0) && {
                     logprobs: {
                       ...(contentLogprobs.length > 0 && {
                         content: contentLogprobs,
@@ -694,9 +734,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
                         refusal: refusalLogprobs,
                       }),
                     },
-                  },
+                  }),
                 },
-              }),
+              },
             });
           },
         }),

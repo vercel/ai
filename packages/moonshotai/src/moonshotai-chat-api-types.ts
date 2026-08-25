@@ -137,10 +137,12 @@ export type MoonshotAIChatLogprob = z.infer<typeof moonshotAIChatLogprobSchema>;
 
 export const moonshotAIChatResponseSchema = z.object({
   id: z.string().nullish(),
+  object: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
   choices: z.array(
     z.object({
+      index: z.number().nullish(),
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
@@ -149,6 +151,7 @@ export const moonshotAIChatResponseSchema = z.object({
           .array(
             z.object({
               id: z.string().nullish(),
+              type: z.literal('function').nullish(),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
@@ -169,10 +172,12 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
     z.union([
       z.object({
         id: z.string().nullish(),
+        object: z.string().nullish(),
         created: z.number().nullish(),
         model: z.string().nullish(),
         choices: z.array(
           z.object({
+            index: z.number().nullish(),
             delta: z
               .object({
                 role: z.literal('assistant').nullish(),
@@ -183,6 +188,7 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
                     z.object({
                       index: z.number().nullish(),
                       id: z.string().nullish(),
+                      type: z.literal('function').nullish(),
                       function: z.object({
                         name: z.string().nullish(),
                         arguments: z.string().nullish(),

@@ -236,6 +236,40 @@ describe('doGenerate', () => {
         inputTokens: { total: 9, noCache: 9, cacheRead: 0 },
         outputTokens: { total: 5, text: 5, reasoning: 0 },
       });
+      expect(result.providerMetadata).toEqual({
+        moonshotai: {
+          responseObject: 'chat.completion',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+        },
+      });
+    });
+
+    it('should safely omit null response metadata fields', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-null-metadata',
+          object: null,
+          created: 1785880000,
+          model: 'kimi-k3',
+          choices: [
+            {
+              index: null,
+              message: { role: null, content: 'Hello' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: null,
+        },
+      };
+
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([{ type: 'text', text: 'Hello' }]);
+      expect(result.providerMetadata).toEqual({ moonshotai: {} });
     });
   });
 
@@ -821,6 +855,14 @@ describe('doGenerate', () => {
         unified: 'tool-calls',
         raw: 'tool_calls',
       });
+      expect(result.providerMetadata).toEqual({
+        moonshotai: {
+          responseObject: 'chat.completion',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+          toolCallTypes: ['function'],
+        },
+      });
     });
   });
 
@@ -1199,6 +1241,13 @@ describe('doStream', () => {
         inputTokens: { total: 9 },
         outputTokens: { total: 12, reasoning: 7 },
       },
+      providerMetadata: {
+        moonshotai: {
+          responseObject: 'chat.completion.chunk',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+        },
+      },
     });
   });
 
@@ -1254,6 +1303,14 @@ describe('doStream', () => {
       usage: {
         inputTokens: { total: 11 },
         outputTokens: { total: 6 },
+      },
+      providerMetadata: {
+        moonshotai: {
+          responseObject: 'chat.completion.chunk',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+          toolCallTypes: ['function', 'function'],
+        },
       },
     });
   });
