@@ -1,0 +1,36 @@
+{
+  "metrics": {
+    "latencyMs": 2744
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "Sure! I'll look up both values simultaneously right now!"
+        },
+        {
+          "toolUse": {
+            "input": {
+              "ref": "R1"
+            },
+            "name": "get_resistor_value",
+            "toolUseId": "tooluse_cSetmvboc97Bqb2uO0gzu6",
+            "type": "tool_use"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 446,
+    "outputTokens": 61,
+    "serverToolUsage": {},
+    "totalTokens": 507
+  }
+}
