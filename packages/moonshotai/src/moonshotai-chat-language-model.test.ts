@@ -865,4 +865,51 @@ describe('doStream', () => {
       include_usage: true,
     });
   });
+
+  it('should assemble index-less tool calls and use choice-level usage', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream-tool-calls');
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'call-weather',
+      toolName: 'get_weather',
+      input: '{"city":"Paris"}',
+    });
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'call-time',
+      toolName: 'get_time',
+      input: '{"zone":"UTC"}',
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+      usage: {
+        inputTokens: { total: 11 },
+        outputTokens: { total: 6 },
+      },
+    });
+  });
+
+  it('should surface malformed tool-call chunks as validation errors', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream-malformed-tool-call');
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts.filter(part => part.type === 'error')).toHaveLength(1);
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'error' },
+    });
+  });
 });

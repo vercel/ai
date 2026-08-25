@@ -509,6 +509,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: MoonshotAIChatTokenUsage | undefined = undefined;
+    let hasTopLevelUsage = false;
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
@@ -556,11 +557,14 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               });
             }
 
+            const choice = value.choices[0];
+
             if (value.usage != null) {
               usage = value.usage;
+              hasTopLevelUsage = true;
+            } else if (!hasTopLevelUsage && choice?.usage != null) {
+              usage = choice.usage;
             }
-
-            const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
               finishReason = {
@@ -625,8 +629,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
                 isActiveReasoning = false;
               }
 
-              for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(toolCallDelta);
+              for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
+                toolCallTracker.processDelta({
+                  ...toolCallDelta,
+                  index: toolCallDelta.index ?? index,
+                });
               }
             }
           },
