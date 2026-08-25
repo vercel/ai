@@ -106,8 +106,6 @@ const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
-=======
 const openaiModelId = 'openai.gpt-oss-120b-1:0';
 const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
@@ -128,27 +126,6 @@ const customOpenaiSubstringGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   customOpenaiSubstringModelId,
 )}/converse`;
 
-const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
-const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
-  newerAnthropicModelId,
-)}/converse`;
-
-const opusAnthropicModelId = 'us.anthropic.claude-opus-4-8';
-const opusAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
-  opusAnthropicModelId,
-)}/converse`;
-
-const opus5AnthropicModelId = 'us.anthropic.claude-opus-5';
-const opus5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
-  opus5AnthropicModelId,
-)}/converse`;
-
-const sonnet5AnthropicModelId = 'us.anthropic.claude-sonnet-5';
-const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
-  sonnet5AnthropicModelId,
-)}/converse`;
-
->>>>>>> dee4c16e56 (fix: send model-specific OpenAI reasoning formats for Bedrock Converse (#19420)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -164,17 +141,10 @@ const server = createTestServer({
   [unsupportedStructuredOutputGenerateUrl]: {},
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
-=======
   [openaiGenerateUrl]: {},
   [usOpenaiGenerateUrl]: {},
   [globalOpenaiGenerateUrl]: {},
   [customOpenaiSubstringGenerateUrl]: {},
-  [newerAnthropicGenerateUrl]: {},
-  [opusAnthropicGenerateUrl]: {},
-  [opus5AnthropicGenerateUrl]: {},
-  [sonnet5AnthropicGenerateUrl]: {},
->>>>>>> dee4c16e56 (fix: send model-specific OpenAI reasoning formats for Bedrock Converse (#19420)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 });
 
 describe('supportedUrls', () => {
@@ -241,6 +211,13 @@ const model = new BedrockChatLanguageModel(modelId, {
 });
 
 const novaModel = new BedrockChatLanguageModel(novaModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -3708,10 +3685,6 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
-  it('maps maxReasoningEffort for Anthropic model using output_config (generate)', async () => {
-    prepareJsonResponse({});
-=======
   it('maps maxReasoningEffort to reasoning_effort for OpenAI gpt-oss models (generate)', async () => {
     server.urls[openaiGenerateUrl].response = {
       type: 'json-value',
@@ -3764,7 +3737,7 @@ describe('doGenerate', () => {
         },
       };
 
-      const crisModel = new AmazonBedrockChatLanguageModel(crisModelId, {
+      const crisModel = new BedrockChatLanguageModel(crisModelId, {
         baseUrl: () => baseUrl,
         headers: {},
         fetch: fakeFetchWithAuth,
@@ -3809,7 +3782,7 @@ describe('doGenerate', () => {
       },
     };
 
-    const customModel = new AmazonBedrockChatLanguageModel(
+    const customModel = new BedrockChatLanguageModel(
       customOpenaiSubstringModelId,
       {
         baseUrl: () => baseUrl,
@@ -3842,9 +3815,8 @@ describe('doGenerate', () => {
     ).toBeUndefined();
   });
 
-  it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
-    prepareJsonFixtureResponse('amazon-bedrock-text');
->>>>>>> dee4c16e56 (fix: send model-specific OpenAI reasoning formats for Bedrock Converse (#19420)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
+  it('maps maxReasoningEffort for Anthropic model using output_config (generate)', async () => {
+    prepareJsonResponse({});
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4838,327 +4810,4 @@ describe('doGenerate', () => {
       ).toBeUndefined();
     });
   });
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
-=======
-
-  describe('top-level reasoning parameter', () => {
-    const simpleResponse = {
-      type: 'json-value' as const,
-      body: {
-        output: {
-          message: { content: [{ text: 'Hello' }], role: 'assistant' },
-        },
-        stopReason: 'stop_sequence',
-        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
-      },
-    };
-
-    it('should not set reasoning config when reasoning is "provider-default" for newer Anthropic models', async () => {
-      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
-
-      await newerAnthropicModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'provider-default',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.thinking,
-      ).toBeUndefined();
-      expect(
-        requestBody.additionalModelRequestFields?.output_config,
-      ).toBeUndefined();
-    });
-
-    it('should map reasoning to adaptive thinking with effort for newer Anthropic models', async () => {
-      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
-
-      await newerAnthropicModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
-        type: 'adaptive',
-      });
-      expect(
-        requestBody.additionalModelRequestFields?.output_config?.effort,
-      ).toBe('high');
-    });
-
-    it('should map reasoning "xhigh" to effort "max" for newer Anthropic models', async () => {
-      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
-
-      await newerAnthropicModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'xhigh',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
-        type: 'adaptive',
-      });
-      expect(
-        requestBody.additionalModelRequestFields?.output_config?.effort,
-      ).toBe('max');
-    });
-
-    it('should warn when reasoning "minimal" is mapped for newer Anthropic models', async () => {
-      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
-
-      const result = await newerAnthropicModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'minimal',
-      });
-
-      expect(result.warnings).toContainEqual({
-        type: 'compatibility',
-        feature: 'reasoning',
-        details:
-          'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.output_config?.effort,
-      ).toBe('low');
-    });
-
-    it('should map reasoning to budget-based thinking for older Anthropic models', async () => {
-      prepareJsonFixtureResponse('amazon-bedrock-text');
-
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
-        type: 'enabled',
-        budget_tokens: Math.max(1024, Math.round(4096 * 0.6)),
-      });
-    });
-
-    it('should map reasoning to budget with minimum of 1024 tokens for older Anthropic models', async () => {
-      prepareJsonFixtureResponse('amazon-bedrock-text');
-
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'minimal',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.thinking?.budget_tokens,
-      ).toBe(1024);
-    });
-
-    it('should map reasoning directly to reasoning_effort for OpenAI gpt-oss models', async () => {
-      server.urls[openaiGenerateUrl].response = simpleResponse;
-
-      await openaiModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'medium',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.reasoning_effort).toBe(
-        'medium',
-      );
-      expect(
-        requestBody.additionalModelRequestFields?.thinking,
-      ).toBeUndefined();
-      expect(
-        requestBody.additionalModelRequestFields?.reasoningConfig,
-      ).toBeUndefined();
-    });
-
-    it('should map reasoning to reasoningConfig.maxReasoningEffort for other models', async () => {
-      server.urls[novaGenerateUrl].response = simpleResponse;
-
-      await novaModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.reasoningConfig
-          ?.maxReasoningEffort,
-      ).toBe('high');
-    });
-
-    it('should let explicit reasoningConfig fields win over derived reasoning values', async () => {
-      prepareJsonFixtureResponse('amazon-bedrock-text');
-
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-        providerOptions: {
-          bedrock: {
-            reasoningConfig: {
-              type: 'enabled',
-              budgetTokens: 5000,
-            },
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
-        type: 'enabled',
-        budget_tokens: 5000,
-      });
-    });
-
-    it('should merge top-level reasoning with partial reasoningConfig for newer Anthropic models', async () => {
-      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
-
-      await newerAnthropicModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-        providerOptions: {
-          bedrock: {
-            reasoningConfig: { display: 'summarized' },
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
-        type: 'adaptive',
-        display: 'summarized',
-      });
-      expect(
-        requestBody.additionalModelRequestFields?.output_config?.effort,
-      ).toBe('high');
-    });
-
-    it('should honor reasoning "none" even when partial reasoningConfig is provided', async () => {
-      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
-
-      await newerAnthropicModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'none',
-        providerOptions: {
-          bedrock: {
-            reasoningConfig: { display: 'summarized' },
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.thinking,
-      ).toBeUndefined();
-      expect(
-        requestBody.additionalModelRequestFields?.output_config,
-      ).toBeUndefined();
-    });
-
-    it('should let user-specified type win while still deriving maxReasoningEffort from reasoning', async () => {
-      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
-
-      await newerAnthropicModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-        providerOptions: {
-          bedrock: {
-            reasoningConfig: { type: 'enabled', budgetTokens: 3000 },
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
-        type: 'enabled',
-        budget_tokens: 3000,
-      });
-      expect(
-        requestBody.additionalModelRequestFields?.output_config?.effort,
-      ).toBe('high');
-    });
-
-    it('should let user-specified maxReasoningEffort win over derived for non-Anthropic models', async () => {
-      server.urls[novaGenerateUrl].response = simpleResponse;
-
-      await novaModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-        providerOptions: {
-          bedrock: {
-            reasoningConfig: { maxReasoningEffort: 'low' },
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.reasoningConfig
-          ?.maxReasoningEffort,
-      ).toBe('low');
-    });
-
-    it('should strip temperature, topP, topK for Anthropic models when reasoning enables thinking', async () => {
-      prepareJsonFixtureResponse('amazon-bedrock-text');
-
-      const result = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-        temperature: 0.7,
-        topP: 0.9,
-        topK: 5,
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.inferenceConfig?.temperature).toBeUndefined();
-      expect(requestBody.inferenceConfig?.topP).toBeUndefined();
-      expect(requestBody.inferenceConfig?.topK).toBeUndefined();
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported',
-        feature: 'temperature',
-        details: 'temperature is not supported when thinking is enabled',
-      });
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported',
-        feature: 'topP',
-        details: 'topP is not supported when thinking is enabled',
-      });
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported',
-        feature: 'topK',
-        details: 'topK is not supported when thinking is enabled',
-      });
-    });
-
-    it('should handle reasoning "none" for Anthropic models', async () => {
-      prepareJsonFixtureResponse('amazon-bedrock-text');
-
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'none',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.thinking,
-      ).toBeUndefined();
-    });
-
-    it('should handle reasoning "none" for OpenAI models', async () => {
-      server.urls[openaiGenerateUrl].response = simpleResponse;
-
-      await openaiModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'none',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.reasoning_effort,
-      ).toBeUndefined();
-    });
-  });
->>>>>>> dee4c16e56 (fix: send model-specific OpenAI reasoning formats for Bedrock Converse (#19420)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 });
