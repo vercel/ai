@@ -17,6 +17,12 @@ const server = createTestServer({
   'https://api.openai.com/v1/embeddings': {},
 });
 
+describe('model limits', () => {
+  it('should expose the aggregate token limit', () => {
+    expect(model.maxTokensPerCall).toBe(300_000);
+  });
+});
+
 function prepareJsonFixtureResponse(
   filename: string,
   headers?: Record<string, string>,

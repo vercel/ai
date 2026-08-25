@@ -122,6 +122,33 @@ describe('wrapEmbeddingModel', () => {
     });
   });
 
+  describe('maxTokensPerCall property', () => {
+    it('should pass through by default', async () => {
+      const wrappedModel = wrapEmbeddingModel({
+        model: new MockEmbeddingModelV4({ maxTokensPerCall: 2 }),
+        middleware: {
+          specificationVersion: 'v4',
+        },
+      });
+
+      expect(await wrappedModel.maxTokensPerCall).toStrictEqual(2);
+    });
+
+    it('should use middleware override if provided', () => {
+      const wrappedModel = wrapEmbeddingModel({
+        model: new MockEmbeddingModelV4({
+          maxTokensPerCall: 2,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+          overrideMaxTokensPerCall: () => 3,
+        },
+      });
+
+      expect(wrappedModel.maxTokensPerCall).toStrictEqual(3);
+    });
+  });
+
   describe('supportsParallelCalls property', () => {
     it('should pass through by default', async () => {
       const supportsParallelCalls = true;

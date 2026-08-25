@@ -222,6 +222,28 @@ describe('result.embedding', () => {
 
     assert.deepStrictEqual(result.embeddings, dummyEmbeddings);
   });
+
+  it('should split calls when the aggregate token estimate exceeds the model limit', async () => {
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: 5,
+      maxTokensPerCall: 7,
+      doEmbed: async ({ values }) => ({
+        embeddings: values.map(value => [value.length]),
+        warnings: [],
+      }),
+    });
+
+    const result = await embedMany({
+      model,
+      values: ['éé', 'éé', 'abc'],
+    });
+
+    expect(model.doEmbedCalls.map(call => call.values)).toStrictEqual([
+      ['éé'],
+      ['éé', 'abc'],
+    ]);
+    expect(result.embeddings).toStrictEqual([[2], [2], [3]]);
+  });
 });
 
 describe('result.responses', () => {
