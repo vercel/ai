@@ -334,7 +334,12 @@ export async function convertToBedrockChatMessages(
           pushCachePoint(bedrockContent, providerOptions);
         }
 
-        messages.push({ role: 'user', content: bedrockContent });
+        const previousMessage = messages.at(-1);
+        if (previousMessage?.role === 'user') {
+          previousMessage.content.push(...bedrockContent);
+        } else {
+          messages.push({ role: 'user', content: bedrockContent });
+        }
 
         break;
       }
@@ -347,8 +352,22 @@ export async function convertToBedrockChatMessages(
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
           const { content } = message;
-          const hasReasoningBlocks = content.some(
-            part => part.type === 'reasoning',
+          const reasoningMetadata = await Promise.all(
+            content.map(part =>
+              part.type === 'reasoning'
+                ? parseProviderOptions({
+                    provider: 'bedrock',
+                    providerOptions: part.providerOptions,
+                    schema: bedrockReasoningMetadataSchema,
+                  })
+                : undefined,
+            ),
+          );
+          const hasReasoningBlocks = reasoningMetadata.some(
+            metadata =>
+              metadata?.signature != null ||
+              metadata?.redactedContent != null ||
+              metadata?.redactedData != null,
           );
 
           for (let k = 0; k < content.length; k++) {
@@ -378,34 +397,30 @@ export async function convertToBedrockChatMessages(
               }
 
               case 'reasoning': {
-                const reasoningMetadata = await parseProviderOptions({
-                  provider: 'bedrock',
-                  providerOptions: part.providerOptions,
-                  schema: bedrockReasoningMetadataSchema,
-                });
+                const metadata = reasoningMetadata[k];
 
-                if (reasoningMetadata?.signature != null) {
+                if (metadata?.signature != null) {
                   // do not trim reasoning text when a signature is present:
                   // the signature validates the exact original bytes
                   bedrockContent.push({
                     reasoningContent: {
                       reasoningText: {
                         text: part.text,
-                        signature: reasoningMetadata.signature,
+                        signature: metadata.signature,
                       },
                     },
                   });
-                } else if (reasoningMetadata?.redactedContent != null) {
+                } else if (metadata?.redactedContent != null) {
                   bedrockContent.push({
                     reasoningContent: {
-                      redactedContent: reasoningMetadata.redactedContent,
+                      redactedContent: metadata.redactedContent,
                     },
                   });
-                } else if (reasoningMetadata?.redactedData != null) {
+                } else if (metadata?.redactedData != null) {
                   bedrockContent.push({
                     reasoningContent: {
                       redactedReasoning: {
-                        data: reasoningMetadata.redactedData,
+                        data: metadata.redactedData,
                       },
                     },
                   });
@@ -434,7 +449,9 @@ export async function convertToBedrockChatMessages(
           pushCachePoint(bedrockContent, message.providerOptions);
         }
 
-        messages.push({ role: 'assistant', content: bedrockContent });
+        if (bedrockContent.length > 0) {
+          messages.push({ role: 'assistant', content: bedrockContent });
+        }
 
         break;
       }
