@@ -19,7 +19,7 @@ const server = createTestServer({
 
 describe('model limits', () => {
   it('should expose the aggregate token limit', () => {
-    expect(model.maxTokensPerCall).toBe(300_000);
+    expect(model.maxInputBytesPerCall).toBe(300_000);
   });
 });
 

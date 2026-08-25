@@ -122,30 +122,30 @@ describe('wrapEmbeddingModel', () => {
     });
   });
 
-  describe('maxTokensPerCall property', () => {
+  describe('maxInputBytesPerCall property', () => {
     it('should pass through by default', async () => {
       const wrappedModel = wrapEmbeddingModel({
-        model: new MockEmbeddingModelV4({ maxTokensPerCall: 2 }),
+        model: new MockEmbeddingModelV4({ maxInputBytesPerCall: 2 }),
         middleware: {
           specificationVersion: 'v4',
         },
       });
 
-      expect(await wrappedModel.maxTokensPerCall).toStrictEqual(2);
+      expect(await wrappedModel.maxInputBytesPerCall).toStrictEqual(2);
     });
 
     it('should use middleware override if provided', () => {
       const wrappedModel = wrapEmbeddingModel({
         model: new MockEmbeddingModelV4({
-          maxTokensPerCall: 2,
+          maxInputBytesPerCall: 2,
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideMaxTokensPerCall: () => 3,
+          overrideMaxInputBytesPerCall: () => 3,
         },
       });
 
-      expect(wrappedModel.maxTokensPerCall).toStrictEqual(3);
+      expect(wrappedModel.maxInputBytesPerCall).toStrictEqual(3);
     });
   });
 

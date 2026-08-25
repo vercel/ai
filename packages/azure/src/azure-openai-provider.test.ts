@@ -817,7 +817,9 @@ describe('embedding', () => {
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
   it('should expose the aggregate token limit', () => {
-    expect(provider.embedding('my-embedding').maxTokensPerCall).toBe(300_000);
+    expect(provider.embedding('my-embedding').maxInputBytesPerCall).toBe(
+      300_000,
+    );
   });
 
   describe('doEmbed', () => {

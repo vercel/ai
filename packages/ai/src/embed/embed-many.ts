@@ -197,19 +197,22 @@ export async function embedMany({
       });
 
       try {
-        const [maxEmbeddingsPerCall, maxTokensPerCall, supportsParallelCalls] =
-          await Promise.all([
-            model.maxEmbeddingsPerCall,
-            model.maxTokensPerCall,
-            model.supportsParallelCalls,
-          ]);
+        const [
+          maxEmbeddingsPerCall,
+          maxInputBytesPerCall,
+          supportsParallelCalls,
+        ] = await Promise.all([
+          model.maxEmbeddingsPerCall,
+          model.maxInputBytesPerCall,
+          model.supportsParallelCalls,
+        ]);
 
         const hasEmbeddingLimit =
           maxEmbeddingsPerCall != null && maxEmbeddingsPerCall !== Infinity;
-        const hasTokenLimit =
-          maxTokensPerCall != null && maxTokensPerCall !== Infinity;
+        const hasInputByteLimit =
+          maxInputBytesPerCall != null && maxInputBytesPerCall !== Infinity;
 
-        if (!hasEmbeddingLimit && !hasTokenLimit) {
+        if (!hasEmbeddingLimit && !hasInputByteLimit) {
           const { embeddings, usage, warnings, response, providerMetadata } =
             await retry(async () => {
               const embedCallId = generateCallId();
@@ -291,15 +294,15 @@ export async function embedMany({
           });
         }
 
-        let valueChunks = hasEmbeddingLimit
-          ? splitArray(values, maxEmbeddingsPerCall)
-          : [values];
-
-        if (hasTokenLimit) {
-          valueChunks = valueChunks.flatMap(chunk =>
-            splitByTokenLimit(chunk, maxTokensPerCall),
-          );
-        }
+        const valueChunks = splitByEmbeddingLimits({
+          values,
+          maxEmbeddingsPerCall: hasEmbeddingLimit
+            ? maxEmbeddingsPerCall
+            : Infinity,
+          maxInputBytesPerCall: hasInputByteLimit
+            ? maxInputBytesPerCall
+            : Infinity,
+        });
 
         const embeddings: Array<Embedding> = [];
         const warnings: Array<Warning> = [];
@@ -433,38 +436,46 @@ export async function embedMany({
 
 const textEncoder = new TextEncoder();
 
-function splitByTokenLimit(
-  values: Array<string>,
-  maxTokensPerCall: number,
-): Array<Array<string>> {
-  if (maxTokensPerCall <= 0) {
-    throw new Error('maxTokensPerCall must be greater than 0');
+function splitByEmbeddingLimits({
+  values,
+  maxEmbeddingsPerCall,
+  maxInputBytesPerCall,
+}: {
+  values: Array<string>;
+  maxEmbeddingsPerCall: number;
+  maxInputBytesPerCall: number;
+}): Array<Array<string>> {
+  if (maxEmbeddingsPerCall <= 0) {
+    throw new Error('maxEmbeddingsPerCall must be greater than 0');
+  }
+
+  if (maxInputBytesPerCall <= 0) {
+    throw new Error('maxInputBytesPerCall must be greater than 0');
   }
 
   if (values.length === 0) {
-    return [values];
+    return [];
   }
 
   const chunks: Array<Array<string>> = [];
   let currentChunk: Array<string> = [];
-  let currentEstimatedTokens = 0;
+  let currentInputBytes = 0;
 
   for (const value of values) {
-    // OpenAI tokenizers encode UTF-8 byte sequences, so byte length is a
-    // conservative upper bound that avoids adding a tokenizer dependency.
-    const estimatedTokens = textEncoder.encode(value).length;
+    const inputBytes = textEncoder.encode(value).length;
 
     if (
       currentChunk.length > 0 &&
-      currentEstimatedTokens + estimatedTokens > maxTokensPerCall
+      (currentChunk.length >= maxEmbeddingsPerCall ||
+        currentInputBytes + inputBytes > maxInputBytesPerCall)
     ) {
       chunks.push(currentChunk);
       currentChunk = [];
-      currentEstimatedTokens = 0;
+      currentInputBytes = 0;
     }
 
     currentChunk.push(value);
-    currentEstimatedTokens += estimatedTokens;
+    currentInputBytes += inputBytes;
   }
 
   chunks.push(currentChunk);

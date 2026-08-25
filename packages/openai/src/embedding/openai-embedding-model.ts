@@ -23,7 +23,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
-  readonly maxTokensPerCall = 300_000;
+  readonly maxInputBytesPerCall = 300_000;
   readonly supportsParallelCalls = true;
 
   private readonly config: OpenAIConfig;

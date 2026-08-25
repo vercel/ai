@@ -33,10 +33,10 @@ export type EmbeddingModelV4Middleware = {
   }) => PromiseLike<number | undefined> | number | undefined;
 
   /**
-   * Override the limit of how many input tokens can be sent in a single API call if desired.
+   * Override the UTF-8 byte budget used to split embedding calls if desired.
    * @param options.model - The embedding model instance.
    */
-  overrideMaxTokensPerCall?: (options: {
+  overrideMaxInputBytesPerCall?: (options: {
     model: EmbeddingModelV4;
   }) => PromiseLike<number | undefined> | number | undefined;
 

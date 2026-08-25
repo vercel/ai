@@ -38,12 +38,12 @@ export type EmbeddingModelV4 = {
     | undefined;
 
   /**
-   * Limit of how many input tokens can be sent in a single API call.
+   * UTF-8 byte budget that `embedMany` uses when splitting values into calls.
    *
-   * `embedMany` uses the UTF-8 byte length of each value as a conservative
-   * token estimate when this limit is set.
+   * Providers can use a conservative byte budget derived from an aggregate
+   * token limit without requiring a provider-specific tokenizer in core.
    */
-  readonly maxTokensPerCall?:
+  readonly maxInputBytesPerCall?:
     | PromiseLike<number | undefined>
     | number
     | undefined;

@@ -7,7 +7,7 @@ export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
   readonly provider: EmbeddingModelV4['provider'];
   readonly modelId: EmbeddingModelV4['modelId'];
   readonly maxEmbeddingsPerCall: EmbeddingModelV4['maxEmbeddingsPerCall'];
-  readonly maxTokensPerCall: EmbeddingModelV4['maxTokensPerCall'];
+  readonly maxInputBytesPerCall: EmbeddingModelV4['maxInputBytesPerCall'];
   readonly supportsParallelCalls: EmbeddingModelV4['supportsParallelCalls'];
 
   doEmbed: EmbeddingModelV4['doEmbed'];
@@ -18,14 +18,14 @@ export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
     provider = 'mock-provider',
     modelId = 'mock-model-id',
     maxEmbeddingsPerCall = 1,
-    maxTokensPerCall,
+    maxInputBytesPerCall,
     supportsParallelCalls = false,
     doEmbed = notImplemented,
   }: {
     provider?: EmbeddingModelV4['provider'];
     modelId?: EmbeddingModelV4['modelId'];
     maxEmbeddingsPerCall?: EmbeddingModelV4['maxEmbeddingsPerCall'] | null;
-    maxTokensPerCall?: EmbeddingModelV4['maxTokensPerCall'];
+    maxInputBytesPerCall?: EmbeddingModelV4['maxInputBytesPerCall'];
     supportsParallelCalls?: EmbeddingModelV4['supportsParallelCalls'];
     doEmbed?:
       | EmbeddingModelV4['doEmbed']
@@ -35,7 +35,7 @@ export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
     this.provider = provider;
     this.modelId = modelId;
     this.maxEmbeddingsPerCall = maxEmbeddingsPerCall ?? undefined;
-    this.maxTokensPerCall = maxTokensPerCall;
+    this.maxInputBytesPerCall = maxInputBytesPerCall;
     this.supportsParallelCalls = supportsParallelCalls;
     this.doEmbed = async options => {
       this.doEmbedCalls.push(options);
