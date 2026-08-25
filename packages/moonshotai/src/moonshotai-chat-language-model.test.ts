@@ -40,6 +40,14 @@ function prepareChunksFixtureResponse(filename: string) {
   };
 }
 
+function prepareErrorFixtureResponse(filename: string) {
+  server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+    type: 'error',
+    status: 400,
+    body: fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+  };
+}
+
 describe('doGenerate', () => {
   describe('text', () => {
     beforeEach(() => {
@@ -1182,26 +1190,73 @@ describe('doGenerate', () => {
   });
 
   describe('errors', () => {
-    it('should map the moonshot error envelope', async () => {
-      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
-        type: 'error',
-        status: 400,
-        body: JSON.stringify({
-          error: {
-            message: 'Invalid request: invalid part type: file',
-            type: 'invalid_request_error',
-          },
-        }),
-      };
+    it('should preserve the full moonshot error envelope', async () => {
+      prepareErrorFixtureResponse('moonshotai-error');
 
       await expect(
         provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
-      ).rejects.toThrow('Invalid request: invalid part type: file');
+      ).rejects.toMatchObject({
+        message: 'Invalid request: invalid part type: file',
+        data: {
+          error: {
+            message: 'Invalid request: invalid part type: file',
+            type: 'invalid_request_error',
+            code: 'invalid_part_type',
+          },
+        },
+      });
+    });
+
+    it('should continue to parse message-only errors', async () => {
+      prepareErrorFixtureResponse('moonshotai-error-message-only');
+
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toMatchObject({
+        message: 'Request failed',
+        data: { error: { message: 'Request failed' } },
+      });
     });
   });
 });
 
 describe('doStream', () => {
+  it('should preserve structured streamed errors', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream-error');
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+    });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts).toContainEqual({
+      type: 'error',
+      error: {
+        message: 'Stream failed',
+        type: 'server_error',
+        code: 'stream_failure',
+      },
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'error' },
+    });
+  });
+
+  it('should continue to parse message-only streamed errors', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream-error-message-only');
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+    });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts).toContainEqual({
+      type: 'error',
+      error: { message: 'Stream failed without details' },
+    });
+  });
+
   it('should stream reasoning and text deltas with usage', async () => {
     prepareChunksFixtureResponse('moonshotai-stream');
 

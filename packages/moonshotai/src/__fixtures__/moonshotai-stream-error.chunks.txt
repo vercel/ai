@@ -1,0 +1,2 @@
+{"id":"chatcmpl-stream-error","object":"chat.completion.chunk","created":1785880003,"model":"kimi-k3","choices":[{"index":0,"delta":{"role":"assistant","content":"Partial"},"finish_reason":null}]}
+{"error":{"message":"Stream failed","type":"server_error","code":"stream_failure"}}
