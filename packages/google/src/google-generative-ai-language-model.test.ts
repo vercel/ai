@@ -516,6 +516,9 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_3_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent';
 
+  const TEST_URL_GEMINI_3_7_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
@@ -525,6 +528,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_99_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
+    [TEST_URL_GEMINI_3_7_FLASH]: {},
   });
 
   function prepareJsonFixtureResponse(
@@ -539,7 +543,8 @@ describe('doGenerate', () => {
         | typeof TEST_URL_GEMINI_2_0_PRO
         | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
         | typeof TEST_URL_GEMINI_1_0_PRO
-        | typeof TEST_URL_GEMINI_1_5_FLASH;
+        | typeof TEST_URL_GEMINI_1_5_FLASH
+        | typeof TEST_URL_GEMINI_3_7_FLASH;
     } = {},
   ) {
     server.urls[url].response = {
@@ -1160,6 +1165,87 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('recursive tool schema', () => {
+    it('should reach the provider and extract a recursive tool call', async () => {
+      prepareJsonFixtureResponse('google-recursive-tool-call', {
+        url: TEST_URL_GEMINI_3_7_FLASH,
+      });
+
+      const recursiveModel = provider.chat('gemini-3.7-flash');
+      const recursiveSchema = {
+        type: 'object',
+        properties: {
+          condition: { $ref: '#/$defs/Condition' },
+        },
+        required: ['condition'],
+        additionalProperties: false,
+        $defs: {
+          Condition: {
+            anyOf: [
+              {
+                type: 'object',
+                properties: { term: { type: 'string' } },
+                required: ['term'],
+                additionalProperties: false,
+              },
+              {
+                type: 'object',
+                properties: {
+                  and: {
+                    type: 'array',
+                    items: { $ref: '#/$defs/Condition' },
+                  },
+                },
+                required: ['and'],
+                additionalProperties: false,
+              },
+            ],
+          },
+        },
+      } as JSONSchema7 & { $defs: Record<string, JSONSchema7> };
+
+      const result = await recursiveModel.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'search',
+            description: 'Search with a recursive condition tree.',
+            inputSchema: recursiveSchema,
+          },
+          {
+            type: 'function',
+            name: 'sibling',
+            description: 'A non-recursive sibling tool.',
+            inputSchema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls).toHaveLength(1);
+      expect(
+        (
+          await server.calls[0].requestBodyJson
+        ).tools[0].functionDeclarations.map(
+          (declaration: { name: string }) => declaration.name,
+        ),
+      ).toEqual(['search', 'sibling']);
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolName: 'search',
+            input: '{"condition":{"term":"x"}}',
+          }),
+        ]),
+      );
     });
   });
 

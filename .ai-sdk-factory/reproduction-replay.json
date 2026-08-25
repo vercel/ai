@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19488,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-recursive-tool-schema.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-recursive-tool-schema.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #19488 reproduced: recursive Google tool schemas abort generateText, streamText, and delayed prepareStep activation before the affected request is sent."
+  }
+}

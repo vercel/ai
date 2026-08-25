@@ -1,0 +1,41 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "name": "search",
+              "args": {
+                "condition": {
+                  "term": "x"
+                }
+              },
+              "id": "call_81200"
+            },
+            "thoughtSignature": "ErIDCq8DARFNMg/d9VrQVsfqh3/FFYQPMT+tTZLjASYMXY8uFeQPKUMoKUyX+9QbbevKiqf6z3KUWJoYOXNSwoBPXXG0xsvRemD3hR2E0udSsBpPSSxJW5ptrp2MRLasc/3++ia4AVPy89DoqHFdX6fAn6syxuJM9iBvtmXM1FJYW3EF4eOWq7jpuoDC5ImVlcmV+/xoKkgxvv1OjlvnqkKDug5eE44RE8h6lTo23zivTypzVObEk3a149rguaBjzfmWB/OkI7eeqnl4GOHtzzGpsInGMx0NUZkp5JLacIVmqQ4zuEQDDaVVoMSqtY1qSaQ87AXwWMbPvKzM7MV85BhiE3hzBPXu5nlZbvivd7a5L6tu20DCQBcjuY5GsDUY0QiP+UuAgRfuowurKQyW5Zo52DhgqwgxzQcNpG22BwIDUAmeMDGQwONOP1AjDRwhx9ueJEbqr1AT7gEg/APiI4X59SeC4dME/fhLsODGw9hwhb7aNntGBGETOuVltEjQ9fIRLEJDFLThpzwq0wQ6L/RYfTckeBu0CSBI1jWgi5rttgXZaFXCzmwRJHZCnpISmP0XRMw="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0,
+      "finishMessage": "Model generated function call(s)."
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 456,
+    "candidatesTokenCount": 16,
+    "totalTokenCount": 563,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 456
+      }
+    ],
+    "thoughtsTokenCount": 91,
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.7-flash",
+  "responseId": "1rWNauTeBr2n1MkPjciQkQk"
+}
