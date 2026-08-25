@@ -9,7 +9,7 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = xai('grok-4.6');
+  const model = xai('grok-4.3');
 
   const batch = await startTextBatch({
     model,
