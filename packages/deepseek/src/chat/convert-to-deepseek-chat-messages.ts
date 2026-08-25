@@ -64,13 +64,15 @@ export async function convertToDeepSeekChatMessages({
   for (const { role, content, providerOptions } of prompt) {
     index++;
 
-    const messageOptions = await parseProviderOptions({
+    // The assistant schema extends the common message schema, so one parse
+    // validates names for every role and the assistant-only prefix option.
+    const deepseekMessageOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
       schema: deepseekAssistantMessageProviderOptions,
     });
 
-    if (messageOptions?.prefix === true && role !== 'assistant') {
+    if (deepseekMessageOptions?.prefix === true && role !== 'assistant') {
       throw new InvalidPromptError({
         prompt,
         message:
@@ -80,7 +82,13 @@ export async function convertToDeepSeekChatMessages({
 
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        messages.push({
+          role: 'system',
+          content,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
+        });
         break;
       }
 
@@ -104,7 +112,13 @@ export async function convertToDeepSeekChatMessages({
             }
           }
 
-          messages.push({ role: 'user', content: userContent });
+          messages.push({
+            role: 'user',
+            content: userContent,
+            ...(deepseekMessageOptions?.name != null && {
+              name: deepseekMessageOptions.name,
+            }),
+          });
           break;
         }
 
@@ -138,12 +152,18 @@ export async function convertToDeepSeekChatMessages({
           }
         }
 
-        messages.push({ role: 'user', content: userContent });
+        messages.push({
+          role: 'user',
+          content: userContent,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
+        });
 
         break;
       }
       case 'assistant': {
-        if (messageOptions?.prefix === true) {
+        if (deepseekMessageOptions?.prefix === true) {
           if (index !== prompt.length - 1) {
             throw new InvalidPromptError({
               prompt,
@@ -208,7 +228,12 @@ export async function convertToDeepSeekChatMessages({
         messages.push({
           role: 'assistant',
           content: text,
-          ...(messageOptions?.prefix === true && { prefix: true }),
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
+          ...(deepseekMessageOptions?.prefix === true && {
+            prefix: true,
+          }),
           reasoning_content: reasoning ?? (isDeepSeekV4 ? '' : undefined),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
@@ -217,6 +242,14 @@ export async function convertToDeepSeekChatMessages({
       }
 
       case 'tool': {
+        if (deepseekMessageOptions?.name != null) {
+          warnings.push({
+            type: 'other',
+            message:
+              'DeepSeek does not support message names on tool messages. The name has been omitted.',
+          });
+        }
+
         for (const toolResponse of content) {
           const output = toolResponse.output;
 

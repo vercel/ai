@@ -12,11 +12,13 @@ export type DeepSeekMessage =
 export interface DeepSeekSystemMessage {
   role: 'system';
   content: string;
+  name?: string;
 }
 
 export interface DeepSeekUserMessage {
   role: 'user';
   content: string | Array<DeepSeekContentPart>;
+  name?: string;
 }
 
 export type DeepSeekContentPart =
@@ -36,6 +38,7 @@ export interface DeepSeekContentPartImage {
 export interface DeepSeekAssistantMessage {
   role: 'assistant';
   content?: string | null;
+  name?: string;
   prefix?: true;
   reasoning_content?: string;
   tool_calls?: Array<DeepSeekMessageToolCall>;
