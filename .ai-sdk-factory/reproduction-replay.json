@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 13670,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-13670-denied-tool-approval.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-13670-denied-tool-approval.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #13670 REPRODUCED: automatic continuation stayed blocked after a tool approval reached output-denied"
+  }
+}
