@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 19493,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19493-openai-responses-invalid-events.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19493-openai-responses-invalid-events.ts",
+    "packages/openai/src/responses/__fixtures__/issue-19493-gpt-5.1-tool-call.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19493_REPRODUCED: malformed completed tool call was silently dropped or finished as stop"
+  }
+}
