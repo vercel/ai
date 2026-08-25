@@ -5,12 +5,10 @@ description: API Reference for generateSpeech.
 
 # `generateSpeech()`
 
-<Note type="warning">`generateSpeech` is an experimental feature.</Note>
-
 Generates speech audio from text.
 
 ```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { audio } = await generateSpeech({
@@ -27,7 +25,7 @@ console.log(audio);
 ### OpenAI
 
 ```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { audio } = await generateSpeech({
@@ -40,7 +38,7 @@ const { audio } = await generateSpeech({
 ### ElevenLabs
 
 ```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { elevenLabs } from '@ai-sdk/elevenlabs';
 
 const { audio } = await generateSpeech({
@@ -52,10 +50,7 @@ const { audio } = await generateSpeech({
 
 ## Import
 
-<Snippet
-  text={`import { experimental_generateSpeech as generateSpeech } from "ai"`}
-  prompt={false}
-/>
+<Snippet text={`import { generateSpeech } from "ai"`} prompt={false} />
 
 ## API Signature
 

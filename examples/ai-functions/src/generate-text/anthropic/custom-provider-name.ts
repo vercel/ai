@@ -24,7 +24,7 @@ run(async () => {
     },
   });
   print('Result 1 - Content:', result1.text);
-  print('Result 1 - providerMetadata:', result1.providerMetadata);
+  print('Result 1 - providerMetadata:', result1.finalStep.providerMetadata);
   // Should only have 'anthropic' key
 
   // Case 2: Using custom provider key in providerOptions
@@ -38,7 +38,7 @@ run(async () => {
     },
   });
   print('Result 2 - Content:', result2.text);
-  print('Result 2 - providerMetadata:', result2.providerMetadata);
+  print('Result 2 - providerMetadata:', result2.finalStep.providerMetadata);
   // Should have both 'anthropic' and 'my-custom-anthropic' keys
 
   // Case 3: No providerOptions
@@ -47,7 +47,7 @@ run(async () => {
     prompt: 'Say "test" in one word.',
   });
   print('Result 3 - Content:', result3.text);
-  print('Result 3 - providerMetadata:', result3.providerMetadata);
+  print('Result 3 - providerMetadata:', result3.finalStep.providerMetadata);
   // Should only have 'anthropic' key
 
   const result4 = await generateText({
@@ -55,7 +55,7 @@ run(async () => {
     prompt: 'Say "BANANA" in one word.',
   });
   print('Result 4 - Content:', result4.text);
-  print('Result 4 - providerMetadata:', result4.providerMetadata);
+  print('Result 4 - providerMetadata:', result4.finalStep.providerMetadata);
   // Should only have 'anthropic' key
 
   const result5 = await generateText({
@@ -68,7 +68,7 @@ run(async () => {
     },
   });
   print('Result 5 - Content:', result5.text);
-  print('Result 5 - providerMetadata:', result5.providerMetadata);
+  print('Result 5 - providerMetadata:', result5.finalStep.providerMetadata);
   // Should only have 'anthropic' key
 
   const result6 = await generateText({
@@ -81,6 +81,6 @@ run(async () => {
     },
   });
   print('Result 6 - Content:', result6.text);
-  print('Result 6 - providerMetadata:', result6.providerMetadata);
+  print('Result 6 - providerMetadata:', result6.finalStep.providerMetadata);
   // Should only have 'anthropic' key (custom key ignored for default provider)
 });

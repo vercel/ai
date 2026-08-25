@@ -8,7 +8,7 @@ run(async () => {
     prompt: 'What is 2 + 2?',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-start': {
         console.log('\n--- Reasoning ---');

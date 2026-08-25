@@ -3,6 +3,7 @@ import {
   createUIMessageStream,
   pipeUIMessageStreamToResponse,
   streamText,
+  toUIMessageStream,
 } from 'ai';
 import 'dotenv/config';
 import { createServer } from 'http';
@@ -15,7 +16,10 @@ createServer(async (req, res) => {
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 
-      result.pipeUIMessageStreamToResponse(res);
+      pipeUIMessageStreamToResponse({
+        response: res,
+        stream: toUIMessageStream({ stream: result.stream }),
+      });
       break;
     }
 
@@ -38,7 +42,8 @@ createServer(async (req, res) => {
           });
 
           writer.merge(
-            result.toUIMessageStream({
+            toUIMessageStream({
+              stream: result.stream,
               sendStart: false,
               onError: error => {
                 // Error messages are masked by default for security reasons.

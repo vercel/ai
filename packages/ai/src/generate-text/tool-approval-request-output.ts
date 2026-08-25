@@ -25,4 +25,9 @@ export type ToolApprovalRequestOutput<TOOLS extends ToolSet> = {
    * @default false
    */
   isAutomatic?: boolean;
+
+  /**
+   * HMAC-SHA256 signature binding this approval request to its tool call.
+   */
+  signature?: string;
 };

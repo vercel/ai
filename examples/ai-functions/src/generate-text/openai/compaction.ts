@@ -31,7 +31,7 @@ ${documentCorpus}
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5.2'),
+    model: openai.responses('gpt-5.6'),
     messages: [
       {
         role: 'user',
@@ -94,7 +94,7 @@ run(async () => {
             Docker is the foundation for containerization:
 
             1. **Dockerfile** - Defines how to build your application image:
-              - Base image selection (e.g., node:18-alpine)
+              - Base image selection (e.g., node:22-alpine)
               - Working directory setup
               - Dependency installation
               - Source code copying
@@ -256,5 +256,5 @@ run(async () => {
   console.dir(result.response.body, { depth: Infinity });
 
   console.log('\n=== Provider Metadata ===');
-  console.log(JSON.stringify(result.providerMetadata, null, 2));
+  console.log(JSON.stringify(result.finalStep.providerMetadata, null, 2));
 });

@@ -22,7 +22,7 @@ async function main() {
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
-      system: 'You are a helpful chatbot',
+      instructions: 'You are a helpful chatbot',
       prompt: 'Look up information about user with the ID foo_123',
     });
 

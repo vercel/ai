@@ -1,33 +1,57 @@
 import type { AIMessageChunk } from '@langchain/core/messages';
 
+export interface LangGraphMessageSeen {
+  text?: boolean;
+  reasoning?: boolean;
+  tool?: Set<string>;
+}
+
 /**
  * State for LangGraph event processing
  */
 export interface LangGraphEventState {
   /** Tracks which message IDs have been seen */
-  messageSeen: Record<
-    string,
-    { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-  >;
+  messageSeen: Map<string, LangGraphMessageSeen>;
+  /** Maps message IDs to the LangGraph namespace that emitted them */
+  messageNamespaces: Map<string, string[]>;
   /** Accumulates message chunks for later reference */
-  messageConcat: Record<string, AIMessageChunk>;
-  /** Maps tool call IDs to their message IDs (for chunks that don't include the ID) */
+  messageConcat: Map<string, AIMessageChunk>;
+  /** Tracks message IDs observed in each namespace's current LangGraph step */
+  messageIdsInCurrentStepByNamespace: Map<string, Set<string>>;
+  /** Tracks which tool call IDs have emitted tool-input-start */
   emittedToolCalls: Set<string>;
+  /** Tracks tool-input-start chunks emitted in each namespace's current step */
+  emittedToolCallsInCurrentStepByNamespace: Map<string, Set<string>>;
+  /** Tracks which tool call IDs have emitted complete tool inputs */
+  emittedToolInputs: Set<string>;
+  /** Tracks complete tool inputs emitted in each namespace's current step */
+  emittedToolInputsInCurrentStepByNamespace: Map<string, Set<string>>;
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */
   emittedReasoningIds: Set<string>;
   /** Maps message IDs to their reasoning block IDs (for chunks that don't include the ID) */
-  messageReasoningIds: Record<string, string>;
+  messageReasoningIds: Map<string, string>;
   /** Maps message ID + tool call index to tool call info (for streaming chunks without ID) */
-  toolCallInfoByIndex: Record<
-    string,
-    Record<number, { id: string; name: string }>
-  >;
-  /** Tracks the current LangGraph step for start-step/finish-step events */
-  currentStep: number | null;
+  toolCallInfoByIndex: Map<string, Map<number, { id: string; name: string }>>;
+  /** Tracks each namespace's current LangGraph step */
+  currentStepsByNamespace: Map<string, number>;
   /** Maps tool call key (name:argsJson) to tool call ID for HITL interrupt handling */
   emittedToolCallsByKey: Map<string, string>;
+  /** Tracks source IDs already emitted to avoid duplicates across messages/values events */
+  emittedSourceIds: Set<string>;
+}
+
+/**
+ * A LangChain citation projected to the fields the AI SDK source parts can carry.
+ */
+export interface NormalizedCitation {
+  url?: string;
+  title?: string;
+  source?: string;
+  citedText?: string;
+  startIndex?: number;
+  endIndex?: number;
 }
 
 /**

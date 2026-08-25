@@ -1,5 +1,7 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONObject,
+  type JSONValue,
   type SharedV4Warning,
   type LanguageModelV4Message,
   type LanguageModelV4Prompt,
@@ -9,23 +11,33 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
+  isNonNullable,
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
   validateTypes,
-  isNonNullable,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
   type AnthropicPrompt,
+  type AnthropicSystemMessage,
+  type AnthropicTextContent,
+  type AnthropicToolChangeContent,
+  type AnthropicToolCallCaller,
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
+  type Citation,
 } from './anthropic-api';
-import { anthropicFilePartProviderOptions } from './anthropic-language-model-options';
+import {
+  anthropicFilePartProviderOptions,
+  anthropicSystemMessageProviderOptions,
+} from './anthropic-language-model-options';
 import { CacheControlValidator } from './get-cache-control';
+import { advisor_20260301OutputSchema } from './tool/advisor_20260301';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 import { codeExecution_20260120OutputSchema } from './tool/code-execution_20260120';
@@ -38,6 +50,29 @@ function convertBytesDataToString(data: Uint8Array | string): string {
     return new TextDecoder().decode(convertBase64ToUint8Array(data));
   }
   return new TextDecoder().decode(data);
+}
+
+/**
+ * Extract error information from a provider tool error result value.
+ * Handles both stringified JSON and plain object forms.
+ */
+function extractErrorValue(value: unknown): { errorCode?: string } {
+  try {
+    if (typeof value === 'string') {
+      return secureJsonParse(value);
+    } else if (typeof value === 'object' && value !== null) {
+      return value as { errorCode?: string };
+    }
+  } catch {
+    const extractedErrorCode = (value as Record<string, unknown>)?.errorCode;
+    return {
+      errorCode:
+        typeof extractedErrorCode === 'string'
+          ? extractedErrorCode
+          : 'unavailable',
+    };
+  }
+  return {};
 }
 
 export async function convertToAnthropicPrompt({
@@ -75,6 +110,18 @@ export async function convertToAnthropicPrompt({
     return anthropicOptions?.citations?.enabled ?? false;
   }
 
+  async function shouldUseContainerUpload(
+    providerMetadata: SharedV4ProviderMetadata | undefined,
+  ): Promise<boolean> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions: providerMetadata,
+      schema: anthropicFilePartProviderOptions,
+    });
+
+    return anthropicOptions?.containerUpload ?? false;
+  }
+
   async function getDocumentMetadata(
     providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
@@ -97,21 +144,67 @@ export async function convertToAnthropicPrompt({
 
     switch (type) {
       case 'system': {
-        if (system != null) {
-          throw new UnsupportedFunctionalityError({
-            functionality:
-              'Multiple system messages that are separated by user/assistant messages',
+        const content: AnthropicSystemMessage['content'] = [];
+        let toolChangeCount = 0;
+
+        for (const { content: text, providerOptions } of block.messages) {
+          const systemMessageOptions = await parseProviderOptions({
+            provider: 'anthropic',
+            providerOptions,
+            schema: anthropicSystemMessageProviderOptions,
           });
+          const toolChanges = systemMessageOptions?.toolChanges ?? [];
+
+          // A system message that only carries tool changes may have empty
+          // text; do not emit an empty text block for it.
+          if (text !== '' || toolChanges.length === 0) {
+            content.push({
+              type: 'text' as const,
+              text,
+              cache_control: validator.getCacheControl(providerOptions, {
+                type: 'system message',
+                canCache: true,
+              }),
+            });
+          }
+
+          for (const toolChange of toolChanges) {
+            toolChangeCount++;
+            content.push({
+              type: toolChange.type,
+              tool: {
+                type: 'tool_reference',
+                name: toolNameMapping.toProviderToolName(toolChange.toolName),
+              },
+            } satisfies AnthropicToolChangeContent);
+          }
         }
 
-        system = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text',
-          text: content,
-          cache_control: validator.getCacheControl(providerOptions, {
-            type: 'system message',
-            canCache: true,
-          }),
-        }));
+        // The first block becomes the top-level system prompt. Later system
+        // blocks are sent as inline system messages — always when they carry
+        // tool changes (which are only valid mid-conversation), and otherwise
+        // only when a top-level system prompt already exists (preserving the
+        // existing hoisting behavior for plain text).
+        if (i === 0 || (system == null && toolChangeCount === 0)) {
+          if (toolChangeCount > 0) {
+            warnings.push({
+              type: 'other',
+              message:
+                'tool changes on the initial system message are not supported by Anthropic. ' +
+                'Configure the initial tool set via the tools option instead. ' +
+                'The tool changes have been ignored.',
+            });
+          }
+          system = content.filter(
+            (part): part is AnthropicTextContent => part.type === 'text',
+          );
+        } else {
+          messages.push({ role: 'system', content });
+          betas.add('mid-conversation-system-2026-04-07');
+          if (toolChangeCount > 0) {
+            betas.add('mid-conversation-tool-changes-2026-07-01');
+          }
+        }
 
         break;
       }
@@ -163,7 +256,16 @@ export async function convertToAnthropicPrompt({
                         });
                         betas.add('files-api-2025-04-14');
 
-                        if (getTopLevelMediaType(part.mediaType) === 'image') {
+                        if (
+                          await shouldUseContainerUpload(part.providerOptions)
+                        ) {
+                          anthropicContent.push({
+                            type: 'container_upload',
+                            file_id: fileId,
+                          });
+                        } else if (
+                          getTopLevelMediaType(part.mediaType) === 'image'
+                        ) {
                           anthropicContent.push({
                             type: 'image',
                             source: { type: 'file', file_id: fileId },
@@ -320,14 +422,28 @@ export async function convertToAnthropicPrompt({
                   continue;
                 }
 
+                const output = part.output;
+                const outputProviderOptions =
+                  'providerOptions' in output
+                    ? output.providerOptions
+                    : output.type === 'content'
+                      ? output.value.find(
+                          contentPart => contentPart.providerOptions != null,
+                        )?.providerOptions
+                      : undefined;
+
                 // cache control: first add cache control from part.
-                // for the last part of a message,
-                // check also if the message has cache control.
+                // then from tool result output, and for the last part of a
+                // message, check also if the message has cache control.
                 const isLastPart = i === content.length - 1;
 
                 const cacheControl =
                   validator.getCacheControl(part.providerOptions, {
                     type: 'tool result part',
+                    canCache: true,
+                  }) ??
+                  validator.getCacheControl(outputProviderOptions, {
+                    type: 'tool result output',
                     canCache: true,
                   }) ??
                   (isLastPart
@@ -337,7 +453,6 @@ export async function convertToAnthropicPrompt({
                       })
                     : undefined);
 
-                const output = part.output;
                 let contentValue: AnthropicToolResultContent['content'];
                 switch (output.type) {
                   case 'content':
@@ -349,50 +464,73 @@ export async function convertToAnthropicPrompt({
                               type: 'text' as const,
                               text: contentPart.text,
                             };
-                          case 'file-url': {
-                            if (contentPart.mediaType.startsWith('image/')) {
-                              return {
-                                type: 'image' as const,
-                                source: {
-                                  type: 'url' as const,
-                                  url: contentPart.url,
-                                },
-                              };
-                            }
-                            return {
-                              type: 'document' as const,
-                              source: {
-                                type: 'url' as const,
-                                url: contentPart.url,
-                              },
-                            };
-                          }
-                          case 'file-data': {
-                            if (contentPart.mediaType.startsWith('image/')) {
-                              return {
-                                type: 'image' as const,
-                                source: {
-                                  type: 'base64' as const,
-                                  media_type: contentPart.mediaType,
-                                  data: contentPart.data,
-                                },
-                              };
-                            }
-                            if (contentPart.mediaType === 'application/pdf') {
-                              betas.add('pdfs-2024-09-25');
+                          case 'file': {
+                            const topLevel = getTopLevelMediaType(
+                              contentPart.mediaType,
+                            );
+
+                            if (contentPart.data.type === 'url') {
+                              if (topLevel === 'image') {
+                                return {
+                                  type: 'image' as const,
+                                  source: {
+                                    type: 'url' as const,
+                                    url: contentPart.data.url.toString(),
+                                  },
+                                };
+                              }
                               return {
                                 type: 'document' as const,
                                 source: {
-                                  type: 'base64' as const,
-                                  media_type: contentPart.mediaType,
-                                  data: contentPart.data,
+                                  type: 'url' as const,
+                                  url: contentPart.data.url.toString(),
                                 },
                               };
                             }
 
+                            if (contentPart.data.type === 'data') {
+                              if (topLevel === 'image') {
+                                return {
+                                  type: 'image' as const,
+                                  source: {
+                                    type: 'base64' as const,
+                                    media_type: resolveFullMediaType({
+                                      part: contentPart,
+                                    }),
+                                    data: convertToBase64(
+                                      contentPart.data.data,
+                                    ),
+                                  },
+                                };
+                              }
+                              if (
+                                resolveFullMediaType({ part: contentPart }) ===
+                                'application/pdf'
+                              ) {
+                                betas.add('pdfs-2024-09-25');
+                                return {
+                                  type: 'document' as const,
+                                  source: {
+                                    type: 'base64' as const,
+                                    media_type: 'application/pdf',
+                                    data: convertToBase64(
+                                      contentPart.data.data,
+                                    ),
+                                  },
+                                };
+                              }
+
+                              warnings.push({
+                                type: 'other',
+                                message: `unsupported tool content part type: ${contentPart.type} with media type: ${contentPart.mediaType}`,
+                              });
+
+                              return undefined;
+                            }
+
                             warnings.push({
                               type: 'other',
-                              message: `unsupported tool content part type: ${contentPart.type} with media type: ${contentPart.mediaType}`,
+                              message: `unsupported tool content part type: ${contentPart.type} with data type: ${contentPart.data.type}`,
                             });
 
                             return undefined;
@@ -417,7 +555,7 @@ export async function convertToAnthropicPrompt({
                           default: {
                             warnings.push({
                               type: 'other',
-                              message: `unsupported tool content part type: ${contentPart.type}`,
+                              message: `unsupported tool content part type: ${(contentPart as { type: string }).type}`,
                             });
 
                             return undefined;
@@ -501,7 +639,7 @@ export async function convertToAnthropicPrompt({
               case 'text': {
                 // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
-                  | { type?: string }
+                  | { type?: string; citations?: Citation[] }
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
@@ -520,7 +658,9 @@ export async function convertToAnthropicPrompt({
                       isLastBlock && isLastMessage && isLastContentPart
                         ? part.text.trim()
                         : part.text,
-
+                    ...(textMetadata?.citations != null && {
+                      citations: textMetadata.citations,
+                    }),
                     cache_control: cacheControl,
                   });
                 }
@@ -584,6 +724,8 @@ export async function convertToAnthropicPrompt({
               }
 
               case 'tool-call': {
+                const caller = getAnthropicCaller(part.providerOptions);
+
                 if (part.providerExecuted) {
                   const providerToolName = toolNameMapping.toProviderToolName(
                     part.toolName,
@@ -615,7 +757,7 @@ export async function convertToAnthropicPrompt({
                       cache_control: cacheControl,
                     });
                   } else if (
-                    // code execution 20250825:
+                    // code execution subtools:
                     providerToolName === 'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
@@ -624,11 +766,15 @@ export async function convertToAnthropicPrompt({
                     (part.input.type === 'bash_code_execution' ||
                       part.input.type === 'text_editor_code_execution')
                   ) {
+                    const { type: codeExecutionType, ...inputWithoutType } =
+                      part.input;
+
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: part.input.type, // map back to subtool name
-                      input: part.input,
+                      name: codeExecutionType, // map back to subtool name
+                      input: inputWithoutType,
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
                   } else if (
@@ -649,6 +795,7 @@ export async function convertToAnthropicPrompt({
                       id: part.toolCallId,
                       name: 'code_execution',
                       input: inputWithoutType,
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
                   } else {
@@ -662,6 +809,7 @@ export async function convertToAnthropicPrompt({
                         id: part.toolCallId,
                         name: providerToolName,
                         input: part.input,
+                        ...(caller && { caller }),
                         cache_control: cacheControl,
                       });
                     } else if (
@@ -673,6 +821,17 @@ export async function convertToAnthropicPrompt({
                         id: part.toolCallId,
                         name: providerToolName,
                         input: part.input,
+                        ...(caller && { caller }),
+                        cache_control: cacheControl,
+                      });
+                    } else if (providerToolName === 'advisor') {
+                      // The advisor server_tool_use.input is always {}.
+                      anthropicContent.push({
+                        type: 'server_tool_use',
+                        id: part.toolCallId,
+                        name: 'advisor',
+                        input: {},
+                        ...(caller && { caller }),
                         cache_control: cacheControl,
                       });
                     } else {
@@ -686,31 +845,11 @@ export async function convertToAnthropicPrompt({
                   break;
                 }
 
-                // Extract caller info from provider options for programmatic tool calling
-                const callerOptions = part.providerOptions?.anthropic as
-                  | { caller?: { type: string; toolId?: string } }
-                  | undefined;
-                const caller = callerOptions?.caller
-                  ? (callerOptions.caller.type === 'code_execution_20250825' ||
-                      callerOptions.caller.type ===
-                        'code_execution_20260120') &&
-                    callerOptions.caller.toolId
-                    ? {
-                        type: callerOptions.caller.type as
-                          | 'code_execution_20250825'
-                          | 'code_execution_20260120',
-                        tool_id: callerOptions.caller.toolId,
-                      }
-                    : callerOptions.caller.type === 'direct'
-                      ? { type: 'direct' as const }
-                      : undefined
-                  : undefined;
-
                 anthropicContent.push({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: part.input,
+                  input: toAnthropicToolInput(part.input),
                   ...(caller && { caller }),
                   cache_control: cacheControl,
                 });
@@ -721,6 +860,7 @@ export async function convertToAnthropicPrompt({
                 const providerToolName = toolNameMapping.toProviderToolName(
                   part.toolName,
                 );
+                const caller = getAnthropicCaller(part.providerOptions);
 
                 if (mcpToolUseIds.has(part.toolCallId)) {
                   const output = part.output;
@@ -754,7 +894,7 @@ export async function convertToAnthropicPrompt({
                     let errorInfo: { type?: string; errorCode?: string } = {};
                     try {
                       if (typeof output.value === 'string') {
-                        errorInfo = JSON.parse(output.value);
+                        errorInfo = secureJsonParse(output.value);
                       } else if (
                         typeof output.value === 'object' &&
                         output.value !== null
@@ -888,7 +1028,19 @@ export async function convertToAnthropicPrompt({
                         type: 'bash_code_execution_tool_result',
                         tool_use_id: part.toolCallId,
                         cache_control: cacheControl,
-                        content: codeExecutionOutput,
+                        // Prompt caching requires stable key ordering:
+                        // https://platform.claude.com/docs/en/build-with-claude/prompt-caching#troubleshooting-common-issues
+                        content:
+                          codeExecutionOutput.type ===
+                          'bash_code_execution_result'
+                            ? {
+                                type: codeExecutionOutput.type,
+                                stdout: codeExecutionOutput.stdout,
+                                stderr: codeExecutionOutput.stderr,
+                                return_code: codeExecutionOutput.return_code,
+                                content: codeExecutionOutput.content,
+                              }
+                            : codeExecutionOutput,
                       });
                     } else {
                       anthropicContent.push({
@@ -906,36 +1058,16 @@ export async function convertToAnthropicPrompt({
                   const output = part.output;
 
                   if (output.type === 'error-json') {
-                    let errorValue: { errorCode?: string } = {};
-                    try {
-                      if (typeof output.value === 'string') {
-                        errorValue = JSON.parse(output.value);
-                      } else if (
-                        typeof output.value === 'object' &&
-                        output.value !== null
-                      ) {
-                        errorValue = output.value as typeof errorValue;
-                      }
-                    } catch {
-                      // If parsing fails, treat the value as-is
-                      const extractedErrorCode = (
-                        output.value as Record<string, unknown>
-                      )?.errorCode;
-                      errorValue = {
-                        errorCode:
-                          typeof extractedErrorCode === 'string'
-                            ? extractedErrorCode
-                            : 'unavailable',
-                      };
-                    }
-
                     anthropicContent.push({
                       type: 'web_fetch_tool_result',
                       tool_use_id: part.toolCallId,
                       content: {
                         type: 'web_fetch_tool_result_error',
-                        error_code: errorValue.errorCode ?? 'unavailable',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
                       },
+                      ...(caller && { caller }),
                       cache_control: cacheControl,
                     });
 
@@ -980,6 +1112,7 @@ export async function convertToAnthropicPrompt({
                         >['content']['source'],
                       },
                     },
+                    ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
 
@@ -988,6 +1121,23 @@ export async function convertToAnthropicPrompt({
 
                 if (providerToolName === 'web_search') {
                   const output = part.output;
+
+                  if (output.type === 'error-json') {
+                    anthropicContent.push({
+                      type: 'web_search_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'web_search_tool_result_error',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
+                      },
+                      ...(caller && { caller }),
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
 
                   if (output.type !== 'json') {
                     warnings.push({
@@ -1016,6 +1166,7 @@ export async function convertToAnthropicPrompt({
                       encrypted_content: result.encryptedContent,
                       type: result.type,
                     })),
+                    ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
 
@@ -1061,6 +1212,64 @@ export async function convertToAnthropicPrompt({
                   break;
                 }
 
+                if (providerToolName === 'advisor') {
+                  const output = part.output;
+
+                  if (output.type !== 'json' && output.type !== 'error-json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const advisorOutput = await validateTypes({
+                    value: output.value,
+                    schema: advisor_20260301OutputSchema,
+                  });
+
+                  if (advisorOutput.type === 'advisor_result') {
+                    anthropicContent.push({
+                      type: 'advisor_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'advisor_result',
+                        text: advisorOutput.text,
+                        ...(advisorOutput.stopReason !== undefined && {
+                          stop_reason: advisorOutput.stopReason,
+                        }),
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else if (advisorOutput.type === 'advisor_redacted_result') {
+                    anthropicContent.push({
+                      type: 'advisor_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'advisor_redacted_result',
+                        encrypted_content: advisorOutput.encryptedContent,
+                        ...(advisorOutput.stopReason !== undefined && {
+                          stop_reason: advisorOutput.stopReason,
+                        }),
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else {
+                    anthropicContent.push({
+                      type: 'advisor_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'advisor_tool_result_error',
+                        error_code: advisorOutput.errorCode,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  }
+
+                  break;
+                }
+
                 warnings.push({
                   type: 'other',
                   message: `provider executed tool result for tool ${part.toolName} is not supported`,
@@ -1072,7 +1281,10 @@ export async function convertToAnthropicPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        messages.push({
+          role: 'assistant',
+          content: moveToolUseBlocksToEnd(anthropicContent),
+        });
 
         break;
       }
@@ -1157,4 +1369,62 @@ function groupIntoBlocks(
   }
 
   return blocks;
+}
+
+function moveToolUseBlocksToEnd(
+  content: AnthropicAssistantMessage['content'],
+): AnthropicAssistantMessage['content'] {
+  const result: AnthropicAssistantMessage['content'] = [];
+  let segment: AnthropicAssistantMessage['content'] = [];
+
+  function flushSegment() {
+    result.push(
+      ...segment.filter(part => part.type !== 'tool_use'),
+      ...segment.filter(part => part.type === 'tool_use'),
+    );
+    segment = [];
+  }
+
+  for (const part of content) {
+    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+      flushSegment();
+      result.push(part);
+    } else {
+      segment.push(part);
+    }
+  }
+
+  flushSegment();
+
+  return result;
+}
+
+function getAnthropicCaller(
+  providerOptions: SharedV4ProviderMetadata | undefined,
+): AnthropicToolCallCaller | undefined {
+  const caller = (
+    providerOptions?.anthropic as
+      | { caller?: { type: string; toolId?: string } }
+      | undefined
+  )?.caller;
+
+  if (
+    (caller?.type === 'code_execution_20250825' ||
+      caller?.type === 'code_execution_20260120') &&
+    caller.toolId
+  ) {
+    return {
+      type: caller.type,
+      tool_id: caller.toolId,
+    };
+  }
+
+  return caller?.type === 'direct' ? { type: 'direct' } : undefined;
+}
+
+// wrap invalid tool call input because Anthropic requires it to be an object
+function toAnthropicToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }

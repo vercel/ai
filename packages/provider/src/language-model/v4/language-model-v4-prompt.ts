@@ -5,7 +5,6 @@ import type {
   SharedV4FileDataUrl,
 } from '../../shared/v4/shared-v4-file-data';
 import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
-import type { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provider-reference';
 
 /**
  * A prompt is a list of messages.
@@ -359,15 +358,28 @@ export type LanguageModelV4ToolResultOutput =
             providerOptions?: SharedV4ProviderOptions;
           }
         | {
-            type: 'file-data';
+            type: 'file';
 
             /**
-             * Base-64 encoded media data.
+             * File data as a tagged discriminated union:
+             *
+             * - `{ type: 'data', data }`: raw bytes (Uint8Array) or base64-encoded string.
+             * - `{ type: 'url', url }`: a URL that points to the file.
+             * - `{ type: 'reference', reference }`: a provider reference (`{ [provider]: id }`).
+             * - `{ type: 'text', text }`: inline text content (e.g. an inline text document).
              */
-            data: string;
+            data: SharedV4FileData;
 
             /**
-             * IANA media type.
+             * Either a full IANA media type (`type/subtype`, e.g. `image/png`) or just
+             * the top-level IANA segment (e.g. `image`, `audio`, `video`, `text`).
+             *
+             * `*`-subtype wildcards (e.g. `image/*`) are normalized as equivalent to the
+             * top-level segment alone (e.g. `image`). Providers can use the helpers in
+             * `@ai-sdk/provider-utils` (`isFullMediaType`, `getTopLevelMediaType`,
+             * `detectMediaType`) to resolve the field according to their API
+             * requirements.
+             *
              * @see https://www.iana.org/assignments/media-types/media-types.xhtml
              */
             mediaType: string;
@@ -376,39 +388,6 @@ export type LanguageModelV4ToolResultOutput =
              * Optional filename of the file.
              */
             filename?: string;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV4ProviderOptions;
-          }
-        | {
-            type: 'file-url';
-
-            /**
-             * URL of the file.
-             */
-            url: string;
-
-            /**
-             * IANA media type.
-             * @see https://www.iana.org/assignments/media-types/media-types.xhtml
-             */
-            mediaType: string;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV4ProviderOptions;
-          }
-        | {
-            type: 'file-reference';
-
-            /**
-             * Provider-specific references for the file.
-             * The key is the provider name, e.g. 'openai' or 'anthropic'.
-             */
-            providerReference: SharedV4ProviderReference;
 
             /**
              * Provider-specific options.

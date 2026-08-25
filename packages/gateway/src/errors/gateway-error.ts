@@ -9,22 +9,30 @@ export abstract class GatewayError extends Error {
   readonly statusCode: number;
   readonly cause?: unknown;
   readonly generationId?: string;
+  readonly isRetryable: boolean;
 
   constructor({
     message,
     statusCode = 500,
     cause,
     generationId,
+    isRetryable = statusCode != null &&
+      (statusCode === 408 || // request timeout
+        statusCode === 409 || // conflict
+        statusCode === 429 || // too many requests
+        statusCode >= 500), // server error
   }: {
     message: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    isRetryable?: boolean;
   }) {
     super(generationId ? `${message} [${generationId}]` : message);
     this.statusCode = statusCode;
     this.cause = cause;
     this.generationId = generationId;
+    this.isRetryable = isRetryable;
   }
 
   /**

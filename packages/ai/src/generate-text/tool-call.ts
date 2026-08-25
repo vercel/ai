@@ -1,3 +1,4 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import type { InferToolInput, ToolSet } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { ValueOf } from '../util/value-of';
@@ -7,6 +8,7 @@ type BaseToolCall = {
   toolCallId: string;
   providerExecuted?: boolean;
   providerMetadata?: ProviderMetadata;
+  toolMetadata?: JSONObject;
 };
 
 /**

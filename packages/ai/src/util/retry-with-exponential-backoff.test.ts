@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { APICallError } from '@ai-sdk/provider';
+import {
+  GatewayInternalServerError,
+  GatewayRateLimitError,
+  GatewayAuthenticationError,
+} from '@ai-sdk/gateway';
 import { retryWithExponentialBackoffRespectingRetryHeaders } from './retry-with-exponential-backoff';
 
 describe('retryWithExponentialBackoffRespectingRetryHeaders', () => {
@@ -434,6 +439,118 @@ describe('retryWithExponentialBackoffRespectingRetryHeaders', () => {
 
       // Should use exponential backoff delay (2000ms) not the negative rate limit
       await vi.advanceTimersByTimeAsync(initialDelay - 100);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+  });
+
+  describe('with Gateway errors', () => {
+    it('should retry on GatewayInternalServerError', async () => {
+      let attempt = 0;
+      const initialDelay = 2000;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new GatewayInternalServerError({
+            message: 'Internal server error',
+            statusCode: 503,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+        initialDelayInMs: initialDelay,
+      })(fn);
+
+      await vi.advanceTimersByTimeAsync(initialDelay - 100);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should retry on GatewayRateLimitError', async () => {
+      let attempt = 0;
+      const initialDelay = 2000;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new GatewayRateLimitError({
+            message: 'Rate limit exceeded',
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+        initialDelayInMs: initialDelay,
+      })(fn);
+
+      await vi.advanceTimersByTimeAsync(initialDelay - 100);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should not retry on non-retryable GatewayAuthenticationError', async () => {
+      const fn = vi.fn().mockImplementation(async () => {
+        throw new GatewayAuthenticationError({
+          message: 'Invalid API key',
+        });
+      });
+
+      await expect(
+        retryWithExponentialBackoffRespectingRetryHeaders()(fn),
+      ).rejects.toThrow('Invalid API key');
+
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use retry-after headers from APICallError cause', async () => {
+      let attempt = 0;
+      const retryAfterMs = 3000;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          const apiError = new APICallError({
+            message: 'Service unavailable',
+            url: 'https://api.example.com',
+            requestBodyValues: {},
+            statusCode: 503,
+            isRetryable: true,
+            responseHeaders: {
+              'retry-after-ms': retryAfterMs.toString(),
+            },
+          });
+
+          throw new GatewayInternalServerError({
+            message: 'Internal server error',
+            statusCode: 503,
+            cause: apiError,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders()(fn);
+
+      await vi.advanceTimersByTimeAsync(retryAfterMs - 100);
       expect(fn).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(200);

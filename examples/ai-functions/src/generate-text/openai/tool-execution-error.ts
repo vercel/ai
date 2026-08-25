@@ -22,5 +22,5 @@ run(async () => {
 
   console.log(JSON.stringify(result.content, null, 2));
 
-  console.log(JSON.stringify(result.response.messages, null, 2));
+  console.log(JSON.stringify(result.responseMessages, null, 2));
 });

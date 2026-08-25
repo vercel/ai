@@ -32,9 +32,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'file-data',
+            type: 'file',
             mediaType: 'image/png',
-            data: output.imageData,
+            data: { type: 'data', data: output.imageData },
           },
         ],
       };
@@ -51,7 +51,7 @@ run(async () => {
     stopWhen: isStepCount(4),
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta':
         process.stdout.write(part.text);

@@ -1,9 +1,11 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   isStepCount,
   streamText,
   tool,
+  toUIMessageStream,
   type InferUITools,
   type UIDataTypes,
   type UIMessage,
@@ -103,10 +105,13 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    //  originalMessages: messages, //add if you want to have correct ids
-    onFinish: options => {
-      console.log('onFinish', options);
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      //  originalMessages: messages, //add if you want to have correct ids
+      onFinish: options => {
+        console.log('onFinish', options);
+      },
+    }),
   });
 }

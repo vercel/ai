@@ -5,10 +5,18 @@ import type {
 } from '@ai-sdk/provider-utils';
 
 /**
- * Helper type to make the toolsContext parameter optional or required based on the tool set.
+ * Checks whether a tool context map contains any contextual tool entries.
+ */
+type IsEmptyObject<OBJECT> = keyof OBJECT extends never ? true : false;
+
+/**
+ * Helper type to make the toolsContext parameter optional, required, or
+ * unavailable based on the tool set.
  */
 export type ToolsContextParameter<TOOLS extends ToolSet> = {
   tools?: TOOLS;
-} & (HasRequiredKey<InferToolSetContext<TOOLS>> extends true
-  ? { toolsContext: InferToolSetContext<TOOLS> }
-  : { toolsContext?: never });
+} & (IsEmptyObject<InferToolSetContext<TOOLS>> extends true
+  ? { toolsContext?: never }
+  : HasRequiredKey<InferToolSetContext<TOOLS>> extends true
+    ? { toolsContext: InferToolSetContext<TOOLS> }
+    : { toolsContext?: InferToolSetContext<TOOLS> });

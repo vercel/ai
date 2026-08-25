@@ -27,12 +27,22 @@ import { VERSION } from './version';
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
 const fireworksErrorSchema = z.object({
-  error: z.string(),
+  error: z.union([
+    z.string(),
+    z.object({
+      message: z.string(),
+      object: z.string().nullish(),
+      type: z.string().nullish(),
+      param: z.any().nullish(),
+      code: z.union([z.string(), z.number()]).nullish(),
+    }),
+  ]),
 });
 
 const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
   errorSchema: fireworksErrorSchema,
-  errorToMessage: data => data.error,
+  errorToMessage: data =>
+    typeof data.error === 'string' ? data.error : data.error.message,
 };
 
 export interface FireworksProviderSettings {
@@ -134,16 +144,22 @@ export function createFireworks(
   const createChatModel = (modelId: FireworksChatModelId) => {
     return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
+      includeUsage: true,
       errorStructure: fireworksErrorStructure,
+      supportsStructuredOutputs: true,
       transformRequestBody: args => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
           | undefined;
         const reasoningHistory = args.reasoningHistory as string | undefined;
+        const promptCacheKey = args.promptCacheKey as string | undefined;
+        const serviceTier = args.serviceTier as string | undefined;
 
         const {
           thinking: _,
           reasoningHistory: __,
+          promptCacheKey: ___,
+          serviceTier: ____,
           reasoning_effort,
           ...rest
         } = args;
@@ -158,6 +174,12 @@ export function createFireworks(
                 : reasoning_effort === 'xhigh'
                   ? 'high'
                   : reasoning_effort,
+          }),
+          ...(promptCacheKey !== undefined && {
+            prompt_cache_key: promptCacheKey,
+          }),
+          ...(serviceTier !== undefined && {
+            service_tier: serviceTier,
           }),
           ...(thinking && {
             thinking: {
@@ -178,6 +200,7 @@ export function createFireworks(
   const createCompletionModel = (modelId: FireworksCompletionModelId) =>
     new OpenAICompatibleCompletionLanguageModel(modelId, {
       ...getCommonModelConfig('completion'),
+      includeUsage: true,
       errorStructure: fireworksErrorStructure,
     });
 

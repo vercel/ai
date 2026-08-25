@@ -5,7 +5,7 @@ import {
 import { MCPClientError } from '../error/mcp-client-error';
 import { deserializeMessage, SseMCPTransport } from './mcp-sse-transport';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import { LATEST_LEGACY_PROTOCOL_VERSION } from './types';
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({
@@ -21,6 +21,14 @@ describe('SseMCPTransport', () => {
       },
     },
     'http://localhost:3333/sse': {},
+    'http://localhost:3333/messages': {
+      response: {
+        type: 'json-value',
+        body: {
+          ok: true,
+        },
+      },
+    },
   });
 
   let transport: SseMCPTransport;
@@ -52,7 +60,7 @@ describe('SseMCPTransport', () => {
     expect(server.calls[0].requestMethod).toBe('GET');
     expect(server.calls[0].requestUrl).toBe('http://localhost:3000/sse');
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'text/event-stream',
     });
   });
@@ -97,6 +105,40 @@ describe('SseMCPTransport', () => {
     controller.write(
       `event: message\ndata: ${JSON.stringify(testMessage)}\n\n`,
     );
+
+    expect(await messagePromise).toEqual(testMessage);
+
+    await transport.close();
+  });
+
+  it('should handle JSON-RPC messages without explicit event field', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    const connectPromise = transport.start();
+
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+
+    await connectPromise;
+
+    const testMessage = {
+      jsonrpc: '2.0' as const,
+      method: 'test',
+      params: { foo: 'bar' },
+      id: '1',
+    };
+
+    controller.write(`data: ${JSON.stringify(testMessage)}\n\n`);
 
     expect(await messagePromise).toEqual(testMessage);
 
@@ -205,7 +247,155 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
-  it('should handle POST request errors', async () => {
+  it('should abort a hanging POST with the request signal', async () => {
+    let resolveSseController: (
+      controller: ReadableStreamDefaultController<Uint8Array>,
+    ) => void;
+    const sseControllerPromise = new Promise<
+      ReadableStreamDefaultController<Uint8Array>
+    >(resolve => {
+      resolveSseController = resolve;
+    });
+    let resolvePostStarted: () => void;
+    const postStarted = new Promise<void>(resolve => {
+      resolvePostStarted = resolve;
+    });
+    let postAborted = false;
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method !== 'POST') {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                resolveSseController(controller);
+              },
+            }),
+            { headers: { 'content-type': 'text/event-stream' } },
+          );
+        }
+
+        resolvePostStarted();
+        return new Promise<Response>((_, reject) => {
+          const signal = init.signal as AbortSignal;
+          signal.addEventListener(
+            'abort',
+            () => {
+              postAborted = true;
+              reject(signal.reason);
+            },
+            { once: true },
+          );
+        });
+      },
+    );
+    transport = new SseMCPTransport({
+      url: 'http://localhost:3000/sse',
+      fetch,
+    });
+
+    const connectPromise = transport.start();
+    const sseController = await sseControllerPromise;
+    sseController.enqueue(
+      new TextEncoder().encode(
+        'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+      ),
+    );
+    await connectPromise;
+
+    const abortController = new AbortController();
+    const abortReason = new Error('stop POST');
+    const sendPromise = transport.send(
+      {
+        jsonrpc: '2.0' as const,
+        method: 'test',
+        params: {},
+        id: '1',
+      },
+      { signal: abortController.signal },
+    );
+
+    await postStarted;
+    abortController.abort(abortReason);
+
+    await expect(sendPromise).rejects.toBe(abortReason);
+    expect(postAborted).toBe(true);
+    await transport.close();
+  });
+
+  it('should reject cross-origin endpoints before connecting', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const errorPromise = new Promise<unknown>(resolve => {
+      transport.onerror = err => resolve(err);
+    });
+
+    const connectPromise = transport.start();
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3333/messages\n\n',
+    );
+
+    await expect(connectPromise).rejects.toThrow(
+      'Endpoint origin does not match connection origin: http://localhost:3333',
+    );
+
+    const error = await errorPromise;
+    expect(error).toBeInstanceOf(MCPClientError);
+    expect(transport['connected']).toBe(false);
+    expect(transport['endpoint']).toBeUndefined();
+
+    await expect(
+      transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'test',
+        params: {},
+        id: '1',
+      }),
+    ).rejects.toThrow('Not connected');
+
+    await transport.close();
+  });
+
+  it('should ignore endpoint events after connecting', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const connectPromise = transport.start();
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+    await connectPromise;
+
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3333/messages\n\n',
+    );
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const message = {
+      jsonrpc: '2.0' as const,
+      method: 'test',
+      params: { foo: 'bar' },
+      id: '1',
+    };
+
+    await transport.send(message);
+
+    const postCalls = server.calls.filter(c => c.requestMethod === 'POST');
+    expect(postCalls).toHaveLength(1);
+    expect(postCalls[0].requestUrl).toBe('http://localhost:3000/messages');
+
+    await transport.close();
+  });
+
+  it('should reject non-2xx POST responses with HTTP details', async () => {
     const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
@@ -219,9 +409,10 @@ describe('SseMCPTransport', () => {
       body: 'Internal Server Error',
     };
 
-    const errorPromise = new Promise<unknown>(resolve => {
-      transport.onerror = err => resolve(err);
-    });
+    let reportedError: unknown;
+    transport.onerror = error => {
+      reportedError = error;
+    };
 
     const connectPromise = transport.start();
     controller.write(
@@ -236,11 +427,19 @@ describe('SseMCPTransport', () => {
       id: '1',
     };
 
-    await transport.send(message);
-
-    const error = await errorPromise;
-    expect(error).toBeInstanceOf(MCPClientError);
-    expect((error as Error).message).toContain('Error: POSTing to endpoint');
+    await expect(transport.send(message)).rejects.toMatchObject({
+      message:
+        'MCP SSE Transport Error: POSTing to endpoint (HTTP 500): Internal Server Error',
+      statusCode: 500,
+      url: 'http://localhost:3000/messages',
+      responseBody: 'Internal Server Error',
+    });
+    expect(reportedError).toBeInstanceOf(MCPClientError);
+    expect(reportedError).toMatchObject({
+      statusCode: 500,
+      url: 'http://localhost:3000/messages',
+      responseBody: 'Internal Server Error',
+    });
     expect(transport['connected']).toBe(true);
 
     await transport.close();
@@ -308,7 +507,7 @@ describe('SseMCPTransport', () => {
 
     // Verify SSE connection headers
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -317,7 +516,7 @@ describe('SseMCPTransport', () => {
     // Verify POST request headers
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       ...customHeaders,
     });
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');
@@ -487,6 +686,41 @@ describe('SseMCPTransport', () => {
       expect(customFetch).toHaveBeenCalledWith(
         'http://localhost:3000/messages',
         expect.objectContaining({ method: 'POST' }),
+      );
+
+      await transport.close();
+    });
+  });
+
+  describe('protocol version downgrade', () => {
+    it('should use negotiated protocolVersion in POST headers after it is set', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['http://localhost:3000/sse'].response = {
+        type: 'controlled-stream',
+        controller,
+        headers: { 'content-type': 'text/event-stream' },
+      };
+
+      const connectPromise = transport.start();
+      controller.write(
+        'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+      );
+      await connectPromise;
+
+      // Simulate protocol version negotiation
+      transport.protocolVersion = '2025-06-18';
+
+      await transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'tools/list',
+        params: {},
+        id: '1',
+      });
+
+      const postCall = server.calls.find(c => c.requestMethod === 'POST');
+      expect(postCall?.requestHeaders['mcp-protocol-version']).toBe(
+        '2025-06-18',
       );
 
       await transport.close();

@@ -153,6 +153,55 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should forward stopSequences as the Mistral stop parameter and not warn', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      stopSequences: ['foo', 'bar'],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      stop: ['foo', 'bar'],
+    });
+
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'stopSequences',
+      }),
+    );
+  });
+
+  it('should forward presencePenalty and frequencyPenalty without unsupported warnings', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      presencePenalty: 0.1,
+      frequencyPenalty: 0.2,
+    });
+
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+      }),
+    );
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+      }),
+    );
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      presence_penalty: 0.1,
+      frequency_penalty: 0.2,
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('mistral-text');
 
@@ -279,6 +328,7 @@ describe('doGenerate', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
+          "stop": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
@@ -326,6 +376,7 @@ describe('doGenerate', () => {
             "type": "json_object",
           },
           "safe_prompt": undefined,
+          "stop": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
@@ -388,6 +439,7 @@ describe('doGenerate', () => {
             "type": "json_schema",
           },
           "safe_prompt": undefined,
+          "stop": undefined,
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
@@ -441,6 +493,23 @@ describe('doGenerate', () => {
         },
       ],
       parallel_tool_calls: false,
+    });
+  });
+
+  it('should pass promptCacheKey as prompt_cache_key', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        mistral: {
+          promptCacheKey: 'classification-workflow-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      prompt_cache_key: 'classification-workflow-123',
     });
   });
 
@@ -848,11 +917,9 @@ describe('doStream', () => {
   });
 
   describe('tool call', () => {
-    beforeEach(() => {
-      prepareChunksFixtureResponse('mistral-tool-call');
-    });
-
     it('should stream tool call', async () => {
+      prepareChunksFixtureResponse('mistral-tool-call');
+
       const result = await model.doStream({
         prompt: TEST_PROMPT,
       });
@@ -860,6 +927,43 @@ describe('doStream', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
+    });
+
+    it('should accumulate incremental tool call arguments', async () => {
+      prepareChunksFixtureResponse('mistral-incremental-tool-call');
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.filter(
+          part => part.type === 'error' || part.type.startsWith('tool-'),
+        ),
+      ).toStrictEqual([
+        {
+          type: 'tool-input-start',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+          toolName: 'webSearchTool',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+          delta: '{"query": "current Berlin weather"}',
+        },
+        {
+          type: 'tool-input-end',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'chatcmpl-tool-9f149c74c42f265b',
+          toolName: 'webSearchTool',
+          input: '{"query": "current Berlin weather"}',
+        },
+      ]);
     });
   });
 
@@ -890,6 +994,24 @@ describe('doStream', () => {
       stream: true,
       model: 'mistral-small-latest',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+    });
+  });
+
+  it('should pass promptCacheKey as prompt_cache_key', async () => {
+    prepareChunksFixtureResponse('mistral-text');
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        mistral: {
+          promptCacheKey: 'classification-workflow-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      prompt_cache_key: 'classification-workflow-123',
+      stream: true,
     });
   });
 
@@ -969,6 +1091,7 @@ describe('doStream', () => {
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
+          "stop": undefined,
           "stream": true,
           "temperature": undefined,
           "tool_choice": undefined,

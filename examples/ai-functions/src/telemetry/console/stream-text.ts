@@ -14,11 +14,12 @@ run(async () => {
       someOtherThing: 'other-value',
       secretApiKey: 'sk-secret',
     },
-    sensitiveRuntimeContext: {
-      secretApiKey: true,
-    },
     telemetry: {
       functionId: 'my-awesome-function',
+      includeRuntimeContext: {
+        something: true,
+        someOtherThing: true,
+      },
     },
   });
 

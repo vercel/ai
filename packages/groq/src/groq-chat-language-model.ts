@@ -128,6 +128,33 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       toolWarnings,
     } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
+    let reasoningEffort = groqOptions?.reasoningEffort;
+    if (reasoningEffort == null && isCustomReasoning(reasoning)) {
+      if (reasoning === 'none') {
+        if (this.modelId === 'qwen/qwen3.6-27b') {
+          reasoningEffort = 'none';
+        } else {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'reasoning',
+            details: `reasoning "${reasoning}" is not supported by this model.`,
+          });
+        }
+      } else {
+        reasoningEffort = mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: {
+            minimal: 'low',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: 'high',
+          },
+          warnings,
+        });
+      }
+    }
+
     return {
       args: {
         // model id:
@@ -164,21 +191,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
-        reasoning_effort:
-          groqOptions?.reasoningEffort ??
-          (isCustomReasoning(reasoning) && reasoning !== 'none'
-            ? mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'low',
-                  low: 'low',
-                  medium: 'medium',
-                  high: 'high',
-                  xhigh: 'high',
-                },
-                warnings,
-              })
-            : undefined),
+        reasoning_effort: reasoningEffort,
         service_tier: groqOptions?.serviceTier,
 
         // messages:
@@ -241,7 +254,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
         });

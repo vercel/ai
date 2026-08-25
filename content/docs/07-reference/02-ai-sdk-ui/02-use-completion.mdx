@@ -42,6 +42,19 @@ Allows you to create text completion based capabilities for your application. It
 
 ## API Signature
 
+### Type Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'BODY',
+      type: 'object',
+      description:
+        'The type of the additional request body passed through the hook options or the complete function. Defaults to object.',
+    },
+  ]}
+/>
+
 ### Parameters
 
 <PropertiesTable
@@ -88,7 +101,7 @@ Allows you to create text completion based capabilities for your application. It
     },
     {
       name: 'body',
-      type: 'object',
+      type: 'BODY',
       description:
         'An optional, additional body object to be passed to the API endpoint.',
     },
@@ -103,7 +116,7 @@ Allows you to create text completion based capabilities for your application. It
       type: "'text' | 'data'",
       isOptional: true,
       description:
-        'An optional literal that sets the type of stream to be used. Defaults to `data`. If set to `text`, the stream will be treated as a text stream.',
+        'An optional literal that sets the type of stream to be used. Defaults to `data`. If set to `text`, the stream will be treated as a text stream. Note that with either protocol, `useCompletion` only exposes text content via the `completion` field — non-text parts (e.g. `data-*` parts) emitted by the server are ignored. Use `useChat` if you need access to those parts.',
     },
     {
       name: 'fetch',
@@ -113,7 +126,7 @@ Allows you to create text completion based capabilities for your application. It
         'Optional. A custom fetch function to be used for the API call. Defaults to the global fetch function.',
     },
     {
-      name: 'experimental_throttle',
+      name: 'throttle',
       type: 'number',
       isOptional: true,
       description:
@@ -134,7 +147,7 @@ Allows you to create text completion based capabilities for your application. It
     },
     {
       name: 'complete',
-      type: '(prompt: string, options?: { headers?: Record<string, string> | Headers, body?: object }) => Promise<string | null | undefined>',
+      type: '(prompt: string, options?: { headers?: Record<string, string> | Headers, body?: BODY }) => Promise<string | null | undefined>',
       description:
         'Function to execute text completion based on the provided prompt. Returns the completion result when finished.',
     },

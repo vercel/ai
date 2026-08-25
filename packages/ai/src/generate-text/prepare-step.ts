@@ -1,14 +1,18 @@
 import type {
   Context,
+  Experimental_SandboxSession as SandboxSession,
   InferToolSetContext,
   ModelMessage,
   ProviderOptions,
-  SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { Instructions } from '../prompt';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { ActiveTools } from './active-tools';
+import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
+import type { ToolOrder } from './tool-order';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -17,7 +21,11 @@ import type { StepResult } from './step-result';
  * @param options.steps - The steps that have been executed so far.
  * @param options.stepNumber - The number of the step that is being executed.
  * @param options.model - The model that is being used.
- * @param options.messages - The messages that will be sent to the model for the current step.
+ * @param options.instructions - The instructions that will be sent to the model for the current step.
+ * @param options.initialInstructions - The initial instructions that were passed into generateText or streamText.
+ * @param options.messages - The messages that will be sent to the model for the current step. If you return a `messages` override, those messages carry forward to later steps.
+ * @param options.initialMessages - The initial messages that were passed into generateText or streamText.
+ * @param options.responseMessages - The response messages that have been accumulated from previous steps.
  * @param options.runtimeContext - The user-defined runtime context.
  *
  * @returns An object that contains the settings for the step.
@@ -43,9 +51,30 @@ export type PrepareStepFunction<
   model: LanguageModel;
 
   /**
+   * The instructions that will be sent to the model for the current step.
+   */
+  instructions: Instructions | undefined;
+
+  /**
+   * The initial instructions that were passed into generateText or streamText.
+   */
+  initialInstructions: Instructions | undefined;
+
+  /**
    * The messages that will be sent to the model for the current step.
+   * If you return a `messages` override, those messages carry forward to later steps.
    */
   messages: Array<ModelMessage>;
+
+  /**
+   * The initial messages that were passed into generateText or streamText.
+   */
+  initialMessages: Array<ModelMessage>;
+
+  /**
+   * The response messages that have been accumulated from all previous steps.
+   */
+  responseMessages: Array<ResponseMessage>;
 
   /**
    * Tool context.
@@ -56,19 +85,28 @@ export type PrepareStepFunction<
    * User-defined runtime context.
    */
   runtimeContext: RUNTIME_CONTEXT;
+
+  /**
+   * The sandbox environment that the step is operating in.
+   */
+  experimental_sandbox?: SandboxSession;
 }) =>
   | PromiseLike<PrepareStepResult<TOOLS, RUNTIME_CONTEXT>>
   | PrepareStepResult<TOOLS, RUNTIME_CONTEXT>;
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
- * allowing per-step overrides of model, tools, or messages.
+ * allowing per-step overrides of model call settings, model, tools,
+ * instructions, or messages.
+ *
+ * Model call setting overrides apply only to the current step. Undefined
+ * settings fall back to the outer call settings.
  */
 export type PrepareStepResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > =
-  | {
+  | ({
       /**
        * Optionally override which LanguageModel instance is used for this step.
        */
@@ -86,13 +124,27 @@ export type PrepareStepResult<
       activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
       /**
-       * Optionally override the system message(s) sent to the model for this step.
+       * Optionally override the order in which tools are sent to the provider
+       * for this step.
        */
-      system?: string | SystemModelMessage | Array<SystemModelMessage>;
+      toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+      /**
+       * Optionally override the instructions sent to the model for this step.
+       * The override carries forward to later steps.
+       */
+      instructions?: Instructions;
+
+      /**
+       * Optionally override the instructions sent to the model for this step.
+       *
+       * @deprecated Use `instructions` instead.
+       */
+      system?: Instructions;
 
       /**
        * Optionally override the full set of messages sent to the model
-       * for this step.
+       * for this step. The override carries forward to later steps.
        */
       messages?: Array<ModelMessage>;
 
@@ -115,11 +167,18 @@ export type PrepareStepResult<
       runtimeContext?: RUNTIME_CONTEXT;
 
       /**
+       * The sandbox environment that the step is operating in.
+       *
+       * Changing the sandbox will affect tool execution in this step only.
+       */
+      experimental_sandbox?: SandboxSession;
+
+      /**
        * Additional provider-specific options for this step.
        *
        * Can be used to pass provider-specific configuration such as
        * container IDs for Anthropic's code execution.
        */
       providerOptions?: ProviderOptions;
-    }
+    } & LanguageModelCallOptions)
   | undefined;

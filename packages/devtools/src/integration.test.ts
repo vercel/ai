@@ -4,12 +4,14 @@ import { DevToolsTelemetry } from './integration.js';
 
 const mockCreateRun = vi.fn();
 const mockCreateStep = vi.fn();
+const mockGetStepsForRun = vi.fn();
 const mockUpdateStepResult = vi.fn();
 const mockNotifyServerAsync = vi.fn();
 
 vi.mock('./db.js', () => ({
   createRun: (...args: unknown[]) => mockCreateRun(...args),
   createStep: (...args: unknown[]) => mockCreateStep(...args),
+  getStepsForRun: (...args: unknown[]) => mockGetStepsForRun(...args),
   updateStepResult: (...args: unknown[]) => mockUpdateStepResult(...args),
   notifyServerAsync: (...args: unknown[]) => mockNotifyServerAsync(...args),
 }));
@@ -139,7 +141,7 @@ describe('DevToolsTelemetry', () => {
         }
       `);
 
-      await integration.onStepFinish!(makeStepFinishEvent());
+      await integration.onStepEnd!(makeStepFinishEvent());
       expect(mockUpdateStepResult).toHaveBeenCalledOnce();
 
       const [stepId, result] = mockUpdateStepResult.mock.calls[0];
@@ -171,7 +173,7 @@ describe('DevToolsTelemetry', () => {
 
       await integration.onStart!(makeStartEvent());
       await integration.onStepStart!(makeStepStartEvent());
-      await integration.onStepFinish!(
+      await integration.onStepEnd!(
         makeStepFinishEvent({
           request: { body: { model: 'test', prompt: 'hi' } },
           response: {
@@ -201,126 +203,107 @@ describe('DevToolsTelemetry', () => {
         }
       `);
     });
+
+    it('stores binary prompts and transformed tool media as base64', async () => {
+      const integration = createIntegration();
+
+      await integration.onStart!(makeStartEvent());
+      await integration.onStepStart!(
+        makeStepStartEvent({
+          promptMessages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: {
+                    type: 'data',
+                    data: new Uint8Array([137, 80, 78, 71]),
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      await integration.onStepEnd!(
+        makeStepFinishEvent({
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'screenshot',
+              toolCallId: 'call-1',
+              output: { base64: 'raw execute output' },
+            },
+          ],
+          response: {
+            id: 'resp-1',
+            modelId: 'test-model',
+            timestamp: new Date('2025-01-01'),
+            messages: [
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolName: 'screenshot',
+                    toolCallId: 'call-1',
+                    output: {
+                      type: 'content',
+                      value: [
+                        {
+                          type: 'file',
+                          mediaType: 'image/png',
+                          data: {
+                            type: 'data',
+                            data: new Uint8Array([137, 80, 78, 71]),
+                          },
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      );
+
+      expect(JSON.parse(mockCreateStep.mock.calls[0][0].input)).toMatchObject({
+        prompt: [
+          {
+            content: [
+              {
+                data: { data: 'iVBORw==' },
+              },
+            ],
+          },
+        ],
+      });
+      const capturedOutput = JSON.parse(
+        mockUpdateStepResult.mock.calls[0][1].output,
+      );
+      expect(capturedOutput).not.toHaveProperty('toolResults');
+      expect(capturedOutput.response.messages).toMatchObject([
+        {
+          content: [
+            {
+              output: {
+                value: [
+                  {
+                    data: { data: 'iVBORw==' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('streamText lifecycle', () => {
-    it('collects stream chunks as raw_response', async () => {
-      const integration = createIntegration();
-
-      await integration.onStart!(
-        makeStartEvent({ operationId: 'ai.streamText' }),
-      );
-      await integration.onStepStart!(makeStepStartEvent());
-
-      await integration.onChunk!({
-        chunk: { type: 'text-delta', id: '1', text: 'Hello' },
-      } as any);
-      await integration.onChunk!({
-        chunk: { type: 'text-delta', id: '1', text: ', world!' },
-      } as any);
-
-      await integration.onStepFinish!(makeStepFinishEvent());
-
-      const result = mockUpdateStepResult.mock.calls[0][1];
-      expect(JSON.parse(result.raw_response)).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "1",
-            "text": "Hello",
-            "type": "text-delta",
-          },
-          {
-            "id": "1",
-            "text": ", world!",
-            "type": "text-delta",
-          },
-        ]
-      `);
-      expect(result.raw_chunks).toBeNull();
-    });
-
-    it('separates raw provider chunks into raw_chunks', async () => {
-      const integration = createIntegration();
-
-      await integration.onStart!(
-        makeStartEvent({ operationId: 'ai.streamText' }),
-      );
-      await integration.onStepStart!(makeStepStartEvent());
-
-      await integration.onChunk!({
-        chunk: {
-          type: 'raw',
-          rawValue: { type: 'content_block_delta', text: 'Hello' },
-        },
-      } as any);
-      await integration.onChunk!({
-        chunk: { type: 'text-delta', id: '1', text: 'Hello' },
-      } as any);
-
-      await integration.onStepFinish!(makeStepFinishEvent());
-
-      const result = mockUpdateStepResult.mock.calls[0][1];
-      expect(JSON.parse(result.raw_chunks)).toMatchInlineSnapshot(`
-        [
-          {
-            "text": "Hello",
-            "type": "content_block_delta",
-          },
-        ]
-      `);
-      expect(JSON.parse(result.raw_response)).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "1",
-            "text": "Hello",
-            "type": "text-delta",
-          },
-        ]
-      `);
-    });
-
-    it('routes lifecycle markers via callId/stepNumber', async () => {
-      const integration = createIntegration();
-
-      await integration.onStart!(
-        makeStartEvent({ operationId: 'ai.streamText' }),
-      );
-      await integration.onStepStart!(makeStepStartEvent());
-
-      await integration.onChunk!({
-        chunk: {
-          type: 'ai.stream.firstChunk',
-          callId: 'call-1',
-          stepNumber: 0,
-          attributes: { 'ai.response.msToFirstChunk': 42 },
-        },
-      } as any);
-      await integration.onChunk!({
-        chunk: { type: 'text-delta', id: '1', text: 'Hi' },
-      } as any);
-      await integration.onChunk!({
-        chunk: {
-          type: 'ai.stream.finish',
-          callId: 'call-1',
-          stepNumber: 0,
-          attributes: { 'ai.response.msToFinish': 100 },
-        },
-      } as any);
-
-      await integration.onStepFinish!(makeStepFinishEvent());
-
-      const chunks = JSON.parse(
-        mockUpdateStepResult.mock.calls[0][1].raw_response,
-      );
-      expect(chunks.map((c: any) => c.type)).toMatchInlineSnapshot(`
-        [
-          "ai.stream.firstChunk",
-          "text-delta",
-          "ai.stream.finish",
-        ]
-      `);
-    });
-
     it('prefers response.body over collected chunks', async () => {
       const integration = createIntegration();
 
@@ -329,11 +312,7 @@ describe('DevToolsTelemetry', () => {
       );
       await integration.onStepStart!(makeStepStartEvent());
 
-      await integration.onChunk!({
-        chunk: { type: 'text-delta', id: '1', text: 'Hi' },
-      } as any);
-
-      await integration.onStepFinish!(
+      await integration.onStepEnd!(
         makeStepFinishEvent({
           response: {
             id: 'resp-1',
@@ -352,10 +331,39 @@ describe('DevToolsTelemetry', () => {
         }
       `);
     });
+
+    it('groups resumed calls under a shared run id', async () => {
+      mockGetStepsForRun.mockResolvedValueOnce([]).mockResolvedValueOnce([{}]);
+      const integration = DevToolsTelemetry({
+        runId: 'tool-approval-run',
+      }) as unknown as TestIntegration;
+
+      await integration.onStart!(
+        makeStartEvent({ operationId: 'ai.streamText' }),
+      );
+      await integration.onStepStart!(makeStepStartEvent());
+      await integration.onEnd!({ callId: 'call-1' });
+
+      await integration.onStart!(
+        makeStartEvent({
+          callId: 'call-2',
+          operationId: 'ai.streamText',
+        }),
+      );
+      await integration.onStepStart!(makeStepStartEvent({ callId: 'call-2' }));
+
+      expect(mockCreateRun.mock.calls.map(([runId]) => runId)).toEqual([
+        'tool-approval-run',
+        'tool-approval-run',
+      ]);
+      expect(
+        mockCreateStep.mock.calls.map(([step]) => step.step_number),
+      ).toEqual([1, 2]);
+    });
   });
 
   describe('streamObject lifecycle', () => {
-    it('creates stream-type step via onObjectStepStart/Finish', async () => {
+    it('creates stream-type step via onObjectStepStart/End', async () => {
       const integration = createIntegration();
 
       await integration.onStart!(
@@ -372,7 +380,7 @@ describe('DevToolsTelemetry', () => {
 
       expect(mockCreateStep.mock.calls[0][0].type).toBe('stream');
 
-      await integration.onObjectStepFinish!({
+      await integration.onObjectStepEnd!({
         callId: 'call-1',
         stepNumber: 0,
         finishReason: 'stop',
@@ -441,14 +449,14 @@ describe('DevToolsTelemetry', () => {
     });
   });
 
-  describe('onFinish', () => {
+  describe('onEnd', () => {
     it('cleans up call state so subsequent events are ignored', async () => {
       const integration = createIntegration();
 
       await integration.onStart!(makeStartEvent());
       await integration.onStepStart!(makeStepStartEvent());
-      await integration.onStepFinish!(makeStepFinishEvent());
-      await integration.onFinish!({ callId: 'call-1' } as any);
+      await integration.onStepEnd!(makeStepFinishEvent());
+      await integration.onEnd!({ callId: 'call-1' } as any);
 
       mockCreateStep.mockClear();
       await integration.onStepStart!(makeStepStartEvent());

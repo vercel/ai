@@ -1,12 +1,12 @@
 import {
   generateId as generateIdFunc,
-  getErrorMessage,
   type IdGenerator,
 } from '@ai-sdk/provider-utils';
 import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
-import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
+import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamWriter } from './ui-message-stream-writer';
 
@@ -14,20 +14,24 @@ import type { UIMessageStreamWriter } from './ui-message-stream-writer';
  * Creates a UI message stream that can be used to send messages to the client.
  *
  * @param options.execute - A function that is called with a writer to write UI message chunks to the stream.
- * @param options.onError - A function that extracts an error message from an error. Defaults to `getErrorMessage`.
+ * @param options.onError - A function that extracts an error message from an error. Defaults to `() => 'An error occurred.'` so server-side error details are not leaked to the client; supply your own to surface richer messages.
  * @param options.originalMessages - The original messages. If provided, persistence mode is assumed
  *   and a message ID is provided for the response message.
- * @param options.onStepFinish - A callback that is called when each step finishes. Useful for persisting intermediate messages.
- * @param options.onFinish - A callback that is called when the stream finishes.
+ * @param options.onStepEnd - A callback that is called when each step ends. Useful for persisting intermediate messages.
+ * @param options.onStepFinish - Deprecated alias for `onStepEnd`.
+ * @param options.onEnd - A callback that is called when the stream ends.
+ * @param options.onFinish - Deprecated alias for `onEnd`.
  * @param options.generateId - A function that generates a unique ID. Defaults to the built-in ID generator.
  *
  * @returns A `ReadableStream` of UI message chunks.
  */
 export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   execute,
-  onError = getErrorMessage,
+  onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
   originalMessages,
+  onStepEnd,
   onStepFinish,
+  onEnd,
   onFinish,
   generateId = generateIdFunc,
 }: {
@@ -43,11 +47,23 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   originalMessages?: UI_MESSAGE[];
 
   /**
-   * Callback that is called when each step finishes during multi-step agent runs.
+   * Callback that is called when each step ends during multi-step agent runs.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /**
+   * Callback that is called when each step ends during multi-step agent runs.
+   *
+   * @deprecated Use `onStepEnd` instead.
    */
   onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
-  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
   generateId?: IdGenerator;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
@@ -138,8 +154,8 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     stream,
     messageId: generateId(),
     originalMessages,
-    onStepFinish,
-    onFinish,
+    onStepEnd: onStepEnd ?? onStepFinish,
+    onEnd: onEnd ?? onFinish,
     onError,
   });
 }

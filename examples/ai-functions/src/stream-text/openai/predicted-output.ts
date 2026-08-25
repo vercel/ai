@@ -54,7 +54,7 @@ run(async () => {
   }
 
   const usage = await result.usage;
-  const openaiMetadata = (await result.providerMetadata)?.openai;
+  const openaiMetadata = (await result.finalStep).providerMetadata?.openai;
 
   console.log();
   console.log('Token usage:', {

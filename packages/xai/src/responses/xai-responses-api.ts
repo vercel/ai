@@ -26,7 +26,11 @@ export type XaiResponsesSystemMessage = {
 
 export type XaiResponsesUserMessageContentPart =
   | { type: 'input_text'; text: string }
-  | { type: 'input_image'; image_url: string }
+  | {
+      type: 'input_image';
+      image_url: string;
+      detail?: 'low' | 'high' | 'auto';
+    }
   | { type: 'input_file'; file_id: string }
   | { type: 'input_file'; file_url: string };
 
@@ -44,7 +48,18 @@ export type XaiResponsesAssistantMessage = {
 export type XaiResponsesFunctionCallOutput = {
   type: 'function_call_output';
   call_id: string;
-  output: string;
+  output:
+    | string
+    | Array<
+        | {
+            type: 'input_text';
+            text: string;
+          }
+        | {
+            type: 'input_image';
+            image_url: string;
+          }
+      >;
 };
 
 export type XaiResponsesReasoning = {
@@ -79,6 +94,7 @@ export type XaiResponsesTool =
       type: 'web_search';
       allowed_domains?: string[];
       excluded_domains?: string[];
+      enable_image_search?: boolean;
       enable_image_understanding?: boolean;
     }
   | {
@@ -93,6 +109,10 @@ export type XaiResponsesTool =
   | { type: 'code_interpreter' }
   | { type: 'view_image' }
   | { type: 'view_x_video' }
+  | {
+      type: 'image_generation';
+      action?: 'auto' | 'generate' | 'edit';
+    }
   | {
       type: 'file_search';
       vector_store_ids?: string[];
@@ -200,6 +220,13 @@ const outputItemSchema = z.discriminatedUnion('type', [
       .nullish(),
   }),
   z.object({
+    type: z.literal('image_generation_call'),
+    id: z.string(),
+    status: z.string(),
+    prompt: z.string().nullish(),
+    result: z.string().nullish(),
+  }),
+  z.object({
     type: z.literal('custom_tool_call'),
     ...toolCallSchema.shape,
   }),
@@ -260,6 +287,7 @@ export const xaiResponsesResponseSchema = z.object({
   output: z.array(outputItemSchema),
   usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
+  service_tier: z.string().nullish(),
 });
 
 export const xaiResponsesChunkSchema = z.union([
@@ -408,6 +436,21 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
   }),
   z.object({
+    type: z.literal('response.image_generation_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.image_generation_call.generating'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.image_generation_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
     type: z.literal('response.code_execution_call.in_progress'),
     item_id: z.string(),
     output_index: z.number(),
@@ -529,6 +572,7 @@ export const xaiResponsesChunkSchema = z.union([
     response: z.object({
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: xaiResponsesUsageSchema.nullish(),
+      service_tier: z.string().nullish(),
     }),
   }),
   z.object({

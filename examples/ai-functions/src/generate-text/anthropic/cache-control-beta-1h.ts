@@ -42,7 +42,10 @@ run(async () => {
     ],
   });
 
-  console.log('Usage information:', result.providerMetadata?.anthropic?.usage);
+  console.log(
+    'Usage information:',
+    result.finalStep.providerMetadata?.anthropic?.usage,
+  );
 
   // e.g.
   // Usage information: {
@@ -87,7 +90,7 @@ run(async () => {
 
   console.log(
     'Usage information:',
-    cachedResult.providerMetadata?.anthropic?.usage,
+    cachedResult.finalStep.providerMetadata?.anthropic?.usage,
   );
 
   // e.g.

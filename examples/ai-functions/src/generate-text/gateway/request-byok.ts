@@ -3,7 +3,7 @@ import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { providerMetadata, text, usage } = await generateText({
+  const result = await generateText({
     model: 'anthropic/claude-haiku-4.5',
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
@@ -15,8 +15,8 @@ run(async () => {
     },
   });
 
-  console.log(text);
+  console.log(result.text);
   console.log();
-  console.log('Usage:', usage);
-  console.log(JSON.stringify(providerMetadata, null, 2));
+  console.log('Usage:', result.usage);
+  console.log(JSON.stringify(result.finalStep.providerMetadata, null, 2));
 });

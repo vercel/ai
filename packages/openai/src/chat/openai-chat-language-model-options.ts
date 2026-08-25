@@ -64,6 +64,12 @@ export type OpenAIChatModelId =
   | 'gpt-5.4-nano-2026-03-17'
   | 'gpt-5.4-pro'
   | 'gpt-5.4-pro-2026-03-05'
+  | 'gpt-5.5'
+  | 'gpt-5.5-2026-04-23'
+  | 'gpt-5.6'
+  | 'gpt-5.6-luna'
+  | 'gpt-5.6-sol'
+  | 'gpt-5.6-terra'
   | (string & {});
 
 export const openaiLanguageModelChatOptions = lazySchema(() =>
@@ -103,7 +109,7 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
        * Reasoning effort for reasoning models. Defaults to `medium`.
        */
       reasoningEffort: z
-        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'])
+        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
         .optional(),
 
       /**
@@ -132,11 +138,14 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
        *           Project settings. Unless otherwise configured, the Project will use 'default'.
        * - 'flex': 50% cheaper processing at the cost of increased latency. Only available for o3 and o4-mini models.
        * - 'priority': Higher-speed processing with predictably low latency at premium cost. Available for Enterprise customers.
+       * - 'fast': OpenAI's newer name for the 'priority' tier. Interchangeable with it.
        * - 'default': The request will be processed with the standard pricing and performance for the selected model.
        *
        * @default 'auto'
        */
-      serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).optional(),
+      serviceTier: z
+        .enum(['auto', 'flex', 'priority', 'fast', 'default'])
+        .optional(),
 
       /**
        * Whether to use strict JSON schema validation.
@@ -158,10 +167,24 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
       promptCacheKey: z.string().optional(),
 
       /**
+       * Prompt cache behavior for GPT-5.6 and later models.
+       * `mode` controls whether OpenAI also places an implicit breakpoint.
+       * `ttl` sets the minimum cache lifetime and currently only supports 30 minutes.
+       */
+      promptCacheOptions: z
+        .object({
+          mode: z.enum(['implicit', 'explicit']).optional(),
+          ttl: z.literal('30m').optional(),
+        })
+        .optional(),
+
+      /**
        * The retention policy for the prompt cache.
        * - 'in_memory': Default. Standard prompt caching behavior.
        * - '24h': Extended prompt caching that keeps cached prefixes active for up to 24 hours.
-       *          Currently only available for 5.1 series models.
+       *          Available for models before GPT-5.6 that support extended caching.
+       *
+       * @deprecated For GPT-5.6 and later models, use `promptCacheOptions.ttl`.
        *
        * @default 'in_memory'
        */

@@ -9,7 +9,7 @@ export async function saveRawChunks({
   filename: string;
 }) {
   const rawChunks: unknown[] = [];
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     if (chunk.type === 'raw') {
       rawChunks.push(chunk.rawValue);
     }

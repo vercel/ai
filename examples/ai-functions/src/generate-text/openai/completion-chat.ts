@@ -6,7 +6,7 @@ run(async () => {
   const result = await generateText({
     model: openai('gpt-3.5-turbo-instruct'),
     maxOutputTokens: 1024,
-    system: 'You are a helpful chatbot.',
+    instructions: 'You are a helpful chatbot.',
     messages: [
       {
         role: 'user',

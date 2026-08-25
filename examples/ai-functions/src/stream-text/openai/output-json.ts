@@ -9,7 +9,7 @@ run(async () => {
     tools: { weather: weatherTool },
     stopWhen: isStepCount(5),
     output: Output.json(),
-    system: 'Return JSON only, no other text.',
+    instructions: 'Return JSON only, no other text.',
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 

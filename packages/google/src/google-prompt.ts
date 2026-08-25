@@ -27,9 +27,13 @@ export type GoogleContentPart =
       thought?: boolean;
       thoughtSignature?: string;
     }
-  | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
+  | {
+      functionCall: { id?: string; name: string; args: unknown };
+      thoughtSignature?: string;
+    }
   | {
       functionResponse: {
+        id?: string;
         name: string;
         response: unknown;
         parts?: Array<GoogleFunctionResponsePart>;

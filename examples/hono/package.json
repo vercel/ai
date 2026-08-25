@@ -3,11 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-beta.43",
-    "@hono/node-server": "1.13.7",
-    "ai": "7.0.0-beta.115",
+    "@ai-sdk/openai": "workspace:*",
+    "@hono/node-server": "1.19.15",
+    "ai": "workspace:*",
     "dotenv": "16.4.5",
-    "hono": "4.6.9"
+    "hono": "4.12.34"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -16,8 +16,8 @@
     "type-check": "tsc --build"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
-    "tsx": "4.19.2",
+    "@types/node": "22.19.19",
+    "tsx": "4.23.12",
     "typescript": "5.8.3"
   }
 }

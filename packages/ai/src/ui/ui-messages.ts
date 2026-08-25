@@ -1,3 +1,4 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import type {
   InferToolInput,
   InferToolOutput,
@@ -133,6 +134,11 @@ export type CustomContentUIPart = {
  */
 export type ReasoningUIPart = {
   type: 'reasoning';
+
+  /**
+   * The reasoning part ID.
+   */
+  id?: string;
 
   /**
    * The reasoning text.
@@ -281,6 +287,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
    */
   toolCallId: string;
   title?: string;
+  toolMetadata?: JSONObject;
 
   /**
    * Whether the tool call was executed by the provider.
@@ -289,7 +296,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
 } & (
   | {
       state: 'input-streaming';
-      input: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -314,6 +321,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         approved?: never;
         reason?: never;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -327,6 +335,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         approved: boolean;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -342,6 +351,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         approved: true;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -357,6 +367,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         approved: true;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -370,6 +381,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         approved: false;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
 );
@@ -393,6 +405,7 @@ export type DynamicToolUIPart = {
    */
   toolCallId: string;
   title?: string;
+  toolMetadata?: JSONObject;
 
   /**
    * Whether the tool call was executed by the provider.
@@ -401,7 +414,7 @@ export type DynamicToolUIPart = {
 } & (
   | {
       state: 'input-streaming';
-      input: unknown | undefined;
+      input?: unknown;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -426,6 +439,7 @@ export type DynamicToolUIPart = {
         approved?: never;
         reason?: never;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -439,6 +453,7 @@ export type DynamicToolUIPart = {
         approved: boolean;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -454,6 +469,7 @@ export type DynamicToolUIPart = {
         approved: true;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -468,6 +484,7 @@ export type DynamicToolUIPart = {
         approved: true;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
   | {
@@ -481,6 +498,7 @@ export type DynamicToolUIPart = {
         approved: false;
         reason?: string;
         isAutomatic?: boolean;
+        signature?: string;
       };
     }
 );

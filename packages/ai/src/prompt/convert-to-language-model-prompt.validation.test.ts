@@ -6,6 +6,7 @@ describe('tool validation', () => {
   it('should pass validation for provider-executed tools (deferred results)', async () => {
     const result = await convertToLanguageModelPrompt({
       prompt: {
+        instructions: undefined,
         messages: [
           {
             role: 'assistant',
@@ -31,6 +32,7 @@ describe('tool validation', () => {
   it('should pass validation for tool-approval-response', async () => {
     const result = await convertToLanguageModelPrompt({
       prompt: {
+        instructions: undefined,
         messages: [
           {
             role: 'assistant',
@@ -72,6 +74,7 @@ describe('tool validation', () => {
   it('should preserve provider-executed tool-approval-response', async () => {
     const result = await convertToLanguageModelPrompt({
       prompt: {
+        instructions: undefined,
         messages: [
           {
             role: 'assistant',
@@ -116,6 +119,7 @@ describe('tool validation', () => {
     await expect(async () => {
       await convertToLanguageModelPrompt({
         prompt: {
+          instructions: undefined,
           messages: [
             {
               role: 'assistant',

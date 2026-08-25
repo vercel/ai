@@ -6,6 +6,7 @@ import {
   createUIMessageStreamResponse,
   isStepCount,
   streamText,
+  toUIMessageStream,
 } from 'ai';
 import { z } from 'zod';
 
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
         messages: modelMessages,
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   });
 

@@ -23,7 +23,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -40,6 +40,70 @@ describe('parseToolCall', () => {
         "type": "tool-call",
       }
     `);
+  });
+
+  it('should refine input after successfully parsing a valid tool call', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"value": " raw "}',
+      },
+      tools: {
+        testTool: tool({
+          inputSchema: z.object({
+            value: z.string(),
+          }),
+        }),
+      } as const,
+      repairToolCall: undefined,
+      refineToolInput: {
+        testTool: input => ({ value: input.value.trim() }),
+      },
+      messages: [],
+      instructions: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "value": "raw",
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "title": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
+  });
+
+  it('should not treat an inherited object property as a refinement for a tool whose name collides with it', async () => {
+    // `refineToolInput` is keyed by tool name; a tool named after an
+    // Object.prototype member must not resolve to the inherited method and be
+    // invoked as a refiner. With no own entry for `toString`, the raw parsed
+    // input is returned unchanged.
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'toString',
+        toolCallId: '123',
+        input: '{"value": "raw"}',
+      },
+      tools: {
+        toString: tool({
+          inputSchema: z.object({ value: z.string() }),
+        }),
+      } as const,
+      repairToolCall: undefined,
+      refineToolInput: { testTool: () => ({ value: 'refined' }) } as any,
+      messages: [],
+      instructions: undefined,
+    });
+
+    expect(result.input).toEqual({ value: 'raw' });
   });
 
   it('should successfully parse a valid provider-executed dynamic tool call', async () => {
@@ -60,7 +124,7 @@ describe('parseToolCall', () => {
       tools: {} as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -106,7 +170,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -144,7 +208,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -175,7 +239,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -202,7 +266,7 @@ describe('parseToolCall', () => {
       tools: undefined,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -239,7 +303,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -276,7 +340,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -333,7 +397,7 @@ describe('parseToolCall', () => {
         } as const,
         repairToolCall,
         messages: [{ role: 'user', content: 'test message' }],
-        system: 'test system',
+        instructions: 'test instructions',
       });
 
       // Verify repair function was called
@@ -346,7 +410,8 @@ describe('parseToolCall', () => {
         tools: expect.any(Object),
         inputSchema: expect.any(Function),
         messages: [{ role: 'user', content: 'test message' }],
-        system: 'test system',
+        instructions: 'test instructions',
+        system: 'test instructions',
         error: expect.any(InvalidToolInputError),
       });
 
@@ -365,6 +430,43 @@ describe('parseToolCall', () => {
           "type": "tool-call",
         }
       `);
+    });
+
+    it('should pass instructions to repairToolCall', async () => {
+      const repairToolCall = vi.fn().mockResolvedValue({
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test", "param2": 42}',
+      });
+
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: 'invalid json',
+        },
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({
+              param1: z.string(),
+              param2: z.number(),
+            }),
+          }),
+        } as const,
+        repairToolCall,
+        messages: [],
+        instructions: 'test instructions',
+      });
+
+      expect(repairToolCall).toHaveBeenCalledWith(
+        expect.objectContaining({
+          instructions: 'test instructions',
+          system: 'test instructions',
+        }),
+      );
+      expect(result.input).toStrictEqual({ param1: 'test', param2: 42 });
     });
 
     it('should re-throw error if tool call repair returns null', async () => {
@@ -387,7 +489,7 @@ describe('parseToolCall', () => {
         } as const,
         repairToolCall,
         messages: [],
-        system: undefined,
+        instructions: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -427,7 +529,7 @@ describe('parseToolCall', () => {
         } as const,
         repairToolCall,
         messages: [],
-        system: undefined,
+        instructions: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -466,7 +568,7 @@ describe('parseToolCall', () => {
       } as const,
       repairToolCall: undefined,
       messages: [],
-      system: undefined,
+      instructions: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -509,7 +611,7 @@ describe('parseToolCall', () => {
           },
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
@@ -534,7 +636,7 @@ describe('parseToolCall', () => {
           },
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
@@ -559,7 +661,7 @@ describe('parseToolCall', () => {
           },
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
@@ -568,8 +670,8 @@ describe('parseToolCall', () => {
     });
   });
 
-  describe('tool providerMetadata propagation', () => {
-    it('should propagate tool providerMetadata onto a parsed dynamic tool call', async () => {
+  describe('tool metadata propagation', () => {
+    it('should propagate tool metadata onto a parsed dynamic tool call', async () => {
       const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
@@ -580,7 +682,7 @@ describe('parseToolCall', () => {
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            metadata: { clientName: 'MyMCPClient' },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -590,16 +692,30 @@ describe('parseToolCall', () => {
           }),
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
-      expect(result.providerMetadata).toEqual({
-        mcp: { name: 'MyMCPServer' },
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "dynamic": true,
+          "input": {
+            "location": "Paris",
+          },
+          "providerExecuted": undefined,
+          "providerMetadata": undefined,
+          "title": undefined,
+          "toolCallId": "call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "weather",
+          "type": "tool-call",
+        }
+      `);
     });
 
-    it('should propagate tool providerMetadata onto a parsed static tool call', async () => {
+    it('should propagate tool metadata onto a parsed static tool call', async () => {
       const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
@@ -610,22 +726,36 @@ describe('parseToolCall', () => {
         tools: {
           calculator: tool({
             description: 'Calculate',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            metadata: { clientName: 'MyMCPClient' },
             inputSchema: z.object({ a: z.number(), b: z.number() }),
             execute: async ({ a, b }) => a + b,
           }),
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
-      expect(result.providerMetadata).toEqual({
-        mcp: { name: 'MyMCPServer' },
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "input": {
+            "a": 5,
+            "b": 3,
+          },
+          "providerExecuted": undefined,
+          "providerMetadata": undefined,
+          "title": undefined,
+          "toolCallId": "call-2",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "calculator",
+          "type": "tool-call",
+        }
+      `);
     });
 
-    it('should merge tool providerMetadata with model-supplied providerMetadata (model wins on conflicts)', async () => {
+    it('should keep tool metadata separate from model-supplied providerMetadata', async () => {
       const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
@@ -633,14 +763,13 @@ describe('parseToolCall', () => {
           toolName: 'weather',
           input: '{"location":"Paris"}',
           providerMetadata: {
-            mcp: { name: 'OverriddenByModel' },
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
         },
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            metadata: { clientName: 'MyMCPClient' },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -650,17 +779,30 @@ describe('parseToolCall', () => {
           }),
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
-      expect(result.providerMetadata).toEqual({
-        mcp: { name: 'OverriddenByModel' },
-        anthropic: { cacheControl: { type: 'ephemeral' } },
-      });
+      expect({
+        providerMetadata: result.providerMetadata,
+        toolMetadata: result.toolMetadata,
+      }).toMatchInlineSnapshot(`
+        {
+          "providerMetadata": {
+            "anthropic": {
+              "cacheControl": {
+                "type": "ephemeral",
+              },
+            },
+          },
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+        }
+      `);
     });
 
-    it('should propagate tool providerMetadata onto an invalid tool call', async () => {
+    it('should propagate tool metadata onto an invalid tool call', async () => {
       const result = await parseToolCall({
         toolCall: {
           type: 'tool-call',
@@ -671,7 +813,7 @@ describe('parseToolCall', () => {
         tools: {
           weather: dynamicTool({
             description: 'Get weather',
-            providerMetadata: { mcp: { name: 'MyMCPServer' } },
+            metadata: { clientName: 'MyMCPClient' },
             inputSchema: jsonSchema({
               type: 'object',
               properties: { location: { type: 'string' } },
@@ -682,14 +824,21 @@ describe('parseToolCall', () => {
           }),
         },
         repairToolCall: undefined,
-        system: undefined,
+        instructions: undefined,
         messages: [],
       });
 
-      expect(result.invalid).toBe(true);
-      expect(result.providerMetadata).toEqual({
-        mcp: { name: 'MyMCPServer' },
-      });
+      expect({
+        invalid: result.invalid,
+        toolMetadata: result.toolMetadata,
+      }).toMatchInlineSnapshot(`
+        {
+          "invalid": true,
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+        }
+      `);
     });
   });
 });

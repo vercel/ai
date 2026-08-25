@@ -22,7 +22,7 @@ run(async () => {
       onError(error) {
         console.error(error);
       },
-      system: `You are a helpful, respectful and honest assistant.`,
+      instructions: `You are a helpful, respectful and honest assistant.`,
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
@@ -47,7 +47,7 @@ run(async () => {
     });
 
     process.stdout.write('\nAssistant: ');
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       switch (chunk.type) {
         case 'raw':
           console.log(JSON.stringify(chunk.rawValue, null, 2));

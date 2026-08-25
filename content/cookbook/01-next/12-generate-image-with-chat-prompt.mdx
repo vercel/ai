@@ -35,9 +35,11 @@ export const generateImageTool = tool({
 ```typescript filename='app/api/chat/route.ts'
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   type InferUITools,
   isStepCount,
   streamText,
+  toUIMessageStream,
   type UIMessage,
 } from 'ai';
 
@@ -59,7 +61,9 @@ export async function POST(request: Request) {
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

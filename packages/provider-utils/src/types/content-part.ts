@@ -317,6 +317,50 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
+            type: 'file';
+
+            /**
+             * File data as a tagged discriminated union:
+             *
+             * - `{ type: 'data', data }`: raw bytes
+             *   (base64 string, Uint8Array, ArrayBuffer, Buffer)
+             * - `{ type: 'url', url }`: a URL that points to the file
+             * - `{ type: 'reference', reference }`: a provider reference
+             *   from `uploadFile`
+             * - `{ type: 'text', text }`: inline text content (e.g. an inline
+             *   text document)
+             */
+            data: FileData;
+
+            /**
+             * Either a full IANA media type (`type/subtype`, e.g. `image/png`) or just
+             * the top-level IANA segment (e.g. `image`, `audio`, `video`, `text`).
+             *
+             * `*`-subtype wildcards (e.g. `image/*`) are normalized as equivalent to the
+             * top-level segment alone (e.g. `image`). Providers can use the helpers in
+             * `@ai-sdk/provider-utils` (`isFullMediaType`, `getTopLevelMediaType`,
+             * `detectMediaType`) to resolve the field according to their API
+             * requirements.
+             *
+             * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+             */
+            mediaType: string;
+
+            /**
+             * Optional filename of the file.
+             */
+            filename?: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * @deprecated Use 'file' with mediaType + tagged data instead:
+             * `{ type: 'file', mediaType, data: { type: 'data', data } }`.
+             */
             type: 'file-data';
 
             /**
@@ -341,6 +385,10 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
+            /**
+             * @deprecated Use 'file' with mediaType and tagged data instead:
+             * `{ type: 'file', mediaType, data: { type: 'url', url: new URL(url) } }`.
+             */
             type: 'file-url';
 
             /**
@@ -352,7 +400,7 @@ export type ToolResultOutput =
              * IANA media type.
              * @see https://www.iana.org/assignments/media-types/media-types.xhtml
              */
-            mediaType?: string; // Temporarily optional. TODO: make required in v8, after migration period.
+            mediaType?: string;
 
             /**
              * Provider-specific options.
@@ -361,7 +409,8 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * @deprecated Use file-reference instead.
+             * @deprecated Use 'file' with tagged data instead:
+             * `{ type: 'file', mediaType, data: { type: 'reference', reference } }`.
              */
             type: 'file-id';
 
@@ -381,6 +430,10 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
+            /**
+             * @deprecated Use 'file' with tagged data instead:
+             * `{ type: 'file', mediaType, data: { type: 'reference', reference } }`.
+             */
             type: 'file-reference';
 
             /**
@@ -396,7 +449,9 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * @deprecated Use file-data instead.
+             * @deprecated Use 'file' with mediaType (e.g. 'image' or a specific
+             * `image/*` subtype) and tagged data instead:
+             * `{ type: 'file', mediaType: 'image', data: { type: 'data', data } }`.
              */
             type: 'image-data';
 
@@ -418,7 +473,9 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * @deprecated Use file-url instead.
+             * @deprecated Use 'file' with `mediaType: 'image'` (or a specific
+             * `image/*` subtype) and tagged data instead:
+             * `{ type: 'file', mediaType: 'image', data: { type: 'url', url: new URL(url) } }`.
              */
             type: 'image-url';
 
@@ -434,7 +491,9 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * @deprecated Use file-reference instead.
+             * @deprecated Use 'file' with `mediaType: 'image'` (or a specific
+             * `image/*` subtype) and tagged data instead:
+             * `{ type: 'file', mediaType: 'image', data: { type: 'reference', reference } }`.
              */
             type: 'image-file-id';
 
@@ -455,7 +514,9 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * @deprecated Use file-reference instead.
+             * @deprecated Use 'file' with `mediaType: 'image'` (or a specific
+             * `image/*` subtype) and tagged data instead:
+             * `{ type: 'file', mediaType: 'image', data: { type: 'reference', reference } }`.
              */
             type: 'image-file-reference';
 

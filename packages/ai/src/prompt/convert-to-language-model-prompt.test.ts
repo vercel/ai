@@ -10,7 +10,7 @@ describe('convertToLanguageModelPrompt', () => {
     it('should convert a string system message', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
-          system: 'INSTRUCTIONS',
+          instructions: 'INSTRUCTIONS',
           messages: [{ role: 'user', content: 'Hello, world!' }],
         },
         supportedUrls: {},
@@ -40,7 +40,7 @@ describe('convertToLanguageModelPrompt', () => {
     it('should convert a SystemModelMessage system message', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
-          system: {
+          instructions: {
             role: 'system',
             content: 'INSTRUCTIONS',
             providerOptions: { test: { value: 'test' } },
@@ -79,7 +79,7 @@ describe('convertToLanguageModelPrompt', () => {
     it('should convert an array of SystemModelMessage system messages', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
-          system: [
+          instructions: [
             { role: 'system', content: 'INSTRUCTIONS' },
             { role: 'system', content: 'INSTRUCTIONS 2' },
           ],
@@ -117,10 +117,23 @@ describe('convertToLanguageModelPrompt', () => {
   });
 
   describe('user message', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
     describe('image parts', () => {
       it('should download images for user image parts with URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -160,6 +173,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download images for user image parts with string URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -200,6 +214,7 @@ describe('convertToLanguageModelPrompt', () => {
         const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -237,6 +252,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should pass through URLs when the model supports a particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -276,6 +292,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download the URL as an asset when the model does not support a URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -320,6 +337,7 @@ describe('convertToLanguageModelPrompt', () => {
         const base64Data = 'SGVsbG8sIFdvcmxkIQ=='; // "Hello, World!" in base64
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -357,6 +375,7 @@ describe('convertToLanguageModelPrompt', () => {
         const uint8Data = new Uint8Array([72, 101, 108, 108, 111]); // "Hello" in ASCII
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -396,6 +415,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with URL objects when model does not support downloads', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -436,6 +456,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with string URLs when model does not support downloads', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -476,6 +497,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with string URLs when model does not support the particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -521,6 +543,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('does not download URLs for user file parts for URL objects when model does support the URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -563,6 +586,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('it should default to downloading the URL when the model does not provider a supportsUrl function', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -603,6 +627,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should handle file parts with filename', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -641,6 +666,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should preserve filename when downloading file from URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -683,6 +709,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should prioritize user-provided mediaType over downloaded file mediaType', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -736,6 +763,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should use downloaded file mediaType as fallback when user provides generic mediaType', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -791,6 +819,7 @@ describe('convertToLanguageModelPrompt', () => {
         const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -829,6 +858,7 @@ describe('convertToLanguageModelPrompt', () => {
       it('should add provider options to messages', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
+            instructions: undefined,
             messages: [
               {
                 role: 'user',
@@ -893,6 +923,7 @@ describe('convertToLanguageModelPrompt', () => {
 
       const result = await convertToLanguageModelPrompt({
         prompt: {
+          instructions: undefined,
           messages: [
             {
               role: 'user',
@@ -981,6 +1012,7 @@ describe('convertToLanguageModelPrompt', () => {
     it('should combine 2 consecutive tool messages into a single tool message', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
+          instructions: undefined,
           messages: [
             {
               role: 'assistant',
@@ -1062,6 +1094,137 @@ describe('convertToLanguageModelPrompt', () => {
         ]
       `);
     });
+
+    it('should preserve provider options at tool message boundaries when combining consecutive tool messages', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId1',
+                  toolName: 'toolName',
+                  input: {},
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId2',
+                  toolName: 'toolName',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId1',
+                  output: { type: 'text', value: 'result1' },
+                  providerOptions: {
+                    test: {
+                      cacheControl: 'part',
+                      partOnly: true,
+                    },
+                  },
+                },
+              ],
+              providerOptions: {
+                test: {
+                  cacheControl: 'first-message',
+                  messageOnly: true,
+                },
+              },
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId2',
+                  output: { type: 'text', value: 'result2' },
+                },
+              ],
+              providerOptions: {
+                test: {
+                  cacheControl: 'second-message',
+                },
+              },
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId1",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId2",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result1",
+                },
+                "providerOptions": {
+                  "test": {
+                    "cacheControl": "part",
+                    "messageOnly": true,
+                    "partOnly": true,
+                  },
+                },
+                "toolCallId": "toolCallId1",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result2",
+                },
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId2",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+            ],
+            "providerOptions": {
+              "test": {
+                "cacheControl": "second-message",
+              },
+            },
+            "role": "tool",
+          },
+        ]
+      `);
+    });
   });
 
   describe('custom download function', () => {
@@ -1076,6 +1239,7 @@ describe('convertToLanguageModelPrompt', () => {
 
       const result = await convertToLanguageModelPrompt({
         prompt: {
+          instructions: undefined,
           messages: [
             {
               role: 'user',
@@ -1117,11 +1281,219 @@ describe('convertToLanguageModelPrompt', () => {
         },
       ]);
     });
+
+    it('should download URL content in tool results', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([
+        {
+          url: new URL('https://example.com/image.png'),
+          data: new Uint8Array([0, 1, 2, 3]),
+          mediaType: 'image/png',
+        },
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'url',
+                          url: new URL('https://example.com/image.png'),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/image.png'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolCallId',
+              toolName: 'toolName',
+              input: {},
+              providerExecuted: undefined,
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolCallId',
+              toolName: 'toolName',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: {
+                      type: 'data',
+                      data: new Uint8Array([0, 1, 2, 3]),
+                    },
+                    filename: undefined,
+                    providerOptions: undefined,
+                  },
+                ],
+              },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should download URL content in assistant tool results', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([
+        {
+          url: new URL('https://example.com/assistant-image.png'),
+          data: new Uint8Array([4, 5, 6, 7]),
+          mediaType: 'image/png',
+        },
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        mediaType: 'image/png',
+                        data: {
+                          type: 'url',
+                          url: new URL(
+                            'https://example.com/assistant-image.png',
+                          ),
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/assistant-image.png'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "content",
+                  "value": [
+                    {
+                      "data": {
+                        "data": Uint8Array [
+                          4,
+                          5,
+                          6,
+                          7,
+                        ],
+                        "type": "data",
+                      },
+                      "filename": undefined,
+                      "mediaType": "image/png",
+                      "providerOptions": undefined,
+                      "type": "file",
+                    },
+                  ],
+                },
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
   });
 });
 
 describe('convertToLanguageModelMessage', () => {
   describe('user message', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
     describe('text parts', () => {
       it('should filter out empty text parts', async () => {
         const result = convertToLanguageModelMessage({
@@ -2077,8 +2449,111 @@ describe('convertToLanguageModelMessage', () => {
         mockProcessEmitWarning.mockRestore();
       });
 
-      it('should emit DeprecationWarning for image-data', () => {
-        convertToLanguageModelMessage({
+      it('should emit DeprecationWarning for file-data and emit type: "file"', () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-data',
+                      data: 'dGVzdA==',
+                      mediaType: 'image/png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "file-data"". The "file-data" type for tool result content is deprecated. Use the "file" type with mediaType and { type: \'data\', data } instead.',
+          { type: 'DeprecationWarning' },
+        );
+        expect(
+          (
+            result.content[0] as Extract<
+              (typeof result.content)[number],
+              { type: 'tool-result' }
+            >
+          ).output,
+        ).toEqual({
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              data: { type: 'data', data: 'dGVzdA==' },
+              filename: undefined,
+              mediaType: 'image/png',
+              providerOptions: undefined,
+            },
+          ],
+        });
+      });
+
+      it('should emit DeprecationWarning for file-reference and emit type: "file" with application default', () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-reference',
+                      providerReference: { 'test-provider': 'fileId' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "file-reference"". The "file-reference" type for tool result content is deprecated. Use the "file" type with mediaType and { type: \'reference\', reference } instead.',
+          { type: 'DeprecationWarning' },
+        );
+        expect(
+          (
+            result.content[0] as Extract<
+              (typeof result.content)[number],
+              { type: 'tool-result' }
+            >
+          ).output,
+        ).toEqual({
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference',
+                reference: { 'test-provider': 'fileId' },
+              },
+              mediaType: 'application',
+              providerOptions: undefined,
+            },
+          ],
+        });
+      });
+
+      it('should emit DeprecationWarning for image-data and emit type: "file"', () => {
+        const result = convertToLanguageModelMessage({
           message: {
             role: 'tool',
             content: [
@@ -2104,13 +2579,31 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-data"". The "image-data" type for tool result content is deprecated. Use the "file-data" type instead.',
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-data"". The "image-data" type for tool result content is deprecated. Use the "file" type with mediaType and { type: \'data\', data } instead.',
           { type: 'DeprecationWarning' },
         );
+        expect(
+          (
+            result.content[0] as Extract<
+              (typeof result.content)[number],
+              { type: 'tool-result' }
+            >
+          ).output,
+        ).toEqual({
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              data: { type: 'data', data: 'dGVzdA==' },
+              mediaType: 'image/png',
+              providerOptions: undefined,
+            },
+          ],
+        });
       });
 
-      it('should emit DeprecationWarning for image-url', () => {
-        convertToLanguageModelMessage({
+      it('should emit DeprecationWarning for image-url and emit type: "file" with mediaType "image"', () => {
+        const result = convertToLanguageModelMessage({
           message: {
             role: 'tool',
             content: [
@@ -2132,13 +2625,34 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-url"". The "image-url" type for tool result content is deprecated. Use the "file-url" type instead.',
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-url"". The "image-url" type for tool result content is deprecated. Use the "file" type with mediaType \'image\' (or a specific image/* subtype) and { type: \'url\', url } instead.',
           { type: 'DeprecationWarning' },
         );
+        expect(
+          (
+            result.content[0] as Extract<
+              (typeof result.content)[number],
+              { type: 'tool-result' }
+            >
+          ).output,
+        ).toEqual({
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.png'),
+              },
+              mediaType: 'image',
+              providerOptions: undefined,
+            },
+          ],
+        });
       });
 
-      it('should emit DeprecationWarning for image-file-reference', () => {
-        convertToLanguageModelMessage({
+      it('should emit DeprecationWarning for image-file-reference and emit type: "file" with mediaType "image"', () => {
+        const result = convertToLanguageModelMessage({
           message: {
             role: 'tool',
             content: [
@@ -2163,13 +2677,34 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-file-reference"". The "image-file-reference" type for tool result content is deprecated. Use the "file-reference" type instead.',
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-file-reference"". The "image-file-reference" type for tool result content is deprecated. Use the "file" type with mediaType and { type: \'reference\', reference } instead.',
           { type: 'DeprecationWarning' },
         );
+        expect(
+          (
+            result.content[0] as Extract<
+              (typeof result.content)[number],
+              { type: 'tool-result' }
+            >
+          ).output,
+        ).toEqual({
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference',
+                reference: { 'test-provider': 'fileId' },
+              },
+              mediaType: 'image',
+              providerOptions: undefined,
+            },
+          ],
+        });
       });
 
-      it('should emit DeprecationWarning for image-file-id with object fileId', () => {
-        convertToLanguageModelMessage({
+      it('should emit DeprecationWarning for image-file-id with object fileId and emit type: "file" with mediaType "image"', () => {
+        const result = convertToLanguageModelMessage({
           message: {
             role: 'tool',
             content: [
@@ -2194,13 +2729,34 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-file-id"". The "image-file-id" type for tool result content is deprecated. Use the "file-reference" type instead.',
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-file-id"". The "image-file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: \'reference\', reference } instead.',
           { type: 'DeprecationWarning' },
         );
+        expect(
+          (
+            result.content[0] as Extract<
+              (typeof result.content)[number],
+              { type: 'tool-result' }
+            >
+          ).output,
+        ).toEqual({
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference',
+                reference: { 'test-provider': 'fileId' },
+              },
+              mediaType: 'image',
+              providerOptions: undefined,
+            },
+          ],
+        });
       });
 
-      it('should emit DeprecationWarning for file-id with object fileId', () => {
-        convertToLanguageModelMessage({
+      it('should emit DeprecationWarning for file-id with object fileId and emit type: "file" with application default', () => {
+        const result = convertToLanguageModelMessage({
           message: {
             role: 'tool',
             content: [
@@ -2225,7 +2781,60 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          'AI SDK Warning: Deprecated: ""tool-result" content of type "file-id"". The "file-id" type for tool result content is deprecated. Use the "file-reference" type instead.',
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "file-id"". The "file-id" type for tool result content is deprecated. Use the "file" type with mediaType and { type: \'reference\', reference } instead.',
+          { type: 'DeprecationWarning' },
+        );
+        expect(
+          (
+            result.content[0] as Extract<
+              (typeof result.content)[number],
+              { type: 'tool-result' }
+            >
+          ).output,
+        ).toEqual({
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference',
+                reference: { 'test-provider': 'fileId' },
+              },
+              mediaType: 'application',
+              providerOptions: undefined,
+            },
+          ],
+        });
+      });
+
+      it('should emit DeprecationWarning for file-url with mediaType', () => {
+        convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/image.png',
+                      mediaType: 'image/png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
+        expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
           { type: 'DeprecationWarning' },
         );
       });
@@ -2242,7 +2851,10 @@ describe('convertToLanguageModelMessage', () => {
                 output: {
                   type: 'content',
                   value: [
-                    { type: 'file-url', url: 'https://example.com/image.png' },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/image.png',
+                    },
                   ],
                 },
               },
@@ -2253,7 +2865,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url" without mediaType". The "file-url" tool result content part with URL "https://example.com/image.png" is missing a "mediaType". Inferred media type 'image/png' from URL.`,
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". The "file-url" tool result content part with URL "https://example.com/image.png" is missing a "mediaType". Inferred media type 'image/png' from URL. The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
           { type: 'DeprecationWarning' },
         );
       });
@@ -2270,7 +2882,10 @@ describe('convertToLanguageModelMessage', () => {
                 output: {
                   type: 'content',
                   value: [
-                    { type: 'file-url', url: 'https://example.com/file' },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/file',
+                    },
                   ],
                 },
               },
@@ -2281,7 +2896,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url" without mediaType". The "file-url" tool result content part with URL "https://example.com/file" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`,
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". The "file-url" tool result content part with URL "https://example.com/file" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'. The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
           { type: 'DeprecationWarning' },
         );
       });
@@ -2316,7 +2931,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url" without mediaType". The "file-url" tool result content part with URL "https://example.com/foo.constructor" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'.`,
+          `AI SDK Warning: Deprecated: ""tool-result" content of type "file-url"". The "file-url" tool result content part with URL "https://example.com/foo.constructor" is missing a "mediaType". Unable to infer media type from URL. Defaulting to 'application/octet-stream'. The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`,
           { type: 'DeprecationWarning' },
         );
       });
@@ -2348,7 +2963,7 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).toHaveBeenCalledOnce();
         expect(mockProcessEmitWarning).toHaveBeenCalledWith(
-          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-data"". The "image-data" type for tool result content is deprecated. Use the "file-data" type instead.',
+          'AI SDK Warning: Deprecated: ""tool-result" content of type "image-data"". The "image-data" type for tool result content is deprecated. Use the "file" type with mediaType and { type: \'data\', data } instead.',
           { type: 'DeprecationWarning' },
         );
       });
@@ -2395,18 +3010,25 @@ describe('convertToLanguageModelMessage', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-data',
-                      data: 'dGVzdA==',
+                      type: 'file',
+                      data: { type: 'data', data: 'dGVzdA==' },
                       mediaType: 'image/png',
                     },
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/image.png',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
                       mediaType: 'image/png',
                     },
                     {
-                      type: 'file-reference',
-                      providerReference: { 'test-provider': 'fileId' },
+                      type: 'file',
+                      data: {
+                        type: 'reference',
+                        reference: { 'test-provider': 'fileId' },
+                      },
+                      mediaType: 'application/octet-stream',
                     },
                   ],
                 },
@@ -2418,9 +3040,109 @@ describe('convertToLanguageModelMessage', () => {
 
         expect(mockProcessEmitWarning).not.toHaveBeenCalled();
       });
+
+      it('should pass the new "file" shape through unchanged', () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: { type: 'data', data: 'dGVzdA==' },
+                      mediaType: 'image/png',
+                      filename: 'image.png',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
+                      mediaType: 'image/png',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'reference',
+                        reference: { 'test-provider': 'fileId' },
+                      },
+                      mediaType: 'application/pdf',
+                    },
+                    {
+                      type: 'file',
+                      data: { type: 'text', text: 'inline text' },
+                      mediaType: 'text/plain',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(mockProcessEmitWarning).not.toHaveBeenCalled();
+        expect(
+          (
+            result.content[0] as Extract<
+              (typeof result.content)[number],
+              { type: 'tool-result' }
+            >
+          ).output,
+        ).toEqual({
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              data: { type: 'data', data: 'dGVzdA==' },
+              mediaType: 'image/png',
+              filename: 'image.png',
+              providerOptions: undefined,
+            },
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.png'),
+              },
+              mediaType: 'image/png',
+              filename: undefined,
+              providerOptions: undefined,
+            },
+            {
+              type: 'file',
+              data: {
+                type: 'reference',
+                reference: { 'test-provider': 'fileId' },
+              },
+              mediaType: 'application/pdf',
+              filename: undefined,
+              providerOptions: undefined,
+            },
+            {
+              type: 'file',
+              data: { type: 'text', text: 'inline text' },
+              mediaType: 'text/plain',
+              filename: undefined,
+              providerOptions: undefined,
+            },
+          ],
+        });
+      });
     });
 
     it('should include multipart content', () => {
+      const mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+
       const result = convertToLanguageModelMessage({
         message: {
           role: 'tool',
@@ -2473,6 +3195,8 @@ describe('convertToLanguageModelMessage', () => {
         downloadedAssets: {},
       });
 
+      mockProcessEmitWarning.mockRestore();
+
       expect(result).toMatchInlineSnapshot(`
         {
           "content": [
@@ -2481,40 +3205,63 @@ describe('convertToLanguageModelMessage', () => {
                 "type": "content",
                 "value": [
                   {
-                    "mediaType": "image/png",
-                    "providerOptions": undefined,
-                    "type": "file-url",
-                    "url": "https://example.com/image.png",
-                  },
-                  {
-                    "data": "dGVzdA==",
-                    "mediaType": "image/png",
-                    "type": "file-data",
-                  },
-                  {
-                    "providerReference": {
-                      "test-provider": "fileId",
+                    "data": {
+                      "type": "url",
+                      "url": "https://example.com/image.png",
                     },
-                    "type": "file-reference",
-                  },
-                  {
-                    "data": "dGVzdA==",
                     "mediaType": "image/png",
                     "providerOptions": undefined,
-                    "type": "file-data",
+                    "type": "file",
                   },
                   {
-                    "mediaType": "image/png",
-                    "providerOptions": undefined,
-                    "type": "file-url",
-                    "url": "https://example.com/image.png",
-                  },
-                  {
-                    "providerOptions": undefined,
-                    "providerReference": {
-                      "test-provider": "fileId",
+                    "data": {
+                      "data": "dGVzdA==",
+                      "type": "data",
                     },
-                    "type": "file-reference",
+                    "filename": undefined,
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                  {
+                    "data": {
+                      "reference": {
+                        "test-provider": "fileId",
+                      },
+                      "type": "reference",
+                    },
+                    "mediaType": "application",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                  {
+                    "data": {
+                      "data": "dGVzdA==",
+                      "type": "data",
+                    },
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                  {
+                    "data": {
+                      "type": "url",
+                      "url": "https://example.com/image.png",
+                    },
+                    "mediaType": "image",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                  {
+                    "data": {
+                      "reference": {
+                        "test-provider": "fileId",
+                      },
+                      "type": "reference",
+                    },
+                    "mediaType": "image",
+                    "providerOptions": undefined,
+                    "type": "file",
                   },
                   {
                     "providerOptions": {

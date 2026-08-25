@@ -1,4 +1,5 @@
 import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { describe, it, expect } from 'vitest';
 
@@ -6,6 +7,67 @@ const testToolNameMapping: ToolNameMapping = {
   toProviderToolName: (customToolName: string) => customToolName,
   toCustomToolName: (providerToolName: string) => providerToolName,
 };
+
+const parallelToolCallInput =
+  '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
+
+function createExpandedParallelToolCallPrompt(): LanguageModelV4Prompt {
+  const providerOptions = (index: number) => ({
+    openai: {
+      parallelToolCall: {
+        itemId: 'fc_parallel',
+        toolCallId: 'call_parallel',
+        toolName: 'parallel',
+        input: parallelToolCallInput,
+        index,
+        count: 2,
+      },
+    },
+  });
+
+  return [
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          input: { location: 'San Francisco' },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          input: { city: 'Rome' },
+          providerOptions: providerOptions(1),
+        },
+      ],
+    },
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          output: { type: 'json', value: { temperature: 72 } },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          output: { type: 'text', value: 'Colosseum' },
+          providerOptions: providerOptions(1),
+        },
+      ],
+    },
+  ];
+}
+
+const parallelToolCallOutput = '{"temperature":72}\nColosseum';
 
 describe('convertToOpenAIResponsesInput', () => {
   describe('system messages', () => {
@@ -31,6 +93,37 @@ describe('convertToOpenAIResponsesInput', () => {
       });
 
       expect(result.input).toEqual([{ role: 'developer', content: 'Hello' }]);
+    });
+
+    it('should add a prompt cache breakpoint to a system message', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'system',
+            content: 'Hello',
+            providerOptions: {
+              openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+            },
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'developer',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+      ]);
     });
 
     it('should remove system messages', async () => {
@@ -63,6 +156,70 @@ describe('convertToOpenAIResponsesInput', () => {
 
       expect(result.input).toEqual([
         { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+      ]);
+    });
+
+    it('should add prompt cache breakpoints to supported content blocks', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/image.png'),
+                },
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: {
+                  type: 'reference',
+                  reference: { openai: 'file-pdf-123' },
+                },
+                providerOptions: { openai: { promptCacheBreakpoint } },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: 'Hello',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              image_url: 'https://example.com/image.png',
+              detail: undefined,
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-123',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
       ]);
     });
 
@@ -590,6 +747,44 @@ describe('convertToOpenAIResponsesInput', () => {
           store: true,
         }),
       ).rejects.toThrow('file part media type text/plain');
+    });
+
+    it('should pass through unsupported file types when enabled', async () => {
+      const base64Data = 'bmFtZSxyb2xlCkFkYSxlbmdpbmVlcgo=';
+
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/csv',
+                data: { type: 'data' as const, data: base64Data },
+                filename: 'names.csv',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        passThroughUnsupportedFiles: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'names.csv',
+              file_data: `data:text/csv;base64,${base64Data}`,
+            },
+          ],
+        },
+      ]);
     });
 
     it('should convert PDF file parts with URL to input_file with file_url', async () => {
@@ -1209,7 +1404,6 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "arguments": "{}",
             "call_id": "call_123",
-            "id": undefined,
             "name": "search",
             "type": "function_call",
           },
@@ -1217,7 +1411,7 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
-    it('should convert messages with tool call parts that have ids', async () => {
+    it('should convert text parts with ids to item_reference but not client-executed tool calls', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -1259,8 +1453,10 @@ describe('convertToOpenAIResponsesInput', () => {
             "type": "item_reference",
           },
           {
-            "id": "id_456",
-            "type": "item_reference",
+            "arguments": "{"query":"weather in San Francisco"}",
+            "call_id": "call_123",
+            "name": "search",
+            "type": "function_call",
           },
         ]
       `);
@@ -1305,6 +1501,236 @@ describe('convertToOpenAIResponsesInput', () => {
           call_id: 'call_456',
           name: 'calculator',
           arguments: JSON.stringify({ expression: '2 + 2' }),
+        },
+      ]);
+    });
+
+    // A client-executed function_call_output can only reference its call by
+    // call_id (call_...). The model-assigned item id (fc_...) cannot be used
+    // to pair them, so the function_call must be sent in full without the item
+    // id and without an item_reference. Otherwise the API rejects follow-up
+    // requests with "No tool call found for function call output with call_id",
+    // most visibly with parallel tool calls across multiple steps.
+    it('should send client-executed tool calls as function_call items without item id (store: false)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                input: { query: 'first' },
+                providerOptions: { openai: { itemId: 'fc_a' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                input: { query: 'second' },
+                providerOptions: { openai: { itemId: 'fc_b' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                output: { type: 'json', value: { results: [] } },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                output: { type: 'json', value: { results: ['x'] } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_a',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'first' }),
+        },
+        {
+          type: 'function_call',
+          call_id: 'call_b',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'second' }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_a',
+          output: JSON.stringify({ results: [] }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_b',
+          output: JSON.stringify({ results: ['x'] }),
+        },
+      ]);
+    });
+
+    it('should not use item_reference for client-executed tool calls (store: true)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                input: { query: 'first' },
+                providerOptions: { openai: { itemId: 'fc_a' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                input: { query: 'second' },
+                providerOptions: { openai: { itemId: 'fc_b' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_a',
+                toolName: 'search',
+                output: { type: 'json', value: { results: [] } },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_b',
+                toolName: 'search',
+                output: { type: 'json', value: { results: ['x'] } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_a',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'first' }),
+        },
+        {
+          type: 'function_call',
+          call_id: 'call_b',
+          name: 'search',
+          arguments: JSON.stringify({ query: 'second' }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_a',
+          output: JSON.stringify({ results: [] }),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_b',
+          output: JSON.stringify({ results: ['x'] }),
+        },
+      ]);
+    });
+
+    it('should round-trip namespace on tool call parts dispatched by tool_search', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                input: { location: 'Tokyo' },
+                // Cast: `providerMetadata` isn't on `LanguageModelV4ToolCallPart`,
+                // but the read side writes it onto runtime tool-call parts.
+                ...({
+                  providerMetadata: {
+                    openai: {
+                      itemId: 'fc_abc',
+                      namespace: 'weather_tools',
+                    },
+                  },
+                } as object),
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_123',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Tokyo' }),
+          namespace: 'weather_tools',
+        },
+      ]);
+    });
+
+    it('should round-trip namespace from providerOptions on tool call parts', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                input: { location: 'Tokyo' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'fc_abc',
+                    namespace: 'weather_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_123',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Tokyo' }),
+          namespace: 'weather_tools',
         },
       ]);
     });
@@ -2408,6 +2834,82 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should JSON-encode text outputs only for tools with an output schema', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_text',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'The weather is sunny',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_error',
+                toolName: 'search',
+                output: {
+                  type: 'error-text',
+                  value: 'Error: boom',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_denied',
+                toolName: 'search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_without_schema',
+                toolName: 'lookup',
+                output: {
+                  type: 'error-text',
+                  value: 'Error: unchanged',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        outputSchemaToolNames: new Set(['search']),
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_text',
+          output: '"The weather is sunny"',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_error',
+          output: '"Error: boom"',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_denied',
+          output: '"User denied the tool execution"',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_without_schema',
+          output: 'Error: unchanged',
+        },
+      ]);
+    });
+
     it('should convert execution-denied tool result to function_call_output', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -2501,9 +3003,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'image/png',
-                      data: 'base64_data',
+                      data: { type: 'data', data: 'base64_data' },
                     },
                   ],
                 },
@@ -2522,7 +3024,111 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (data)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: 'base64_data' },
+                      providerOptions: {
+                        openai: { imageDetail: 'original' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "original",
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should forward openai.imageDetail providerOptions on tool-result image (url)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'view_image',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/x.png'),
+                      },
+                      providerOptions: {
+                        openai: { imageDetail: 'high' },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "detail": "high",
+                "image_url": "https://example.com/x.png",
                 "type": "input_image",
               },
             ],
@@ -2547,8 +3153,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/screenshot.png',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/screenshot.png'),
+                      },
                       mediaType: 'image/png',
                     },
                   ],
@@ -2568,6 +3177,7 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
+                "detail": undefined,
                 "image_url": "https://example.com/screenshot.png",
                 "type": "input_image",
               },
@@ -2594,9 +3204,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'application/pdf',
-                      data: base64Data,
+                      data: { type: 'data', data: base64Data },
                       filename: 'document.pdf',
                     },
                   ],
@@ -2642,8 +3252,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/document.pdf',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/document.pdf'),
+                      },
                       mediaType: 'application/pdf',
                     },
                   ],
@@ -2693,8 +3306,11 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'Here is the file you asked for:',
                     },
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/test.pdf',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/test.pdf'),
+                      },
                       mediaType: 'application/pdf',
                     },
                   ],
@@ -2749,14 +3365,14 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'The weather in San Francisco is 72°F',
                     },
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'image/png',
-                      data: 'base64_data',
+                      data: { type: 'data', data: 'base64_data' },
                     },
                     {
-                      type: 'file-data',
+                      type: 'file',
                       mediaType: 'application/pdf',
-                      data: base64Data,
+                      data: { type: 'data', data: base64Data },
                     },
                   ],
                 },
@@ -2779,6 +3395,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "input_text",
               },
               {
+                "detail": undefined,
                 "image_url": "data:image/png;base64,base64_data",
                 "type": "input_image",
               },
@@ -3372,6 +3989,100 @@ describe('convertToOpenAIResponsesInput', () => {
       });
     });
 
+    describe('provider-executed shell', () => {
+      it('should reconstruct the shell call and output with store: false', async () => {
+        const callId = 'call_shell';
+
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Run `printf hello` using the shell tool.',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  input: {
+                    action: {
+                      commands: ['printf hello'],
+                    },
+                  },
+                  providerExecuted: true,
+                  providerOptions: {
+                    openai: {
+                      itemId: 'shell_item',
+                    },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  output: {
+                    type: 'json',
+                    value: {
+                      output: [
+                        {
+                          stdout: 'hello',
+                          stderr: '',
+                          outcome: { type: 'exit', exitCode: 0 },
+                        },
+                      ],
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'hello',
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'What did the command print?' }],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasShellTool: true,
+        });
+
+        expect(result.input).toContainEqual({
+          type: 'shell_call',
+          call_id: callId,
+          id: 'shell_item',
+          status: 'completed',
+          action: {
+            commands: ['printf hello'],
+            timeout_ms: undefined,
+            max_output_length: undefined,
+          },
+        });
+        expect(result.input).toContainEqual({
+          type: 'shell_call_output',
+          call_id: callId,
+          output: [
+            {
+              stdout: 'hello',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        });
+      });
+    });
+
     describe('local shell', () => {
       it('should convert local shell tool call and result into item reference with store: true', async () => {
         const result = await convertToOpenAIResponsesInput({
@@ -3839,7 +4550,6 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               "arguments": "{"a":1,"b":2}",
               "call_id": "call-1",
-              "id": undefined,
               "name": "calculator",
               "type": "function_call",
             },
@@ -3851,6 +4561,66 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('MCP tool approval responses', () => {
+    it('should not reference an MCP approval request from a previous response', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-previous-response',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'mcp_approval_response',
+          approval_request_id: 'mcp-approval-previous-response',
+          approve: true,
+        },
+      ]);
+    });
+
+    it('should not reference an MCP approval request from a conversation', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-conversation',
+                approved: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'mcp_approval_response',
+          approval_request_id: 'mcp-approval-conversation',
+          approve: false,
+        },
+      ]);
+    });
+
     it('should convert approved tool-approval-response to mcp_approval_response with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4256,6 +5026,26 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should send expanded parallel tool results back to the stored wrapper call', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should include assistant messages without item IDs when hasConversation is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4380,6 +5170,151 @@ describe('convertToOpenAIResponsesInput', () => {
       });
 
       // Reasoning with itemId should be skipped
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('hasPreviousResponseId', () => {
+    it('should reconstruct expanded parallel tool calls with one wrapper output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_parallel',
+          name: 'parallel',
+          arguments: parallelToolCallInput,
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should keep client-executed function calls paired with their outputs when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  openai: { itemId: 'fc_existing_456' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                output: { type: 'json', value: { temp: 72 } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "msg_existing_123",
+            "type": "item_reference",
+          },
+          {
+            "arguments": "{"location":"San Francisco"}",
+            "call_id": "call_123",
+            "name": "getWeather",
+            "type": "function_call",
+          },
+          {
+            "call_id": "call_123",
+            "output": "{"temp":72}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should skip reasoning parts with item IDs when hasPreviousResponseId is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me think...',
+                providerOptions: {
+                  openai: { itemId: 'rs_existing_789' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
@@ -4895,8 +5830,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   value: [
                     { type: 'text', text: 'Here is the file:' },
                     {
-                      type: 'file-url',
-                      url: 'https://example.com/test.pdf',
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/test.pdf'),
+                      },
                       mediaType: 'application/pdf',
                     },
                   ],
@@ -4958,12 +5896,182 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "arguments": ""SELECT 1"",
             "call_id": "call_custom_001",
-            "id": undefined,
             "name": "write_sql",
             "type": "function_call",
           },
         ]
       `);
+    });
+  });
+
+  describe('programmatic tool calling', () => {
+    it('should preserve the program output item reference from provider metadata', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                output: {
+                  type: 'json',
+                  value: {
+                    result: '{"availableUnits":42}',
+                    status: 'completed',
+                  },
+                },
+                ...({
+                  providerMetadata: {
+                    openai: { itemId: 'program_output_item_1' },
+                  },
+                } as object),
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        { type: 'item_reference', id: 'program_output_item_1' },
+      ]);
+    });
+
+    it('should replay program items and preserve nested function caller linkage', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                input: {
+                  code: 'const value = await tools.get_inventory({ sku: "A" });',
+                  fingerprint: 'fingerprint_1',
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  openai: { itemId: 'program_item_1' },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'function_call_1',
+                toolName: 'get_inventory',
+                input: { sku: 'A' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'function_item_1',
+                    caller: {
+                      type: 'program',
+                      callerId: 'program_call_1',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'function_call_1',
+                toolName: 'get_inventory',
+                output: {
+                  type: 'json',
+                  value: { sku: 'A', availableUnits: 42 },
+                },
+                providerOptions: {
+                  openai: {
+                    caller: {
+                      type: 'program',
+                      callerId: 'program_call_1',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                output: {
+                  type: 'json',
+                  value: {
+                    result: '{"availableUnits":42}',
+                    status: 'completed',
+                  },
+                },
+                providerOptions: {
+                  openai: { itemId: 'program_output_item_1' },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'program',
+          id: 'program_item_1',
+          call_id: 'program_call_1',
+          code: 'const value = await tools.get_inventory({ sku: "A" });',
+          fingerprint: 'fingerprint_1',
+        },
+        {
+          type: 'function_call',
+          call_id: 'function_call_1',
+          name: 'get_inventory',
+          arguments: '{"sku":"A"}',
+          caller: {
+            type: 'program',
+            caller_id: 'program_call_1',
+          },
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'function_call_1',
+          output: '{"sku":"A","availableUnits":42}',
+          caller: {
+            type: 'program',
+            caller_id: 'program_call_1',
+          },
+        },
+        {
+          type: 'program_output',
+          id: 'program_output_item_1',
+          call_id: 'program_call_1',
+          result: '{"availableUnits":42}',
+          status: 'completed',
+        },
+      ]);
     });
   });
 });

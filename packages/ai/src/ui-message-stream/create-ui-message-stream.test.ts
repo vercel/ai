@@ -440,6 +440,41 @@ describe('createUIMessageStream', () => {
     `);
   });
 
+  it('should handle onEnd without original messages', async () => {
+    const recordedOptions: any[] = [];
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'text-start', id: '1' });
+        writer.write({ type: 'text-delta', id: '1', delta: '1a' });
+        writer.write({ type: 'text-end', id: '1' });
+      },
+      onEnd: options => {
+        recordedOptions.push(options);
+      },
+      generateId: () => 'response-message-id',
+    });
+
+    await consumeStream({ stream });
+
+    expect(recordedOptions).toHaveLength(1);
+    expect(recordedOptions[0]).toMatchObject({
+      isAborted: false,
+      isContinuation: false,
+      responseMessage: {
+        id: 'response-message-id',
+        role: 'assistant',
+        parts: [
+          {
+            state: 'done',
+            text: '1a',
+            type: 'text',
+          },
+        ],
+      },
+    });
+  });
+
   it('should handle onFinish with messages', async () => {
     const recordedOptions: any[] = [];
 

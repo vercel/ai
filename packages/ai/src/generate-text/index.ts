@@ -1,27 +1,29 @@
-export type { ContentPart } from './content-part';
 export type { ActiveTools } from './active-tools';
+export type { ContentPart } from './content-part';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
-export { generateText } from './generate-text';
+export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
+  GenerateTextAbortEvent,
+  GenerateTextOnAbortCallback,
   GenerateTextEndEvent,
   GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
-  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  StreamTextChunkEvent,
 } from './generate-text-events';
 export type { GenerateTextResult } from './generate-text-result';
 export {
   DefaultGeneratedFile,
-  type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v7
+  type Experimental_GeneratedImage,
   type GeneratedFile,
 } from './generated-file';
 export type {
@@ -41,7 +43,11 @@ export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
 export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
-export type { StepResult } from './step-result';
+export type {
+  OutputChunkTimingStats,
+  StepResult,
+  StepResultPerformance,
+} from './step-result';
 export {
   hasToolCall,
   isLoopFinished,
@@ -59,6 +65,7 @@ export {
 } from './stream-language-model-call';
 export {
   streamText,
+  type StreamTextInclude,
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
   type StreamTextTransform,
@@ -74,6 +81,8 @@ export type {
   ToolApprovalConfiguration,
   ToolApprovalStatus,
 } from './tool-approval-configuration';
+export type { Experimental_ToolCallers } from './tool-caller-configuration';
+export { detectToolDrift, fingerprintTools } from './tool-fingerprint';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 export type {
@@ -95,6 +104,8 @@ export type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
+export type { ToolInputRefinement } from './tool-input-refinement';
+export type { ToolOrder } from './tool-order';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

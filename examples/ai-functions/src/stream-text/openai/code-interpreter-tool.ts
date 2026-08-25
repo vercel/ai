@@ -12,7 +12,7 @@ run(async () => {
       'Simulate rolling two dice 10000 times and return the sum of all the results.',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

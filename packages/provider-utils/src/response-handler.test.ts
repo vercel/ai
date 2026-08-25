@@ -1,10 +1,46 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
+import { DEFAULT_MAX_DOWNLOAD_SIZE } from './read-response-with-size-limit';
 import {
+  createJsonErrorResponseHandler,
   createBinaryResponseHandler,
+  createJsonLinesResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
+
+function createOversizedResponse({
+  body = '{}',
+  status = 200,
+  statusText,
+}: {
+  body?: string;
+  status?: number;
+  statusText?: string;
+} = {}) {
+  let cancelled = false;
+
+  return {
+    response: new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(body));
+        },
+        cancel() {
+          cancelled = true;
+        },
+      }),
+      {
+        status,
+        statusText,
+        headers: {
+          'content-length': String(DEFAULT_MAX_DOWNLOAD_SIZE + 1),
+        },
+      },
+    ),
+    cancelled: () => cancelled,
+  };
+}
 
 describe('createJsonResponseHandler', () => {
   it('should return both parsed value and rawValue', async () => {
@@ -33,6 +69,140 @@ describe('createJsonResponseHandler', () => {
       age: 30,
     });
     expect(result.rawValue).toEqual(rawData);
+  });
+
+  it('should reject oversized responses before reading the body', async () => {
+    const { response, cancelled } = createOversizedResponse();
+    const handler = createJsonResponseHandler(z.object({}));
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response,
+      }),
+    ).rejects.toThrow('exceeded maximum size');
+
+    expect(cancelled()).toBe(true);
+  });
+});
+
+describe('createJsonLinesResponseHandler', () => {
+  it('parses JSON lines across byte boundaries', async () => {
+    const bytes = new TextEncoder().encode(
+      '{"id":"first","text":"café"}\r\n\n{"id":"second","text":"done"}',
+    );
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(bytes.slice(0, 24));
+          controller.enqueue(bytes.slice(24, 27));
+          controller.enqueue(bytes.slice(27));
+          controller.close();
+        },
+      }),
+      { headers: { 'x-test': 'value' } },
+    );
+    const handler = createJsonLinesResponseHandler(
+      z.object({ id: z.string(), text: z.string() }),
+    );
+
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: {},
+      response,
+    });
+    const values = [];
+    for await (const value of result.value) {
+      values.push(value);
+    }
+
+    expect(values).toEqual([
+      { id: 'first', text: 'café' },
+      { id: 'second', text: 'done' },
+    ]);
+    expect(result.responseHeaders).toMatchObject({ 'x-test': 'value' });
+  });
+
+  it('errors when a line is invalid JSON', async () => {
+    const handler = createJsonLinesResponseHandler(
+      z.object({ id: z.string() }),
+    );
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: {},
+      response: new Response('{"id":"first"}\n{invalid}\n'),
+    });
+    const iterator = result.value;
+
+    await expect(iterator.next()).resolves.toMatchObject({
+      value: { id: 'first' },
+      done: false,
+    });
+    await expect(iterator.next()).rejects.toThrow();
+  });
+
+  it('cancels the response body when iteration stops early', async () => {
+    let cancelled = false;
+    const handler = createJsonLinesResponseHandler(
+      z.object({ id: z.string() }),
+    );
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: {},
+      response: new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('{"id":"first"}\n'));
+          },
+          cancel() {
+            cancelled = true;
+          },
+        }),
+      ),
+    });
+
+    for await (const _value of result.value) {
+      break;
+    }
+
+    expect(cancelled).toBe(true);
+  });
+
+  it('throws EmptyResponseBodyError when the response body is null', async () => {
+    const handler = createJsonLinesResponseHandler(z.object({}));
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response: new Response(null),
+      }),
+    ).rejects.toThrow('Empty response body');
+  });
+});
+
+describe('createJsonErrorResponseHandler', () => {
+  it('should reject oversized responses before reading the body', async () => {
+    const { response, cancelled } = createOversizedResponse({
+      body: JSON.stringify({ error: 'too large' }),
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+    const handler = createJsonErrorResponseHandler({
+      errorSchema: z.object({ error: z.string() }),
+      errorToMessage: error => error.error,
+    });
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response,
+      }),
+    ).rejects.toThrow('exceeded maximum size');
+
+    expect(cancelled()).toBe(true);
   });
 });
 
@@ -85,5 +255,24 @@ describe('createStatusCodeErrorResponseHandler', () => {
     expect(result.value.responseBody).toBe('Error message');
     expect(result.value.url).toBe('test-url');
     expect(result.value.requestBodyValues).toEqual({ some: 'data' });
+  });
+
+  it('should reject oversized responses before reading the body', async () => {
+    const { response, cancelled } = createOversizedResponse({
+      body: 'too large',
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+    const handler = createStatusCodeErrorResponseHandler();
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: { some: 'data' },
+        response,
+      }),
+    ).rejects.toThrow('exceeded maximum size');
+
+    expect(cancelled()).toBe(true);
   });
 });

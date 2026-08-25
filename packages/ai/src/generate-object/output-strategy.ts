@@ -52,7 +52,7 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
     value: JSONValue | undefined,
     context: {
       text: string;
-      response: LanguageModelResponseMetadata;
+      response: Omit<LanguageModelResponseMetadata, 'messages'>;
       usage: LanguageModelUsage;
     },
   ): Promise<ValidationResult<RESULT>>;
@@ -140,11 +140,20 @@ const arrayOutputStrategy = <ELEMENT>(
     // be able to generate an array directly:
     // possible future optimization: use arrays directly when model supports grammar-guided generation
     jsonSchema: async () => {
-      // remove $schema from schema.jsonSchema:
-      const { $schema: _$schema, ...itemSchema } = await schema.jsonSchema;
+      // keep root-level definitions available to root-relative references:
+      const {
+        $schema: _$schema,
+        definitions,
+        $defs,
+        ...itemSchema
+      } = (await schema.jsonSchema) as JSONSchema7 & {
+        $defs?: JSONSchema7['definitions'];
+      };
 
       return {
         $schema: 'http://json-schema.org/draft-07/schema#',
+        ...(definitions != null && { definitions }),
+        ...($defs != null && { $defs }),
         type: 'object',
         properties: {
           elements: { type: 'array', items: itemSchema },
@@ -239,6 +248,7 @@ const arrayOutputStrategy = <ELEMENT>(
       }
 
       const inputArray = value.elements as Array<JSONObject>;
+      const resultArray: Array<ELEMENT> = [];
 
       // check that each element in the array is of the correct type:
       for (const element of inputArray) {
@@ -246,9 +256,10 @@ const arrayOutputStrategy = <ELEMENT>(
         if (!result.success) {
           return result;
         }
+        resultArray.push(result.value);
       }
 
-      return { success: true, value: inputArray as Array<ELEMENT> };
+      return { success: true, value: resultArray };
     },
 
     createElementStream(

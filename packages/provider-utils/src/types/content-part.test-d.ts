@@ -1,7 +1,37 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type { DataContent } from './data-content';
-import type { FilePart, ReasoningFilePart } from './content-part';
+import type {
+  FilePart,
+  ReasoningFilePart,
+  ToolResultOutput,
+} from './content-part';
 import type { ProviderReference } from './provider-reference';
+
+type ToolResultContentItem = Extract<
+  ToolResultOutput,
+  { type: 'content' }
+>['value'][number];
+type ToolResultFilePart = Extract<ToolResultContentItem, { type: 'file' }>;
+type ToolResultFileUrlPart = Extract<
+  ToolResultContentItem,
+  { type: 'file-url' }
+>;
+type ToolResultFileDataPart = Extract<
+  ToolResultContentItem,
+  { type: 'file-data' }
+>;
+type ToolResultFileReferencePart = Extract<
+  ToolResultContentItem,
+  { type: 'file-reference' }
+>;
+type ToolResultImageDataPart = Extract<
+  ToolResultContentItem,
+  { type: 'image-data' }
+>;
+type ToolResultImageUrlPart = Extract<
+  ToolResultContentItem,
+  { type: 'image-url' }
+>;
 
 type TaggedFileData = Extract<FilePart['data'], { type: string }>;
 type TaggedReasoningFileData = Extract<
@@ -156,6 +186,105 @@ describe('ReasoningFilePart.data', () => {
       data: URL;
       mediaType: string;
     }>().toMatchTypeOf<ReasoningFilePart>();
+  });
+});
+
+describe('ToolResultOutput content "file" variant', () => {
+  it('accepts the tagged `data` arm with a full mediaType', () => {
+    expectTypeOf<{
+      type: 'file';
+      data: { type: 'data'; data: Uint8Array };
+      mediaType: 'image/png';
+    }>().toMatchTypeOf<ToolResultFilePart>();
+  });
+
+  it('accepts the tagged `url` arm with a top-level mediaType', () => {
+    expectTypeOf<{
+      type: 'file';
+      data: { type: 'url'; url: URL };
+      mediaType: 'image';
+    }>().toMatchTypeOf<ToolResultFilePart>();
+  });
+
+  it('accepts the tagged `reference` arm', () => {
+    expectTypeOf<{
+      type: 'file';
+      data: { type: 'reference'; reference: ProviderReference };
+      mediaType: 'application/octet-stream';
+    }>().toMatchTypeOf<ToolResultFilePart>();
+  });
+
+  it('accepts the tagged `text` arm', () => {
+    expectTypeOf<{
+      type: 'file';
+      data: { type: 'text'; text: string };
+      mediaType: 'text/plain';
+    }>().toMatchTypeOf<ToolResultFilePart>();
+  });
+
+  it('rejects bare data shorthands (tagged-only on tool-result)', () => {
+    expectTypeOf<{
+      type: 'file';
+      data: Uint8Array;
+      mediaType: string;
+    }>().not.toMatchTypeOf<ToolResultFilePart>();
+
+    expectTypeOf<{
+      type: 'file';
+      data: URL;
+      mediaType: string;
+    }>().not.toMatchTypeOf<ToolResultFilePart>();
+  });
+
+  it('exposes the four tagged `data.type` discriminants', () => {
+    expectTypeOf<ToolResultFilePart['data']['type']>().toEqualTypeOf<
+      'data' | 'url' | 'reference' | 'text'
+    >();
+  });
+});
+
+describe('ToolResultOutput content legacy variants', () => {
+  it('still type-checks "file-data"', () => {
+    expectTypeOf<{
+      type: 'file-data';
+      data: string;
+      mediaType: string;
+    }>().toMatchTypeOf<ToolResultFileDataPart>();
+  });
+
+  it('still type-checks "file-url" with mediaType', () => {
+    expectTypeOf<{
+      type: 'file-url';
+      url: string;
+      mediaType: string;
+    }>().toMatchTypeOf<ToolResultFileUrlPart>();
+  });
+
+  it('still type-checks "file-url" without mediaType', () => {
+    expectTypeOf<{
+      type: 'file-url';
+      url: string;
+    }>().toMatchTypeOf<ToolResultFileUrlPart>();
+  });
+
+  it('still type-checks "file-reference"', () => {
+    expectTypeOf<{
+      type: 'file-reference';
+      providerReference: ProviderReference;
+    }>().toMatchTypeOf<ToolResultFileReferencePart>();
+  });
+
+  it('still type-checks legacy "image-*" variants', () => {
+    expectTypeOf<{
+      type: 'image-data';
+      data: string;
+      mediaType: string;
+    }>().toMatchTypeOf<ToolResultImageDataPart>();
+
+    expectTypeOf<{
+      type: 'image-url';
+      url: string;
+    }>().toMatchTypeOf<ToolResultImageUrlPart>();
   });
 });
 

@@ -39,7 +39,7 @@ export type RerankStartEvent = {
 };
 
 /**
- * Event passed to the `onFinish` callback for rerank operations.
+ * Event passed to the `onEnd` callback for rerank operations.
  *
  * Called when the operation completes, after the reranking model returns.
  */

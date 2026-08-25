@@ -7,9 +7,10 @@
   "bracketSpacing": true,
   "endOfLine": "lf",
   "ignorePatterns": [
+    ".changeset/**",
+    "CHANGELOG.md",
+    "**/CHANGELOG.md",
     "**/*.html",
-    "**/*.md",
-    "**/*.mdx",
     "**/*.mjs",
     "**/__fixtures__/**",
     "**/__snapshots__/**",

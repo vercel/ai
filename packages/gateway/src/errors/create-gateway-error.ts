@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from '../zod';
 import type { GatewayError } from './gateway-error';
 import { GatewayAuthenticationError } from './gateway-authentication-error';
 import { GatewayInvalidRequestError } from './gateway-invalid-request-error';
@@ -7,7 +7,13 @@ import {
   GatewayModelNotFoundError,
   modelNotFoundParamSchema,
 } from './gateway-model-not-found-error';
+import { GatewayNotFoundError } from './gateway-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
+import { GatewayFailedDependencyError } from './gateway-failed-dependency-error';
+import {
+  GatewayForbiddenError,
+  forbiddenParamSchema,
+} from './gateway-forbidden-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
   lazySchema,
@@ -94,6 +100,13 @@ export async function createGatewayErrorFromResponse({
         generationId,
       });
     }
+    case 'not_found':
+      return new GatewayNotFoundError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
     case 'internal_server_error':
       return new GatewayInternalServerError({
         message,
@@ -101,6 +114,27 @@ export async function createGatewayErrorFromResponse({
         cause,
         generationId,
       });
+    case 'failed_dependency':
+      return new GatewayFailedDependencyError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
+    case 'forbidden': {
+      const ruleResult = await safeValidateTypes({
+        value: validatedResponse.error.param,
+        schema: forbiddenParamSchema,
+      });
+
+      return new GatewayForbiddenError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+        ruleId: ruleResult.success ? ruleResult.value.ruleId : undefined,
+      });
+    }
     default:
       return new GatewayInternalServerError({
         message,

@@ -2,6 +2,42 @@ import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
 import { asSchema, zodSchema, type StandardSchema } from './schema';
+
+describe('asSchema', () => {
+  it('should create an object schema when no schema is provided', async () => {
+    const schema = asSchema(undefined);
+
+    expect(await schema.jsonSchema).toStrictEqual({
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    });
+  });
+
+  it('should validate with callable standard schemas', async () => {
+    class CallableStandardSchema {
+      static readonly '~standard' = {
+        version: 1 as const,
+        vendor: 'effect',
+        validate: (value: unknown) =>
+          typeof value === 'object' &&
+          value !== null &&
+          'model' in value &&
+          typeof value.model === 'string'
+            ? { value: { model: value.model } }
+            : { issues: [{ message: 'model must be a string' }] },
+      };
+    }
+
+    const schema = asSchema(CallableStandardSchema);
+
+    await expect(schema.validate?.({ model: 'test-model' })).resolves.toEqual({
+      success: true,
+      value: { model: 'test-model' },
+    });
+  });
+});
+
 describe('zodSchema', () => {
   describe('zod/v4', () => {
     describe('json schema conversion', () => {
@@ -170,9 +206,77 @@ describe('zodSchema', () => {
 
         expect(schema.jsonSchema).toMatchSnapshot();
       });
+
+      it('should preserve record value schemas', () => {
+        const schema = zodSchema(
+          z4.object({
+            values: z4.record(z4.string(), z4.string()),
+          }),
+        );
+
+        expect(schema.jsonSchema).toStrictEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: {
+                type: 'string',
+              },
+              additionalProperties: {
+                type: 'string',
+              },
+            },
+          },
+          required: ['values'],
+        });
+      });
+
+      it('should preserve object catchall schemas', () => {
+        const schema = zodSchema(
+          z4.object({ known: z4.string() }).catchall(z4.number()),
+        );
+
+        expect(schema.jsonSchema).toStrictEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          additionalProperties: {
+            type: 'number',
+          },
+          properties: {
+            known: {
+              type: 'string',
+            },
+          },
+          required: ['known'],
+        });
+      });
     });
 
     describe('output validation', () => {
+      it('should return a classic ZodError for invalid output', async () => {
+        const schema = zodSchema(
+          z4.object({
+            text: z4.string(),
+          }),
+        );
+
+        const result = await schema.validate?.({ text: 123 });
+
+        expect(result?.success).toBe(false);
+
+        if (result?.success !== false) {
+          throw new Error('Expected validation to fail');
+        }
+
+        expect(result.error).toBeInstanceOf(z4.ZodError);
+        const error = result.error as z4.ZodError;
+        expect(error.name).toBe('ZodError');
+        expect(typeof error.format).toBe('function');
+        expect(typeof error.flatten).toBe('function');
+      });
+
       it('should validate output with transform', async () => {
         const schema = zodSchema(
           z4.object({

@@ -6,13 +6,15 @@ run(async () => {
   const result = streamText({
     model: mistral('mistral-small-latest'),
     prompt: 'Count from 1 to 3 slowly.',
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
   });
 
   let textChunkCount = 0;
   let rawChunkCount = 0;
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     if (chunk.type === 'text-delta') {
       textChunkCount++;
       console.log('Text chunk', textChunkCount, ':', chunk.text);

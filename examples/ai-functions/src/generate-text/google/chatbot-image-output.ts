@@ -37,6 +37,6 @@ run(async () => {
 
     process.stdout.write('\n\n');
 
-    messages.push(...result.response.messages);
+    messages.push(...result.responseMessages);
   }
 });

@@ -123,13 +123,66 @@ describe('user messages', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "Let me think about this...The answer is 42.",
+          "content": [
+            {
+              "closed": true,
+              "thinking": [
+                {
+                  "text": "Let me think about this...",
+                  "type": "text",
+                },
+              ],
+              "type": "thinking",
+            },
+            {
+              "text": "The answer is 42.",
+              "type": "text",
+            },
+          ],
           "prefix": true,
           "role": "assistant",
           "tool_calls": undefined,
         },
       ]
     `);
+  });
+
+  it('should preserve the ordering of interleaved reasoning and text content', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'reasoning', text: 'First thought.' },
+          { type: 'text', text: 'Partial answer.' },
+          { type: 'reasoning', text: 'Second thought.' },
+          { type: 'text', text: 'Final answer.' },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Continue.' }],
+      },
+    ]);
+
+    expect(result[0]).toEqual({
+      role: 'assistant',
+      content: [
+        {
+          type: 'thinking',
+          thinking: [{ type: 'text', text: 'First thought.' }],
+          closed: true,
+        },
+        { type: 'text', text: 'Partial answer.' },
+        {
+          type: 'thinking',
+          thinking: [{ type: 'text', text: 'Second thought.' }],
+          closed: true,
+        },
+        { type: 'text', text: 'Final answer.' },
+      ],
+      prefix: undefined,
+      tool_calls: undefined,
+    });
   });
 });
 
@@ -265,8 +318,8 @@ describe('tool calls', () => {
               value: [
                 { type: 'text', text: 'Here is the result:' },
                 {
-                  type: 'file-data',
-                  data: 'base64data',
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
                   mediaType: 'image/png',
                 },
               ],
@@ -294,7 +347,7 @@ describe('tool calls', () => {
           ],
         },
         {
-          "content": "[{"type":"text","text":"Here is the result:"},{"type":"file-data","data":"base64data","mediaType":"image/png"}]",
+          "content": "[{"type":"text","text":"Here is the result:"},{"type":"file","data":{"type":"data","data":"base64data"},"mediaType":"image/png"}]",
           "name": "image-tool",
           "role": "tool",
           "tool_call_id": "tool-call-id-3",

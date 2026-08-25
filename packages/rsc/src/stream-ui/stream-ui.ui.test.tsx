@@ -140,6 +140,52 @@ describe('result.value', () => {
     expect(rendered).toMatchSnapshot();
   });
 
+  it('should pass instructions to the model prompt', async () => {
+    let prompt: unknown;
+
+    await streamUI({
+      model: new MockLanguageModelV4({
+        doStream: async options => {
+          prompt = options.prompt;
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '0' },
+              { type: 'text-delta', id: '0', delta: 'Hello' },
+              { type: 'text-end', id: '0' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      instructions: 'You are a helpful assistant.',
+      prompt: 'Hello!',
+    });
+
+    expect(prompt).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "You are a helpful assistant.",
+          "role": "system",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello!",
+              "type": "text",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should render tool call results', async () => {
     const result = await streamUI({
       model: mockToolModel,

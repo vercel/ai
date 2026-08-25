@@ -29,7 +29,9 @@ export class NoObjectGeneratedError extends AISDKError {
   /**
    * The response metadata.
    */
-  readonly response: LanguageModelResponseMetadata | undefined;
+  readonly response:
+    | Omit<LanguageModelResponseMetadata, 'messages'>
+    | undefined;
 
   /**
    * The usage of the model.
@@ -52,7 +54,7 @@ export class NoObjectGeneratedError extends AISDKError {
     message?: string;
     cause?: Error;
     text?: string;
-    response: LanguageModelResponseMetadata;
+    response: Omit<LanguageModelResponseMetadata, 'messages'>;
     usage: LanguageModelUsage;
     finishReason: FinishReason;
   }) {

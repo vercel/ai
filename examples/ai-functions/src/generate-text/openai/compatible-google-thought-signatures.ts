@@ -80,7 +80,7 @@ run(async () => {
   console.log('\nFinal response:');
   console.log(result1.text);
 
-  result1.response.messages.forEach((msg, i) => {
+  result1.responseMessages.forEach((msg, i) => {
     if (msg.role === 'assistant' && typeof msg.content !== 'string') {
       console.log(`Message ${i} (assistant):`);
       msg.content.forEach(part => {
@@ -102,7 +102,7 @@ run(async () => {
       content:
         'Check flight status for AA100 and book a taxi 2 hours before if delayed.',
     },
-    ...result1.response.messages,
+    ...result1.responseMessages,
     {
       role: 'user',
       content: 'Summarize what you did.',

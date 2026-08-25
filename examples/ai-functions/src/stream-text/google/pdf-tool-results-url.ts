@@ -26,8 +26,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'file-url',
-            url: output.pdfUrl,
+            type: 'file',
+            mediaType: 'application/pdf',
+            data: { type: 'url', url: new URL(output.pdfUrl) },
           },
         ],
       };
@@ -44,7 +45,7 @@ run(async () => {
     stopWhen: isStepCount(4),
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta':
         process.stdout.write(part.text);

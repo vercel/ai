@@ -1,5 +1,155 @@
 # @ai-sdk/provider
 
+## 4.0.8
+
+### Patch Changes
+
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+
+## 4.0.7
+
+### Patch Changes
+
+- ad6a650: feat(video): allow `aspectRatio: 'adaptive'` on `generateVideo`
+
+  Some video models derive the output ratio from the input and reject explicit
+  `{width}:{height}` values — BytePlus Seedance 2.5 does this for first-frame,
+  first-and-last-frame, editing, and extension tasks. `aspectRatio` on
+  `VideoModelV3CallOptions`, `VideoModelV4CallOptions`, and
+  `experimental_generateVideo` is now `` `${number}:${number}` | 'adaptive' ``, so
+  those calls no longer need a type assertion. Support is provider-specific.
+
+## 4.0.6
+
+### Patch Changes
+
+- 3469d0c: feat: add batch APIs
+
+## 4.0.5
+
+### Patch Changes
+
+- 79e133c: async APIs for generateVideo (poll, webhook)
+
+  Adds an asynchronous start/status flow to the experimental video model
+  interface (`VideoModelV4`): models may now implement `doStart`, `doStatus`,
+  and `handleWebhookOption` instead of (or in addition to) `doGenerate`, and
+  `experimental_generateVideo` accepts `poll` and `webhook` options to
+  orchestrate completion via polling or webhooks. Polling configuration can use
+  a custom delay implementation for durable workflow compatibility.
+
+## 4.0.4
+
+### Patch Changes
+
+- 1e2f324: feat: add experimental speech translation model specification (`Experimental_SpeechTranslationModelV4`) and `experimental_streamTranslate` for streaming speech-to-speech translation
+
+## 4.0.3
+
+### Patch Changes
+
+- 0f93c57: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+
+## 4.0.2
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+
+## 4.0.1
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+
+## 4.0.0
+
+### Major Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- 776b617: feat(provider): adding new 'custom' content type
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 8359612: Start v7 pre-release
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+- 176466a: chore(provider): align V4 model return types to have their own definitions across all model interfaces
+- 5c2a5a2: fix(provider): fix v4 spec to not use shared v3 types
+- 9f0e36c: trigger release for all packages after provenance setup
+- 008271d: feat(openai-compatible): emit warning when using kebab-case instead of camelCase
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- 0416e3e: feat (video): add first-class `generateAudio` call option
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+
+## 4.0.0-canary.18
+
+### Patch Changes
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+## 4.0.0-canary.17
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+
+## 4.0.0-canary.16
+
+### Major Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+
+## 4.0.0-canary.15
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+
 ## 4.0.0-beta.14
 
 ### Major Changes

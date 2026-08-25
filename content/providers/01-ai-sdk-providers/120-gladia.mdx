@@ -11,21 +11,7 @@ The [Gladia](https://gladia.io/) provider contains language model support for th
 
 The Gladia provider is available in the `@ai-sdk/gladia` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/gladia" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/gladia" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/gladia" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/gladia" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/gladia" />
 
 ## Provider Instance
 
@@ -76,7 +62,7 @@ const model = gladia.transcription();
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `summarize` option will enable summaries for sections of content.
 
 ```ts highlight="7"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { gladia } from '@ai-sdk/gladia';
 import { type GladiaTranscriptionModelOptions } from '@ai-sdk/gladia';
 import { readFile } from 'fs/promises';
@@ -113,7 +99,6 @@ The following provider options are available:
 
   Configuration for custom vocabulary.
   Optional.
-
   - **vocabulary** _Array&lt;string | \{ value: string, intensity?: number, pronunciations?: string[], language?: string \}&gt;_
   - **defaultIntensity** _number_
 
@@ -131,7 +116,6 @@ The following provider options are available:
 
   Configuration for code switching.
   Optional.
-
   - **languages** _string[]_
 
 - **language** _string_
@@ -148,7 +132,6 @@ The following provider options are available:
 
   Configuration for callback.
   Optional.
-
   - **url** _string_
   - **method** _'POST' | 'PUT'_
 
@@ -161,7 +144,6 @@ The following provider options are available:
 
   Configuration for subtitles.
   Optional.
-
   - **formats** _Array&lt;'srt' | 'vtt'&gt;_
   - **minimumDuration** _number_
   - **maximumDuration** _number_
@@ -178,7 +160,6 @@ The following provider options are available:
 
   Configuration for diarization.
   Optional.
-
   - **numberOfSpeakers** _number_
   - **minSpeakers** _number_
   - **maxSpeakers** _number_
@@ -193,7 +174,6 @@ The following provider options are available:
 
   Configuration for translation.
   Optional.
-
   - **targetLanguages** _string[]_
   - **model** _'base' | 'enhanced'_
   - **matchOriginalUtterances** _boolean_
@@ -207,7 +187,6 @@ The following provider options are available:
 
   Configuration for summarization.
   Optional.
-
   - **type** _'general' | 'bullet_points' | 'concise'_
 
 - **moderation** _boolean_
@@ -239,7 +218,6 @@ The following provider options are available:
 
   Configuration for custom spelling.
   Optional.
-
   - **spellingDictionary** _Record&lt;string, string[]&gt;_
 
 - **structuredDataExtraction** _boolean_
@@ -251,7 +229,6 @@ The following provider options are available:
 
   Configuration for structured data extraction.
   Optional.
-
   - **classes** _string[]_
 
 - **sentimentAnalysis** _boolean_
@@ -268,7 +245,6 @@ The following provider options are available:
 
   Configuration for audio to LLM.
   Optional.
-
   - **prompts** _string[]_
 
 - **customMetadata** _Record&lt;string, any&gt;_
@@ -293,6 +269,6 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model     | Transcription       | Duration            | Segments            | Language            |
-| --------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `Default` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model     | Transcription | Duration  | Segments  | Language  |
+| --------- | ------------- | --------- | --------- | --------- |
+| `Default` | <Check />     | <Check /> | <Check /> | <Check /> |

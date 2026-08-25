@@ -79,4 +79,30 @@ export default defineConfig([
     },
     outDir: 'dist/maas/edge',
   },
+  {
+    entry: ['src/xai/index.ts'],
+    format: ['esm'],
+    dts: true,
+    sourcemap: true,
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+    outDir: 'dist/xai',
+  },
+  {
+    entry: ['src/xai/edge/index.ts'],
+    format: ['esm'],
+    dts: true,
+    sourcemap: true,
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+    outDir: 'dist/xai/edge',
+  },
 ]);

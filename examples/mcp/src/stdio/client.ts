@@ -36,7 +36,7 @@ async function main() {
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
-      system: 'You are an expert in Pokemon',
+      instructions: 'You are an expert in Pokemon',
       prompt:
         'Which Pokemon could best defeat Feebas? Choose one and share details about it.',
     });

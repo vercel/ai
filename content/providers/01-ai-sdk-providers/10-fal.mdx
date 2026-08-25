@@ -11,21 +11,7 @@ description: Learn how to use Fal AI models with the AI SDK.
 
 The Fal provider is available via the `@ai-sdk/fal` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/fal" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/fal" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/fal" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/fal" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/fal" />
 
 ## Provider Instance
 
@@ -219,7 +205,7 @@ const model = fal.transcription('wizper');
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `batchSize` option will increase the number of audio chunks processed in parallel.
 
 ```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { fal, type FalTranscriptionModelOptions } from '@ai-sdk/fal';
 import { readFile } from 'fs/promises';
 
@@ -265,10 +251,10 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model     | Transcription       | Duration            | Segments            | Language            |
-| --------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `wizper`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model     | Transcription | Duration  | Segments  | Language  |
+| --------- | ------------- | --------- | --------- | --------- |
+| `whisper` | <Check />     | <Check /> | <Check /> | <Check /> |
+| `wizper`  | <Check />     | <Check /> | <Check /> | <Check /> |
 
 ## Speech Models
 
@@ -277,7 +263,7 @@ You can create models that call Fal text-to-speech endpoints using the `.speech(
 ### Basic Usage
 
 ```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const result = await generateSpeech({
@@ -303,7 +289,6 @@ const result = await generateSpeech({
 Pass provider-specific options via `providerOptions.fal` depending on the model:
 
 - **voice_setting** _object_
-
   - `voice_id` (string): predefined voice ID
   - `speed` (number): 0.5–2.0
   - `vol` (number): 0–10

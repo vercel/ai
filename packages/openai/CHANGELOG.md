@@ -1,5 +1,798 @@
 # @ai-sdk/openai
 
+## 4.0.47
+
+### Patch Changes
+
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- 2214258: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.46
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.45
+
+### Patch Changes
+
+- 6be0f51: fix(openai): expand internal parallel tool call wrappers from the Responses API while preserving stateful continuation and streaming fallbacks
+
+## 4.0.44
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.43
+
+### Patch Changes
+
+- a062795: fix(openai): support built-in and provider-defined tools in the Responses `allowedTools` option
+
+  `allowedTools` emitted every allow-list entry as `{ type: 'function', name }`, but OpenAI identifies
+  built-in tools by type. Allow-listing a declared provider-defined tool (web search, image generation,
+  MCP, custom, ...) therefore failed with `Tool choice '<name>' not found in 'tools' parameter`. Entries
+  are now derived from the declared tool, including the MCP server label and custom tool name.
+
+  Tools that OpenAI cannot allow-list (the tool search tool, deferred tools, and namespaced tools) are
+  dropped from the allow-list with a warning, and an error is thrown if that would leave the allow-list
+  empty rather than silently sending an unrestricted request.
+
+  Ambiguous names are now reported instead of resolved silently. A name that matches both a declared tool
+  and another tool's provider tool name resolves to the declared tool and warns; a provider tool name
+  shared by several tools in the same request (two MCP servers, for example) is dropped with a warning.
+  A name that matches no declared tool keeps its existing behavior and is now warned about.
+
+## 4.0.42
+
+### Patch Changes
+
+- b6fff2e: feat(provider/openai): support explicit Responses compaction triggers
+
+## 4.0.41
+
+### Patch Changes
+
+- 59d6def: Reconstruct provider-executed shell calls when continuing OpenAI Responses with storage disabled.
+
+## 4.0.40
+
+### Patch Changes
+
+- e19a4a6: Avoid duplicate MCP approval request references when continuing stored OpenAI Responses.
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.38
+
+### Patch Changes
+
+- d302134: Keep client-executed function calls paired with their outputs when chaining OpenAI Responses with a previous response ID.
+
+## 4.0.37
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.36
+
+### Patch Changes
+
+- 6157098: fix(openai): serialize tool text outputs when an output schema is configured
+- 4cd4548: Accept `serviceTier: 'fast'` on OpenAI chat and responses models. OpenAI renamed priority processing to Fast mode and accepts `service_tier: 'fast'` and `'priority'` interchangeably, so `'fast'` is now passed through verbatim and gated on the same model capability as `'priority'`.
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.34
+
+### Patch Changes
+
+- 73d48d0: fix(provider/openai): correlate rotating Responses API item IDs by output index
+- bbd9b31: chore: rename `*TranslationModel` and its related types to `*SpeechTranslationModel` for consistency
+
+## 4.0.33
+
+### Patch Changes
+
+- e6a93c4: feat(openai): support batch APIs with experimental_startTextBatch
+
+## 4.0.32
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.31
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.30
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.29
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.27
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.26
+
+### Patch Changes
+
+- f7c4a38: Serialize file upload expiry settings in the multipart field shape accepted by OpenAI.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.25
+
+### Patch Changes
+
+- beaecb3: fix(provider/openai): resolve responses doStream at response.in_progress instead of first output token
+
+  The early-stream-error peek treated `response.in_progress` as an unknown chunk, so `doStream` did not resolve until the first output item arrived — delaying stream availability (and downstream TTFB for proxies/gateways) by the model's full time-to-first-token. `response.in_progress` is now modeled in the chunk schema and marks the request as accepted: the peek keeps watching for error frames for a short grace window (50ms) so quota/rate-limit errors flushed alongside `response.in_progress` still throw as retryable `APICallError`s, while healthy streams become available right after upstream acknowledges the request.
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.24
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.23
+
+### Patch Changes
+
+- 96a237d: Add blocked domain filters to the OpenAI and Azure Responses API web search tools.
+
+## 4.0.22
+
+### Patch Changes
+
+- c49380c: feat: add experimental streaming speech translation models (`openai.translation('gpt-realtime-translate')` over the OpenAI Realtime translations WebSocket and `google.translation('gemini-3.5-live-translate-preview')` over the Gemini Live API). `connectToWebSocket` in `@ai-sdk/provider-utils` now passes close code and reason to `onClose` (additive, optional parameter).
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.21
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.20
+
+### Patch Changes
+
+- 1f6dd3a: Add OpenAI Responses Programmatic Tool Calling with hosted program tools, function caller controls, structured output schemas, and multi-step continuation support.
+
+## 4.0.19
+
+### Patch Changes
+
+- 34c53c0: Apply reasoning, service tier, and image defaults to recognizable future OpenAI model family versions.
+
+## 4.0.18
+
+### Patch Changes
+
+- bc43dc2: Preserve stored tool search output item IDs from provider metadata.
+
+## 4.0.17
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.16
+
+### Patch Changes
+
+- 75f86f4: fix(provider/openai, provider/open-responses): throw a descriptive error when the Responses API returns a 200 with no `output`
+
+  A successful (200) Responses body missing the `output` array previously threw an opaque `output is not iterable` TypeError from `doGenerate`. Both providers now surface a clear `APICallError` ("Responses API returned no output …"), including the incomplete-details reason (and status, for open-responses) when present. When the body includes a `response.error`, its message is surfaced first so upstream error details aren't masked by the generic fallback. This makes malformed/incomplete upstream responses actionable instead of a cryptic crash.
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.15
+
+### Patch Changes
+
+- 0063c2d: Add the client-executed OpenAI Responses API computer tool with batched actions and screenshot outputs.
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 4.0.13
+
+### Patch Changes
+
+- 7805e4a: Fix realtime transcription auth header handling: per-call `authorization` headers now override configuration headers regardless of header-key casing (last case-variant wins), and the `Bearer` scheme is matched case-insensitively.
+- cd12954: Reject empty OpenAI, Anthropic, and Replicate base URLs with a helpful AI SDK
+  invalid argument error.
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 4.0.12
+
+### Patch Changes
+
+- e193290: Add `connectToWebSocket` to `@ai-sdk/provider-utils`: a shared WebSocket connect layer (constructor resolution, header hygiene, abort wiring, message decoding) analogous to `postToApi` for HTTP. The openai and xai streaming transcription models now use it instead of hand-rolled connects. For openai and xai this also means WebSocket constructor failures now surface as stream errors instead of throwing synchronously from `doStream`, an already-aborted signal no longer constructs a socket, and the caller's audio stream is cancelled on pre-open failures. Messages are processed in order with close handling deferred behind pending frames, audio send loops apply backpressure via the socket's bufferedAmount, and failed sends cancel the caller's audio stream.
+- e193290: Fix streaming transcription over header-capable WebSocket implementations: the realtime WebSocket handshake sent the api key in both the `openai-insecure-api-key` subprotocol and the `Authorization` header, which OpenAI rejects ("You must only send one of protocol api key and Authorization header"). The Authorization header is now stripped when the subprotocol carries the key.
+- e193290: Strip undefined header values before the streaming transcription WebSocket constructor (header-capable implementations like `ws` throw on undefined values).
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
+## 4.0.11
+
+### Patch Changes
+
+- b2b1bb9: feat(provider/openai): add GPT-5.6 reasoning and prompt cache controls
+
+## 4.0.10
+
+### Patch Changes
+
+- fdb6d5d: feat(provider/openai,provider/gateway): add gpt-5.6 model ids
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.9
+
+### Patch Changes
+
+- ac306ed: Fix `StreamingToolCallTracker` finalizing streaming tool calls on parsable partial JSON. Tool calls now only finalize during stream flush, restoring the behavior of #13137: a parsable argument buffer can still be the prefix of a longer argument string, so finalizing early could act on truncated tool inputs.
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 4.0.8
+
+### Patch Changes
+
+- b51ed36: Send inline image file parts in OpenAI chat requests as data URLs instead of bare base64 strings.
+
+## 4.0.7
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 4.0.6
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.3
+
+### Patch Changes
+
+- 1ead90c: Return a helpful error when the Responses stream parser receives Chat Completions chunks.
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 4.0.1
+
+### Patch Changes
+
+- 9507724: feat(openai): add support for web_search_call.results include option
+
+## 4.0.0
+
+### Major Changes
+
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- 61753c3: ### `@ai-sdk/openai`: remove redundant `name` argument from `openai.tools.customTool()`
+
+  `openai.tools.customTool()` no longer accepts a `name` field. the tool name is now derived from the sdk tool key (the object key in the `tools` object).
+
+  migration: remove the `name` property from `customTool()` calls. the object key is now used as the tool name sent to the openai api.
+
+  before:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      name: 'write_sql',
+      description: '...',
+    }),
+  }
+  ```
+
+  after:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      description: '...',
+    }),
+  }
+  ```
+
+  ### `@ai-sdk/provider-utils`: `createToolNameMapping()` no longer accepts the `resolveProviderToolName` parameter
+
+  before: tool name can be set dynamically
+
+  ```ts
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      "openai.code_interpreter": "code_interpreter",
+      "openai.file_search": "file_search",
+      "openai.image_generation": "image_generation",
+      "openai.local_shell": "local_shell",
+      "openai.shell": "shell",
+      "openai.web_search": "web_search",
+      "openai.web_search_preview": "web_search_preview",
+      "openai.mcp": "mcp",
+      "openai.apply_patch": "apply_patch",
+    },
+    resolveProviderToolName: (tool) =>
+      tool.id === "openai.custom"
+        ? (tool.args as { name?: string }).name
+        : undefined,
+  });
+  ```
+
+  after: tool name is static based on `tools` keys
+
+  ```
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      'openai.code_interpreter': 'code_interpreter',
+      'openai.file_search': 'file_search',
+      'openai.image_generation': 'image_generation',
+      'openai.local_shell': 'local_shell',
+      'openai.shell': 'shell',
+      'openai.web_search': 'web_search',
+      'openai.web_search_preview': 'web_search_preview',
+      'openai.mcp': 'mcp',
+      'openai.apply_patch': 'apply_patch',
+    }
+  });
+  ```
+
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- 29e6ac6: feat: add allowedTools provider option for OpenAI Responses
+- 38fc777: Add AI Gateway hint to provider READMEs
+- a71d345: fix(provider/openai): drop reasoning parts without encrypted content when store: false
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+- 365da1a: Add `gpt-5.4-mini`, `gpt-5.4-mini-2026-03-17`, `gpt-5.4-nano`, and `gpt-5.4-nano-2026-03-17` models.
+- 1772a63: Default OpenAI Responses reasoning summaries to detailed when reasoning effort is enabled.
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+- 45b3d76: fix(security): prevent streaming tool calls from finalizing on parsable partial JSON
+
+  Streaming tool call arguments were finalized using `isParsableJson()` as a heuristic for completion. If partial accumulated JSON happened to be valid JSON before all chunks arrived, the tool call would be executed with incomplete arguments. Tool call finalization now only occurs in `flush()` after the stream is fully consumed.
+
+- bf837fe: feat(provider/gateway): add speech and transcription model support
+- d6c79e3: feat(openai): add GPT-5.5 chat model IDs
+- e776fc7: feat(provider/azure):web search tool in the Azure OpenAI Responses API.
+- 817a1a6: fix(openai): support file-url parts in tool output content
+- 1f509d4: fix(ai): force template check on 'kind' param
+- 0c4ac8a: fix(openai): default undefined tool-call input to empty object before serializing tool arguments
+- 9f0e36c: trigger release for all packages after provenance setup
+- 58a2ad7: fix: more precise default message for tool execution denial
+- 6a5800e: feat(openai): add namespaces for tool definitions
+- ae7f932: fix(openai): throw retryable errors for OpenAI stream failures before output starts
+- 2c4767d: feat(openai): add orchestration token usage details to Responses API usage
+- bada0f3: feat(openai): preserve `namespace` on function_call output items
+- cd3de8b: feat(openai): forward `web_search_call.action.queries` from Responses API
+- 94eba1b: fix(openai): round-trip `namespace` on function_call input items
+
+  When `tool_search` dispatches a deferred tool, the resulting `function_call` carries a `namespace` field identifying which deferred-tool group the model picked. `#14789` preserved this on the read side (`providerMetadata.openai.namespace`), but the write side still serialized `function_call` input items without `namespace`. Multi-step / multi-turn conversations then failed with `Missing namespace for function_call '<name>'. ... Round-trip the model's function_call item with its namespace field included.`
+
+  `convert-to-openai-responses-input.ts` now reads `namespace` from `providerOptions.openai.namespace` (or `providerMetadata.openai.namespace`) on `tool-call` parts and includes it on the serialized `function_call` item, mirroring how `itemId` is round-tripped.
+
+- 7bbc194: feat(provider/openai): forward imageDetail providerOptions on tool-result image content
+- 156cdf0: feat(openai): add new tool search tool
+- f7295cb: revert incorrect fix https://github.com/vercel/ai/pull/13172
+- 9ea40e0: chore(provider/openai): add type for image model options for type-safe processing
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- f807e45: Extract shared `StreamingToolCallTracker` class into `@ai-sdk/provider-utils` to deduplicate streaming tool call handling across OpenAI-compatible providers. Also adds missing `generateId()` fallback for `toolCallId` in Alibaba's `doGenerate` path and ensures all providers finalize unfinished tool calls during stream flush.
+- d9a1e9a: feat(openai): add server side compaction for openai
+- 0c4c275: trigger initial canary release
+- ac18f89: feat(provider/openai): add `gpt-5.3-chat-latest`
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- cd9c311: fix(openai, openai-compatible): only send null content for assistant messages with tool calls
+- e6376c2: fix(openai): preserve raw finish reason for failed responses stream events
+
+  Handle `response.failed` chunks in Responses API streaming so `finishReason.raw` is preserved from `incomplete_details.reason` (e.g. `max_output_tokens`), and map failed-without-reason cases to unified `error` instead of `other`.
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 685cec7: feat(openai): add opt-in pass-through for unsupported file media types
+- 61bcdb5: fix(provider/openai): send client-executed tool calls as full function_call items in the Responses API so they pair with their function_call_output by call_id
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- b8396f0: trigger initial beta release
+- bfb756d: patch - send content: null instead of empty string for tool-only assistant messages
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- 17b5597: fix(openai): skip passing reasoning items when using previous response id
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- f9acbc0: feat(provider/openai): add gpt-image-2 model support
+
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- 2c4767d: feat(openai): add orchestration token usage details to Responses API usage
+
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- 1772a63: Default OpenAI Responses reasoning summaries to detailed when reasoning effort is enabled.
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- ae7f932: fix(openai): throw retryable errors for OpenAI stream failures before output starts
+
+## 4.0.0-canary.70
+
+### Patch Changes
+
+- 6a5800e: feat(openai): add namespaces for tool definitions
+
+## 4.0.0-canary.69
+
+### Patch Changes
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- 94eba1b: fix(openai): round-trip `namespace` on function_call input items
+
+  When `tool_search` dispatches a deferred tool, the resulting `function_call` carries a `namespace` field identifying which deferred-tool group the model picked. `#14789` preserved this on the read side (`providerMetadata.openai.namespace`), but the write side still serialized `function_call` input items without `namespace`. Multi-step / multi-turn conversations then failed with `Missing namespace for function_call '<name>'. ... Round-trip the model's function_call item with its namespace field included.`
+
+  `convert-to-openai-responses-input.ts` now reads `namespace` from `providerOptions.openai.namespace` (or `providerMetadata.openai.namespace`) on `tool-call` parts and includes it on the serialized `function_call` item, mirroring how `itemId` is round-tripped.
+
+## 4.0.0-canary.67
+
+### Patch Changes
+
+- 61bcdb5: fix(provider/openai): send client-executed tool calls as full function_call items in the Responses API so they pair with their function_call_output by call_id
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 4.0.0-canary.66
+
+### Patch Changes
+
+- e776fc7: feat(provider/azure):web search tool in the Azure OpenAI Responses API.
+
+## 4.0.0-canary.65
+
+### Patch Changes
+
+- cd3de8b: feat(openai): forward `web_search_call.action.queries` from Responses API
+
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 4.0.0-canary.63
+
+### Patch Changes
+
+- 17b5597: fix(openai): skip passing reasoning items when using previous response id
+
+## 4.0.0-canary.62
+
+### Patch Changes
+
+- bf837fe: feat(provider/gateway): add speech and transcription model support
+
+## 4.0.0-canary.61
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.60
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- 685cec7: feat(openai): add opt-in pass-through for unsupported file media types
+
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.55
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 4.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- 29e6ac6: feat: add allowedTools provider option for OpenAI Responses
+
+## 4.0.0-canary.49
+
+### Patch Changes
+
+- 7bbc194: feat(provider/openai): forward imageDetail providerOptions on tool-result image content
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 4.0.0-canary.48
+
+### Patch Changes
+
+- d6c79e3: feat(openai): add GPT-5.5 chat model IDs
+
+## 4.0.0-canary.47
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 4.0.0-canary.46
+
+### Patch Changes
+
+- cd9c311: fix(openai, openai-compatible): only send null content for assistant messages with tool calls
+
+## 4.0.0-canary.45
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- bada0f3: feat(openai): preserve `namespace` on function_call output items
+
 ## 4.0.0-beta.43
 
 ### Patch Changes
@@ -606,7 +1399,6 @@
 ### Patch Changes
 
 - 04c89b1: Provide Responses API providerMetadata types at the message / reasoning level.
-
   - Export the following types for use in client code:
     - `OpenaiResponsesProviderMetadata`
     - `OpenaiResponsesReasoningProviderMetadata`
@@ -687,7 +1479,6 @@
 ### Patch Changes
 
 - 330bd92: Fix Responses `code_interpreter` annotations and add typed providerMetadata
-
   - Align Responses API `code_interpreter` annotation types with the official spec.
   - Add tests to ensure the overlapping parts of the Zod schemas used by `doGenerate` and `doStream` stay in sync.
   - Export the following types for use in client code:

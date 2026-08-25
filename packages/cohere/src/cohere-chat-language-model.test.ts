@@ -1,9 +1,6 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { createCohere } from './cohere-provider';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -55,6 +52,16 @@ function prepareChunksFixtureResponse(
     type: 'stream-chunks',
     headers,
     chunks,
+  };
+}
+
+function prepareChunkLinesResponse(chunks: Array<Record<string, unknown>>) {
+  server.urls['https://api.cohere.com/v2/chat'].response = {
+    type: 'stream-chunks',
+    chunks: chunks.map(chunk => {
+      const line = JSON.stringify(chunk);
+      return `event: ${chunk.type}\ndata: ${line}\n\n`;
+    }),
   };
 }
 
@@ -838,6 +845,62 @@ describe('doStream', () => {
           chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id,
         );
     });
+
+    it('rejects prototype keys in streamed tool call arguments', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'tool-call-start',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: {
+                id: 'test-tool-call',
+                type: 'function',
+                function: { name: 'test-tool', arguments: '' },
+              },
+            },
+          },
+        },
+        {
+          type: 'tool-call-delta',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: {
+                function: {
+                  arguments: '{"__proto__":{"polluted":true}}',
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'tool-call-end',
+          index: 0,
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: true,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        includeRawChunks: false,
+      });
+
+      await expect(convertReadableStreamToArray(stream)).rejects.toThrow(
+        'Object contains forbidden prototype property',
+      );
+    });
   });
 
   describe('empty tool call', () => {
@@ -869,22 +932,19 @@ describe('doStream', () => {
   });
 
   describe('error handling', () => {
-    it.skipIf(isNodeVersion(20))(
-      'should handle unparsable stream parts',
-      async () => {
-        server.urls['https://api.cohere.com/v2/chat'].response = {
-          type: 'stream-chunks',
-          chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
-        };
+    it('should handle unparsable stream parts', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
+      };
 
-        const { stream } = await model.doStream({
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
 
-        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
-      },
-    );
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
   });
 
   describe('request', () => {

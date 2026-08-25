@@ -3,7 +3,9 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
+import { toUIMessageStream } from './to-ui-message-stream';
 
 describe('createUIMessageStreamResponse', () => {
   beforeEach(() => {
@@ -51,6 +53,45 @@ describe('createUIMessageStreamResponse', () => {
     ).toMatchInlineSnapshot(`
       [
         "data: {"type":"text-delta","id":"1","delta":"test-data"}
+
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
+  });
+
+  it('can respond with a stream created by toUIMessageStream', async () => {
+    const response = createUIMessageStreamResponse({
+      status: 200,
+      stream: toUIMessageStream({
+        stream: convertArrayToReadableStream([
+          { type: 'start' },
+          { type: 'text-start', id: 't1' },
+          { type: 'text-delta', id: 't1', text: 'Hello' },
+          { type: 'text-end', id: 't1' },
+        ] satisfies TextStreamPart<{}>[]),
+        generateMessageId: () => 'msg-123',
+      }),
+    });
+
+    expect(
+      await convertReadableStreamToArray(
+        response.body!.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"start","messageId":"msg-123"}
+
+      ",
+        "data: {"type":"text-start","id":"t1"}
+
+      ",
+        "data: {"type":"text-delta","id":"t1","delta":"Hello"}
+
+      ",
+        "data: {"type":"text-end","id":"t1"}
 
       ",
         "data: [DONE]

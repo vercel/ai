@@ -11,12 +11,33 @@ export type AnthropicPrompt = {
   messages: AnthropicMessage[];
 };
 
-export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
+export type AnthropicMessage =
+  | AnthropicUserMessage
+  | AnthropicAssistantMessage
+  | AnthropicSystemMessage;
 
 export type AnthropicCacheControl = {
   type: 'ephemeral';
   ttl?: '5m' | '1h';
 };
+
+export interface AnthropicSystemMessage {
+  role: 'system';
+  content: Array<AnthropicTextContent | AnthropicToolChangeContent>;
+}
+
+/**
+ * Mid-conversation tool change content block. Adds or removes a tool from the
+ * conversation's tool set without invalidating the prompt cache.
+ *
+ * Only valid inside system messages that appear in the `messages` array.
+ * Requires the `mid-conversation-tool-changes-2026-07-01` beta.
+ */
+export interface AnthropicToolChangeContent {
+  type: 'tool_addition' | 'tool_removal';
+  tool: { type: 'tool_reference'; name: string };
+  cache_control?: never;
+}
 
 export interface AnthropicUserMessage {
   role: 'user';
@@ -24,6 +45,7 @@ export interface AnthropicUserMessage {
     | AnthropicTextContent
     | AnthropicImageContent
     | AnthropicDocumentContent
+    | AnthropicContainerUploadContent
     | AnthropicToolResultContent
   >;
 }
@@ -42,6 +64,7 @@ export interface AnthropicAssistantMessage {
     | AnthropicToolSearchToolResultContent
     | AnthropicBashCodeExecutionToolResultContent
     | AnthropicTextEditorCodeExecutionToolResultContent
+    | AnthropicAdvisorToolResultContent
     | AnthropicMcpToolUseContent
     | AnthropicMcpToolResultContent
     | AnthropicCompactionContent
@@ -57,6 +80,7 @@ export interface AnthropicCompactionContent {
 export interface AnthropicTextContent {
   type: 'text';
   text: string;
+  citations?: Citation[];
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -112,6 +136,12 @@ export interface AnthropicDocumentContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicContainerUploadContent {
+  type: 'container_upload';
+  file_id: string;
+  cache_control?: never;
+}
+
 /**
  * The caller information for programmatic tool calling.
  * Present when a tool is called from within code execution.
@@ -155,8 +185,11 @@ export interface AnthropicServerToolUseContent {
     | 'text_editor_code_execution'
     // tool search:
     | 'tool_search_tool_regex'
-    | 'tool_search_tool_bm25';
+    | 'tool_search_tool_bm25'
+    // advisor:
+    | 'advisor';
   input: unknown;
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -206,13 +239,19 @@ export interface AnthropicToolResultContent {
 export interface AnthropicWebSearchToolResultContent {
   type: 'web_search_tool_result';
   tool_use_id: string;
-  content: Array<{
-    url: string;
-    title: string | null;
-    page_age: string | null;
-    encrypted_content: string;
-    type: string;
-  }>;
+  content:
+    | Array<{
+        url: string;
+        title: string | null;
+        page_age: string | null;
+        encrypted_content: string;
+        type: string;
+      }>
+    | {
+        type: 'web_search_tool_result_error';
+        error_code: string;
+      };
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -314,6 +353,32 @@ export interface AnthropicBashCodeExecutionToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicAdvisorToolResultContent {
+  type: 'advisor_tool_result';
+  tool_use_id: string;
+  content:
+    | {
+        type: 'advisor_result';
+        text: string;
+        stop_reason?: string;
+      }
+    | {
+        type: 'advisor_redacted_result';
+        encrypted_content: string;
+        stop_reason?: string;
+      }
+    | {
+        type: 'advisor_tool_result_error';
+        /**
+         * Available options: `max_uses_exceeded`, `too_many_requests`,
+         * `overloaded`, `prompt_too_long`, `execution_time_exceeded`,
+         * `unavailable`.
+         */
+        error_code: string;
+      };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export interface AnthropicWebFetchToolResultContent {
   type: 'web_fetch_tool_result';
   tool_use_id: string;
@@ -335,6 +400,7 @@ export interface AnthropicWebFetchToolResultContent {
         type: 'web_fetch_tool_result_error';
         error_code: string;
       };
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 export interface AnthropicMcpToolUseContent {
@@ -463,6 +529,17 @@ export type AnthropicTool =
   | {
       type: 'tool_search_tool_bm25_20251119';
       name: string;
+    }
+  | {
+      type: 'advisor_20260301';
+      name: 'advisor';
+      model: string;
+      max_uses?: number;
+      max_tokens?: number;
+      caching?: {
+        type: 'ephemeral';
+        ttl: '5m' | '1h';
+      };
     };
 
 export type AnthropicSpeed = 'fast' | 'standard';
@@ -555,6 +632,29 @@ export type AnthropicResponseContextManagement = {
   applied_edits: AnthropicResponseContextManagementEdit[];
 };
 
+const anthropicStopDetailsSchema = z.object({
+  type: z.string(),
+  category: z.string().nullish(),
+  explanation: z.string().nullish(),
+  recommended_model: z.string().nullish(),
+});
+
+export type AnthropicStopDetails = z.infer<typeof anthropicStopDetailsSchema>;
+
+const anthropicToolCallCallerSchema = z.union([
+  z.object({
+    type: z.literal('code_execution_20250825'),
+    tool_id: z.string(),
+  }),
+  z.object({
+    type: z.literal('code_execution_20260120'),
+    tool_id: z.string(),
+  }),
+  z.object({
+    type: z.literal('direct'),
+  }),
+]);
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const anthropicResponseSchema = lazySchema(() =>
@@ -617,38 +717,14 @@ export const anthropicResponseSchema = lazySchema(() =>
             name: z.string(),
             input: z.unknown(),
             // Programmatic tool calling: caller info when triggered from code execution
-            caller: z
-              .union([
-                z.object({
-                  type: z.literal('code_execution_20250825'),
-                  tool_id: z.string(),
-                }),
-                z.object({
-                  type: z.literal('code_execution_20260120'),
-                  tool_id: z.string(),
-                }),
-                z.object({
-                  type: z.literal('direct'),
-                }),
-              ])
-              .optional(),
+            caller: anthropicToolCallCallerSchema.optional(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
-            caller: z
-              .union([
-                z.object({
-                  type: z.literal('code_execution_20260120'),
-                  tool_id: z.string(),
-                }),
-                z.object({
-                  type: z.literal('direct'),
-                }),
-              ])
-              .optional(),
+            caller: anthropicToolCallCallerSchema.optional(),
           }),
           z.object({
             type: z.literal('mcp_tool_use'),
@@ -671,6 +747,7 @@ export const anthropicResponseSchema = lazySchema(() =>
           z.object({
             type: z.literal('web_fetch_tool_result'),
             tool_use_id: z.string(),
+            caller: anthropicToolCallCallerSchema.optional(),
             content: z.union([
               z.object({
                 type: z.literal('web_fetch_result'),
@@ -703,6 +780,7 @@ export const anthropicResponseSchema = lazySchema(() =>
           z.object({
             type: z.literal('web_search_tool_result'),
             tool_use_id: z.string(),
+            caller: anthropicToolCallCallerSchema.optional(),
             content: z.union([
               z.array(
                 z.object({
@@ -836,21 +914,62 @@ export const anthropicResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // advisor results for advisor_20260301:
+          z.object({
+            type: z.literal('advisor_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('advisor_result'),
+                text: z.string(),
+                stop_reason: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('advisor_redacted_result'),
+                encrypted_content: z.string(),
+                stop_reason: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('advisor_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
+          // Server-side fallback marker. Parsed so the response validates, but
+          // dropped from the content output (the AI SDK has no model-hop
+          // primitive). The hop remains observable via usage.iterations.
+          z.object({
+            type: z.literal('fallback'),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
       stop_sequence: z.string().nullish(),
+      stop_details: anthropicStopDetailsSchema.nullish(),
       usage: z.looseObject({
         input_tokens: z.number(),
         output_tokens: z.number(),
+        output_tokens_details: z
+          .object({
+            thinking_tokens: z.number().nullish(),
+          })
+          .nullish(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
         iterations: z
           .array(
             z.object({
-              type: z.union([z.literal('compaction'), z.literal('message')]),
+              type: z.union([
+                z.literal('compaction'),
+                z.literal('message'),
+                z.literal('advisor_message'),
+                z.literal('fallback_message'),
+              ]),
+              model: z.string().nullish(),
               input_tokens: z.number(),
               output_tokens: z.number(),
+              cache_creation_input_tokens: z.number().nullish(),
+              cache_read_input_tokens: z.number().nullish(),
             }),
           )
           .nullish(),
@@ -920,21 +1039,7 @@ export const anthropicChunkSchema = lazySchema(() =>
                   id: z.string(),
                   name: z.string(),
                   input: z.unknown(),
-                  caller: z
-                    .union([
-                      z.object({
-                        type: z.literal('code_execution_20250825'),
-                        tool_id: z.string(),
-                      }),
-                      z.object({
-                        type: z.literal('code_execution_20260120'),
-                        tool_id: z.string(),
-                      }),
-                      z.object({
-                        type: z.literal('direct'),
-                      }),
-                    ])
-                    .optional(),
+                  caller: anthropicToolCallCallerSchema.optional(),
                 }),
               ]),
             )
@@ -967,21 +1072,7 @@ export const anthropicChunkSchema = lazySchema(() =>
             // Programmatic tool calling: input may be present directly for deferred tool calls
             input: z.record(z.string(), z.unknown()).optional(),
             // Programmatic tool calling: caller info when triggered from code execution
-            caller: z
-              .union([
-                z.object({
-                  type: z.literal('code_execution_20250825'),
-                  tool_id: z.string(),
-                }),
-                z.object({
-                  type: z.literal('code_execution_20260120'),
-                  tool_id: z.string(),
-                }),
-                z.object({
-                  type: z.literal('direct'),
-                }),
-              ])
-              .optional(),
+            caller: anthropicToolCallCallerSchema.optional(),
           }),
           z.object({
             type: z.literal('redacted_thinking'),
@@ -996,17 +1087,7 @@ export const anthropicChunkSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
-            caller: z
-              .union([
-                z.object({
-                  type: z.literal('code_execution_20260120'),
-                  tool_id: z.string(),
-                }),
-                z.object({
-                  type: z.literal('direct'),
-                }),
-              ])
-              .optional(),
+            caller: anthropicToolCallCallerSchema.optional(),
           }),
           z.object({
             type: z.literal('mcp_tool_use'),
@@ -1029,6 +1110,7 @@ export const anthropicChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('web_fetch_tool_result'),
             tool_use_id: z.string(),
+            caller: anthropicToolCallCallerSchema.optional(),
             content: z.union([
               z.object({
                 type: z.literal('web_fetch_result'),
@@ -1061,6 +1143,7 @@ export const anthropicChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('web_search_tool_result'),
             tool_use_id: z.string(),
+            caller: anthropicToolCallCallerSchema.optional(),
             content: z.union([
               z.array(
                 z.object({
@@ -1193,6 +1276,32 @@ export const anthropicChunkSchema = lazySchema(() =>
                 error_code: z.string(),
               }),
             ]),
+          }),
+          // advisor results for advisor_20260301:
+          z.object({
+            type: z.literal('advisor_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('advisor_result'),
+                text: z.string(),
+                stop_reason: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('advisor_redacted_result'),
+                encrypted_content: z.string(),
+                stop_reason: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('advisor_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
+          // Server-side fallback marker; dropped from content output (see the
+          // response schema). The hop remains observable via usage.iterations.
+          z.object({
+            type: z.literal('fallback'),
           }),
         ]),
       }),
@@ -1266,6 +1375,7 @@ export const anthropicChunkSchema = lazySchema(() =>
         delta: z.object({
           stop_reason: z.string().nullish(),
           stop_sequence: z.string().nullish(),
+          stop_details: anthropicStopDetailsSchema.nullish(),
           container: z
             .object({
               expires_at: z.string(),
@@ -1288,14 +1398,27 @@ export const anthropicChunkSchema = lazySchema(() =>
         usage: z.looseObject({
           input_tokens: z.number().nullish(),
           output_tokens: z.number(),
+          output_tokens_details: z
+            .object({
+              thinking_tokens: z.number().nullish(),
+            })
+            .nullish(),
           cache_creation_input_tokens: z.number().nullish(),
           cache_read_input_tokens: z.number().nullish(),
           iterations: z
             .array(
               z.object({
-                type: z.union([z.literal('compaction'), z.literal('message')]),
+                type: z.union([
+                  z.literal('compaction'),
+                  z.literal('message'),
+                  z.literal('advisor_message'),
+                  z.literal('fallback_message'),
+                ]),
+                model: z.string().nullish(),
                 input_tokens: z.number(),
                 output_tokens: z.number(),
+                cache_creation_input_tokens: z.number().nullish(),
+                cache_read_input_tokens: z.number().nullish(),
               }),
             )
             .nullish(),

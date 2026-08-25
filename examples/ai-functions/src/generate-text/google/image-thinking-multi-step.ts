@@ -33,7 +33,7 @@ run(async () => {
   const step2 = await generateText({
     model: google('gemini-3-pro-image-preview'),
     messages: [
-      ...step1.response.messages,
+      ...step1.responseMessages,
       {
         role: 'user',
         content: "Change it so that it's on Saturn.",

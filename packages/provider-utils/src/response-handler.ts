@@ -2,6 +2,7 @@ import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import { extractResponseHeaders } from './extract-response-headers';
 import { parseJSON, safeParseJSON, type ParseResult } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
+import { readResponseWithSizeLimit } from './read-response-with-size-limit';
 import type { FlexibleSchema } from './schema';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
@@ -14,6 +15,23 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
   responseHeaders?: Record<string, string>;
 }>;
 
+const textDecoder = new TextDecoder();
+
+async function readResponseBodyAsText({
+  response,
+  url,
+}: {
+  response: Response;
+  url: string;
+}) {
+  return textDecoder.decode(
+    await readResponseWithSizeLimit({
+      response,
+      url,
+    }),
+  );
+}
+
 export const createJsonErrorResponseHandler =
   <T>({
     errorSchema,
@@ -25,7 +43,7 @@ export const createJsonErrorResponseHandler =
     isRetryable?: (response: Response, error?: T) => boolean;
   }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
-    const responseBody = await response.text();
+    const responseBody = await readResponseBodyAsText({ response, url });
     const responseHeaders = extractResponseHeaders(response);
 
     // Some providers return an empty response body for some errors:
@@ -103,7 +121,7 @@ export const createEventSourceResponseHandler =
 export const createJsonResponseHandler =
   <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
-    const responseBody = await response.text();
+    const responseBody = await readResponseBodyAsText({ response, url });
 
     const parsedResult = await safeParseJSON({
       text: responseBody,
@@ -130,6 +148,73 @@ export const createJsonResponseHandler =
       rawValue: parsedResult.rawValue,
     };
   };
+
+export const createJsonLinesResponseHandler =
+  <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<AsyncGenerator<T>> =>
+  async ({ response }) => {
+    const responseHeaders = extractResponseHeaders(response);
+
+    if (response.body == null) {
+      throw new EmptyResponseBodyError({});
+    }
+
+    return {
+      responseHeaders,
+      value: parseJsonLines({
+        stream: response.body,
+        schema: responseSchema,
+      }),
+    };
+  };
+
+async function* parseJsonLines<T>({
+  stream,
+  schema,
+}: {
+  stream: ReadableStream<Uint8Array>;
+  schema: FlexibleSchema<T>;
+}): AsyncGenerator<T> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let finished = false;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        finished = true;
+        buffer += decoder.decode();
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+
+      let lineEnd = buffer.indexOf('\n');
+      while (lineEnd !== -1) {
+        const line = buffer.slice(0, lineEnd).replace(/\r$/, '');
+        buffer = buffer.slice(lineEnd + 1);
+
+        if (line.trim().length > 0) {
+          yield await parseJSON({ text: line, schema });
+        }
+
+        lineEnd = buffer.indexOf('\n');
+      }
+    }
+
+    const finalLine = buffer.replace(/\r$/, '');
+    if (finalLine.trim().length > 0) {
+      yield await parseJSON({ text: finalLine, schema });
+    }
+  } finally {
+    if (!finished) {
+      await reader.cancel().catch(() => {});
+    }
+    reader.releaseLock();
+  }
+}
 
 export const createBinaryResponseHandler =
   (): ResponseHandler<Uint8Array> =>
@@ -170,7 +255,7 @@ export const createStatusCodeErrorResponseHandler =
   (): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
-    const responseBody = await response.text();
+    const responseBody = await readResponseBodyAsText({ response, url });
 
     return {
       responseHeaders,

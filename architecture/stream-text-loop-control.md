@@ -58,7 +58,7 @@ stream 1 -- stream 2 -- stream 3
 
 # Stream Pipeline Structure
 
-````
+```
 ┌────────────────────────────────────────────────────────────┐
 │           FUNNEL IN: N STEP STREAMS                        │
 │          (sequential, not parallel)                        │
@@ -136,4 +136,4 @@ stream 1 -- stream 2 -- stream 3
         deltas parts) parse) spec) to UI) stream,
         only)                             resolves
                                           promises)
-````
+```

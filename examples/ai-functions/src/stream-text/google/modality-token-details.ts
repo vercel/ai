@@ -24,7 +24,7 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  const usageMetadata = (await result.providerMetadata)?.google
+  const usageMetadata = (await result.finalStep).providerMetadata?.google
     ?.usageMetadata as Record<string, unknown> | undefined;
 
   console.log();
