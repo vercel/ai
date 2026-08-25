@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19542,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19542-moonshot-sampling.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19542-moonshot-sampling.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19542 REPRODUCED: @ai-sdk/moonshotai forwarded temperature=0.5 to kimi-k3, so Moonshot rejected an otherwise valid generation request."
+  }
+}

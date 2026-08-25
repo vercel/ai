@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-d8d372f8-66fe-9d19-999a-fb0b91feec21",
+  "object": "chat.completion",
+  "model": "kimi-k3",
+  "created": 1787684996,
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "OK",
+        "reasoning_content": "The user wants me to reply with exactly \"OK\". This is a simple instruction. I should comply with it directly."
+      },
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 89,
+    "completion_tokens": 34,
+    "total_tokens": 123,
+    "cached_tokens": 89,
+    "completion_tokens_details": {
+      "reasoning_tokens": 24
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 89
+    }
+  }
+}
