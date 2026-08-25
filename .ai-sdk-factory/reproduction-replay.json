@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 19496,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/mcp-dcr-scope-selection.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/mcp-dcr-scope-selection.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #19496 reproduced: DCR omitted PRM scope, so the MCP resource rejected the issued token with 401 scope does not match"
+  }
+}
