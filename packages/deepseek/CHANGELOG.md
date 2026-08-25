@@ -1,5 +1,25 @@
 # @ai-sdk/deepseek
 
+## 2.0.59
+
+### Patch Changes
+
+- df5a697: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- ae1a6de: feat(provider/deepseek): add the `userId` chat option and serialize it as `user_id`
+- 00bfad5: feat(provider/deepseek): add DeepSeek V4 Flash and Pro model IDs
+- 52095cb: Add provider-specific names for DeepSeek system, user, and assistant messages.
+- 7d45c74: Validate DeepSeek strict tool calls against beta endpoint requirements.
+- 5beec8d: Preserve documented DeepSeek chat response metadata for generate and stream.
+- f682d94: Add DeepSeek chat completion log probability request and response support.
+- 793a38d: Add support for DeepSeek beta assistant prefix completion through message provider options.
+- 313a441: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- ce3fccc: Expose DeepSeek response system fingerprints in provider metadata for generated and streamed text.
+- c35e7e1: Align DeepSeek thinking and reasoning effort options with the documented API values while mapping legacy options with compatibility warnings.
+- 344484d: Add DeepSeek image detail and inline file-data content part support.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
 ## 2.0.58
 
 ### Patch Changes

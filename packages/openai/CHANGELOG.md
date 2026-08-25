@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 3.0.101
+
+### Patch Changes
+
+- 313a441: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
 ## 3.0.100
 
 ### Patch Changes

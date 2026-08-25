@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 3.0.113
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
 ## 3.0.112
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.266
+
+### Patch Changes
+
+- a1bafb1: Continue approved `generateText` and `streamText` turns with a model-visible tool error when revalidated tool input is invalid.
+- 3cb50fc: Prevent aborted, errored, or cancelled `streamText` calls from retaining per-call state through abort cleanup listeners.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/gateway@3.0.181
+
 ## 6.0.265
 
 ### Patch Changes

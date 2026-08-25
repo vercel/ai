@@ -1,5 +1,13 @@
 # @ai-sdk/gmicloud
 
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/openai-compatible@2.0.72
+
 ## 2.0.4
 
 ### Patch Changes
