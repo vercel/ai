@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "issueId": 19274,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19274-openai-malformed-tool-replay.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-19274-openai-malformed-tool-replay.ts",
+    "packages/openai/src/chat/convert-to-openai-chat-messages.test.ts",
+    "packages/openai/src/chat/__fixtures__/qwen-plus-malformed-replayed-tool-arguments-error.json",
+    "packages/openai/src/chat/__fixtures__/qwen-plus-normalized-replayed-tool-arguments-success.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19274_REPRODUCED: qwen-plus rejected persisted malformed tool history because function.arguments decoded to a string"
+  }
+}

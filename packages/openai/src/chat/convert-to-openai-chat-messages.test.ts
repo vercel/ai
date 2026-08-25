@@ -575,6 +575,44 @@ describe('assistant messages', () => {
 });
 
 describe('tool calls', () => {
+  it('should normalize non-object tool inputs to object-valued arguments', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: '{"label":"Build sheet",',
+              toolCallId: 'malformed-call',
+              toolName: 'set_cell_range',
+            },
+            {
+              type: 'tool-call',
+              input: { label: 'Valid sheet' },
+              toolCallId: 'valid-call',
+              toolName: 'set_cell_range',
+            },
+          ],
+        },
+      ],
+    });
+
+    const assistantMessage = result.messages[0];
+
+    expect(assistantMessage.role).toBe('assistant');
+
+    if (assistantMessage.role !== 'assistant') {
+      throw new Error('Expected an assistant message.');
+    }
+
+    expect(
+      assistantMessage.tool_calls?.map(toolCall =>
+        JSON.parse(toolCall.function.arguments),
+      ),
+    ).toEqual([{}, { label: 'Valid sheet' }]);
+  });
+
   it('should add a prompt cache breakpoint to assistant text content', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
