@@ -416,7 +416,13 @@ export interface AnthropicMcpToolResultContent {
   type: 'mcp_tool_result';
   tool_use_id: string;
   is_error: boolean;
-  content: string | Array<{ type: 'text'; text: string }>;
+  content:
+    | string
+    | Array<{
+        type: 'text';
+        text: string;
+        citations?: Citation[] | null;
+      }>;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -737,12 +743,19 @@ export const anthropicResponseSchema = lazySchema(() =>
             type: z.literal('mcp_tool_result'),
             tool_use_id: z.string(),
             is_error: z.boolean(),
-            content: z.array(
-              z.union([
-                z.string(),
-                z.object({ type: z.literal('text'), text: z.string() }),
-              ]),
-            ),
+            content: z.union([
+              z.string(),
+              z.array(
+                z.union([
+                  z.string(),
+                  z.object({
+                    type: z.literal('text'),
+                    text: z.string(),
+                    citations: z.array(z.json()).nullable().optional(),
+                  }),
+                ]),
+              ),
+            ]),
           }),
           z.object({
             type: z.literal('web_fetch_tool_result'),
@@ -752,7 +765,7 @@ export const anthropicResponseSchema = lazySchema(() =>
               z.object({
                 type: z.literal('web_fetch_result'),
                 url: z.string(),
-                retrieved_at: z.string(),
+                retrieved_at: z.string().nullable(),
                 content: z.object({
                   type: z.literal('document'),
                   title: z.string().nullable(),
@@ -786,7 +799,7 @@ export const anthropicResponseSchema = lazySchema(() =>
                 z.object({
                   type: z.literal('web_search_result'),
                   url: z.string(),
-                  title: z.string(),
+                  title: z.string().nullable(),
                   encrypted_content: z.string(),
                   page_age: z.string().nullish(),
                 }),
@@ -1103,7 +1116,11 @@ export const anthropicChunkSchema = lazySchema(() =>
             content: z.array(
               z.union([
                 z.string(),
-                z.object({ type: z.literal('text'), text: z.string() }),
+                z.object({
+                  type: z.literal('text'),
+                  text: z.string(),
+                  citations: z.array(z.json()).nullable().optional(),
+                }),
               ]),
             ),
           }),
@@ -1115,7 +1132,7 @@ export const anthropicChunkSchema = lazySchema(() =>
               z.object({
                 type: z.literal('web_fetch_result'),
                 url: z.string(),
-                retrieved_at: z.string(),
+                retrieved_at: z.string().nullable(),
                 content: z.object({
                   type: z.literal('document'),
                   title: z.string().nullable(),
@@ -1149,7 +1166,7 @@ export const anthropicChunkSchema = lazySchema(() =>
                 z.object({
                   type: z.literal('web_search_result'),
                   url: z.string(),
-                  title: z.string(),
+                  title: z.string().nullable(),
                   encrypted_content: z.string(),
                   page_age: z.string().nullish(),
                 }),

@@ -118,7 +118,7 @@ function getAnthropicStreamErrorMetadata(type: string): {
   }
 }
 
-function createCitationSource(
+export function createCitationSource(
   citation: Citation,
   citationDocuments: Array<{
     title: string;
@@ -226,7 +226,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   readonly modelId: AnthropicModelId;
 
   protected readonly config: AnthropicLanguageModelConfig;
-  private readonly generateId: () => string;
+  protected readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: AnthropicLanguageModel) {
     return serializeModelOptions({
@@ -599,6 +599,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
+      }),
+      ...(anthropicOptions?.serviceTier && {
+        service_tier: anthropicOptions.serviceTier,
       }),
       ...(anthropicOptions?.inferenceGeo && {
         inference_geo: anthropicOptions.inferenceGeo,
@@ -1301,7 +1304,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               toolName: toolNameMapping.toCustomToolName('web_search'),
               result: part.content.map(result => ({
                 url: result.url,
-                title: result.title,
+                ...(result.title != null ? { title: result.title } : {}),
                 pageAge: result.page_age ?? null,
                 encryptedContent: result.encrypted_content,
                 type: result.type,
@@ -1315,7 +1318,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 sourceType: 'url',
                 id: this.generateId(),
                 url: result.url,
-                title: result.title,
+                ...(result.title != null ? { title: result.title } : {}),
                 providerMetadata: {
                   anthropic: {
                     pageAge: result.page_age ?? null,
@@ -2011,7 +2014,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: toolNameMapping.toCustomToolName('web_search'),
                       result: part.content.map(result => ({
                         url: result.url,
-                        title: result.title,
+                        ...(result.title != null
+                          ? { title: result.title }
+                          : {}),
                         pageAge: result.page_age ?? null,
                         encryptedContent: result.encrypted_content,
                         type: result.type,
@@ -2025,7 +2030,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         sourceType: 'url',
                         id: generateId(),
                         url: result.url,
-                        title: result.title,
+                        ...(result.title != null
+                          ? { title: result.title }
+                          : {}),
                         providerMetadata: {
                           anthropic: {
                             pageAge: result.page_age ?? null,
@@ -2921,7 +2928,7 @@ export function getModelCapabilities(modelId: string): {
   }
 }
 
-function hasWebTool20260209WithoutCodeExecution(
+export function hasWebTool20260209WithoutCodeExecution(
   tools: AnthropicTool[] | undefined,
 ): boolean {
   if (!tools) {

@@ -39,6 +39,8 @@ import {
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
   AnthropicLanguageModel,
+  createCitationSource,
+  hasWebTool20260209WithoutCodeExecution,
   type AnthropicLanguageModelConfig,
 } from './anthropic-language-model';
 import {
@@ -78,6 +80,8 @@ const anthropicBatchResponseSchema = lazySchema(() =>
       created_at: z.string(),
       expires_at: z.string(),
       archived_at: z.string().nullish(),
+      cancel_initiated_at: z.string().nullish(),
+      ended_at: z.string().nullish(),
       results_url: z.string().nullish(),
     }),
   ),
@@ -196,6 +200,39 @@ export class AnthropicMessagesBatchLanguageModel
         stream: false,
         userSuppliedBetas: new Set(explicitBatchBetas),
       });
+      if (prepared.usesJsonResponseTool) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'batch responseFormat JSON-tool fallback',
+          message:
+            `Anthropic Message Batches cannot decode the JSON-tool structured-output fallback ` +
+            `(request "${request.id}") because batch results are retrieved independently of the start call. ` +
+            `Use a model that supports native output_format structured outputs.`,
+        });
+      }
+      const aliasedProviderTool = request.options.tools?.find(
+        tool =>
+          tool.type === 'provider' &&
+          prepared.toolNameMapping.toProviderToolName(tool.name) !== tool.name,
+      );
+      if (aliasedProviderTool != null) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'aliased provider tool names in batches',
+          message:
+            `Anthropic Message Batches cannot restore the custom provider-tool name ` +
+            `"${aliasedProviderTool.name}" when results are retrieved independently of the start call ` +
+            `(request "${request.id}"). Use the provider's canonical tool name.`,
+        });
+      }
+      if (hasWebTool20260209WithoutCodeExecution(prepared.args.tools)) {
+        throw new UnsupportedFunctionalityError({
+          functionality:
+            'implicit code execution for 20260209 web tools in batches',
+          message:
+            `Anthropic Message Batches cannot restore the dynamic code-execution context ` +
+            `for 20260209 web tools when results are retrieved independently of the start call ` +
+            `(request "${request.id}"). Include the code execution tool explicitly.`,
+        });
+      }
       const body = this.transformRequestBody(prepared.args, prepared.betas);
       validateAnthropicBatchBody({
         body,
@@ -303,7 +340,7 @@ export class AnthropicMessagesBatchLanguageModel
     lines: AsyncIterable<AnthropicBatchResultLine>,
   ): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
     for await (const line of lines) {
-      yield await convertAnthropicBatchResult(line);
+      yield await convertAnthropicBatchResult(line, this.generateId);
     }
   }
 
@@ -438,6 +475,15 @@ function convertAnthropicBatchStatus(
     ...(requestCounts != null ? { requestCounts } : {}),
     createdAt: batch.created_at,
     expiresAt: batch.expires_at,
+    providerMetadata: {
+      anthropic: {
+        archivedAt: batch.archived_at ?? null,
+        cancelInitiatedAt: batch.cancel_initiated_at ?? null,
+        endedAt: batch.ended_at ?? null,
+        requestCounts: batch.request_counts,
+        resultsUrl: batch.results_url ?? null,
+      },
+    },
   };
 }
 
@@ -470,6 +516,7 @@ function convertAnthropicRequestCounts(
 
 async function convertAnthropicBatchResult(
   line: AnthropicBatchResultLine,
+  generateId: () => string,
 ): Promise<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
   switch (line.result.type) {
     case 'canceled':
@@ -513,51 +560,46 @@ async function convertAnthropicBatchResult(
 
       const response = validation.value;
 
-      const unsupportedPart = response.content.find(
-        part => !supportedBatchContentTypes.has(part.type),
-      );
-
-      if (unsupportedPart != null) {
-        return {
-          id: line.custom_id,
-          status: 'failed',
-          error: {
-            message:
-              `Anthropic returned a "${unsupportedPart.type}" content block, ` +
-              'but tool content is not supported in AI SDK text batches.',
-            code: 'unsupported_content',
-          },
-        };
-      }
-
       return {
         id: line.custom_id,
         status: 'succeeded',
-        result: convertAnthropicBatchResponse(response),
+        result: convertAnthropicBatchResponse(response, generateId),
       };
     }
   }
 }
 
-const supportedBatchContentTypes = new Set([
-  'text',
-  'thinking',
-  'redacted_thinking',
-  'compaction',
-  // The normal Anthropic response conversion intentionally drops this marker;
-  // the fallback hop remains available through usage.iterations metadata.
-  'fallback',
-]);
-
 function convertAnthropicBatchResponse(
   response: AnthropicResponse,
+  generateId: () => string,
 ): LanguageModelV4GenerateResult {
   const content: LanguageModelV4GenerateResult['content'] = [];
+  const mcpToolCalls: Record<
+    string,
+    Extract<
+      LanguageModelV4GenerateResult['content'][number],
+      { type: 'tool-call' }
+    >
+  > = {};
+  const serverToolCalls: Record<string, string> = {};
 
   for (const part of response.content) {
     switch (part.type) {
       case 'text':
-        content.push({ type: 'text', text: part.text });
+        content.push({
+          type: 'text',
+          text: part.text,
+          ...(part.citations != null &&
+            part.citations.length > 0 && {
+              providerMetadata: { anthropic: { citations: part.citations } },
+            }),
+        });
+        for (const citation of part.citations ?? []) {
+          const source = createCitationSource(citation, [], generateId);
+          if (source != null) {
+            content.push(source);
+          }
+        }
         break;
       case 'thinking':
         content.push({
@@ -588,6 +630,244 @@ function convertAnthropicBatchResponse(
           providerMetadata: { anthropic: { type: 'compaction' } },
         });
         break;
+      case 'tool_use':
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName: part.name,
+          input: JSON.stringify(part.input),
+          ...anthropicCallerMetadata(part.caller),
+        });
+        break;
+      case 'server_tool_use': {
+        const isCodeExecutionAlias =
+          part.name === 'bash_code_execution' ||
+          part.name === 'text_editor_code_execution';
+        const toolName = isCodeExecutionAlias ? 'code_execution' : part.name;
+        if (
+          part.name === 'tool_search_tool_bm25' ||
+          part.name === 'tool_search_tool_regex'
+        ) {
+          serverToolCalls[part.id] = part.name;
+        }
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName,
+          input: JSON.stringify(
+            isCodeExecutionAlias
+              ? { type: part.name, ...(part.input ?? {}) }
+              : part.name === 'code_execution' &&
+                  part.input != null &&
+                  'code' in part.input &&
+                  !('type' in part.input)
+                ? { type: 'programmatic-tool-call', ...part.input }
+                : part.input,
+          ),
+          providerExecuted: true,
+          ...anthropicCallerMetadata(part.caller),
+        });
+        break;
+      }
+      case 'mcp_tool_use': {
+        const toolCall = {
+          type: 'tool-call' as const,
+          toolCallId: part.id,
+          toolName: part.name,
+          input: JSON.stringify(part.input),
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: {
+            anthropic: {
+              serverName: part.server_name,
+              type: 'mcp-tool-use',
+            },
+          },
+        };
+        mcpToolCalls[part.id] = toolCall;
+        content.push(toolCall);
+        break;
+      }
+      case 'mcp_tool_result': {
+        const toolCall = mcpToolCalls[part.tool_use_id];
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: toolCall?.toolName ?? 'mcp',
+          isError: part.is_error,
+          result: part.content,
+          dynamic: true,
+          ...(toolCall?.providerMetadata != null && {
+            providerMetadata: toolCall.providerMetadata,
+          }),
+        });
+        break;
+      }
+      case 'web_fetch_tool_result':
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: 'web_fetch',
+          ...(part.content.type === 'web_fetch_tool_result_error'
+            ? {
+                isError: true,
+                result: {
+                  errorCode: part.content.error_code,
+                  type: part.content.type,
+                },
+              }
+            : {
+                result: {
+                  content: {
+                    citations: part.content.content.citations,
+                    source: {
+                      data: part.content.content.source.data,
+                      mediaType: part.content.content.source.media_type,
+                      type: part.content.content.source.type,
+                    },
+                    title: part.content.content.title,
+                    type: part.content.content.type,
+                  },
+                  retrievedAt: part.content.retrieved_at,
+                  type: part.content.type,
+                  url: part.content.url,
+                },
+              }),
+          ...anthropicCallerMetadata(part.caller),
+        });
+        break;
+      case 'web_search_tool_result':
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: 'web_search',
+          ...(Array.isArray(part.content)
+            ? {
+                result: part.content.map(result => ({
+                  encryptedContent: result.encrypted_content,
+                  pageAge: result.page_age ?? null,
+                  ...(result.title != null ? { title: result.title } : {}),
+                  type: result.type,
+                  url: result.url,
+                })),
+              }
+            : {
+                isError: true,
+                result: {
+                  errorCode: part.content.error_code,
+                  type: part.content.type,
+                },
+              }),
+          ...anthropicCallerMetadata(part.caller),
+        });
+        if (Array.isArray(part.content)) {
+          for (const result of part.content) {
+            content.push({
+              type: 'source',
+              sourceType: 'url',
+              id: generateId(),
+              url: result.url,
+              ...(result.title != null ? { title: result.title } : {}),
+              providerMetadata: {
+                anthropic: {
+                  pageAge: result.page_age ?? null,
+                },
+              },
+            });
+          }
+        }
+        break;
+      case 'code_execution_tool_result':
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: 'code_execution',
+          ...(part.content.type === 'code_execution_tool_result_error'
+            ? {
+                isError: true,
+                result: {
+                  errorCode: part.content.error_code,
+                  type: part.content.type,
+                },
+              }
+            : { result: part.content }),
+        });
+        break;
+      case 'bash_code_execution_tool_result':
+      case 'text_editor_code_execution_tool_result':
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName: 'code_execution',
+          result: part.content,
+        });
+        break;
+      case 'tool_search_tool_result': {
+        const toolName =
+          serverToolCalls[part.tool_use_id] ?? 'tool_search_tool_regex';
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.tool_use_id,
+          toolName,
+          ...(part.content.type === 'tool_search_tool_result_error'
+            ? {
+                isError: true,
+                result: {
+                  errorCode: part.content.error_code,
+                  type: part.content.type,
+                },
+              }
+            : {
+                result: part.content.tool_references.map(reference => ({
+                  toolName: reference.tool_name,
+                  type: reference.type,
+                })),
+              }),
+        });
+        break;
+      }
+      case 'advisor_tool_result':
+        if (part.content.type === 'advisor_result') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'advisor',
+            result: {
+              type: part.content.type,
+              text: part.content.text,
+              ...(part.content.stop_reason != null
+                ? { stopReason: part.content.stop_reason }
+                : {}),
+            },
+          });
+        } else if (part.content.type === 'advisor_redacted_result') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'advisor',
+            result: {
+              type: part.content.type,
+              encryptedContent: part.content.encrypted_content,
+              ...(part.content.stop_reason != null
+                ? { stopReason: part.content.stop_reason }
+                : {}),
+            },
+          });
+        } else {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'advisor',
+            isError: true,
+            result: {
+              errorCode: part.content.error_code,
+              type: part.content.type,
+            },
+          });
+        }
+        break;
+      case 'fallback':
+        break;
     }
   }
 
@@ -609,6 +889,23 @@ function convertAnthropicBatchResponse(
       anthropic: convertAnthropicMessageMetadata(response),
     },
   };
+}
+
+function anthropicCallerMetadata(
+  caller: { type: string; tool_id?: string } | null | undefined,
+) {
+  return caller == null
+    ? {}
+    : {
+        providerMetadata: {
+          anthropic: {
+            caller: {
+              type: caller.type,
+              toolId: caller.tool_id,
+            },
+          },
+        },
+      };
 }
 
 function convertAnthropicMessageMetadata(response: AnthropicResponse) {

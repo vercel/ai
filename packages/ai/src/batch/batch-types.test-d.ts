@@ -73,6 +73,9 @@ it('only exposes text-generation call options to batch providers', () => {
     | 'frequencyPenalty'
     | 'seed'
     | 'reasoning'
+    | 'responseFormat'
+    | 'toolChoice'
+    | 'tools'
     | 'providerOptions'
   >;
 
@@ -80,12 +83,7 @@ it('only exposes text-generation call options to batch providers', () => {
   expectTypeOf<
     Extract<
       keyof BatchCallOptions,
-      | 'responseFormat'
-      | 'tools'
-      | 'toolChoice'
-      | 'includeRawChunks'
-      | 'abortSignal'
-      | 'headers'
+      'includeRawChunks' | 'abortSignal' | 'headers'
     >
   >().toEqualTypeOf<never>();
 });
