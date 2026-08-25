@@ -8,8 +8,10 @@ import type {
 } from '@ai-sdk/provider';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
 import {
+  getMoonshotAIModelFamily,
   isMoonshotAIKimiModel,
   type MoonshotAIChatModelId,
+  type MoonshotAIProviderOptions,
 } from './moonshotai-chat-options';
 
 function prepareSamplingOptions({
@@ -56,6 +58,158 @@ function prepareSamplingOptions({
   };
 }
 
+function prepareReasoningOptions({
+  modelId,
+  options,
+}: {
+  modelId: MoonshotAIChatModelId;
+  options: LanguageModelV2CallOptions;
+}): {
+  options: LanguageModelV2CallOptions;
+  warnings: LanguageModelV2CallWarning[];
+} {
+  const providerOptions = options.providerOptions?.moonshotai;
+  if (
+    providerOptions == null ||
+    typeof providerOptions !== 'object' ||
+    Array.isArray(providerOptions)
+  ) {
+    return { options, warnings: [] };
+  }
+
+  const moonshotOptions = providerOptions as MoonshotAIProviderOptions;
+  const {
+    reasoningEffort: requestedReasoningEffort,
+    thinking: requestedThinking,
+    reasoningHistory,
+    ...otherMoonshotOptions
+  } = moonshotOptions;
+  const preserveReasoning = reasoningHistory === 'preserved';
+  const warnings: LanguageModelV2CallWarning[] = [];
+
+  if (requestedThinking?.budgetTokens != null) {
+    warnings.push({
+      type: 'other',
+      message:
+        'providerOptions.moonshotai.thinking.budgetTokens is deprecated because Moonshot Chat Completions does not support budget_tokens. The option has been omitted.',
+    });
+  }
+
+  let thinking: { type: 'enabled' | 'disabled'; keep?: 'all' } | undefined;
+  let reasoningEffort: 'low' | 'high' | 'max' | undefined;
+
+  const warnUnsupportedReasoningEffort = () => {
+    if (requestedReasoningEffort != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'providerOptions',
+        details: `providerOptions.moonshotai.reasoningEffort is only supported by Kimi K3 and has been omitted for model "${modelId}".`,
+      });
+    }
+  };
+
+  switch (getMoonshotAIModelFamily(modelId)) {
+    case 'kimi-k3': {
+      if (requestedThinking != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details:
+            'Kimi K3 always reasons and does not accept providerOptions.moonshotai.thinking. The option has been omitted.',
+        });
+      }
+      reasoningEffort = requestedReasoningEffort;
+      break;
+    }
+    case 'kimi-k2.7': {
+      warnUnsupportedReasoningEffort();
+      if (requestedThinking?.type === 'disabled') {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details:
+            'Kimi K2.7 thinking cannot be disabled. providerOptions.moonshotai.thinking has been omitted.',
+        });
+      } else if (requestedThinking?.type === 'enabled') {
+        thinking = { type: 'enabled' };
+      }
+      break;
+    }
+    case 'kimi-k2.6': {
+      warnUnsupportedReasoningEffort();
+      const thinkingType = requestedThinking?.type;
+      if (thinkingType != null || preserveReasoning) {
+        thinking = {
+          type: thinkingType ?? 'enabled',
+          ...(preserveReasoning ? { keep: 'all' as const } : {}),
+        };
+      }
+      break;
+    }
+    case 'kimi-k2.5': {
+      warnUnsupportedReasoningEffort();
+      if (requestedThinking?.type != null) {
+        thinking = { type: requestedThinking.type };
+      }
+      if (preserveReasoning) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details: `providerOptions.moonshotai.reasoningHistory 'preserved' is not supported by model "${modelId}" and has been omitted.`,
+        });
+      }
+      break;
+    }
+    case 'moonshot-v1': {
+      warnUnsupportedReasoningEffort();
+      if (requestedThinking != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details: `providerOptions.moonshotai.thinking is not supported by model "${modelId}" and has been omitted.`,
+        });
+      }
+      if (preserveReasoning) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details: `providerOptions.moonshotai.reasoningHistory 'preserved' is not supported by model "${modelId}" and has been omitted.`,
+        });
+      }
+      break;
+    }
+    case 'unknown': {
+      reasoningEffort = requestedReasoningEffort;
+      if (requestedThinking?.type != null) {
+        thinking = { type: requestedThinking.type };
+      }
+      if (preserveReasoning) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details: `providerOptions.moonshotai.reasoningHistory 'preserved' is not supported by model "${modelId}" and has been omitted.`,
+        });
+      }
+      break;
+    }
+  }
+
+  return {
+    options: {
+      ...options,
+      providerOptions: {
+        ...options.providerOptions,
+        moonshotai: {
+          ...otherMoonshotOptions,
+          ...(reasoningEffort != null ? { reasoningEffort } : {}),
+          ...(thinking != null ? { thinking } : {}),
+        },
+      },
+    },
+    warnings,
+  };
+}
+
 export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageModel {
   constructor(
     modelId: MoonshotAIChatModelId,
@@ -67,8 +221,13 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { options: sanitizedOptions, warnings: samplingWarnings } =
+    const { options: samplingOptions, warnings: samplingWarnings } =
       prepareSamplingOptions({ modelId: this.modelId, options });
+    const { options: sanitizedOptions, warnings: reasoningWarnings } =
+      prepareReasoningOptions({
+        modelId: this.modelId,
+        options: samplingOptions,
+      });
     const result = await super.doGenerate(sanitizedOptions);
 
     // @ts-expect-error accessing response body from parent result
@@ -77,7 +236,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     return {
       ...result,
       usage: convertMoonshotAIChatUsage(usage),
-      warnings: [...result.warnings, ...samplingWarnings],
+      warnings: [...result.warnings, ...samplingWarnings, ...reasoningWarnings],
     };
   }
 
@@ -85,8 +244,13 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const originalIncludeRawChunks = options.includeRawChunks;
-    const { options: sanitizedOptions, warnings: samplingWarnings } =
+    const { options: samplingOptions, warnings: samplingWarnings } =
       prepareSamplingOptions({ modelId: this.modelId, options });
+    const { options: sanitizedOptions, warnings: reasoningWarnings } =
+      prepareReasoningOptions({
+        modelId: this.modelId,
+        options: samplingOptions,
+      });
 
     // Enable raw chunks to capture pre-Zod usage data, since MoonshotAI
     // returns cached_tokens at the top level of usage (not nested in
@@ -109,7 +273,11 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
             if (chunk.type === 'stream-start') {
               controller.enqueue({
                 ...chunk,
-                warnings: [...chunk.warnings, ...samplingWarnings],
+                warnings: [
+                  ...chunk.warnings,
+                  ...samplingWarnings,
+                  ...reasoningWarnings,
+                ],
               });
               return;
             }

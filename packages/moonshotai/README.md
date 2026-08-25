@@ -43,20 +43,19 @@ const { text } = await generateText({
 ## Thinking Mode Example (Kimi K2 Thinking)
 
 ```ts
-import { moonshotai } from '@ai-sdk/moonshotai';
+import { moonshotai, type MoonshotAIProviderOptions } from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: moonshotai('kimi-k2.5'),
-  prompt: 'Invent a new holiday and describe its traditions.',
+  model: moonshotai('kimi-k2.6'),
+  prompt: 'Solve this problem step by step: What is 15% of 240?',
   providerOptions: {
     moonshotai: {
       thinking: {
         type: 'enabled',
-        budgetTokens: 2048,
       },
-      reasoningHistory: 'interleaved',
-    } as MoonshotAIProviderOptions,
+      reasoningHistory: 'preserved',
+    } satisfies MoonshotAIProviderOptions,
   },
 });
 ```
