@@ -211,12 +211,11 @@ describe('result.embedding', () => {
   });
 
   it('should split calls when the UTF-8 input byte budget is exceeded', async () => {
-    const model = new MockEmbeddingModelV4({
+    const model = new MockEmbeddingModelV2<string>({
       maxEmbeddingsPerCall: 5,
       maxInputBytesPerCall: 7,
       doEmbed: async ({ values }) => ({
         embeddings: values.map(value => [value.length]),
-        warnings: [],
       }),
     });
 
@@ -233,12 +232,11 @@ describe('result.embedding', () => {
   });
 
   it('should split by input bytes without an embedding count limit', async () => {
-    const model = new MockEmbeddingModelV4({
+    const model = new MockEmbeddingModelV2<string>({
       maxEmbeddingsPerCall: null,
       maxInputBytesPerCall: 4,
       doEmbed: async ({ values }) => ({
         embeddings: values.map(value => [value.length]),
-        warnings: [],
       }),
     });
 
@@ -254,12 +252,11 @@ describe('result.embedding', () => {
   });
 
   it('should combine embedding count and input byte limits in one pass', async () => {
-    const model = new MockEmbeddingModelV4({
+    const model = new MockEmbeddingModelV2<string>({
       maxEmbeddingsPerCall: 3,
       maxInputBytesPerCall: 10,
       doEmbed: async ({ values }) => ({
         embeddings: values.map(value => [value.length]),
-        warnings: [],
       }),
     });
 
@@ -275,12 +272,11 @@ describe('result.embedding', () => {
   });
 
   it('should treat an infinite input byte budget as unlimited', async () => {
-    const model = new MockEmbeddingModelV4({
+    const model = new MockEmbeddingModelV2<string>({
       maxEmbeddingsPerCall: null,
       maxInputBytesPerCall: Infinity,
       doEmbed: async ({ values }) => ({
         embeddings: values.map(value => [value.length]),
-        warnings: [],
       }),
     });
 
@@ -295,12 +291,11 @@ describe('result.embedding', () => {
   });
 
   it('should send a value larger than the input byte budget by itself', async () => {
-    const model = new MockEmbeddingModelV4({
+    const model = new MockEmbeddingModelV2<string>({
       maxEmbeddingsPerCall: null,
       maxInputBytesPerCall: 3,
       doEmbed: async ({ values }) => ({
         embeddings: values.map(value => [value.length]),
-        warnings: [],
       }),
     });
 

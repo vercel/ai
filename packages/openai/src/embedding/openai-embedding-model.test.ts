@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import type { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
-=======
-import fs from 'node:fs';
-
 import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
->>>>>>> d2f335310d (fix: split large embedding batches that exceed provider aggregate token limits (#19565))
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { describe, it, expect, vi } from 'vitest';
@@ -26,8 +21,6 @@ const server = createTestServer({
   'https://api.openai.com/v1/embeddings': {},
 });
 
-<<<<<<< HEAD
-=======
 describe('model limits', () => {
   it('should expose the aggregate token limit', () => {
     expect(
@@ -36,20 +29,6 @@ describe('model limits', () => {
   });
 });
 
-function prepareJsonFixtureResponse(
-  filename: string,
-  headers?: Record<string, string>,
-) {
-  server.urls['https://api.openai.com/v1/embeddings'].response = {
-    type: 'json-value',
-    headers,
-    body: JSON.parse(
-      fs.readFileSync(`src/embedding/__fixtures__/${filename}.json`, 'utf8'),
-    ),
-  };
-}
-
->>>>>>> d2f335310d (fix: split large embedding batches that exceed provider aggregate token limits (#19565))
 describe('doEmbed', () => {
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
