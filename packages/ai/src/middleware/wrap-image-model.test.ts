@@ -151,6 +151,23 @@ describe('wrapImageModel', () => {
       await expect(wrappedModel.supportsMaskInputs).resolves.toBe(true);
     });
 
+    it('should allow middleware to override known capabilities to unknown', () => {
+      const wrappedModel = wrapImageModel({
+        model: new MockImageModelV4({
+          supportsFileInputs: true,
+          supportsMaskInputs: false,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+          overrideSupportsFileInputs: () => undefined,
+          overrideSupportsMaskInputs: () => undefined,
+        },
+      });
+
+      expect(wrappedModel.supportsFileInputs).toBeUndefined();
+      expect(wrappedModel.supportsMaskInputs).toBeUndefined();
+    });
+
     it('should preserve unknown capabilities', () => {
       const wrappedModel = wrapImageModel({
         model: new MockImageModelV4(),

@@ -59,6 +59,16 @@ describe('FalImageModel', () => {
         supportsMaskInputs: false,
       },
       {
+        modelId: 'fal-ai/flux-pro/kontext',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'fal-ai/flux-pro/kontext/max',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
         modelId: 'fal-ai/flux-general/inpainting',
         supportsFileInputs: true,
         supportsMaskInputs: true,

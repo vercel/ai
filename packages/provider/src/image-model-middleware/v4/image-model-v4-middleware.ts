@@ -34,6 +34,7 @@ export type ImageModelV4Middleware = {
 
   /**
    * Override whether the model supports image file inputs if desired.
+   * Returning `undefined` marks support as unknown.
    * @param options.model - The image model instance.
    */
   overrideSupportsFileInputs?: (options: {
@@ -42,6 +43,7 @@ export type ImageModelV4Middleware = {
 
   /**
    * Override whether the model supports mask inputs if desired.
+   * Returning `undefined` marks support as unknown.
    * @param options.model - The image model instance.
    */
   overrideSupportsMaskInputs?: (options: {

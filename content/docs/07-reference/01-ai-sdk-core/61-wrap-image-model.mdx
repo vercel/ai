@@ -64,7 +64,8 @@ const { image } = await generateImage({
 A new `ImageModelV4` instance with middleware applied. The wrapped model
 preserves the original model's `supportsFileInputs` and `supportsMaskInputs`
 capabilities by default. Middleware can override them with
-`overrideSupportsFileInputs` and `overrideSupportsMaskInputs`.
+`overrideSupportsFileInputs` and `overrideSupportsMaskInputs`. Returning
+`undefined` from an override intentionally marks that capability as unknown.
 
 ```ts
 const model = wrapImageModel({

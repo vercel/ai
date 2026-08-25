@@ -74,9 +74,13 @@ const doWrap = ({
       : maxImagesPerCallRaw;
 
   const supportsFileInputs =
-    overrideSupportsFileInputs?.({ model }) ?? model.supportsFileInputs;
+    overrideSupportsFileInputs !== undefined
+      ? overrideSupportsFileInputs({ model })
+      : model.supportsFileInputs;
   const supportsMaskInputs =
-    overrideSupportsMaskInputs?.({ model }) ?? model.supportsMaskInputs;
+    overrideSupportsMaskInputs !== undefined
+      ? overrideSupportsMaskInputs({ model })
+      : model.supportsMaskInputs;
 
   return {
     specificationVersion: 'v4',
