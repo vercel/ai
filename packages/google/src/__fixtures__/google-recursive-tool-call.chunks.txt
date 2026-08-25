@@ -1,4 +1,0 @@
-data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"search","args":{"condition":{"or":[{"term":"x"},{"term":"y"}]}},"id":"call_345658"},"thoughtSignature":"<redacted>"}],"role":"model"},"index":0}],"usageMetadata":{"promptTokenCount":694,"candidatesTokenCount":26,"totalTokenCount":925,"promptTokensDetails":[{"modality":"TEXT","tokenCount":694}],"thoughtsTokenCount":205,"serviceTier":"standard"},"modelVersion":"gemini-3.7-flash","responseId":"<redacted>"}
-
-data: {"candidates":[{"content":{"parts":[{"text":""}],"role":"model"},"finishReason":"STOP","index":0}],"usageMetadata":{"promptTokenCount":694,"candidatesTokenCount":26,"totalTokenCount":925,"promptTokensDetails":[{"modality":"TEXT","tokenCount":694}],"thoughtsTokenCount":205,"serviceTier":"standard"},"modelVersion":"gemini-3.7-flash","responseId":"<redacted>"}
-
