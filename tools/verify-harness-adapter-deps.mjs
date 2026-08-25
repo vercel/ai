@@ -58,6 +58,10 @@ const adapterConfigs = [
     ],
   },
   {
+    name: 'fx',
+    packageDir: 'packages/harness-fx',
+  },
+  {
     name: 'Grok Build',
     packageDir: 'packages/harness-grok-build',
     primarySdk: '@xai-official/grok',

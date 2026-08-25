@@ -61,6 +61,7 @@ pnpm --dir packages/harness-opencode/src/bridge update @opencode-ai/sdk opencode
 The following harness adapters use an unversioned installer script instead of an NPM package for their SDK / CLI and therefore can be ignored:
 
 - `packages/harness-cursor`
+- `packages/harness-fx`
 
 #### Example dependencies
 
