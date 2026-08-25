@@ -2,9 +2,13 @@ import type { LanguageModelV4FunctionTool } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 export type MoonshotAIChatModelId =
+  | 'moonshot-v1-auto'
   | 'moonshot-v1-8k'
   | 'moonshot-v1-32k'
   | 'moonshot-v1-128k'
+  | 'moonshot-v1-8k-vision-preview'
+  | 'moonshot-v1-32k-vision-preview'
+  | 'moonshot-v1-128k-vision-preview'
   | 'kimi-k2.5'
   | 'kimi-k2.6'
   | 'kimi-k2.7-code'

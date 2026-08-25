@@ -5,9 +5,9 @@ description: Learn how to use Moonshot AI models with the AI SDK.
 
 # Moonshot AI Provider
 
-The [Moonshot AI](https://www.moonshot.ai) provider offers access to powerful language models through the Moonshot API, including the Kimi series of models with reasoning capabilities.
+The [Moonshot AI](https://platform.kimi.ai/docs/intro) provider offers access to powerful language models through the Moonshot API, including the Kimi series of models with reasoning capabilities.
 
-API keys can be obtained from the [Moonshot Platform](https://platform.moonshot.ai).
+API keys can be obtained from the [Kimi API Platform](https://platform.kimi.ai/).
 
 ## Setup
 
@@ -154,6 +154,19 @@ console.log(reasoningText);
 console.log(text);
 ```
 
+For Kimi K2.7 Code and its high-speed variant, omit both `thinking` and
+`reasoningEffort`; thinking and preserved reasoning are always enabled:
+
+```ts
+const { text, reasoningText } = await generateText({
+  model: moonshotai('kimi-k2.7-code'),
+  prompt: 'Implement quicksort in TypeScript.',
+});
+```
+
+See Moonshot's [model parameter reference](https://platform.kimi.ai/docs/api/models-overview)
+for the current per-model constraints.
+
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
 
 ### Video Input
@@ -216,8 +229,8 @@ File parts containing inline text are sent as ordinary text content parts.
 <Note>
   Moonshot AI recommends videos up to 1080p. For larger videos, or videos you
   reuse across many requests, upload them with the [Moonshot Files
-  API](https://platform.moonshot.ai/docs/api/files) instead. Audio and PDF
-  inputs are not supported by Moonshot AI chat completions.
+  API](https://platform.kimi.ai/docs/api/files) instead. Audio and PDF inputs
+  are not supported by Moonshot AI chat completions.
 </Note>
 
 ### Provider Options
@@ -233,7 +246,8 @@ The following optional provider options are available for Moonshot AI language m
 
 - **reasoningEffort** _'low' | 'high' | 'max'_
 
-  Reasoning effort for Kimi K3.
+  Reasoning effort for Kimi K3. Supports `low`, `high`, and `max`; Moonshot's
+  default is `max`.
 
 - **logprobs** _boolean_
 
@@ -356,22 +370,29 @@ Moonshot's Chat Completions response rather than shared AI SDK result fields.
 
 ## Model Capabilities
 
-| Model                    | Image Input | Video Input | Object Generation | Tool Usage | Tool Streaming |
-| ------------------------ | ----------- | ----------- | ----------------- | ---------- | -------------- |
-| `moonshot-v1-8k`         | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `moonshot-v1-32k`        | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `moonshot-v1-128k`       | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2`                | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2.5`              | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2-thinking`       | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2-thinking-turbo` | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2-turbo`          | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2.6`              | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k2.7-code`         | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `kimi-k3`                | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| Model                             | Image Input | Video Input | Object Generation | Tool Usage | Tool Streaming | Status  |
+| --------------------------------- | ----------- | ----------- | ----------------- | ---------- | -------------- | ------- |
+| `moonshot-v1-auto`                | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      | Legacy¹ |
+| `moonshot-v1-8k`                  | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      | Legacy¹ |
+| `moonshot-v1-32k`                 | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      | Legacy¹ |
+| `moonshot-v1-128k`                | <Cross />   | <Cross />   | <Check />         | <Check />  | <Check />      | Legacy¹ |
+| `moonshot-v1-8k-vision-preview`   | <Check />   | <Cross />   | <Check />         | <Check />  | <Check />      | Legacy¹ |
+| `moonshot-v1-32k-vision-preview`  | <Check />   | <Cross />   | <Check />         | <Check />  | <Check />      | Legacy¹ |
+| `moonshot-v1-128k-vision-preview` | <Check />   | <Cross />   | <Check />         | <Check />  | <Check />      | Legacy¹ |
+| `kimi-k2.5`                       | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      | Legacy¹ |
+| `kimi-k2.6`                       | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      | Current |
+| `kimi-k2.7-code`                  | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      | Current |
+| `kimi-k2.7-code-highspeed`        | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      | Current |
+| `kimi-k3`                         | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      | Current |
+
+¹ Moonshot reports that Kimi K2.5 and the Moonshot V1 series are unavailable
+to newly registered users and have a full-platform sunset announced for
+August 31, 2026. Use Kimi K3 for new applications. Retired Kimi K2 IDs remain
+accepted through the package's custom string escape hatch but are no longer
+recommended here.
 
 <Note>
-  Please see the [Moonshot AI docs](https://platform.moonshot.ai/docs/intro) for
-  a full list of available models. You can also pass any available provider
-  model ID as a string if needed.
+  See Moonshot's [current model list](https://platform.kimi.ai/docs/models) for
+  availability and migration guidance. You can also pass any available custom or
+  retired provider model ID as a string if needed.
 </Note>

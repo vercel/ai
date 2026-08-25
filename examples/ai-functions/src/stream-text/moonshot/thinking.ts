@@ -1,30 +1,19 @@
-import {
-  moonshotai,
-  type MoonshotAILanguageModelOptions,
-} from '@ai-sdk/moonshotai';
+import { moonshotai } from '@ai-sdk/moonshotai';
 import { streamText } from 'ai';
+import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: moonshotai('kimi-k2.6'),
+    model: moonshotai('kimi-k2.7-code'),
     prompt:
-      'Solve this problem step by step: If a train travels 120 miles in 2 hours, how far will it travel in 5 hours at the same speed?',
-    providerOptions: {
-      moonshotai: {
-        thinking: {
-          type: 'enabled',
-        },
-        reasoningHistory: 'preserved',
-      } satisfies MoonshotAILanguageModelOptions,
-    },
+      'Implement a stable merge sort in TypeScript and explain its complexity.',
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
+  // K2.7 thinking and preserved reasoning are always enabled. Do not send
+  // thinking or reasoningEffort provider options.
+  await printFullStream({ result });
 
-  console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
 });
