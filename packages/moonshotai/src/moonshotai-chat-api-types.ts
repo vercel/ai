@@ -138,8 +138,10 @@ export const moonshotAIChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
+  object: z.literal('chat.completion').nullish(),
   choices: z.array(
     z.object({
+      index: z.number().nullish(),
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
@@ -148,6 +150,7 @@ export const moonshotAIChatResponseSchema = z.object({
           .array(
             z.object({
               id: z.string().nullish(),
+              type: z.literal('function').nullish(),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
@@ -170,8 +173,10 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
         id: z.string().nullish(),
         created: z.number().nullish(),
         model: z.string().nullish(),
+        object: z.literal('chat.completion.chunk').nullish(),
         choices: z.array(
           z.object({
+            index: z.number().nullish(),
             delta: z
               .object({
                 role: z.literal('assistant').nullish(),
@@ -182,6 +187,7 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
                     z.object({
                       index: z.number().nullish(),
                       id: z.string().nullish(),
+                      type: z.literal('function').nullish(),
                       function: z.object({
                         name: z.string().nullish(),
                         arguments: z.string().nullish(),
