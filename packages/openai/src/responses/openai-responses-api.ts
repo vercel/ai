@@ -1,6 +1,5 @@
 import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
-  isRecord,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -18,98 +17,9 @@ const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
   ]),
 );
 
-<<<<<<< HEAD
-=======
-const openaiResponsesComputerSafetyCheckSchema = z.object({
-  id: z.string(),
-  code: z.string().nullish(),
-  message: z.string().nullish(),
-});
-
-const openaiResponsesComputerActionSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('click'),
-    button: z.enum(['left', 'right', 'wheel', 'back', 'forward']),
-    x: z.number(),
-    y: z.number(),
-    keys: z.array(z.string()).nullish(),
-  }),
-  z.object({
-    type: z.literal('double_click'),
-    x: z.number(),
-    y: z.number(),
-    keys: z.array(z.string()).nullish(),
-  }),
-  z.object({
-    type: z.literal('drag'),
-    path: z.array(z.object({ x: z.number(), y: z.number() })),
-    keys: z.array(z.string()).nullish(),
-  }),
-  z.object({
-    type: z.literal('keypress'),
-    keys: z.array(z.string()),
-  }),
-  z.object({
-    type: z.literal('move'),
-    x: z.number(),
-    y: z.number(),
-    keys: z.array(z.string()).nullish(),
-  }),
-  z.object({
-    type: z.literal('screenshot'),
-  }),
-  z.object({
-    type: z.literal('scroll'),
-    x: z.number(),
-    y: z.number(),
-    scroll_x: z.number(),
-    scroll_y: z.number(),
-    keys: z.array(z.string()).nullish(),
-  }),
-  z.object({
-    type: z.literal('type'),
-    text: z.string(),
-  }),
-  z.object({
-    type: z.literal('wait'),
-  }),
-]);
-
-const openaiResponsesComputerCallSchema = z.object({
-  type: z.literal('computer_call'),
-  id: z.string(),
-  call_id: z.string().nullish(),
-  status: z.enum(['in_progress', 'completed', 'incomplete']),
-  action: openaiResponsesComputerActionSchema.nullish(),
-  actions: z.array(openaiResponsesComputerActionSchema).nullish(),
-  pending_safety_checks: z
-    .array(openaiResponsesComputerSafetyCheckSchema)
-    .nullish(),
-});
-
-const openaiResponsesToolCallerSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('direct') }),
-  z.object({
-    type: z.literal('program'),
-    caller_id: z.string(),
-  }),
-]);
-
-const openaiResponsesProgramSchema = z.object({
-  type: z.literal('program'),
-  id: z.string(),
-  call_id: z.string(),
-  code: z.string(),
-  fingerprint: z.string(),
-});
-
-const openaiResponsesProgramOutputSchema = z.object({
-  type: z.literal('program_output'),
-  id: z.string(),
-  call_id: z.string(),
-  result: z.string(),
-  status: z.enum(['completed', 'incomplete']),
-});
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
 
 const openaiResponsesLocalShellCallSchema = z.object({
   type: z.literal('local_shell_call'),
@@ -125,7 +35,6 @@ const openaiResponsesLocalShellCallSchema = z.object({
   }),
 });
 
->>>>>>> eee620060b (fix: OpenAI Responses streams silently dropping schema-invalid known events and reporting stop (#19495))
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
 export type OpenAIResponsesInputItem =
@@ -682,7 +591,6 @@ const openaiResponsesModeledChunkTypes = new Set([
   'response.function_call_arguments.delta',
   'response.function_call_arguments.done',
   'response.image_generation_call.partial_image',
-  'response.in_progress',
   'response.incomplete',
   'response.output_item.added',
   'response.output_item.done',
@@ -701,7 +609,6 @@ const openaiResponsesModeledChunkTypes = new Set([
 const openaiResponsesModeledOutputItemTypes = new Set([
   'apply_patch_call',
   'code_interpreter_call',
-  'compaction',
   'computer_call',
   'custom_tool_call',
   'file_search_call',
@@ -712,8 +619,6 @@ const openaiResponsesModeledOutputItemTypes = new Set([
   'mcp_call',
   'mcp_list_tools',
   'message',
-  'program',
-  'program_output',
   'reasoning',
   'shell_call',
   'shell_call_output',
@@ -1089,29 +994,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               )
               .nullish(),
           }),
-<<<<<<< HEAD
-          z.object({
-            type: z.literal('local_shell_call'),
-            id: z.string(),
-            call_id: z.string(),
-            action: z.object({
-              type: z.literal('exec'),
-              command: z.array(z.string()),
-              timeout_ms: z.number().optional(),
-              user: z.string().optional(),
-              working_directory: z.string().optional(),
-              env: z.record(z.string(), z.string()).optional(),
-            }),
-          }),
+          openaiResponsesLocalShellCallSchema,
           z.object({
             type: z.literal('computer_call'),
             id: z.string(),
             status: z.literal('completed'),
           }),
-=======
-          openaiResponsesLocalShellCallSchema,
-          openaiResponsesComputerCallSchema,
->>>>>>> eee620060b (fix: OpenAI Responses streams silently dropping schema-invalid known events and reporting stop (#19495))
           z.object({
             type: z.literal('mcp_call'),
             id: z.string(),
