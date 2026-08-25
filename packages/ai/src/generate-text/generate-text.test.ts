@@ -1,21 +1,12 @@
 import {
   InvalidPromptError,
-<<<<<<< HEAD
+  JSONParseError,
   LanguageModelV3,
   type LanguageModelV3CallOptions,
   type LanguageModelV3FunctionTool,
   type LanguageModelV3Prompt,
   type LanguageModelV3ProviderTool,
   type LanguageModelV3Usage,
-=======
-  JSONParseError,
-  type LanguageModelV4CallOptions,
-  type LanguageModelV4FinishReason,
-  type LanguageModelV4FunctionTool,
-  type LanguageModelV4Prompt,
-  type LanguageModelV4ProviderTool,
-  type LanguageModelV4Usage,
->>>>>>> eed79505be (fix: generateText loses structured-output diagnostics for truncated responses (#19307))
 } from '@ai-sdk/provider';
 import {
   DelayedPromise,
@@ -37,12 +28,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
-<<<<<<< HEAD
-=======
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
-import { signToolApproval } from './tool-approval-signature';
->>>>>>> eed79505be (fix: generateText loses structured-output diagnostics for truncated responses (#19307))
 import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -5573,14 +5559,12 @@ describe('generateText', () => {
         expect(result.output).toEqual({ value: 'test-value' });
       });
 
-<<<<<<< HEAD
-=======
       it('should expose parse diagnostics when output is truncated', async () => {
         const truncatedText = '{"value":"test';
 
         try {
           await generateText({
-            model: new MockLanguageModelV4({
+            model: new MockLanguageModelV3({
               doGenerate: async () => ({
                 ...dummyResponseValues,
                 finishReason: { unified: 'length', raw: 'length' },
@@ -5611,28 +5595,6 @@ describe('generateText', () => {
         }
       });
 
-      it('should parse the output when the finish reason is missing', async () => {
-        const result = await generateText({
-          model: new MockLanguageModelV4({
-            doGenerate: async () => ({
-              ...dummyResponseValues,
-              finishReason: {
-                unified: undefined,
-                raw: undefined,
-              } as unknown as LanguageModelV4FinishReason,
-              content: [{ type: 'text', text: `{ "value": "test-value" }` }],
-            }),
-          }),
-          prompt: 'prompt',
-          output: Output.object({
-            schema: z.object({ value: z.string() }),
-          }),
-        });
-
-        expect(result.output).toEqual({ value: 'test-value' });
-      });
-
->>>>>>> eed79505be (fix: generateText loses structured-output diagnostics for truncated responses (#19307))
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
         let callOptions: LanguageModelV3CallOptions;
 
