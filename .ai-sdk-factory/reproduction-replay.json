@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issueId": 17267,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-disable-parallel-tool-use.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/amazon-bedrock-disable-parallel-tool-use.ts",
+    "packages/amazon-bedrock/src/__fixtures__/bedrock-disable-parallel-tool-use-ignored.json",
+    "packages/amazon-bedrock/src/__fixtures__/bedrock-disable-parallel-tool-use-enabled.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "disableParallelToolUse was silently ignored: received 2 tool calls and no warning"
+  }
+}

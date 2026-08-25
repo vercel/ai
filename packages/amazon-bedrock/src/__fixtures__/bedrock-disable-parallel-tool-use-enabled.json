@@ -1,0 +1,44 @@
+{
+  "metrics": {
+    "latencyMs": 2291
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "reasoningContent": {
+            "reasoningText": {
+              "signature": "EsMCCmcIERABGAIqQCJbji0Vbnp5690xdZla48x7ynzYNnhkbzwpRVWECJ5m4NiTs0Os+81hvnaDOWtwUrujJWQFIIMogS1TzEreg8kyEWNsYXVkZS1zb25uZXQtNC02OABCCHRoaW5raW5nEgxjq4niFy6egcnTXlQaDNP95ErT+gJlF3BxkyIwotossF2KpEdpkmrEMwg1UdbhG8nirbmeY3AJP1PyHIVKUTEpXa16QrSpisXZilnkKokB9CotK0Q+Vs5Vl1Ml9iitWs6mGgoA4+9aw+JJwNltpXfjIqn69QfcTLTqb0TUmVd0j9HDbU4iPn9HcvRbgxfFfyjmT2WzCyUXM+7bHPjl2oRy8HOzB0n72th2VWcB+7Ml/xManmLRfJjqNOrRjWTpJ1jSj7o6q6KB/BbvCbskdqwWfBsmIEngbhMYAQ==",
+              "text": "The user wants to look up both R1 and C1 at the same time. I have all the required parameters needed for both tool calls."
+            }
+          }
+        },
+        {
+          "text": "Sure! I'll look up both values simultaneously right away!"
+        },
+        {
+          "toolUse": {
+            "input": {
+              "ref": "R1"
+            },
+            "name": "get_resistor_value",
+            "toolUseId": "tooluse_K1lsjyEkuj5bbg5tAkGAhO",
+            "type": "tool_use"
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 515,
+    "outputTokens": 100,
+    "serverToolUsage": {},
+    "totalTokens": 615
+  }
+}
