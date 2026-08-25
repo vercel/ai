@@ -76,6 +76,12 @@ You can use the following optional settings to customize the provider instance:
 
   Set to true if the provider supports structured outputs. Only relevant for `provider()`, `provider.chatModel()`, and `provider.languageModel()`.
 
+- **supportedUrls** _() =&gt; Record&lt;string, RegExp[]&gt;_
+
+  Defines URLs that chat models can access directly, grouped by media type.
+  Matching URLs are passed to the provider instead of being downloaded by the
+  AI SDK.
+
 - **transformRequestBody** _(args: Record&lt;string, any&gt;) =&gt; Record&lt;string, any&gt;_
 
   Optional function to transform the request body before sending it to the API.
@@ -132,6 +138,78 @@ const { text } = await generateText({
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
+
+### Video Inputs
+
+OpenAI-compatible providers that accept the non-standard `video_url` content
+part can receive video file parts. Inline bytes and base64-encoded data are sent
+as data URLs:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+import fs from 'node:fs';
+
+const provider = createOpenAICompatible({
+  name: 'providerName',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+const { text } = await generateText({
+  model: provider('video-capable-model'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the main action in this video.' },
+        {
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: fs.readFileSync('./video.mp4'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+To pass a hosted video URL through without downloading it first, configure
+`supportedUrls` for the provider:
+
+```ts
+const provider = createOpenAICompatible({
+  name: 'providerName',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  supportedUrls: () => ({
+    'video/*': [/^https:\/\/cdn\.example\.com\//],
+  }),
+});
+
+const { text } = await generateText({
+  model: provider('video-capable-model'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this video.' },
+        {
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: new URL('https://cdn.example.com/video.mp4'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+`video_url` is an OpenAI-compatible provider extension, not an official OpenAI
+Chat Completions content type. Video support, accepted formats, size and
+duration limits, and support for public or data URLs depend on the provider and
+model. Prefer hosted URLs when supported to avoid embedding large videos in
+request bodies.
 
 ### Including model ids for auto-completion
 
@@ -214,7 +292,10 @@ const model = provider.imageModel('model-id');
 ### Basic Image Generation
 
 ```ts
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import {
+  createOpenAICompatible,
+  type OpenAICompatibleImageModelOptions,
+} from '@ai-sdk/openai-compatible';
 import { generateImage } from 'ai';
 
 const provider = createOpenAICompatible({
@@ -227,8 +308,49 @@ const { images } = await generateImage({
   model: provider.imageModel('model-id'),
   prompt: 'A futuristic cityscape at sunset',
   size: '1024x1024',
+  providerOptions: {
+    providerName: {
+      quality: 'high',
+      output_format: 'jpeg',
+      output_compression: 80,
+      background: 'opaque',
+    } satisfies OpenAICompatibleImageModelOptions,
+  },
 });
 ```
+
+### Image Model Options
+
+The following common provider options are available for image models:
+
+- **size** _string_
+
+  Dimensions of the generated image. Use the top-level `size` option for
+  standard dimensions, or this provider option for provider-specific values
+  such as `auto`.
+
+- **quality** _string_
+
+  Quality of the generated image. Supported values depend on the provider and
+  model.
+
+- **output_format** _string_
+
+  File format of the generated image.
+
+- **output_compression** _number_
+
+  Compression level from `0` to `100` for formats such as JPEG and WebP.
+
+- **background** _string_
+
+  Background behavior for the generated image. Supported values depend on the
+  provider and model.
+
+Providers and models may support `auto` for `size`, `quality`, or `background`.
+
+`OpenAICompatibleImageModelOptions` also accepts additional provider-specific
+options. These options are passed through to the provider API unchanged.
 
 ### Image Editing
 

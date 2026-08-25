@@ -4,6 +4,6 @@ If you believe you have found a security vulnerability in the AI SDK, we encoura
 
 We will investigate all legitimate reports and do our best to quickly fix the problem.
 
-Email `security@vercel.com` to disclose any security vulnerabilities.
+Report security vulnerabilities through the [Vercel Open Source HackerOne program](https://hackerone.com/vercel-open-source).
 
 https://vercel.com/security

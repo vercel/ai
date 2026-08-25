@@ -136,6 +136,11 @@ export type ReasoningUIPart = {
   type: 'reasoning';
 
   /**
+   * The reasoning part ID.
+   */
+  id?: string;
+
+  /**
    * The reasoning text.
    */
   text: string;

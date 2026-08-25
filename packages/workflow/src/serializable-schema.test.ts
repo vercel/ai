@@ -5,6 +5,7 @@ import {
   serializeToolSet,
   resolveSerializableTools,
 } from './serializable-schema';
+import { createTestSandbox } from './test/test-sandbox';
 
 describe('serializeToolSet', () => {
   it('serializes function tools with description and inputSchema', () => {
@@ -65,9 +66,69 @@ describe('serializeToolSet', () => {
       },
     });
   });
+
+  it('resolves descriptions from tool context and sandbox', () => {
+    const sandbox = createTestSandbox({
+      description: 'request sandbox',
+    });
+    const tools = {
+      getWeather: tool({
+        description: ({ context, experimental_sandbox }) =>
+          `${context.city} via ${experimental_sandbox?.description}`,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: {},
+        }),
+        contextSchema: jsonSchema<{ city: string }>({
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        }),
+      }),
+    };
+
+    const serialized = serializeToolSet(tools, {
+      toolsContext: {
+        getWeather: { city: 'Berlin' },
+      },
+      experimental_sandbox: sandbox,
+    });
+
+    expect(serialized.getWeather.description).toBe(
+      'Berlin via request sandbox',
+    );
+  });
 });
 
 describe('resolveSerializableTools', () => {
+  it('round-trips function tool input examples and provider options', () => {
+    const original = {
+      search: tool({
+        description: 'Search documentation',
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+        inputExamples: [{ input: { query: 'workflow durability' } }],
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral' },
+          },
+        },
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.search.inputExamples).toEqual(
+      original.search.inputExamples,
+    );
+    expect(resolved.search.providerOptions).toEqual(
+      original.search.providerOptions,
+    );
+  });
+
   it('reconstructs function tools with Ajv validation', () => {
     const serialized = {
       getWeather: {

@@ -46,6 +46,7 @@ import {
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
+import { getGoogleModelCapabilities } from './google-model-capabilities';
 import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {
@@ -61,7 +62,7 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
-type GoogleConfig = {
+export type GoogleLanguageModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -79,7 +80,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
   readonly modelId: GoogleModelId;
 
-  private readonly config: GoogleConfig;
+  private readonly config: GoogleLanguageModelConfig;
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: GoogleLanguageModel) {
@@ -91,12 +92,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
-    config: GoogleConfig;
+    config: GoogleLanguageModelConfig;
   }) {
     return new GoogleLanguageModel(options.modelId, options.config);
   }
 
-  constructor(modelId: GoogleModelId, config: GoogleConfig) {
+  constructor(modelId: GoogleModelId, config: GoogleLanguageModelConfig) {
     this.modelId = modelId;
     this.config = config;
     this.generateId = config.generateId ?? generateId;
@@ -110,7 +111,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getArgs(
+  protected async getArgs(
     {
       prompt,
       maxOutputTokens,
@@ -227,16 +228,45 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ? undefined
       : googleOptions?.serviceTier;
 
+    // personGeneration, prominentPeople and imageOutputOptions are only
+    // supported by the Vertex AI API, the Gemini API rejects them.
+    let imageConfig = googleOptions?.imageConfig;
+    if (imageConfig != null && !isVertexProvider) {
+      const {
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+        ...geminiApiImageConfig
+      } = imageConfig;
+      const droppedImageConfigFields = Object.entries({
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+      })
+        .filter(([, value]) => value != null)
+        .map(([key]) => `'imageConfig.${key}'`);
+      if (droppedImageConfigFields.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            `${droppedImageConfigFields.join(', ')} ` +
+            `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
+            `ignored with the current Google provider (${this.config.provider}).`,
+        });
+        imageConfig = geminiApiImageConfig;
+      }
+    }
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const isGemini3Model = /^gemini-3[.-]/.test(this.modelId);
-    const supportsFunctionResponseParts = isGemini3Model;
+    const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
       isGemmaModel,
-      isGemini3Model,
+      isGemini3Model: usesGemini3Features,
       onWarning: warning => warnings.push(warning),
       providerOptionsNames,
-      supportsFunctionResponseParts,
+      supportsFunctionResponseParts: usesGemini3Features,
+      includeFunctionCallIds: !isVertexProvider,
     });
 
     const {
@@ -328,9 +358,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
           }),
-          ...(googleOptions?.imageConfig && {
-            imageConfig: googleOptions.imageConfig,
-          }),
+          ...(imageConfig && { imageConfig }),
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
@@ -347,38 +375,19 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     };
   }
 
-  async doGenerate(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsNames, extraHeaders } =
-      await this.getArgs(options);
+  protected convertGenerateContentResponse({
+    response,
+    warnings,
+    providerOptionsNames,
+  }: {
+    response: InferSchema<typeof responseSchema>;
+    warnings: SharedV4Warning[];
+    providerOptionsNames: readonly string[];
+  }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
-
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const {
-      responseHeaders,
-      value: response,
-      rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:generateContent`,
-      headers: mergedHeaders,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(responseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
-
     const candidate = response.candidates[0];
     const content: Array<LanguageModelV4Content> = [];
 
@@ -387,7 +396,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const usageMetadata = response.usageMetadata;
 
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -408,7 +417,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
         content.push({
           type: 'tool-result',
-          // Assumes a result directly follows its corresponding call part.
+          // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
           toolName: 'code_execution',
           result: {
@@ -416,8 +425,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             output: part.codeExecutionResult.output ?? '',
           },
         });
-        // Clear the ID after use to avoid accidental reuse.
-        lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null) {
         const thoughtSignatureMetadata = part.thoughtSignature
           ? wrapProviderMetadata({
@@ -440,7 +447,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       } else if ('functionCall' in part && part.functionCall.name != null) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: part.functionCall.id ?? this.config.generateId(),
+          toolCallId: part.functionCall.id || this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args ?? {}),
           providerMetadata: part.thoughtSignature
@@ -463,7 +470,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             : undefined,
         });
       } else if ('toolCall' in part && part.toolCall) {
-        const toolCallId = part.toolCall.id ?? this.config.generateId();
+        const toolCallId = part.toolCall.id || this.config.generateId();
         lastServerToolCallId = toolCallId;
         content.push({
           type: 'tool-call',
@@ -485,8 +492,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         });
       } else if ('toolResponse' in part && part.toolResponse) {
         const responseToolCallId =
-          lastServerToolCallId ??
-          part.toolResponse.id ??
+          lastServerToolCallId ||
+          part.toolResponse.id ||
           this.config.generateId();
         content.push({
           type: 'tool-result',
@@ -540,9 +547,52 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         finishMessage: candidate.finishMessage ?? null,
         serviceTier: usageMetadata?.serviceTier ?? null,
       } satisfies GoogleProviderMetadata),
+      response: {
+        // TODO timestamp, model id
+        id: response.responseId ?? undefined,
+      },
+    };
+  }
+
+  async doGenerate(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
+    const { args, warnings, providerOptionsNames, extraHeaders } =
+      await this.getArgs(options);
+
+    const mergedHeaders = combineHeaders(
+      this.config.headers ? await resolve(this.config.headers) : undefined,
+      options.headers,
+      extraHeaders,
+    );
+
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: `${this.config.baseURL}/${getModelPath(
+        this.modelId,
+      )}:generateContent`,
+      headers: mergedHeaders,
+      body: args,
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(responseSchema),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const result = this.convertGenerateContentResponse({
+      response,
+      warnings,
+      providerOptionsNames,
+    });
+
+    return {
+      ...result,
       request: { body: args },
       response: {
-        // TODO timestamp, model id, id
+        ...result.response,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -588,6 +638,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
+    let hasEmittedResponseMetadata = false;
 
     // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
@@ -596,7 +647,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
@@ -666,6 +717,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
             const value = chunk.value;
 
+            if (!hasEmittedResponseMetadata && value.responseId != null) {
+              hasEmittedResponseMetadata = true;
+              controller.enqueue({
+                type: 'response-metadata',
+                id: value.responseId,
+              });
+            }
+
             const usageMetadata = value.usageMetadata;
 
             if (usageMetadata != null) {
@@ -724,7 +783,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
                 ) {
-                  // Assumes a result directly follows its corresponding call part.
+                  // Results correspond to the most recent executable code part.
                   const toolCallId = lastCodeExecutionToolCallId;
 
                   if (toolCallId) {
@@ -737,8 +796,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                         output: part.codeExecutionResult.output ?? '',
                       },
                     });
-                    // Clear the ID after use.
-                    lastCodeExecutionToolCallId = undefined;
                   }
                 } else if ('text' in part && part.text != null) {
                   const thoughtSignatureMetadata = part.thoughtSignature
@@ -842,7 +899,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     providerMetadata: fileMeta,
                   });
                 } else if ('toolCall' in part && part.toolCall) {
-                  const toolCallId = part.toolCall.id ?? generateId();
+                  const toolCallId = part.toolCall.id || generateId();
                   lastServerToolCallId = toolCallId;
                   const serverMeta = wrapProviderMetadata({
                     ...(part.thoughtSignature
@@ -863,8 +920,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   });
                 } else if ('toolResponse' in part && part.toolResponse) {
                   const responseToolCallId =
-                    lastServerToolCallId ??
-                    part.toolResponse.id ??
+                    lastServerToolCallId ||
+                    part.toolResponse.id ||
                     generateId();
                   const serverMeta = wrapProviderMetadata({
                     ...(part.thoughtSignature
@@ -918,7 +975,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                 if (isStreamingChunk) {
                   if (part.functionCall.name != null) {
-                    const toolCallId = part.functionCall.id ?? generateId();
+                    const toolCallId = part.functionCall.id || generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
@@ -987,7 +1044,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 ) {
                   finishActiveStreamingToolCall(controller);
                 } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
                   const args =
                     typeof part.functionCall.args === 'string'
@@ -1024,7 +1081,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
                   hasToolCalls = true;
                 } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id ?? generateId();
+                  const toolCallId = part.functionCall.id || generateId();
                   const toolName = part.functionCall.name!;
 
                   controller.enqueue({
@@ -1103,10 +1160,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }
 }
 
-function isGemini3Model(modelId: string): boolean {
-  return /gemini-3[\.\-]/i.test(modelId) || /gemini-3$/i.test(modelId);
-}
-
 function getMaxOutputTokensForGemini25Model(): number {
   return 65536;
 }
@@ -1136,8 +1189,11 @@ function resolveThinkingConfig({
     return undefined;
   }
 
-  if (isGemini3Model(modelId) && !modelId.includes('gemini-3-pro-image')) {
-    return resolveGemini3ThinkingConfig({ reasoning, warnings });
+  if (
+    getGoogleModelCapabilities(modelId).usesGemini3Features &&
+    !modelId.includes('gemini-3-pro-image')
+  ) {
+    return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
   }
 
   return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
@@ -1145,23 +1201,27 @@ function resolveThinkingConfig({
 
 function resolveGemini3ThinkingConfig({
   reasoning,
+  modelId,
   warnings,
 }: {
   reasoning: Exclude<
     LanguageModelV4CallOptions['reasoning'],
     'provider-default' | undefined
   >;
+  modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
+  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+
   if (reasoning === 'none') {
     // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: 'minimal' };
+    return { thinkingLevel: minimumThinkingLevel };
   }
 
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      minimal: 'minimal',
+      minimal: minimumThinkingLevel,
       low: 'low',
       medium: 'medium',
       high: 'high',
@@ -1175,6 +1235,31 @@ function resolveGemini3ThinkingConfig({
   }
 
   return { thinkingLevel };
+}
+
+function getMinimumThinkingLevelForGemini3Model(
+  modelId: string,
+): 'minimal' | 'low' {
+  const modelName = modelId.split('/').at(-1)?.toLowerCase();
+
+  if (modelName === 'gemini-flash-latest') {
+    return 'low';
+  }
+
+  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
+    modelName ?? '',
+  );
+
+  if (versionMatch == null) {
+    return 'minimal';
+  }
+
+  const majorVersion = Number(versionMatch[1]);
+  const minorVersion = Number(versionMatch[2]);
+
+  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
+    ? 'low'
+    : 'minimal';
 }
 
 function resolveGemini25ThinkingConfig({
@@ -1501,9 +1586,10 @@ export const getUrlContextMetadataSchema = () =>
       .nullish(),
   });
 
-const responseSchema = lazySchema(() =>
+export const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      responseId: z.string().nullish(),
       candidates: z.array(
         z.object({
           content: getContentSchema().nullish().or(z.object({}).strict()),
@@ -1550,6 +1636,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      responseId: z.string().nullish(),
       candidates: z
         .array(
           z.object({

@@ -10,6 +10,7 @@ import {
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { CartesiaTranscriptionModel } from './cartesia-transcription-model';
 import type { CartesiaTranscriptionModelId } from './cartesia-transcription-options';
@@ -75,6 +76,11 @@ export interface CartesiaProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation for streaming transcription.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -103,6 +109,8 @@ export function createCartesia(
       url: ({ path }) => `https://api.cartesia.ai${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      version: options.version ?? CARTESIA_API_VERSION,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: CartesiaSpeechModelId) =>

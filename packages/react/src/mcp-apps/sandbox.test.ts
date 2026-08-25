@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getMCPAppCSP } from './sandbox';
+import { getMCPAppAllowAttribute, getMCPAppCSP } from './sandbox';
 
 describe('getMCPAppCSP', () => {
   it('returns undefined when no csp is provided', () => {
@@ -99,5 +99,43 @@ describe('getMCPAppCSP', () => {
     expect(csp).toContain("connect-src 'self';");
     expect(csp).not.toContain('insecure.example.com');
     expect(csp).not.toContain('javascript:');
+  });
+});
+
+describe('getMCPAppAllowAttribute', () => {
+  it('denies all server-requested permissions without a host allowlist', () => {
+    expect(
+      getMCPAppAllowAttribute({
+        camera: {},
+        microphone: {},
+        geolocation: {},
+        clipboardWrite: {},
+      }),
+    ).toBeUndefined();
+  });
+
+  it('grants only the intersection of server-requested and host-allowed', () => {
+    expect(
+      getMCPAppAllowAttribute({ microphone: {}, camera: {} }, [
+        'microphone',
+        'geolocation',
+      ]),
+    ).toBe('microphone');
+  });
+
+  it('maps clipboardWrite to the clipboard-write feature', () => {
+    expect(
+      getMCPAppAllowAttribute({ clipboardWrite: {} }, ['clipboardWrite']),
+    ).toBe('clipboard-write');
+  });
+
+  it('returns undefined when nothing is both requested and allowed', () => {
+    expect(
+      getMCPAppAllowAttribute({ camera: {} }, ['microphone']),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined when the server requests no permissions', () => {
+    expect(getMCPAppAllowAttribute(undefined, ['camera'])).toBeUndefined();
   });
 });

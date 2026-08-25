@@ -30,7 +30,10 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { getModelCapabilities } from '@ai-sdk/anthropic/internal';
+import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
@@ -42,6 +45,10 @@ import {
   type AmazonBedrockLanguageModelChatOptions,
   type AmazonBedrockChatModelId,
 } from './amazon-bedrock-chat-language-model-options';
+import {
+  supportsNativeStructuredOutput,
+  supportsStrictTools,
+} from './amazon-bedrock-anthropic-model-support';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
 import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
 import { prepareTools } from './amazon-bedrock-prepare-tools';
@@ -190,23 +197,16 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     const { supportsStructuredOutput: modelSupportsStructuredOutput } =
       getModelCapabilities(this.modelId);
 
-    const modelRejectsNativeStructuredOutput =
-      this.modelId.includes('claude-opus-4-7') ||
-      this.modelId.includes('claude-opus-4-8') ||
-      this.modelId.includes('claude-fable-5') ||
-      this.modelId.includes('claude-sonnet-5');
-
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      !modelRejectsNativeStructuredOutput &&
+      supportsNativeStructuredOutput(this.modelId) &&
       (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;
 
     const useJsonInstructionForStructuredOutput =
       isAnthropicModel &&
-      (this.modelId.includes('claude-opus-4-7') ||
-        this.modelId.includes('claude-opus-4-8')) &&
+      !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       tools != null &&
@@ -355,7 +355,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           ...amazonBedrockOptions.additionalModelRequestFields?.output_config,
           format: {
             type: 'json_schema',
-            schema: responseFormat!.schema,
+            schema: sanitizeJsonSchema(responseFormat!.schema!),
           },
         },
       };
@@ -485,7 +485,8 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   readonly supportedUrls: Record<string, RegExp[]> = {
-    // no supported urls for bedrock
+    'image/*': [/^s3:\/\//],
+    'video/*': [/^s3:\/\//],
   };
 
   private async getHeaders({
@@ -572,6 +573,18 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
               bedrock: redactedPayload,
             },
           });
+        } else if ('redactedContent' in part.reasoningContent) {
+          const redactedPayload: AmazonBedrockReasoningMetadata = {
+            redactedContent: part.reasoningContent.redactedContent,
+          };
+          content.push({
+            type: 'reasoning',
+            text: '',
+            providerMetadata: {
+              amazonBedrock: redactedPayload,
+              bedrock: redactedPayload,
+            },
+          });
         }
       }
 
@@ -590,7 +603,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         } else {
           const isMistral = isMistralModel(this.modelId);
           const rawToolCallId =
-            part.toolUse?.toolUseId ?? this.config.generateId();
+            part.toolUse?.toolUseId || this.config.generateId();
           content.push({
             type: 'tool-call' as const,
             toolCallId: normalizeToolCallId(rawToolCallId, isMistral),
@@ -719,7 +732,8 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           jsonText: string;
           isJsonResponseTool?: boolean;
         }
-      | { type: 'text' | 'reasoning' }
+      | { type: 'text' }
+      | { type: 'reasoning'; redactedContent?: string }
     > = {};
 
     return {
@@ -767,6 +781,10 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
             }
             if (value.modelStreamErrorException) {
               enqueueError(value.modelStreamErrorException);
+              return;
+            }
+            if (value.serviceUnavailableException) {
+              enqueueError(value.serviceUnavailableException);
               return;
             }
             if (value.throttlingException) {
@@ -890,9 +908,21 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
               if (contentBlock != null) {
                 if (contentBlock.type === 'reasoning') {
+                  const redactedPayload: AmazonBedrockReasoningMetadata | null =
+                    contentBlock.redactedContent != null
+                      ? { redactedContent: contentBlock.redactedContent }
+                      : null;
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: String(blockIndex),
+                    ...(redactedPayload != null
+                      ? {
+                          providerMetadata: {
+                            amazonBedrock: redactedPayload,
+                            bedrock: redactedPayload,
+                          },
+                        }
+                      : {}),
                   });
                 } else if (contentBlock.type === 'text') {
                   controller.enqueue({
@@ -1007,6 +1037,27 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
                     },
                   });
                 }
+              } else if (
+                'redactedContent' in reasoningContent &&
+                reasoningContent.redactedContent
+              ) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
+
+                const contentBlock = contentBlocks[blockIndex];
+                if (contentBlock.type === 'reasoning') {
+                  // accumulate and attach once via reasoning-end: the merged
+                  // provider metadata of a reasoning part is last-write-wins,
+                  // so per-delta metadata would drop earlier chunks
+                  contentBlock.redactedContent =
+                    (contentBlock.redactedContent ?? '') +
+                    reasoningContent.redactedContent;
+                }
               }
             }
 
@@ -1097,8 +1148,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   private getUrl(modelId: string) {
-    const encodedModelId = encodeURIComponent(modelId);
-    return `${this.config.baseUrl()}/model/${encodedModelId}`;
+    return `${this.config.baseUrl()}/model/${encodeURIComponent(modelId)}`;
   }
 }
 
@@ -1216,6 +1266,13 @@ const AmazonBedrockResponseSchema = z.object({
               z.object({
                 redactedReasoning: AmazonBedrockRedactedReasoningSchema,
               }),
+              // `redactedContent` is a member of the documented
+              // ReasoningContentBlock union. OpenAI models on Bedrock
+              // (e.g. `us.openai.gpt-5.6-luna`) return their encrypted
+              // reasoning in this shape.
+              z.object({
+                redactedContent: z.string(),
+              }),
             ])
             .nullish(),
         }),
@@ -1261,6 +1318,12 @@ const AmazonBedrockStreamSchema = z.object({
           }),
           z.object({
             reasoningContent: z.object({ data: z.string() }),
+          }),
+          // `redactedContent` is a member of the documented
+          // ReasoningContentBlockDelta union. OpenAI models on Bedrock stream
+          // their encrypted reasoning in this shape.
+          z.object({
+            reasoningContent: z.object({ redactedContent: z.string() }),
           }),
         ])
         .nullish(),
@@ -1308,6 +1371,7 @@ const AmazonBedrockStreamSchema = z.object({
     })
     .nullish(),
   modelStreamErrorException: z.record(z.string(), z.unknown()).nullish(),
+  serviceUnavailableException: z.record(z.string(), z.unknown()).nullish(),
   throttlingException: z.record(z.string(), z.unknown()).nullish(),
   validationException: z.record(z.string(), z.unknown()).nullish(),
 });

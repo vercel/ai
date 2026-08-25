@@ -1,5 +1,468 @@
 # @ai-sdk/harness
 
+## 1.0.87
+
+### Patch Changes
+
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.86
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 1.0.85
+
+### Patch Changes
+
+- fa6af57: fix(harness): emit builtin tool results after approval continuations
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 1.0.83
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 1.0.82
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 1.0.81
+
+### Patch Changes
+
+- 7f50d28: feat(harness): make `destroy` on `HarnessV1NetworkSandboxSession` mandatory
+  - ai@7.0.73
+
+## 1.0.80
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 1.0.79
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 1.0.78
+
+### Patch Changes
+
+- eace6fb: feat(harness): add experimental support for steering agent conversations mid-turn
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - @ai-sdk/provider-utils@5.0.28
+  - ai@7.0.70
+
+## 1.0.76
+
+### Patch Changes
+
+- fc1970b: feat(harness): allow passing caller-owned `sandboxSession` to `HarnessAgent.createSession()` and in that case allow omitting the then unnecessary `sandbox` arg from `HarnessAgent` constructor
+  - ai@7.0.69
+
+## 1.0.75
+
+### Patch Changes
+
+- d300737: fix(harness): keep the runtime's error message on failed provider-executed tool results
+  - ai@7.0.68
+
+## 1.0.74
+
+### Patch Changes
+
+- ai@7.0.67
+
+## 1.0.73
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- d25cae2: fix(harness): claim the bridge event stream on start/resume instead of on connect
+
+## 1.0.72
+
+### Patch Changes
+
+- 69bb613: feat(harness): support request transformations in network sandbox abstraction and use it to apply credential brokering when available
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- 4cd4989: chore(harness): decouple bridge based harness bootstrap recipe logic from dynamic params and enforce unique harnesses in `prepareSandboxForHarness()` helper
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 1.0.71
+
+### Patch Changes
+
+- 8d717b3: Execute independent host tool calls concurrently within a harness step.
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 1.0.70
+
+### Patch Changes
+
+- ai@7.0.64
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 1.0.68
+
+### Patch Changes
+
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
+## 1.0.67
+
+### Patch Changes
+
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+- Updated dependencies [7fbfc6d]
+  - ai@7.0.61
+  - @ai-sdk/provider-utils@5.0.27
+
+## 1.0.66
+
+### Patch Changes
+
+- 9ee30bf: fix(harness): pass instructions appended to system / developer prompt instead of using the workaround of first user prompt
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
+## 1.0.65
+
+### Patch Changes
+
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - ai@7.0.59
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [72ad23f]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - ai@7.0.58
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - ai@7.0.57
+
+## 1.0.62
+
+### Patch Changes
+
+- 25c9120: Expose provider metadata on language-model-call end callbacks and telemetry spans.
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
+## 1.0.61
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - ai@7.0.55
+  - @ai-sdk/provider-utils@5.0.23
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 1.0.59
+
+### Patch Changes
+
+- 81bcf2e: feat(harness): add `HarnessBridgeCapabilityUnsupportedError` for bridge code that needs to flag missing capability
+- Updated dependencies [cd0177b]
+- Updated dependencies [2b60826]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+  - @ai-sdk/provider-utils@5.0.22
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [3836a85]
+- Updated dependencies [1bec07d]
+  - ai@7.0.52
+  - @ai-sdk/provider-utils@5.0.21
+
+## 1.0.57
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - ai@7.0.51
+
+## 1.0.56
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+- Updated dependencies [da64b51]
+  - @ai-sdk/provider@4.0.5
+  - ai@7.0.50
+  - @ai-sdk/provider-utils@5.0.19
+
+## 1.0.55
+
+### Patch Changes
+
+- 2c0a8aa: fix(harness): remove unused and unnecessary `workingDirectory` property from `HarnessV1BootstrapCommand`
+- 861d423: feat(harness): improve harness sandbox auth error handling and expose `getHarnessErrorMessage()` helper
+- 8f10600: fix(harness): rename harness bridge `detach` to `stop` and `shutdown` to `destroy` for clarity
+  - ai@7.0.49
+
+## 1.0.54
+
+### Patch Changes
+
+- ai@7.0.48
+
+## 1.0.53
+
+### Patch Changes
+
+- bdde5d9: fix(harness): avoid placing harness bootstrap files in `/tmp` and instead use sandbox working directory
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - ai@7.0.47
+
+## 1.0.52
+
+### Patch Changes
+
+- ai@7.0.46
+
+## 1.0.51
+
+### Patch Changes
+
+- 226a679: fix(harness): emit the final result or error after an approved host tool continuation executes.
+- Updated dependencies [d6ce0ee]
+- Updated dependencies [fa95504]
+- Updated dependencies [349afe7]
+  - ai@7.0.45
+  - @ai-sdk/provider-utils@5.0.17
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - ai@7.0.43
+
+## 1.0.48
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - @ai-sdk/provider-utils@5.0.15
+  - ai@7.0.42
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 1.0.46
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [09a52cb]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - ai@7.0.39
+
+## 1.0.44
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 1.0.43
+
+### Patch Changes
+
+- a9a22e1: fix(harness): fix telemetry end events to report `final-step` text and reasoning for multi-step turns
+- 9e4e816: fix(harness): avoid emitting `onTurnFinished` / `onTurnFailed` when turn is suspended mid-flight
+- ea3063f: fix(harness): remove broken bridge `channel.interrupt()` layer and its usage
+
+## 1.0.42
+
+### Patch Changes
+
+- ai@7.0.37
+
+## 1.0.41
+
+### Patch Changes
+
+- a94425b: fix(harness): ensure harness telemetry hooks are awaited before stream processing continues
+- 2de0611: fix(harness): avoid incorrectly marked invalid tool calls due to `dynamic` flag being dropped
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
+## 1.0.40
+
+### Patch Changes
+
+- 59a2306: fix(harness): execute host tools through telemetry context wrappers
+- 5f65e61: feat(harness): add support for `stopWhen` control to `HarnessAgent` (e.g. `isStepCount(1)`)
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
+## 1.0.39
+
+### Patch Changes
+
+- 86a84c9: fix(harness): settle a turn aborted by the caller's abortSignal with an `abort` stream part instead of an AbortError `error` part, matching `streamText`'s abort contract
+  - ai@7.0.34
+
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - @ai-sdk/provider-utils@5.0.12
+  - ai@7.0.33
+
+## 1.0.37
+
+### Patch Changes
+
+- b460541: fix(harness): properly support client-side / host-side tools and handle unfinished turn semantics
+- 079591e: fix (harness): emit the message-level `start` part on HarnessAgent streams so `toUIMessageStream` persistence mode can inject the response message id
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+  - ai@7.0.31
+  - @ai-sdk/provider-utils@5.0.11
+
+## 1.0.35
+
+### Patch Changes
+
+- ai@7.0.30
+
+## 1.0.34
+
+### Patch Changes
+
+- ai@7.0.29
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [0bc8d4f]
+  - ai@7.0.28
+
 ## 1.0.32
 
 ### Patch Changes

@@ -914,3 +914,106 @@ describe('GatewayTranscriptionModel', () => {
     });
   });
 });
+
+describe('gateway.experimental_transcription', () => {
+  const serverOnlyIt = typeof globalThis.window === 'undefined' ? it : it.skip;
+  const MODEL = 'openai/gpt-realtime-whisper';
+
+  serverOnlyIt('creates a transcription model from a model id', async () => {
+    const { createGateway } = await import('./gateway-provider');
+    const gateway = createGateway({ apiKey: 'vck_test-token' });
+    const model = gateway.experimental_transcription(MODEL);
+    expect(model.specificationVersion).toBe('v4');
+    expect(model.modelId).toBe(MODEL);
+    expect(model.provider).toBe('gateway');
+  });
+
+  serverOnlyIt(
+    'mints a transcription-bound vcst_ client secret and returns it with the wss url',
+    async () => {
+      const { createGateway } = await import('./gateway-provider');
+      let capturedMintUrl = '';
+      const fetch = vi.fn(
+        async (input: string | URL | Request, _init?: RequestInit) => {
+          const url = input instanceof Request ? input.url : input.toString();
+          capturedMintUrl = url;
+          return new Response(
+            JSON.stringify({ token: 'vcst_minted', expiresAt: 1_700_000_060 }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        },
+      );
+      const mintGateway = createGateway({ apiKey: 'vck_test-token', fetch });
+
+      const result = await mintGateway.experimental_transcription.getToken({
+        model: MODEL,
+        expiresAfterSeconds: 120,
+      });
+
+      // Minted token (not the raw key), and the mint hit the v1 route on the
+      // gateway origin — not the transcription baseURL path (/v4/ai).
+      expect(result.token).toBe('vcst_minted');
+      expect(result.expiresAt).toBe(1_700_000_060);
+      expect(result.url).toBe(
+        'wss://ai-gateway.vercel.sh/v4/ai/transcription-model?ai-model-id=openai%2Fgpt-realtime-whisper',
+      );
+      expect(capturedMintUrl).toBe(
+        'https://ai-gateway.vercel.sh/v1/realtime/client-secrets',
+      );
+
+      // The body binds the token to the transcription surface.
+      const init = fetch.mock.calls[0]?.[1] as RequestInit;
+      expect(JSON.parse(init.body as string)).toMatchObject({
+        model: MODEL,
+        routeKind: 'transcription',
+        expiresIn: 120,
+      });
+      // Authenticated with the long-lived key.
+      const sentHeaders = new Headers(init.headers);
+      expect(sentHeaders.get('authorization')).toBe('Bearer vck_test-token');
+    },
+  );
+
+  serverOnlyIt(
+    'tolerates a null expiresAt from the mint endpoint and omits it from the result',
+    async () => {
+      const { createGateway } = await import('./gateway-provider');
+      const fetch = vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ token: 'vcst_minted', expiresAt: null }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+      );
+      const mintGateway = createGateway({ apiKey: 'vck_test-token', fetch });
+
+      const result = await mintGateway.experimental_transcription.getToken({
+        model: MODEL,
+      });
+
+      expect(result.token).toBe('vcst_minted');
+      expect('expiresAt' in result).toBe(false);
+    },
+  );
+
+  it('rejects minting (getToken) in browsers — the credential must stay server-side', async () => {
+    const { createGateway } = await import('./gateway-provider');
+    const gateway = createGateway({ apiKey: 'vck_test-token' });
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: {},
+    });
+    try {
+      await expect(
+        gateway.experimental_transcription.getToken({ model: MODEL }),
+      ).rejects.toThrow(/must be minted server-side/);
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(globalThis, 'window', descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, 'window');
+      }
+    }
+  });
+});

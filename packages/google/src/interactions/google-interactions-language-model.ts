@@ -78,7 +78,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
   /**
    * Optional agent name. When provided, the request body sends `agent:` instead
-   * of `model:` and rejects `tools` / `generation_config` (warned, not thrown).
+   * of `model:` and rejects `generation_config` (warned, not thrown).
    */
   readonly agent: string | undefined;
 
@@ -153,18 +153,27 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const isAgent = this.agent != null;
 
+    if (!isAgent) {
+      if (options.frequencyPenalty != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+        });
+      }
+      if (options.presencePenalty != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'presencePenalty',
+        });
+      }
+    }
+
     const hasTools = options.tools != null && options.tools.length > 0;
 
     let toolsForBody: Array<GoogleInteractionsTool> | undefined;
     let toolChoiceForBody: GoogleInteractionsToolChoice | undefined;
 
-    if (hasTools && isAgent) {
-      warnings.push({
-        type: 'other',
-        message:
-          'google.interactions: tools are not supported when an agent is set; tools will be omitted from the request body.',
-      });
-    } else if (hasTools) {
+    if (hasTools) {
       const prepared = prepareGoogleInteractionsTools({
         tools: options.tools,
         toolChoice: options.toolChoice,
@@ -282,6 +291,11 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       const droppedFields: Array<string> = [];
       if (options.temperature != null) droppedFields.push('temperature');
       if (options.topP != null) droppedFields.push('topP');
+      if (options.topK != null) droppedFields.push('topK');
+      if (options.frequencyPenalty != null)
+        droppedFields.push('frequencyPenalty');
+      if (options.presencePenalty != null)
+        droppedFields.push('presencePenalty');
       if (options.seed != null) droppedFields.push('seed');
       if (options.stopSequences != null && options.stopSequences.length > 0) {
         droppedFields.push('stopSequences');
@@ -305,6 +319,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       generationConfig = pruneUndefined({
         temperature: options.temperature ?? undefined,
         top_p: options.topP ?? undefined,
+        top_k: options.topK ?? undefined,
         seed: options.seed ?? undefined,
         stop_sequences:
           options.stopSequences != null && options.stopSequences.length > 0

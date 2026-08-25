@@ -17,6 +17,97 @@ const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
   ]),
 );
 
+const openaiResponsesComputerSafetyCheckSchema = z.object({
+  id: z.string(),
+  code: z.string().nullish(),
+  message: z.string().nullish(),
+});
+
+const openaiResponsesComputerActionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('click'),
+    button: z.enum(['left', 'right', 'wheel', 'back', 'forward']),
+    x: z.number(),
+    y: z.number(),
+    keys: z.array(z.string()).nullish(),
+  }),
+  z.object({
+    type: z.literal('double_click'),
+    x: z.number(),
+    y: z.number(),
+    keys: z.array(z.string()).nullish(),
+  }),
+  z.object({
+    type: z.literal('drag'),
+    path: z.array(z.object({ x: z.number(), y: z.number() })),
+    keys: z.array(z.string()).nullish(),
+  }),
+  z.object({
+    type: z.literal('keypress'),
+    keys: z.array(z.string()),
+  }),
+  z.object({
+    type: z.literal('move'),
+    x: z.number(),
+    y: z.number(),
+    keys: z.array(z.string()).nullish(),
+  }),
+  z.object({
+    type: z.literal('screenshot'),
+  }),
+  z.object({
+    type: z.literal('scroll'),
+    x: z.number(),
+    y: z.number(),
+    scroll_x: z.number(),
+    scroll_y: z.number(),
+    keys: z.array(z.string()).nullish(),
+  }),
+  z.object({
+    type: z.literal('type'),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal('wait'),
+  }),
+]);
+
+const openaiResponsesComputerCallSchema = z.object({
+  type: z.literal('computer_call'),
+  id: z.string(),
+  call_id: z.string().nullish(),
+  status: z.enum(['in_progress', 'completed', 'incomplete']),
+  action: openaiResponsesComputerActionSchema.nullish(),
+  actions: z.array(openaiResponsesComputerActionSchema).nullish(),
+  pending_safety_checks: z
+    .array(openaiResponsesComputerSafetyCheckSchema)
+    .nullish(),
+});
+
+const openaiResponsesToolCallerSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('direct') }),
+  z.object({
+    type: z.literal('program'),
+    caller_id: z.string(),
+  }),
+]);
+
+const openaiResponsesProgramSchema = z.object({
+  type: z.literal('program'),
+  id: z.string(),
+  call_id: z.string(),
+  code: z.string(),
+  fingerprint: z.string(),
+});
+
+const openaiResponsesProgramOutputSchema = z.object({
+  type: z.literal('program_output'),
+  id: z.string(),
+  call_id: z.string(),
+  result: z.string(),
+  status: z.enum(['completed', 'incomplete']),
+});
+
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
 export type OpenAIResponsesInputItem =
@@ -25,10 +116,13 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
+  | OpenAIResponsesProgram
+  | OpenAIResponsesProgramOutput
   | OpenAIResponsesCustomToolCall
   | OpenAIResponsesCustomToolCallOutput
   | OpenAIResponsesMcpApprovalResponse
   | OpenAIResponsesComputerCall
+  | OpenAIResponsesComputerCallOutput
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
   | OpenAIResponsesShellCall
@@ -39,7 +133,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesToolSearchOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
-  | OpenAIResponsesCompactionItem;
+  | OpenAIResponsesCompactionItem
+  | OpenAIResponsesCompactionTrigger;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -133,6 +228,7 @@ export type OpenAIResponsesFunctionCall = {
   arguments: string;
   id?: string;
   namespace?: string;
+  caller?: OpenAIResponsesToolCaller;
 };
 
 export type OpenAIResponsesFunctionCallOutput = {
@@ -163,6 +259,27 @@ export type OpenAIResponsesFunctionCallOutput = {
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
       >;
+  caller?: OpenAIResponsesToolCaller;
+};
+
+export type OpenAIResponsesToolCaller =
+  | { type: 'direct' }
+  | { type: 'program'; caller_id: string };
+
+export type OpenAIResponsesProgram = {
+  type: 'program';
+  id: string;
+  call_id: string;
+  code: string;
+  fingerprint: string;
+};
+
+export type OpenAIResponsesProgramOutput = {
+  type: 'program_output';
+  id: string;
+  call_id: string;
+  result: string;
+  status: 'completed' | 'incomplete';
 };
 
 export type OpenAIResponsesCustomToolCall = {
@@ -185,10 +302,28 @@ export type OpenAIResponsesMcpApprovalResponse = {
   approve: boolean;
 };
 
-export type OpenAIResponsesComputerCall = {
-  type: 'computer_call';
-  id: string;
-  status?: string;
+export type OpenAIResponsesComputerAction = InferSchema<
+  typeof openaiResponsesComputerActionSchema
+>;
+
+export type OpenAIResponsesComputerCall = InferSchema<
+  typeof openaiResponsesComputerCallSchema
+>;
+
+export type OpenAIResponsesComputerCallOutput = {
+  type: 'computer_call_output';
+  call_id: string;
+  output: {
+    type: 'computer_screenshot';
+    image_url?: string;
+    file_id?: string;
+    detail?: 'auto' | 'low' | 'high' | 'original';
+  };
+  acknowledged_safety_checks?: Array<{
+    id: string;
+    code?: string;
+    message?: string;
+  }>;
 };
 
 export type OpenAIResponsesLocalShellCall = {
@@ -297,6 +432,10 @@ export type OpenAIResponsesCompactionItem = {
   encrypted_content: string;
 };
 
+export type OpenAIResponsesCompactionTrigger = {
+  type: 'compaction_trigger';
+};
+
 /**
  * A filter used to compare a specified attribute key to a given value using a defined comparison operation.
  */
@@ -342,7 +481,24 @@ export type OpenAIResponsesFunctionTool = {
   parameters: JSONSchema7;
   strict?: boolean;
   defer_loading?: boolean;
+  allowed_callers?: Array<'direct' | 'programmatic'>;
+  output_schema?: JSONSchema7;
 };
+
+/**
+ * Entry in `tool_choice.allowed_tools.tools`. OpenAI identifies most built-in
+ * tools by type alone; only `function`, `custom` and `mcp` carry an identifier.
+ */
+export type OpenAIResponsesAllowedTool =
+  | { type: 'function'; name: string }
+  | { type: 'custom'; name: string }
+  | { type: 'mcp'; server_label: string }
+  | {
+      type: Exclude<
+        OpenAIResponsesTool['type'],
+        'function' | 'custom' | 'mcp' | 'namespace' | 'tool_search'
+      >;
+    };
 
 export type OpenAIResponsesTool =
   | OpenAIResponsesFunctionTool
@@ -356,9 +512,17 @@ export type OpenAIResponsesTool =
       type: 'apply_patch';
     }
   | {
+      type: 'computer';
+    }
+  | {
       type: 'web_search';
       external_web_access: boolean | undefined;
-      filters: { allowed_domains: string[] | undefined } | undefined;
+      filters:
+        | {
+            allowed_domains: string[] | undefined;
+            blocked_domains: string[] | undefined;
+          }
+        | undefined;
       search_context_size: 'low' | 'medium' | 'high' | undefined;
       user_location:
         | {
@@ -515,6 +679,9 @@ export type OpenAIResponsesTool =
       execution?: 'server' | 'client';
       description?: string;
       parameters?: Record<string, unknown>;
+    }
+  | {
+      type: 'programmatic_tool_calling';
     };
 
 export type OpenAIResponsesReasoning = {
@@ -557,6 +724,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       z.object({
         type: z.literal('response.output_text.delta'),
         item_id: z.string(),
+        output_index: z.number().nullish(),
         delta: z.string(),
         logprobs: z
           .array(
@@ -652,6 +820,15 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         }),
       }),
       z.object({
+        type: z.literal('response.in_progress'),
+        response: z.object({
+          id: z.string(),
+          created_at: z.number(),
+          model: z.string(),
+          service_tier: z.string().nullish(),
+        }),
+      }),
+      z.object({
         type: z.literal('response.output_item.added'),
         output_index: z.number(),
         item: z.discriminatedUnion('type', [
@@ -672,17 +849,16 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             name: z.string(),
             arguments: z.string(),
             namespace: z.string().nullish(),
+            caller: openaiResponsesToolCallerSchema.nullish(),
           }),
+          openaiResponsesProgramSchema,
+          openaiResponsesProgramOutputSchema,
           z.object({
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
           }),
-          z.object({
-            type: z.literal('computer_call'),
-            id: z.string(),
-            status: z.string(),
-          }),
+          openaiResponsesComputerCallSchema,
           z.object({
             type: z.literal('file_search_call'),
             id: z.string(),
@@ -820,9 +996,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
-            status: z.literal('completed'),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
             namespace: z.string().nullish(),
+            caller: openaiResponsesToolCallerSchema.nullish(),
           }),
+          openaiResponsesProgramSchema,
+          openaiResponsesProgramOutputSchema,
           z.object({
             type: z.literal('custom_tool_call'),
             id: z.string(),
@@ -913,11 +1092,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               env: z.record(z.string(), z.string()).optional(),
             }),
           }),
-          z.object({
-            type: z.literal('computer_call'),
-            id: z.string(),
-            status: z.literal('completed'),
-          }),
+          openaiResponsesComputerCallSchema,
           z.object({
             type: z.literal('mcp_call'),
             id: z.string(),
@@ -1110,17 +1285,20 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       z.object({
         type: z.literal('response.reasoning_summary_part.added'),
         item_id: z.string(),
+        output_index: z.number().nullish(),
         summary_index: z.number(),
       }),
       z.object({
         type: z.literal('response.reasoning_summary_text.delta'),
         item_id: z.string(),
+        output_index: z.number().nullish(),
         summary_index: z.number(),
         delta: z.string(),
       }),
       z.object({
         type: z.literal('response.reasoning_summary_part.done'),
         item_id: z.string(),
+        output_index: z.number().nullish(),
         summary_index: z.number(),
       }),
       z.object({
@@ -1332,7 +1510,10 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               arguments: z.string(),
               id: z.string(),
               namespace: z.string().nullish(),
+              caller: openaiResponsesToolCallerSchema.nullish(),
             }),
+            openaiResponsesProgramSchema,
+            openaiResponsesProgramOutputSchema,
             z.object({
               type: z.literal('custom_tool_call'),
               call_id: z.string(),
@@ -1340,11 +1521,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               input: z.string(),
               id: z.string(),
             }),
-            z.object({
-              type: z.literal('computer_call'),
-              id: z.string(),
-              status: z.string().optional(),
-            }),
+            openaiResponsesComputerCallSchema,
             z.object({
               type: z.literal('reasoning'),
               id: z.string(),
