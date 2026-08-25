@@ -108,6 +108,7 @@ export const moonshotAIErrorSchema = z.object({
   error: z.object({
     message: z.string(),
     type: z.string().nullish(),
+    code: z.string().nullish(),
   }),
 });
 

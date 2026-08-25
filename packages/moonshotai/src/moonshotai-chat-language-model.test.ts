@@ -59,6 +59,14 @@ async function getStreamParts(filename: string) {
   return convertReadableStreamToArray(result.stream);
 }
 
+function prepareErrorFixtureResponse(filename: string) {
+  server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+    type: 'error',
+    status: 400,
+    body: fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+  };
+}
+
 describe('doGenerate', () => {
   describe('text', () => {
     beforeEach(() => {
@@ -1503,43 +1511,64 @@ describe('doGenerate', () => {
       expect(server.calls).toHaveLength(0);
     });
 
-    it('should map the moonshot error envelope', async () => {
-      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
-        type: 'error',
-        status: 400,
-        body: JSON.stringify({
-          error: {
-            message: 'Invalid request: invalid part type: file',
-            type: 'invalid_request_error',
-          },
-        }),
-      };
+    it('should preserve the full moonshot error envelope', async () => {
+      prepareErrorFixtureResponse('moonshotai-error');
 
       await expect(
         provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
-      ).rejects.toThrow('Invalid request: invalid part type: file');
+      ).rejects.toMatchObject({
+        message: 'Invalid request: invalid part type: file',
+        data: {
+          error: {
+            message: 'Invalid request: invalid part type: file',
+            type: 'invalid_request_error',
+            code: 'invalid_part_type',
+          },
+        },
+      });
+    });
+
+    it('should preserve nullable codes in the error envelope', async () => {
+      prepareErrorFixtureResponse('moonshotai-error-null-code');
+
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toMatchObject({
+        message: 'Request failed with a nullable code',
+        data: {
+          error: {
+            message: 'Request failed with a nullable code',
+            type: 'invalid_request_error',
+            code: null,
+          },
+        },
+      });
+    });
+
+    it('should continue to parse message-only errors', async () => {
+      prepareErrorFixtureResponse('moonshotai-error-message-only');
+
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toMatchObject({
+        message: 'Request failed',
+        data: { error: { message: 'Request failed' } },
+      });
     });
   });
 });
 
 describe('doStream', () => {
-  it('should preserve a provider error envelope in stream errors', async () => {
+  it('should preserve the full provider error envelope in stream errors', async () => {
     const data = {
       error: {
-        message: 'Internal server error',
+        message: 'Stream failed',
         type: 'server_error',
+        code: 'stream_failure',
       },
     };
 
-    server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
-    };
-
-    const result = await provider.chatModel('kimi-k3').doStream({
-      prompt: TEST_PROMPT,
-    });
-    const chunks = await convertReadableStreamToArray(result.stream);
+    const chunks = await getStreamParts('moonshotai-stream-error');
     const errorPart = chunks.find(chunk => chunk.type === 'error');
 
     expect(errorPart?.type).toBe('error');
@@ -1549,10 +1578,59 @@ describe('doStream', () => {
 
     expect(isProviderStreamError(errorPart.error)).toBe(true);
     expect(errorPart.error).toMatchObject({
-      message: 'Internal server error',
+      message: 'Stream failed',
       type: 'server_error',
+      code: 'stream_failure',
       statusCode: 500,
       isRetryable: true,
+      data,
+    });
+    expect(chunks.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'error' },
+    });
+  });
+
+  it('should preserve nullable codes in the stream error envelope', async () => {
+    const data = {
+      error: {
+        message: 'Stream failed with a nullable code',
+        type: 'server_error',
+        code: null,
+      },
+    };
+    const chunks = await getStreamParts('moonshotai-stream-error-null-code');
+    const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+    expect(errorPart?.type).toBe('error');
+    if (errorPart?.type !== 'error') {
+      expect.fail('Expected an error part');
+    }
+
+    expect(isProviderStreamError(errorPart.error)).toBe(true);
+    expect(errorPart.error).toMatchObject({
+      message: 'Stream failed with a nullable code',
+      type: 'server_error',
+      code: undefined,
+      statusCode: 500,
+      isRetryable: true,
+      data,
+    });
+  });
+
+  it('should continue to parse message-only streamed errors', async () => {
+    const data = { error: { message: 'Stream failed without details' } };
+    const chunks = await getStreamParts('moonshotai-stream-error-message-only');
+    const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+    expect(errorPart?.type).toBe('error');
+    if (errorPart?.type !== 'error') {
+      expect.fail('Expected an error part');
+    }
+
+    expect(isProviderStreamError(errorPart.error)).toBe(true);
+    expect(errorPart.error).toMatchObject({
+      message: 'Stream failed without details',
       data,
     });
   });

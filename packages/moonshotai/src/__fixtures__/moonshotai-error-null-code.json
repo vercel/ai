@@ -1,0 +1,7 @@
+{
+  "error": {
+    "message": "Request failed with a nullable code",
+    "type": "invalid_request_error",
+    "code": null
+  }
+}
