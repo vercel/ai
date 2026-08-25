@@ -6127,6 +6127,107 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    it('should signal schema-invalid known events and finish with error', async () => {
+      const functionCall = {
+        id: 'fc_1',
+        type: 'function_call',
+        name: 'get_weather',
+        call_id: 'call_1',
+        arguments: '{"city":"Berlin"}',
+        status: 'completed',
+      };
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'response_1',
+              created_at: 1,
+              model: 'gpt-5.1',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            item: { ...functionCall, arguments: '', status: 'in_progress' },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_1',
+            delta: '{"city":"Berlin"}',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            item: functionCall,
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [functionCall],
+              usage: { input_tokens: 1, output_tokens: 2 },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.1').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type === 'error')).not.toHaveLength(
+        0,
+      );
+      expect(events.some(event => event.type === 'tool-call')).toBe(false);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
+      });
+    });
+
+    it('should continue ignoring unknown event types', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'response_1',
+              created_at: 1,
+              model: 'gpt-5.1',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.future_event',
+            value: 'ignored',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [],
+              usage: { input_tokens: 1, output_tokens: 2 },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.1').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.some(event => event.type === 'error')).toBe(false);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'stop' },
+      });
+    });
+
     it('should stream text deltas', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
