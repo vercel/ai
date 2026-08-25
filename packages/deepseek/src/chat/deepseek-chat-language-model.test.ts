@@ -115,6 +115,80 @@ describe('DeepSeekChatLanguageModel', () => {
         `);
       });
 
+      it('should omit deprecated and ineffective sampling options in default V4 thinking mode', async () => {
+        const result = await provider.chat('deepseek-v4-flash').doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.2,
+          topP: 0.4,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.6,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'deepseek-v4-flash',
+          messages: [{ role: 'user', content: 'Hello' }],
+        });
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'other',
+            message:
+              'frequencyPenalty is deprecated by DeepSeek and has been omitted. Remove frequencyPenalty from the request.',
+          },
+          {
+            type: 'other',
+            message:
+              'presencePenalty is deprecated by DeepSeek and has been omitted. Remove presencePenalty from the request.',
+          },
+          {
+            type: 'unsupported-setting',
+            setting: 'temperature',
+            details:
+              "temperature has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use temperature.",
+          },
+          {
+            type: 'unsupported-setting',
+            setting: 'topP',
+            details:
+              "topP has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use topP.",
+          },
+        ]);
+      });
+
+      it('should preserve supported sampling options when V4 thinking is disabled', async () => {
+        const result = await provider.chat('deepseek-v4-flash').doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.2,
+          topP: 0.4,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.6,
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'disabled' },
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'deepseek-v4-flash',
+          messages: [{ role: 'user', content: 'Hello' }],
+          temperature: 0.2,
+          top_p: 0.4,
+          thinking: { type: 'disabled' },
+        });
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'other',
+            message:
+              'frequencyPenalty is deprecated by DeepSeek and has been omitted. Remove frequencyPenalty from the request.',
+          },
+          {
+            type: 'other',
+            message:
+              'presencePenalty is deprecated by DeepSeek and has been omitted. Remove presencePenalty from the request.',
+          },
+        ]);
+      });
+
       it('should pass providerOptions userId as user_id', async () => {
         await provider.chat('deepseek-chat').doGenerate({
           prompt: TEST_PROMPT,
@@ -869,6 +943,92 @@ describe('DeepSeekChatLanguageModel', () => {
             "top_p": 0.3,
           }
         `);
+      });
+
+      it('should omit deprecated and ineffective sampling options in default V4 thinking mode', async () => {
+        const result = await provider.chat('deepseek-v4-flash').doStream({
+          prompt: TEST_PROMPT,
+          temperature: 0.2,
+          topP: 0.4,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.6,
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'deepseek-v4-flash',
+          messages: [{ role: 'user', content: 'Hello' }],
+          stream: true,
+          stream_options: { include_usage: true },
+        });
+        expect(parts[0]).toStrictEqual({
+          type: 'stream-start',
+          warnings: [
+            {
+              type: 'other',
+              message:
+                'frequencyPenalty is deprecated by DeepSeek and has been omitted. Remove frequencyPenalty from the request.',
+            },
+            {
+              type: 'other',
+              message:
+                'presencePenalty is deprecated by DeepSeek and has been omitted. Remove presencePenalty from the request.',
+            },
+            {
+              type: 'unsupported-setting',
+              setting: 'temperature',
+              details:
+                "temperature has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use temperature.",
+            },
+            {
+              type: 'unsupported-setting',
+              setting: 'topP',
+              details:
+                "topP has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use topP.",
+            },
+          ],
+        });
+      });
+
+      it('should preserve supported sampling options when V4 thinking is disabled', async () => {
+        const result = await provider.chat('deepseek-v4-flash').doStream({
+          prompt: TEST_PROMPT,
+          temperature: 0.2,
+          topP: 0.4,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.6,
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'disabled' },
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'deepseek-v4-flash',
+          messages: [{ role: 'user', content: 'Hello' }],
+          temperature: 0.2,
+          top_p: 0.4,
+          thinking: { type: 'disabled' },
+          stream: true,
+          stream_options: { include_usage: true },
+        });
+        expect(parts[0]).toStrictEqual({
+          type: 'stream-start',
+          warnings: [
+            {
+              type: 'other',
+              message:
+                'frequencyPenalty is deprecated by DeepSeek and has been omitted. Remove frequencyPenalty from the request.',
+            },
+            {
+              type: 'other',
+              message:
+                'presencePenalty is deprecated by DeepSeek and has been omitted. Remove presencePenalty from the request.',
+            },
+          ],
+        });
       });
 
       it('should pass providerOptions userId as user_id', async () => {
