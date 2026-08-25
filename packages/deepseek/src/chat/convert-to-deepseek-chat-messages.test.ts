@@ -1,12 +1,7 @@
-<<<<<<< HEAD
-=======
 import {
   InvalidPromptError,
-  NoSuchProviderReferenceError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { describe, it, expect } from 'vitest';
->>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 import { describe, it, expect } from 'vitest';
 
@@ -37,13 +32,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-<<<<<<< HEAD
-    it('should convert image data to an image URL content part', () => {
-      const result = convertToDeepSeekChatMessages({
-=======
     it('should convert image data to an image URL content part', async () => {
       const result = await convertToDeepSeekChatMessages({
->>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
         prompt: [
           {
             role: 'user',
@@ -85,13 +75,8 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-<<<<<<< HEAD
-    it('should convert an image URL to an image URL content part', () => {
-      const result = convertToDeepSeekChatMessages({
-=======
     it('should convert an image URL to an image URL content part', async () => {
       const result = await convertToDeepSeekChatMessages({
->>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
         prompt: [
           {
             role: 'user',
@@ -133,85 +118,6 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-<<<<<<< HEAD
-    it('should warn about unsupported non-image file parts', () => {
-      const result = convertToDeepSeekChatMessages({
-=======
-    it('should convert an image provider reference to a file content part', async () => {
-      const result = await convertToDeepSeekChatMessages({
->>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Hello' },
-              {
-                type: 'file',
-<<<<<<< HEAD
-                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
-=======
-                data: {
-                  type: 'reference',
-                  reference: {
-                    deepseek: 'file-api-deepseek',
-                    openai: 'file-openai',
-                  },
-                },
-                mediaType: 'image/png',
-              },
-            ],
-          },
-        ],
-        responseFormat: undefined,
-        modelId: 'deepseek-v4-flash-vision-exp',
-      });
-
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "messages": [
-            {
-              "content": [
-                {
-                  "text": "Hello",
-                  "type": "text",
-                },
-                {
-                  "file_id": "file-api-deepseek",
-                  "type": "file",
-                },
-              ],
-              "role": "user",
-            },
-          ],
-          "warnings": [],
-        }
-      `);
-    });
-
-    it('should throw when an image reference has no DeepSeek identifier', async () => {
-      await expect(
-        convertToDeepSeekChatMessages({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  data: {
-                    type: 'reference',
-                    reference: { openai: 'file-openai' },
-                  },
-                  mediaType: 'image/png',
-                },
-              ],
-            },
-          ],
-          responseFormat: undefined,
-          modelId: 'deepseek-v4-flash-vision-exp',
-        }),
-      ).rejects.toThrow(NoSuchProviderReferenceError);
-    });
-
     it('should warn about unsupported non-image file parts', async () => {
       const result = await convertToDeepSeekChatMessages({
         prompt: [
@@ -221,11 +127,7 @@ describe('convertToDeepSeekChatMessages', () => {
               { type: 'text', text: 'Hello' },
               {
                 type: 'file',
-                data: {
-                  type: 'data' as const,
-                  data: Buffer.from([0, 1, 2, 3]).toString('base64'),
-                },
->>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
                 mediaType: 'application/pdf',
               },
             ],

@@ -5,14 +5,10 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
 import { DeepSeekChatLanguageModel } from './deepseek-chat-language-model';
-<<<<<<< HEAD
-import type { DeepSeekLanguageModelOptions } from './deepseek-chat-options';
-=======
 import type {
   DeepSeekAssistantMessageProviderOptions,
-  DeepSeekLanguageModelChatOptions,
-} from './deepseek-chat-language-model-options';
->>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
+  DeepSeekLanguageModelOptions,
+} from './deepseek-chat-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },

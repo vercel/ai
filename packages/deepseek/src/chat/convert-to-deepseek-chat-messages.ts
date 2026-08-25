@@ -1,31 +1,16 @@
-<<<<<<< HEAD
-import type {
-  LanguageModelV3CallOptions,
-  LanguageModelV3Prompt,
-  SharedV3Warning,
-} from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
-=======
 import {
   InvalidPromptError,
   UnsupportedFunctionalityError,
-  type LanguageModelV4CallOptions,
-  type LanguageModelV4Prompt,
-  type SharedV4Warning,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Prompt,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
-import {
-  convertToBase64,
-  getTopLevelMediaType,
-  parseProviderOptions,
-  resolveFullMediaType,
-  resolveProviderReference,
-} from '@ai-sdk/provider-utils';
->>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
 } from './deepseek-chat-api-types';
-import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
+import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-options';
 
 export async function convertToDeepSeekChatMessages({
   prompt,
@@ -43,13 +28,8 @@ export async function convertToDeepSeekChatMessages({
   supportsStructuredOutputs?: boolean;
 }): Promise<{
   messages: DeepSeekChatPrompt;
-<<<<<<< HEAD
   warnings: Array<SharedV3Warning>;
-} {
-=======
-  warnings: Array<SharedV4Warning>;
 }> {
->>>>>>> f70bd8af37 (feat: support DeepSeek assistant prefix completion (#19402))
   const isDeepSeekV4 = modelId.includes('deepseek-v4');
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV3Warning> = [];
