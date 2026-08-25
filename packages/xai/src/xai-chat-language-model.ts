@@ -696,7 +696,7 @@ const xaiUsageSchema = z.object({
 
 export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
-const xaiChatResponseSchema = z.object({
+export const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -732,6 +732,8 @@ const xaiChatResponseSchema = z.object({
   code: z.string().nullish(),
   error: z.string().nullish(),
 });
+
+export type XaiChatResponse = z.infer<typeof xaiChatResponseSchema>;
 
 const xaiChatChunkSchema = z.object({
   id: z.string().nullish(),
