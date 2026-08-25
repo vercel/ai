@@ -45,6 +45,7 @@ export type DeepSeekChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   supportsAssistantPrefixCompletion?: boolean;
+  supportsPenaltySampling?: boolean;
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
@@ -129,6 +130,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
 
     const supportsStructuredOutputs =
       this.config.supportsStructuredOutputs === true;
+    const supportsPenaltySampling =
+      this.config.supportsPenaltySampling === true;
 
     const { messages, warnings } = await convertToDeepSeekChatMessages({
       prompt,
@@ -139,13 +142,30 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         this.config.supportsAssistantPrefixCompletion,
       supportsStructuredOutputs,
     });
+    const allWarnings = [...warnings];
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
+      allWarnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported', feature: 'seed' });
+      allWarnings.push({ type: 'unsupported', feature: 'seed' });
+    }
+
+    if (!supportsPenaltySampling && frequencyPenalty != null) {
+      allWarnings.push({
+        type: 'other',
+        message:
+          'frequencyPenalty is deprecated by DeepSeek and has been omitted. Remove frequencyPenalty from the request.',
+      });
+    }
+
+    if (!supportsPenaltySampling && presencePenalty != null) {
+      allWarnings.push({
+        type: 'other',
+        message:
+          'presencePenalty is deprecated by DeepSeek and has been omitted. Remove presencePenalty from the request.',
+      });
     }
 
     const {
@@ -156,7 +176,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       tools,
       toolChoice,
     });
-    const allWarnings = [...warnings, ...toolWarnings];
+    allWarnings.push(...toolWarnings);
 
     const thinkingType = deepseekOptions.thinking?.type;
     if (thinkingType === 'adaptive') {
@@ -175,6 +195,31 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
           ? { type: thinkingType === 'adaptive' ? 'enabled' : thinkingType }
           : undefined;
 
+    const isThinkingEnabled =
+      this.config.supportsThinking !== false &&
+      thinking?.type !== 'disabled' &&
+      (thinking != null ||
+        this.modelId === 'deepseek-reasoner' ||
+        this.modelId.includes('deepseek-v4'));
+
+    if (isThinkingEnabled && temperature != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'temperature',
+        details:
+          "temperature has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use temperature.",
+      });
+    }
+
+    if (isThinkingEnabled && topP != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'topP',
+        details:
+          "topP has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use topP.",
+      });
+    }
+
     const reasoningEffort =
       deepseekOptions.reasoningEffort != null
         ? mapDeepSeekProviderReasoningEffort({
@@ -187,10 +232,12 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       args: {
         model: this.modelId,
         max_tokens: maxOutputTokens,
-        temperature,
-        top_p: topP,
-        frequency_penalty: frequencyPenalty,
-        presence_penalty: presencePenalty,
+        temperature: isThinkingEnabled ? undefined : temperature,
+        top_p: isThinkingEnabled ? undefined : topP,
+        frequency_penalty: supportsPenaltySampling
+          ? frequencyPenalty
+          : undefined,
+        presence_penalty: supportsPenaltySampling ? presencePenalty : undefined,
         response_format:
           responseFormat?.type === 'json'
             ? supportsStructuredOutputs && responseFormat.schema != null
