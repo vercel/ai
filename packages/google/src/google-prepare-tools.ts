@@ -3,20 +3,15 @@ import {
   type LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-<<<<<<< HEAD
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
-=======
 import {
   convertJSONSchemaToOpenAPISchema,
   isRecursiveJSONSchemaReferenceError,
 } from './convert-json-schema-to-openapi-schema';
-import type { GoogleModelId } from './google-language-model-options';
->>>>>>> 92e08e6f2e (fix: prevent recursive Google tool schemas from aborting model calls (#19490))
+import type { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 import { getGoogleModelCapabilities } from './google-model-capabilities';
 
 type FunctionTool = Extract<
-  NonNullable<LanguageModelV4CallOptions['tools']>[number],
+  NonNullable<LanguageModelV2CallOptions['tools']>[number],
   { type: 'function' }
 >;
 
@@ -247,17 +242,8 @@ export function prepareTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function':
-<<<<<<< HEAD
-        functionDeclarations.push({
-          name: tool.name,
-          description: tool.description ?? '',
-          parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
-        });
-        if ((tool as any).strict === true) {
-=======
         functionDeclarations.push(prepareFunctionDeclaration(tool));
-        if (tool.strict === true) {
->>>>>>> 92e08e6f2e (fix: prevent recursive Google tool schemas from aborting model calls (#19490))
+        if ((tool as any).strict === true) {
           hasStrictTools = true;
         }
         break;

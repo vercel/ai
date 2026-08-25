@@ -1,11 +1,7 @@
-<<<<<<< HEAD
-import type { LanguageModelV2ProviderDefinedTool } from '@ai-sdk/provider';
-=======
 import type {
   JSONSchema7,
-  LanguageModelV4ProviderTool,
+  LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
->>>>>>> 92e08e6f2e (fix: prevent recursive Google tool schemas from aborting model calls (#19490))
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
