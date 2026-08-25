@@ -373,6 +373,39 @@ describe('createFx', () => {
     expect(settings.credentialBrokering?.({ env: {} })).toEqual([]);
   });
 
+  it('brokers an explicit Gateway key instead of ambient OIDC', () => {
+    createFx({
+      auth: {
+        gateway: {
+          apiKey: 'explicit-gateway-key',
+          baseUrl: 'https://gateway.example/v1',
+        },
+      },
+    });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          AI_GATEWAY_API_KEY: 'explicit-gateway-key',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+          VERCEL_OIDC_TOKEN: 'ambient-oidc-token',
+        },
+      }),
+    ).toEqual([
+      {
+        match: { host: 'gateway.example', path: { startsWith: '/v1' } },
+        transform: {
+          headers: {
+            Authorization: 'Bearer explicit-gateway-key',
+            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+          },
+        },
+      },
+    ]);
+  });
+
   it('exposes a test version outside the bundle', () => {
     expect(VERSION).toBe('0.0.0-test');
   });

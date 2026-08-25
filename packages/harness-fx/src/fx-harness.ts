@@ -553,6 +553,8 @@ export function createFx(
 ): HarnessV1<typeof FX_BUILTIN_TOOLS> {
   const clientAppSegments = FX_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
+  const hasExplicitGatewayAuth =
+    settings.auth != null && typeof settings.auth !== 'string';
   const mcpToolTitlePrefixes = Object.keys(settings.mcpServers ?? {}).map(
     serverName => `mcp_${sanitizeFxMcpToolNameSegment(serverName)}_`,
   );
@@ -583,7 +585,9 @@ export function createFx(
     args: ['acp'],
     credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
     credentialBrokering: ({ env }) => {
-      const credential = env.VERCEL_OIDC_TOKEN ?? env.AI_GATEWAY_API_KEY;
+      const credential = hasExplicitGatewayAuth
+        ? env.AI_GATEWAY_API_KEY
+        : (env.VERCEL_OIDC_TOKEN ?? env.AI_GATEWAY_API_KEY);
       if (!credential) return [];
       return [
         createCredentialRequestTransformation({
