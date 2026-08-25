@@ -34,7 +34,10 @@ export type AlibabaVideoModelOptions = {
   shotType?: 'single' | 'multi' | null;
   /** Whether to add watermark to generated video. Defaults to false. */
   watermark?: boolean | null;
-  /** Enable audio generation (for I2V/R2V models). */
+  /**
+   * Enable audio generation (I2V/R2V and wan3 models;
+   * wan2.7 models always generate audio). Defaults to true on wan3.
+   */
   audio?: boolean | null;
   /**
    * Reference URLs for reference-to-video mode.
@@ -43,22 +46,34 @@ export type AlibabaVideoModelOptions = {
    */
   referenceUrls?: string[] | null;
   /**
-   * Explicit media array for reference-to-video mode (wan2.7 models).
-   * Overrides the automatic mapping from `inputReferences` and `frameImages`.
+   * Explicit media array (wan2.7 and wan3 models). Overrides the automatic
+   * mapping from `inputReferences` and `frameImages`.
    * Use `Image 1`, `Video 1`, etc. in prompts to reference media items
-   * (images and videos are counted separately, in array order).
+   * (images, videos, and audio are counted separately, in array order).
+   *
+   * `reference_audio`, `file`, and `link` are wan3-only and have no top-level
+   * call option, so they can only be passed here. wan3 also rejects mixing
+   * `reference_*`/`file`/`link` with `first_frame`/`last_frame`.
    */
   media?: Array<{
-    type: 'reference_image' | 'reference_video' | 'first_frame';
+    type:
+      | 'reference_image'
+      | 'reference_video'
+      | 'reference_audio'
+      | 'first_frame'
+      | 'last_frame'
+      | 'file'
+      | 'link';
     /** Public URL, or a `data:{mime};base64,{data}` URI for images. */
     url: string;
     /** URL to an audio file used as voice reference for this media item. */
     referenceVoice?: string | null;
   }> | null;
   /**
-   * Aspect ratio (wan2.7 text-to-video and reference-to-video models).
+   * Aspect ratio (wan2.7 text-to-video and reference-to-video models, and
+   * every wan3 generation). `adaptive` is wan3-only, and is its default.
    */
-  ratio?: '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | null;
+  ratio?: 'adaptive' | '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | null;
   /** Polling interval in milliseconds. Defaults to 5000 (5 seconds). */
   pollIntervalMs?: number | null;
   /** Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes). */
@@ -83,14 +98,20 @@ const alibabaVideoModelOptionsSchema = lazySchema(() =>
               type: z.enum([
                 'reference_image',
                 'reference_video',
+                'reference_audio',
                 'first_frame',
+                'last_frame',
+                'file',
+                'link',
               ]),
               url: z.string(),
               referenceVoice: z.string().nullish(),
             }),
           )
           .nullish(),
-        ratio: z.enum(['16:9', '9:16', '1:1', '4:3', '3:4']).nullish(),
+        ratio: z
+          .enum(['adaptive', '16:9', '9:16', '1:1', '4:3', '3:4'])
+          .nullish(),
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
       })
@@ -149,8 +170,12 @@ const alibabaVideoTaskStatusSchema = z.object({
     .object({
       duration: z.number().nullish(),
       output_video_duration: z.number().nullish(),
+      // wan3 splits the total: input video counts toward its 30s ceiling.
+      input_video_duration: z.number().nullish(),
+      fps: z.number().nullish(),
       SR: z.number().nullish(),
       size: z.string().nullish(),
+      ratio: z.string().nullish(),
     })
     .nullish(),
   request_id: z.string().nullish(),
@@ -160,17 +185,29 @@ type AlibabaVideoTaskStatusResponse = z.infer<
   typeof alibabaVideoTaskStatusSchema
 >;
 
+// Only meaningful for ids that name their mode (wan2.6/wan2.7). wan3 ships a
+// single all-in-one id, so its mode comes from the media the request carries.
 function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
   if (modelId.includes('-i2v')) return 'i2v';
   if (modelId.includes('-r2v')) return 'r2v';
   return 't2v';
 }
 
-// wan2.7 models use a different protocol than earlier wan models:
-// resolution tiers + ratio instead of size, input.media instead of
-// input.reference_urls (R2V), and no shot_type or audio parameters.
-function isWan27Model(modelId: string): boolean {
-  return modelId.startsWith('wan2.7');
+/**
+ * Request protocol, selected by model id:
+ * - `legacy` (wan2.6 and earlier): `parameters.size`, `input.img_url`, and
+ *   `input.reference_urls`.
+ * - `wan27`: resolution tiers and `ratio` instead of `size`, `input.media`
+ *   instead of `input.reference_urls`, no `shot_type`, audio always on.
+ * - `wan3`: like `wan27`, plus a real `last_frame` slot, an `audio` toggle,
+ *   a 480P tier, and one id covering every mode.
+ */
+type AlibabaVideoProtocol = 'legacy' | 'wan27' | 'wan3';
+
+function detectProtocol(modelId: string): AlibabaVideoProtocol {
+  if (modelId.startsWith('wan3')) return 'wan3';
+  if (modelId.startsWith('wan2.7')) return 'wan27';
+  return 'legacy';
 }
 
 // Maps SDK "WIDTHxHEIGHT" resolutions to Alibaba resolution tiers.
@@ -229,6 +266,13 @@ function getFirstFrameImage(
     ?.image;
 }
 
+function getLastFrameImage(
+  options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+): Experimental_VideoModelV3File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'last_frame')
+    ?.image;
+}
+
 function resolveStartImage(
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
 ): Experimental_VideoModelV3File | undefined {
@@ -239,11 +283,16 @@ function isVideoUrl(url: string): boolean {
   return /\.(mp4|mov)([?#]|$)/i.test(url);
 }
 
-// Builds the wan2.7 input.media array from inputReferences and frameImages.
+// Builds the input.media array (wan2.7 and wan3) from inputReferences plus the
+// frame images the caller resolved for this protocol.
 function resolveMedia(
   options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
   alibabaOptions: AlibabaVideoModelOptions | undefined,
   warnings: SharedV3Warning[],
+  frames: {
+    first?: Experimental_VideoModelV3File;
+    last?: Experimental_VideoModelV3File;
+  },
 ): Array<Record<string, unknown>> | undefined {
   if (alibabaOptions?.media != null && alibabaOptions.media.length > 0) {
     return alibabaOptions.media.map(item => ({
@@ -279,11 +328,17 @@ function resolveMedia(
     }
   }
 
-  const firstFrame = getFirstFrameImage(options);
-  if (firstFrame != null) {
+  if (frames.first != null) {
     media.push({
       type: 'first_frame',
-      url: convertImageModelFileToDataUri(firstFrame),
+      url: convertImageModelFileToDataUri(frames.first),
+    });
+  }
+
+  if (frames.last != null) {
+    media.push({
+      type: 'last_frame',
+      url: convertImageModelFileToDataUri(frames.last),
     });
   }
 
@@ -364,20 +419,37 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
     }
 
     const startImage = resolveStartImage(options);
-    const wan27 = isWan27Model(this.modelId);
-    // wan2.7 T2V and R2V take an explicit aspect ratio (I2V follows the input image)
-    const supportsRatio = wan27 && mode !== 'i2v';
+    const protocol = detectProtocol(this.modelId);
+    const wan27 = protocol === 'wan27';
+    const wan3 = protocol === 'wan3';
+    // Resolution tiers and input.media replaced size/img_url from wan2.7 on.
+    const tieredProtocol = wan27 || wan3;
+    // wan2.7 T2V and R2V take an explicit aspect ratio (I2V follows the input
+    // image); wan3 serves every mode from one id, so it always takes one.
+    const supportsRatio = wan3 || (wan27 && mode !== 'i2v');
 
-    // Handle image input for I2V mode
-    if (mode === 'i2v' && startImage != null) {
+    // Handle image input for I2V mode (wan3 carries frames in input.media)
+    if (!wan3 && mode === 'i2v' && startImage != null) {
       input.img_url = fileToImageString(startImage);
     }
 
-    // Handle references for R2V mode
-    if (mode === 'r2v') {
+    if (wan3) {
+      // The media the request carries decides whether this is text-, image-,
+      // or reference-to-video, so there is no mode to read off the id. A bare
+      // prompt stays text-to-video.
+      const media = resolveMedia(options, alibabaOptions, warnings, {
+        first: startImage,
+        last: getLastFrameImage(options),
+      });
+      if (media != null) {
+        input.media = media;
+      }
+    } else if (mode === 'r2v') {
       if (wan27) {
         // wan2.7: input.media
-        const media = resolveMedia(options, alibabaOptions, warnings);
+        const media = resolveMedia(options, alibabaOptions, warnings, {
+          first: getFirstFrameImage(options),
+        });
         if (media != null) {
           input.media = media;
         }
@@ -394,11 +466,10 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    const lastFrame = options.frameImages?.find(
-      frame => frame.frameType === 'last_frame',
-    )?.image;
+    const lastFrame = getLastFrameImage(options);
 
-    if (lastFrame != null) {
+    // wan3 has a real closing-frame slot, filled in input.media above.
+    if (lastFrame != null && !wan3) {
       warnings.push({
         type: 'unsupported',
         feature: 'frameImages',
@@ -411,7 +482,8 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
     if (
       options.inputReferences != null &&
       options.inputReferences.length > 0 &&
-      mode !== 'r2v'
+      mode !== 'r2v' &&
+      !wan3
     ) {
       warnings.push({
         type: 'unsupported',
@@ -435,17 +507,22 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
 
     // Resolution / Size mapping
     if (options.resolution != null) {
-      if (mode === 'i2v' || wan27) {
-        // I2V and wan2.7 models use "720P" / "1080P" format
+      if (mode === 'i2v' || tieredProtocol) {
+        // I2V, wan2.7, and wan3 use the "720P" / "1080P" tier format
         const resolutionTier =
           resolutionTierMap[options.resolution] || options.resolution;
-        if (wan27 && resolutionTier !== '720P' && resolutionTier !== '1080P') {
+        // wan3 adds a 480P tier to wan2.7's two.
+        const supportedTiers = wan3
+          ? ['480P', '720P', '1080P']
+          : ['720P', '1080P'];
+        if (tieredProtocol && !supportedTiers.includes(resolutionTier)) {
           warnings.push({
             type: 'unsupported',
             feature: 'resolution',
             details:
-              'wan2.7 models only support 720P and 1080P ' +
-              `resolutions. The resolution "${options.resolution}" was ignored.`,
+              `${wan3 ? 'wan3' : 'wan2.7'} models only support the ` +
+              `${supportedTiers.join(', ')} resolution tiers. ` +
+              `The resolution "${options.resolution}" was ignored.`,
           });
         } else {
           parameters.resolution = resolutionTier;
@@ -475,14 +552,14 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
       parameters.prompt_extend = alibabaOptions.promptExtend;
     }
     if (alibabaOptions?.shotType != null) {
-      if (wan27) {
+      if (tieredProtocol) {
         // wan2.7 removed shot_type; shot structure is described in the prompt
         warnings.push({
           type: 'unsupported',
           feature: 'shotType',
           details:
-            'wan2.7 models do not support the shotType option. ' +
-            'Describe the shot structure in the prompt instead.',
+            `${wan3 ? 'wan3' : 'wan2.7'} models do not support the shotType ` +
+            'option. Describe the shot structure in the prompt instead.',
         });
       } else {
         parameters.shot_type = alibabaOptions.shotType;
@@ -650,6 +727,20 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
                     finalResponse.usage.output_video_duration,
                   resolution: finalResponse.usage.SR,
                   size: finalResponse.usage.size,
+                  // wan3-only. Spread rather than set to undefined so the
+                  // metadata shape for older wan models is unchanged.
+                  ...(finalResponse.usage.input_video_duration != null
+                    ? {
+                        inputVideoDuration:
+                          finalResponse.usage.input_video_duration,
+                      }
+                    : {}),
+                  ...(finalResponse.usage.fps != null
+                    ? { fps: finalResponse.usage.fps }
+                    : {}),
+                  ...(finalResponse.usage.ratio != null
+                    ? { ratio: finalResponse.usage.ratio }
+                    : {}),
                 },
               }
             : {}),
