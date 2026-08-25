@@ -205,9 +205,10 @@ before it is sent.
   Chat prefix completion is a DeepSeek beta feature and its behavior may change.
 </Note>
 
-### Cache Token Usage
+### Provider Metadata
 
-DeepSeek provides context caching on disk technology that can significantly reduce token costs for repeated content. You can access the cache hit/miss metrics through the `providerMetadata` property in the response:
+DeepSeek exposes the response system fingerprint and context cache usage through
+the `providerMetadata` property:
 
 ```ts
 import { deepseek } from '@ai-sdk/deepseek';
@@ -219,13 +220,24 @@ const result = await generateText({
 });
 
 console.log(result.providerMetadata);
-// Example output: { deepseek: { promptCacheHitTokens: 1856, promptCacheMissTokens: 5 } }
+// Example output:
+// {
+//   deepseek: {
+//     systemFingerprint: 'fp_eaab8d114b_prod0820_fp8_kvcache',
+//     promptCacheHitTokens: 1856,
+//     promptCacheMissTokens: 5,
+//   },
+// }
 ```
 
-The metrics include:
+The metadata includes:
 
+- `systemFingerprint`: The backend configuration fingerprint for the response
 - `promptCacheHitTokens`: Number of input tokens that were cached
 - `promptCacheMissTokens`: Number of input tokens that were not cached
+
+For streamed responses, the latest non-null fingerprint from the response
+chunks is returned.
 
 <Note>
   For more details about DeepSeek's caching system, see the [DeepSeek caching
