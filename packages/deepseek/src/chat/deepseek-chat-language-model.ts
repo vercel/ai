@@ -51,6 +51,7 @@ export type DeepSeekChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   supportsAssistantPrefixCompletion?: boolean;
+  supportsStrictToolCalls?: boolean;
   supportsPenaltySampling?: boolean;
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
@@ -198,6 +199,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     } = prepareTools({
       tools,
       toolChoice,
+      supportsStrictToolCalls: this.config.supportsStrictToolCalls,
     });
 
     const thinkingType = deepseekOptions.thinking?.type;
@@ -375,6 +377,18 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         [this.providerOptionsName]: {
           promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
           promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
           ...(choice.logprobs != null && { logprobs: choice.logprobs }),
           ...(responseBody.system_fingerprint != null && {
             systemFingerprint: responseBody.system_fingerprint,
@@ -429,6 +443,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let responseObject: 'chat.completion.chunk' | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
     const contentLogprobs: DeepSeekChatLogprob[] = [];
     const reasoningLogprobs: DeepSeekChatLogprob[] = [];
 
@@ -479,6 +497,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               usage = value.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
             // The fingerprint is repeated on stream chunks; keep the latest
             // non-null value in case it changes during the response.
             if (value.system_fingerprint != null) {
@@ -486,6 +508,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
             }
 
             const choice = value.choices[0];
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
+            }
 
             if (choice?.finish_reason != null) {
               finishReason = {
@@ -507,6 +533,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -559,6 +589,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(toolCallDelta.index, toolCallDelta.type);
+                }
                 toolCallTracker.processDelta(toolCallDelta);
               }
             }
@@ -585,6 +618,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                     usage?.prompt_cache_hit_tokens ?? undefined,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? undefined,
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
                   ...((contentLogprobs.length > 0 ||
                     reasoningLogprobs.length > 0) && {
                     logprobs: {

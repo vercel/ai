@@ -405,6 +405,9 @@ importers:
       '@ai-sdk/harness-codex':
         specifier: workspace:*
         version: link:../../packages/harness-codex
+      '@ai-sdk/harness-cursor':
+        specifier: workspace:*
+        version: link:../../packages/harness-cursor
       '@ai-sdk/harness-deepagents':
         specifier: workspace:*
         version: link:../../packages/harness-deepagents
@@ -739,6 +742,9 @@ importers:
       '@ai-sdk/harness-codex':
         specifier: workspace:*
         version: link:../../packages/harness-codex
+      '@ai-sdk/harness-cursor':
+        specifier: workspace:*
+        version: link:../../packages/harness-cursor
       '@ai-sdk/harness-deepagents':
         specifier: workspace:*
         version: link:../../packages/harness-deepagents
@@ -2946,6 +2952,34 @@ importers:
       '@types/ws':
         specifier: ^8.5.13
         version: 8.18.1
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.12)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/harness-cursor:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@ai-sdk/harness-acp':
+        specifier: workspace:*
+        version: link:../harness-acp
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig

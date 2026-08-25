@@ -16,6 +16,7 @@
     "@ai-sdk/harness-claude-code": "workspace:*",
     "@ai-sdk/harness-cline": "workspace:*",
     "@ai-sdk/harness-codex": "workspace:*",
+    "@ai-sdk/harness-cursor": "workspace:*",
     "@ai-sdk/harness-deepagents": "workspace:*",
     "@ai-sdk/harness-fx": "workspace:*",
     "@ai-sdk/harness-grok-build": "workspace:*",
