@@ -2,10 +2,7 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import {
-  convertReadableStreamToArray,
-  testBatchLanguageModelV4ResultConformance,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { GoogleBatchLanguageModel } from './google-batch';
@@ -957,119 +954,152 @@ describe('GoogleBatchLanguageModel', () => {
     });
   });
 
-  testBatchLanguageModelV4ResultConformance({
-    name: 'Google',
-    pendingBatch: {
-      errorMessage: 'Google batch "batches/batch-123" is not complete.',
-      prepare: () => {
-        server.urls[urls.batch].response = {
-          type: 'json-value',
-          body: operation(
-            { state: 'BATCH_STATE_RUNNING', output: undefined },
-            { done: false },
-          ),
-        };
-        return {
-          model: createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash'),
+  describe('batch result lifecycle', () => {
+    it('rejects result retrieval while the batch is pending', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: operation(
+          { state: 'BATCH_STATE_RUNNING', output: undefined },
+          { done: false },
+        ),
+      };
+      const model = createGoogle({ apiKey: 'test-api-key' })(
+        'gemini-2.5-flash',
+      );
+
+      await expect(
+        model.experimental_doGetBatchResults({
           batchId: 'batches/batch-123',
-        };
-      },
-    },
-    invalidResponseBatch: {
-      invalidItem: {
-        id: 'invalid-request',
-        error: {
-          message: 'Google returned an invalid GenerateContent batch result.',
-          code: 'invalid_response',
-        },
-      },
-      validItem: { id: 'valid-request', text: 'Paris' },
-      prepare: () => {
-        prepareOutput([
-          {
-            key: 'invalid-request',
-            response: {
-              candidates: [
-                {
-                  content: {
-                    role: 'model',
-                    parts: [{ text: 42 }],
-                  },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'batchId',
+        message: 'Google batch "batches/batch-123" is not complete.',
+      });
+    });
+
+    it('fails an invalid item and continues with later results', async () => {
+      prepareOutput([
+        {
+          key: 'invalid-request',
+          response: {
+            candidates: [
+              {
+                content: {
+                  role: 'model',
+                  parts: [{ text: 42 }],
                 },
-              ],
-            },
+              },
+            ],
           },
-          {
-            key: 'valid-request',
-            response: googleResponse({ id: 'response-valid', text: 'Paris' }),
+        },
+        {
+          key: 'valid-request',
+          response: googleResponse({ id: 'response-valid', text: 'Paris' }),
+        },
+      ]);
+      const model = createGoogle({ apiKey: 'test-api-key' })(
+        'gemini-2.5-flash',
+      );
+
+      const stream = await model.experimental_doGetBatchResults({
+        batchId: 'batches/batch-123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toHaveLength(2);
+      expect(results).toMatchObject([
+        {
+          id: 'invalid-request',
+          status: 'failed',
+          error: {
+            message: 'Google returned an invalid GenerateContent batch result.',
+            code: 'invalid_response',
           },
-        ]);
-        return {
-          model: createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash'),
+        },
+        {
+          id: 'valid-request',
+          status: 'succeeded',
+          result: { content: [{ type: 'text', text: 'Paris' }] },
+        },
+      ]);
+    });
+
+    it('rejects a completed batch without output', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: operation({ output: undefined }),
+      };
+      const model = createGoogle({ apiKey: 'test-api-key' })(
+        'gemini-2.5-flash',
+      );
+
+      await expect(
+        model.experimental_doGetBatchResults({
           batchId: 'batches/batch-123',
-        };
-      },
-    },
-    completedWithoutOutputBatch: {
-      errorMessage:
-        'Google batch "batches/batch-123" completed without batch output.',
-      prepare: () => {
-        server.urls[urls.batch].response = {
-          type: 'json-value',
-          body: operation({ output: undefined }),
-        };
-        return {
-          model: createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash'),
-          batchId: 'batches/batch-123',
-        };
-      },
-    },
-    unsupportedContentBatch: {
-      unsupportedItems: [
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidResponseDataError',
+        message:
+          'Google batch "batches/batch-123" completed without batch output.',
+      });
+    });
+
+    it('fails unsupported items and continues with later results', async () => {
+      prepareOutput([
+        {
+          key: 'image-request',
+          response: {
+            candidates: [
+              {
+                content: {
+                  role: 'model',
+                  parts: [
+                    { text: 'Generated image:' },
+                    {
+                      inlineData: {
+                        mimeType: 'image/png',
+                        data: 'aW1hZ2U=',
+                      },
+                    },
+                  ],
+                },
+                finishReason: 'STOP',
+              },
+            ],
+          },
+        },
+        {
+          key: 'text-request',
+          response: googleResponse({ id: 'response-text', text: 'Paris' }),
+        },
+      ]);
+      const model = createGoogle({ apiKey: 'test-api-key' })(
+        'gemini-2.5-flash',
+      );
+
+      const stream = await model.experimental_doGetBatchResults({
+        batchId: 'batches/batch-123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toHaveLength(2);
+      expect(results).toMatchObject([
         {
           id: 'image-request',
+          status: 'failed',
           error: {
             message:
               'Google returned a "file" content block, but that content is not supported in AI SDK text batches.',
             code: 'unsupported_content',
           },
         },
-      ],
-      validItem: { id: 'text-request', text: 'Paris' },
-      prepare: () => {
-        prepareOutput([
-          {
-            key: 'image-request',
-            response: {
-              candidates: [
-                {
-                  content: {
-                    role: 'model',
-                    parts: [
-                      { text: 'Generated image:' },
-                      {
-                        inlineData: {
-                          mimeType: 'image/png',
-                          data: 'aW1hZ2U=',
-                        },
-                      },
-                    ],
-                  },
-                  finishReason: 'STOP',
-                },
-              ],
-            },
-          },
-          {
-            key: 'text-request',
-            response: googleResponse({ id: 'response-text', text: 'Paris' }),
-          },
-        ]);
-        return {
-          model: createGoogle({ apiKey: 'test-api-key' })('gemini-2.5-flash'),
-          batchId: 'batches/batch-123',
-        };
-      },
-    },
+        {
+          id: 'text-request',
+          status: 'succeeded',
+          result: { content: [{ type: 'text', text: 'Paris' }] },
+        },
+      ]);
+    });
   });
 });
