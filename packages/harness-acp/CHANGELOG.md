@@ -1,5 +1,32 @@
 # @ai-sdk/harness-acp
 
+## 1.0.25
+
+### Patch Changes
+
+- 79186d1: Allow pinned OpenCode and Grok Build install scripts during pnpm 11 sandbox bootstrap.
+- b6396ff: feat(harness-acp): support `title` and `toolUseKind` for ACP tools
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.24
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+
+## 1.0.23
+
+### Patch Changes
+
+- 6352c2a: feat(harness-acp): support ACP harnesses that do not have an NPM package via new `install-command` source type
+- Updated dependencies [b74971f]
+- Updated dependencies [fa6af57]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/harness@1.0.85
+
 ## 1.0.22
 
 ### Patch Changes

@@ -1,5 +1,33 @@
 # @ai-sdk/harness
 
+## 1.0.87
+
+### Patch Changes
+
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.86
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 1.0.85
+
+### Patch Changes
+
+- fa6af57: fix(harness): emit builtin tool results after approval continuations
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
 ## 1.0.84
 
 ### Patch Changes

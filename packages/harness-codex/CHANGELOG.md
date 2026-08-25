@@ -1,5 +1,29 @@
 # @ai-sdk/harness-codex
 
+## 1.0.89
+
+### Patch Changes
+
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.88
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+
+## 1.0.87
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+- Updated dependencies [fa6af57]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/harness@1.0.85
+
 ## 1.0.86
 
 ### Patch Changes

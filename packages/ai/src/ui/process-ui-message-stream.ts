@@ -881,9 +881,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'finish-step': {
-              // reset the current text and reasoning parts
-              state.activeTextParts = createIdMap();
-              state.activeReasoningParts = createIdMap();
+              // Active parts are closed by their explicit end chunks. A merged
+              // stream's step can finish while another stream's part is active.
               break;
             }
 

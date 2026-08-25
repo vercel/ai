@@ -12,11 +12,13 @@ export type DeepSeekMessage =
 export interface DeepSeekSystemMessage {
   role: 'system';
   content: string;
+  name?: string;
 }
 
 export interface DeepSeekUserMessage {
   role: 'user';
   content: string | Array<DeepSeekContentPart>;
+  name?: string;
 }
 
 export type DeepSeekContentPart =
@@ -31,17 +33,28 @@ export interface DeepSeekContentPartText {
 
 export interface DeepSeekContentPartImage {
   type: 'image_url';
-  image_url: { url: string };
+  image_url: {
+    url: string;
+    detail?: 'low' | 'high' | 'original' | 'auto';
+  };
 }
 
-export interface DeepSeekContentPartFile {
-  type: 'file';
-  file_id: string;
-}
+export type DeepSeekContentPartFile =
+  | {
+      type: 'file';
+      file_id: string;
+    }
+  | {
+      type: 'file';
+      file_data: string;
+      filename?: string;
+    };
 
 export interface DeepSeekAssistantMessage {
   role: 'assistant';
   content?: string | null;
+  name?: string;
+  prefix?: true;
   reasoning_content?: string;
   tool_calls?: Array<DeepSeekMessageToolCall>;
 }
@@ -106,14 +119,39 @@ export const deepSeekErrorSchema = z.object({
 
 export type DeepSeekErrorData = z.infer<typeof deepSeekErrorSchema>;
 
+const deepseekChatLogprobSchema = z.object({
+  token: z.string(),
+  logprob: z.number(),
+  bytes: z.array(z.number()).nullable(),
+  top_logprobs: z.array(
+    z.object({
+      token: z.string(),
+      logprob: z.number(),
+      bytes: z.array(z.number()).nullable(),
+    }),
+  ),
+});
+
+const deepseekChatLogprobsSchema = z
+  .object({
+    content: z.array(deepseekChatLogprobSchema).nullish(),
+    reasoning_content: z.array(deepseekChatLogprobSchema).nullish(),
+  })
+  .nullish();
+
+export type DeepSeekChatLogprob = z.infer<typeof deepseekChatLogprobSchema>;
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const deepseekChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
+  object: z.literal('chat.completion').nullish(),
+  system_fingerprint: z.string().nullish(),
   choices: z.array(
     z.object({
+      index: z.number().nullish(),
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
@@ -122,6 +160,7 @@ export const deepseekChatResponseSchema = z.object({
           .array(
             z.object({
               id: z.string().nullish(),
+              type: z.literal('function').nullish(),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
@@ -130,6 +169,7 @@ export const deepseekChatResponseSchema = z.object({
           )
           .nullish(),
       }),
+      logprobs: deepseekChatLogprobsSchema,
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -145,8 +185,11 @@ export const deepseekChatChunkSchema = lazySchema(() =>
         id: z.string().nullish(),
         created: z.number().nullish(),
         model: z.string().nullish(),
+        object: z.literal('chat.completion.chunk').nullish(),
+        system_fingerprint: z.string().nullish(),
         choices: z.array(
           z.object({
+            index: z.number().nullish(),
             delta: z
               .object({
                 role: z.enum(['assistant']).nullish(),
@@ -157,6 +200,7 @@ export const deepseekChatChunkSchema = lazySchema(() =>
                     z.object({
                       index: z.number(),
                       id: z.string().nullish(),
+                      type: z.literal('function').nullish(),
                       function: z.object({
                         name: z.string().nullish(),
                         arguments: z.string().nullish(),
@@ -166,6 +210,7 @@ export const deepseekChatChunkSchema = lazySchema(() =>
                   .nullish(),
               })
               .nullish(),
+            logprobs: deepseekChatLogprobsSchema,
             finish_reason: z.string().nullish(),
           }),
         ),

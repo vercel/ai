@@ -1,5 +1,30 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.90
+
+### Patch Changes
+
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.89
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+
+## 1.0.88
+
+### Patch Changes
+
+- 999d92f: fix(harness-claude-code): report final model call usage for the final step
+- Updated dependencies [b74971f]
+- Updated dependencies [fa6af57]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/harness@1.0.85
+
 ## 1.0.87
 
 ### Patch Changes

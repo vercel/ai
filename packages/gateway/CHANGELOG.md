@@ -1,5 +1,28 @@
 # @ai-sdk/gateway
 
+## 4.0.64
+
+### Patch Changes
+
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.63
+
+### Patch Changes
+
+- e12e068: chore(provider/gateway): update gateway model settings files
+
+## 4.0.62
+
+### Patch Changes
+
+- a371615: feat (provider/gateway): add Tako Search tool support
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
 ## 4.0.61
 
 ### Patch Changes

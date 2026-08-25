@@ -41,6 +41,10 @@ const adapterConfigs = [
     sdkPackages: ['@openai/codex-sdk'],
   },
   {
+    name: 'Cursor',
+    packageDir: 'packages/harness-cursor',
+  },
+  {
     name: 'Deep Agents',
     packageDir: 'packages/harness-deepagents',
     primarySdk: 'deepagents',
@@ -52,6 +56,10 @@ const adapterConfigs = [
       'langchain',
       'langsmith',
     ],
+  },
+  {
+    name: 'fx',
+    packageDir: 'packages/harness-fx',
   },
   {
     name: 'Grok Build',
@@ -253,6 +261,10 @@ function main() {
     }
 
     const rootManifest = readJson(rootPackageJsonPath);
+    if (adapter.primarySdk == null) {
+      continue;
+    }
+
     const primarySpec = getDependencySpec({
       manifest: rootManifest,
       packageName: adapter.primarySdk,

@@ -1,5 +1,34 @@
 # ai
 
+## 7.0.79
+
+### Patch Changes
+
+- b251584: Preserve active text and reasoning parts when another merged UI message stream finishes a step, and align workflow stream normalization with the explicit part end chunks.
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- 9de0baf: Parse structured generateText output when providers omit finishReason but return text.
+- Updated dependencies [591d25b]
+  - @ai-sdk/gateway@4.0.64
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 7.0.78
+
+### Patch Changes
+
+- 96970bb: Continue approved `generateText`, `streamText`, and `WorkflowAgent` turns with a model-visible tool error when revalidated tool input is invalid.
+- Updated dependencies [e12e068]
+  - @ai-sdk/gateway@4.0.63
+
+## 7.0.77
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+- Updated dependencies [a371615]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/gateway@4.0.62
+
 ## 7.0.76
 
 ### Patch Changes
