@@ -38,6 +38,13 @@ export function getMoonshotAIModelFamily(
 
 export const moonshotaiLanguageModelOptions = z.object({
   /**
+   * Whether to use strict JSON schema validation for structured outputs.
+   *
+   * @default true
+   */
+  strictJsonSchema: z.boolean().optional(),
+
+  /**
    * Reasoning effort for Kimi K3.
    */
   reasoningEffort: z.enum(['low', 'high', 'max']).optional(),
@@ -67,6 +74,13 @@ export const moonshotaiLanguageModelOptions = z.object({
 });
 
 export type MoonshotAILanguageModelOptions = {
+  /**
+   * Whether to use strict JSON schema validation for structured outputs.
+   *
+   * @default true
+   */
+  strictJsonSchema?: boolean;
+
   /** Reasoning effort for Kimi K3. */
   reasoningEffort?: 'low' | 'high' | 'max';
 
