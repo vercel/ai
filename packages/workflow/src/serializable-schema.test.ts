@@ -101,6 +101,34 @@ describe('serializeToolSet', () => {
 });
 
 describe('resolveSerializableTools', () => {
+  it('round-trips function tool input examples and provider options', () => {
+    const original = {
+      search: tool({
+        description: 'Search documentation',
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+        inputExamples: [{ input: { query: 'workflow durability' } }],
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral' },
+          },
+        },
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.search.inputExamples).toEqual(
+      original.search.inputExamples,
+    );
+    expect(resolved.search.providerOptions).toEqual(
+      original.search.providerOptions,
+    );
+  });
+
   it('reconstructs function tools with Ajv validation', () => {
     const serialized = {
       getWeather: {

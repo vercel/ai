@@ -173,7 +173,63 @@ describe('translatePiEvent', () => {
     );
 
     expect(start.map(p => p.type)).toEqual(['tool-call']);
+    expect(start[0]).toMatchObject({ stepToolCallCount: 1 });
     expect(end.map(p => p.type)).toEqual(['tool-result', 'finish-step']);
+  });
+
+  it('reports the same step tool-call count on parallel tool calls', () => {
+    const state = createPiTranslatorState({ hostToolNames: ['deploy'] });
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [
+              { type: 'toolCall', id: 'call-1', name: 'deploy' },
+              { type: 'toolCall', id: 'call-2', name: 'deploy' },
+            ],
+          },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const calls = emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'call-1',
+          toolName: 'deploy',
+          args: { target: 'one' },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'call-2',
+          toolName: 'deploy',
+          args: { target: 'two' },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    expect(calls).toEqual([
+      expect.objectContaining({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        stepToolCallCount: 2,
+      }),
+      expect.objectContaining({
+        type: 'tool-call',
+        toolCallId: 'call-2',
+        stepToolCallCount: 2,
+      }),
+    ]);
   });
 
   it('emits finish-step after a built-in approval request pauses the step', () => {
