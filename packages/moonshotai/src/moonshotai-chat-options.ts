@@ -13,6 +13,16 @@ export type MoonshotAIChatModelId =
   | 'kimi-k3'
   | (string & {});
 
+export function isMoonshotAIKimiModel(modelId: MoonshotAIChatModelId): boolean {
+  return (
+    modelId === 'kimi-k2.5' ||
+    modelId === 'kimi-k2.6' ||
+    modelId === 'kimi-k2.7-code' ||
+    modelId === 'kimi-k2.7-code-highspeed' ||
+    modelId === 'kimi-k3'
+  );
+}
+
 export const moonshotaiProviderOptions = z.object({
   /**
    * Reasoning effort for Kimi K3. Currently, only `max` is supported.

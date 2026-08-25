@@ -2,10 +2,59 @@ import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import type { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
 import type {
   LanguageModelV2,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
-import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
+import {
+  isMoonshotAIKimiModel,
+  type MoonshotAIChatModelId,
+} from './moonshotai-chat-options';
+
+function prepareSamplingOptions({
+  modelId,
+  options,
+}: {
+  modelId: MoonshotAIChatModelId;
+  options: LanguageModelV2CallOptions;
+}): {
+  options: LanguageModelV2CallOptions;
+  warnings: LanguageModelV2CallWarning[];
+} {
+  if (!isMoonshotAIKimiModel(modelId)) {
+    return { options, warnings: [] };
+  }
+
+  const warnings: LanguageModelV2CallWarning[] = [];
+  const samplingSettings = [
+    ['temperature', options.temperature],
+    ['topP', options.topP],
+    ['frequencyPenalty', options.frequencyPenalty],
+    ['presencePenalty', options.presencePenalty],
+  ] as const;
+
+  for (const [setting, value] of samplingSettings) {
+    if (value != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting,
+        details: `${setting} is fixed by model "${modelId}" and has been omitted.`,
+      });
+    }
+  }
+
+  return {
+    options: {
+      ...options,
+      temperature: undefined,
+      topP: undefined,
+      frequencyPenalty: undefined,
+      presencePenalty: undefined,
+    },
+    warnings,
+  };
+}
 
 export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageModel {
   constructor(
@@ -18,7 +67,9 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const result = await super.doGenerate(options);
+    const { options: sanitizedOptions, warnings: samplingWarnings } =
+      prepareSamplingOptions({ modelId: this.modelId, options });
+    const result = await super.doGenerate(sanitizedOptions);
 
     // @ts-expect-error accessing response body from parent result
     const usage = result.response?.body?.usage;
@@ -26,6 +77,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     return {
       ...result,
       usage: convertMoonshotAIChatUsage(usage),
+      warnings: [...result.warnings, ...samplingWarnings],
     };
   }
 
@@ -33,12 +85,14 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const originalIncludeRawChunks = options.includeRawChunks;
+    const { options: sanitizedOptions, warnings: samplingWarnings } =
+      prepareSamplingOptions({ modelId: this.modelId, options });
 
     // Enable raw chunks to capture pre-Zod usage data, since MoonshotAI
     // returns cached_tokens at the top level of usage (not nested in
     // prompt_tokens_details) and the parent's z.object() schema strips it.
     const result = await super.doStream({
-      ...options,
+      ...sanitizedOptions,
       includeRawChunks: true,
     });
 
@@ -52,6 +106,14 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
           LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
+            if (chunk.type === 'stream-start') {
+              controller.enqueue({
+                ...chunk,
+                warnings: [...chunk.warnings, ...samplingWarnings],
+              });
+              return;
+            }
+
             if (chunk.type === 'raw') {
               // Capture raw usage data before Zod strips cached_tokens
               const rawValue = chunk.rawValue as Record<string, unknown>;

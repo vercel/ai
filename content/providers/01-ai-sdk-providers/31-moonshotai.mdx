@@ -91,6 +91,11 @@ const model = moonshotai.languageModel('kimi-k3');
 Moonshot AI language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+Moonshot V1 models support the standard `temperature`, `topP`,
+`presencePenalty`, and `frequencyPenalty` settings. Kimi models use fixed
+sampling parameters; the provider omits those settings for Kimi requests and
+returns an unsupported-setting warning when they are supplied.
+
 ### Reasoning Models
 
 Kimi K3 always reasons. It currently supports only the `max` reasoning effort,
