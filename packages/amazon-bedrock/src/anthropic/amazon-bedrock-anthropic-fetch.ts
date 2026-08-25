@@ -93,9 +93,33 @@ function transformAmazonBedrockEventStreamToSSE(
           controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
         }
       } else if (event.messageType === 'exception') {
+        // event.data is the exception body as a JSON string, for example
+        // '{"message":"..."}'. Embedding it verbatim produces
+        // {"type":"error","error":"<string>"}, which fails the Anthropic
+        // error schema (error must be an object with type and message) and
+        // surfaces as a TypeValidationError instead of the provider error.
+        // Unwrap the message and emit the Anthropic error event shape,
+        // carrying the eventstream's exception type through as the error
+        // type.
+        let message = event.data;
+        try {
+          const parsed: unknown = JSON.parse(event.data);
+          if (
+            parsed != null &&
+            typeof parsed === 'object' &&
+            typeof (parsed as { message?: unknown }).message === 'string'
+          ) {
+            message = (parsed as { message: string }).message;
+          }
+        } catch {
+          // not JSON; keep the raw string as the message
+        }
         controller.enqueue(
           textEncoder.encode(
-            `data: ${JSON.stringify({ type: 'error', error: event.data })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'error',
+              error: { type: event.exceptionType ?? 'error', message },
+            })}\n\n`,
           ),
         );
       }

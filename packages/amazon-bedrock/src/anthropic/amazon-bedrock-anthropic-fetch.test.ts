@@ -148,7 +148,96 @@ describe('createAmazonBedrockAnthropicFetch', () => {
     const text = new TextDecoder().decode(value);
 
     expect(text).toBe(
-      `data: ${JSON.stringify({ type: 'error', error: errorData })}\n\n`,
+      `data: ${JSON.stringify({
+        type: 'error',
+        error: { type: 'ThrottlingException', message: 'Rate limit exceeded' },
+      })}\n\n`,
+    );
+  });
+
+  it('should emit the Anthropic error shape for exceptions without a type header', async () => {
+    const codec = new EventStreamCodec(toUtf8, fromUtf8);
+
+    const errorData = JSON.stringify({
+      message:
+        'The system encountered an unexpected error during processing. Try your request again.',
+    });
+    const amazonBedrockEvent = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+      },
+      body: fromUtf8(errorData),
+    });
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(amazonBedrockEvent);
+        controller.close();
+      },
+    });
+
+    const mockResponse = createMockResponse(
+      stream,
+      'application/vnd.amazon.eventstream',
+    );
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createAmazonBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+    const reader = response.body!.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value);
+
+    expect(text).toBe(
+      `data: ${JSON.stringify({
+        type: 'error',
+        error: {
+          type: 'error',
+          message:
+            'The system encountered an unexpected error during processing. Try your request again.',
+        },
+      })}\n\n`,
+    );
+  });
+
+  it('should keep non-JSON exception data as the error message', async () => {
+    const codec = new EventStreamCodec(toUtf8, fromUtf8);
+
+    const amazonBedrockEvent = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'exception' },
+        ':exception-type': { type: 'string', value: 'InternalServerException' },
+      },
+      body: fromUtf8('something went wrong'),
+    });
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(amazonBedrockEvent);
+        controller.close();
+      },
+    });
+
+    const mockResponse = createMockResponse(
+      stream,
+      'application/vnd.amazon.eventstream',
+    );
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createAmazonBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+    const reader = response.body!.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value);
+
+    expect(text).toBe(
+      `data: ${JSON.stringify({
+        type: 'error',
+        error: {
+          type: 'InternalServerException',
+          message: 'something went wrong',
+        },
+      })}\n\n`,
     );
   });
 
