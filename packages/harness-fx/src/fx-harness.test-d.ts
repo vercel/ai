@@ -3,6 +3,7 @@ import { createFx } from './fx-harness';
 
 test('preserves fx built-in tool types', () => {
   const harness = createFx({
+    credentialForwarding: async ({ credential }) => credential,
     mintBridgeToken: sandboxId => sandboxId,
   });
 

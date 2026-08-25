@@ -225,9 +225,15 @@ describe('createFx', () => {
 
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
+    const credentialForwarding = async ({
+      credential,
+    }: {
+      credential: string;
+    }) => `ephemeral-${credential}`;
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
     createFx({
       auth: 'direct',
+      credentialForwarding,
       model: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
@@ -240,6 +246,7 @@ describe('createFx', () => {
 
     expect({
       auth: settings.auth,
+      credentialForwarding: settings.credentialForwarding,
       modelId: settings.modelId,
       port: settings.port,
       portEndpoint: settings.portEndpoint,
@@ -248,6 +255,7 @@ describe('createFx', () => {
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
       auth: 'direct',
+      credentialForwarding,
       modelId: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
