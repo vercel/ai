@@ -520,7 +520,7 @@ describe('ACP implementation', () => {
     ).not.toBe(baseIdentity);
   });
 
-  it('identifies locked manifest and lockfile content independently', () => {
+  it('identifies every locked acquisition artifact independently', () => {
     const lockedIdentity = identity({
       implementation: lockedImplementation,
     });
@@ -543,6 +543,18 @@ describe('ACP implementation', () => {
           source: {
             ...lockedImplementation.source,
             pnpmLockYaml: `${pnpmLockYaml}\n# changed\n`,
+          },
+        },
+      }),
+    ).not.toBe(lockedIdentity);
+    expect(
+      identity({
+        implementation: {
+          ...lockedImplementation,
+          source: {
+            ...lockedImplementation.source,
+            pnpmWorkspaceYaml:
+              "allowBuilds:\n  '@example/acp-agent@1.2.3': true\n",
           },
         },
       }),

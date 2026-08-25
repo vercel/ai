@@ -8,6 +8,7 @@ import {
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
+  type HarnessV1CredentialForwarding,
   type HarnessV1DebugConfig,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
@@ -20,6 +21,7 @@ import {
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
+  applyCredentialForwarding,
   classifyDiskLog,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
@@ -78,6 +80,12 @@ const OPENCODE_CLIENT_APP = `ai-sdk/harness-opencode/${VERSION}`;
 
 export type OpenCodeHarnessSettings = {
   readonly auth?: OpenCodeAuthOptions;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
@@ -426,8 +434,14 @@ export function createOpenCode(
               abortSignal: startOpts.abortSignal,
             })
           : undefined;
+      const forwardedAuthEnvironment = await applyCredentialForwarding({
+        environment: sandboxAuthEnvironment,
+        credentialEnvironmentVariables:
+          OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        credentialForwarding: settings.credentialForwarding,
+      });
       const env = {
-        ...sandboxAuthEnvironment,
+        ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
