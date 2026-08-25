@@ -93,14 +93,9 @@ For best reliability, it is strongly recommended to include your schema requirem
 
 ### Reasoning Models
 
-<<<<<<< HEAD
 Kimi K3 always reasons and supports `low`, `high`, and `max` reasoning effort.
-The default is `max`. You can configure the effort through provider options:
-=======
-Kimi K3 always reasons. It supports `low`, `high`, and `max` reasoning effort,
-which you can configure through provider options or the generic `reasoning`
-setting:
->>>>>>> origin/main
+The default is `max`. You can configure the effort through provider options or
+the generic `reasoning` setting:
 
 ```ts
 import {
@@ -123,16 +118,10 @@ console.log(reasoningText);
 console.log(text);
 ```
 
-<<<<<<< HEAD
-Kimi K2.6 supports thinking and non-thinking modes. Kimi K2.7 Code always has
-thinking enabled and uses Preserved Thinking, so keep reasoning history in
-multi-turn conversations. The reasoning output is exposed through the standard
-AI SDK reasoning parts.
-=======
 Kimi K2.5 and K2.6 can enable or disable thinking. Kimi K2.7 always has
-thinking and preserved reasoning enabled. The reasoning output is streamed
-through the standard AI SDK reasoning parts.
->>>>>>> origin/main
+thinking and preserved reasoning enabled. Keep reasoning history in multi-turn
+Kimi K2.7 conversations. The reasoning output is exposed through the standard
+AI SDK reasoning parts.
 
 ```ts
 import {
@@ -141,13 +130,8 @@ import {
 } from '@ai-sdk/moonshotai';
 import { streamText } from 'ai';
 
-<<<<<<< HEAD
 const result = streamText({
   model: moonshotai('kimi-k2.7-code'),
-=======
-const { text, reasoningText } = await generateText({
-  model: moonshotai('kimi-k2.6'),
->>>>>>> origin/main
   providerOptions: {
     moonshotai: {
       thinking: { type: 'enabled' },
@@ -159,6 +143,8 @@ const { text, reasoningText } = await generateText({
 
 for await (const part of result.fullStream) {
   if (part.type === 'reasoning-delta') {
+    process.stdout.write(part.text);
+  } else if (part.type === 'text-delta') {
     process.stdout.write(part.text);
   }
 }
@@ -218,52 +204,31 @@ The following optional provider options are available for Moonshot AI language m
 
 - **reasoningEffort** _'low' | 'high' | 'max'_
 
-<<<<<<< HEAD
-  Reasoning effort for Kimi K3. Defaults to `'max'`.
-
-- **thinking** _object_
-
-  Configuration for Kimi K2.x thinking models. Kimi K2.5 and Kimi K2.6
-  support enabled and disabled thinking. Kimi K2.7 Code always has thinking
-  enabled.
-=======
-  Reasoning effort for Kimi K3.
+  Reasoning effort for Kimi K3. Defaults to `'max'`. You can also use the
+  generic `reasoning` setting.
 
 - **thinking** _object_
 
   Configuration for Kimi K2.5 and K2.6. Kimi K2.7 accepts only `enabled`
   because its thinking cannot be disabled. Kimi K3 does not accept this field.
->>>>>>> origin/main
   - **type** _'enabled' | 'disabled'_
 
     Whether to enable thinking mode. For Kimi K2.7 Code, only `'enabled'` is
     accepted.
 
-<<<<<<< HEAD
   - **budgetTokens** _number_
 
-    Deprecated. Current hosted Kimi models do not document `budget_tokens`.
-    This option remains available for backwards compatibility with legacy or
-    custom Moonshot-compatible endpoints.
-=======
-  The previously exposed `budgetTokens` option is deprecated because Moonshot
-  Chat Completions does not support thinking budgets. The provider omits it and
-  returns a warning.
->>>>>>> origin/main
+    Deprecated. Moonshot Chat Completions does not support thinking budgets.
+    The provider omits this value and returns a warning. It remains accepted
+    for backwards compatibility.
 
 - **reasoningHistory** _'disabled' | 'interleaved' | 'preserved'_
 
-  Controls how reasoning history is handled in multi-turn conversations:
-  - `'disabled'`: Remove reasoning from history
-  - `'interleaved'`: Include reasoning between tool calls within a single turn
-<<<<<<< HEAD
-  - `'preserved'`: Keep all reasoning in history. Mapped to Moonshot's
-    `thinking.keep: 'all'` request field for supported Kimi K2.x models. Kimi
-    K3 uses Preserved Thinking by default.
-=======
-  - `'preserved'`: Keep all reasoning in history. For Kimi K2.6, this maps to
-    `thinking.keep: 'all'`. Kimi K2.7 and K3 always preserve reasoning.
->>>>>>> origin/main
+  Controls preserved reasoning behavior in multi-turn conversations:
+  - `'disabled'` and `'interleaved'` are retained for compatibility. They do
+    not change the request, so the model's server-default behavior applies.
+  - `'preserved'` maps to `thinking.keep: 'all'` for Kimi K2.6. Kimi K2.7 and
+    K3 preserve reasoning by default.
 
 ## Model Capabilities
 

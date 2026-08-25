@@ -2,7 +2,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import type { MoonshotAILanguageModelOptions } from './index';
 
 describe('MoonshotAILanguageModelOptions', () => {
-  it('only exposes official thinking and reasoning effort fields', () => {
+  it('exposes supported and backwards-compatible option fields', () => {
     expectTypeOf<MoonshotAILanguageModelOptions>().toEqualTypeOf<{
       reasoningEffort?: 'low' | 'high' | 'max';
       thinking?: {

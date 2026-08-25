@@ -52,18 +52,10 @@ import { generateText } from 'ai';
 const { text, reasoningText } = await generateText({
   model: moonshotai('kimi-k3'),
   prompt: 'Solve this problem step by step: What is 15% of 240?',
-<<<<<<< HEAD
   providerOptions: {
     moonshotai: {
       reasoningEffort: 'high',
     } satisfies MoonshotAILanguageModelOptions,
-=======
-  moonshotai: {
-    thinking: {
-      type: 'enabled',
-    },
-    reasoningHistory: 'preserved',
->>>>>>> origin/main
   },
 });
 
