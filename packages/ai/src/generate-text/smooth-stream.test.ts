@@ -1510,6 +1510,66 @@ describe('smoothStream', () => {
   });
 
   describe('providerMetadata preservation', () => {
+    it.each([
+      {
+        chunking: 'word' as const,
+        deltaType: 'reasoning-delta' as const,
+        startType: 'reasoning-start' as const,
+        endType: 'reasoning-end' as const,
+        inputText: 'First second final',
+        expectedText: ['First ', 'second ', 'final'],
+      },
+      {
+        chunking: 'line' as const,
+        deltaType: 'text-delta' as const,
+        startType: 'text-start' as const,
+        endType: 'text-end' as const,
+        inputText: 'First line\nSecond line\nfinal line',
+        expectedText: ['First line\n', 'Second line\n', 'final line'],
+      },
+    ])(
+      'should preserve providerMetadata on every $chunking-chunked $deltaType part',
+      async ({
+        chunking,
+        deltaType,
+        startType,
+        endType,
+        inputText,
+        expectedText,
+      }) => {
+        const providerMetadata = {
+          anthropic: { signature: 'sig_abc123' },
+        };
+        const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+          { type: startType, id: '1' },
+          {
+            text: inputText,
+            type: deltaType,
+            id: '1',
+            providerMetadata,
+          },
+          { type: endType, id: '1' },
+        ]).pipeThrough(
+          smoothStream({
+            chunking,
+            delayInMs: null,
+            _internal: { delay },
+          })({ tools: {} }),
+        );
+
+        await consumeStream(stream);
+
+        expect(events.filter(event => event.type === deltaType)).toEqual(
+          expectedText.map(text => ({
+            type: deltaType,
+            text,
+            id: '1',
+            providerMetadata,
+          })),
+        );
+      },
+    );
+
     it('should preserve providerMetadata on reasoning-delta chunks (signature for Anthropic thinking)', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         { type: 'reasoning-start', id: '1' },
