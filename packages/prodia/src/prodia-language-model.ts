@@ -54,7 +54,7 @@ export class ProdiaLanguageModel implements LanguageModelV2 {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
     if (options.seed !== undefined) {
-      warnings.push({ type: 'unsupported', feature: 'seed' });
+      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
     }
     if (options.maxOutputTokens !== undefined) {
       warnings.push({
