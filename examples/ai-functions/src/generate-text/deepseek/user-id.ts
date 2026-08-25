@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: deepSeek('deepseek-chat'),
+    model: deepSeek('deepseek-v4-flash'),
     prompt: 'Name one practical benefit of request isolation.',
     providerOptions: {
       deepseek: {

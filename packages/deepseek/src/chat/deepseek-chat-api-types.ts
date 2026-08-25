@@ -12,11 +12,13 @@ export type DeepSeekMessage =
 export interface DeepSeekSystemMessage {
   role: 'system';
   content: string;
+  name?: string;
 }
 
 export interface DeepSeekUserMessage {
   role: 'user';
   content: string | Array<DeepSeekContentPart>;
+  name?: string;
 }
 
 export type DeepSeekContentPart =
@@ -42,6 +44,7 @@ export interface DeepSeekContentPartFile {
 export interface DeepSeekAssistantMessage {
   role: 'assistant';
   content?: string | null;
+  name?: string;
   prefix?: true;
   reasoning_content?: string;
   tool_calls?: Array<DeepSeekMessageToolCall>;
@@ -107,12 +110,35 @@ export const deepSeekErrorSchema = z.object({
 
 export type DeepSeekErrorData = z.infer<typeof deepSeekErrorSchema>;
 
+const deepseekChatLogprobSchema = z.object({
+  token: z.string(),
+  logprob: z.number(),
+  bytes: z.array(z.number()).nullable(),
+  top_logprobs: z.array(
+    z.object({
+      token: z.string(),
+      logprob: z.number(),
+      bytes: z.array(z.number()).nullable(),
+    }),
+  ),
+});
+
+const deepseekChatLogprobsSchema = z
+  .object({
+    content: z.array(deepseekChatLogprobSchema).nullish(),
+    reasoning_content: z.array(deepseekChatLogprobSchema).nullish(),
+  })
+  .nullish();
+
+export type DeepSeekChatLogprob = z.infer<typeof deepseekChatLogprobSchema>;
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const deepseekChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
+  system_fingerprint: z.string().nullish(),
   choices: z.array(
     z.object({
       message: z.object({
@@ -131,6 +157,7 @@ export const deepseekChatResponseSchema = z.object({
           )
           .nullish(),
       }),
+      logprobs: deepseekChatLogprobsSchema,
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -146,6 +173,7 @@ export const deepseekChatChunkSchema = lazySchema(() =>
         id: z.string().nullish(),
         created: z.number().nullish(),
         model: z.string().nullish(),
+        system_fingerprint: z.string().nullish(),
         choices: z.array(
           z.object({
             delta: z
@@ -167,6 +195,7 @@ export const deepseekChatChunkSchema = lazySchema(() =>
                   .nullish(),
               })
               .nullish(),
+            logprobs: deepseekChatLogprobsSchema,
             finish_reason: z.string().nullish(),
           }),
         ),
