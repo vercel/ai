@@ -842,6 +842,38 @@ describe('doGenerate', () => {
       expect(requestBody.prompt_cache_key).toBe('session-42');
       expect(requestBody.safety_identifier).toBe('user-hash-7');
     });
+
+    it('should send participant names on supported message roles', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are Kimi.',
+            providerOptions: { moonshotai: { name: 'guide' } },
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: { moonshotai: { name: 'alice' } },
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hi' }],
+            providerOptions: { moonshotai: { name: 'helper' } },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages).toEqual([
+        { role: 'system', content: 'You are Kimi.', name: 'guide' },
+        { role: 'user', content: 'Hello', name: 'alice' },
+        {
+          role: 'assistant',
+          content: 'Hi',
+          name: 'helper',
+        },
+      ]);
+    });
   });
 
   describe('logprobs', () => {

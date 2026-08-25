@@ -263,6 +263,25 @@ The following optional provider options are available for Moonshot AI language m
   Whether to use strict JSON schema validation for structured outputs. Defaults
   to `true`.
 
+### Message Provider Options
+
+System, user, and assistant messages accept a `name` provider option for the
+participant represented by the message:
+
+```ts
+import type { MoonshotAIMessageProviderOptions } from '@ai-sdk/moonshotai';
+
+const message = {
+  role: 'user' as const,
+  content: [{ type: 'text' as const, text: 'Hello' }],
+  providerOptions: {
+    moonshotai: {
+      name: 'alice',
+    } satisfies MoonshotAIMessageProviderOptions,
+  },
+};
+```
+
 ## Model Capabilities
 
 | Model                    | Image Input | Video Input | Object Generation | Tool Usage | Tool Streaming |

@@ -12,11 +12,13 @@ export type MoonshotAIMessage =
 export interface MoonshotAISystemMessage {
   role: 'system';
   content: string;
+  name?: string;
 }
 
 export interface MoonshotAIUserMessage {
   role: 'user';
   content: string | Array<MoonshotAIContentPart>;
+  name?: string;
 }
 
 export type MoonshotAIContentPart =
@@ -42,6 +44,7 @@ export interface MoonshotAIContentPartVideo {
 export interface MoonshotAIAssistantMessage {
   role: 'assistant';
   content?: string | null;
+  name?: string;
   reasoning_content?: string;
   tool_calls?: Array<MoonshotAIMessageToolCall>;
 }

@@ -128,7 +128,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         schema: moonshotaiLanguageModelOptions,
       })) ?? {};
 
-    const messages = convertToMoonshotAIChatMessages(prompt);
+    const messages = await convertToMoonshotAIChatMessages(prompt);
 
     const allWarnings: SharedV4Warning[] = [];
     if (topK != null) {

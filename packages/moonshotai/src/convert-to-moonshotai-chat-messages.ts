@@ -6,11 +6,13 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
+  parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
+import { moonshotaiMessageProviderOptions } from './moonshotai-chat-options';
 
 const supportedImageMediaTypes = new Set([
   'image/jpeg',
@@ -59,14 +61,30 @@ function validateReferenceMediaType({
 // Moonshot AI chat completions accepts text, image_url, and video_url content
 // parts only. Anything else (audio, PDF, other file types) throws here rather
 // than being rejected by the API with a 400.
-export function convertToMoonshotAIChatMessages(
+export async function convertToMoonshotAIChatMessages(
   prompt: LanguageModelV4Prompt,
-): MoonshotAIMessages {
+): Promise<MoonshotAIMessages> {
   const messages: MoonshotAIMessages = [];
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
+    const messageOptions = await parseProviderOptions({
+      provider: 'moonshotai',
+      providerOptions,
+      schema: moonshotaiMessageProviderOptions,
+    });
+
+    if (role === 'tool' && messageOptions?.name != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'message names on tool messages',
+      });
+    }
+
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        messages.push({
+          role: 'system',
+          content,
+          ...(messageOptions?.name != null && { name: messageOptions.name }),
+        });
         break;
       }
 
@@ -75,12 +93,14 @@ export function convertToMoonshotAIChatMessages(
           messages.push({
             role: 'user',
             content: content[0].text,
+            ...(messageOptions?.name != null && { name: messageOptions.name }),
           });
           break;
         }
 
         messages.push({
           role: 'user',
+          ...(messageOptions?.name != null && { name: messageOptions.name }),
           content: content.map(part => {
             switch (part.type) {
               case 'text': {
@@ -250,6 +270,7 @@ export function convertToMoonshotAIChatMessages(
         messages.push({
           role: 'assistant',
           content: toolCalls.length > 0 ? text || null : text,
+          ...(messageOptions?.name != null && { name: messageOptions.name }),
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });

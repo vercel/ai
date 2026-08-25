@@ -2,16 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { convertToMoonshotAIChatMessages } from './convert-to-moonshotai-chat-messages';
 
 describe('user messages', () => {
-  it('should convert a text-only user message to string content', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should convert a text-only user message to string content', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ]);
 
     expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
   });
 
-  it('should convert image data parts to image_url data URIs', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should convert image data parts to image_url data URIs', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'user',
         content: [
@@ -47,8 +47,8 @@ describe('user messages', () => {
     'image/bmp',
     'image/heic',
     'image/heif',
-  ])('should accept the supported image media type %s', mediaType => {
-    const result = convertToMoonshotAIChatMessages([
+  ])('should accept the supported image media type %s', async mediaType => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'user',
         content: [
@@ -74,8 +74,8 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should pass through image URLs', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should pass through image URLs', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'user',
         content: [
@@ -104,8 +104,8 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should convert video data parts to video_url data URIs', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should convert video data parts to video_url data URIs', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'user',
         content: [
@@ -143,8 +143,8 @@ describe('user messages', () => {
     'video/webm',
     'video/wmv',
     'video/3gpp',
-  ])('should accept the supported video media type %s', mediaType => {
-    const result = convertToMoonshotAIChatMessages([
+  ])('should accept the supported video media type %s', async mediaType => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'user',
         content: [
@@ -170,8 +170,8 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should pass through video URLs', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should pass through video URLs', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'user',
         content: [
@@ -200,8 +200,8 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should pass through ms:// file references from the Files API', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should pass through ms:// file references from the Files API', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'user',
         content: [
@@ -230,8 +230,8 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should decode text/* file parts into text parts', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should decode text/* file parts into text parts', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'user',
         content: [
@@ -252,8 +252,8 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should throw for audio file parts (rejected by the API)', () => {
-    expect(() =>
+  it('should throw for audio file parts (rejected by the API)', async () => {
+    await expect(
       convertToMoonshotAIChatMessages([
         {
           role: 'user',
@@ -269,11 +269,13 @@ describe('user messages', () => {
           ],
         },
       ]),
-    ).toThrow("'file part media type audio/mp3' functionality not supported");
+    ).rejects.toThrow(
+      "'file part media type audio/mp3' functionality not supported",
+    );
   });
 
-  it('should throw for unsupported image media types', () => {
-    expect(() =>
+  it('should throw for unsupported image media types', async () => {
+    await expect(
       convertToMoonshotAIChatMessages([
         {
           role: 'user',
@@ -289,13 +291,13 @@ describe('user messages', () => {
           ],
         },
       ]),
-    ).toThrow(
+    ).rejects.toThrow(
       "'file part media type image/svg+xml' functionality not supported",
     );
   });
 
-  it('should throw for unsupported video media types', () => {
-    expect(() =>
+  it('should throw for unsupported video media types', async () => {
+    await expect(
       convertToMoonshotAIChatMessages([
         {
           role: 'user',
@@ -311,11 +313,13 @@ describe('user messages', () => {
           ],
         },
       ]),
-    ).toThrow("'file part media type video/ogg' functionality not supported");
+    ).rejects.toThrow(
+      "'file part media type video/ogg' functionality not supported",
+    );
   });
 
-  it('should throw for PDF file parts (rejected by the API)', () => {
-    expect(() =>
+  it('should throw for PDF file parts (rejected by the API)', async () => {
+    await expect(
       convertToMoonshotAIChatMessages([
         {
           role: 'user',
@@ -331,13 +335,13 @@ describe('user messages', () => {
           ],
         },
       ]),
-    ).toThrow(
+    ).rejects.toThrow(
       "'file part media type application/pdf' functionality not supported",
     );
   });
 
-  it('should throw for unsupported file types', () => {
-    expect(() =>
+  it('should throw for unsupported file types', async () => {
+    await expect(
       convertToMoonshotAIChatMessages([
         {
           role: 'user',
@@ -353,7 +357,7 @@ describe('user messages', () => {
           ],
         },
       ]),
-    ).toThrow(
+    ).rejects.toThrow(
       "'file part media type application/zip' functionality not supported",
     );
   });
@@ -377,9 +381,9 @@ describe('user messages', () => {
     },
   ])(
     'should convert $mediaType provider references to native URLs',
-    ({ mediaType, reference, expected }) => {
+    async ({ mediaType, reference, expected }) => {
       expect(
-        convertToMoonshotAIChatMessages([
+        await convertToMoonshotAIChatMessages([
           {
             role: 'user',
             content: [
@@ -398,8 +402,8 @@ describe('user messages', () => {
     },
   );
 
-  it('should throw for foreign provider references', () => {
-    expect(() =>
+  it('should throw for foreign provider references', async () => {
+    await expect(
       convertToMoonshotAIChatMessages([
         {
           role: 'user',
@@ -415,13 +419,13 @@ describe('user messages', () => {
           ],
         },
       ]),
-    ).toThrow(
+    ).rejects.toThrow(
       "No provider reference found for provider 'moonshotai'. Available providers: openai",
     );
   });
 
-  it('should throw for provider references with unsupported media types', () => {
-    expect(() =>
+  it('should throw for provider references with unsupported media types', async () => {
+    await expect(
       convertToMoonshotAIChatMessages([
         {
           role: 'user',
@@ -437,14 +441,14 @@ describe('user messages', () => {
           ],
         },
       ]),
-    ).toThrow(
+    ).rejects.toThrow(
       "'file part media type application/pdf' functionality not supported",
     );
   });
 
-  it('should convert text file parts to text content', () => {
+  it('should convert text file parts to text content', async () => {
     expect(
-      convertToMoonshotAIChatMessages([
+      await convertToMoonshotAIChatMessages([
         {
           role: 'user',
           content: [
@@ -466,8 +470,8 @@ describe('user messages', () => {
 });
 
 describe('system messages', () => {
-  it('should pass system messages through', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should pass system messages through', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       { role: 'system', content: 'You are Kimi.' },
     ]);
 
@@ -475,9 +479,68 @@ describe('system messages', () => {
   });
 });
 
+describe('message names', () => {
+  it('should serialize names for system, user, and assistant messages', async () => {
+    const result = await convertToMoonshotAIChatMessages([
+      {
+        role: 'system',
+        content: 'You are Kimi.',
+        providerOptions: { moonshotai: { name: 'guide' } },
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: { moonshotai: { name: 'alice' } },
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi' }],
+        providerOptions: { moonshotai: { name: 'helper' } },
+      },
+    ]);
+
+    expect(result).toEqual([
+      { role: 'system', content: 'You are Kimi.', name: 'guide' },
+      { role: 'user', content: 'Hello', name: 'alice' },
+      {
+        role: 'assistant',
+        content: 'Hi',
+        name: 'helper',
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('should reject invalid names through provider option parsing', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerOptions: { moonshotai: { name: 123 } },
+        },
+      ]),
+    ).rejects.toThrow('invalid moonshotai provider options');
+  });
+
+  it('should reject names on tool messages', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages([
+        {
+          role: 'tool',
+          content: [],
+          providerOptions: { moonshotai: { name: 'tool' } },
+        },
+      ]),
+    ).rejects.toThrow(
+      "'message names on tool messages' functionality not supported",
+    );
+  });
+});
+
 describe('assistant messages', () => {
-  it('should emit reasoning_content for reasoning parts', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should emit reasoning_content for reasoning parts', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'assistant',
         content: [
@@ -497,8 +560,8 @@ describe('assistant messages', () => {
     ]);
   });
 
-  it('should convert tool calls and set content to null when there is no text', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should convert tool calls and set content to null when there is no text', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'assistant',
         content: [
@@ -527,8 +590,8 @@ describe('assistant messages', () => {
     ]);
   });
 
-  it('should keep text content when text and tool calls are present', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should keep text content when text and tool calls are present', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'assistant',
         content: [
@@ -560,8 +623,8 @@ describe('assistant messages', () => {
 });
 
 describe('tool messages', () => {
-  it('should convert text tool results to tool messages', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should convert text tool results to tool messages', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'tool',
         content: [
@@ -580,8 +643,8 @@ describe('tool messages', () => {
     ]);
   });
 
-  it('should stringify json tool results', () => {
-    const result = convertToMoonshotAIChatMessages([
+  it('should stringify json tool results', async () => {
+    const result = await convertToMoonshotAIChatMessages([
       {
         role: 'tool',
         content: [

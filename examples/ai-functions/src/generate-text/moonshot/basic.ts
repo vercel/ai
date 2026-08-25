@@ -1,11 +1,24 @@
-import { moonshotai } from '@ai-sdk/moonshotai';
+import {
+  moonshotai,
+  type MoonshotAIMessageProviderOptions,
+} from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
     model: moonshotai('kimi-k3'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    messages: [
+      {
+        role: 'user',
+        content: 'Invent a new holiday and describe its traditions.',
+        providerOptions: {
+          moonshotai: {
+            name: 'holiday_planner',
+          } satisfies MoonshotAIMessageProviderOptions,
+        },
+      },
+    ],
   });
 
   console.log(result.text);
