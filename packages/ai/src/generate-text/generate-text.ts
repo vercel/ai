@@ -24,7 +24,10 @@ import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import {
+  getBaseTelemetryAttributes,
+  getTelemetryMetadataAttributes,
+} from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -686,6 +689,7 @@ async function executeTools<TOOLS extends ToolSet>({
               operationId: 'ai.toolCall',
               telemetry,
             }),
+            ...getTelemetryMetadataAttributes(telemetry),
             'ai.toolCall.name': toolName,
             'ai.toolCall.id': toolCallId,
             'ai.toolCall.args': {
