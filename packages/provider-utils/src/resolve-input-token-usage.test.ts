@@ -69,7 +69,25 @@ describe('resolveInputTokenUsage', () => {
     });
   });
 
-  it('always returns non-negative counts', () => {
+  it('keeps the cache breakdown a partition of the total', () => {
+    // `total` is the authoritative input-token count and noCache/cacheRead/
+    // cacheWrite are its breakdown, so they must sum back to it. The bug this
+    // guards produced noCache < 0 and cacheRead > total, violating both halves.
+    for (const reportedInputTokens of [0, 1, 12, 100, 1000, 5000]) {
+      for (const cachedTokens of [0, 1, 50, 900, 4100, 1_000_000]) {
+        const { total, noCache } = resolveInputTokenUsage({
+          reportedInputTokens,
+          cachedTokens,
+        });
+
+        expect(noCache + cachedTokens).toBe(total);
+        expect(noCache).toBeGreaterThanOrEqual(0);
+        expect(total).toBeGreaterThanOrEqual(cachedTokens);
+      }
+    }
+  });
+
+  it('always returns non-negative counts, even for malformed input', () => {
     const cases = [
       { reportedInputTokens: 0, cachedTokens: 0 },
       { reportedInputTokens: 1, cachedTokens: 1_000_000 },
