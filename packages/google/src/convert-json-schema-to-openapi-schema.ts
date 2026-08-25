@@ -14,6 +14,18 @@ type ReferenceContext = {
   resolvingReferences: ReadonlySet<string>;
 };
 
+const recursiveReferenceFunctionalityPrefix =
+  'recursive JSON Schema reference:';
+
+export function isRecursiveJSONSchemaReferenceError(
+  error: unknown,
+): error is UnsupportedFunctionalityError {
+  return (
+    UnsupportedFunctionalityError.isInstance(error) &&
+    error.functionality.startsWith(recursiveReferenceFunctionalityPrefix)
+  );
+}
+
 /**
  * Converts JSON Schema 7 to OpenAPI Schema 3.0
  */
@@ -207,7 +219,7 @@ function convertJSONSchemaReference({
 
   if (referenceContext.resolvingReferences.has(referenceKey)) {
     throw new UnsupportedFunctionalityError({
-      functionality: `recursive JSON Schema reference: ${reference}`,
+      functionality: `${recursiveReferenceFunctionalityPrefix} ${reference}`,
       message:
         'Google schema conversion does not support recursive JSON Schema references.',
     });
