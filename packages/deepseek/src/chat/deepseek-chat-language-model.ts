@@ -47,6 +47,7 @@ export type DeepSeekChatConfig = {
   fetch?: FetchFunction;
   supportsAssistantPrefixCompletion?: boolean;
   supportsPenaltySampling?: boolean;
+  supportsStrictToolCalls?: boolean;
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
@@ -176,6 +177,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     } = prepareTools({
       tools,
       toolChoice,
+      supportsStrictToolCalls: this.config.supportsStrictToolCalls,
     });
     allWarnings.push(...toolWarnings);
 
