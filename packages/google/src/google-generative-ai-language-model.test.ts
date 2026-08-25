@@ -5,6 +5,7 @@ import type {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import fs from 'node:fs';
 import {
   GoogleGenerativeAILanguageModel,
   getGroundingMetadataSchema,
@@ -364,6 +365,9 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_99_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
 
+  const TEST_URL_GEMINI_3_7_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
@@ -371,6 +375,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
     [TEST_URL_GEMINI_99_PRO]: {},
+    [TEST_URL_GEMINI_3_7_FLASH]: {},
   });
 
   const prepareJsonResponse = ({
@@ -1048,6 +1053,77 @@ describe('doGenerate', () => {
       },
       required: ['locale'],
     });
+  });
+
+  it('should complete a Gemini Developer API call with a recursive tool schema', async () => {
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/google-recursive-tool-call.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    const result = await provider.chat('gemini-3.7-flash').doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'search',
+          description: 'Search with a condition tree.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              condition: { $ref: '#/definitions/Condition' },
+            },
+            required: ['condition'],
+            definitions: {
+              Condition: {
+                anyOf: [
+                  {
+                    type: 'object',
+                    properties: { term: { type: 'string' } },
+                    required: ['term'],
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      and: {
+                        type: 'array',
+                        items: { $ref: '#/definitions/Condition' },
+                      },
+                    },
+                    required: ['and'],
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      or: {
+                        type: 'array',
+                        items: { $ref: '#/definitions/Condition' },
+                      },
+                    },
+                    required: ['or'],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(server.calls).toHaveLength(1);
+    expect(result.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-call',
+          toolName: 'search',
+        }),
+      ]),
+    );
   });
 
   it('should set response mime type with responseFormat', async () => {
