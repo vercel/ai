@@ -1,5 +1,8 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import {
+  createNullLanguageModelUsage,
+  resolveInputTokenUsage,
+} from '@ai-sdk/provider-utils';
 
 export type MistralUsage = {
   prompt_tokens: number;
@@ -26,10 +29,16 @@ export function convertMistralUsage(
     usage.prompt_token_details?.cached_tokens ??
     0;
 
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: promptTokens,
+      cachedTokens: cacheReadTokens,
+    });
+
   return {
     inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cacheReadTokens,
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cacheReadTokens || undefined,
       cacheWrite: undefined,
     },

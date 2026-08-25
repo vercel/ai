@@ -262,4 +262,16 @@ describe('convertMoonshotAIChatUsage', () => {
       },
     });
   });
+
+  it('treats prompt tokens as uncached when the cache breakdown exceeds them', () => {
+    const result = convertMoonshotAIChatUsage({
+      prompt_tokens: 12,
+      completion_tokens: 40,
+      cached_tokens: 4100,
+    });
+
+    expect(result.inputTokens.total).toBe(4112);
+    expect(result.inputTokens.noCache).toBe(12);
+    expect(result.inputTokens.cacheRead).toBe(4100);
+  });
 });

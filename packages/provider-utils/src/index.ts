@@ -77,6 +77,7 @@ export {
 export * from './remove-undefined-entries';
 export * from './resolve';
 export { resolveFullMediaType } from './resolve-full-media-type';
+export { resolveInputTokenUsage } from './resolve-input-token-usage';
 export { resolveProviderReference } from './resolve-provider-reference';
 export * from './retry-with-exponential-backoff';
 export * from './response-handler';

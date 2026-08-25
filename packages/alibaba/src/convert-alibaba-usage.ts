@@ -1,5 +1,8 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import {
+  createNullLanguageModelUsage,
+  resolveInputTokenUsage,
+} from '@ai-sdk/provider-utils';
 
 /**
  * Usage as reported by Alibaba's OpenAI-compatible chat completions API.
@@ -46,11 +49,17 @@ export function convertAlibabaUsage(
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 
+  // Alibaba counts both cache reads and cache writes inside prompt_tokens.
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: promptTokens,
+      cachedTokens: cacheReadTokens + cacheWriteTokens,
+    });
+
   return {
     inputTokens: {
-      total: promptTokens,
-      // Alibaba counts both cache reads and cache writes inside prompt_tokens.
-      noCache: promptTokens - cacheReadTokens - cacheWriteTokens,
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cacheReadTokens,
       cacheWrite: cacheWriteTokens,
     },

@@ -21,6 +21,7 @@ import {
   mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
+  resolveInputTokenUsage,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -343,6 +344,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     const cachedInputTokens = usage?.input_tokens_details?.cached_tokens;
     const outputTokens = usage?.output_tokens;
     const reasoningTokens = usage?.output_tokens_details?.reasoning_tokens;
+    const resolvedInputTokens = resolveInputTokenUsage({
+      reportedInputTokens: inputTokens ?? 0,
+      cachedTokens: cachedInputTokens ?? 0,
+    });
 
     return {
       content,
@@ -355,8 +360,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       },
       usage: {
         inputTokens: {
-          total: inputTokens,
-          noCache: (inputTokens ?? 0) - (cachedInputTokens ?? 0),
+          total: inputTokens == null ? undefined : resolvedInputTokens.total,
+          noCache: resolvedInputTokens.noCache,
           cacheRead: cachedInputTokens,
           cacheWrite: undefined,
         },
@@ -429,9 +434,14 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       const reasoningTokens =
         responseUsage.output_tokens_details?.reasoning_tokens;
 
+      const resolvedInputTokens = resolveInputTokenUsage({
+        reportedInputTokens: inputTokens ?? 0,
+        cachedTokens: cachedInputTokens ?? 0,
+      });
+
       usage.inputTokens = {
-        total: inputTokens,
-        noCache: (inputTokens ?? 0) - (cachedInputTokens ?? 0),
+        total: inputTokens == null ? undefined : resolvedInputTokens.total,
+        noCache: resolvedInputTokens.noCache,
         cacheRead: cachedInputTokens,
         cacheWrite: undefined,
       };

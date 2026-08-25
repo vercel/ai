@@ -20,4 +20,16 @@ describe('convertDeepSeekUsage', () => {
       raw: usage,
     });
   });
+
+  it('treats prompt tokens as uncached when the cache breakdown exceeds them', () => {
+    const result = convertDeepSeekUsage({
+      prompt_tokens: 12,
+      completion_tokens: 40,
+      prompt_cache_hit_tokens: 4100,
+    });
+
+    expect(result.inputTokens.total).toBe(4112);
+    expect(result.inputTokens.noCache).toBe(12);
+    expect(result.inputTokens.cacheRead).toBe(4100);
+  });
 });

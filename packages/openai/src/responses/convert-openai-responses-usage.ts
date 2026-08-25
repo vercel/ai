@@ -1,5 +1,8 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import {
+  createNullLanguageModelUsage,
+  resolveInputTokenUsage,
+} from '@ai-sdk/provider-utils';
 
 export type OpenAIResponsesUsage = {
   input_tokens: number;
@@ -30,10 +33,16 @@ export function convertOpenAIResponsesUsage(
     usage.input_tokens_details?.cache_write_tokens ?? undefined;
   const reasoningTokens = usage.output_tokens_details?.reasoning_tokens ?? 0;
 
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: inputTokens,
+      cachedTokens: cachedTokens + (cacheWriteTokens ?? 0),
+    });
+
   return {
     inputTokens: {
-      total: inputTokens,
-      noCache: inputTokens - cachedTokens - (cacheWriteTokens ?? 0),
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cachedTokens,
       cacheWrite: cacheWriteTokens,
     },

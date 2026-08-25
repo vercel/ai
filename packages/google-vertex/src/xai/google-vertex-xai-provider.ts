@@ -11,6 +11,7 @@ import {
 import {
   loadOptionalSetting,
   loadSetting,
+  resolveInputTokenUsage,
   withoutTrailingSlash,
   type FetchFunction,
   type Resolvable,
@@ -112,10 +113,16 @@ function convertGoogleVertexXaiUsage(
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: promptTokens,
+      cachedTokens: cacheReadTokens,
+    });
+
   return {
     inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cacheReadTokens,
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },

@@ -1,5 +1,8 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import {
+  createNullLanguageModelUsage,
+  resolveInputTokenUsage,
+} from '@ai-sdk/provider-utils';
 
 export type HuggingFaceResponsesUsage = {
   input_tokens: number;
@@ -25,10 +28,16 @@ export function convertHuggingFaceResponsesUsage(
   const cachedTokens = usage.input_tokens_details?.cached_tokens ?? 0;
   const reasoningTokens = usage.output_tokens_details?.reasoning_tokens ?? 0;
 
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: inputTokens,
+      cachedTokens: cachedTokens,
+    });
+
   return {
     inputTokens: {
-      total: inputTokens,
-      noCache: inputTokens - cachedTokens,
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cachedTokens,
       cacheWrite: undefined,
     },

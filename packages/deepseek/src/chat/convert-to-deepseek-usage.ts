@@ -1,5 +1,8 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import {
+  createNullLanguageModelUsage,
+  resolveInputTokenUsage,
+} from '@ai-sdk/provider-utils';
 
 export function convertDeepSeekUsage(
   usage:
@@ -27,10 +30,16 @@ export function convertDeepSeekUsage(
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: promptTokens,
+      cachedTokens: cacheReadTokens,
+    });
+
   return {
     inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cacheReadTokens,
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },

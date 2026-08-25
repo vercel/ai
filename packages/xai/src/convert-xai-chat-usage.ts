@@ -1,4 +1,5 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { resolveInputTokenUsage } from '@ai-sdk/provider-utils';
 import type { XaiChatUsage } from './xai-chat-language-model';
 
 export function convertXaiChatUsage(usage: XaiChatUsage): LanguageModelV4Usage {
@@ -6,16 +7,16 @@ export function convertXaiChatUsage(usage: XaiChatUsage): LanguageModelV4Usage {
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 
-  const promptTokensIncludesCached = cacheReadTokens <= usage.prompt_tokens;
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: usage.prompt_tokens,
+      cachedTokens: cacheReadTokens,
+    });
 
   return {
     inputTokens: {
-      total: promptTokensIncludesCached
-        ? usage.prompt_tokens
-        : usage.prompt_tokens + cacheReadTokens,
-      noCache: promptTokensIncludesCached
-        ? usage.prompt_tokens - cacheReadTokens
-        : usage.prompt_tokens,
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },

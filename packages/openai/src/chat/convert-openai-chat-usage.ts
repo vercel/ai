@@ -1,5 +1,8 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import {
+  createNullLanguageModelUsage,
+  resolveInputTokenUsage,
+} from '@ai-sdk/provider-utils';
 
 export type OpenAIChatUsage = {
   prompt_tokens?: number | null;
@@ -31,10 +34,16 @@ export function convertOpenAIChatUsage(
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: promptTokens,
+      cachedTokens: cachedTokens + (cacheWriteTokens ?? 0),
+    });
+
   return {
     inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cachedTokens - (cacheWriteTokens ?? 0),
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cachedTokens,
       cacheWrite: cacheWriteTokens,
     },
