@@ -92,6 +92,9 @@ unchanged.
 
 Native structured outputs are enabled for Moonshot models whose model ID starts with `kimi-`.
 
+The provider normalizes schemas to Moonshot's supported JSON Schema subset and
+enables strict schema validation by default.
+
 For other Moonshot models, object generation falls back to JSON mode instead of schema-constrained decoding.
 
 For best reliability, it is strongly recommended to include your schema requirements in your prompt in addition to passing the schema through `Output`.
@@ -200,6 +203,11 @@ You can also pass a URL. Since Moonshot AI does not fetch external URLs, the AI 
 ### Provider Options
 
 The following optional provider options are available for Moonshot AI language models:
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation for structured outputs. Defaults
+  to `true`.
 
 - **reasoningEffort** _'low' | 'high' | 'max'_
 
