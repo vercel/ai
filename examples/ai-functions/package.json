@@ -1,0 +1,13 @@
+{
+  "name": "@example/ai-functions",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ai-sdk/openai": "workspace:*",
+    "ai": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "4.19.2"
+  }
+}
