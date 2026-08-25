@@ -39,7 +39,7 @@ import {
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
 import {
-  getModelThinkingKeepSupport,
+  getMoonshotAIModelCapabilities,
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
 } from './moonshotai-chat-options';
@@ -141,40 +141,79 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       toolWarnings,
     } = prepareTools({ tools, toolChoice });
 
-    // Thinking is configured through explicit provider options only.
-    const thinking = moonshotOptions.thinking;
+    const modelCapabilities = getMoonshotAIModelCapabilities(this.modelId);
 
-    // Moonshot has no reasoning_history field; the API silently ignores it
-    // (verified against the live API). Preserved Thinking maps to
-    // thinking.keep, which only accepts 'all' and only on some models
-    // (verified: k2.6, k2.7-code, k3 accept it; k2.5 rejects it). Other
-    // reasoningHistory values use the server default.
-    let keep: 'all' | undefined;
-    if (moonshotOptions.reasoningHistory === 'preserved') {
-      if (getModelThinkingKeepSupport(this.modelId)) {
-        keep = 'all';
-      } else {
+    // Moonshot's thinking request shape differs by model. Normalize deprecated
+    // and cross-model options before serializing so only schema-valid fields
+    // reach the API.
+    let thinkingType: 'enabled' | 'disabled' | undefined;
+    const requestedThinking = moonshotOptions.thinking;
+
+    if (requestedThinking?.budgetTokens != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'thinking.budgetTokens',
+        details: 'Moonshot does not support a thinking token budget.',
+      });
+    }
+
+    if (requestedThinking != null) {
+      if (modelCapabilities.thinkingTypes.length === 0) {
         allWarnings.push({
           type: 'unsupported',
-          feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
+          feature: 'thinking',
+          details: `thinking is not supported by model "${this.modelId}".`,
+        });
+      } else if (
+        requestedThinking.type != null &&
+        modelCapabilities.thinkingTypes.includes(requestedThinking.type)
+      ) {
+        thinkingType = requestedThinking.type;
+      } else if (requestedThinking.type != null) {
+        allWarnings.push({
+          type: 'unsupported',
+          feature: 'thinking.type',
+          details: `thinking.type "${requestedThinking.type}" is not supported by model "${this.modelId}".`,
         });
       }
     }
 
-    // Map the generic reasoning call option to Moonshot's reasoning_effort
-    // (explicit provider options win). 'none' cannot disable Moonshot
-    // thinking from here; use thinking: { type: 'disabled' } instead.
-    if (reasoning === 'none') {
-      allWarnings.push({
-        type: 'unsupported',
-        feature:
-          'reasoning "none" (use providerOptions.moonshotai.thinking to control thinking)',
-      });
+    let keep: 'all' | undefined;
+    if (moonshotOptions.reasoningHistory === 'preserved') {
+      if (!modelCapabilities.preservedThinking) {
+        allWarnings.push({
+          type: 'unsupported',
+          feature: 'reasoningHistory',
+          details: `reasoningHistory "preserved" is not supported by model "${this.modelId}".`,
+        });
+      } else if (thinkingType === 'disabled') {
+        allWarnings.push({
+          type: 'unsupported',
+          feature: 'reasoningHistory',
+          details:
+            'reasoningHistory "preserved" cannot be used when thinking is disabled.',
+        });
+      } else {
+        thinkingType = 'enabled';
+        keep = 'all';
+      }
     }
-    const reasoningEffort =
-      moonshotOptions.reasoningEffort ??
-      (isCustomReasoning(reasoning) && reasoning !== 'none'
-        ? mapReasoningToProviderEffort({
+
+    // reasoning_effort is a Kimi K3-only field. Explicit provider options take
+    // precedence over the generic reasoning option.
+    let reasoningEffort: 'low' | 'high' | 'max' | undefined;
+    if (modelCapabilities.reasoningEffort) {
+      if (moonshotOptions.reasoningEffort != null) {
+        reasoningEffort = moonshotOptions.reasoningEffort;
+      } else if (isCustomReasoning(reasoning)) {
+        if (reasoning === 'none') {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: 'reasoning',
+            details: `reasoning "none" is not supported by model "${this.modelId}".`,
+          });
+        } else {
+          reasoningEffort = mapReasoningToProviderEffort({
             reasoning,
             effortMap: {
               minimal: 'low',
@@ -184,8 +223,22 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               xhigh: 'max',
             },
             warnings: allWarnings,
-          })
-        : undefined);
+          });
+        }
+      }
+    } else if (moonshotOptions.reasoningEffort != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffort',
+        details: `reasoningEffort is not supported by model "${this.modelId}".`,
+      });
+    } else if (isCustomReasoning(reasoning)) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: `reasoning is not supported by model "${this.modelId}".`,
+      });
+    }
 
     let response_format: Record<string, unknown> | undefined;
     if (responseFormat?.type === 'json') {
@@ -228,13 +281,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         messages,
         tools: moonshotTools,
         tool_choice: moonshotToolChoice,
-        ...(thinking != null || keep != null
+        ...(thinkingType != null
           ? {
               thinking: {
-                ...(thinking?.type != null && { type: thinking.type }),
-                ...(thinking?.budgetTokens !== undefined && {
-                  budget_tokens: thinking.budgetTokens,
-                }),
+                type: thinkingType,
                 ...(keep != null && { keep }),
               },
             }

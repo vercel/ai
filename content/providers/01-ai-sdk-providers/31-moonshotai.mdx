@@ -88,8 +88,8 @@ For best reliability, it is strongly recommended to include your schema requirem
 
 ### Reasoning Models
 
-Kimi K3 always reasons. It currently supports only the `max` reasoning effort,
-which you can configure through provider options:
+Kimi K3 always reasons. You can configure its reasoning effort with `low`,
+`high`, or `max` through provider options:
 
 ```ts
 import {
@@ -102,7 +102,7 @@ const { text, reasoningText } = await generateText({
   model: moonshotai('kimi-k3'),
   providerOptions: {
     moonshotai: {
-      reasoningEffort: 'max',
+      reasoningEffort: 'high',
     } satisfies MoonshotAILanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
@@ -112,7 +112,19 @@ console.log(reasoningText);
 console.log(text);
 ```
 
-Moonshot AI offers thinking models like `kimi-k2-thinking` that generate intermediate reasoning tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
+Moonshot AI's K2 models generate intermediate reasoning tokens before their
+final response. Thinking controls differ by model:
+
+- `kimi-k2.7-code` and `kimi-k2.7-code-highspeed` always think and only accept
+  `thinking.type: 'enabled'`. Preserved Thinking is always enabled.
+- `kimi-k2.6` accepts `thinking.type: 'enabled' | 'disabled'` and supports
+  Preserved Thinking through `reasoningHistory: 'preserved'`.
+- `kimi-k2.5` accepts `thinking.type: 'enabled' | 'disabled'` but does not
+  support Preserved Thinking.
+
+Kimi K3 does not accept the `thinking` option, and `reasoningEffort` is not
+supported by K2 models. The reasoning output is streamed through the standard
+AI SDK reasoning parts.
 
 ```ts
 import {
@@ -122,11 +134,11 @@ import {
 import { generateText } from 'ai';
 
 const { text, reasoningText } = await generateText({
-  model: moonshotai('kimi-k2-thinking'),
+  model: moonshotai('kimi-k2.6'),
   providerOptions: {
     moonshotai: {
-      thinking: { type: 'enabled', budgetTokens: 2048 },
-      reasoningHistory: 'interleaved',
+      thinking: { type: 'enabled' },
+      reasoningHistory: 'preserved',
     } satisfies MoonshotAILanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
@@ -188,28 +200,29 @@ You can also pass a URL. Since Moonshot AI does not fetch external URLs, the AI 
 
 The following optional provider options are available for Moonshot AI language models:
 
-- **reasoningEffort** _'max'_
+- **reasoningEffort** _'low' | 'high' | 'max'_
 
-  Reasoning effort for Kimi K3. Currently, only `'max'` is supported.
+  Reasoning effort for Kimi K3. This option is omitted with a warning for
+  other models.
 
 - **thinking** _object_
 
-  Configuration for thinking/reasoning models like Kimi K2 Thinking.
+  Configuration for Kimi K2.5, Kimi K2.6, and Kimi K2.7.
   - **type** _'enabled' | 'disabled'_
 
-    Whether to enable thinking mode
+    Whether to enable thinking mode. Kimi K2.7 only supports `'enabled'`.
+    Kimi K3 and Moonshot V1 do not support the `thinking` option.
 
   - **budgetTokens** _number_
 
-    Maximum number of tokens for thinking (minimum 1024)
+    Deprecated compatibility option. Moonshot does not support a thinking
+    token budget, so this value is omitted with a warning.
 
 - **reasoningHistory** _'disabled' | 'interleaved' | 'preserved'_
 
-  Controls how reasoning history is handled in multi-turn conversations:
-  - `'disabled'`: Remove reasoning from history
-  - `'interleaved'`: Include reasoning between tool calls within a single turn
-  - `'preserved'`: Keep all reasoning in history. Mapped to Moonshot's
-    `thinking.keep: 'all'` request field.
+  `'preserved'` maps to Moonshot's `thinking.keep: 'all'` request field for
+  Kimi K2.6 and Kimi K2.7. Other values use the model default. Models without
+  configurable Preserved Thinking omit `'preserved'` with a warning.
 
 ## Model Capabilities
 

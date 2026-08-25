@@ -40,24 +40,36 @@ const { text } = await generateText({
 });
 ```
 
-## Thinking Mode Example (Kimi K2 Thinking)
+## Thinking Mode Example (Kimi K2.6)
 
 ```ts
 import { moonshotai } from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: moonshotai('kimi-k2-thinking'),
+  model: moonshotai('kimi-k2.6'),
   prompt: 'Solve this problem step by step: What is 15% of 240?',
-  moonshotai: {
-    thinking: {
-      type: 'enabled',
-      budgetTokens: 2048,
+  providerOptions: {
+    moonshotai: {
+      thinking: {
+        type: 'enabled',
+      },
+      reasoningHistory: 'preserved',
     },
-    reasoningHistory: 'interleaved',
   },
 });
 ```
+
+Thinking options are model-specific:
+
+- `kimi-k2.7-code` supports only `thinking.type: 'enabled'` and always
+  preserves thinking.
+- `kimi-k2.6` supports `thinking.type: 'enabled' | 'disabled'` and
+  `reasoningHistory: 'preserved'`.
+- `kimi-k2.5` supports `thinking.type: 'enabled' | 'disabled'` without
+  preserved thinking.
+- `kimi-k3` uses `reasoningEffort: 'low' | 'high' | 'max'` instead of the
+  `thinking` option.
 
 ## Documentation
 
