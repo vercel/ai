@@ -4,6 +4,7 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -817,9 +818,12 @@ describe('embedding', () => {
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
   it('should expose the aggregate token limit', () => {
-    expect(provider.embedding('my-embedding').maxInputBytesPerCall).toBe(
-      300_000,
-    );
+    expect(
+      Reflect.get(
+        provider.embedding('my-embedding'),
+        EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+      ),
+    ).toBe(300_000);
   });
 
   describe('doEmbed', () => {

@@ -38,18 +38,6 @@ export type EmbeddingModelV4 = {
     | undefined;
 
   /**
-   * UTF-8 byte budget that `embedMany` uses when splitting values into calls.
-   *
-   * Providers can use a conservative byte budget derived from an aggregate
-   * token limit without requiring a provider-specific tokenizer in core.
-   * Individual values larger than this budget are sent in their own call.
-   */
-  readonly maxInputBytesPerCall?:
-    | PromiseLike<number | undefined>
-    | number
-    | undefined;
-
-  /**
    * True if the model can handle multiple embedding calls in parallel.
    */
   readonly supportsParallelCalls: PromiseLike<boolean> | boolean;
