@@ -339,6 +339,105 @@ describe('DeepSeekChatLanguageModel', () => {
       });
     });
 
+    describe('logprobs', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('deepseek-logprobs');
+      });
+
+      it('should send logprobs provider options', async () => {
+        await provider.chat('deepseek-v4-flash').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: true,
+              topLogprobs: 1,
+            } satisfies DeepSeekLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "logprobs": true,
+            "messages": [
+              {
+                "content": "Hello",
+                "role": "user",
+              },
+            ],
+            "model": "deepseek-v4-flash",
+            "top_logprobs": 1,
+          }
+        `);
+      });
+
+      it('should enable logprobs when topLogprobs is set', async () => {
+        await provider.chat('deepseek-v4-flash').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              topLogprobs: 1,
+            } satisfies DeepSeekLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          logprobs: true,
+          top_logprobs: 1,
+        });
+      });
+
+      it('should extract content and reasoning logprobs', async () => {
+        const result = await provider.chat('deepseek-v4-flash').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: true,
+            } satisfies DeepSeekLanguageModelOptions,
+          },
+        });
+
+        expect(result.providerMetadata?.deepseek.logprobs)
+          .toMatchInlineSnapshot(`
+            {
+              "content": [
+                {
+                  "bytes": [
+                    79,
+                    75,
+                  ],
+                  "logprob": -0.00002467602,
+                  "token": "OK",
+                  "top_logprobs": [
+                    {
+                      "bytes": [
+                        79,
+                        75,
+                      ],
+                      "logprob": -0.00002467602,
+                      "token": "OK",
+                    },
+                  ],
+                },
+              ],
+              "reasoning_content": [
+                {
+                  "bytes": null,
+                  "logprob": -0.1,
+                  "token": "Reasoning",
+                  "top_logprobs": [
+                    {
+                      "bytes": null,
+                      "logprob": -0.1,
+                      "token": "Reasoning",
+                    },
+                  ],
+                },
+              ],
+            }
+          `);
+      });
+    });
+
     describe('reasoning_effort', () => {
       beforeEach(() => {
         prepareJsonFixtureResponse('deepseek-text');
@@ -1185,6 +1284,79 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('logprobs', () => {
+      beforeEach(() => {
+        prepareChunksFixtureResponse('deepseek-logprobs');
+      });
+
+      it('should send logprobs provider options and collect streamed logprobs', async () => {
+        const result = await provider.chat('deepseek-v4-flash').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            deepseek: {
+              logprobs: true,
+              topLogprobs: 1,
+            } satisfies DeepSeekLanguageModelOptions,
+          },
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          logprobs: true,
+          top_logprobs: 1,
+        });
+        expect(parts.find(part => part.type === 'finish')?.providerMetadata)
+          .toMatchInlineSnapshot(`
+            {
+              "deepseek": {
+                "choiceIndex": 0,
+                "logprobs": {
+                  "content": [
+                    {
+                      "bytes": [
+                        79,
+                        75,
+                      ],
+                      "logprob": -0.00002467602,
+                      "token": "OK",
+                      "top_logprobs": [
+                        {
+                          "bytes": [
+                            79,
+                            75,
+                          ],
+                          "logprob": -0.00002467602,
+                          "token": "OK",
+                        },
+                      ],
+                    },
+                  ],
+                  "reasoning_content": [
+                    {
+                      "bytes": null,
+                      "logprob": -0.1,
+                      "token": "Reasoning",
+                      "top_logprobs": [
+                        {
+                          "bytes": null,
+                          "logprob": -0.1,
+                          "token": "Reasoning",
+                        },
+                      ],
+                    },
+                  ],
+                },
+                "messageRole": "assistant",
+                "promptCacheHitTokens": 0,
+                "promptCacheMissTokens": 9,
+                "responseObject": "chat.completion.chunk",
+              },
+            }
+          `);
       });
     });
 
