@@ -93,6 +93,13 @@ DeepSeek language models can be used in the `streamText` function
 
 The following optional provider options are available for DeepSeek models:
 
+- `userId` _string_
+
+  Optional. An opaque end-user identifier that DeepSeek uses for content-safety
+  tracing, KV-cache isolation, and scheduling isolation. The value must match
+  `^[a-zA-Z0-9_-]+$` and contain at most 512 characters. Do not include names,
+  email addresses, or other private user information.
+
 - `thinking` _object_
 
   Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
@@ -107,8 +114,16 @@ The following optional provider options are available for DeepSeek models:
   `low`, `medium`, `high`, and `xhigh` pass through to DeepSeek's native
   effort values. Ignored when thinking is explicitly disabled.
 
+<<<<<<< HEAD
 ```ts highlight="7-12"
 import { deepseek, type DeepSeekLanguageModelOptions } from '@ai-sdk/deepseek';
+=======
+```ts highlight="7-15"
+import {
+  deepSeek,
+  type DeepSeekLanguageModelChatOptions,
+} from '@ai-sdk/deepseek';
+>>>>>>> 068be494a5 (feat: add validated DeepSeek user ID chat option (#19397))
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
@@ -116,6 +131,7 @@ const { text, reasoning } = await generateText({
   prompt: 'How many "r"s are in the word "strawberry"?',
   providerOptions: {
     deepseek: {
+      userId: 'tenant_123-user',
       thinking: { type: 'enabled' },
       reasoningEffort: 'high',
     } satisfies DeepSeekLanguageModelOptions,
