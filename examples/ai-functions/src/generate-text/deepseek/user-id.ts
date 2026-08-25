@@ -6,16 +6,13 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = await generateText({
     model: deepseek('deepseek-v4-flash'),
-    prompt: 'How many "r"s are in the word "strawberry"?',
+    prompt: 'Name one practical benefit of request isolation.',
     providerOptions: {
       deepseek: {
-        thinking: { type: 'enabled' },
-        reasoningEffort: 'high',
+        userId: 'example-user_123',
       } satisfies DeepSeekLanguageModelOptions,
     },
   });
 
-  print('Reasoning:', result.reasoningText?.slice(0, 200));
   print('Response:', result.text);
-  print('Request:', result.request.body);
 });

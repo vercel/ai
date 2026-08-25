@@ -8,6 +8,7 @@ import {
   type LanguageModelV3GenerateResult,
   type LanguageModelV3StreamPart,
   type LanguageModelV3StreamResult,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -28,6 +29,7 @@ import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
   deepSeekErrorSchema,
+  type DeepSeekChatLogprob,
   type DeepSeekChatTokenUsage,
 } from './deepseek-chat-api-types';
 import {
@@ -43,9 +45,37 @@ export type DeepSeekChatConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  supportsAssistantPrefixCompletion?: boolean;
+  supportsPenaltySampling?: boolean;
+  supportsStrictToolCalls?: boolean;
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
+
+function mapDeepSeekProviderReasoningEffort({
+  reasoningEffort,
+  warnings,
+}: {
+  reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  warnings: SharedV3Warning[];
+}): 'low' | 'high' | 'max' {
+  const mapped =
+    reasoningEffort === 'medium'
+      ? 'high'
+      : reasoningEffort === 'xhigh'
+        ? 'max'
+        : reasoningEffort;
+
+  if (mapped !== reasoningEffort) {
+    warnings.push({
+      type: 'compatibility',
+      feature: 'reasoningEffort',
+      details: `reasoningEffort "${reasoningEffort}" is not a canonical DeepSeek value. mapped to "${mapped}".`,
+    });
+  }
+
+  return mapped;
+}
 
 export class DeepSeekChatLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -102,20 +132,42 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
 
     const supportsStructuredOutputs =
       this.config.supportsStructuredOutputs === true;
+    const supportsPenaltySampling =
+      this.config.supportsPenaltySampling === true;
 
-    const { messages, warnings } = convertToDeepSeekChatMessages({
+    const { messages, warnings } = await convertToDeepSeekChatMessages({
       prompt,
       responseFormat,
       modelId: this.modelId,
+      providerOptionsName: this.providerOptionsName,
+      supportsAssistantPrefixCompletion:
+        this.config.supportsAssistantPrefixCompletion,
       supportsStructuredOutputs,
     });
+    const allWarnings = [...warnings];
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
+      allWarnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported', feature: 'seed' });
+      allWarnings.push({ type: 'unsupported', feature: 'seed' });
+    }
+
+    if (!supportsPenaltySampling && frequencyPenalty != null) {
+      allWarnings.push({
+        type: 'other',
+        message:
+          'frequencyPenalty is deprecated by DeepSeek and has been omitted. Remove frequencyPenalty from the request.',
+      });
+    }
+
+    if (!supportsPenaltySampling && presencePenalty != null) {
+      allWarnings.push({
+        type: 'other',
+        message:
+          'presencePenalty is deprecated by DeepSeek and has been omitted. Remove presencePenalty from the request.',
+      });
     }
 
     const {
@@ -125,23 +177,75 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     } = prepareTools({
       tools,
       toolChoice,
+      supportsStrictToolCalls: this.config.supportsStrictToolCalls,
     });
+    allWarnings.push(...toolWarnings);
+
+    const thinkingType = deepseekOptions.thinking?.type;
+    if (thinkingType === 'adaptive') {
+      allWarnings.push({
+        type: 'compatibility',
+        feature: 'thinking.type',
+        details:
+          'thinking.type "adaptive" is not a canonical DeepSeek value. mapped to "enabled".',
+      });
+    }
 
     const thinking =
       this.config.supportsThinking === false
         ? undefined
-        : deepseekOptions.thinking?.type != null
-          ? { type: deepseekOptions.thinking.type }
+        : thinkingType != null
+          ? { type: thinkingType === 'adaptive' ? 'enabled' : thinkingType }
           : undefined;
+
+    const isThinkingEnabled =
+      this.config.supportsThinking !== false &&
+      thinking?.type !== 'disabled' &&
+      (thinking != null ||
+        this.modelId === 'deepseek-reasoner' ||
+        this.modelId.includes('deepseek-v4'));
+
+    if (isThinkingEnabled && temperature != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'temperature',
+        details:
+          "temperature has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use temperature.",
+      });
+    }
+
+    if (isThinkingEnabled && topP != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'topP',
+        details:
+          "topP has no effect when DeepSeek thinking is enabled. Set providerOptions.deepseek.thinking.type to 'disabled' to use topP.",
+      });
+    }
+
+    const reasoningEffort =
+      deepseekOptions.reasoningEffort != null
+        ? mapDeepSeekProviderReasoningEffort({
+            reasoningEffort: deepseekOptions.reasoningEffort,
+            warnings: allWarnings,
+          })
+        : undefined;
 
     return {
       args: {
         model: this.modelId,
+        ...((deepseekOptions.logprobs === true ||
+          deepseekOptions.topLogprobs != null) && { logprobs: true }),
+        ...(deepseekOptions.topLogprobs != null && {
+          top_logprobs: deepseekOptions.topLogprobs,
+        }),
         max_tokens: maxOutputTokens,
-        temperature,
-        top_p: topP,
-        frequency_penalty: frequencyPenalty,
-        presence_penalty: presencePenalty,
+        temperature: isThinkingEnabled ? undefined : temperature,
+        top_p: isThinkingEnabled ? undefined : topP,
+        frequency_penalty: supportsPenaltySampling
+          ? frequencyPenalty
+          : undefined,
+        presence_penalty: supportsPenaltySampling ? presencePenalty : undefined,
         response_format:
           responseFormat?.type === 'json'
             ? supportsStructuredOutputs && responseFormat.schema != null
@@ -161,12 +265,15 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
         thinking,
+        ...(deepseekOptions.userId != null && {
+          user_id: deepseekOptions.userId,
+        }),
         ...(thinking?.type !== 'disabled' &&
-          deepseekOptions.reasoningEffort != null && {
-            reasoning_effort: deepseekOptions.reasoningEffort,
+          reasoningEffort != null && {
+            reasoning_effort: reasoningEffort,
           }),
       },
-      warnings: [...warnings, ...toolWarnings],
+      warnings: allWarnings,
     };
   }
 
@@ -235,6 +342,22 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         [this.providerOptionsName]: {
           promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
           promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
+          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
+          ...(responseBody.system_fingerprint != null && {
+            systemFingerprint: responseBody.system_fingerprint,
+          }),
         },
       },
       request: { body: args },
@@ -288,10 +411,17 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       raw: undefined,
     };
     let usage: DeepSeekChatTokenUsage | undefined = undefined;
+    let systemFingerprint: string | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let responseObject: 'chat.completion.chunk' | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
+    const contentLogprobs: DeepSeekChatLogprob[] = [];
+    const reasoningLogprobs: DeepSeekChatLogprob[] = [];
 
     return {
       stream: response.pipeThrough(
@@ -337,7 +467,21 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
               usage = value.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
+            // The fingerprint is repeated on stream chunks; keep the latest
+            // non-null value in case it changes during the response.
+            if (value.system_fingerprint != null) {
+              systemFingerprint = value.system_fingerprint;
+            }
+
             const choice = value.choices[0];
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
+            }
 
             if (choice?.finish_reason != null) {
               finishReason = {
@@ -346,11 +490,23 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
               };
             }
 
+            if (choice?.logprobs?.content != null) {
+              contentLogprobs.push(...choice.logprobs.content);
+            }
+
+            if (choice?.logprobs?.reasoning_content != null) {
+              reasoningLogprobs.push(...choice.logprobs.reasoning_content);
+            }
+
             if (choice?.delta == null) {
               return;
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -403,6 +559,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(toolCallDelta.index, toolCallDelta.type);
+                }
+
                 const index = toolCallDelta.index;
 
                 if (toolCalls[index] == null) {
@@ -513,6 +673,26 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
                     usage?.prompt_cache_hit_tokens ?? undefined,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? undefined,
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
+                  ...((contentLogprobs.length > 0 ||
+                    reasoningLogprobs.length > 0) && {
+                    logprobs: {
+                      ...(contentLogprobs.length > 0 && {
+                        content: contentLogprobs,
+                      }),
+                      ...(reasoningLogprobs.length > 0 && {
+                        reasoning_content: reasoningLogprobs,
+                      }),
+                    },
+                  }),
+                  ...(systemFingerprint != null && { systemFingerprint }),
                 },
               },
             });
