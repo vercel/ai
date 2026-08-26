@@ -1,3 +1,4 @@
+import type { LanguageModelV4FunctionTool } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 export type MoonshotAIChatModelId =
@@ -151,3 +152,28 @@ export const moonshotaiAssistantMessageProviderOptions =
 export type MoonshotAIAssistantMessageProviderOptions = z.infer<
   typeof moonshotaiAssistantMessageProviderOptions
 >;
+
+const moonshotaiDynamicToolSchema = z.object({
+  type: z.literal('function'),
+  name: z.string(),
+  description: z.string().optional(),
+  inputSchema: z.record(z.string(), z.unknown()),
+  strict: z.boolean().optional(),
+});
+
+export const moonshotaiAllMessageProviderOptions =
+  moonshotaiAssistantMessageProviderOptions.extend({
+    /** Function tools to load at this point in a Kimi K3 conversation. */
+    tools: z.array(moonshotaiDynamicToolSchema).optional(),
+  });
+
+export type MoonshotAISystemMessageProviderOptions =
+  MoonshotAIMessageProviderOptions & {
+    /** Function tools to load at this point in a Kimi K3 conversation. */
+    tools?: Array<
+      Pick<
+        LanguageModelV4FunctionTool,
+        'type' | 'name' | 'description' | 'inputSchema' | 'strict'
+      >
+    >;
+  };
