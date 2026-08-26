@@ -132,7 +132,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
-                    reason: z.never().optional(),
+                    reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
                   }),
@@ -258,7 +258,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
-                    reason: z.never().optional(),
+                    reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
                   }),

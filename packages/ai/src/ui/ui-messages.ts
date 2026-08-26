@@ -319,7 +319,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved?: never;
-        reason?: never;
+        reason?: string;
         isAutomatic?: boolean;
         signature?: string;
       };
@@ -437,7 +437,7 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved?: never;
-        reason?: never;
+        reason?: string;
         isAutomatic?: boolean;
         signature?: string;
       };

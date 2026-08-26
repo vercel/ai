@@ -31,7 +31,7 @@ export type ToolApprovalStatus =
   | { type: 'not-applicable'; reason?: never }
   | { type: 'approved'; reason?: string }
   | { type: 'denied'; reason?: string }
-  | { type: 'user-approval'; reason?: never };
+  | { type: 'user-approval'; reason?: string };
 
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
