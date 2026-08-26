@@ -29,6 +29,7 @@ import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { prependOpenCodeBinToPath } from './opencode-path';
 import { configureOpenCodeServerAuth } from './opencode-server-auth';
+import { OpenCodeSubagentUsageTracker } from './opencode-subagent-usage';
 import {
   addUsage,
   defaultUsage,
@@ -878,6 +879,7 @@ async function consumeEvents({
   const stream = await subscribeLegacyEvents({ client, signal });
   onSubscribed?.();
   if (!stream) return;
+  const subagentUsage = new OpenCodeSubagentUsageTracker(sessionId, emit);
   const emitStreamEvent = createEmitStreamEvent({
     state,
     emit,
@@ -896,7 +898,13 @@ async function consumeEvents({
     if (signal.aborted || turn.abortSignal.aborted) break;
     const event = unwrapOpenCodeEvent(rawEvent);
     const eventSessionId = event ? getOpenCodeEventSessionId(event) : undefined;
-    if (!event || (eventSessionId && eventSessionId !== sessionId)) continue;
+    if (
+      !event ||
+      subagentUsage.handle(event) ||
+      (eventSessionId && eventSessionId !== sessionId)
+    ) {
+      continue;
+    }
     if (event.type === 'permission.v2.asked') {
       await handlePermissionV2({
         client,
