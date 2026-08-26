@@ -488,7 +488,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({ type: 'error', error: value.error.message });
+              controller.enqueue({ type: 'error', error: value.error });
               return;
             }
 
