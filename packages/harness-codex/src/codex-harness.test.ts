@@ -372,6 +372,10 @@ describe('createCodex adapter', () => {
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
     const addRequestTransformations = vi.fn(async () => {});
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
@@ -388,6 +392,10 @@ describe('createCodex adapter', () => {
           baseUrl: 'https://openai.example/v1',
         },
       },
+      credentialForwarding: async options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.environmentVariableName}`;
+      },
     });
 
     const session = await harness.doStart({
@@ -401,13 +409,65 @@ describe('createCodex adapter', () => {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer ephemeral-CODEX_API_KEY' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
         },
       },
     ]);
-    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
+        environmentVariableName: 'CODEX_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('ephemeral-CODEX_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+
+    await session.doDestroy();
+  });
+
+  it('customizes real credentials when request transformations are unavailable', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs,
+      writes: [],
+    });
+    Object.assign(sandboxSession, { addRequestTransformations: undefined });
+    const harness = createCodex({
+      auth: { openai: { apiKey: 'openai-secret' } },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return 'caller-managed-credential';
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'openai-secret',
+        environmentVariableName: 'CODEX_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('caller-managed-credential');
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
 
     await session.doDestroy();
@@ -434,18 +494,27 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
 
+    const sandboxCredential = spawnEnvs.at(0)?.CODEX_API_KEY;
+    expect(sandboxCredential).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
         match: {
           host: 'api.openai.com',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${sandboxCredential}` },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
         },
       },
     ]);
-    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe(sandboxCredential);
     expect(spawnEnvs.at(0)?.OPENAI_BASE_URL).toBe('https://api.openai.com/v1');
 
     await session.doDestroy();

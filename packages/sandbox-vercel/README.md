@@ -14,6 +14,10 @@ npm i @ai-sdk/sandbox-vercel
 
 The factory is synchronous. The returned provider is stable; the actual `@vercel/sandbox` `Sandbox` is created on demand inside `provider.createSession()`.
 
+When neither `runtime` nor `image` is provided, the adapter uses the legacy
+`node24` runtime on both Vercel Sandbox v2 and v3. Pass `image` explicitly to
+opt into a v3 managed image such as `vercel/sandbox/universal`.
+
 ```ts
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
@@ -90,5 +94,8 @@ await networkSandboxSession.setNetworkPolicy?.({
 
 Vercel Sandbox supports outbound request transformations for use cases such as
 credential brokering. `setRequestTransformations()` replaces the managed rules,
-while `addRequestTransformations()` adds rules without replacing them. Network
-access policies remain authoritative over which hosts can be reached.
+while `addRequestTransformations()` adds rules without replacing unrelated
+rules. Re-adding a managed rule with the same request matcher and transformed
+header names refreshes that rule in place, which keeps resumed credential
+brokering idempotent. Network access policies remain authoritative over which
+hosts can be reached.

@@ -349,7 +349,7 @@ describe('GatewayProvider', () => {
         teamIdOrSlug: 'vercel',
       });
 
-      const model = provider.imageModel('google/imagen-4.0-generate');
+      const model = provider.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created');
@@ -441,7 +441,7 @@ describe('GatewayProvider', () => {
         apiKey: 'test-api-key',
       });
 
-      const model = provider.imageModel('google/imagen-4.0-generate');
+      const model = provider.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created');
@@ -461,7 +461,7 @@ describe('GatewayProvider', () => {
         fetch: customFetch,
       });
 
-      const model = provider.imageModel('google/imagen-4.0-generate');
+      const model = provider.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created');
@@ -881,7 +881,7 @@ describe('GatewayProvider', () => {
 
     it('should expose imageModel on the default provider and construct model', () => {
       expect(typeof gateway.imageModel).toBe('function');
-      const model = gateway.imageModel('google/imagen-4.0-generate');
+      const model = gateway.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created by default provider');

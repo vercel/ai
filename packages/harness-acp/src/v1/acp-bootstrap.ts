@@ -5,8 +5,10 @@ import {
   createImplementationDescriptor,
   createImplementationInstallCommand,
   createImplementationManifest,
+  getImplementationInstallScript,
   getImplementationLockfile,
-  type ACPNpmImplementation,
+  getImplementationWorkspaceFile,
+  type ACPImplementation,
 } from './implementation';
 
 export function createACPBootstrap({
@@ -14,7 +16,7 @@ export function createACPBootstrap({
   implementation,
 }: {
   readonly harnessId: string;
-  readonly implementation: ACPNpmImplementation;
+  readonly implementation: ACPImplementation;
 }): {
   readonly bootstrapDir: string;
   readonly getBootstrap: () => Promise<HarnessV1Bootstrap>;
@@ -33,7 +35,16 @@ export function createACPBootstrap({
           readBridgeAsset({ name: 'index.mjs' }),
           readBridgeAsset({ name: 'host-tool-mcp.mjs' }),
         ]);
+      const implementationManifest = createImplementationManifest({
+        implementation,
+      });
       const implementationLock = getImplementationLockfile({
+        implementation,
+      });
+      const implementationWorkspace = getImplementationWorkspaceFile({
+        implementation,
+      });
+      const implementationInstallScript = getImplementationInstallScript({
         implementation,
       });
       cachedBootstrap = {
@@ -54,19 +65,39 @@ export function createACPBootstrap({
             content: hostToolMCP,
           },
           {
-            path: `${bootstrapDir}/implementation/package.json`,
-            content: createImplementationManifest({ implementation }),
-          },
-          {
             path: `${bootstrapDir}/implementation/implementation.json`,
             content: createImplementationDescriptor({ implementation }),
           },
+          ...(implementationManifest == null
+            ? []
+            : [
+                {
+                  path: `${bootstrapDir}/implementation/package.json`,
+                  content: implementationManifest,
+                },
+              ]),
           ...(implementationLock == null
             ? []
             : [
                 {
                   path: `${bootstrapDir}/implementation/pnpm-lock.yaml`,
                   content: implementationLock,
+                },
+              ]),
+          ...(implementationWorkspace == null
+            ? []
+            : [
+                {
+                  path: `${bootstrapDir}/implementation/pnpm-workspace.yaml`,
+                  content: implementationWorkspace,
+                },
+              ]),
+          ...(implementationInstallScript == null
+            ? []
+            : [
+                {
+                  path: `${bootstrapDir}/implementation/install.sh`,
+                  content: implementationInstallScript,
                 },
               ]),
         ],

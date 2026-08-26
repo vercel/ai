@@ -462,8 +462,8 @@ export class HarnessAgentSession {
   }
 
   /**
-   * Stop the runtime and discard resumability. A harness-owned sandbox is
-   * destroyed when supported; otherwise it is stopped.
+   * Stop the runtime and discard resumability. A harness-owned network
+   * sandbox is stopped and destroyed through its `destroy()` method.
    */
   async destroy(): Promise<void> {
     if (this.sessionState !== 'active') return;
@@ -474,10 +474,8 @@ export class HarnessAgentSession {
       await Promise.resolve(session.doDestroy()).catch(() => {});
     }
     if (!this.ownsSandboxLifecycle) return;
-    if ('stop' in sandboxSession) {
-      await Promise.resolve(
-        sandboxSession.destroy?.() ?? sandboxSession.stop(),
-      ).catch(() => {});
+    if ('destroy' in sandboxSession) {
+      await Promise.resolve(sandboxSession.destroy()).catch(() => {});
     }
   }
 

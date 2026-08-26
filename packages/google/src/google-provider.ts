@@ -1,5 +1,6 @@
 import type {
   EmbeddingModelV4,
+  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -21,7 +22,7 @@ import {
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
-import { GoogleLanguageModel } from './google-language-model';
+import { GoogleBatchLanguageModel } from './google-batch';
 import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
 
@@ -46,11 +47,11 @@ import { GoogleSpeechTranslationModel } from './speech-translation/google-speech
 import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
 
 export interface GoogleProvider extends ProviderV4 {
-  (modelId: GoogleModelId): LanguageModelV4;
+  (modelId: GoogleModelId): BatchLanguageModelV4;
 
-  languageModel(modelId: GoogleModelId): LanguageModelV4;
+  languageModel(modelId: GoogleModelId): BatchLanguageModelV4;
 
-  chat(modelId: GoogleModelId): LanguageModelV4;
+  chat(modelId: GoogleModelId): BatchLanguageModelV4;
 
   /**
    * Creates a model for image generation.
@@ -63,7 +64,7 @@ export interface GoogleProvider extends ProviderV4 {
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(modelId: GoogleModelId): LanguageModelV4;
+  generativeAI(modelId: GoogleModelId): BatchLanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
@@ -240,7 +241,7 @@ export function createGoogle(
     );
 
   const createChatModel = (modelId: GoogleModelId) =>
-    new GoogleLanguageModel(modelId, {
+    new GoogleBatchLanguageModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,

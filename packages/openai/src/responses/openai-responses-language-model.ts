@@ -33,7 +33,10 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
 import type {
   codeInterpreterInputSchema,
@@ -1473,6 +1476,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   })
                 : chunk.error;
 
+              encounteredStreamError = true;
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error });
               return;
@@ -2561,13 +2565,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 }
               }
             } else if (isResponseFinishedChunk(value)) {
-              finishReason = {
-                unified: mapOpenAIResponseFinishReason({
-                  finishReason: value.response.incomplete_details?.reason,
-                  hasFunctionCall,
-                }),
-                raw: value.response.incomplete_details?.reason ?? undefined,
-              };
+              if (!encounteredStreamError) {
+                finishReason = {
+                  unified: mapOpenAIResponseFinishReason({
+                    finishReason: value.response.incomplete_details?.reason,
+                    hasFunctionCall,
+                  }),
+                  raw: value.response.incomplete_details?.reason ?? undefined,
+                };
+              }
               usage = value.response.usage;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
@@ -2594,17 +2600,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
               if (!encounteredStreamError && value.response.error != null) {
                 encounteredStreamError = true;
+                const error = {
+                  type: 'response.failed',
+                  sequence_number: value.sequence_number,
+                  response: {
+                    error: value.response.error,
+                    incomplete_details: value.response.incomplete_details,
+                    service_tier: value.response.service_tier,
+                  },
+                };
                 controller.enqueue({
                   type: 'error',
-                  error: {
-                    type: 'response.failed',
-                    sequence_number: value.sequence_number,
-                    response: {
-                      error: value.response.error,
-                      incomplete_details: value.response.incomplete_details,
-                      service_tier: value.response.service_tier,
-                    },
-                  },
+                  error: createOpenAIProviderStreamError(error) ?? error,
                 });
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
@@ -2678,7 +2685,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             } else if (isErrorChunk(value)) {
               encounteredStreamError = true;
               finishReason = { unified: 'error', raw: 'error' };
-              controller.enqueue({ type: 'error', error: value });
+              controller.enqueue({
+                type: 'error',
+                error: createOpenAIProviderStreamError(value) ?? value,
+              });
             }
           },
 

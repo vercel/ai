@@ -40,10 +40,17 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly forwardEnv?: ACPV1Settings['forwardEnv'];
   readonly credentialEnv?: ACPV1Settings['credentialEnv'];
   readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: ACPV1Settings['credentialForwarding'];
   readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
   readonly modelId?: ACPV1Settings['modelId'];
+  readonly skillsDirectory?: ACPV1Settings['skillsDirectory'];
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
   readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
@@ -79,6 +86,7 @@ const acpResumeStateSchema = z.object({
         .optional(),
     })
     .optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
   acpSessionId: z.string().optional(),
   bridge: acpBridgeCoordsSchema.optional(),
   coldSession: acpColdSessionStateSchema.optional(),
@@ -97,6 +105,7 @@ const acpResumeStateSchema = z.object({
   initialGuidanceApplied: z.boolean().optional(),
   skillsMaterialized: z.boolean().optional(),
   skillsFingerprint: z.string().optional(),
+  skillsDirectory: z.string().optional(),
 });
 
 export function createACP<TBuiltinTools extends ToolSet = {}>(

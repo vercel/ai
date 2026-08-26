@@ -77,6 +77,13 @@ export type StartTextBatchOptions = {
   model: BatchLanguageModel;
   requests: ReadonlyArray<TextBatchRequest>;
   providerOptions?: ProviderOptions;
+
+  /**
+   * URL that the provider should notify when the batch reaches a terminal
+   * state. Providers that do not support completion webhooks return an
+   * unsupported warning.
+   */
+  webhookUrl?: string;
 } & BatchRequestOptions;
 
 /**

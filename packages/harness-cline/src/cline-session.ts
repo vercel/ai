@@ -268,16 +268,12 @@ export async function createClineSession(
     input.builtinToolFiltering,
   );
 
-  const ops = createClineRemoteOps({
-    sandbox: toolSafeSandboxSession,
-    workDir: input.sessionWorkDir,
-  });
-
   // Materialize harness-provided skills into sandbox HOME (not the workspace)
   // and advertise them via a system prompt section.
   let skillsSection: string | undefined;
+  let skillRootDir: string | undefined;
   if (input.skills.length > 0) {
-    const skillRootDir = await writeClineSkills({
+    skillRootDir = await writeClineSkills({
       sandbox: toolSafeSandboxSession,
       sandboxHomeDir,
       skills: input.skills,
@@ -287,6 +283,12 @@ export async function createClineSession(
       skillsSection = renderSkillsPromptSection(input.skills, skillRootDir);
     }
   }
+
+  const ops = createClineRemoteOps({
+    sandbox: toolSafeSandboxSession,
+    workDir: input.sessionWorkDir,
+    ...(skillRootDir ? { readableRoots: [{ sandboxDir: skillRootDir }] } : {}),
+  });
 
   const baseSystemPrompt = buildSystemPrompt({
     sessionWorkDir: input.sessionWorkDir,

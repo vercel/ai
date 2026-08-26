@@ -412,15 +412,27 @@ describe('createClaudeCode adapter', () => {
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
     });
 
-    expect(spawnEnvs.at(0)?.CLAUDE_AGENT_SDK_CLIENT_APP).toBe(
-      'ai-sdk/harness-claude-code/0.0.0-test',
-    );
+    await session.doPromptTurn({
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: {
+        CLAUDE_AGENT_SDK_CLIENT_APP: 'ai-sdk/harness-claude-code/0.0.0-test',
+      },
+    });
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     await session.doDestroy();
   });
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
     const addRequestTransformations = vi.fn(async () => {});
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
@@ -436,6 +448,10 @@ describe('createClaudeCode adapter', () => {
           baseUrl: 'https://anthropic.example/v1',
         },
       },
+      credentialForwarding: async options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.environmentVariableName}`;
+      },
     });
 
     const session = await harness.doStart({
@@ -444,17 +460,136 @@ describe('createClaudeCode adapter', () => {
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
     });
 
+    await session.doPromptTurn({
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
         match: {
           host: 'anthropic.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'ephemeral-ANTHROPIC_API_KEY' },
+            },
+          ],
         },
         transform: { headers: { 'x-api-key': 'anthropic-secret' } },
       },
     ]);
-    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe('ANTHROPIC_API_KEY');
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: { ANTHROPIC_API_KEY: 'ephemeral-ANTHROPIC_API_KEY' },
+    });
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
+  it('customizes real credentials when request transformations are unavailable', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const harness = createClaudeCode({
+      auth: { anthropic: { apiKey: 'anthropic-secret' } },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return 'caller-managed-credential';
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs,
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    await session.doPromptTurn({
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'anthropic-secret',
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: { ANTHROPIC_API_KEY: 'caller-managed-credential' },
+    });
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
+  it('customizes credentials forwarded through the Claude process environment', async () => {
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const harness = createClaudeCode({
+      auth: { anthropic: { apiKey: 'bridge-secret' } },
+      env: {
+        ANTHROPIC_API_KEY: 'turn-api-key',
+        ANTHROPIC_AUTH_TOKEN: 'turn-auth-token',
+        NON_SECRET: 'preserved',
+      },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.credential}`;
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    await session.doPromptTurn({
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'turn-api-key',
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+      {
+        credential: 'turn-auth-token',
+        environmentVariableName: 'ANTHROPIC_AUTH_TOKEN',
+      },
+    ]);
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: {
+        ANTHROPIC_API_KEY: 'ephemeral-turn-api-key',
+        ANTHROPIC_AUTH_TOKEN: 'ephemeral-turn-auth-token',
+        NON_SECRET: 'preserved',
+      },
+    });
 
     await session.doDestroy();
   });

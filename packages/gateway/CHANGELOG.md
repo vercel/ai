@@ -1,5 +1,82 @@
 # @ai-sdk/gateway
 
+## 4.0.67
+
+### Patch Changes
+
+- 0e7994c: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.66
+
+### Patch Changes
+
+- 81bebaf: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+
+## 4.0.65
+
+### Patch Changes
+
+- 80227cf: chore(provider/gateway): update gateway model settings files
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 5533946: Remove the internal-only `relevance_score` and `citation_number` fields from
+  published Tako Search response types and schemas. Code that reads either field
+  must be updated; Gateway responses still pass the values through at runtime,
+  but they are no longer typed. Also document data surcharge controls.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.64
+
+### Patch Changes
+
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.63
+
+### Patch Changes
+
+- e12e068: chore(provider/gateway): update gateway model settings files
+
+## 4.0.62
+
+### Patch Changes
+
+- a371615: feat (provider/gateway): add Tako Search tool support
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.61
+
+### Patch Changes
+
+- dedac59: chore(provider/gateway): update gateway model settings files
+
+## 4.0.60
+
+### Patch Changes
+
+- 5941bd6: feat(gateway): implement `handleWebhookOption` on the video model so `generateVideo({ webhook })` registers the factory URL as the gateway's `callbackUrl` and awaits delivery instead of falling back to polling
+- 9a4337d: feat: add DeepSeek V4 Flash Vision Exp image input and Files API support
+
+## 4.0.59
+
+### Patch Changes
+
+- f607a12: chore(google): drop support for Imagen models and their integration following API shutdown
+
+## 4.0.58
+
+### Patch Changes
+
+- fdcc814: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.57
 
 ### Patch Changes

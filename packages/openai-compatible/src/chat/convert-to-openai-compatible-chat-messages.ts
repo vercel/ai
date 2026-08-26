@@ -89,6 +89,19 @@ export function convertToOpenAICompatibleChatMessages(
                       };
                     }
 
+                    if (topLevel === 'video') {
+                      return {
+                        type: 'video_url',
+                        video_url: {
+                          url:
+                            part.data.type === 'url'
+                              ? part.data.url.toString()
+                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                        },
+                        ...partMetadata,
+                      };
+                    }
+
                     if (topLevel === 'audio') {
                       if (part.data.type === 'url') {
                         throw new UnsupportedFunctionalityError({

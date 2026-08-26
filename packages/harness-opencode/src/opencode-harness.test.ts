@@ -336,6 +336,10 @@ describe('createOpenCode adapter', () => {
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
     const addRequestTransformations = vi.fn(async () => {});
     const emptyStream = () =>
       new ReadableStream<Uint8Array>({
@@ -384,6 +388,10 @@ describe('createOpenCode adapter', () => {
           baseUrl: 'https://openai.example/v1',
         },
       },
+      credentialForwarding: async options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.environmentVariableName}`;
+      },
     });
 
     const session = await harness.doStart({
@@ -397,13 +405,97 @@ describe('createOpenCode adapter', () => {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer ephemeral-OPENAI_API_KEY' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
         },
       },
     ]);
-    expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('OPENAI_API_KEY');
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
+        environmentVariableName: 'OPENAI_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('ephemeral-OPENAI_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+
+    await session.doDetach();
+  });
+
+  it('customizes real credentials when request transformations are unavailable', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvs.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const harness = createOpenCode({
+      provider: 'openai',
+      auth: { openai: { apiKey: 'openai-secret' } },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return 'caller-managed-credential';
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'openai-secret',
+        environmentVariableName: 'OPENAI_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('caller-managed-credential');
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
 
     await session.doDetach();
@@ -706,21 +798,25 @@ describe('createOpenCode adapter', () => {
         '.harness-bootstrap/opencode/host-tool-mcp.mjs',
         '.harness-bootstrap/opencode/package.json',
         '.harness-bootstrap/opencode/pnpm-lock.yaml',
+        '.harness-bootstrap/opencode/pnpm-workspace.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
+      expect(
+        recipe.files.find(file => file.path.endsWith('pnpm-workspace.yaml'))
+          ?.content,
+      ).toBe("allowBuilds:\n  'opencode-ai@1.18.3': true\n");
     });
 
-    it('runs the OpenCode CLI postinstall during bootstrap', async () => {
+    it('allows the pinned OpenCode build and verifies the installed CLI', async () => {
       const harness = createOpenCode();
       const recipe = await harness.getBootstrap!();
       expect(recipe.commands[0]).toEqual({
         command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       });
       expect(recipe.commands).toContainEqual({
-        command:
-          'node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version',
+        command: './node_modules/.bin/opencode --version',
       });
     });
 
