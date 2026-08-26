@@ -15,7 +15,12 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
-import { moonshotaiAssistantMessageProviderOptions } from './moonshotai-chat-options';
+import {
+  getMoonshotAIModelFamily,
+  moonshotaiAllMessageProviderOptions,
+  type MoonshotAIChatModelId,
+} from './moonshotai-chat-options';
+import { prepareTools } from './moonshotai-prepare-tools';
 
 const supportedImageMediaTypes = [
   'image/jpeg',
@@ -79,10 +84,12 @@ function formatMediaUrl({
 // parts only. Anything else (audio, PDF, other file types) throws here rather
 // than being rejected by the API with a 400.
 export async function convertToMoonshotAIChatMessages({
+  modelId,
   prompt,
   providerOptionsName = 'moonshotai',
   responseFormat,
 }: {
+  modelId?: MoonshotAIChatModelId;
   prompt: LanguageModelV4Prompt;
   providerOptionsName?: string;
   responseFormat?: Record<string, unknown>;
@@ -92,12 +99,14 @@ export async function convertToMoonshotAIChatMessages({
 }> {
   const messages: MoonshotAIMessages = [];
   const warnings: Array<SharedV4Warning> = [];
+  const modelFamily =
+    modelId == null ? 'unknown' : getMoonshotAIModelFamily(modelId);
 
   for (const [index, { role, content, providerOptions }] of prompt.entries()) {
     const moonshotMessageOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
-      schema: moonshotaiAssistantMessageProviderOptions,
+      schema: moonshotaiAllMessageProviderOptions,
     });
 
     if (moonshotMessageOptions?.partial === true && role !== 'assistant') {
@@ -108,8 +117,44 @@ export async function convertToMoonshotAIChatMessages({
       });
     }
 
+    if (moonshotMessageOptions?.tools != null && role !== 'system') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'Moonshot dynamic tools must be configured on a system message.',
+      });
+    }
+
     switch (role) {
       case 'system': {
+        if (moonshotMessageOptions?.tools?.length) {
+          if (content.length > 0) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+            });
+          }
+
+          if (modelFamily !== 'kimi-k3' && modelFamily !== 'unknown') {
+            warnings.push({
+              type: 'unsupported',
+              feature: `dynamic tool loading for model "${modelId}"`,
+              details:
+                'Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted.',
+            });
+            break;
+          }
+
+          const { tools, toolWarnings } = prepareTools({
+            modelId: modelId ?? 'custom-model',
+            tools: moonshotMessageOptions.tools,
+          });
+          warnings.push(...toolWarnings);
+          messages.push({ role: 'system', tools: tools ?? [] });
+          break;
+        }
+
         messages.push({
           role: 'system',
           content,

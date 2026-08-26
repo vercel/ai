@@ -91,6 +91,7 @@ describe('createCursor', () => {
     expect(
       settings.credentialBrokering?.({
         env: { CURSOR_API_KEY: 'cursor-secret' },
+        sandboxEnv: { CURSOR_API_KEY: 'sandbox-cursor-secret' },
       }),
     ).toEqual([
       {
@@ -98,6 +99,12 @@ describe('createCursor', () => {
           host: 'api2.cursor.sh',
           path: { exact: '/auth/exchange_user_api_key' },
           method: ['POST'],
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-cursor-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer cursor-secret' },

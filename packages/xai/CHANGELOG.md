@@ -1,5 +1,18 @@
 # @ai-sdk/xai
 
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.46
+
+### Patch Changes
+
+- 41e7760: Preserve complete xAI Responses usage objects in raw usage metadata.
+
 ## 4.0.45
 
 ### Patch Changes

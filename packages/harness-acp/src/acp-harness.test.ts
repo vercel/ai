@@ -470,14 +470,34 @@ describe('createACP', () => {
     vi.stubEnv('PROVIDER_BASE_URL', 'https://provider.example/v1');
     const addRequestTransformations = vi.fn(async () => {});
     const credentialBrokering = vi.fn(
-      ({ env }: { env: Readonly<Record<string, string>> }) => [
-        {
-          match: { host: 'provider.example', path: { startsWith: '/v1' } },
-          transform: {
-            headers: { Authorization: `Bearer ${env.PROVIDER_API_KEY}` },
+      ({
+        env,
+        sandboxEnv,
+      }: {
+        env: Readonly<Record<string, string>>;
+        sandboxEnv?: Readonly<Record<string, string>>;
+      }) => {
+        if (sandboxEnv?.PROVIDER_API_KEY == null) return [];
+        return [
+          {
+            match: {
+              host: 'provider.example',
+              path: { startsWith: '/v1' },
+              headers: [
+                {
+                  key: { exact: 'Authorization' },
+                  value: {
+                    exact: `Bearer ${sandboxEnv.PROVIDER_API_KEY}`,
+                  },
+                },
+              ],
+            },
+            transform: {
+              headers: { Authorization: `Bearer ${env.PROVIDER_API_KEY}` },
+            },
           },
-        },
-      ],
+        ];
+      },
     );
     const spawns: Array<{
       command: string;
@@ -517,10 +537,24 @@ describe('createACP', () => {
         PROVIDER_BASE_URL: 'https://provider.example/v1',
         STATIC_SETTING: 'literal-value',
       },
+      sandboxEnv: {
+        PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
+        PROVIDER_BASE_URL: 'https://provider.example/v1',
+        STATIC_SETTING: 'literal-value',
+      },
     });
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
-        match: { host: 'provider.example', path: { startsWith: '/v1' } },
+        match: {
+          host: 'provider.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer ephemeral-PROVIDER_API_KEY' },
+            },
+          ],
+        },
         transform: {
           headers: { Authorization: 'Bearer direct-secret' },
         },
@@ -532,7 +566,7 @@ describe('createACP', () => {
       STATIC_SETTING: 'literal-value',
     });
     expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
-      credential: 'PROVIDER_API_KEY',
+      credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
       environmentVariableName: 'PROVIDER_API_KEY',
     });
     expect(JSON.stringify(spawns[0]!.env)).not.toContain('direct-secret');
@@ -546,14 +580,34 @@ describe('createACP', () => {
     vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://gateway.example');
     const addRequestTransformations = vi.fn(async () => {});
     const credentialBrokering = vi.fn(
-      ({ env }: { env: Readonly<Record<string, string>> }) => [
-        {
-          match: { host: 'gateway.example', path: { startsWith: '/v1' } },
-          transform: {
-            headers: { Authorization: `Bearer ${env.PROVIDER_API_KEY}` },
+      ({
+        env,
+        sandboxEnv,
+      }: {
+        env: Readonly<Record<string, string>>;
+        sandboxEnv?: Readonly<Record<string, string>>;
+      }) => {
+        if (sandboxEnv?.PROVIDER_API_KEY == null) return [];
+        return [
+          {
+            match: {
+              host: 'gateway.example',
+              path: { startsWith: '/v1' },
+              headers: [
+                {
+                  key: { exact: 'Authorization' },
+                  value: {
+                    exact: `Bearer ${sandboxEnv.PROVIDER_API_KEY}`,
+                  },
+                },
+              ],
+            },
+            transform: {
+              headers: { Authorization: `Bearer ${env.PROVIDER_API_KEY}` },
+            },
           },
-        },
-      ],
+        ];
+      },
     );
     const spawns: Array<{
       command: string;
@@ -603,10 +657,23 @@ describe('createACP', () => {
         PROVIDER_API_KEY: 'gateway-secret',
         PROVIDER_BASE_URL: 'https://gateway.example/v1',
       },
+      sandboxEnv: {
+        PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
+        PROVIDER_BASE_URL: 'https://gateway.example/v1',
+      },
     });
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
-        match: { host: 'gateway.example', path: { startsWith: '/v1' } },
+        match: {
+          host: 'gateway.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer ephemeral-PROVIDER_API_KEY' },
+            },
+          ],
+        },
         transform: {
           headers: { Authorization: 'Bearer gateway-secret' },
         },
@@ -628,7 +695,7 @@ describe('createACP', () => {
       },
     });
     expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
-      credential: 'PROVIDER_API_KEY',
+      credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
       environmentVariableName: 'PROVIDER_API_KEY',
     });
 
@@ -639,16 +706,35 @@ describe('createACP', () => {
     vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
     const addRequestTransformations = vi.fn(async () => {});
     const credentialBrokering = vi.fn(
-      ({ env }: { env: Readonly<Record<string, string>> }) => [
-        {
-          match: { host: 'gateway.example' },
-          transform: {
-            headers: {
-              Authorization: `Bearer ${env.RUNTIME_PROVIDER_API_KEY}`,
+      ({
+        env,
+        sandboxEnv,
+      }: {
+        env: Readonly<Record<string, string>>;
+        sandboxEnv?: Readonly<Record<string, string>>;
+      }) => {
+        if (sandboxEnv?.RUNTIME_PROVIDER_API_KEY == null) return [];
+        return [
+          {
+            match: {
+              host: 'gateway.example',
+              headers: [
+                {
+                  key: { exact: 'Authorization' },
+                  value: {
+                    exact: `Bearer ${sandboxEnv.RUNTIME_PROVIDER_API_KEY}`,
+                  },
+                },
+              ],
+            },
+            transform: {
+              headers: {
+                Authorization: `Bearer ${env.RUNTIME_PROVIDER_API_KEY}`,
+              },
             },
           },
-        },
-      ],
+        ];
+      },
     );
     const credentialForwarding = vi.fn(
       async ({ credential }: { credential: string }) => credential,
@@ -685,30 +771,152 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
     });
 
+    const sandboxCredentialEnvironment = credentialBrokering.mock.calls[0]![0]
+      .sandboxEnv as Readonly<Record<string, string>>;
+    expect(sandboxCredentialEnvironment.RUNTIME_PROVIDER_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
     expect(credentialBrokering).toHaveBeenCalledWith({
       env: {
         RUNTIME_PROVIDER_API_KEY: 'gateway-secret',
       },
+      sandboxEnv: sandboxCredentialEnvironment,
     });
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
-        match: { host: 'gateway.example' },
+        match: {
+          host: 'gateway.example',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: {
+                exact: `Bearer ${sandboxCredentialEnvironment.RUNTIME_PROVIDER_API_KEY}`,
+              },
+            },
+          ],
+        },
         transform: {
           headers: { Authorization: 'Bearer gateway-secret' },
         },
       },
     ]);
     expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
-      credential: 'RUNTIME_PROVIDER_API_KEY',
+      credential: sandboxCredentialEnvironment.RUNTIME_PROVIDER_API_KEY,
       environmentVariableName: 'RUNTIME_PROVIDER_API_KEY',
     });
     expect(spawns[0]!.env.RUNTIME_PROVIDER_API_KEY).toBe(
-      'RUNTIME_PROVIDER_API_KEY',
+      sandboxCredentialEnvironment.RUNTIME_PROVIDER_API_KEY,
     );
     expect(spawns[0]!.env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
     expect(JSON.stringify(spawns[0]!.env)).not.toContain('gateway-secret');
 
     await session.doDestroy();
+  });
+
+  it('persists sandbox credentials and reinstalls the same matchers across process resumes', async () => {
+    vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
+    const addRequestTransformations = vi.fn(
+      async (
+        _transformations: Parameters<
+          NonNullable<
+            HarnessV1NetworkSandboxSession['addRequestTransformations']
+          >
+        >[0],
+      ) => {},
+    );
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns,
+      stop: async () => {},
+      addRequestTransformations,
+    });
+    const createHarness = () =>
+      createACP({
+        harnessId: 'resumable-brokered-acp',
+        ...agentSettings,
+        forwardEnv: [],
+        credentialEnv: ['PROVIDER_API_KEY'],
+        credentialBrokering: ({ env, sandboxEnv }) => {
+          if (sandboxEnv?.PROVIDER_API_KEY == null) return [];
+          return [
+            {
+              match: {
+                host: 'provider.example',
+                headers: [
+                  {
+                    key: { exact: 'Authorization' },
+                    value: {
+                      exact: `Bearer ${sandboxEnv.PROVIDER_API_KEY}`,
+                    },
+                  },
+                ],
+              },
+              transform: {
+                headers: {
+                  Authorization: `Bearer ${env.PROVIDER_API_KEY}`,
+                },
+              },
+            },
+          ];
+        },
+      });
+
+    const firstSession = await createHarness().doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const resumeFrom = await firstSession.doDetach();
+    const persistedEnvironment = (
+      resumeFrom.data as {
+        sandboxCredentialEnvironment?: Readonly<Record<string, string>>;
+      }
+    ).sandboxCredentialEnvironment;
+
+    expect(persistedEnvironment?.PROVIDER_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(spawns[0]!.env.PROVIDER_API_KEY).toBe(
+      persistedEnvironment?.PROVIDER_API_KEY,
+    );
+    expect(JSON.stringify(resumeFrom)).not.toContain('direct-secret');
+
+    const resumedSession = await createHarness().doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom: JSON.parse(JSON.stringify(resumeFrom)),
+    });
+
+    expect(spawns).toHaveLength(1);
+    expect(addRequestTransformations).toHaveBeenCalledTimes(2);
+    expect(addRequestTransformations.mock.calls[1]).toEqual(
+      addRequestTransformations.mock.calls[0],
+    );
+    expect(addRequestTransformations.mock.calls[1]![0]).toEqual([
+      {
+        match: {
+          host: 'provider.example',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: {
+                exact: `Bearer ${persistedEnvironment?.PROVIDER_API_KEY}`,
+              },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer direct-secret' },
+        },
+      },
+    ]);
+
+    await resumedSession.doDestroy();
   });
 
   it('preserves real credential forwarding when additive transformations are unavailable', async () => {
@@ -855,14 +1063,27 @@ describe('createACP', () => {
       ...agentSettings,
       forwardEnv: [],
       credentialEnv: ['PROVIDER_API_KEY'],
-      credentialBrokering: ({ env }) => [
-        {
-          match: { host: 'provider.example' },
-          transform: {
-            headers: { Authorization: `Bearer ${env.PROVIDER_API_KEY}` },
+      credentialBrokering: ({ env, sandboxEnv }) => {
+        if (sandboxEnv?.PROVIDER_API_KEY == null) return [];
+        return [
+          {
+            match: {
+              host: 'provider.example',
+              headers: [
+                {
+                  key: { exact: 'Authorization' },
+                  value: {
+                    exact: `Bearer ${sandboxEnv.PROVIDER_API_KEY}`,
+                  },
+                },
+              ],
+            },
+            transform: {
+              headers: { Authorization: `Bearer ${env.PROVIDER_API_KEY}` },
+            },
           },
-        },
-      ],
+        ];
+      },
     });
 
     await expect(
@@ -1710,7 +1931,7 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
-  it('materializes skills outside the workspace and announces guidance exactly once', async () => {
+  it('materializes skills in the native directory without adding them to prompt guidance', async () => {
     const runs: string[] = [];
     const spawns: Array<{
       command: string;
@@ -1749,8 +1970,8 @@ describe('createACP', () => {
       write.path.endsWith('/release-notes/SKILL.md'),
     );
     expect(skillDefinition).toBeDefined();
-    expect(skillDefinition?.path).toMatch(
-      /^\/home\/agent\/\.ai-sdk\/harness-acp\/codex-acp\/[a-f0-9]{64}\/skills\/release-notes\/SKILL\.md$/,
+    expect(skillDefinition?.path).toBe(
+      '/home/agent/.agents/skills/release-notes/SKILL.md',
     );
     expect(skillDefinition?.path.startsWith('/workspace/user-project')).toBe(
       false,
@@ -1789,7 +2010,8 @@ describe('createACP', () => {
     expect(firstStart.prompt[0]?.text).toContain(
       'Use the supplied project context.',
     );
-    expect(firstStart.prompt[0]?.text).toContain(
+    expect(JSON.stringify(firstStart.prompt)).not.toContain('release-notes');
+    expect(JSON.stringify(firstStart.prompt)).not.toContain(
       skillDefinition?.path ?? 'missing skill path',
     );
     expect(JSON.stringify(firstStart.prompt)).not.toContain(
@@ -1831,13 +2053,57 @@ describe('createACP', () => {
       initialGuidanceApplied: true,
       skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      skillsDirectory: '/home/agent/.agents/skills',
     });
   });
 
-  it('keeps mapped instructions separate from prompts while preserving skill guidance', async () => {
+  it('materializes install-command skills relative to the private implementation home', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createACP({
+      harnessId: 'cursor-skills-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://cursor.com/install -fsS | bash',
+      },
+      executable: 'agent',
+      args: ['--disable-auto-update', 'acp'],
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        writes,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+      skills: [
+        {
+          name: 'release-notes',
+          description: 'Prepare release notes.',
+          content: 'Use active voice.',
+        },
+      ],
+    });
+
+    expect(writes).toContainEqual({
+      path: '/workspace/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
+      content:
+        '---\n' +
+        'name: release-notes\n' +
+        'description: Prepare release notes.\n' +
+        '---\n\n' +
+        'Use active voice.',
+    });
+    await session.doDestroy();
+  });
+
+  it('keeps mapped instructions and native skills separate from prompts', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
     const harness = createACP({
       harnessId: 'claude-acp',
       ...agentSettings,
+      skillsDirectory: '.claude/skills',
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],
@@ -1848,6 +2114,7 @@ describe('createACP', () => {
       sandboxSession: fakeSandbox({
         runs: [],
         spawns: [],
+        writes,
         stop: async () => {},
       }),
       sessionWorkDir: '/workspace/user-project',
@@ -1873,17 +2140,23 @@ describe('createACP', () => {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],
       },
-      prompt: [
-        {
-          type: 'text',
-          text: expect.stringContaining('<available-skills>'),
-        },
-        { type: 'text', text: 'Draft release notes.' },
-      ],
+      prompt: [{ type: 'text', text: 'Draft release notes.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.claude/skills/release-notes/SKILL.md',
+      content:
+        '---\n' +
+        'name: release-notes\n' +
+        'description: Prepare concise release notes.\n' +
+        '---\n\n' +
+        'Use active voice.',
     });
     expect(
       JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
     ).not.toContain('Answer every question in German.');
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
+    ).not.toContain('release-notes');
     channel.emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'end_turn' },
@@ -1981,6 +2254,7 @@ describe('createACP', () => {
       initialGuidanceApplied: true,
       skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      skillsDirectory: '/home/agent/.agents/skills',
     });
     expect(JSON.stringify(resumeFrom)).not.toContain('test-key');
     const writeCount = writes.length;
@@ -2122,6 +2396,7 @@ describe('createACP', () => {
       initialGuidanceApplied: true,
       skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      skillsDirectory: '/home/agent/.agents/skills',
     });
     expect(stopped.data).not.toHaveProperty('bridge');
     expect(stopped.data).not.toHaveProperty('turnStartConfig');

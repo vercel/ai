@@ -108,20 +108,13 @@ describe('convertHarnessPromptToACPTextBlocks', () => {
 });
 
 describe('prependACPInitialGuidance', () => {
-  it('prepends delimited instructions and a compact skill catalog', () => {
+  it('prepends delimited instructions without skill guidance', () => {
     const result = prependACPInitialGuidance({
       prompt: [
         { type: 'text', text: 'First' },
         { type: 'text', text: 'Second' },
       ],
       instructions: 'Prefer concise answers.',
-      skills: [
-        {
-          name: 'release-notes',
-          description: 'Prepare release notes.',
-          path: '/home/user/.ai-sdk/harness-acp/demo/session/skills/release-notes/SKILL.md',
-        },
-      ],
     });
 
     expect(result).toEqual([
@@ -133,16 +126,12 @@ describe('prependACPInitialGuidance', () => {
           '<instructions>\n' +
           'Prefer concise answers.\n' +
           '</instructions>\n' +
-          '<available-skills>\n' +
-          'Load a skill only when relevant by reading its SKILL.md file at the listed absolute path.\n' +
-          '- release-notes: Prepare release notes. (/home/user/.ai-sdk/harness-acp/demo/session/skills/release-notes/SKILL.md)\n' +
-          '</available-skills>\n' +
           '</session-guidance>',
       },
       { type: 'text', text: 'First' },
       { type: 'text', text: 'Second' },
     ]);
-    expect(result[0]?.text).not.toContain('Complete private skill content');
+    expect(result[0]?.text).not.toContain('available-skills');
   });
 
   it('does not add an empty guidance block', () => {
@@ -150,7 +139,6 @@ describe('prependACPInitialGuidance', () => {
       prependACPInitialGuidance({
         prompt: [{ type: 'text', text: 'Hello' }],
         instructions: '',
-        skills: [],
       }),
     ).toEqual([{ type: 'text', text: 'Hello' }]);
   });
