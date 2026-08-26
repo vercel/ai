@@ -185,6 +185,35 @@ describe('doGenerate', () => {
         outputTokens: { total: 5, text: 5, reasoning: 0 },
       });
     });
+
+    it.each([null, undefined])(
+      'should tolerate %s response metadata fields',
+      async metadataValue => {
+        const responseBody = JSON.parse(
+          fs.readFileSync('src/__fixtures__/moonshotai-text.json', 'utf8'),
+        );
+        responseBody.object = metadataValue;
+        responseBody.choices[0].index = metadataValue;
+        responseBody.choices[0].message.role = metadataValue;
+
+        if (metadataValue === undefined) {
+          delete responseBody.object;
+          delete responseBody.choices[0].index;
+          delete responseBody.choices[0].message.role;
+        }
+
+        server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+          type: 'json-value',
+          body: responseBody,
+        };
+
+        const result = await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toEqual({ moonshotai: {} });
+      },
+    );
   });
 
   describe('video input', () => {
@@ -715,6 +744,14 @@ describe('doGenerate', () => {
         unified: 'tool-calls',
         raw: 'tool_calls',
       });
+      expect(result.providerMetadata).toEqual({
+        moonshotai: {
+          responseObject: 'chat.completion',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+          toolCallTypes: ['function'],
+        },
+      });
     });
   });
 
@@ -965,4 +1002,79 @@ describe('doStream', () => {
     expect(requestBody).not.toHaveProperty('max_completion_tokens');
     expect(requestBody).not.toHaveProperty('max_tokens');
   });
+  it('should preserve response metadata and raw tool-call chunks', async () => {
+    prepareChunksFixtureResponse('moonshotai-tool-call');
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+    const rawChunks = fs
+      .readFileSync('src/__fixtures__/moonshotai-tool-call.chunks.txt', 'utf8')
+      .split('\n')
+      .filter(line => line.length > 0)
+      .map(line => JSON.parse(line));
+
+    expect(
+      parts.filter(part => part.type === 'raw').map(part => part.rawValue),
+    ).toEqual(rawChunks);
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'call_abc123',
+      toolName: 'get_weather',
+      input: '{"city":"Paris"}',
+    });
+    expect(
+      parts.find(part => part.type === 'finish')?.providerMetadata,
+    ).toEqual({
+      moonshotai: {
+        responseObject: 'chat.completion.chunk',
+        choiceIndex: 0,
+        messageRole: 'assistant',
+        toolCallTypes: ['function'],
+      },
+    });
+  });
+
+  it.each([null, undefined])(
+    'should tolerate %s streamed response metadata fields',
+    async metadataValue => {
+      const responseBody = {
+        id: 'chatcmpl-stream',
+        object: metadataValue,
+        choices: [
+          {
+            index: metadataValue,
+            delta: { role: metadataValue, content: 'Hello' },
+            finish_reason: 'stop',
+          },
+        ],
+      };
+
+      if (metadataValue === undefined) {
+        delete responseBody.object;
+        delete responseBody.choices[0].index;
+        delete responseBody.choices[0].delta.role;
+      }
+
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify(responseBody)}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.find(part => part.type === 'finish')?.providerMetadata,
+      ).toEqual({ moonshotai: {} });
+    },
+  );
 });

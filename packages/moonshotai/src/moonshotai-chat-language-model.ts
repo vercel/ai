@@ -377,6 +377,22 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertMoonshotAIChatUsage(responseBody.usage),
+      providerMetadata: {
+        [this.providerOptionsName]: {
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
+        },
+      },
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -431,6 +447,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let responseObject: 'chat.completion.chunk' | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
+    const providerOptionsName = this.providerOptionsName;
 
     return {
       stream: response.pipeThrough(
@@ -476,10 +497,18 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
               topLevelUsage = value.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
             const choice = value.choices[0];
 
             if (choice?.usage != null) {
               choiceUsage = choice.usage;
+            }
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
             }
 
             if (choice?.finish_reason != null) {
@@ -494,6 +523,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -550,6 +583,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                 toolCallDelta,
               ] of delta.tool_calls.entries()) {
                 const index = toolCallDelta.index ?? fallbackIndex;
+
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(index, toolCallDelta.type);
+                }
 
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.id == null) {
@@ -652,6 +689,18 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
               type: 'finish',
               finishReason,
               usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
+              providerMetadata: {
+                [providerOptionsName]: {
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
+                },
+              },
             });
           },
         }),
