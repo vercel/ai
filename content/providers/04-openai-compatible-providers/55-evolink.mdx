@@ -1,0 +1,114 @@
+---
+title: EvoLink.AI
+description: Use EvoLink.AI's OpenAI compatible API with the AI SDK.
+---
+
+# EvoLink.AI Provider
+
+[EvoLink.AI](https://evolink.ai/) provides unified access to language, image, video, and audio models. Its text models expose an OpenAI-compatible API that you can use with the AI SDK.
+
+## Setup
+
+The EvoLink.AI provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use EvoLink.AI, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const evolink = createOpenAICompatible({
+  name: 'evolink',
+  baseURL: 'https://direct.evolink.ai/v1',
+  apiKey: process.env.EVOLINK_API_KEY,
+});
+```
+
+You can obtain an API key from the [EvoLink dashboard](https://evolink.ai/dashboard/keys).
+
+<Note>
+  EvoLink.AI uses `https://direct.evolink.ai` for text model APIs. Its image,
+  video, audio, and other multimodal task APIs use asynchronous endpoints under
+  `https://api.evolink.ai` and are not covered by the OpenAI-compatible language
+  model setup.
+</Note>
+
+## Language Models
+
+You can interact with EvoLink.AI language models using a provider instance. For example, to use GPT-5.2:
+
+```ts
+const model = evolink.chatModel('gpt-5.2');
+```
+
+EvoLink.AI also exposes other OpenAI-compatible language model IDs, such as `gpt-5.1`, `gemini-2.5-flash-lite`, `deepseek-chat`, and `doubao-seed-2.0-pro`.
+
+### Example - Generate Text
+
+You can use EvoLink.AI language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const evolink = createOpenAICompatible({
+  name: 'evolink',
+  baseURL: 'https://direct.evolink.ai/v1',
+  apiKey: process.env.EVOLINK_API_KEY,
+});
+
+const { text, usage, finishReason } = await generateText({
+  model: evolink.chatModel('gpt-5.2'),
+  prompt: 'Write a short introduction to EvoLink.AI.',
+});
+
+console.log(text);
+console.log('Token usage:', usage);
+console.log('Finish reason:', finishReason);
+```
+
+### Example - Stream Text
+
+EvoLink.AI language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const evolink = createOpenAICompatible({
+  name: 'evolink',
+  baseURL: 'https://direct.evolink.ai/v1',
+  apiKey: process.env.EVOLINK_API_KEY,
+});
+
+const result = streamText({
+  model: evolink.chatModel('gpt-5.2'),
+  prompt: 'Write a short introduction to EvoLink.AI.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log();
+console.log('Token usage:', await result.usage);
+console.log('Finish reason:', await result.finishReason);
+```
