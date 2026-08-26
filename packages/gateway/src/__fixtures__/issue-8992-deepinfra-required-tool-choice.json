@@ -1,0 +1,124 @@
+{
+  "recordedAt": "2026-07-23",
+  "model": "openai/gpt-oss-20b",
+  "provider": "deepinfra",
+  "request": {
+    "maxOutputTokens": 128,
+    "tools": [
+      {
+        "type": "function",
+        "name": "requiredAction",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "description": "The required action. Always call this tool."
+      }
+    ],
+    "toolChoice": {
+      "type": "required"
+    },
+    "prompt": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Do not call any tool. Reply only with the exact plain text NO_TOOL."
+          }
+        ]
+      }
+    ],
+    "providerOptions": {
+      "gateway": {
+        "only": [
+          "deepinfra"
+        ]
+      }
+    },
+    "headers": {
+      "user-agent": "ai/7.0.35"
+    }
+  },
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "NO_TOOL"
+      },
+      {
+        "type": "reasoning",
+        "text": "User says \"Do not call any tool. Reply only with the exact plain text NO_TOOL.\"\n\nWe must comply: reply \"NO_TOOL\". No tool usage."
+      }
+    ],
+    "finishReason": {
+      "unified": "stop",
+      "raw": "stop"
+    },
+    "usage": {
+      "inputTokens": {
+        "total": 127,
+        "noCache": 127,
+        "cacheRead": 0
+      },
+      "outputTokens": {
+        "total": 44,
+        "text": 44,
+        "reasoning": 0
+      },
+      "raw": {
+        "prompt_tokens": 127,
+        "completion_tokens": 44,
+        "total_tokens": 171,
+        "prompt_tokens_details": null,
+        "estimated_cost": 0.000009970000000000001
+      }
+    },
+    "providerMetadata": {
+      "deepinfra": {},
+      "gateway": {
+        "routing": {
+          "originalModelId": "openai/gpt-oss-20b",
+          "resolvedProvider": "deepinfra",
+          "fallbacksAvailable": [],
+          "canonicalSlug": "openai/gpt-oss-20b",
+          "finalProvider": "deepinfra",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "openai/gpt-oss-20b",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "deepinfra",
+                  "credentialType": "system",
+                  "success": true,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.00000997",
+        "marketCost": "0.00000997",
+        "surchargeCost": "0",
+        "gatewayCost": "0.00000997",
+        "inferenceCost": "0.00000997",
+        "inputInferenceCost": "0.00000381",
+        "outputInferenceCost": "0.00000616"
+      }
+    },
+    "warnings": []
+  }
+}
