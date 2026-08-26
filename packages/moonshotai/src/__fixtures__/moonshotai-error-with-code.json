@@ -1,0 +1,7 @@
+{
+  "error": {
+    "message": "Invalid request: documented error metadata",
+    "type": "invalid_request_error",
+    "code": "invalid_parameter"
+  }
+}
