@@ -694,6 +694,123 @@ describe('tool calls', () => {
     ]);
   });
 
+<<<<<<< HEAD
+=======
+  it('should send empty string content for assistant messages with no tool calls', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '' }],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
+  });
+
+  it('should default missing tool call input to an empty object', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              input: undefined,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": null,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{}",
+                "name": "thwomp",
+              },
+              "id": "quux",
+              "type": "function",
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('should normalize malformed tool call input and preserve the tool error', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              input: '{"foo":"bar"',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              output: {
+                type: 'error-text',
+                value: 'Invalid input: JSON parsing failed',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": null,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{}",
+                "name": "thwomp",
+              },
+              "id": "quux",
+              "type": "function",
+            },
+          ],
+        },
+        {
+          "content": "Invalid input: JSON parsing failed",
+          "role": "tool",
+          "tool_call_id": "quux",
+        },
+      ]
+    `);
+  });
+
+>>>>>>> 25234039f1 (fix: prevent strict Chat Completions backends from rejecting malformed persisted tool arguments (#19283))
   it('should handle different tool output types', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [

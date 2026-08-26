@@ -5,7 +5,24 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
+<<<<<<< HEAD
 import { convertToBase64 } from '@ai-sdk/provider-utils';
+=======
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
+
+function serializeToolCallArguments(input: unknown): string {
+  return JSON.stringify(
+    typeof input === 'object' && input !== null && !Array.isArray(input)
+      ? input
+      : {},
+  );
+}
+>>>>>>> 25234039f1 (fix: prevent strict Chat Completions backends from rejecting malformed persisted tool arguments (#19283))
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
 
