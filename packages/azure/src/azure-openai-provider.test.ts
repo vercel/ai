@@ -652,6 +652,8 @@ describe('deepseek', () => {
           "raw": {
             "completion_tokens": 1720,
             "prompt_tokens": 19,
+            "prompt_tokens_details": null,
+            "reasoning_tokens": 0,
             "total_tokens": 1739,
           },
         },
