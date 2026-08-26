@@ -219,6 +219,7 @@ function buildOpenCodeConfig({
   relayPort: number | undefined;
 }): Record<string, unknown> {
   const config: Record<string, unknown> = {
+    ...start.openCodeConfig,
     share: 'disabled',
     autoupdate: false,
     permission: {

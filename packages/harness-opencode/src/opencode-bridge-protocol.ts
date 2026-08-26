@@ -15,6 +15,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   variant: z.string().optional(),
   instructions: z.string().optional(),
   resumeSessionId: z.string().optional(),
+  openCodeConfig: z.record(z.string(), z.unknown()).optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
 });
 

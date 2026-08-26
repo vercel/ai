@@ -7,6 +7,7 @@ const bridgeMock = vi.hoisted(() => ({
 
 const sdkMock = vi.hoisted(() => ({
   client: undefined as unknown,
+  serverOptions: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock('@ai-sdk/harness/bridge', () => ({
@@ -20,10 +21,13 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
 }));
 
 vi.mock('@opencode-ai/sdk/v2', () => ({
-  createOpencodeServer: vi.fn(async () => ({
-    url: 'http://127.0.0.1:4096',
-    close: vi.fn(),
-  })),
+  createOpencodeServer: vi.fn(async (options: Record<string, unknown>) => {
+    sdkMock.serverOptions.push(options);
+    return {
+      url: 'http://127.0.0.1:4096',
+      close: vi.fn(),
+    };
+  }),
   createOpencodeClient: vi.fn(() => sdkMock.client),
 }));
 
@@ -39,6 +43,7 @@ describe('OpenCode bridge turn settlement', () => {
   afterEach(() => {
     process.argv.length = 0;
     for (const arg of originalArgv) process.argv.push(arg);
+    sdkMock.serverOptions.length = 0;
     vi.resetModules();
   });
 
@@ -66,10 +71,16 @@ describe('OpenCode bridge turn settlement', () => {
         };
       },
     };
+    const openCodeConfig = {
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      share: 'manual',
+    };
     bridgeMock.start = {
       type: 'start',
       operation: 'prompt',
       prompt: 'Start.',
+      model: 'openai/gpt-5.6-sol',
+      openCodeConfig,
     };
     bridgeMock.turn = {
       emit: (event: Record<string, unknown>) => emitted.push(event),
@@ -127,6 +138,15 @@ describe('OpenCode bridge turn settlement', () => {
 
     await import('./index');
 
+    expect(sdkMock.serverOptions[0]?.config).toMatchObject({
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      model: 'openai/gpt-5.6-sol',
+      share: 'disabled',
+    });
+    expect(openCodeConfig).toEqual({
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      share: 'manual',
+    });
     expect(userMessages.close).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'model step failed' }),
     );

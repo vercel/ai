@@ -608,7 +608,7 @@ describe('createOpenCode adapter', () => {
     );
   });
 
-  it('passes reasoningVariant, instructions, and MCP servers to every OpenCode prompt', async () => {
+  it('passes native config, reasoningVariant, instructions, and MCP servers to every OpenCode prompt', async () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const emptyStream = () =>
@@ -657,7 +657,11 @@ describe('createOpenCode adapter', () => {
         url: 'https://mcp.context7.com/mcp',
       },
     };
+    const openCodeConfig = {
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+    };
     const session = await createOpenCode({
+      openCodeConfig,
       reasoningVariant: 'high',
       mcpServers,
     }).doStart({
@@ -677,6 +681,7 @@ describe('createOpenCode adapter', () => {
       prompt: 'think',
       instructions: 'be concise',
       variant: 'high',
+      openCodeConfig,
       mcpServers,
     });
 
@@ -692,6 +697,7 @@ describe('createOpenCode adapter', () => {
       prompt: 'think again',
       instructions: 'be concise',
       variant: 'high',
+      openCodeConfig,
       mcpServers,
     });
 
