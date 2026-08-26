@@ -1197,6 +1197,13 @@ const BedrockRedactedReasoningSchema = z.object({
   data: z.string(),
 });
 
+const AmazonBedrockCacheDetailSchema = z
+  .object({
+    inputTokens: z.number(),
+    ttl: z.string(),
+  })
+  .catchall(z.json());
+
 // limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const BedrockResponseSchema = z.object({
@@ -1239,16 +1246,16 @@ const BedrockResponseSchema = z.object({
   trace: z.unknown().nullish(),
   performanceConfig: z.object({ latency: z.string() }).nullish(),
   serviceTier: z.object({ type: z.string() }).nullish(),
-  usage: z.object({
-    inputTokens: z.number(),
-    outputTokens: z.number(),
-    totalTokens: z.number(),
-    cacheReadInputTokens: z.number().nullish(),
-    cacheWriteInputTokens: z.number().nullish(),
-    cacheDetails: z
-      .array(z.object({ inputTokens: z.number(), ttl: z.string() }))
-      .nullish(),
-  }),
+  usage: z
+    .object({
+      inputTokens: z.number(),
+      outputTokens: z.number(),
+      totalTokens: z.number(),
+      cacheReadInputTokens: z.number().nullish(),
+      cacheWriteInputTokens: z.number().nullish(),
+      cacheDetails: z.array(AmazonBedrockCacheDetailSchema).nullish(),
+    })
+    .catchall(z.json()),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -1314,12 +1321,12 @@ const BedrockStreamSchema = z.object({
         .object({
           cacheReadInputTokens: z.number().nullish(),
           cacheWriteInputTokens: z.number().nullish(),
-          cacheDetails: z
-            .array(z.object({ inputTokens: z.number(), ttl: z.string() }))
-            .nullish(),
+          cacheDetails: z.array(AmazonBedrockCacheDetailSchema).nullish(),
           inputTokens: z.number(),
           outputTokens: z.number(),
+          totalTokens: z.number().optional(),
         })
+        .catchall(z.json())
         .nullish(),
     })
     .nullish(),
