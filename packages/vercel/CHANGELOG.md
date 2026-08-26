@@ -1,5 +1,13 @@
 # @ai-sdk/vercel
 
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/openai-compatible@1.0.52
+
 ## 1.0.52
 
 ### Patch Changes

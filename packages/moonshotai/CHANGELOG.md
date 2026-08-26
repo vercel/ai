@@ -1,5 +1,14 @@
 # @ai-sdk/moonshotai
 
+## 0.0.23
+
+### Patch Changes
+
+- 71b1bb5: fix(provider/moonshotai): send max output tokens with the current Moonshot request field
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/openai-compatible@1.0.52
+
 ## 0.0.22
 
 ### Patch Changes
