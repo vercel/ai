@@ -292,7 +292,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
     return {
       args: {
         model: this.modelId,
-        max_tokens: maxOutputTokens,
+        max_completion_tokens: maxOutputTokens,
         temperature: supportsSamplingOptions ? temperature : undefined,
         top_p: supportsSamplingOptions ? topP : undefined,
         frequency_penalty: supportsSamplingOptions
