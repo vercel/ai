@@ -139,7 +139,7 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
                 tool_calls: z
                   .array(
                     z.object({
-                      index: z.number(),
+                      index: z.number().nullish(),
                       id: z.string().nullish(),
                       function: z.object({
                         name: z.string().nullish(),
@@ -151,6 +151,7 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
               })
               .nullish(),
             finish_reason: z.string().nullish(),
+            usage: tokenUsageSchema,
           }),
         ),
         usage: tokenUsageSchema,
