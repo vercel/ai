@@ -96,6 +96,11 @@ Moonshot V1 models support the standard `temperature`, `topP`,
 sampling parameters; the provider omits those settings for Kimi requests and
 returns an unsupported-setting warning when they are supplied.
 
+Kimi K3 supports `toolChoice: 'required'`. Kimi K2.6 and the Kimi K2.7 Code
+models reject that setting, so the provider omits it and returns an unsupported
+warning for those model IDs. Other tool choice modes are passed through
+unchanged.
+
 #### Structured Outputs
 
 Native structured outputs are enabled for Moonshot models whose model ID starts with `kimi-`.
