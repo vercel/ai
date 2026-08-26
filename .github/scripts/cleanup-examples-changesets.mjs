@@ -7,6 +7,7 @@
  */
 
 import {
+  existsSync,
   readFileSync,
   writeFileSync,
   unlinkSync,
@@ -23,6 +24,12 @@ function cleanup(app, url) {
 
   if (statSync(appPath).isDirectory()) {
     const packageJsonPath = join(appPath, 'package.json');
+
+    if (!existsSync(packageJsonPath)) {
+      console.log('Skipping directory without package.json', appPath);
+      return;
+    }
+
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
     packageJson.version = '0.0.0';
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
