@@ -248,25 +248,6 @@ const outputItemSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-<<<<<<< HEAD
-export const xaiResponsesUsageSchema = z.object({
-  input_tokens: z.number(),
-  output_tokens: z.number(),
-  total_tokens: z.number().optional(),
-  input_tokens_details: z
-    .object({
-      cached_tokens: z.number().optional(),
-    })
-    .optional(),
-  output_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().optional(),
-    })
-    .optional(),
-  num_sources_used: z.number().optional(),
-  num_server_side_tools_used: z.number().optional(),
-});
-=======
 export const xaiResponsesUsageSchema = z
   .object({
     input_tokens: z.number(),
@@ -286,10 +267,8 @@ export const xaiResponsesUsageSchema = z
       .optional(),
     num_sources_used: z.number().optional(),
     num_server_side_tools_used: z.number().optional(),
-    cost_in_usd_ticks: z.number().nullish(),
   })
   .catchall(z.json());
->>>>>>> 41e7760373 (fix: preserve complete raw usage objects for xAI Responses (#19657))
 
 export const xaiResponsesResponseSchema = z.object({
   id: z.string().nullish(),

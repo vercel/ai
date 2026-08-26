@@ -1,4 +1,4 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -7,7 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
 
-const TEST_PROMPT: LanguageModelV4Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
 ];
 
