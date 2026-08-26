@@ -5,6 +5,12 @@ import {
 import {
   convertBase64ToUint8Array,
   convertToBase64,
+<<<<<<< HEAD
+=======
+  getTopLevelMediaType,
+  resolveProviderReference,
+  resolveFullMediaType,
+>>>>>>> 8fca314f91 (fix: Moonshot chat rejects supported provider file references and inline text file parts (#19585))
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
@@ -87,6 +93,7 @@ export function convertToMoonshotAIChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'file': {
+<<<<<<< HEAD
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType = validateMediaType({
                     mediaType: part.mediaType,
@@ -103,6 +110,100 @@ export function convertToMoonshotAIChatMessages(
                           : `data:${mediaType};base64,${convertToBase64(part.data)}`,
                     },
                   };
+=======
+                const topLevel = getTopLevelMediaType(part.mediaType);
+
+                switch (part.data.type) {
+                  case 'reference': {
+                    if (topLevel !== 'image' && topLevel !== 'video') {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `file part media type ${part.mediaType}`,
+                      });
+                    }
+
+                    const reference = resolveProviderReference({
+                      reference: part.data.reference,
+                      provider: 'moonshotai',
+                    });
+
+                    if (!reference.startsWith('ms://')) {
+                      throw new UnsupportedFunctionalityError({
+                        functionality:
+                          'Moonshot file provider references without an ms:// URL',
+                      });
+                    }
+
+                    return topLevel === 'image'
+                      ? {
+                          type: 'image_url' as const,
+                          image_url: { url: reference },
+                        }
+                      : {
+                          type: 'video_url' as const,
+                          video_url: { url: reference },
+                        };
+                  }
+                  case 'text': {
+                    if (topLevel === 'text') {
+                      return {
+                        type: 'text' as const,
+                        text: part.data.text,
+                      };
+                    }
+
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${part.mediaType}`,
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    if (topLevel === 'image') {
+                      return {
+                        type: 'image_url' as const,
+                        image_url: {
+                          url: formatMediaUrl({
+                            part,
+                            supportedMediaTypes: supportedImageMediaTypes,
+                            topLevelMediaType: 'image',
+                          }),
+                        },
+                      };
+                    }
+
+                    if (topLevel === 'video') {
+                      return {
+                        type: 'video_url' as const,
+                        video_url: {
+                          url: formatMediaUrl({
+                            part,
+                            supportedMediaTypes: supportedVideoMediaTypes,
+                            topLevelMediaType: 'video',
+                          }),
+                        },
+                      };
+                    }
+
+                    if (topLevel === 'text') {
+                      const textContent =
+                        part.data.type === 'url'
+                          ? part.data.url.toString()
+                          : typeof part.data.data === 'string'
+                            ? new TextDecoder().decode(
+                                convertBase64ToUint8Array(part.data.data),
+                              )
+                            : new TextDecoder().decode(part.data.data);
+
+                      return {
+                        type: 'text' as const,
+                        text: textContent,
+                      };
+                    }
+
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `file part media type ${part.mediaType}`,
+                    });
+                  }
+>>>>>>> 8fca314f91 (fix: Moonshot chat rejects supported provider file references and inline text file parts (#19585))
                 }
 
                 if (part.mediaType.startsWith('video/')) {

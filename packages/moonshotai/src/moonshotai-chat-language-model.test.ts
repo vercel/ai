@@ -245,6 +245,102 @@ describe('doGenerate', () => {
     });
   });
 
+<<<<<<< HEAD
+=======
+  describe('file data', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-text');
+    });
+
+    it.each([
+      {
+        mediaType: 'image',
+        content: {
+          type: 'image_url',
+          image_url: { url: 'ms://file-image' },
+        },
+      },
+      {
+        mediaType: 'video',
+        content: {
+          type: 'video_url',
+          video_url: { url: 'ms://file-video' },
+        },
+      },
+    ] as const)(
+      'should send ms:// references with top-level $mediaType media types',
+      async ({ mediaType, content }) => {
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url' as const,
+                    url: new URL(`ms://file-${mediaType}`),
+                  },
+                  mediaType,
+                },
+              ],
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.messages[0].content).toEqual([content]);
+      },
+    );
+
+    it('should send text data and Moonshot provider references as native content parts', async () => {
+      await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'text', text: 'inline document text' },
+                mediaType: 'text/plain',
+              },
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: { moonshotai: 'ms://image-file-123' },
+                },
+                mediaType: 'image/png',
+              },
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: { moonshotai: 'ms://video-file-123' },
+                },
+                mediaType: 'video/mp4',
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        { type: 'text', text: 'inline document text' },
+        {
+          type: 'image_url',
+          image_url: { url: 'ms://image-file-123' },
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'ms://video-file-123' },
+        },
+      ]);
+    });
+  });
+
+>>>>>>> 8fca314f91 (fix: Moonshot chat rejects supported provider file references and inline text file parts (#19585))
   describe('thinking options', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('moonshotai-reasoning');
