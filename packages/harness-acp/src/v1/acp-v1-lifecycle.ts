@@ -6,7 +6,9 @@ import type {
 
 export type ACPPromptGuidanceLifecycleState = {
   readonly initialGuidanceApplied?: boolean;
+  readonly skillsMaterialized?: boolean;
   readonly skillsFingerprint?: string;
+  readonly skillsDirectory?: string;
 };
 
 export type ACPBridgeCoordinates = {
@@ -20,6 +22,7 @@ export type ACPBridgeCoordinates = {
 export type ACPLifecycleData = ACPPromptGuidanceLifecycleState & {
   readonly implementationIdentity: string;
   readonly authenticationProfile?: ACPAuthenticationProfileIdentity;
+  readonly sandboxCredentialEnvironment?: Readonly<Record<string, string>>;
   readonly acpSessionId?: string;
   readonly bridge?: ACPBridgeCoordinates;
   readonly coldSession?: ACPColdSessionState;

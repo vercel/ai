@@ -9,10 +9,25 @@ export type MoonshotAIMessage =
   | MoonshotAIAssistantMessage
   | MoonshotAIToolMessage;
 
-export interface MoonshotAISystemMessage {
-  role: 'system';
-  content: string;
-  name?: string;
+export type MoonshotAISystemMessage =
+  | {
+      role: 'system';
+      content: string;
+      name?: string;
+    }
+  | {
+      role: 'system';
+      tools: Array<MoonshotAIFunctionTool>;
+    };
+
+export interface MoonshotAIFunctionTool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string | undefined;
+    parameters: unknown;
+    strict?: boolean;
+  };
 }
 
 export interface MoonshotAIUserMessage {
@@ -68,19 +83,20 @@ export interface MoonshotAIToolMessage {
 // Schemas below are limited versions focused on what the implementation
 // needs. This limits breakages when the API changes and increases efficiency.
 
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
 const tokenUsageSchema = z
-  .object({
+  .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     cached_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
     prompt_tokens_details: z
-      .object({
+      .looseObject({
         cached_tokens: z.number().nullish(),
       })
       .nullish(),
     completion_tokens_details: z
-      .object({
+      .looseObject({
         reasoning_tokens: z.number().nullish(),
       })
       .nullish(),
@@ -93,6 +109,7 @@ export const moonshotAIErrorSchema = z.object({
   error: z.object({
     message: z.string(),
     type: z.string().nullish(),
+    code: z.string().nullish(),
   }),
 });
 
@@ -123,8 +140,10 @@ export const moonshotAIChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
+  object: z.literal('chat.completion').nullish(),
   choices: z.array(
     z.object({
+      index: z.number().nullish(),
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
@@ -133,6 +152,7 @@ export const moonshotAIChatResponseSchema = z.object({
           .array(
             z.object({
               id: z.string().nullish(),
+              type: z.literal('function').nullish(),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
@@ -155,8 +175,10 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
         id: z.string().nullish(),
         created: z.number().nullish(),
         model: z.string().nullish(),
+        object: z.literal('chat.completion.chunk').nullish(),
         choices: z.array(
           z.object({
+            index: z.number().nullish(),
             delta: z
               .object({
                 role: z.literal('assistant').nullish(),
@@ -167,6 +189,7 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
                     z.object({
                       index: z.number().nullish(),
                       id: z.string().nullish(),
+                      type: z.literal('function').nullish(),
                       function: z.object({
                         name: z.string().nullish(),
                         arguments: z.string().nullish(),

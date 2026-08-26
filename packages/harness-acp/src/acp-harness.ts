@@ -50,6 +50,7 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly authentication?: ACPV1Settings['authentication'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
   readonly modelId?: ACPV1Settings['modelId'];
+  readonly skillsDirectory?: ACPV1Settings['skillsDirectory'];
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
   readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
@@ -85,6 +86,7 @@ const acpResumeStateSchema = z.object({
         .optional(),
     })
     .optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
   acpSessionId: z.string().optional(),
   bridge: acpBridgeCoordsSchema.optional(),
   coldSession: acpColdSessionStateSchema.optional(),
@@ -103,6 +105,7 @@ const acpResumeStateSchema = z.object({
   initialGuidanceApplied: z.boolean().optional(),
   skillsMaterialized: z.boolean().optional(),
   skillsFingerprint: z.string().optional(),
+  skillsDirectory: z.string().optional(),
 });
 
 export function createACP<TBuiltinTools extends ToolSet = {}>(

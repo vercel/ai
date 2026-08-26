@@ -1,4 +1,15 @@
+import { randomBytes } from 'node:crypto';
 import type { HarnessV1RequestTransformation } from '../v1';
+
+const SANDBOX_CREDENTIAL_PLACEHOLDER_PREFIX = 'aisdkhc_';
+
+export function generateSandboxCredentialPlaceholder(): string {
+  return `${SANDBOX_CREDENTIAL_PLACEHOLDER_PREFIX}${randomBytes(32).toString('base64url')}`;
+}
+
+export function isSandboxCredentialPlaceholder(value: string): boolean {
+  return /^aisdkhc_[A-Za-z0-9_-]{43}$/.test(value);
+}
 
 export function warnCredentialBrokeringUnavailable(): void {
   console.warn(
@@ -23,19 +34,25 @@ export function maskSandboxCredentials({
 }
 
 export function createCredentialRequestTransformation({
-  baseUrl,
-  headers,
+  matchUrl,
+  matchHeaders,
+  transformHeaders,
 }: {
-  baseUrl: string;
-  headers: Readonly<Record<string, string>>;
+  matchUrl: string;
+  matchHeaders: Readonly<Record<string, string>>;
+  transformHeaders: Readonly<Record<string, string>>;
 }): HarnessV1RequestTransformation {
-  const url = new URL(baseUrl);
+  const url = new URL(matchUrl);
   const pathname = url.pathname.replace(/\/+$/, '');
   return {
     match: {
       host: url.hostname,
       ...(pathname.length === 0 ? {} : { path: { startsWith: pathname } }),
+      headers: Object.entries(matchHeaders).map(([key, value]) => ({
+        key: { exact: key },
+        value: { exact: value },
+      })),
     },
-    transform: { headers },
+    transform: { headers: transformHeaders },
   };
 }

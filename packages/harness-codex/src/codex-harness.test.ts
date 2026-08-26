@@ -423,6 +423,12 @@ describe('createCodex adapter', () => {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer ephemeral-CODEX_API_KEY' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
@@ -431,7 +437,7 @@ describe('createCodex adapter', () => {
     ]);
     expect(forwardedCredentials).toEqual([
       {
-        credential: 'CODEX_API_KEY',
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
         environmentVariableName: 'CODEX_API_KEY',
       },
     ]);
@@ -502,18 +508,27 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
 
+    const sandboxCredential = spawnEnvs.at(0)?.CODEX_API_KEY;
+    expect(sandboxCredential).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
         match: {
           host: 'api.openai.com',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${sandboxCredential}` },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
         },
       },
     ]);
-    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe(sandboxCredential);
     expect(spawnEnvs.at(0)?.OPENAI_BASE_URL).toBe('https://api.openai.com/v1');
 
     await session.doDestroy();

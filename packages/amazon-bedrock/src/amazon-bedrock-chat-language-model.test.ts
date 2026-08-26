@@ -3786,10 +3786,13 @@ describe('doGenerate', () => {
             "total": 57,
           },
           "raw": {
+            "cacheReadInputTokenCount": 0,
             "cacheReadInputTokens": 0,
+            "cacheWriteInputTokenCount": 0,
             "cacheWriteInputTokens": 0,
             "inputTokens": 22,
             "outputTokens": 57,
+            "serverToolUsage": {},
             "totalTokens": 79,
           },
         }
@@ -4458,6 +4461,41 @@ describe('doGenerate', () => {
         ],
       },
     });
+  });
+
+  it('should disable parallel tool use without sending conflicting tool choices', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          description: 'A test tool',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          disableParallelToolUse: true,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields).toMatchObject({
+      tool_choice: {
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      },
+    });
+    expect(requestBody.toolConfig.toolChoice).toBeUndefined();
   });
 
   it('should only send the forced tool when toolChoice specifies a specific tool', async () => {

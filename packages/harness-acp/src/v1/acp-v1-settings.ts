@@ -76,8 +76,10 @@ export type ACPProviderAuthentication = {
 
 export type ACPCredentialBrokering = ({
   env,
+  sandboxEnv,
 }: {
   env: Readonly<Record<string, string>>;
+  sandboxEnv?: Readonly<Record<string, string>>;
 }) => ReadonlyArray<HarnessV1RequestTransformation>;
 
 export type ACPPermissionModeTarget =
@@ -142,6 +144,11 @@ export type ACPV1Settings = {
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPProviderAuthentication;
   readonly modelId?: string;
+  /**
+   * Native skills directory relative to the ACP implementation's home
+   * directory. Defaults to `.agents/skills`.
+   */
+  readonly skillsDirectory?: string;
   /**
    * Routes HarnessAgent instructions to a runtime-native system or developer
    * prompt. When omitted, instructions are prepended to the first user prompt.

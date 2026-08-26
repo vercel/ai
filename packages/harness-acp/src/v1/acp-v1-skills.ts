@@ -3,9 +3,9 @@ import path from 'node:path';
 import type { HarnessV1Skill } from '@ai-sdk/harness';
 import { writeSkills, type WriteSkillsResult } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
-import type { ACPSkillCatalogEntry } from './acp-v1-prompt';
 
 const ACP_SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const DEFAULT_ACP_SKILLS_DIRECTORY = '.agents/skills';
 
 export function createACPSkillsFingerprint({
   skills,
@@ -59,38 +59,21 @@ export function resolveACPPrivateSessionDirectory({
 
 export async function materializeACPSkills({
   sandbox,
-  sandboxHomeDir,
+  rootDir,
   sessionWorkDir,
-  harnessId,
-  sessionId,
   skills,
   abortSignal,
 }: {
   sandbox: Experimental_SandboxSession;
-  sandboxHomeDir: string;
+  rootDir: string;
   sessionWorkDir: string;
-  harnessId: string;
-  sessionId: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
-}): Promise<{
-  readonly catalog: ReadonlyArray<ACPSkillCatalogEntry>;
-  readonly rootDir: string;
-  readonly result: WriteSkillsResult;
-}> {
+}): Promise<WriteSkillsResult> {
   validateACPSkills({ skills });
+  assertOutsideSessionWorkDir({ rootDir, sessionWorkDir });
 
-  const rootDir = path.posix.join(
-    resolveACPPrivateSessionDirectory({
-      sandboxHomeDir,
-      sessionWorkDir,
-      harnessId,
-      sessionId,
-    }),
-    'skills',
-  );
-
-  const result = await writeSkills({
+  return writeSkills({
     sandbox,
     rootDir,
     skills,
@@ -103,16 +86,40 @@ export async function materializeACPSkills({
         skillName,
       )}: expected a relative POSIX path without traversal.`,
   });
+}
 
-  return {
-    rootDir,
-    result,
-    catalog: skills.map(skill => ({
-      name: skill.name,
-      description: skill.description,
-      path: path.posix.join(rootDir, skill.name, 'SKILL.md'),
-    })),
-  };
+export function resolveACPSkillsDirectory({
+  implementationHomeDir,
+  skillsDirectory = DEFAULT_ACP_SKILLS_DIRECTORY,
+  sessionWorkDir,
+}: {
+  implementationHomeDir: string;
+  skillsDirectory?: string;
+  sessionWorkDir: string;
+}): string {
+  const containsTraversal = skillsDirectory
+    .split(/[\\/]/)
+    .some(segment => segment === '..');
+  const normalizedDirectory = path.posix.normalize(skillsDirectory);
+  if (
+    skillsDirectory.length === 0 ||
+    skillsDirectory.includes('\\') ||
+    path.posix.isAbsolute(skillsDirectory) ||
+    path.win32.isAbsolute(skillsDirectory) ||
+    containsTraversal ||
+    normalizedDirectory === '.' ||
+    normalizedDirectory.startsWith('../') ||
+    normalizedDirectory.includes('/../') ||
+    normalizedDirectory.endsWith('/..')
+  ) {
+    throw new Error(
+      `ACP skillsDirectory ${JSON.stringify(skillsDirectory)} must be a relative POSIX path without traversal.`,
+    );
+  }
+
+  const rootDir = path.posix.join(implementationHomeDir, normalizedDirectory);
+  assertOutsideSessionWorkDir({ rootDir, sessionWorkDir });
+  return rootDir;
 }
 
 function validateACPSkills({

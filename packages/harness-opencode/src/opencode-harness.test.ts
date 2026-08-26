@@ -414,6 +414,12 @@ describe('createOpenCode adapter', () => {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer ephemeral-OPENAI_API_KEY' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
@@ -422,7 +428,7 @@ describe('createOpenCode adapter', () => {
     ]);
     expect(forwardedCredentials).toEqual([
       {
-        credential: 'OPENAI_API_KEY',
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
         environmentVariableName: 'OPENAI_API_KEY',
       },
     ]);
