@@ -24,6 +24,7 @@ const adapter = createOpenCode({
 ```
 
 Adapter-managed settings take precedence when the same key is present in
-`openCodeConfig`.
+`openCodeConfig`. Agent-local `permission` and deprecated `tools` settings are
+ignored so they cannot bypass harness permissions or built-in tool filtering.
 
 See the AI SDK documentation for usage.

@@ -72,7 +72,20 @@ describe('OpenCode bridge turn settlement', () => {
       },
     };
     const openCodeConfig = {
-      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
       share: 'manual',
     };
     bridgeMock.start = {
@@ -138,13 +151,37 @@ describe('OpenCode bridge turn settlement', () => {
 
     await import('./index');
 
-    expect(sdkMock.serverOptions[0]?.config).toMatchObject({
+    const serverConfig = sdkMock.serverOptions[0]?.config as Record<
+      string,
+      unknown
+    >;
+    expect(serverConfig).toMatchObject({
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      mode: { plan: { model: 'openai/gpt-5.4-mini' } },
       model: 'openai/gpt-5.6-sol',
       share: 'disabled',
     });
+    expect(serverConfig.agent).toEqual({
+      general: { model: 'openai/gpt-5.4-mini' },
+    });
+    expect(serverConfig.mode).toEqual({
+      plan: { model: 'openai/gpt-5.4-mini' },
+    });
     expect(openCodeConfig).toEqual({
-      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
       share: 'manual',
     });
     expect(userMessages.close).toHaveBeenCalledWith(
