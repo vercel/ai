@@ -106,6 +106,26 @@ const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
 
+const openaiModelId = 'openai.gpt-oss-120b-1:0';
+const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  openaiModelId,
+)}/converse`;
+
+const usOpenaiModelId = 'us.openai.gpt-5.6-luna';
+const usOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  usOpenaiModelId,
+)}/converse`;
+
+const globalOpenaiModelId = 'global.openai.gpt-5.6-luna';
+const globalOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  globalOpenaiModelId,
+)}/converse`;
+
+const customOpenaiSubstringModelId = 'custom-openai.gpt-5.6-luna';
+const customOpenaiSubstringGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  customOpenaiSubstringModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -121,6 +141,10 @@ const server = createTestServer({
   [unsupportedStructuredOutputGenerateUrl]: {},
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
+  [openaiGenerateUrl]: {},
+  [usOpenaiGenerateUrl]: {},
+  [globalOpenaiGenerateUrl]: {},
+  [customOpenaiSubstringGenerateUrl]: {},
 });
 
 describe('supportedUrls', () => {
@@ -187,6 +211,13 @@ const model = new BedrockChatLanguageModel(modelId, {
 });
 
 const novaModel = new BedrockChatLanguageModel(novaModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -3652,6 +3683,136 @@ describe('doGenerate', () => {
       },
     });
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it('maps maxReasoningEffort to reasoning_effort for OpenAI gpt-oss models (generate)', async () => {
+    server.urls[openaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await openaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoning_effort: 'medium',
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'maps maxReasoningEffort to nested reasoning.effort for CRIS model %s (generate)',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'stop_sequence',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new BedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              maxReasoningEffort: 'medium',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        additionalModelRequestFields: {
+          reasoning: { effort: 'medium' },
+        },
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.reasoning_effort,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    },
+  );
+
+  it('does not classify custom model IDs containing openai. as OpenAI models', async () => {
+    server.urls[customOpenaiSubstringGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const customModel = new BedrockChatLanguageModel(
+      customOpenaiSubstringModelId,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      },
+    );
+
+    await customModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoningConfig: { maxReasoningEffort: 'medium' },
+      },
+    });
+    expect(requestBody.additionalModelRequestFields?.reasoning).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.reasoning_effort,
+    ).toBeUndefined();
   });
 
   it('maps maxReasoningEffort for Anthropic model using output_config (generate)', async () => {

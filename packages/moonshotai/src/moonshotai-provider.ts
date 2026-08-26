@@ -69,6 +69,21 @@ export interface MoonshotAIProvider extends ProviderV2 {
 
 const defaultBaseURL = 'https://api.moonshot.ai/v1';
 
+export function getModelStructuredOutputSupport(
+  modelId: MoonshotAIChatModelId,
+): boolean {
+  return (
+    modelId.startsWith('kimi-k') ||
+    modelId === 'moonshot-v1-8k' ||
+    modelId === 'moonshot-v1-32k' ||
+    modelId === 'moonshot-v1-128k' ||
+    modelId === 'moonshot-v1-auto' ||
+    modelId === 'moonshot-v1-8k-vision-preview' ||
+    modelId === 'moonshot-v1-32k-vision-preview' ||
+    modelId === 'moonshot-v1-128k-vision-preview'
+  );
+}
+
 export function createMoonshotAI(
   options: MoonshotAIProviderSettings = {},
 ): MoonshotAIProvider {
@@ -105,6 +120,7 @@ export function createMoonshotAI(
       ...getCommonModelConfig('chat'),
       includeUsage: true,
       errorStructure: moonshotaiErrorStructure,
+      supportsStructuredOutputs: getModelStructuredOutputSupport(modelId),
     });
   };
 

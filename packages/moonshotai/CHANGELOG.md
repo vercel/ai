@@ -1,5 +1,26 @@
 # @ai-sdk/moonshotai
 
+## 0.0.22
+
+### Patch Changes
+
+- cef6cbe: Normalize Moonshot structured output schemas and enable strict validation by default.
+- c4c0ba6: Use native JSON Schema structured outputs for official Moonshot V1 models.
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
+
+## 0.0.21
+
+### Patch Changes
+
+- 2836c36: fix(provider/moonshotai): align thinking and reasoning options by model
+- 104d4e2: fix(provider/moonshotai): omit unsupported sampling parameters for Kimi models
+- 47a3944: Omit required tool choice with a warning for Moonshot Kimi models that reject it.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/openai-compatible@1.0.50
+
 ## 0.0.20
 
 ### Patch Changes

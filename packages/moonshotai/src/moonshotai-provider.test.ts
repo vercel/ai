@@ -1,5 +1,8 @@
 import { type Mock, describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMoonshotAI } from './moonshotai-provider';
+import {
+  createMoonshotAI,
+  getModelStructuredOutputSupport,
+} from './moonshotai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { MoonshotAIChatLanguageModel } from './moonshotai-chat-language-model';
 
@@ -19,6 +22,26 @@ vi.mock('./moonshotai-chat-language-model', () => {
   return {
     MoonshotAIChatLanguageModel: mockConstructor,
   };
+});
+
+describe('getModelStructuredOutputSupport', () => {
+  it.each([
+    ['kimi-k2.5', true],
+    ['kimi-k2.6', true],
+    ['kimi-k2.7-code', true],
+    ['kimi-k3', true],
+    ['moonshot-v1-8k', true],
+    ['moonshot-v1-32k', true],
+    ['moonshot-v1-128k', true],
+    ['moonshot-v1-auto', true],
+    ['moonshot-v1-8k-vision-preview', true],
+    ['moonshot-v1-32k-vision-preview', true],
+    ['moonshot-v1-128k-vision-preview', true],
+    ['moonshot-v1-custom', false],
+    ['custom-model', false],
+  ])('returns %s support as %s', (modelId, expected) => {
+    expect(getModelStructuredOutputSupport(modelId)).toBe(expected);
+  });
 });
 
 vi.mock('@ai-sdk/provider-utils', async () => {

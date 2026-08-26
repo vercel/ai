@@ -1,5 +1,20 @@
 # @ai-sdk/gateway
 
+## 2.0.142
+
+### Patch Changes
+
+- 326a47b: Backport: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+
+## 2.0.141
+
+### Patch Changes
+
+- 8c37324: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
 ## 2.0.140
 
 ### Patch Changes

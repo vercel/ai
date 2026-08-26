@@ -397,7 +397,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       },
       totalTokens: undefined,
     };
-    let lastUsage: z.infer<typeof openaiCompatibleTokenUsageSchema> = undefined;
+    let topLevelUsage: z.infer<typeof openaiCompatibleTokenUsageSchema> =
+      undefined;
+    let choiceUsage: z.infer<typeof openaiCompatibleTokenUsageSchema> =
+      undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
@@ -405,6 +408,23 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     const convertUsage = (
       usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
     ) => this.convertUsage(usage);
+    const setUsage = (
+      tokenUsage: NonNullable<z.infer<typeof openaiCompatibleTokenUsageSchema>>,
+    ) => {
+      usage.promptTokens = tokenUsage.prompt_tokens ?? undefined;
+      usage.completionTokens = tokenUsage.completion_tokens ?? undefined;
+      usage.totalTokens = tokenUsage.total_tokens ?? undefined;
+      usage.completionTokensDetails.reasoningTokens =
+        tokenUsage.completion_tokens_details?.reasoning_tokens ?? undefined;
+      usage.completionTokensDetails.acceptedPredictionTokens =
+        tokenUsage.completion_tokens_details?.accepted_prediction_tokens ??
+        undefined;
+      usage.completionTokensDetails.rejectedPredictionTokens =
+        tokenUsage.completion_tokens_details?.rejected_prediction_tokens ??
+        undefined;
+      usage.promptTokensDetails.cachedTokens =
+        tokenUsage.prompt_tokens_details?.cached_tokens ?? undefined;
+    };
 
     return {
       stream: response.pipeThrough(
@@ -450,41 +470,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.usage != null) {
-              lastUsage = value.usage;
-              const {
-                prompt_tokens,
-                completion_tokens,
-                total_tokens,
-                prompt_tokens_details,
-                completion_tokens_details,
-              } = value.usage;
-
-              usage.promptTokens = prompt_tokens ?? undefined;
-              usage.completionTokens = completion_tokens ?? undefined;
-              usage.totalTokens = total_tokens ?? undefined;
-              if (completion_tokens_details?.reasoning_tokens != null) {
-                usage.completionTokensDetails.reasoningTokens =
-                  completion_tokens_details?.reasoning_tokens;
-              }
-              if (
-                completion_tokens_details?.accepted_prediction_tokens != null
-              ) {
-                usage.completionTokensDetails.acceptedPredictionTokens =
-                  completion_tokens_details?.accepted_prediction_tokens;
-              }
-              if (
-                completion_tokens_details?.rejected_prediction_tokens != null
-              ) {
-                usage.completionTokensDetails.rejectedPredictionTokens =
-                  completion_tokens_details?.rejected_prediction_tokens;
-              }
-              if (prompt_tokens_details?.cached_tokens != null) {
-                usage.promptTokensDetails.cachedTokens =
-                  prompt_tokens_details?.cached_tokens;
-              }
+              topLevelUsage = value.usage;
+              setUsage(value.usage);
             }
 
             const choice = value.choices[0];
+
+            if (choice?.usage != null) {
+              choiceUsage = choice.usage;
+
+              if (topLevelUsage == null) {
+                setUsage(choice.usage);
+              }
+            }
 
             if (choice?.finish_reason != null) {
               finishReason = mapOpenAICompatibleFinishReason(
@@ -530,8 +528,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             }
 
             if (delta.tool_calls != null) {
-              for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
+              for (const [
+                fallbackIndex,
+                toolCallDelta,
+              ] of delta.tool_calls.entries()) {
+                const index = toolCallDelta.index ?? fallbackIndex;
 
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.id == null) {
@@ -688,7 +689,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertUsage(lastUsage),
+              usage: convertUsage(topLevelUsage ?? choiceUsage),
               providerMetadata,
             });
           },
@@ -789,7 +790,7 @@ const createOpenAICompatibleChatChunkSchema = <
               tool_calls: z
                 .array(
                   z.object({
-                    index: z.number(),
+                    index: z.number().nullish(),
                     id: z.string().nullish(),
                     function: z.object({
                       name: z.string().nullish(),
@@ -801,6 +802,7 @@ const createOpenAICompatibleChatChunkSchema = <
             })
             .nullish(),
           finish_reason: z.string().nullish(),
+          usage: openaiCompatibleTokenUsageSchema,
         }),
       ),
       usage: openaiCompatibleTokenUsageSchema,

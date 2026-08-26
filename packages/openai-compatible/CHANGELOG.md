@@ -1,5 +1,19 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.51
+
+### Patch Changes
+
+- e264a35: Accept streaming tool calls without explicit indices and preserve choice-level usage with top-level precedence.
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
 ## 1.0.49
 
 ### Patch Changes

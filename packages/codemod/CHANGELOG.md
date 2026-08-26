@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.17
+
+### Patch Changes
+
+- f8b2365: Fix codemod scaffolding when target directories are missing.
+
 ## 2.0.16
 
 ### Patch Changes

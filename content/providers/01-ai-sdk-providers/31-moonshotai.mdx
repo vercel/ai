@@ -91,9 +91,33 @@ const model = moonshotai.languageModel('kimi-k3');
 Moonshot AI language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+Moonshot V1 models support the standard `temperature`, `topP`,
+`presencePenalty`, and `frequencyPenalty` settings. Kimi models use fixed
+sampling parameters; the provider omits those settings for Kimi requests and
+returns an unsupported-setting warning when they are supplied.
+
+Kimi K3 supports `toolChoice: 'required'`. Kimi K2.6 and the Kimi K2.7 Code
+models reject that setting, so the provider omits it and returns an
+unsupported-setting warning for those model IDs. Other tool choice modes are
+passed through unchanged.
+
+### Structured Outputs
+
+Native structured outputs are enabled for Kimi K models and the official
+Moonshot V1 text, auto, and vision models.
+
+The provider normalizes schemas to Moonshot's supported JSON Schema subset and
+enables strict schema validation by default.
+
+For unknown custom model IDs, object generation falls back to JSON mode instead
+of schema-constrained decoding.
+
+For best reliability, include your schema requirements in the prompt in
+addition to passing the schema to `generateObject`.
+
 ### Reasoning Models
 
-Kimi K3 always reasons. It currently supports only the `max` reasoning effort,
+Kimi K3 always reasons. It supports `low`, `high`, and `max` reasoning effort,
 which you can configure through provider options:
 
 ```ts
@@ -114,18 +138,20 @@ console.log(reasoningText);
 console.log(text);
 ```
 
-Moonshot AI offers thinking models like `kimi-k2-thinking` that generate intermediate reasoning tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
+Kimi K2.5 and K2.6 can enable or disable thinking. Kimi K2.7 always has
+thinking and preserved reasoning enabled. The reasoning output is streamed
+through the standard AI SDK reasoning parts.
 
 ```ts
 import { moonshotai, type MoonshotAIProviderOptions } from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';
 
 const { text, reasoningText } = await generateText({
-  model: moonshotai('kimi-k2-thinking'),
+  model: moonshotai('kimi-k2.6'),
   providerOptions: {
     moonshotai: {
-      thinking: { type: 'enabled', budgetTokens: 2048 },
-      reasoningHistory: 'interleaved',
+      thinking: { type: 'enabled' },
+      reasoningHistory: 'preserved',
     } satisfies MoonshotAIProviderOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
@@ -141,27 +167,34 @@ See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on 
 
 The following optional provider options are available for Moonshot AI language models:
 
-- **reasoningEffort** _'max'_
+- **strictJsonSchema** _boolean_
 
-  Reasoning effort for Kimi K3. Currently, only `'max'` is supported.
+  Whether to use strict JSON schema validation for structured outputs. Defaults
+  to `true`.
+
+- **reasoningEffort** _'low' | 'high' | 'max'_
+
+  Reasoning effort for Kimi K3.
 
 - **thinking** _object_
 
-  Configuration for thinking/reasoning models like Kimi K2 Thinking.
+  Configuration for Kimi K2.5 and K2.6. Kimi K2.7 accepts only `enabled`
+  because its thinking cannot be disabled. Kimi K3 does not accept this field.
   - **type** _'enabled' | 'disabled'_
 
     Whether to enable thinking mode
 
-  - **budgetTokens** _number_
-
-    Maximum number of tokens for thinking (minimum 1024)
+  The previously exposed `budgetTokens` option is deprecated because Moonshot
+  Chat Completions does not support thinking budgets. The provider omits it and
+  returns a warning.
 
 - **reasoningHistory** _'disabled' | 'interleaved' | 'preserved'_
 
   Controls how reasoning history is handled in multi-turn conversations:
   - `'disabled'`: Remove reasoning from history
   - `'interleaved'`: Include reasoning between tool calls within a single turn
-  - `'preserved'`: Keep all reasoning in history
+  - `'preserved'`: Keep all reasoning in history. For Kimi K2.6, this maps to
+    `thinking.keep: 'all'`. Kimi K2.7 and K3 always preserve reasoning.
 
 ## Model Capabilities
 
