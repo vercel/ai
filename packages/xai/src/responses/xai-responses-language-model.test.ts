@@ -3381,6 +3381,10 @@ describe('XaiResponsesLanguageModel', () => {
                   "total": 50,
                 },
                 "raw": {
+                  "context_details": {
+                    "input_tokens": 80,
+                    "output_tokens": 20,
+                  },
                   "cost_in_usd_ticks": 123456,
                   "input_tokens": 100,
                   "input_tokens_details": {
@@ -3391,6 +3395,15 @@ describe('XaiResponsesLanguageModel', () => {
                   "output_tokens": 50,
                   "output_tokens_details": {
                     "reasoning_tokens": 30,
+                  },
+                  "server_side_tool_usage_details": {
+                    "code_interpreter_calls": 0,
+                    "document_search_calls": 0,
+                    "file_search_calls": 0,
+                    "image_generation_calls": 1,
+                    "mcp_calls": 0,
+                    "web_search_calls": 0,
+                    "x_search_calls": 0,
                   },
                   "total_tokens": 150,
                 },
