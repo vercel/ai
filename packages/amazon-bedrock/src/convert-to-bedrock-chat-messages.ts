@@ -231,7 +231,12 @@ export async function convertToBedrockChatMessages(
           }
         }
 
-        messages.push({ role: 'user', content: bedrockContent });
+        const previousMessage = messages.at(-1);
+        if (previousMessage?.role === 'user') {
+          previousMessage.content.push(...bedrockContent);
+        } else {
+          messages.push({ role: 'user', content: bedrockContent });
+        }
 
         break;
       }
@@ -334,7 +339,9 @@ export async function convertToBedrockChatMessages(
           }
         }
 
-        messages.push({ role: 'assistant', content: bedrockContent });
+        if (bedrockContent.length > 0) {
+          messages.push({ role: 'assistant', content: bedrockContent });
+        }
 
         break;
       }
