@@ -13,6 +13,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   isCustomReasoning,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -41,13 +42,98 @@ import {
 } from './xai-responses-language-model-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
-type XaiResponsesConfig = {
+export type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
   headers?: () => Record<string, string | undefined>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
+
+function createXaiResponsesStreamError({
+  message,
+  code,
+  eventType,
+  data,
+}: {
+  message: string;
+  code?: string | null;
+  eventType: 'error' | 'response.failed';
+  data: unknown;
+}) {
+  const statusCode = getHttpStatusCode(code);
+
+  return createProviderStreamError({
+    message,
+    type: eventType,
+    code: code ?? undefined,
+    ...(statusCode != null
+      ? {
+          statusCode,
+          isRetryable: isRetryableStatusCode(statusCode),
+        }
+      : getXaiResponsesStreamErrorMetadata(code)),
+    data,
+  });
+}
+
+function getXaiResponsesStreamErrorMetadata(code?: string | null): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  switch (code) {
+    case 'rate_limit_exceeded':
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'insufficient_quota':
+      return { statusCode: 429, isRetryable: false };
+    case 'api_error':
+    case 'internal_server_error':
+    case 'server_error':
+      return { statusCode: 500, isRetryable: true };
+    case 'overloaded_error':
+    case 'service_unavailable':
+      return { statusCode: 503, isRetryable: true };
+    case 'timeout':
+    case 'timeout_error':
+      return { statusCode: 504, isRetryable: true };
+    case 'authentication_error':
+    case 'invalid_api_key':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'not_found_error':
+    case 'model_not_found':
+      return { statusCode: 404, isRetryable: false };
+    case 'bad_request':
+    case 'context_length_exceeded':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    default:
+      return {};
+  }
+}
+
+function getHttpStatusCode(value: unknown): number | undefined {
+  const statusCode =
+    typeof value === 'string' && /^\d{3}$/.test(value) ? Number(value) : value;
+
+  return typeof statusCode === 'number' &&
+    Number.isInteger(statusCode) &&
+    statusCode >= 400 &&
+    statusCode <= 599
+    ? statusCode
+    : undefined;
+}
+
+function isRetryableStatusCode(statusCode: number): boolean {
+  return (
+    statusCode === 408 ||
+    statusCode === 409 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
+}
 
 export class XaiResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -88,7 +174,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     'text/*': [/^https?:\/\/.*$/],
   };
 
-  private async getArgs({
+  protected async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -820,11 +906,31 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 usage = convertXaiResponsesUsage(event.response.usage);
               }
 
+              if (event.response.error != null) {
+                controller.enqueue({
+                  type: 'error',
+                  error: createXaiResponsesStreamError({
+                    message: event.response.error.message,
+                    code: event.response.error.code,
+                    eventType: event.type,
+                    data: event,
+                  }),
+                });
+              }
+
               return;
             }
 
             if (event.type === 'error') {
-              controller.enqueue({ type: 'error', error: event });
+              controller.enqueue({
+                type: 'error',
+                error: createXaiResponsesStreamError({
+                  message: event.message,
+                  code: event.code,
+                  eventType: event.type,
+                  data: event,
+                }),
+              });
               return;
             }
 

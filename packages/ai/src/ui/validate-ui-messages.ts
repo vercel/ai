@@ -132,6 +132,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
+                    requestReason: z.string().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -151,6 +152,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.boolean(),
+                    requestReason: z.string().optional(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -173,6 +175,7 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      requestReason: z.string().optional(),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
@@ -196,6 +199,7 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      requestReason: z.string().optional(),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
@@ -216,6 +220,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.literal(false),
+                    requestReason: z.string().optional(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -258,6 +263,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
+                    requestReason: z.string().optional(),
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -276,6 +282,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.boolean(),
+                    requestReason: z.string().optional(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
@@ -297,6 +304,7 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      requestReason: z.string().optional(),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
@@ -319,6 +327,7 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+                      requestReason: z.string().optional(),
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
@@ -338,6 +347,7 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.literal(false),
+                    requestReason: z.string().optional(),
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),

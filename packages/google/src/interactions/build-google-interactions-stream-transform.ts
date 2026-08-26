@@ -6,7 +6,10 @@ import type {
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { ParseResult } from '@ai-sdk/provider-utils';
+import {
+  createProviderStreamError,
+  type ParseResult,
+} from '@ai-sdk/provider-utils';
 import type {
   GoogleInteractionsEvent,
   GoogleInteractionsUsage,
@@ -821,10 +824,15 @@ export function buildGoogleInteractionsStreamTransform({
             { event_type: 'error' }
           >;
           finishStatus = 'failed';
-          const errorPayload = event.error ?? {
-            message: 'Unknown interaction error',
-          };
-          controller.enqueue({ type: 'error', error: errorPayload });
+          controller.enqueue({
+            type: 'error',
+            error: createProviderStreamError({
+              message: event.error?.message ?? 'Unknown interaction error',
+              type: event.event_type,
+              code: event.error?.code ?? undefined,
+              data: event,
+            }),
+          });
           break;
         }
 

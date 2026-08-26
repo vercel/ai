@@ -2,7 +2,10 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import type { ParseResult } from '@ai-sdk/provider-utils';
+import {
+  isProviderStreamError,
+  type ParseResult,
+} from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import type { GoogleInteractionsEvent } from './google-interactions-api';
@@ -249,5 +252,35 @@ describe('buildGoogleInteractionsStreamTransform — tool call IDs', () => {
         result: [],
       },
     ]);
+  });
+});
+
+describe('buildGoogleInteractionsStreamTransform — errors', () => {
+  it('preserves the event type, code, and raw error event', async () => {
+    const error = {
+      code: '429',
+      message: 'Rate limit reached',
+    };
+    const event: GoogleInteractionsEvent = {
+      event_type: 'error',
+      event_id: 'event-error',
+      error,
+    };
+
+    const parts = await runTransform([event]);
+    const errorPart = parts.find(part => part.type === 'error');
+
+    expect(errorPart).toBeDefined();
+    expect(isProviderStreamError(errorPart!.error)).toBe(true);
+    expect(errorPart!.error).toMatchObject({
+      message: error.message,
+      type: event.event_type,
+      code: error.code,
+      data: event,
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: { unified: 'error' },
+    });
   });
 });

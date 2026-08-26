@@ -1,5 +1,24 @@
 # @ai-sdk/workflow
 
+## 2.0.11
+
+### Patch Changes
+
+- aed8ff3: Add durable video generation that waits for a Workflow webhook and returns provider video data without downloading hosted URLs.
+  - ai@7.0.81
+
+## 2.0.10
+
+### Patch Changes
+
+- e21bde7: Preserve function tool input examples and provider options across workflow step boundaries.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+- Updated dependencies [eed7950]
+  - @ai-sdk/provider-utils@5.0.31
+  - ai@7.0.80
+
 ## 2.0.9
 
 ### Patch Changes
