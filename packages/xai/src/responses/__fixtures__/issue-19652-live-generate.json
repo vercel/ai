@@ -1,0 +1,34 @@
+{
+  "id": "sanitized-live-response",
+  "model": "grok-4.6",
+  "object": "response",
+  "output": [],
+  "status": "completed",
+  "usage": {
+    "input_tokens": 5165,
+    "input_tokens_details": {
+      "cached_tokens": 1152
+    },
+    "output_tokens": 891,
+    "output_tokens_details": {
+      "reasoning_tokens": 860
+    },
+    "total_tokens": 6056,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 1,
+    "cost_in_usd_ticks": 189480000,
+    "server_side_tool_usage_details": {
+      "web_search_calls": 1,
+      "x_search_calls": 0,
+      "code_interpreter_calls": 0,
+      "file_search_calls": 0,
+      "mcp_calls": 0,
+      "document_search_calls": 0,
+      "image_generation_calls": 0
+    },
+    "context_details": {
+      "input_tokens": 4087,
+      "output_tokens": 489
+    }
+  }
+}
