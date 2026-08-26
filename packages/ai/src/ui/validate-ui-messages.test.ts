@@ -1574,7 +1574,7 @@ describe('validateUIMessages', () => {
       expect(result).toEqual(inputMessages);
     });
 
-    it('should validate reasons on pending approval requests', async () => {
+    it('should validate request and response reasons throughout approval', async () => {
       const inputMessages: TestMessage[] = [
         {
           id: '1',
@@ -1587,7 +1587,19 @@ describe('validateUIMessages', () => {
               input: { foo: 'bar' },
               approval: {
                 id: 'approval-1',
-                reason: 'requires operator review',
+                requestReason: 'requires operator review',
+              },
+            },
+            {
+              type: 'tool-foo',
+              toolCallId: '2',
+              state: 'approval-responded',
+              input: { foo: 'baz' },
+              approval: {
+                id: 'approval-2',
+                approved: true,
+                requestReason: 'requires security review',
+                reason: 'approved by operator',
               },
             },
           ],

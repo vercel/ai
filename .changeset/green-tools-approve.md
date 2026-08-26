@@ -4,4 +4,8 @@
 '@ai-sdk/provider-utils': patch
 ---
 
-Surface policy reasons on tool approval requests that require human approval.
+Allow manual tool approval statuses to include a reason and preserve it across
+core, model, and UI approval requests. OPA `requires-approval` decisions now
+surface their reason to human approvers. UI request chunks serialize the
+optional `reason`, while UI messages retain it as `approval.requestReason`
+separately from an approver's response `reason`.

@@ -2688,7 +2688,7 @@ describe('convertToModelMessages', () => {
             {
               approval: {
                 id: 'a1',
-                reason: 'requires operator review',
+                requestReason: 'requires operator review',
               },
               input: {
                 city: 'Tokyo',
@@ -2711,6 +2711,50 @@ describe('convertToModelMessages', () => {
         toolCallId: 'call-1',
         isAutomatic: undefined,
         reason: 'requires operator review',
+      });
+    });
+
+    it('should keep request and response reasons separate after approval', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              approval: {
+                approved: true,
+                id: 'a1',
+                requestReason: 'requires operator review',
+                reason: 'approved by on-call operator',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      const assistantMessage = result.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'call-1',
+        isAutomatic: undefined,
+        reason: 'requires operator review',
+      });
+
+      const toolMessage = result.find(message => message.role === 'tool');
+      expect(toolMessage?.content).toContainEqual({
+        type: 'tool-approval-response',
+        approvalId: 'a1',
+        approved: true,
+        providerExecuted: undefined,
+        reason: 'approved by on-call operator',
       });
     });
 
