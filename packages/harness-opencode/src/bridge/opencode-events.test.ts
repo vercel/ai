@@ -81,6 +81,21 @@ describe('OpenCode event helpers', () => {
     ).toBe('session-1');
   });
 
+  it('finds legacy message info session ids', () => {
+    expect(
+      getOpenCodeEventSessionId({
+        type: 'message.updated',
+        properties: {
+          info: {
+            id: 'message-1',
+            sessionID: 'session-1',
+            role: 'assistant',
+          },
+        },
+      }),
+    ).toBe('session-1');
+  });
+
   it('emits the resolved assistant model once', () => {
     const state = createTranslationState();
     const emitted: Record<string, unknown>[] = [];
