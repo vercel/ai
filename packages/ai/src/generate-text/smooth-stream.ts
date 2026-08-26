@@ -162,6 +162,10 @@ export function smoothStream<TOOLS extends ToolSet>({
 
           await delay(delayInMs);
         }
+
+        if (buffer.length === 0) {
+          providerMetadata = undefined;
+        }
       },
     });
   };

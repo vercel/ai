@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Preserve provider metadata on every chunk emitted by `smoothStream`.
+Preserve provider metadata on corresponding `smoothStream` chunks without carrying it into subsequent metadata-free deltas.

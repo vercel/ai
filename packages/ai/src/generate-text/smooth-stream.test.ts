@@ -1609,6 +1609,87 @@ describe('smoothStream', () => {
       });
     });
 
+    it('should not carry word-chunk metadata to a subsequent delta type', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_abc123' },
+      };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        {
+          text: 'Signed ',
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          providerMetadata,
+        },
+        {
+          text: 'Plain ',
+          type: 'text-delta',
+          id: 'text-1',
+        },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event !== 'string')).toEqual([
+        {
+          type: 'reasoning-delta',
+          text: 'Signed ',
+          id: 'reasoning-1',
+          providerMetadata,
+        },
+        {
+          type: 'text-delta',
+          text: 'Plain ',
+          id: 'text-1',
+        },
+      ]);
+    });
+
+    it('should not carry line-chunk metadata to a subsequent delta id', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_abc123' },
+      };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        {
+          text: 'Signed line\n',
+          type: 'text-delta',
+          id: 'text-1',
+          providerMetadata,
+        },
+        {
+          text: 'Plain line\n',
+          type: 'text-delta',
+          id: 'text-2',
+        },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: 'line',
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event !== 'string')).toEqual([
+        {
+          type: 'text-delta',
+          text: 'Signed line\n',
+          id: 'text-1',
+          providerMetadata,
+        },
+        {
+          type: 'text-delta',
+          text: 'Plain line\n',
+          id: 'text-2',
+        },
+      ]);
+    });
+
     it('should preserve providerMetadata on reasoning-start for redacted thinking', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         {
