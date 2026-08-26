@@ -212,7 +212,8 @@ export type PiThinkingLevel =
   | 'low'
   | 'medium'
   | 'high'
-  | 'xhigh';
+  | 'xhigh'
+  | 'max';
 
 export interface PiSessionSettings {
   readonly auth?: PiAuthOptions;
