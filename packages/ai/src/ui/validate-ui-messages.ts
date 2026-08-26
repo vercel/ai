@@ -10,15 +10,49 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
-import { providerMetadataSchema } from '../types/provider-metadata';
+import {
+  type ProviderMetadata,
+  providerMetadataSchema,
+} from '../types/provider-metadata';
 import type {
   DataUIPart,
   DynamicToolUIPart,
   InferUIMessageData,
   InferUIMessageTools,
-  ToolUIPart,
   UIMessage,
 } from './ui-messages';
+
+type ValidatedToolPart = {
+  type: `tool-${string}`;
+  toolCallId: string;
+  providerExecuted?: boolean;
+  callProviderMetadata?: ProviderMetadata;
+} & (
+  | {
+      state: 'input-streaming';
+      input?: unknown;
+    }
+  | {
+      state:
+        | 'input-available'
+        | 'approval-requested'
+        | 'approval-responded'
+        | 'output-denied';
+      input: unknown;
+    }
+  | {
+      state: 'output-available';
+      input: unknown;
+      output: unknown;
+      preliminary?: boolean;
+    }
+  | {
+      state: 'output-error';
+      input?: unknown;
+      rawInput?: unknown;
+      errorText: string;
+    }
+);
 
 function isEmptyObject(value: unknown): value is Record<string, never> {
   return (
@@ -29,14 +63,42 @@ function isEmptyObject(value: unknown): value is Record<string, never> {
   );
 }
 
-function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
-  const { type, ...part } = toolPart;
+function asDynamicToolPart(
+  toolPart: Extract<
+    ValidatedToolPart,
+    { state: 'output-available' | 'output-error' }
+  >,
+): DynamicToolUIPart {
+  const common = {
+    type: 'dynamic-tool' as const,
+    toolName: toolPart.type.slice(5),
+    toolCallId: toolPart.toolCallId,
+    ...(toolPart.providerExecuted === undefined
+      ? {}
+      : { providerExecuted: toolPart.providerExecuted }),
+    ...(toolPart.callProviderMetadata === undefined
+      ? {}
+      : { callProviderMetadata: toolPart.callProviderMetadata }),
+  };
+
+  if (toolPart.state === 'output-available') {
+    return {
+      ...common,
+      state: 'output-available',
+      input: toolPart.input,
+      output: toolPart.output,
+      ...(toolPart.preliminary === undefined
+        ? {}
+        : { preliminary: toolPart.preliminary }),
+    };
+  }
 
   return {
-    ...part,
-    type: 'dynamic-tool',
-    toolName: type.slice(5),
-  } as DynamicToolUIPart;
+    ...common,
+    state: 'output-error',
+    input: toolPart.input,
+    errorText: toolPart.errorText,
+  };
 }
 
 const uiMessagesSchema = lazyValidator(() =>
@@ -319,6 +381,23 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
       schema: uiMessagesSchema,
     });
 
+    for (const message of validatedMessages) {
+      for (const part of message.parts) {
+        if (part.type !== 'dynamic-tool' && !part.type.startsWith('tool-')) {
+          continue;
+        }
+
+        const toolPart = part as {
+          state?: string;
+          input?: unknown;
+        };
+
+        if (toolPart.state === 'output-error' && !('input' in toolPart)) {
+          toolPart.input = undefined;
+        }
+      }
+    }
+
     if (metadataSchema) {
       for (const message of validatedMessages) {
         await validateTypes({
@@ -363,24 +442,16 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             continue;
           }
 
-          const toolPart = part as {
-            type: `tool-${string}`;
-            toolCallId: string;
-            state: string;
-            input?: unknown;
-            output?: unknown;
-          };
+          const toolPart = part as ValidatedToolPart;
           const toolName = toolPart.type.slice(5);
           const tool = tools[toolName];
-          const isTerminal =
-            toolPart.state === 'output-available' ||
-            toolPart.state === 'output-error' ||
-            toolPart.state === 'output-denied';
 
-          if (!tool && isTerminal) {
-            message.parts[partIdx] = asDynamicToolPart(
-              toolPart as ToolUIPart,
-            ) as (typeof message.parts)[number];
+          if (
+            !tool &&
+            (toolPart.state === 'output-available' ||
+              toolPart.state === 'output-error')
+          ) {
+            message.parts[partIdx] = asDynamicToolPart(toolPart);
             continue;
           }
 
@@ -394,7 +465,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             };
           }
 
-          let convertToDynamic = false;
+          let dynamicToolPart: DynamicToolUIPart | undefined;
 
           if (toolPart.state === 'output-error') {
             // Failed calls can retain invalid or unparsed input. Preserve
@@ -404,7 +475,10 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
                 value: toolPart.input,
                 schema: tool.inputSchema,
               });
-              convertToDynamic = !result.success;
+
+              if (!result.success) {
+                dynamicToolPart = asDynamicToolPart(toolPart);
+              }
             }
           } else if (toolPart.state === 'output-available') {
             const result = await safeValidateTypes({
@@ -417,17 +491,12 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
               // history. Keep it loadable without assigning the current static
               // tool input type.
               if (isEmptyObject(toolPart.input)) {
-                convertToDynamic = true;
+                dynamicToolPart = asDynamicToolPart(toolPart);
               } else {
                 throw result.error;
               }
             }
-          } else if (
-            toolPart.state === 'input-available' ||
-            toolPart.state === 'approval-requested' ||
-            toolPart.state === 'approval-responded' ||
-            toolPart.state === 'output-denied'
-          ) {
+          } else if (toolPart.state === 'input-available') {
             await validateTypes({
               value: toolPart.input,
               schema: tool.inputSchema,
@@ -441,10 +510,8 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             });
           }
 
-          if (convertToDynamic) {
-            message.parts[partIdx] = asDynamicToolPart(
-              toolPart as ToolUIPart,
-            ) as (typeof message.parts)[number];
+          if (dynamicToolPart) {
+            message.parts[partIdx] = dynamicToolPart;
           }
         }
       }
