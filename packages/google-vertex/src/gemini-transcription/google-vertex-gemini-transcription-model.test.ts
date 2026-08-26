@@ -132,6 +132,64 @@ describe('doGenerate', () => {
     expect(body.generationConfig).toBeUndefined();
   });
 
+  it('extracts text, language, and word segments from the audioTranscription part', async () => {
+    server.urls[generateContentURL].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  audioTranscription: {
+                    text: 'The quick brown fox.',
+                    languageCode: 'en-US',
+                    speakerLabel: 'spk:0',
+                    words: [
+                      {
+                        word: 'The',
+                        startOffset: '0.100s',
+                        endOffset: '0.100s',
+                      },
+                      {
+                        word: 'quick',
+                        startOffset: '0.100s',
+                        endOffset: '0.400s',
+                      },
+                      {
+                        word: 'brown',
+                        startOffset: '0.400s',
+                        endOffset: '0.700s',
+                      },
+                      { word: 'fox.', startOffset: '0.700s', endOffset: '1s' },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        usageMetadata: { promptTokenCount: 64 },
+      },
+    };
+
+    const model = provider.transcription('gemini-3.5-transcribe');
+    const result = await model.doGenerate({
+      audio: new Uint8Array([1, 2, 3, 4]),
+      mediaType: 'audio/wav',
+      providerOptions: {},
+    });
+
+    expect(result.text).toBe('The quick brown fox.');
+    expect(result.language).toBe('en-US');
+    expect(result.segments).toEqual([
+      { text: 'The', startSecond: 0.1, endSecond: 0.1 },
+      { text: 'quick', startSecond: 0.1, endSecond: 0.4 },
+      { text: 'brown', startSecond: 0.4, endSecond: 0.7 },
+      { text: 'fox.', startSecond: 0.7, endSecond: 1 },
+    ]);
+  });
+
   it('rejects unary transcription on live model ids', async () => {
     const model = provider.transcription('gemini-3.5-transcribe-live');
 
