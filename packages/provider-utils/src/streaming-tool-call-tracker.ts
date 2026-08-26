@@ -4,6 +4,10 @@ import {
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import { generateId as defaultGenerateId } from './generate-id';
+import {
+  startsWithStructuredValue,
+  StreamingToolCallArgumentState,
+} from './streaming-tool-call-argument-state';
 
 /**
  * Minimal interface for a streaming tool call delta from an OpenAI-compatible API.
@@ -60,21 +64,10 @@ interface TrackedToolCall {
   sequence: number;
   type: 'function';
   function: { name: string; arguments: string };
-  argumentStructure: ArgumentStructure;
+  argumentState: StreamingToolCallArgumentState;
   hasFinished: boolean;
   metadata?: SharedV4ProviderMetadata;
 }
-
-type ArgumentStructure =
-  | { kind: 'undetermined' }
-  | { kind: 'other' }
-  | {
-      kind: 'structured';
-      stack: Array<'{' | '['>;
-      inString: boolean;
-      escaped: boolean;
-      complete: boolean;
-    };
 
 type ToolCallResolution =
   | { kind: 'existing'; toolCall: TrackedToolCall }
@@ -143,7 +136,7 @@ export class StreamingToolCallTracker<
       name,
       hasExplicitCallStart:
         name != null &&
-        this.startsWithStructuredArguments(toolCallDelta.function?.arguments),
+        startsWithStructuredValue(toolCallDelta.function?.arguments),
     });
 
     if (resolution.kind === 'ambiguous') {
@@ -198,6 +191,19 @@ export class StreamingToolCallTracker<
     }
   }
 
+  /**
+   * Correlation precedence for streamed deltas:
+   *
+   * | ID evidence | index/name evidence | start evidence | resolution |
+   * | --- | --- | --- | --- |
+   * | known | matching | any | matching call, new call, or ambiguity |
+   * | known | conflicting | named | new call |
+   * | unseen | matching | structured start | new call |
+   * | unseen | matching | continuation | matching call or ambiguity |
+   * | absent | matching | any | matching call, new call, or ambiguity |
+   * | absent | absent | named | new call |
+   * | absent | absent | unnamed | sole unfinished call, new call, or ambiguity |
+   */
   private resolveToolCall({
     wireId,
     index,
@@ -330,9 +336,7 @@ export class StreamingToolCallTracker<
     // argument prefix is evidence of another call only after the matching call
     // has completed its own structured argument payload.
     const continuableToolCalls = toolCalls.filter(
-      toolCall =>
-        toolCall.argumentStructure.kind !== 'structured' ||
-        !toolCall.argumentStructure.complete,
+      toolCall => !toolCall.argumentState.hasCompleteStructuredValue,
     );
 
     if (continuableToolCalls.length === 1) {
@@ -342,17 +346,6 @@ export class StreamingToolCallTracker<
     return continuableToolCalls.length > 1
       ? { kind: 'ambiguous' }
       : { kind: 'new' };
-  }
-
-  private startsWithStructuredArguments(
-    argumentsDelta: string | null | undefined,
-  ): boolean {
-    if (typeof argumentsDelta !== 'string') {
-      return false;
-    }
-
-    const firstCharacter = argumentsDelta.trimStart()[0];
-    return firstCharacter === '{' || firstCharacter === '[';
   }
 
   private processNewToolCall(
@@ -410,10 +403,7 @@ export class StreamingToolCallTracker<
         name,
         arguments: initialArguments,
       },
-      argumentStructure: this.updateArgumentStructure(
-        { kind: 'undetermined' },
-        initialArguments,
-      ),
+      argumentState: new StreamingToolCallArgumentState(initialArguments),
       hasFinished: false,
       metadata,
     };
@@ -505,10 +495,7 @@ export class StreamingToolCallTracker<
     }
 
     if (toolCallDelta.function?.arguments != null) {
-      toolCall.argumentStructure = this.updateArgumentStructure(
-        toolCall.argumentStructure,
-        toolCallDelta.function.arguments,
-      );
+      toolCall.argumentState.append(toolCallDelta.function.arguments);
       toolCall.function.arguments += toolCallDelta.function.arguments;
 
       this.controller.enqueue({
@@ -517,69 +504,6 @@ export class StreamingToolCallTracker<
         delta: toolCallDelta.function.arguments,
       });
     }
-  }
-
-  private updateArgumentStructure(
-    state: ArgumentStructure,
-    delta: string,
-  ): ArgumentStructure {
-    let nextState = state;
-
-    for (const character of delta) {
-      if (nextState.kind === 'undetermined') {
-        if (/\s/.test(character)) {
-          continue;
-        }
-
-        if (character !== '{' && character !== '[') {
-          nextState = { kind: 'other' };
-          continue;
-        }
-
-        nextState = {
-          kind: 'structured',
-          stack: [character],
-          inString: false,
-          escaped: false,
-          complete: false,
-        };
-        continue;
-      }
-
-      if (nextState.kind !== 'structured' || nextState.complete) {
-        continue;
-      }
-
-      if (nextState.inString) {
-        if (nextState.escaped) {
-          nextState.escaped = false;
-        } else if (character === '\\') {
-          nextState.escaped = true;
-        } else if (character === '"') {
-          nextState.inString = false;
-        }
-        continue;
-      }
-
-      if (character === '"') {
-        nextState.inString = true;
-      } else if (character === '{' || character === '[') {
-        nextState.stack.push(character);
-      } else if (character === '}' || character === ']') {
-        const expectedOpening = character === '}' ? '{' : '[';
-        if (nextState.stack.at(-1) !== expectedOpening) {
-          nextState = { kind: 'other' };
-          continue;
-        }
-
-        nextState.stack.pop();
-        if (nextState.stack.length === 0) {
-          nextState.complete = true;
-        }
-      }
-    }
-
-    return nextState;
   }
 
   private finishToolCall(toolCall: TrackedToolCall): void {
