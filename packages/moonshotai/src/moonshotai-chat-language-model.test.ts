@@ -7,7 +7,10 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { MoonshotAILanguageModelOptions } from './moonshotai-chat-options';
+import type {
+  MoonshotAILanguageModelOptions,
+  MoonshotAIMessageProviderOptions,
+} from './moonshotai-chat-options';
 import { createMoonshotAI } from './moonshotai-provider';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
@@ -92,6 +95,56 @@ describe('doGenerate', () => {
           "top_p": 0.3,
         }
       `);
+    });
+
+    it('should send message names', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            providerOptions: {
+              moonshotai: {
+                name: 'guide',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'alice',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, Alice.' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'assistant',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            name: 'guide',
+          },
+          { role: 'user', content: 'Hello', name: 'alice' },
+          {
+            role: 'assistant',
+            content: 'Hello, Alice.',
+            name: 'assistant',
+          },
+        ],
+      });
     });
 
     it('should send maxOutputTokens as max_completion_tokens', async () => {

@@ -1,6 +1,8 @@
 import {
+  InvalidArgumentError,
   UnsupportedFunctionalityError,
   type LanguageModelV3Prompt,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -8,6 +10,31 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
+import { moonshotaiMessageProviderOptions } from './moonshotai-chat-options';
+
+function parseMoonshotAIMessageProviderOptions({
+  providerOptions,
+  providerOptionsName,
+}: {
+  providerOptions: Record<string, unknown> | undefined;
+  providerOptionsName: string;
+}) {
+  const value = providerOptions?.[providerOptionsName];
+  if (value == null) {
+    return undefined;
+  }
+
+  const result = moonshotaiMessageProviderOptions.safeParse(value);
+  if (!result.success) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions',
+      message: `invalid ${providerOptionsName} provider options`,
+      cause: result.error,
+    });
+  }
+
+  return result.data;
+}
 
 const supportedImageMediaTypes = [
   'image/jpeg',
@@ -59,14 +86,34 @@ function validateMediaType({
 // Moonshot AI chat completions accepts text, image_url, and video_url content
 // parts only. Anything else (audio, PDF, other file types) throws here rather
 // than being rejected by the API with a 400.
-export function convertToMoonshotAIChatMessages(
-  prompt: LanguageModelV3Prompt,
-): MoonshotAIMessages {
+export function convertToMoonshotAIChatMessages({
+  prompt,
+  providerOptionsName = 'moonshotai',
+}: {
+  prompt: LanguageModelV3Prompt;
+  providerOptionsName?: string;
+}): {
+  messages: MoonshotAIMessages;
+  warnings: Array<SharedV3Warning>;
+} {
   const messages: MoonshotAIMessages = [];
-  for (const { role, content } of prompt) {
+  const warnings: Array<SharedV3Warning> = [];
+
+  for (const { role, content, providerOptions } of prompt) {
+    const moonshotMessageOptions = parseMoonshotAIMessageProviderOptions({
+      providerOptions,
+      providerOptionsName,
+    });
+
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        messages.push({
+          role: 'system',
+          content,
+          ...(moonshotMessageOptions?.name != null && {
+            name: moonshotMessageOptions.name,
+          }),
+        });
         break;
       }
 
@@ -75,6 +122,9 @@ export function convertToMoonshotAIChatMessages(
           messages.push({
             role: 'user',
             content: content[0].text,
+            ...(moonshotMessageOptions?.name != null && {
+              name: moonshotMessageOptions.name,
+            }),
           });
           break;
         }
@@ -145,6 +195,9 @@ export function convertToMoonshotAIChatMessages(
               }
             }
           }),
+          ...(moonshotMessageOptions?.name != null && {
+            name: moonshotMessageOptions.name,
+          }),
         });
 
         break;
@@ -186,6 +239,9 @@ export function convertToMoonshotAIChatMessages(
         messages.push({
           role: 'assistant',
           content: toolCalls.length > 0 ? text || null : text,
+          ...(moonshotMessageOptions?.name != null && {
+            name: moonshotMessageOptions.name,
+          }),
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
@@ -194,6 +250,13 @@ export function convertToMoonshotAIChatMessages(
       }
 
       case 'tool': {
+        if (moonshotMessageOptions?.name != null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          });
+        }
+
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
             continue;
@@ -233,5 +296,5 @@ export function convertToMoonshotAIChatMessages(
     }
   }
 
-  return messages;
+  return { messages, warnings };
 }

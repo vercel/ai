@@ -126,3 +126,16 @@ export type MoonshotAILanguageModelOptions = {
   promptCacheKey?: string;
   safetyIdentifier?: string;
 };
+
+export const moonshotaiMessageProviderOptions = z.object({
+  /**
+   * The name of the participant represented by the message.
+   *
+   * Supported on system, user, and assistant messages.
+   */
+  name: z.string().optional(),
+});
+
+export type MoonshotAIMessageProviderOptions = z.infer<
+  typeof moonshotaiMessageProviderOptions
+>;
