@@ -57,6 +57,20 @@ const { text } = await generateText({
 });
 ```
 
+## Image Generation Example
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: minimax.image('image-01'),
+  prompt: 'A cute baby sea otter',
+  n: 2,
+  aspectRatio: '16:9',
+});
+```
+
 ## Video Generation Example
 
 ```ts

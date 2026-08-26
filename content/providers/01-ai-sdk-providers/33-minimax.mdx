@@ -50,6 +50,12 @@ You can use the following optional settings to customize the MiniMax provider in
   the MiniMax V2 native endpoint (not the Anthropic-compatible endpoint).
   The default prefix is `https://api.minimax.io`.
 
+- **imageBaseURL** _string_
+
+  Use a different URL prefix for image generation API calls. The image API uses
+  the MiniMax V1 native endpoint (not the Anthropic-compatible endpoint).
+  The default prefix is `https://api.minimax.io`.
+
 - **apiKey** _string_
 
   API key for the MiniMax API. It defaults to the `MINIMAX_API_KEY` environment
@@ -135,7 +141,41 @@ The following optional provider options are available for MiniMax language model
     think, so `'disabled'` has no effect on them.
   </Note>
 
+## Image Models
+
+You can generate images with the `image-01` and `image-01-live` models using the
+[`experimental_generateImage`](/docs/reference/ai-sdk-core/generate-image)
+function:
+
+```ts
+import { minimax, type MiniMaxImageModelOptions } from '@ai-sdk/minimax';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: minimax.image('image-01'),
+  prompt: 'A cute baby sea otter',
+  n: 2,
+  aspectRatio: '16:9',
+});
+```
+
+Input images are supported for image-to-image generation via the `prompt.images`
+field. They are sent to the API as subject references.
+
+### Image Provider Options
+
+The following optional provider options are available for MiniMax image models:
+
+- **responseFormat** _'url' | 'base64'_
+
+  Format of the generated images. Defaults to `url`. URLs expire after 24 hours.
+
+- **promptOptimizer** _boolean_
+
+  Whether to enable automatic optimization of the prompt. Defaults to `false`.
+
 ## Video Models
+
 
 You can generate videos with the MiniMax-H3 model using the
 [`experimental_generateVideo`](/docs/reference/ai-sdk-core/generate-video)
