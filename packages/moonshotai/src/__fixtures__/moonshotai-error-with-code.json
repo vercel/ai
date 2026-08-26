@@ -1,0 +1,7 @@
+{
+  "error": {
+    "message": "Coded HTTP error",
+    "type": "invalid_request_error",
+    "code": "invalid_parameter"
+  }
+}

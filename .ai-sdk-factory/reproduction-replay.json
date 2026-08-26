@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 19552,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/moonshot-error-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/moonshot-error-metadata.ts",
+    "packages/moonshotai/src/__fixtures__/moonshotai-error-live-message-only.json",
+    "packages/moonshotai/src/__fixtures__/moonshotai-error-with-code.json",
+    "packages/moonshotai/src/__fixtures__/moonshotai-error-metadata.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19552_REPRODUCED: Moonshot HTTP and SSE error metadata were dropped"
+  }
+}
