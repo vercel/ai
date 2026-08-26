@@ -1,17 +1,17 @@
 import {
   APICallError,
   TypeValidationError,
-  type LanguageModelV4Prompt,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { fromUtf8, toUtf8 } from '@smithy/util-utf8';
 import { describe, expect, it } from 'vitest';
-import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
+import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 
 const codec = new EventStreamCodec(toUtf8, fromUtf8);
 
-const prompt: LanguageModelV4Prompt = [
+const prompt: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -66,7 +66,7 @@ function createModel({
   generateUsage?: Record<string, unknown>;
   streamUsage?: Record<string, unknown>;
 } = {}) {
-  return new AmazonBedrockChatLanguageModel(
+  return new BedrockChatLanguageModel(
     'anthropic.claude-3-haiku-20240307-v1:0',
     {
       baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -113,9 +113,7 @@ function createModel({
 }
 
 function expectNormalizedUsage(
-  usage: Awaited<
-    ReturnType<AmazonBedrockChatLanguageModel['doGenerate']>
-  >['usage'],
+  usage: Awaited<ReturnType<BedrockChatLanguageModel['doGenerate']>>['usage'],
 ) {
   expect(usage.inputTokens).toStrictEqual({
     total: 18,
@@ -155,7 +153,7 @@ async function expectInvalidResponseField(
   expect(error.cause.message).toContain(`"${field}"`);
 }
 
-describe('AmazonBedrockChatLanguageModel raw usage', () => {
+describe('BedrockChatLanguageModel raw usage', () => {
   it('preserves complete raw usage through doGenerate parsing', async () => {
     const result = await createModel().doGenerate({ prompt });
 
