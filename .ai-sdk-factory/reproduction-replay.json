@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 19556,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/moonshot-max-completion-tokens.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/moonshot-max-completion-tokens.ts",
+    "packages/moonshotai/src/__fixtures__/moonshotai-max-completion-tokens.json",
+    "packages/moonshotai/src/__fixtures__/moonshotai-max-completion-tokens.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19556: Moonshot requests did not serialize maxOutputTokens as only max_completion_tokens."
+  }
+}

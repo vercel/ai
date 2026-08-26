@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-6a8f155b02d9cd917ed68e49",
+  "object": "chat.completion",
+  "created": 1787762012,
+  "model": "kimi-k3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": "The user is asking me"
+      },
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 89,
+    "completion_tokens": 8,
+    "total_tokens": 97,
+    "cached_tokens": 89,
+    "completion_tokens_details": {
+      "reasoning_tokens": 5
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 89
+    }
+  }
+}

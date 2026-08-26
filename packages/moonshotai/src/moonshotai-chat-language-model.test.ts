@@ -41,6 +41,33 @@ function prepareChunksFixtureResponse(filename: string) {
 }
 
 describe('doGenerate', () => {
+  describe('max output tokens', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-max-completion-tokens');
+    });
+
+    it('should send maxOutputTokens as only max_completion_tokens', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 17,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({ max_completion_tokens: 17 });
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should omit max token fields when maxOutputTokens is undefined', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('max_completion_tokens');
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('moonshotai-text');
@@ -726,6 +753,35 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  describe('max output tokens', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('moonshotai-max-completion-tokens');
+    });
+
+    it('should send maxOutputTokens as only max_completion_tokens', async () => {
+      const result = await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 17,
+      });
+      await convertReadableStreamToArray(result.stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({ max_completion_tokens: 17 });
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should omit max token fields when maxOutputTokens is undefined', async () => {
+      const result = await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+      });
+      await convertReadableStreamToArray(result.stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('max_completion_tokens');
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+  });
+
   it('should stream reasoning and text deltas with usage', async () => {
     prepareChunksFixtureResponse('moonshotai-stream');
 
