@@ -1,5 +1,15 @@
 # @ai-sdk/moonshotai
 
+## 2.0.51
+
+### Patch Changes
+
+- 8e81d87: Accept Moonshot streaming tool calls without indices and preserve choice-level usage.
+- d48615f: Normalize Moonshot structured output schemas and enable strict validation by default.
+- b6d6564: Use native JSON Schema structured outputs for official Moonshot V1 models.
+- aa748d8: Reject unsupported image and video media types before sending Moonshot chat requests.
+- e565062: fix(provider/moonshotai): send max output tokens with the current Moonshot request field
+
 ## 2.0.50
 
 ### Patch Changes

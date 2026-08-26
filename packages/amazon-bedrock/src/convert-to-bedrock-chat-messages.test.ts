@@ -1036,6 +1036,39 @@ describe('assistant messages', () => {
     `);
   });
 
+  it('should omit assistant messages that become empty after unsigned reasoning is removed', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'First question' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Unsigned reasoning',
+          },
+          { type: 'text', text: '' },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Follow-up question' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'First question' }, { text: 'Follow-up question' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit unsigned reasoning while preserving tool calls in multi-turn tool use', async () => {
     const result = await convertToBedrockChatMessages([
       {

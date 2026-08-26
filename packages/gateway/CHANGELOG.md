@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.183
+
+### Patch Changes
+
+- ad28ecb: Backport: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+
 ## 3.0.182
 
 ### Patch Changes
