@@ -151,7 +151,8 @@ export type ACPV1Settings = {
   readonly skillsDirectory?: string;
   /**
    * Routes HarnessAgent instructions to a runtime-native system or developer
-   * prompt. When omitted, instructions are prepended to the first user prompt.
+   * prompt. Changed instructions are prepended to the next user prompt when
+   * ACP does not expose a native per-turn instruction update.
    */
   readonly instructionMapping?: ACPInstructionMapping;
   /**

@@ -75,7 +75,7 @@ import {
 } from './acp-v1-lifecycle';
 import {
   convertHarnessPromptToACPTextBlocks,
-  prependACPInitialGuidance,
+  prependACPInstructionGuidance,
 } from './acp-v1-prompt';
 import type {
   ACPInstructionMapping,
@@ -444,6 +444,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                 isResume: true,
                 lifecycleState: lifecycleData,
               }),
+              instructionsFingerprint: lifecycleData.instructionsFingerprint,
               sandbox: toolSafeSandboxSession,
               sessionWorkDir: workDir,
               skillsDirectory,
@@ -711,6 +712,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           isResume,
           lifecycleState: lifecycleData,
         }),
+        instructionsFingerprint: lifecycleData?.instructionsFingerprint,
         sandbox: toolSafeSandboxSession,
         sessionWorkDir: workDir,
         skillsDirectory,
@@ -1031,6 +1033,7 @@ function createSession({
   mcpServers,
   isMcpToolCall,
   initialGuidanceApplied: initialGuidanceAppliedAtStart,
+  instructionsFingerprint: instructionsFingerprintAtStart,
   sandbox,
   sessionWorkDir,
   skillsDirectory,
@@ -1065,6 +1068,7 @@ function createSession({
   mcpServers: Record<string, unknown> | undefined;
   isMcpToolCall: ((toolCall: ACPToolCall) => boolean) | undefined;
   initialGuidanceApplied: boolean;
+  instructionsFingerprint: string | undefined;
   sandbox: SandboxSession;
   sessionWorkDir: string;
   skillsDirectory: string;
@@ -1085,6 +1089,7 @@ function createSession({
   let stopped = false;
   let turnInFlight = turnInFlightAtStart;
   let initialGuidanceApplied = initialGuidanceAppliedAtStart;
+  let instructionsFingerprint = instructionsFingerprintAtStart;
   let latestACPSessionId = acpSessionIdAtStart;
   let latestTurnStartConfig = turnStartConfigAtStart;
 
@@ -1353,6 +1358,7 @@ function createSession({
     ...(recoveryStatus == null ? {} : { recovery: recoveryStatus }),
     ...(restoration == null ? {} : { restoration }),
     initialGuidanceApplied,
+    ...(instructionsFingerprint == null ? {} : { instructionsFingerprint }),
     skillsDirectory,
   });
 
@@ -1424,6 +1430,9 @@ function createSession({
         responseFormat: options.responseFormat,
         outputSchemaMapping,
       });
+      const nextInstructionsFingerprint = fingerprintValue({
+        value: options.instructions ?? null,
+      });
       const control = wireTurn({
         emit: options.emit,
         abortSignal: options.abortSignal,
@@ -1436,15 +1445,14 @@ function createSession({
           turnInFlight = true;
           channel.send({
             type: 'start',
-            prompt: initialGuidanceApplied
-              ? prompt
-              : prependACPInitialGuidance({
-                  prompt,
-                  instructions:
-                    instructionMapping == null
-                      ? options.instructions
-                      : undefined,
-                }),
+            prompt:
+              instructionsFingerprint !== nextInstructionsFingerprint &&
+              (instructionMapping == null || initialGuidanceApplied)
+                ? prependACPInstructionGuidance({
+                    prompt,
+                    instructions: options.instructions,
+                  })
+                : prompt,
             ...(instructionMapping == null
               ? {}
               : {
@@ -1469,6 +1477,7 @@ function createSession({
           });
           latestTurnStartConfig = turnStartConfig;
           initialGuidanceApplied = true;
+          instructionsFingerprint = nextInstructionsFingerprint;
         },
       });
       return control;

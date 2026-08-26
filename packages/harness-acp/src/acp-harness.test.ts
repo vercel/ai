@@ -2053,13 +2053,20 @@ describe('createACP', () => {
       skills,
       tools: [],
       prompt: 'Revise them.',
-      instructions: 'Use the supplied project context.',
+      instructions: 'Use the revised project context.',
       emit: () => {},
     });
-    expect(channel.sent[1]).toMatchObject({
-      type: 'start',
-      prompt: [{ type: 'text', text: 'Revise them.' }],
-    });
+    expect(channel.sent[1]).toMatchObject({ type: 'start' });
+    const secondStart = channel.sent[1] as {
+      prompt: Array<{ type: 'text'; text: string }>;
+    };
+    expect(secondStart.prompt.slice(1)).toEqual([
+      { type: 'text', text: 'Revise them.' },
+    ]);
+    expect(secondStart.prompt[0]?.text).toContain('<session-guidance>');
+    expect(secondStart.prompt[0]?.text).toContain(
+      'Use the revised project context.',
+    );
     channel.emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'end_turn' },
@@ -2133,7 +2140,7 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
-  it('keeps mapped instructions and native skills separate from prompts', async () => {
+  it('uses native instructions initially and prompt guidance when they change', async () => {
     const writes: Array<{ path: string; content: string }> = [];
     const harness = createACP({
       harnessId: 'claude-acp',
@@ -2205,18 +2212,26 @@ describe('createACP', () => {
       skills,
       tools: [],
       prompt: 'Revise them.',
-      instructions: 'Answer every question in German.',
+      instructions: 'Answer every question in French.',
       emit: () => {},
     });
     expect(channel.sent[1]).toMatchObject({
       type: 'start',
-      instructions: 'Answer every question in German.',
+      instructions: 'Answer every question in French.',
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],
       },
-      prompt: [{ type: 'text', text: 'Revise them.' }],
     });
+    const secondStart = channel.sent[1] as {
+      prompt: Array<{ type: 'text'; text: string }>;
+    };
+    expect(secondStart.prompt.slice(1)).toEqual([
+      { type: 'text', text: 'Revise them.' },
+    ]);
+    expect(secondStart.prompt[0]?.text).toContain(
+      'Answer every question in French.',
+    );
     channel.emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'end_turn' },
