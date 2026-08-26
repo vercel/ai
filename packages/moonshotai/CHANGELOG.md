@@ -1,5 +1,14 @@
 # @ai-sdk/moonshotai
 
+## 3.0.41
+
+### Patch Changes
+
+- 87b49a2: fix(provider/moonshotai): preserve complete raw usage objects
+- 48c5f46: Preserve documented Moonshot API error codes in HTTP and streaming errors.
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
 ## 3.0.40
 
 ### Patch Changes
