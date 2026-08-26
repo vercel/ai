@@ -30,6 +30,18 @@ describe('normalizeOpaDecision', () => {
       });
     });
 
+    it('carries reason through on requires-approval', () => {
+      expect(
+        normalizeOpaDecision({
+          decision: 'requires-approval',
+          reason: 'requires operator review',
+        }),
+      ).toEqual({
+        type: 'user-approval',
+        reason: 'requires operator review',
+      });
+    });
+
     it('maps "not-applicable" to not-applicable', () => {
       expect(normalizeOpaDecision({ decision: 'not-applicable' })).toEqual({
         type: 'not-applicable',

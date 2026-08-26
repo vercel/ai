@@ -70,9 +70,11 @@ try {
   the sandbox.
 - `credentialEnv`: host credential environment variable names. Configure this
   together with `credentialBrokering`.
-- `credentialBrokering`: function that receives the effective runtime
-  environment and returns additive outbound request transformations containing
-  the real credential values.
+- `credentialBrokering`: function that receives the effective host runtime
+  environment as `env` and the environment forwarded to the sandbox as
+  `sandboxEnv`, then returns additive outbound request transformations. Use the
+  credential from `sandboxEnv` in exact request header matches and the real
+  credential from `env` in transformed request headers.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -97,6 +99,9 @@ try {
     unavailable. This requires `providerAuthentication` configuration.
 - `providerAuthentication`: declarative runtime-specific Gateway environment.
 - `modelId`: a known implementation model identifier for Harness metadata.
+- `skillsDirectory`: native skills directory relative to the implementation's
+  effective `$HOME`. It defaults to `.agents/skills`; override it for runtimes
+  that use a different location.
 - `instructionMapping`: optional mapping from `HarnessAgent` instructions to
   an implementation's native system or developer prompt. Use `session-meta`
   for a path below the ACP session request's `_meta` field, or
@@ -236,10 +241,11 @@ For direct authentication, configure `credentialEnv` with the host environment
 variable names that the underlying ACP implementation reads, and use
 `credentialBrokering` to map their values to outbound request headers. When the
 network sandbox supports additive request transformations, the ACP process sees
-only same-name placeholders and the real values are injected after requests
-leave the sandbox. Sandboxes without that capability retain the legacy behavior
-of forwarding the real values. Use `forwardEnv` only for non-credential runtime
-configuration.
+the values from `sandboxEnv`, which are ephemeral placeholders by default. The
+real values are injected after requests leave the sandbox, and only when the
+request contains the exact expected value. Sandboxes without that capability
+retain the legacy behavior of forwarding the real values. Use `forwardEnv` only
+for non-credential runtime configuration.
 
 ### Gateway environment
 
@@ -271,9 +277,10 @@ By default, the adapter uses the first exposed port. Set `port` on `createACP`
 to select another exposed port. If neither is available, session startup throws
 `HarnessCapabilityUnsupportedError` with instructions to configure one.
 
-Bridge packages, ACP installations, state, replay logs, and projected skills
-live in adapter-owned directories outside the session project. The session
-workspace starts empty.
+Bridge packages, ACP installations, and replay state live in adapter-owned
+directories outside the session project. Skills are written to the configured
+native directory below the implementation's `$HOME`. The session workspace
+starts empty.
 
 ## Tools and Approvals
 
@@ -322,25 +329,37 @@ export const claudeCodeACPHarness = createACP({
     packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
+  skillsDirectory: '.claude/skills',
   credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
-  credentialBrokering: ({ env }) => {
+  credentialBrokering: ({ env, sandboxEnv }) => {
     const apiKey = env.ANTHROPIC_API_KEY;
     const authToken = env.ANTHROPIC_AUTH_TOKEN;
+    const sandboxApiKey = sandboxEnv?.ANTHROPIC_API_KEY;
+    const sandboxAuthToken = sandboxEnv?.ANTHROPIC_AUTH_TOKEN;
     if (!apiKey && !authToken) return [];
 
-    const headers: Record<string, string> = {};
-    if (apiKey) {
-      headers['x-api-key'] = apiKey;
+    const transformations = [];
+    if (apiKey && sandboxApiKey) {
+      transformations.push(
+        createCredentialRequestTransformation({
+          matchUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+          matchHeaders: { 'x-api-key': sandboxApiKey },
+          transformHeaders: { 'x-api-key': apiKey },
+        }),
+      );
     }
-    if (authToken) {
-      headers.Authorization = `Bearer ${authToken}`;
+    if (authToken && sandboxAuthToken) {
+      transformations.push(
+        createCredentialRequestTransformation({
+          matchUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxAuthToken}`,
+          },
+          transformHeaders: { Authorization: `Bearer ${authToken}` },
+        }),
+      );
     }
-    return [
-      createCredentialRequestTransformation({
-        baseUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
-        headers,
-      }),
-    ];
+    return transformations;
   },
   env: {
     IS_SANDBOX: '1',
@@ -396,9 +415,13 @@ export const codexACPHarness = createACP({
   executable: 'codex-acp',
   forwardEnv: ['CODEX_CONFIG'],
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-  credentialBrokering: ({ env }) => {
-    const credential = env.CODEX_API_KEY ?? env.OPENAI_API_KEY;
-    if (!credential) return [];
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    const environmentVariableName = env.CODEX_API_KEY
+      ? 'CODEX_API_KEY'
+      : 'OPENAI_API_KEY';
+    const credential = env[environmentVariableName];
+    const sandboxCredential = sandboxEnv?.[environmentVariableName];
+    if (!credential || !sandboxCredential) return [];
     const config =
       env.CODEX_CONFIG == null
         ? undefined
@@ -411,8 +434,11 @@ export const codexACPHarness = createACP({
       'https://api.openai.com/v1';
     return [
       createCredentialRequestTransformation({
-        baseUrl,
-        headers: { Authorization: `Bearer ${credential}` },
+        matchUrl: baseUrl,
+        matchHeaders: {
+          Authorization: `Bearer ${sandboxCredential}`,
+        },
+        transformHeaders: { Authorization: `Bearer ${credential}` },
       }),
     ];
   },
@@ -490,14 +516,20 @@ export const cursorACPHarness = createACP({
   executable: 'agent',
   args: ['--disable-auto-update', 'acp'],
   credentialEnv: ['CURSOR_API_KEY'],
-  credentialBrokering: ({ env }) => {
-    if (!env.CURSOR_API_KEY) return [];
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
     return [
       {
         match: {
           host: 'api2.cursor.sh',
           path: { exact: '/auth/exchange_user_api_key' },
           method: ['POST'],
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${sandboxEnv.CURSOR_API_KEY}` },
+            },
+          ],
         },
         transform: {
           headers: {
@@ -544,12 +576,17 @@ export const grokBuildACPHarness = createACP({
   executable: 'grok',
   args: ['agent', 'stdio'],
   credentialEnv: ['XAI_API_KEY'],
-  credentialBrokering: ({ env }) => {
-    if (!env.XAI_API_KEY) return [];
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];
     return [
       createCredentialRequestTransformation({
-        baseUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
-        headers: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+        matchUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
+        matchHeaders: {
+          Authorization: `Bearer ${sandboxEnv.XAI_API_KEY}`,
+        },
+        transformHeaders: {
+          Authorization: `Bearer ${env.XAI_API_KEY}`,
+        },
       }),
     ];
   },

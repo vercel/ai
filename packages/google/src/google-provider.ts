@@ -10,6 +10,7 @@ import type {
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
   Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -43,6 +44,8 @@ import {
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 import { GoogleRealtimeModel } from './realtime/google-realtime-model';
+import { GoogleTranscriptionModel } from './transcription/google-transcription-model';
+import type { GoogleTranscriptionModelId } from './transcription/google-transcription-model-options';
 import { GoogleSpeechTranslationModel } from './speech-translation/google-speech-translation-model';
 import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
 
@@ -119,6 +122,19 @@ export interface GoogleProvider extends ProviderV4 {
    * Creates a model for speech generation (text-to-speech).
    */
   speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for transcription (speech-to-text). Unary models
+   * (e.g. `gemini-3.5-transcribe`) transcribe audio files; live models
+   * (e.g. `gemini-3.5-transcribe-live`) stream transcription over the
+   * Gemini Live API WebSocket via `experimental_streamTranscribe`.
+   */
+  transcription(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates a model for transcription (speech-to-text).
+   */
+  transcriptionModel(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
 
   files(): FilesV4;
 
@@ -331,6 +347,15 @@ export function createGoogle(
       fetch: options.fetch,
     });
 
+  const createTranscriptionModel = (modelId: GoogleTranscriptionModelId) =>
+    new GoogleTranscriptionModel(modelId, {
+      provider: `${providerName}.transcription`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      webSocket: options.webSocket,
+    });
+
   const experimentalRealtimeFactory = Object.assign(
     (modelId: string) => createRealtimeModel(modelId),
     {
@@ -394,6 +419,8 @@ export function createGoogle(
   provider.files = createFiles;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
   provider.translation = createSpeechTranslationModel;
   provider.speechTranslationModel = createSpeechTranslationModel;
   provider.interactions = createInteractionsModel;
