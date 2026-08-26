@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "issueId": 19758,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19758-google-prompt-block.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-19758-google-prompt-block.ts",
+    "packages/google/src/__fixtures__/issue-19758-prompt-block.json",
+    "packages/google/src/__fixtures__/issue-19758-prompt-block.chunks.txt",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #19758 reproduced: Google prompt-level safety block was not surfaced as content-filter with promptFeedback"
+  }
+}
