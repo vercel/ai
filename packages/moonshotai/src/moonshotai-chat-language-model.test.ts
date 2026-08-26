@@ -30,11 +30,17 @@ function prepareJsonFixtureResponse(filename: string) {
 }
 
 function prepareChunksFixtureResponse(filename: string) {
-  const chunks = fs
-    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
-    .split('\n')
-    .filter(line => line.length > 0)
-    .map(line => `data: ${line}\n\n`);
+  prepareChunkValuesResponse(
+    fs
+      .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+      .split('\n')
+      .filter(line => line.length > 0)
+      .map(line => JSON.parse(line)),
+  );
+}
+
+function prepareChunkValuesResponse(values: Array<unknown>) {
+  const chunks = values.map(value => `data: ${JSON.stringify(value)}\n\n`);
   chunks.push('data: [DONE]\n\n');
 
   server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
@@ -184,6 +190,52 @@ describe('doGenerate', () => {
         inputTokens: { total: 9, noCache: 9, cacheRead: 0 },
         outputTokens: { total: 5, text: 5, reasoning: 0 },
       });
+    });
+
+    it('should preserve complete raw usage metadata', async () => {
+      const responseBody = JSON.parse(
+        fs.readFileSync('src/__fixtures__/moonshotai-usage-live.json', 'utf8'),
+      );
+      responseBody.usage.provider_usage_sentinel = { billing_tier: 'future' };
+      responseBody.usage.prompt_tokens_details.provider_prompt_sentinel = {
+        cache_tier: 'future',
+      };
+      responseBody.usage.completion_tokens_details.provider_completion_sentinel =
+        { token_class: 'future' };
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: responseBody,
+      };
+
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage).toStrictEqual({
+        inputTokens: {
+          total: 90,
+          noCache: 0,
+          cacheRead: 90,
+          cacheWrite: undefined,
+        },
+        outputTokens: { total: 34, text: 17, reasoning: 17 },
+        raw: responseBody.usage,
+      });
+    });
+
+    it('should retain known usage field validation', async () => {
+      const responseBody = JSON.parse(
+        fs.readFileSync('src/__fixtures__/moonshotai-usage-live.json', 'utf8'),
+      );
+      responseBody.usage.prompt_tokens = 'invalid-known-field-type';
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: responseBody,
+      };
+
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow();
     });
 
     it.each([null, undefined])(
@@ -969,6 +1021,63 @@ describe('doStream', () => {
       },
     });
   });
+
+  it.each(['choice', 'top-level'] as const)(
+    'should preserve complete raw usage metadata from %s usage',
+    async usageLocation => {
+      const chunks = fs
+        .readFileSync(
+          'src/__fixtures__/moonshotai-usage-live.chunks.txt',
+          'utf8',
+        )
+        .split('\n')
+        .filter(line => line.length > 0)
+        .map(line => JSON.parse(line));
+      const choiceUsage = chunks.at(-2).choices[0].usage;
+      const topLevelUsage = chunks.at(-1).usage;
+      const expectedUsage =
+        usageLocation === 'choice' ? choiceUsage : topLevelUsage;
+      expectedUsage.provider_usage_sentinel = { billing_tier: 'future' };
+      expectedUsage.prompt_tokens_details.provider_prompt_sentinel = {
+        cache_tier: 'future',
+      };
+      expectedUsage.completion_tokens_details.provider_completion_sentinel = {
+        token_class: 'future',
+      };
+
+      if (usageLocation === 'choice') {
+        chunks.pop();
+      }
+      prepareChunkValuesResponse(chunks);
+
+      const result = await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts.at(-1)).toStrictEqual({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: {
+          inputTokens: {
+            total: 90,
+            noCache: 0,
+            cacheRead: 90,
+            cacheWrite: undefined,
+          },
+          outputTokens: { total: 50, text: 17, reasoning: 33 },
+          raw: expectedUsage,
+        },
+        providerMetadata: {
+          moonshotai: {
+            responseObject: 'chat.completion.chunk',
+            choiceIndex: 0,
+            messageRole: 'assistant',
+          },
+        },
+      });
+    },
+  );
 
   it('should reject malformed tool call indices', async () => {
     const parts = await getStreamParts(

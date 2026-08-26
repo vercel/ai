@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-16d8646e-d5e3-9a7b-a9f3-643d7124f8b4",
+  "object": "chat.completion",
+  "created": 1787771085,
+  "model": "kimi-k3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "OK",
+        "reasoning_content": "We need answer exactly OK. Need final only OK no extra. Ensure exactly OK."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 90,
+    "completion_tokens": 34,
+    "total_tokens": 124,
+    "cached_tokens": 90,
+    "completion_tokens_details": {
+      "reasoning_tokens": 17
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 90
+    }
+  }
+}
