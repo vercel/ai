@@ -440,14 +440,56 @@ describe('doGenerate', () => {
       prepareJsonFixtureResponse('moonshotai-text');
     });
 
-    it('should strip the $schema keyword from json schemas', async () => {
+    it('should normalize json schemas and enable strict validation by default', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
           name: 'recipe',
+          description: 'A recipe response.',
           schema: {
             $schema: 'http://json-schema.org/draft-07/schema#',
+            type: 'object',
+            properties: {
+              ingredients: {
+                type: 'array',
+                items: [{ type: 'string' }, { type: 'number' }],
+              },
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.response_format).toStrictEqual({
+        type: 'json_schema',
+        json_schema: {
+          name: 'recipe',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              ingredients: {
+                type: 'array',
+                prefixItems: [{ type: 'string' }, { type: 'number' }],
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('should allow strict json schema validation to be disabled', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            strictJsonSchema: false,
+          },
+        },
+        responseFormat: {
+          type: 'json',
+          schema: {
             type: 'object',
             properties: { name: { type: 'string' } },
           },
@@ -458,7 +500,8 @@ describe('doGenerate', () => {
       expect(requestBody.response_format).toStrictEqual({
         type: 'json_schema',
         json_schema: {
-          name: 'recipe',
+          name: 'response',
+          strict: false,
           schema: {
             type: 'object',
             properties: { name: { type: 'string' } },
