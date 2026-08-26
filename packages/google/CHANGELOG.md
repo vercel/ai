@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.93
+
+### Patch Changes
+
+- a3fe2a8: fix(google): convert enum values to the Gemini schema format
+
 ## 2.0.92
 
 ### Patch Changes
