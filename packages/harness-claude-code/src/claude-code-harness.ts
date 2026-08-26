@@ -23,6 +23,7 @@ import {
 import {
   applyCredentialForwarding,
   classifyDiskLog,
+  createSandboxCredentialEnvironment,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -30,7 +31,6 @@ import {
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  maskSandboxCredentials,
   resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
@@ -799,6 +799,7 @@ const claudeCodeBridgeCoordsSchema = z.object({
  */
 const claudeCodeResumeStateSchema = z.looseObject({
   bridge: claudeCodeBridgeCoordsSchema.optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
 });
 
 type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
@@ -849,11 +850,21 @@ export function createClaudeCode(
           sandboxSession,
           abortSignal: startOpts.abortSignal,
         });
+      const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
+      const isResume = lifecycleState != null;
+      const isContinue = startOpts.continueFrom != null;
+      const resumeData = isResume
+        ? (lifecycleState?.data as {
+            bridge?: ClaudeCodeBridgeCoords;
+            sandboxCredentialEnvironment?: Record<string, string>;
+          })
+        : undefined;
+      const coords = resumeData?.bridge;
       const authenticationMode = resolveClaudeCodeAuthenticationMode(
         settings.auth,
       );
       const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
-      let sandboxClaudeEnvironment = {
+      const claudeEnvironment = {
         ...resolvedAuthEnvironment,
         /*
          * The Claude Agent SDK does not expose arbitrary model-request
@@ -866,43 +877,47 @@ export function createClaudeCode(
           : {}),
         ...settings.env,
       };
+      let sandboxClaudeEnvironment = claudeEnvironment;
+      let sandboxCredentialEnvironment: Record<string, string> | undefined;
       if (
         'addRequestTransformations' in sandboxSession &&
         sandboxSession.addRequestTransformations != null
       ) {
-        const requestTransformations = createClaudeCodeRequestTransformations(
-          sandboxClaudeEnvironment,
-          authenticationMode,
-        );
+        sandboxCredentialEnvironment =
+          resumeData?.sandboxCredentialEnvironment ??
+          (await createSandboxCredentialEnvironment({
+            environment: claudeEnvironment,
+            credentialEnvironmentVariables:
+              CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+            credentialForwarding: settings.credentialForwarding,
+          }));
+        sandboxClaudeEnvironment = {
+          ...claudeEnvironment,
+          ...sandboxCredentialEnvironment,
+        };
+        const requestTransformations = createClaudeCodeRequestTransformations({
+          env: claudeEnvironment,
+          sandboxEnv: sandboxClaudeEnvironment,
+          auth: authenticationMode,
+        });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,
           );
         }
-        sandboxClaudeEnvironment = maskSandboxCredentials({
+      } else {
+        warnCredentialBrokeringUnavailable();
+        sandboxClaudeEnvironment = await applyCredentialForwarding({
           environment: sandboxClaudeEnvironment,
           credentialEnvironmentVariables:
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+          credentialForwarding: settings.credentialForwarding,
         });
-      } else {
-        warnCredentialBrokeringUnavailable();
       }
-      sandboxClaudeEnvironment = await applyCredentialForwarding({
-        environment: sandboxClaudeEnvironment,
-        credentialEnvironmentVariables:
-          CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
-        credentialForwarding: settings.credentialForwarding,
-      });
       const bootstrapDir = posix.resolve(
         defaultWorkingDirectory,
         BOOTSTRAP_DIR,
       );
-      const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const isResume = lifecycleState != null;
-      const isContinue = startOpts.continueFrom != null;
-      const coords = isResume
-        ? (lifecycleState?.data as { bridge?: ClaudeCodeBridgeCoords })?.bridge
-        : undefined;
 
       const workDir = startOpts.sessionWorkDir;
       const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
@@ -987,6 +1002,7 @@ export function createClaudeCode(
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
+            sandboxCredentialEnvironment,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
@@ -1157,6 +1173,7 @@ export function createClaudeCode(
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
+        sandboxCredentialEnvironment,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
@@ -1475,6 +1492,7 @@ function createSession({
   bridgePort,
   bridgeToken,
   sandboxId,
+  sandboxCredentialEnvironment,
   debug,
   permissionMode,
   builtinToolFiltering,
@@ -1497,6 +1515,7 @@ function createSession({
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string | undefined;
+  sandboxCredentialEnvironment: Record<string, string> | undefined;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -1811,6 +1830,9 @@ function createSession({
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
         data: {
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
             token: bridgeToken,
@@ -1920,11 +1942,20 @@ function createSession({
         channel.close();
       }
 
+      const lifecycleData =
+        data != null && typeof data === 'object' && !Array.isArray(data)
+          ? { ...(data as Record<string, unknown>) }
+          : {};
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
-        data: (data ?? {}) as HarnessV1ResumeSessionState['data'],
+        data: {
+          ...lifecycleData,
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
+        } as HarnessV1ResumeSessionState['data'],
       };
       return payload;
     },
@@ -1949,6 +1980,9 @@ function createSession({
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
         data: {
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
             token: bridgeToken,
