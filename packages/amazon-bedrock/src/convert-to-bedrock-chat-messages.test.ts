@@ -1036,38 +1036,68 @@ describe('assistant messages', () => {
     `);
   });
 
-  it('should omit assistant messages that become empty after unsigned reasoning is removed', async () => {
-    const result = await convertToBedrockChatMessages([
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'First question' }],
-      },
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'reasoning',
-            text: 'Unsigned reasoning',
-          },
-          { type: 'text', text: '' },
-        ],
-      },
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'Follow-up question' }],
-      },
-    ]);
-
-    expect(result).toEqual({
-      messages: [
+  it.each([
+    {
+      description: 'only unsigned reasoning',
+      assistantContent: [
         {
-          role: 'user',
-          content: [{ text: 'First question' }, { text: 'Follow-up question' }],
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
         },
       ],
-      system: [],
-    });
-  });
+    },
+    {
+      description: 'unsigned reasoning and empty text',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+        { type: 'text' as const, text: '' },
+      ],
+    },
+    {
+      description: 'unsigned reasoning and whitespace-only text',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+        { type: 'text' as const, text: '\n ' },
+      ],
+    },
+  ])(
+    'should omit assistant messages that become empty after filtering $description',
+    async ({ assistantContent }) => {
+      const result = await convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'First question' }],
+        },
+        {
+          role: 'assistant',
+          content: assistantContent,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Follow-up question' }],
+        },
+      ]);
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { text: 'First question' },
+              { text: 'Follow-up question' },
+            ],
+          },
+        ],
+        system: [],
+      });
+    },
+  );
 
   it('should omit unsigned reasoning while preserving tool calls in multi-turn tool use', async () => {
     const result = await convertToBedrockChatMessages([
@@ -1455,7 +1485,7 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should preserve empty text blocks when reasoning blocks are present', async () => {
+  it('should preserve empty text blocks when replayable signed reasoning is present', async () => {
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
@@ -1518,6 +1548,71 @@ describe('assistant messages', () => {
       system: [],
     });
   });
+
+  it.each([
+    {
+      description: 'redactedContent',
+      providerOptions: {
+        bedrock: { redactedContent: 'encrypted-reasoning-payload' },
+      },
+      expectedReasoningContent: {
+        reasoningContent: {
+          redactedContent: 'encrypted-reasoning-payload',
+        },
+      },
+    },
+    {
+      description: 'redactedData',
+      providerOptions: {
+        bedrock: { redactedData: 'redacted-reasoning-data' },
+      },
+      expectedReasoningContent: {
+        reasoningContent: {
+          redactedReasoning: { data: 'redacted-reasoning-data' },
+        },
+      },
+    },
+  ])(
+    'should preserve empty text blocks when replayable $description reasoning is present',
+    async ({ providerOptions, expectedReasoningContent }) => {
+      const result = await convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: '',
+              providerOptions,
+            },
+            { type: 'text', text: '' },
+            { type: 'text', text: 'response text' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [{ text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              expectedReasoningContent,
+              { text: '' },
+              { text: 'response text' },
+            ],
+          },
+        ],
+        system: [],
+      });
+    },
+  );
 });
 
 describe('tool messages', () => {
