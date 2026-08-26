@@ -1,4 +1,5 @@
 import {
+  APICallError,
   UnsupportedFunctionalityError,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
@@ -26,12 +27,16 @@ const server = createTestServer({
   'https://api.moonshot.ai/v1/chat/completions': {},
 });
 
+function readJsonFixture(filename: string) {
+  return JSON.parse(
+    fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+  );
+}
+
 function prepareJsonFixtureResponse(filename: string) {
   server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
     type: 'json-value',
-    body: JSON.parse(
-      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
-    ),
+    body: readJsonFixture(filename),
   };
 }
 
@@ -1587,21 +1592,63 @@ describe('doGenerate', () => {
       expect(server.calls).toHaveLength(0);
     });
 
-    it('should map the moonshot error envelope', async () => {
+    it('should preserve the moonshot error envelope', async () => {
+      const data = readJsonFixture('moonshotai-error');
+
       server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
         type: 'error',
         status: 400,
-        body: JSON.stringify({
-          error: {
-            message: 'Invalid request: invalid part type: file',
-            type: 'invalid_request_error',
-          },
-        }),
+        body: JSON.stringify(data),
       };
 
-      await expect(
+      const error = await Promise.resolve(
         provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
-      ).rejects.toThrow('Invalid request: invalid part type: file');
+      ).catch((error: unknown) => error);
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      if (!APICallError.isInstance(error)) {
+        expect.fail('Expected an APICallError');
+      }
+      expect(error.message).toBe(data.error.message);
+      expect(error.data).toStrictEqual(data);
+    });
+
+    it.each([
+      {
+        name: 'nullable code',
+        data: {
+          error: {
+            message: 'Invalid request with nullable code',
+            type: 'invalid_request_error',
+            code: null,
+          },
+        },
+      },
+      {
+        name: 'message-only error',
+        data: {
+          error: {
+            message: 'Invalid request',
+          },
+        },
+      },
+    ])('should preserve a $name envelope', async ({ data }) => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify(data),
+      };
+
+      const error = await Promise.resolve(
+        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
+      ).catch((error: unknown) => error);
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      if (!APICallError.isInstance(error)) {
+        expect.fail('Expected an APICallError');
+      }
+      expect(error.message).toBe(data.error.message);
+      expect(error.data).toStrictEqual(data);
     });
   });
 });
@@ -1612,18 +1659,11 @@ describe('doStream', () => {
       error: {
         message: 'Internal server error',
         type: 'server_error',
+        code: 'upstream_failure',
       },
     };
 
-    server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
-    };
-
-    const result = await provider.chatModel('kimi-k3').doStream({
-      prompt: TEST_PROMPT,
-    });
-    const chunks = await convertReadableStreamToArray(result.stream);
+    const chunks = await getStreamParts('moonshotai-error');
     const errorPart = chunks.find(chunk => chunk.type === 'error');
 
     expect(errorPart?.type).toBe('error');
@@ -1635,6 +1675,7 @@ describe('doStream', () => {
     expect(errorPart.error).toMatchObject({
       message: 'Internal server error',
       type: 'server_error',
+      code: 'upstream_failure',
       statusCode: 500,
       isRetryable: true,
       data,
