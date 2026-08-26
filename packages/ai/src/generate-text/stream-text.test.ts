@@ -2652,6 +2652,111 @@ describe('streamText', () => {
       expect((await result.finalStep).text).toBe('{"x":"ok"}');
     });
 
+    it('should preserve attempt isolation when a transform reconstructs recovered parts', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const call = ++callCount;
+
+            return {
+              request: { body: `request-${call}` },
+              response: { headers: { call: `${call}` } },
+              stream:
+                call === 1
+                  ? convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'failed-id',
+                        modelId: 'failed-model',
+                        timestamp: new Date(1),
+                      },
+                      { type: 'text-start', id: 'failed-text' },
+                      {
+                        type: 'text-delta',
+                        id: 'failed-text',
+                        delta: '{"x":',
+                      },
+                      { type: 'error', error: new Error('provider error') },
+                    ])
+                  : convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'recovered-id',
+                        modelId: 'recovered-model',
+                        timestamp: new Date(2),
+                      },
+                      { type: 'text-start', id: 'recovered-text' },
+                      {
+                        type: 'text-delta',
+                        id: 'recovered-text',
+                        delta: '{"x":"ok"}',
+                      },
+                      { type: 'text-end', id: 'recovered-text' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        output: Output.object({
+          schema: z.object({ x: z.string() }),
+        }),
+        streamRetries: 1,
+        include: { requestBody: true },
+        experimental_transform: () =>
+          new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
+            transform(chunk, controller) {
+              if (chunk.type === 'text-start') {
+                controller.enqueue({
+                  type: 'text-start',
+                  id: chunk.id,
+                  providerMetadata: chunk.providerMetadata,
+                });
+                return;
+              }
+
+              controller.enqueue(chunk);
+            },
+          }),
+        onError: () => {},
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.textStream),
+      ).toStrictEqual(['{"x":', '{"x":"ok"}']);
+      expect(await result.output).toEqual({ x: 'ok' });
+
+      const finalStep = await result.finalStep;
+      expect(finalStep.text).toBe('{"x":"ok"}');
+      expect(finalStep.request.body).toBe('request-2');
+      expect(finalStep.response).toMatchObject({
+        id: 'recovered-id',
+        modelId: 'recovered-model',
+        timestamp: new Date(2),
+        headers: { call: '2' },
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              expect.objectContaining({
+                type: 'text',
+                text: '{"x":"ok"}',
+              }),
+            ],
+          },
+        ],
+      });
+      expect(await result.responseMessages).toEqual(
+        finalStep.response.messages,
+      );
+    });
+
     it('should use request and response metadata from the recovered attempt', async () => {
       let callCount = 0;
 
@@ -2747,6 +2852,117 @@ describe('streamText', () => {
       ]);
       expect(callCount).toBe(2);
       expect(onError).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use only recovered transformed content in the next step context', async () => {
+      let callCount = 0;
+      const nextStepPrompts: ModelMessage[][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async options => {
+            switch (callCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'failed-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'failed-text',
+                      delta: 'partial',
+                    },
+                    { type: 'error', error: new Error('provider error') },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'recovered-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'recovered-text',
+                      delta: 'recovered',
+                    },
+                    { type: 'text-end', id: 'recovered-text' },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool-calls',
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                nextStepPrompts.push(options.prompt);
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: 'final-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'final-text',
+                      delta: 'done',
+                    },
+                    { type: 'text-end', id: 'final-text' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'tool result',
+          }),
+        },
+        stopWhen: isStepCount(2),
+        streamRetries: 1,
+        experimental_transform: () =>
+          new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
+            transform(chunk, controller) {
+              if (chunk.type === 'text-start') {
+                controller.enqueue({
+                  type: 'text-start',
+                  id: chunk.id,
+                  providerMetadata: chunk.providerMetadata,
+                });
+                return;
+              }
+
+              if (chunk.type === 'text-delta') {
+                controller.enqueue({
+                  ...chunk,
+                  text: chunk.text.toUpperCase(),
+                });
+                return;
+              }
+
+              controller.enqueue(chunk);
+            },
+          }),
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(nextStepPrompts).toHaveLength(1);
+      expect(JSON.stringify(nextStepPrompts[0])).toContain('RECOVERED');
+      expect(JSON.stringify(nextStepPrompts[0])).not.toContain('partial');
+      expect((await result.steps)[0].text).toBe('RECOVERED');
+      expect((await result.steps)[1].text).toBe('DONE');
     });
 
     it('should preserve completed steps when retrying a later step', async () => {
@@ -3368,6 +3584,82 @@ describe('streamText', () => {
         error: new Error('provider error 2'),
       });
       expect(await result.finishReason).toBe('error');
+    });
+
+    it('should emit a normal terminal error when a recovery call fails to start', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            if (callCount++ === 0) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: 'failed-text' },
+                  {
+                    type: 'text-delta',
+                    id: 'failed-text',
+                    delta: 'partial',
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'failed-tool-call',
+                    toolName: 'tool1',
+                    input: '{}',
+                  },
+                  { type: 'error', error: new Error('provider error') },
+                ]),
+              };
+            }
+
+            throw new Error('recovery startup error');
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: vi.fn(),
+          }),
+        },
+        maxRetries: 0,
+        streamRetries: 1,
+        onError,
+        onFinish,
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(callCount).toBe(2);
+      expect(parts).toContainEqual({
+        type: 'error',
+        error: new Error('recovery startup error'),
+      });
+      expect(parts).not.toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'failed-tool-call',
+        }),
+      );
+      expect(onError).toHaveBeenNthCalledWith(1, {
+        error: new Error('provider error'),
+      });
+      expect(onError).toHaveBeenNthCalledWith(2, {
+        error: new Error('recovery startup error'),
+      });
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'error',
+          text: 'partial',
+          toolCalls: [],
+          toolResults: [],
+        }),
+      );
+      expect(await result.finishReason).toBe('error');
+      expect(await result.text).toBe('partial');
+      expect((await result.finalStep).toolCalls).toEqual([]);
     });
 
     it('should reject invalid streamRetries values', () => {

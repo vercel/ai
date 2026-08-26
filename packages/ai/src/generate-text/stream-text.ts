@@ -267,7 +267,9 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
  */
 export type StreamTextOnErrorResult = { retry: true };
 
-export type StreamTextOnErrorCallback = (event: { error: unknown }) => void;
+export type StreamTextOnErrorCallback = Callback<{ error: unknown }>;
+
+type StreamTextOnErrorHandler = (event: { error: unknown }) => void;
 
 /**
  * Callback that is set using the `onChunk` option.
@@ -587,7 +589,7 @@ export function streamText<
      * explicitly configured.
      * The stream processing will pause until the callback promise is resolved.
      */
-    onError?: StreamTextOnErrorCallback;
+    onError?: StreamTextOnErrorCallback | StreamTextOnErrorHandler;
 
     /**
      * Maximum number of automatic retries for provider errors received after
@@ -783,7 +785,7 @@ export function streamText<
     firstChunkTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
-  const onError: StreamTextOnErrorCallback =
+  const onError: StreamTextOnErrorHandler =
     onErrorArg ??
     (({ error }) => {
       console.error(error);
@@ -882,12 +884,26 @@ const streamRetryBoundarySymbol = Symbol('streamRetryBoundary');
 const streamRetryAttemptBoundarySymbol = Symbol('streamRetryAttemptBoundary');
 
 type StreamRetryBoundaryPart = {
-  [streamRetryBoundarySymbol]?: StreamRetryBoundaryMetadata;
+  [streamRetryBoundarySymbol]: StreamRetryBoundaryMetadata;
 };
 
 type StreamRetryAttemptBoundaryPart = {
   [streamRetryAttemptBoundarySymbol]?: true;
 };
+
+type InternalTextStreamPart<TOOLS extends ToolSet> =
+  | TextStreamPart<TOOLS>
+  | StreamRetryBoundaryPart;
+
+type InternalEnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> =
+  | EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+  | StreamRetryBoundaryPart;
+
+function isStreamRetryBoundaryPart(
+  part: object,
+): part is StreamRetryBoundaryPart {
+  return streamRetryBoundarySymbol in part;
+}
 
 async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
   try {
@@ -900,17 +916,15 @@ function createOutputTransformStream<
   OUTPUT extends Output,
 >(
   output: OUTPUT,
-  streamRetryBoundaries: WeakMap<object, StreamRetryBoundaryMetadata>,
 ): TransformStream<
-  TextStreamPart<TOOLS>,
-  EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+  InternalTextStreamPart<TOOLS>,
+  InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
 > {
   let firstTextChunkId: string | undefined = undefined;
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
   let lastPublishedValue = '';
-  let pendingStreamRetryBoundary: StreamRetryBoundaryMetadata | undefined;
 
   function resetAttemptState() {
     firstTextChunkId = undefined;
@@ -925,18 +939,10 @@ function createOutputTransformStream<
     chunk,
   }: {
     controller: TransformStreamDefaultController<
-      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+      InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >;
     chunk: EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>;
   }) {
-    if (pendingStreamRetryBoundary != null) {
-      streamRetryBoundaries.set(
-        chunk.part as object,
-        pendingStreamRetryBoundary,
-      );
-      pendingStreamRetryBoundary = undefined;
-    }
-
     controller.enqueue(chunk);
   }
 
@@ -945,7 +951,7 @@ function createOutputTransformStream<
     partialOutput = undefined,
   }: {
     controller: TransformStreamDefaultController<
-      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+      InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >;
     partialOutput?: InferPartialOutput<OUTPUT>;
   }) {
@@ -965,18 +971,14 @@ function createOutputTransformStream<
   }
 
   return new TransformStream<
-    TextStreamPart<TOOLS>,
-    EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+    InternalTextStreamPart<TOOLS>,
+    InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
-      const retryBoundary = (chunk as StreamRetryBoundaryPart)[
-        streamRetryBoundarySymbol
-      ];
-
-      if (retryBoundary != null) {
-        delete (chunk as StreamRetryBoundaryPart)[streamRetryBoundarySymbol];
+      if (isStreamRetryBoundaryPart(chunk)) {
         resetAttemptState();
-        pendingStreamRetryBoundary = retryBoundary;
+        controller.enqueue(chunk);
+        return;
       }
 
       // ensure that we publish the last text chunk before the step finish:
@@ -1059,6 +1061,90 @@ function createOutputTransformStream<
   });
 }
 
+function applyStreamTextTransforms<TOOLS extends ToolSet>({
+  stream,
+  transforms,
+  tools,
+  stopStream,
+}: {
+  stream: ReadableStream<InternalTextStreamPart<TOOLS>>;
+  transforms: Array<StreamTextTransform<TOOLS>>;
+  tools: TOOLS;
+  stopStream: () => void;
+}): ReadableStream<InternalTextStreamPart<TOOLS>> {
+  const sourceReader = stream.getReader();
+  let sourceDone = false;
+  let pendingBoundary: StreamRetryBoundaryPart | undefined;
+  let transformedSegmentReader:
+    | ReadableStreamDefaultReader<TextStreamPart<TOOLS>>
+    | undefined;
+
+  const createTransformedSegmentReader = () => {
+    let segment = new ReadableStream<TextStreamPart<TOOLS>>({
+      async pull(controller) {
+        const { done, value } = await sourceReader.read();
+
+        if (done) {
+          sourceDone = true;
+          controller.close();
+          return;
+        }
+
+        if (isStreamRetryBoundaryPart(value)) {
+          pendingBoundary = value;
+          controller.close();
+          return;
+        }
+
+        controller.enqueue(value);
+      },
+      cancel(reason) {
+        return sourceReader.cancel(reason);
+      },
+    });
+
+    for (const transform of transforms) {
+      segment = segment.pipeThrough(
+        transform({
+          tools,
+          stopStream,
+        }),
+      );
+    }
+
+    return segment.getReader();
+  };
+
+  return new ReadableStream<InternalTextStreamPart<TOOLS>>({
+    async pull(controller) {
+      transformedSegmentReader ??= createTransformedSegmentReader();
+
+      const { done, value } = await transformedSegmentReader.read();
+
+      if (!done) {
+        controller.enqueue(value);
+        return;
+      }
+
+      transformedSegmentReader = undefined;
+
+      if (pendingBoundary != null) {
+        controller.enqueue(pendingBoundary);
+        pendingBoundary = undefined;
+        return;
+      }
+
+      if (sourceDone) {
+        controller.close();
+      }
+    },
+    async cancel(reason) {
+      await transformedSegmentReader?.cancel(reason);
+      await sourceReader.cancel(reason);
+    },
+  });
+}
+
 class DefaultStreamTextResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
@@ -1081,7 +1167,7 @@ class DefaultStreamTextResult<
   >();
 
   private readonly addStream: (
-    stream: ReadableStream<TextStreamPart<TOOLS>>,
+    stream: ReadableStream<InternalTextStreamPart<TOOLS>>,
     callbacks?: {
       onError?: (error: unknown) => void;
       onCancel?: () => void;
@@ -1201,7 +1287,7 @@ class DefaultStreamTextResult<
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
-    onError: StreamTextOnErrorCallback;
+    onError: StreamTextOnErrorHandler;
     canRetryStreamViaOnError: boolean;
     onEnd:
       | undefined
@@ -1323,29 +1409,24 @@ class DefaultStreamTextResult<
     > = createIdMap();
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
     const errorsHandledForStreamRetry = new Set<unknown>();
-    const streamRetryBoundaries = new WeakMap<
-      object,
-      StreamRetryBoundaryMetadata
-    >();
 
     const eventProcessor = new TransformStream<
-      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+      InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >({
       async transform(chunk, controller) {
-        const { part } = chunk;
-        const retryBoundary = streamRetryBoundaries.get(part as object);
-
-        if (retryBoundary != null) {
-          streamRetryBoundaries.delete(part as object);
+        if (isStreamRetryBoundaryPart(chunk)) {
+          const retryBoundary = chunk[streamRetryBoundarySymbol];
           recordedContent = [];
           activeReasoningContent = createIdMap();
           activeTextContent = createIdMap();
           recordedRequest = retryBoundary.request;
           recordedRequestMessages = retryBoundary.request.messages ?? [];
           recordedWarnings = retryBoundary.warnings;
+          return;
         }
 
+        const { part } = chunk;
         controller.enqueue(chunk); // forward the chunk to the next stream
 
         const callbacksHandledForStreamRetry =
@@ -1667,13 +1748,14 @@ class DefaultStreamTextResult<
     });
 
     // initialize the stitchable stream and the transformed stream:
-    const stitchableStream = createStitchableStream<TextStreamPart<TOOLS>>();
+    const stitchableStream =
+      createStitchableStream<InternalTextStreamPart<TOOLS>>();
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
 
     // resilient stream that handles abort signals and errors:
     const reader = stitchableStream.stream.getReader();
-    let stream = new ReadableStream<TextStreamPart<TOOLS>>({
+    let stream = new ReadableStream<InternalTextStreamPart<TOOLS>>({
       async start(controller) {
         // send start event:
         controller.enqueue({ type: 'start' });
@@ -1745,24 +1827,21 @@ class DefaultStreamTextResult<
       }),
     );
 
-    // transform the stream before output parsing
-    // to enable replacement of stream segments:
-    for (const transform of transforms) {
-      stream = stream.pipeThrough(
-        transform({
-          tools: tools as TOOLS,
-          stopStream() {
-            stitchableStream.terminate();
-            isRunning = false;
-          },
-        }),
-      );
-    }
+    // Transform each retry attempt independently. The retry boundary is
+    // intercepted outside user transforms, so transforms may filter or
+    // reconstruct any public stream part without losing logical isolation.
+    stream = applyStreamTextTransforms({
+      stream,
+      transforms,
+      tools: tools as TOOLS,
+      stopStream() {
+        stitchableStream.terminate();
+        isRunning = false;
+      },
+    });
 
     this.baseStream = stream
-      .pipeThrough(
-        createOutputTransformStream(output ?? text(), streamRetryBoundaries),
-      )
+      .pipeThrough(createOutputTransformStream(output ?? text()))
       .pipeThrough(eventProcessor);
 
     const { maxRetries } = prepareRetries({
@@ -2450,7 +2529,19 @@ class DefaultStreamTextResult<
                 bufferedAttemptParts = [];
                 closeOpenAttemptParts();
 
-                const retryLanguageModelCall = await callLanguageModel();
+                let retryLanguageModelCall: Awaited<
+                  ReturnType<typeof callLanguageModel>
+                >;
+                try {
+                  retryLanguageModelCall = await callLanguageModel();
+                } catch (retryError) {
+                  controller.enqueue({
+                    type: 'error',
+                    error: retryError,
+                  });
+                  controller.close();
+                  return;
+                }
                 request = retryLanguageModelCall.request;
                 response = retryLanguageModelCall.response;
                 languageModelStreamReader =
@@ -2578,17 +2669,17 @@ class DefaultStreamTextResult<
           const reasoningPartIds = new Map<string, string>();
 
           const enqueueStepPart = (
-            controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+            controller: TransformStreamDefaultController<
+              InternalTextStreamPart<TOOLS>
+            >,
             part: TextStreamPart<TOOLS>,
           ) => {
             if (pendingStreamRetryStateReset) {
-              Object.defineProperty(part, streamRetryBoundarySymbol, {
-                value: {
+              controller.enqueue({
+                [streamRetryBoundarySymbol]: {
                   request: getStepRequest(),
                   warnings: warnings ?? [],
                 } satisfies StreamRetryBoundaryMetadata,
-                configurable: true,
-                enumerable: true,
               });
               pendingStreamRetryStateReset = false;
               hasPreparedStreamRetryStateReset = false;
@@ -2601,7 +2692,7 @@ class DefaultStreamTextResult<
             streamWithToolResults.pipeThrough(
               new TransformStream<
                 ExecuteToolsStreamPart<TOOLS>,
-                TextStreamPart<TOOLS>
+                InternalTextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
                   if (

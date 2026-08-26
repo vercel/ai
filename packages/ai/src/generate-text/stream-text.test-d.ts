@@ -35,10 +35,15 @@ describe('streamText types', () => {
       });
     });
 
-    it('should preserve the existing void callback contract', () => {
+    it('should preserve the existing async void callback contract', () => {
       expectTypeOf<
         ReturnType<StreamTextOnErrorCallback>
-      >().toEqualTypeOf<void>();
+      >().toEqualTypeOf<PromiseLike<void> | void>();
+
+      const callbackResult: ReturnType<StreamTextOnErrorCallback> =
+        Promise.resolve();
+
+      expectTypeOf(callbackResult).toMatchTypeOf<PromiseLike<void> | void>();
     });
 
     it('should accept existing value-returning callbacks', () => {
