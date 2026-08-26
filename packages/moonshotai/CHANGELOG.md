@@ -1,5 +1,25 @@
 # @ai-sdk/moonshotai
 
+## 3.0.39
+
+### Patch Changes
+
+- a06a14a: fix(provider/moonshotai): align thinking and reasoning options by model
+- 8fca314: Support inline text file data and native `ms://` image and video provider references in Moonshot chat prompts.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- 1d19b2a: Add Moonshot Chat Completions log probability options and provider metadata.
+- d53589a: Accept Moonshot streaming tool calls without indices and preserve choice-level usage.
+- 462c498: Normalize Moonshot structured output schemas and enable strict validation by default.
+- 8037158: Use native JSON Schema structured outputs for official Moonshot V1 models.
+- c88b272: Reject unsupported image and video media types before sending Moonshot chat requests.
+- 4cf7c85: Add provider-specific names for Moonshot AI system, user, and assistant messages.
+- 1cb0493: fix(provider/moonshotai): omit unsupported sampling settings for Kimi models
+- 9645259: Omit required tool choice with a warning for Moonshot Kimi models that reject it.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 3.0.38
 
 ### Patch Changes
