@@ -1180,6 +1180,95 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should validate tool input when state is approval-requested', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'approval-requested',
+                  input: { foo: 123 } as unknown as { foo: string },
+                  approval: {
+                    id: 'approval-1',
+                  },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Type validation failed for messages[0].parts[0].input',
+      );
+    });
+
+    it('should validate tool input when state is approval-responded', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'approval-responded',
+                  input: { foo: 123 } as unknown as { foo: string },
+                  approval: {
+                    id: 'approval-1',
+                    approved: true,
+                  },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Type validation failed for messages[0].parts[0].input',
+      );
+    });
+
+    it('should validate tool input when state is output-denied', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-denied',
+                  input: { foo: 123 } as unknown as { foo: string },
+                  approval: {
+                    id: 'approval-1',
+                    approved: false,
+                  },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Type validation failed for messages[0].parts[0].input',
+      );
+    });
+
     it('should preserve identifiable legacy aborted output-available tool calls with empty input', async () => {
       const abortingTool = {
         name: 'foo',
@@ -1601,7 +1690,7 @@ describe('validateUIMessages', () => {
       ).rejects.toThrowError('No tool schema found for tool part bar');
     });
 
-    it('should preserve terminal calls from tools unavailable during agent continuation', async () => {
+    it('should represent terminal calls from unavailable agent tools as dynamic tool parts', async () => {
       const inputMessages: TestMessage[] = [
         {
           id: '1',
@@ -1642,7 +1731,68 @@ describe('validateUIMessages', () => {
         },
       });
 
-      expect(messages).toEqual(inputMessages);
+      expect(messages).toEqual([
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'bar',
+              toolCallId: '1',
+              state: 'output-available',
+              input: {},
+              output: { result: 'success' },
+            },
+            {
+              type: 'dynamic-tool',
+              toolName: 'bar',
+              toolCallId: '2',
+              state: 'output-error',
+              input: undefined,
+              errorText: 'Tool execution failed',
+            },
+            {
+              type: 'dynamic-tool',
+              toolName: 'bar',
+              toolCallId: '3',
+              state: 'output-denied',
+              input: {},
+              approval: {
+                id: 'approval-1',
+                approved: false,
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should reject stale terminal input for an available agent tool', async () => {
+      await expect(
+        validateUIMessagesForAgent<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: { foo: 123 } as unknown as { foo: string },
+                  output: { result: 'success' },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Type validation failed for messages[0].parts[0].input',
+      );
     });
 
     it('should validate automatic approval reasons on output parts', async () => {
