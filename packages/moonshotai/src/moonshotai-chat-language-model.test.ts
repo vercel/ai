@@ -3,6 +3,7 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { MoonshotAIMessageProviderOptions } from './moonshotai-chat-options';
 import { createMoonshotAI } from './moonshotai-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -69,6 +70,137 @@ describe('MoonshotAIChatLanguageModel', () => {
   describe('doGenerate', () => {
     beforeEach(() => {
       prepareJsonResponse();
+    });
+
+    it('should send message names', async () => {
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            providerOptions: {
+              moonshotai: {
+                name: 'guide',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'alice',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, Alice.' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'assistant',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            name: 'guide',
+          },
+          { role: 'user', content: 'Hello', name: 'alice' },
+          {
+            role: 'assistant',
+            content: 'Hello, Alice.',
+            name: 'assistant',
+          },
+        ],
+      });
+    });
+
+    it('should send a name on a multi-part user message', async () => {
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image.' },
+              {
+                type: 'file',
+                data: new URL('https://example.com/image.jpg'),
+                mediaType: 'image/jpeg',
+              },
+            ],
+            providerOptions: {
+              moonshotai: {
+                name: 'alice',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [{ role: 'user', name: 'alice' }],
+      });
+    });
+
+    it('should omit a name on a tool message with a warning', async () => {
+      const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                output: { type: 'text', value: 'sunny' },
+              },
+            ],
+            providerOptions: {
+              moonshotai: {
+                name: 'weather_tool',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        messages: [
+          {
+            role: 'tool',
+            tool_call_id: 'call-1',
+            content: 'sunny',
+          },
+        ],
+      });
+      expect(requestBody.messages[0]).not.toHaveProperty('name');
+      expect(result.warnings).toContainEqual({
+        type: 'other',
+        message:
+          'Moonshot AI does not support message names on tool messages. The name has been omitted.',
+      });
+    });
+
+    it('should reject a non-string message name', async () => {
+      await expect(
+        provider.chatModel('moonshot-v1-8k').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: { moonshotai: { name: 123 } },
+            },
+          ],
+        }),
+      ).rejects.toThrow('invalid moonshotai provider options');
     });
 
     it('should send maxOutputTokens as max_completion_tokens', async () => {
