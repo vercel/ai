@@ -1,0 +1,32 @@
+{
+  "recordedAt": "2026-08-26T21:26:21Z",
+  "model": "deepseek-v4-flash",
+  "json": {
+    "prompt_tokens": 88,
+    "completion_tokens": 28,
+    "total_tokens": 116,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 26
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 88
+  },
+  "stream": [
+    {
+      "prompt_tokens": 88,
+      "completion_tokens": 25,
+      "total_tokens": 113,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 23
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 88
+    }
+  ]
+}
