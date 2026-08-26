@@ -1,1 +1,0 @@
-{"promptFeedback":{"blockReason":"PROHIBITED_CONTENT"},"usageMetadata":{"promptTokenCount":9,"totalTokenCount":9,"promptTokensDetails":[{"modality":"TEXT","tokenCount":9}],"serviceTier":"standard"},"modelVersion":"gemini-3.7-flash","responseId":"_TOPas2SIfa-_uMPpsCHoAY"}

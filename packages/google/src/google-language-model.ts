@@ -388,11 +388,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
-    const candidate = response.candidates[0];
+    const candidate = response.candidates?.[0];
+    const promptBlockReason = response.promptFeedback?.blockReason;
+    const isPromptBlocked =
+      candidate?.finishReason == null && promptBlockReason != null;
+    const rawFinishReason =
+      candidate?.finishReason ?? promptBlockReason ?? undefined;
     const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:
-    const parts = candidate.content?.parts ?? [];
+    const parts = candidate?.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
 
@@ -517,7 +522,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
     const sources =
       extractSources({
-        groundingMetadata: candidate.groundingMetadata,
+        groundingMetadata: candidate?.groundingMetadata,
         generateId: this.config.generateId,
       }) ?? [];
     for (const source of sources) {
@@ -527,24 +532,26 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: mapGoogleFinishReason({
-          finishReason: candidate.finishReason,
-          // Only count client-executed tool calls for finish reason determination.
-          hasToolCalls: content.some(
-            part => part.type === 'tool-call' && !part.providerExecuted,
-          ),
-        }),
-        raw: candidate.finishReason ?? undefined,
+        unified: isPromptBlocked
+          ? 'content-filter'
+          : mapGoogleFinishReason({
+              finishReason: rawFinishReason,
+              // Only count client-executed tool calls for finish reason determination.
+              hasToolCalls: content.some(
+                part => part.type === 'tool-call' && !part.providerExecuted,
+              ),
+            }),
+        raw: rawFinishReason,
       },
       usage: convertGoogleUsage(usageMetadata),
       warnings,
       providerMetadata: wrapProviderMetadata({
         promptFeedback: response.promptFeedback ?? null,
-        groundingMetadata: candidate.groundingMetadata ?? null,
-        urlContextMetadata: candidate.urlContextMetadata ?? null,
-        safetyRatings: candidate.safetyRatings ?? null,
+        groundingMetadata: candidate?.groundingMetadata ?? null,
+        urlContextMetadata: candidate?.urlContextMetadata ?? null,
+        safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
-        finishMessage: candidate.finishMessage ?? null,
+        finishMessage: candidate?.finishMessage ?? null,
         serviceTier: usageMetadata?.serviceTier ?? null,
       } satisfies GoogleProviderMetadata),
       response: {
@@ -735,6 +742,22 @@ export class GoogleLanguageModel implements LanguageModelV4 {
 
             // sometimes the API returns an empty candidates array
             if (candidate == null) {
+              const promptBlockReason = value.promptFeedback?.blockReason;
+              if (promptBlockReason != null) {
+                finishReason = {
+                  unified: 'content-filter',
+                  raw: promptBlockReason,
+                };
+                providerMetadata = wrapProviderMetadata({
+                  promptFeedback: value.promptFeedback ?? null,
+                  groundingMetadata: lastGroundingMetadata,
+                  urlContextMetadata: lastUrlContextMetadata,
+                  safetyRatings: null,
+                  usageMetadata: usageMetadata ?? null,
+                  finishMessage: null,
+                  serviceTier: usage?.serviceTier ?? null,
+                } satisfies GoogleProviderMetadata);
+              }
               return;
             }
 
@@ -1110,13 +1133,21 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               }
             }
 
-            if (candidate.finishReason != null) {
+            const promptBlockReason = value.promptFeedback?.blockReason;
+            const isPromptBlocked =
+              candidate.finishReason == null && promptBlockReason != null;
+            const rawFinishReason =
+              candidate.finishReason ?? promptBlockReason ?? undefined;
+
+            if (rawFinishReason != null) {
               finishReason = {
-                unified: mapGoogleFinishReason({
-                  finishReason: candidate.finishReason,
-                  hasToolCalls,
-                }),
-                raw: candidate.finishReason,
+                unified: isPromptBlocked
+                  ? 'content-filter'
+                  : mapGoogleFinishReason({
+                      finishReason: rawFinishReason,
+                      hasToolCalls,
+                    }),
+                raw: rawFinishReason,
               };
 
               providerMetadata = wrapProviderMetadata({
@@ -1590,16 +1621,18 @@ export const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       responseId: z.string().nullish(),
-      candidates: z.array(
-        z.object({
-          content: getContentSchema().nullish().or(z.object({}).strict()),
-          finishReason: z.string().nullish(),
-          finishMessage: z.string().nullish(),
-          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
-          groundingMetadata: getGroundingMetadataSchema().nullish(),
-          urlContextMetadata: getUrlContextMetadataSchema().nullish(),
-        }),
-      ),
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish().or(z.object({}).strict()),
+            finishReason: z.string().nullish(),
+            finishMessage: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
       usageMetadata: usageSchema.nullish(),
       promptFeedback: z
         .object({
@@ -1611,16 +1644,20 @@ export const responseSchema = lazySchema(() =>
   ),
 );
 
+type CandidateSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates']
+>[number];
+
 export type GroundingMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
+  CandidateSchema['groundingMetadata']
 >;
 
 export type UrlContextMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']
+  CandidateSchema['urlContextMetadata']
 >;
 
 export type SafetyRatingSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
+  CandidateSchema['safetyRatings']
 >[number];
 
 export type PromptFeedbackSchema = NonNullable<
