@@ -106,14 +106,14 @@ export function createStitchableStream<T>(): {
         controller = controllerParam;
       },
       pull: processPull,
-      async cancel(reason) {
+      async cancel() {
         isCancelled = true;
         isClosed = true;
         waitForNewStream.resolve();
 
         for (const { reader, onCancel } of innerStreams) {
           onCancel?.();
-          await reader.cancel(reason);
+          await reader.cancel();
         }
         innerStreams = [];
       },
