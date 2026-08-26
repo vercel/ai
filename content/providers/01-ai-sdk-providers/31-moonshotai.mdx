@@ -206,6 +206,14 @@ You can also pass a URL. Since Moonshot AI does not fetch external URLs, the AI 
 ```
 
 <Note>
+  Supported image media types are `image/jpeg`, `image/png`, `image/gif`,
+  `image/webp`, `image/bmp`, `image/heic`, and `image/heif`. Supported video
+  media types are `video/mp4`, `video/mpeg`, `video/mov`, `video/avi`,
+  `video/x-flv`, `video/mpg`, `video/webm`, `video/wmv`, and `video/3gpp`. Other
+  image and video media types are rejected before a request is sent.
+</Note>
+
+<Note>
   Moonshot AI recommends videos up to 1080p. For larger videos, or videos you
   reuse across many requests, upload them with the [Moonshot Files
   API](https://platform.moonshot.ai/docs/api/files) instead. Audio and PDF

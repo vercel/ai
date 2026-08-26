@@ -9,6 +9,53 @@ import {
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
 
+const supportedImageMediaTypes = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/bmp',
+  'image/heic',
+  'image/heif',
+] as const;
+
+const supportedVideoMediaTypes = [
+  'video/mp4',
+  'video/mpeg',
+  'video/mov',
+  'video/avi',
+  'video/x-flv',
+  'video/mpg',
+  'video/webm',
+  'video/wmv',
+  'video/3gpp',
+] as const;
+
+function validateMediaType({
+  mediaType,
+  supportedMediaTypes,
+  topLevelMediaType,
+}: {
+  mediaType: string;
+  supportedMediaTypes: readonly string[];
+  topLevelMediaType: 'image' | 'video';
+}): string {
+  const normalizedMediaType =
+    mediaType === `${topLevelMediaType}/*`
+      ? topLevelMediaType === 'image'
+        ? 'image/jpeg'
+        : 'video/mp4'
+      : mediaType;
+
+  if (!supportedMediaTypes.includes(normalizedMediaType)) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `file part media type ${normalizedMediaType}`,
+    });
+  }
+
+  return normalizedMediaType;
+}
+
 // Moonshot AI chat completions accepts text, image_url, and video_url content
 // parts only. Anything else (audio, PDF, other file types) throws here rather
 // than being rejected by the API with a 400.
@@ -41,10 +88,11 @@ export function convertToMoonshotAIChatMessages(
               }
               case 'file': {
                 if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
+                  const mediaType = validateMediaType({
+                    mediaType: part.mediaType,
+                    supportedMediaTypes: supportedImageMediaTypes,
+                    topLevelMediaType: 'image',
+                  });
 
                   return {
                     type: 'image_url' as const,
@@ -58,8 +106,11 @@ export function convertToMoonshotAIChatMessages(
                 }
 
                 if (part.mediaType.startsWith('video/')) {
-                  const mediaType =
-                    part.mediaType === 'video/*' ? 'video/mp4' : part.mediaType;
+                  const mediaType = validateMediaType({
+                    mediaType: part.mediaType,
+                    supportedMediaTypes: supportedVideoMediaTypes,
+                    topLevelMediaType: 'video',
+                  });
 
                   return {
                     type: 'video_url' as const,
