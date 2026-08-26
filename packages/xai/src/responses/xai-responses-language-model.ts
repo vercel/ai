@@ -25,7 +25,7 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
 import type { webSearchOutputSchema } from '../tool/web-search';
@@ -34,6 +34,8 @@ import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
+  webSearchWireActionSchema,
+  webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
   type XaiResponsesIncludeOptions,
@@ -1371,31 +1373,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     };
   }
 }
-
-const webSearchWireSourceSchema = z.object({
-  type: z.literal('url'),
-  url: z.string(),
-});
-
-const webSearchWireActionSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('search'),
-    query: z.string().nullish(),
-    queries: z.array(z.string()).nullish(),
-    sources: z.array(z.unknown()).nullish(),
-  }),
-  z.object({
-    type: z.literal('open_page'),
-    url: z.string().nullish(),
-    sources: z.array(z.unknown()).nullish(),
-  }),
-  z.object({
-    type: z.literal('find_in_page'),
-    url: z.string().nullish(),
-    pattern: z.string().nullish(),
-    sources: z.array(z.unknown()).nullish(),
-  }),
-]);
 
 function mapWebSearchAction(
   action: unknown,
