@@ -10,6 +10,12 @@ const withGeistdocs = createGeistdocs();
 const config: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // Cap static-generation workers: the Vercel build machine exposes 30
+    // cores, and ~29 concurrent prerender workers OOM the container during
+    // "Generating static pages". Local 12-core builds peak fine at 11.
+    cpus: 8,
+  },
   images: {
     remotePatterns: [
       {
