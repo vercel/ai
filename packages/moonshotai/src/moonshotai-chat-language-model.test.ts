@@ -55,6 +55,16 @@ function prepareChunksFixtureResponse(filename: string) {
   };
 }
 
+async function getStreamParts(filename: string) {
+  prepareChunksFixtureResponse(filename);
+
+  const result = await provider.chatModel('kimi-k2.5').doStream({
+    prompt: TEST_PROMPT,
+  });
+
+  return convertReadableStreamToArray(result.stream);
+}
+
 describe('MoonshotAIChatLanguageModel', () => {
   describe('doGenerate', () => {
     beforeEach(() => {
@@ -582,6 +592,93 @@ describe('MoonshotAIChatLanguageModel', () => {
           });
         }
       });
+    });
+
+    it('should assemble tool calls without explicit indices', async () => {
+      const parts = await getStreamParts(
+        'moonshotai-issue-19546-indexless-tool-calls',
+      );
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(
+        parts
+          .filter(part => part.type === 'tool-call')
+          .map(({ toolCallId, toolName, input }) => ({
+            toolCallId,
+            toolName,
+            input,
+          })),
+      ).toEqual([
+        {
+          toolCallId: 'weather_0',
+          toolName: 'weather',
+          input: '{"location":"San Francisco"}',
+        },
+        {
+          toolCallId: 'time_1',
+          toolName: 'time',
+          input: '{"zone":"UTC"}',
+        },
+      ]);
+    });
+
+    it('should preserve explicit tool call indices', async () => {
+      const parts = await getStreamParts(
+        'moonshotai-issue-19546-explicit-index-live',
+      );
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(
+        parts
+          .filter(part => part.type === 'tool-call')
+          .map(({ toolCallId, toolName, input }) => ({
+            toolCallId,
+            toolName,
+            input,
+          })),
+      ).toEqual([
+        {
+          toolCallId: 'weather_0',
+          toolName: 'weather',
+          input: '{"location": "San Francisco"}',
+        },
+      ]);
+    });
+
+    it('should collect choice-level usage', async () => {
+      const parts = await getStreamParts(
+        'moonshotai-issue-19546-choice-usage-live',
+      );
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.usage).toEqual({
+        inputTokens: 12,
+        outputTokens: 5,
+        totalTokens: 17,
+        reasoningTokens: 1,
+        cachedInputTokens: undefined,
+      });
+    });
+
+    it('should prefer top-level usage over choice-level usage', async () => {
+      const parts = await getStreamParts(
+        'moonshotai-issue-19546-usage-precedence',
+      );
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.usage).toEqual({
+        inputTokens: 99,
+        outputTokens: 33,
+        totalTokens: 132,
+        reasoningTokens: undefined,
+        cachedInputTokens: undefined,
+      });
+    });
+
+    it('should reject malformed tool call indices', async () => {
+      const parts = await getStreamParts('moonshotai-issue-19546-malformed');
+
+      expect(parts.some(part => part.type === 'error')).toBe(true);
     });
   });
 });
