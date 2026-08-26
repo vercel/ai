@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-33da7fd7-082a-9010-92be-007111cd242d",
+  "object": "chat.completion",
+  "created": 1787762055,
+  "model": "kimi-k3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": "Must call get_weather for Paris. Do not answer directly likely means use tool. Call only.",
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "get_weather_0",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\": \"Paris\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 213,
+    "completion_tokens": 73,
+    "total_tokens": 286,
+    "completion_tokens_details": {
+      "reasoning_tokens": 20
+    }
+  }
+}

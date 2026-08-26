@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 19559,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/moonshotai-preserve-chat-response-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/moonshotai-preserve-chat-response-metadata.ts",
+    "packages/moonshotai/src/__fixtures__/moonshotai-metadata-live.json",
+    "packages/moonshotai/src/__fixtures__/moonshotai-metadata-live.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #19559 reproduced: Moonshot chat response metadata was not preserved in generate and stream results."
+  }
+}
