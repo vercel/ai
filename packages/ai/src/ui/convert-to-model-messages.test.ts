@@ -746,7 +746,7 @@ describe('convertToModelMessages', () => {
                 toolCallId: 'call1',
                 errorText: 'Error: Invalid input',
                 input: undefined,
-                rawInput: { operation: 'add', numbers: [1, 2] },
+                rawInput: '{"operation":"add","numbers":[1,2]',
               },
             ],
           },
@@ -761,13 +761,7 @@ describe('convertToModelMessages', () => {
                 "type": "text",
               },
               {
-                "input": {
-                  "numbers": [
-                    1,
-                    2,
-                  ],
-                  "operation": "add",
-                },
+                "input": "{\"operation\":\"add\",\"numbers\":[1,2]",
                 "providerExecuted": undefined,
                 "toolCallId": "call1",
                 "toolName": "calculator",

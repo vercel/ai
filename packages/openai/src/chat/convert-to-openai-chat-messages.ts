@@ -7,6 +7,14 @@ import {
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
+function serializeToolCallArguments(input: unknown): string {
+  return JSON.stringify(
+    typeof input === 'object' && input !== null && !Array.isArray(input)
+      ? input
+      : {},
+  );
+}
+
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
 
 function getPromptCacheBreakpoint(
@@ -249,7 +257,7 @@ export function convertToOpenAIChatMessages({
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeToolCallArguments(part.input),
                 },
               });
               break;
