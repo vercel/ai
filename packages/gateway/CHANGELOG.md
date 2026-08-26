@@ -1,5 +1,20 @@
 # @ai-sdk/gateway
 
+## 4.0.65
+
+### Patch Changes
+
+- 80227cf: chore(provider/gateway): update gateway model settings files
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 5533946: Remove the internal-only `relevance_score` and `citation_number` fields from
+  published Tako Search response types and schemas. Code that reads either field
+  must be updated; Gateway responses still pass the values through at runtime,
+  but they are no longer typed. Also document data surcharge controls.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 4.0.64
 
 ### Patch Changes
