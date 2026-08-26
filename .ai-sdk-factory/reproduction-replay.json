@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19736,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19736-cohere-raw-usage.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19736-cohere-raw-usage.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19736_RAW_USAGE_MISMATCH: generateText usage.raw did not preserve JSON usage; streamText usage.raw did not preserve message-end usage"
+  }
+}

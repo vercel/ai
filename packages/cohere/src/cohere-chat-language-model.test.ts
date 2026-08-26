@@ -651,6 +651,64 @@ describe('doGenerate', () => {
       `);
     });
 
+    it('should preserve complete raw usage and normalized token counts', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync('src/__fixtures__/cohere-text.json', 'utf8'),
+      ) as {
+        usage: {
+          billed_units: Record<string, unknown>;
+          tokens: Record<string, unknown>;
+          cached_tokens: number;
+          [key: string]: unknown;
+        };
+      };
+      fixture.usage.top_level_sentinel = { preserved: true };
+      fixture.usage.tokens.nested_token_sentinel = 'preserved';
+      fixture.usage.billed_units.nested_billing_sentinel = 'preserved';
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: fixture,
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toEqual({
+        inputTokens: {
+          total: 507,
+          noCache: 507,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+          reasoning: undefined,
+        },
+        raw: fixture.usage,
+      });
+    });
+
+    it('should validate all known raw usage fields', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync('src/__fixtures__/cohere-text.json', 'utf8'),
+      ) as {
+        usage: { cached_tokens: unknown };
+      };
+      fixture.usage.cached_tokens = 'invalid';
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: fixture,
+      };
+
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrow();
+    });
+
     it('should send additional response information', async () => {
       prepareJsonFixtureResponse('cohere-text');
 
@@ -708,6 +766,95 @@ describe('doStream', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should preserve complete raw usage and normalized token counts', async () => {
+      const events = fs
+        .readFileSync('src/__fixtures__/cohere-text.chunks.txt', 'utf8')
+        .split('\n')
+        .filter(line => line.trim() !== '')
+        .map(
+          line =>
+            JSON.parse(line) as {
+              type: string;
+              delta?: {
+                usage?: {
+                  billed_units: Record<string, unknown>;
+                  tokens: Record<string, unknown>;
+                  cached_tokens: number;
+                  [key: string]: unknown;
+                };
+              };
+            },
+        );
+      const messageEnd = events.find(event => event.type === 'message-end');
+      const providerUsage = messageEnd?.delta?.usage;
+      if (providerUsage == null) {
+        throw new Error('Fixture is missing message-end usage');
+      }
+      providerUsage.top_level_sentinel = { preserved: true };
+      providerUsage.tokens.nested_token_sentinel = 'preserved';
+      providerUsage.billed_units.nested_billing_sentinel = 'preserved';
+      prepareChunkLinesResponse(events);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const chunks = await convertReadableStreamToArray(stream);
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+      if (finish?.type !== 'finish') {
+        throw new Error('Stream is missing finish event');
+      }
+
+      expect(finish.usage).toEqual({
+        inputTokens: {
+          total: 507,
+          noCache: 507,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+          reasoning: undefined,
+        },
+        raw: providerUsage,
+      });
+    });
+
+    it('should validate all known raw usage fields', async () => {
+      const events = fs
+        .readFileSync('src/__fixtures__/cohere-text.chunks.txt', 'utf8')
+        .split('\n')
+        .filter(line => line.trim() !== '')
+        .map(
+          line =>
+            JSON.parse(line) as {
+              type: string;
+              delta?: {
+                usage?: {
+                  billed_units: { input_tokens: unknown };
+                  cached_tokens: unknown;
+                };
+              };
+            },
+        );
+      const usage = events.find(event => event.type === 'message-end')?.delta
+        ?.usage;
+      if (usage == null) {
+        throw new Error('Fixture is missing message-end usage');
+      }
+      usage.billed_units.input_tokens = 'invalid';
+      usage.cached_tokens = 'invalid';
+      prepareChunkLinesResponse(events);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      await expect(convertReadableStreamToArray(stream)).rejects.toThrow();
     });
   });
 
