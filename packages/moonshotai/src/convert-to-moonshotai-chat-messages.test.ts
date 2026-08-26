@@ -1,5 +1,126 @@
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { convertToMoonshotAIChatMessages } from './convert-to-moonshotai-chat-messages';
+
+function convertMessages(prompt: LanguageModelV3Prompt) {
+  return convertToMoonshotAIChatMessages({ prompt }).messages;
+}
+
+describe('message names', () => {
+  it('should serialize names for system, user, and assistant messages', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          providerOptions: { moonshotai: { name: 'guide' } },
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Describe this image.' }],
+          providerOptions: { moonshotai: { name: 'alice' } },
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'I will inspect it.' }],
+          providerOptions: { moonshotai: { name: 'vision_assistant' } },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          name: 'guide',
+        },
+        {
+          role: 'user',
+          content: 'Describe this image.',
+          name: 'alice',
+        },
+        {
+          role: 'assistant',
+          content: 'I will inspect it.',
+          name: 'vision_assistant',
+          tool_calls: undefined,
+        },
+      ],
+      warnings: [],
+    });
+  });
+
+  it('should ignore a name on a tool message with an unsupported warning', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              output: { type: 'text', value: 'sunny' },
+            },
+          ],
+          providerOptions: { moonshotai: { name: 'weather_tool' } },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'tool',
+          tool_call_id: 'call-1',
+          content: 'sunny',
+        },
+      ],
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'message name on tool messages',
+        },
+      ],
+    });
+  });
+
+  it('should reject a non-string name', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: { moonshotai: { name: 123 } },
+          },
+        ],
+      }),
+    ).toThrow('invalid moonshotai provider options');
+  });
+
+  it('should serialize a name from a custom provider options namespace', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerOptions: { custom: { name: 'alice' } },
+        },
+      ],
+      providerOptionsName: 'custom',
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'user',
+        content: 'Hello',
+        name: 'alice',
+      },
+    ]);
+  });
+});
 
 describe('user messages', () => {
   const supportedImageMediaTypes = [
@@ -25,7 +146,7 @@ describe('user messages', () => {
   ];
 
   it('should convert a text-only user message to string content', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ]);
 
@@ -33,7 +154,7 @@ describe('user messages', () => {
   });
 
   it('should convert image data parts to image_url data URIs', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -64,7 +185,7 @@ describe('user messages', () => {
   it.each(supportedImageMediaTypes)(
     'should accept supported image media type %s',
     mediaType => {
-      const result = convertToMoonshotAIChatMessages([
+      const result = convertMessages([
         {
           role: 'user',
           content: [
@@ -92,7 +213,7 @@ describe('user messages', () => {
   );
 
   it('should pass through image URLs', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -119,7 +240,7 @@ describe('user messages', () => {
   });
 
   it('should convert video data parts to video_url data URIs', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -150,7 +271,7 @@ describe('user messages', () => {
   it.each(supportedVideoMediaTypes)(
     'should accept supported video media type %s',
     mediaType => {
-      const result = convertToMoonshotAIChatMessages([
+      const result = convertMessages([
         {
           role: 'user',
           content: [
@@ -178,7 +299,7 @@ describe('user messages', () => {
   );
 
   it('should pass through video URLs', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -205,7 +326,7 @@ describe('user messages', () => {
   });
 
   it('should pass through ms:// file references from the Files API', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -232,7 +353,7 @@ describe('user messages', () => {
   });
 
   it('should decode text/* file parts into text parts', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -254,7 +375,7 @@ describe('user messages', () => {
     'should throw for unsupported multimodal media type %s',
     mediaType => {
       expect(() =>
-        convertToMoonshotAIChatMessages([
+        convertMessages([
           {
             role: 'user',
             content: [
@@ -274,7 +395,7 @@ describe('user messages', () => {
 
   it('should throw for audio file parts (rejected by the API)', () => {
     expect(() =>
-      convertToMoonshotAIChatMessages([
+      convertMessages([
         {
           role: 'user',
           content: [
@@ -291,7 +412,7 @@ describe('user messages', () => {
 
   it('should throw for PDF file parts (rejected by the API)', () => {
     expect(() =>
-      convertToMoonshotAIChatMessages([
+      convertMessages([
         {
           role: 'user',
           content: [
@@ -310,7 +431,7 @@ describe('user messages', () => {
 
   it('should throw for unsupported file types', () => {
     expect(() =>
-      convertToMoonshotAIChatMessages([
+      convertMessages([
         {
           role: 'user',
           content: [
@@ -330,7 +451,7 @@ describe('user messages', () => {
 
 describe('system messages', () => {
   it('should pass system messages through', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       { role: 'system', content: 'You are Kimi.' },
     ]);
 
@@ -340,7 +461,7 @@ describe('system messages', () => {
 
 describe('assistant messages', () => {
   it('should emit reasoning_content for reasoning parts', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'assistant',
         content: [
@@ -361,7 +482,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert tool calls and set content to null when there is no text', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'assistant',
         content: [
@@ -391,7 +512,7 @@ describe('assistant messages', () => {
   });
 
   it('should keep text content when text and tool calls are present', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'assistant',
         content: [
@@ -424,7 +545,7 @@ describe('assistant messages', () => {
 
 describe('tool messages', () => {
   it('should convert text tool results to tool messages', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'tool',
         content: [
@@ -444,7 +565,7 @@ describe('tool messages', () => {
   });
 
   it('should stringify json tool results', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'tool',
         content: [
