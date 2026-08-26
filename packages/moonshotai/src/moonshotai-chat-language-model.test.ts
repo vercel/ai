@@ -1420,7 +1420,6 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-<<<<<<< HEAD
   it('should send maxOutputTokens as only max_completion_tokens', async () => {
     prepareChunksFixtureResponse('moonshotai-max-completion-tokens');
 
@@ -1448,9 +1447,6 @@ describe('doStream', () => {
     expect(requestBody).not.toHaveProperty('max_tokens');
   });
 
-  it('should stream reasoning and text deltas with usage', async () => {
-    prepareChunksFixtureResponse('moonshotai-stream');
-=======
   it('should preserve a provider error envelope in stream errors', async () => {
     const data = {
       error: {
@@ -1463,7 +1459,6 @@ describe('doStream', () => {
       type: 'stream-chunks',
       chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
     };
->>>>>>> origin/main
 
     const result = await provider.chatModel('kimi-k3').doStream({
       prompt: TEST_PROMPT,
