@@ -27,8 +27,6 @@ vi.mock('@opencode-ai/sdk/v2', () => ({
   createOpencodeClient: vi.fn(() => sdkMock.client),
 }));
 
-vi.mock('node:fs', () => ({ mkdirSync: vi.fn() }));
-
 vi.mock('./opencode-path', () => ({
   prependOpenCodeBinToPath: vi.fn(),
 }));

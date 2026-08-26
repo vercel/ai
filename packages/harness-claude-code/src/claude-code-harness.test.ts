@@ -150,8 +150,13 @@ function fakeNetworkSandboxSessionForStartupFailure({
 }): HarnessV1NetworkSandboxSession {
   const port = 4319;
   const session = {
-    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    run: async ({ command }: { command: string }) => ({
+      exitCode: 0,
+      stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
+      stderr: '',
+    }),
     readTextFile: async () => null,
+    writeTextFile: async () => {},
     spawn: async () => ({
       stdout: textStream(stdout),
       stderr: textStream(stderr),
@@ -349,7 +354,16 @@ describe('createClaudeCode adapter', () => {
     const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',
-      restricted: () => ({}) as never,
+      restricted: () =>
+        ({
+          run: async () => ({
+            exitCode: 0,
+            stdout: '/home/vercel-sandbox',
+            stderr: '',
+          }),
+          readTextFile: async () => null,
+          writeTextFile: async () => {},
+        }) as never,
       ports: [] as ReadonlyArray<number>,
       async getPortEndpoint() {
         return { url: '' };
@@ -413,6 +427,8 @@ describe('createClaudeCode adapter', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Hello',
       emit: () => {},
     });
@@ -461,6 +477,8 @@ describe('createClaudeCode adapter', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Hello',
       emit: () => {},
     });
@@ -515,6 +533,8 @@ describe('createClaudeCode adapter', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Hello',
       emit: () => {},
     });
@@ -562,6 +582,8 @@ describe('createClaudeCode adapter', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Hello',
       emit: () => {},
     });
@@ -717,6 +739,8 @@ describe('createClaudeCode adapter', () => {
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'think about this',
       emit: () => {},
     });
@@ -742,6 +766,8 @@ describe('createClaudeCode adapter', () => {
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Use Context7.',
       emit: () => {},
     });
@@ -764,6 +790,8 @@ describe('createClaudeCode adapter', () => {
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'think about this',
       emit: () => {},
     });
@@ -789,6 +817,8 @@ describe('createClaudeCode adapter', () => {
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'inspect the project',
       emit: () => {},
     });
@@ -818,6 +848,8 @@ describe('createClaudeCode adapter', () => {
       },
     });
     const control = await session.doContinueTurn({
+      skills: [],
+      tools: [],
       emit: () => {},
     });
     void Promise.resolve(control.done).catch(() => {});
@@ -839,6 +871,8 @@ describe('createClaudeCode adapter', () => {
         runs,
       }),
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
       skills: [
         {
           name: 'weather-forecast',
@@ -857,8 +891,7 @@ describe('createClaudeCode adapter', () => {
           content: 'Read `weather-codes.md` for code descriptions.',
         },
       ],
-    });
-    const control = await session.doPromptTurn({
+      tools: [],
       prompt: 'which skills do you have available?',
       emit: () => {},
     });
@@ -868,8 +901,8 @@ describe('createClaudeCode adapter', () => {
       skills: ['weather-forecast', 'weather-codes'],
     });
 
-    const skillWrites = writes.filter(
-      write => !write.path.endsWith('/bridge-meta.json'),
+    const skillWrites = writes.filter(write =>
+      write.path.includes('/weather-'),
     );
     const bridgeMetaWrite = writes.find(write =>
       write.path.endsWith('/bridge-meta.json'),
@@ -879,13 +912,20 @@ describe('createClaudeCode adapter', () => {
       path: '/vercel/sandbox/.agent-runs/s1/bridge/bridge-meta.json',
       content: JSON.stringify({ type: 'claude-code', state: 'starting' }),
     });
-    expect(skillWrites.map(write => write.path)).toEqual([
-      '/home/vercel-sandbox/.claude/skills/weather-forecast/SKILL.md',
-      '/home/vercel-sandbox/.claude/skills/weather-forecast/reference.md',
-      '/home/vercel-sandbox/.claude/skills/weather-codes/SKILL.md',
-    ]);
-    expect(skillWrites[0].content).toContain('name: weather-forecast');
-    expect(skillWrites[1].content).toBe('# Forecast reference');
+    expect(skillWrites.map(write => write.path)).toEqual(
+      expect.arrayContaining([
+        '/home/vercel-sandbox/.claude/skills/weather-forecast/SKILL.md',
+        '/home/vercel-sandbox/.claude/skills/weather-forecast/reference.md',
+        '/home/vercel-sandbox/.claude/skills/weather-codes/SKILL.md',
+      ]),
+    );
+    expect(skillWrites).toHaveLength(3);
+    expect(
+      skillWrites.find(write => write.path.endsWith('/SKILL.md'))?.content,
+    ).toContain('name: weather-');
+    expect(
+      skillWrites.find(write => write.path.endsWith('/reference.md'))?.content,
+    ).toBe('# Forecast reference');
     await session.doDestroy();
   });
 
@@ -893,15 +933,17 @@ describe('createClaudeCode adapter', () => {
     const writes: Array<{ path: string; content: string }> = [];
     const harness = createClaudeCode();
 
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes,
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
     await expect(
-      harness.doStart({
-        sessionId: 's1',
-        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
-          bridgePortUrl: 'ws://127.0.0.1:1',
-          writes,
-          runs: [],
-        }),
-        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      session.doPromptTurn({
         skills: [
           {
             name: '../weather',
@@ -909,9 +951,13 @@ describe('createClaudeCode adapter', () => {
             content: 'unsafe',
           },
         ],
+        tools: [],
+        prompt: 'Use the skill.',
+        emit: () => {},
       }),
     ).rejects.toThrow('Invalid Claude Code skill name');
-    expect(writes).toEqual([]);
+    expect(writes.some(write => write.path.includes('../weather'))).toBe(false);
+    await session.doDestroy();
   });
 
   it('rejects unsafe skill file paths before writing skill files', async () => {
@@ -919,15 +965,17 @@ describe('createClaudeCode adapter', () => {
     const runs: string[] = [];
     const harness = createClaudeCode();
 
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes,
+        runs,
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
     await expect(
-      harness.doStart({
-        sessionId: 's1',
-        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
-          bridgePortUrl: 'ws://127.0.0.1:1',
-          writes,
-          runs,
-        }),
-        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      session.doPromptTurn({
         skills: [
           {
             name: 'weather',
@@ -936,12 +984,18 @@ describe('createClaudeCode adapter', () => {
             files: [{ path: '../weather-codes.md', content: 'unsafe' }],
           },
         ],
+        tools: [],
+        prompt: 'Use the skill.',
+        emit: () => {},
       }),
     ).rejects.toThrow('Invalid Claude Code skill file path');
-    expect(writes).toEqual([]);
+    expect(writes.some(write => write.path.includes('weather-codes.md'))).toBe(
+      false,
+    );
     expect(runs).not.toContain(
       "mkdir -p '/home/vercel-sandbox/.claude/skills'",
     );
+    await session.doDestroy();
   });
 
   it('includes bridge startup stdout, stderr, and exit code when ready never arrives', async () => {
@@ -1021,6 +1075,8 @@ describe('createClaudeCode adapter', () => {
 
       const session = await startWithFakeBridgeSocket();
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'Weather in Paris?',
         emit: () => {},
       });

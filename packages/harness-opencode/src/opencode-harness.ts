@@ -38,6 +38,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
+  type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
@@ -68,10 +69,6 @@ import { VERSION } from './version';
 
 type OpenCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type OpenCodeRespawnStrategy = 'replay' | 'rerun';
-
-type WriteSkillsResult = {
-  readonly skillsDir: string;
-};
 
 /**
  * Value to use in User-Agent and `x-client-app` headers.
@@ -324,6 +321,11 @@ export function createOpenCode(
       const coords = resumeData?.bridge;
 
       const workDir = startOpts.sessionWorkDir;
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const skillsDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
       const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
@@ -389,6 +391,8 @@ export function createOpenCode(
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
+            sandbox: toolSafeSandboxSession,
+            sandboxHomeDir,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {}
@@ -417,23 +421,6 @@ export function createOpenCode(
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
           : settings.mintBridgeToken(sandboxId!);
-      const sandboxHomeDir = await resolveSandboxHomeDir({
-        sandbox: toolSafeSandboxSession,
-        abortSignal: startOpts.abortSignal,
-      });
-      const xdgConfigHome = `${sandboxHomeDir}/.config`;
-      const xdgCacheHome = `${sandboxHomeDir}/.cache`;
-      const xdgDataHome = `${sandboxHomeDir}/.local/share`;
-      const xdgStateHome = `${sandboxHomeDir}/.local/state`;
-      const skillSetup =
-        startOpts.skills && startOpts.skills.length > 0
-          ? await writeOpenCodeSkills({
-              sandbox: toolSafeSandboxSession,
-              skills: startOpts.skills,
-              homeDir: sandboxHomeDir,
-              abortSignal: startOpts.abortSignal,
-            })
-          : undefined;
       const forwardedAuthEnvironment = await applyCredentialForwarding({
         environment: sandboxAuthEnvironment,
         credentialEnvironmentVariables:
@@ -445,12 +432,6 @@ export function createOpenCode(
         AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
-        HOME: sandboxHomeDir,
-        USERPROFILE: sandboxHomeDir,
-        XDG_CONFIG_HOME: xdgConfigHome,
-        XDG_CACHE_HOME: xdgCacheHome,
-        XDG_DATA_HOME: xdgDataHome,
-        XDG_STATE_HOME: xdgStateHome,
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
           : {}),
@@ -458,7 +439,7 @@ export function createOpenCode(
 
       if (respawnStrategy === undefined) {
         await toolSafeSandboxSession.run({
-          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)} ${shellQuote(xdgConfigHome)} ${shellQuote(xdgCacheHome)} ${shellQuote(xdgDataHome)} ${shellQuote(xdgStateHome)}`,
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
       }
@@ -471,7 +452,7 @@ export function createOpenCode(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}${skillSetup ? ` --skills-dir ${shellQuote(skillSetup.skillsDir)}` : ''}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)} --skills-dir ${shellQuote(skillsDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -555,6 +536,8 @@ export function createOpenCode(
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
+        sandbox: toolSafeSandboxSession,
+        sandboxHomeDir,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
@@ -638,7 +621,7 @@ async function writeOpenCodeSkills({
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
   const skillsDir = path.posix.join(homeDir, '.agents', 'skills');
-  await writeHarnessSkills({
+  return writeHarnessSkills({
     sandbox,
     rootDir: skillsDir,
     skills,
@@ -648,8 +631,6 @@ async function writeOpenCodeSkills({
     invalidSkillFilePathMessage: ({ skillName, filePath }) =>
       `Invalid OpenCode skill file path for ${skillName}: ${filePath}`,
   });
-
-  return { skillsDir };
 }
 
 function openWebSocket({
@@ -782,6 +763,8 @@ function createSession({
   debug,
   permissionMode,
   builtinToolFiltering,
+  sandbox,
+  sandboxHomeDir,
   supportsUserMessageResponses,
 }: {
   sessionId: string;
@@ -801,6 +784,8 @@ function createSession({
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
+  sandbox: SandboxSession;
+  sandboxHomeDir: string;
   supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
@@ -989,6 +974,12 @@ function createSession({
           harnessId: 'opencode',
         });
       }
+      const skillWriteResult = await writeOpenCodeSkills({
+        sandbox,
+        skills: promptOpts.skills,
+        homeDir: sandboxHomeDir,
+        abortSignal: promptOpts.abortSignal,
+      });
       const control = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
@@ -1008,6 +999,7 @@ function createSession({
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
+        skillsChanged: skillWriteResult.changed,
         ...startBase(),
       });
       pendingResumeSessionId = undefined;
@@ -1024,6 +1016,12 @@ function createSession({
           harnessId: 'opencode',
         });
       }
+      const skillWriteResult = await writeOpenCodeSkills({
+        sandbox,
+        skills: continueOpts.skills,
+        homeDir: sandboxHomeDir,
+        abortSignal: continueOpts.abortSignal,
+      });
       const control = wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
@@ -1044,6 +1042,7 @@ function createSession({
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
             : {}),
+          skillsChanged: skillWriteResult.changed,
           ...startBase(),
         });
         pendingResumeSessionId = undefined;

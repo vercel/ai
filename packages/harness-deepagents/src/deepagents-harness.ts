@@ -35,6 +35,7 @@ import {
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   writeSkills as writeHarnessSkills,
+  type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -279,6 +280,12 @@ export function createDeepAgents(
           : undefined;
 
       const workDir = startOpts.sessionWorkDir;
+      const homeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
+      const skillsPaths = [`${workDir}${SKILLS_SOURCE_PATH}`, homeSkillsRoot];
       const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
@@ -329,7 +336,9 @@ export function createDeepAgents(
             bridgeToken: coords.token,
             sandboxId,
             isResume: true,
-            attached: true,
+            sandbox: toolSafeSandboxSession,
+            homeSkillsRoot,
+            skillsPaths,
             permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
@@ -348,25 +357,6 @@ export function createDeepAgents(
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
           : settings.mintBridgeToken(sandboxId!);
-
-      // Always discover repo-provided skills under <workDir>/.agents/skills (e.g. a cloned repo); a missing dir is tolerated by deepagents.
-      // Absolute paths: LocalShellBackend (non-virtual) treats a leading-slash path as a real fs path.
-      const skillsPaths = [`${workDir}${SKILLS_SOURCE_PATH}`];
-      // Host-provided skills go to $HOME (out of the work dir) and take priority (listed last → wins on name collision).
-      if ((startOpts.skills?.length ?? 0) > 0) {
-        const homeDir = await resolveSandboxHomeDir({
-          sandbox: toolSafeSandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
-        const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
-        await writeSkills({
-          sandbox: toolSafeSandboxSession,
-          root: homeSkillsRoot,
-          skills: startOpts.skills ?? [],
-          abortSignal: startOpts.abortSignal,
-        });
-        skillsPaths.push(homeSkillsRoot);
-      }
 
       const forwardedAuthEnvironment = await applyCredentialForwarding({
         environment: sandboxAuthEnvironment,
@@ -458,8 +448,8 @@ export function createDeepAgents(
         bridgeToken: token,
         sandboxId,
         isResume,
-        // Freshly spawned bridge — it must receive the instructions on the first prompt.
-        attached: false,
+        sandbox: toolSafeSandboxSession,
+        homeSkillsRoot,
         skillsPaths,
         permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
@@ -546,12 +536,12 @@ async function writeSkills({
   root: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
-}): Promise<void> {
+}): Promise<WriteSkillsResult> {
   /*
    * DeepAgents requires each `SKILL.md` frontmatter name to match the parent
    * directory name, so keep the stricter lowercase skill-name policy here.
    */
-  await writeHarnessSkills({
+  return writeHarnessSkills({
     sandbox,
     rootDir: root,
     skills,
@@ -609,7 +599,8 @@ function createSession({
   bridgeToken,
   sandboxId,
   isResume,
-  attached,
+  sandbox,
+  homeSkillsRoot,
   skillsPaths,
   permissionMode,
   builtinToolFiltering,
@@ -627,10 +618,8 @@ function createSession({
   bridgeToken: string;
   sandboxId: string | undefined;
   isResume: boolean;
-  // True only when attaching to a live bridge that already built the agent with
-  // its instructions. A fresh spawn (incl. a respawn on attach failure or a
-  // stop-resume) starts a new bridge that must receive the instructions again.
-  attached: boolean;
+  sandbox: SandboxSession;
+  homeSkillsRoot: string;
   skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
@@ -638,7 +627,6 @@ function createSession({
   mcpServers?: Record<string, unknown>;
 }): HarnessV1Session {
   let stopped = false;
-  let instructionsApplied = attached;
 
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
@@ -777,19 +765,23 @@ function createSession({
           harnessId: 'deepagents',
         });
       }
+      const skillWriteResult = await writeSkills({
+        sandbox,
+        root: homeSkillsRoot,
+        skills: promptOpts.skills,
+        abortSignal: promptOpts.abortSignal,
+      });
       const control = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
 
-      const applyInstructions =
-        !instructionsApplied && !!promptOpts.instructions;
-      instructionsApplied = true;
-
       channel.send({
         type: 'start',
         prompt: extractUserText(promptOpts.prompt),
-        ...(applyInstructions ? { instructions: promptOpts.instructions } : {}),
+        ...(promptOpts.instructions
+          ? { instructions: promptOpts.instructions }
+          : {}),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
@@ -802,6 +794,7 @@ function createSession({
         ...(thinking ? { thinking } : {}),
         ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
+        skillsChanged: skillWriteResult.changed,
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),

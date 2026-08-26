@@ -161,7 +161,6 @@ export function createCline(
         sessionId: startOpts.sessionId,
         sandboxSession: startOpts.sandboxSession,
         sessionWorkDir: startOpts.sessionWorkDir,
-        skills: startOpts.skills ?? [],
         settings: {
           authEnv,
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
