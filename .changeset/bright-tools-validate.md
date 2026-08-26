@@ -3,7 +3,6 @@
 ---
 
 Validate persisted typed tool calls against current input and output schemas
-while preserving empty-input and unavailable terminal history. Agent
-continuation normalizes terminal history from unavailable ephemeral tools to
-dynamic tool parts so it remains loadable without exposing unvalidated static
-tool types.
+while preserving unparsed error history. Terminal history from unavailable
+tools is normalized to dynamic tool parts so it remains loadable without
+exposing unvalidated values under current static tool types.
