@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import type { HarnessV1Skill } from '@ai-sdk/harness';
-import { writeSkills } from '@ai-sdk/harness/utils';
+import { writeSkills, type WriteSkillsResult } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import type { ACPSkillCatalogEntry } from './acp-v1-prompt';
 
@@ -64,7 +64,6 @@ export async function materializeACPSkills({
   harnessId,
   sessionId,
   skills,
-  shouldMaterialize,
   abortSignal,
 }: {
   sandbox: Experimental_SandboxSession;
@@ -73,11 +72,11 @@ export async function materializeACPSkills({
   harnessId: string;
   sessionId: string;
   skills: ReadonlyArray<HarnessV1Skill>;
-  shouldMaterialize: boolean;
   abortSignal?: AbortSignal;
 }): Promise<{
   readonly catalog: ReadonlyArray<ACPSkillCatalogEntry>;
   readonly rootDir: string;
+  readonly result: WriteSkillsResult;
 }> {
   validateACPSkills({ skills });
 
@@ -91,24 +90,23 @@ export async function materializeACPSkills({
     'skills',
   );
 
-  if (shouldMaterialize) {
-    await writeSkills({
-      sandbox,
-      rootDir,
-      skills,
-      abortSignal,
-      skillNamePattern: ACP_SKILL_NAME_PATTERN,
-      invalidSkillNameMessage: ({ name }) =>
-        `Invalid ACP skill name ${JSON.stringify(name)}: expected a kebab-case slug.`,
-      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-        `Invalid ACP skill file path ${JSON.stringify(filePath)} for skill ${JSON.stringify(
-          skillName,
-        )}: expected a relative POSIX path without traversal.`,
-    });
-  }
+  const result = await writeSkills({
+    sandbox,
+    rootDir,
+    skills,
+    abortSignal,
+    skillNamePattern: ACP_SKILL_NAME_PATTERN,
+    invalidSkillNameMessage: ({ name }) =>
+      `Invalid ACP skill name ${JSON.stringify(name)}: expected a kebab-case slug.`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid ACP skill file path ${JSON.stringify(filePath)} for skill ${JSON.stringify(
+        skillName,
+      )}: expected a relative POSIX path without traversal.`,
+  });
 
   return {
     rootDir,
+    result,
     catalog: skills.map(skill => ({
       name: skill.name,
       description: skill.description,

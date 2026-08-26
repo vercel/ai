@@ -258,8 +258,10 @@ function fakeSandbox({
   bridgePortEndpoint?: HarnessV1PortEndpoint;
   addRequestTransformations?: HarnessV1NetworkSandboxSession['addRequestTransformations'];
 }): HarnessV1NetworkSandboxSession {
+  const storedFiles = new Map(Object.entries(files));
   const restricted = {
-    readTextFile: async ({ path }: { path: string }) => files[path] ?? null,
+    readTextFile: async ({ path }: { path: string }) =>
+      files[path] ?? storedFiles.get(path) ?? null,
     writeTextFile: async ({
       path,
       content,
@@ -268,6 +270,7 @@ function fakeSandbox({
       content: string;
     }) => {
       writes.push({ path, content });
+      storedFiles.set(path, content);
     },
     run: async ({ command }: { command: string }) => {
       runs.push(command);
@@ -276,6 +279,11 @@ function fakeSandbox({
       }
       if (command === 'pwd') {
         return { exitCode: 0, stdout: '/workspace\n', stderr: '' };
+      }
+      const manifestMove = command.match(/^mv -f '([^']+)' '([^']+)'$/);
+      if (manifestMove != null) {
+        const content = storedFiles.get(manifestMove[1]!);
+        if (content != null) storedFiles.set(manifestMove[2]!, content);
       }
       return { exitCode: 0, stdout: '', stderr: '' };
     },
@@ -912,6 +920,8 @@ describe('createACP', () => {
     });
     const events: unknown[] = [];
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Use the external tool.',
       emit: event => events.push(event),
     });
@@ -1041,6 +1051,8 @@ describe('createACP', () => {
       permissionMode: 'allow-reads',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Check permissions.',
       emit: () => {},
     });
@@ -1085,6 +1097,8 @@ describe('createACP', () => {
       permissionMode: 'allow-all',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Check permissions.',
       emit: () => {},
     });
@@ -1620,6 +1634,8 @@ describe('createACP', () => {
 
     await expect(
       session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'Do not start',
         abortSignal: abortController.signal,
         emit: () => {},
@@ -1647,6 +1663,8 @@ describe('createACP', () => {
 
     await expect(
       session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'Answer.',
         responseFormat: {
           type: 'json',
@@ -1691,6 +1709,8 @@ describe('createACP', () => {
     };
 
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Answer.',
       responseFormat,
       emit: () => {},
@@ -1721,6 +1741,19 @@ describe('createACP', () => {
       harnessId: 'codex-acp',
       ...agentSettings,
     });
+    const skills = [
+      {
+        name: 'release-notes',
+        description: 'Prepare concise release notes.',
+        content: 'Full private skill instructions.',
+        files: [
+          {
+            path: 'references/style.md',
+            content: 'Use active voice.',
+          },
+        ],
+      },
+    ];
     const session = await harness.doStart({
       sessionId: 'session-1',
       sandboxSession: fakeSandbox({
@@ -1730,21 +1763,22 @@ describe('createACP', () => {
         stop: async () => {},
       }),
       sessionWorkDir: '/workspace/user-project',
-      skills: [
-        {
-          name: 'release-notes',
-          description: 'Prepare concise release notes.',
-          content: 'Full private skill instructions.',
-          files: [
-            {
-              path: 'references/style.md',
-              content: 'Use active voice.',
-            },
-          ],
-        },
-      ],
     });
     const channel = harnessUtilsMocks.channels[0]!;
+
+    const first = await session.doPromptTurn({
+      skills,
+      tools: [],
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Draft' },
+          { type: 'text', text: 'the notes.' },
+        ],
+      },
+      instructions: 'Use the supplied project context.',
+      emit: () => {},
+    });
     const skillDefinition = writes.find(write =>
       write.path.endsWith('/release-notes/SKILL.md'),
     );
@@ -1766,18 +1800,6 @@ describe('createACP', () => {
       content: 'Use active voice.',
     });
     expect(runs).toContain('printf "%s" "$HOME"');
-
-    const first = await session.doPromptTurn({
-      prompt: {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Draft' },
-          { type: 'text', text: 'the notes.' },
-        ],
-      },
-      instructions: 'Use the supplied project context.',
-      emit: () => {},
-    });
     const firstStart = channel.sent[0] as {
       prompt: Array<{ type: 'text'; text: string }>;
     };
@@ -1806,6 +1828,8 @@ describe('createACP', () => {
     await first.done;
 
     const second = await session.doPromptTurn({
+      skills,
+      tools: [],
       prompt: 'Revise them.',
       instructions: 'Use the supplied project context.',
       emit: () => {},
@@ -1829,7 +1853,6 @@ describe('createACP', () => {
         providerKind: 'direct',
       },
       initialGuidanceApplied: true,
-      skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
   });
@@ -1843,6 +1866,13 @@ describe('createACP', () => {
         path: ['systemPrompt', 'append'],
       },
     });
+    const skills = [
+      {
+        name: 'release-notes',
+        description: 'Prepare concise release notes.',
+        content: 'Use active voice.',
+      },
+    ];
     const session = await harness.doStart({
       sessionId: 'session-1',
       sandboxSession: fakeSandbox({
@@ -1851,17 +1881,12 @@ describe('createACP', () => {
         stop: async () => {},
       }),
       sessionWorkDir: '/workspace/user-project',
-      skills: [
-        {
-          name: 'release-notes',
-          description: 'Prepare concise release notes.',
-          content: 'Use active voice.',
-        },
-      ],
     });
     const channel = harnessUtilsMocks.channels[0]!;
 
     const first = await session.doPromptTurn({
+      skills,
+      tools: [],
       prompt: 'Draft release notes.',
       instructions: 'Answer every question in German.',
       emit: () => {},
@@ -1892,6 +1917,8 @@ describe('createACP', () => {
     await first.done;
 
     const second = await session.doPromptTurn({
+      skills,
+      tools: [],
       prompt: 'Revise them.',
       instructions: 'Answer every question in German.',
       emit: () => {},
@@ -1911,6 +1938,68 @@ describe('createACP', () => {
       totalUsage: unknownUsage(),
     });
     await second.done;
+    await session.doDestroy();
+  });
+
+  it('writes changed skills before rejecting replacement between turns', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        writes,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+    const first = await session.doPromptTurn({
+      skills: [
+        {
+          name: 'review-workflow',
+          description: 'Review changes.',
+          content: 'Review the implementation.',
+        },
+      ],
+      tools: [],
+      prompt: 'Review this change.',
+      emit: () => {},
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await first.done;
+
+    await expect(
+      session.doPromptTurn({
+        skills: [
+          {
+            name: 'release-workflow',
+            description: 'Prepare releases.',
+            content: 'Draft the release notes.',
+          },
+        ],
+        tools: [],
+        prompt: 'Prepare the release.',
+        emit: () => {},
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_HarnessCapabilityUnsupportedError',
+      harnessId: 'codex-acp',
+      message:
+        "Harness 'codex-acp' does not support replacing skills between turns yet.",
+    });
+    expect(
+      writes.some(write => write.path.endsWith('/release-workflow/SKILL.md')),
+    ).toBe(true);
+    expect(channel.sent).toHaveLength(1);
     await session.doDestroy();
   });
 
@@ -1943,10 +2032,11 @@ describe('createACP', () => {
       sessionId: 'session-1',
       sandboxSession: sandbox,
       sessionWorkDir: '/workspace/user-project',
-      skills,
     });
     const firstChannel = harnessUtilsMocks.channels[0]!;
     const firstTurn = await firstSession.doPromptTurn({
+      skills,
+      tools: [],
       prompt: 'Remember the number 42.',
       instructions: 'Remember user-provided facts.',
       emit: () => {},
@@ -1979,7 +2069,6 @@ describe('createACP', () => {
         sandboxId: 'sandbox-1',
       },
       initialGuidanceApplied: true,
-      skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
     expect(JSON.stringify(resumeFrom)).not.toContain('test-key');
@@ -1990,7 +2079,6 @@ describe('createACP', () => {
       sandboxSession: sandbox,
       sessionWorkDir: '/workspace/user-project',
       resumeFrom,
-      skills,
     });
     const secondChannel = harnessUtilsMocks.channels[1]!;
     expect(secondSession.isResume).toBe(true);
@@ -2000,6 +2088,8 @@ describe('createACP', () => {
     expect(secondChannel.openOptions).toBeUndefined();
 
     const secondTurn = await secondSession.doPromptTurn({
+      skills,
+      tools: [],
       prompt: 'What number did I ask you to remember?',
       instructions: 'Remember user-provided facts.',
       emit: () => {},
@@ -2074,10 +2164,10 @@ describe('createACP', () => {
       sandboxSession: sandbox,
       sessionWorkDir: '/workspace/user-project',
       permissionMode: 'allow-edits',
-      skills,
     });
     const firstChannel = harnessUtilsMocks.channels[0]!;
     const firstTurn = await firstSession.doPromptTurn({
+      skills,
       prompt: 'Remember the private phrase cedar-lantern.',
       instructions: 'Retain facts across native session restoration.',
       tools: [
@@ -2120,7 +2210,6 @@ describe('createACP', () => {
         ],
       },
       initialGuidanceApplied: true,
-      skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
     expect(stopped.data).not.toHaveProperty('bridge');
@@ -2141,7 +2230,6 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
       resumeFrom: stopped,
       permissionMode: 'allow-edits',
-      skills,
     });
     await vi.waitFor(() => {
       expect(harnessUtilsMocks.channels).toHaveLength(2);
@@ -2208,6 +2296,7 @@ describe('createACP', () => {
     const resumedSession = await resumedPromise;
     const events: Array<{ type: string; [key: string]: unknown }> = [];
     const resumedTurn = await resumedSession.doPromptTurn({
+      skills,
       prompt: 'What phrase did I ask you to remember?',
       instructions: 'Retain facts across native session restoration.',
       tools: [
@@ -2294,6 +2383,8 @@ describe('createACP', () => {
     });
     const firstChannel = harnessUtilsMocks.channels[0]!;
     const firstTurn = await firstSession.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Establish a native session.',
       emit: () => {},
     });
@@ -2364,6 +2455,8 @@ describe('createACP', () => {
     });
     const channel = harnessUtilsMocks.channels[0]!;
     const turn = await firstSession.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Establish model-scoped state.',
       emit: () => {},
     });
@@ -2417,6 +2510,8 @@ describe('createACP', () => {
     });
     const stopChannel = harnessUtilsMocks.channels[0]!;
     const stopTurn = await stoppedSession.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Establish a stoppable session.',
       emit: () => {},
     });
@@ -2447,6 +2542,8 @@ describe('createACP', () => {
     });
     const destroyChannel = harnessUtilsMocks.channels[1]!;
     const destroyTurn = await destroyedSession.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Establish a destroyable session.',
       emit: () => {},
     });
@@ -2519,6 +2616,8 @@ describe('createACP', () => {
     const firstChannel = harnessUtilsMocks.channels[0]!;
     const delivered: string[] = [];
     const firstTurn = await firstSession.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Work for a while.',
       emit: event => delivered.push(event.type),
     });
@@ -2562,6 +2661,8 @@ describe('createACP', () => {
 
     const replayed: string[] = [];
     const continued = await resumedSession.doContinueTurn({
+      skills: [],
+      tools: [],
       emit: event => replayed.push(event.type),
     });
     expect(resumedChannel.sent).toEqual([]);
@@ -2604,6 +2705,8 @@ describe('createACP', () => {
     });
     const initialChannel = harnessUtilsMocks.channels[0]!;
     const initialTurn = await initialSession.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Complete this while the host is disconnected.',
       emit: () => {},
     });
@@ -2647,6 +2750,8 @@ describe('createACP', () => {
 
     const replayed: string[] = [];
     const continued = await recoveredSession.doContinueTurn({
+      skills: [],
+      tools: [],
       emit: event => replayed.push(event.type),
     });
     expect(replayChannel.sent).toEqual([]);
@@ -2664,6 +2769,8 @@ describe('createACP', () => {
     expect(replayed).toEqual(['text-delta', 'finish']);
     await expect(
       recoveredSession.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'Do unrelated work.',
         emit: () => {},
       }),
@@ -2717,6 +2824,8 @@ describe('createACP', () => {
     });
     const initialChannel = harnessUtilsMocks.channels[0]!;
     const initialTurn = await initialSession.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Finish this durable operation.',
       instructions: 'Keep working until the operation is complete.',
       emit: () => {},
@@ -2766,6 +2875,8 @@ describe('createACP', () => {
 
     const rerunChannel = harnessUtilsMocks.channels[2]!;
     const continued = await recoveredSession.doContinueTurn({
+      skills: [],
+      tools: [],
       instructions: 'Keep working until the operation is complete.',
       emit: () => {},
     });
@@ -3045,6 +3156,8 @@ describe('createACP', () => {
       });
       const channel = harnessUtilsMocks.channels[0]!;
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'Check permissions.',
         emit: () => {},
       });
@@ -3082,10 +3195,16 @@ describe('createACP', () => {
     });
     const channel = harnessUtilsMocks.channels[0]!;
     const initial = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Run a native command.',
       emit: () => {},
     });
-    const continued = await session.doContinueTurn({ emit: () => {} });
+    const continued = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
 
     await continued.submitToolApproval!({
       approvalId: 'approval-1',
@@ -3141,6 +3260,7 @@ describe('createACP', () => {
       },
     } as const;
     const initial = await session.doPromptTurn({
+      skills: [],
       prompt: 'Use the client tool.',
       tools: [
         {
@@ -3163,7 +3283,11 @@ describe('createACP', () => {
       ],
     });
 
-    const continued = await session.doContinueTurn({ emit: () => {} });
+    const continued = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
     await continued.submitToolResult({
       toolCallId: 'client-call-1',
       output: { accepted: true },
@@ -3211,6 +3335,7 @@ describe('createACP', () => {
     };
 
     const first = await session.doPromptTurn({
+      skills: [],
       prompt: 'Use weather.',
       tools: [
         {
@@ -3225,6 +3350,7 @@ describe('createACP', () => {
     await first.done;
 
     const second = await session.doPromptTurn({
+      skills: [],
       prompt: 'Use time.',
       tools: [
         {
@@ -3239,6 +3365,7 @@ describe('createACP', () => {
     await second.done;
 
     const third = await session.doPromptTurn({
+      skills: [],
       prompt: 'Use time again.',
       tools: [
         {
@@ -3300,6 +3427,7 @@ describe('createACP', () => {
     const channel = harnessUtilsMocks.channels[0]!;
     const events: Array<{ type: string; [key: string]: unknown }> = [];
     const turn = await session.doPromptTurn({
+      skills: [],
       prompt: 'Use time.',
       tools: [],
       emit: event => events.push(event),
@@ -3508,6 +3636,8 @@ describe('createACP', () => {
     const abortError = new Error('cancel active turn');
     const events: Array<{ type: string; [key: string]: unknown }> = [];
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Start, then cancel',
       abortSignal: abortController.signal,
       emit: event => events.push(event),
@@ -3586,6 +3716,8 @@ describe('createACP', () => {
     const abortError = new Error('cancel before disconnect');
     const events: Array<{ type: string; [key: string]: unknown }> = [];
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Start, then disconnect',
       abortSignal: abortController.signal,
       emit: event => events.push(event),

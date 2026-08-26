@@ -12,13 +12,23 @@ function makeSandbox({
   runs: string[];
   writes: Array<{ path: string; content: string }>;
 }): Experimental_SandboxSession {
+  const files = new Map<string, string>();
   return {
     async run({ command }: { command: string }) {
       runs.push(command);
+      const manifestMove = command.match(/^mv -f '([^']+)' '([^']+)'$/);
+      if (manifestMove != null) {
+        const content = files.get(manifestMove[1]!);
+        if (content != null) files.set(manifestMove[2]!, content);
+      }
       return { exitCode: 0, stdout: '', stderr: '' };
+    },
+    async readTextFile({ path }: { path: string }) {
+      return files.get(path);
     },
     async writeTextFile({ path, content }: { path: string; content: string }) {
       writes.push({ path, content });
+      files.set(path, content);
     },
   } as unknown as Experimental_SandboxSession;
 }
@@ -46,29 +56,34 @@ describe('materializeACPSkills', () => {
       harnessId: 'portable-acp',
       sessionId: '../../untrusted-session',
       skills: [skill],
-      shouldMaterialize: true,
     });
 
     expect(result.rootDir).toMatch(
       /^\/home\/agent\/\.ai-sdk\/harness-acp\/portable-acp\/[a-f0-9]{64}\/skills$/,
     );
     expect(result.rootDir).not.toContain('untrusted-session');
-    expect(runs).toEqual([`mkdir -p '${result.rootDir}'`]);
-    expect(writes).toEqual([
-      {
-        path: `${result.rootDir}/release-notes/SKILL.md`,
-        content:
-          '---\n' +
-          'name: release-notes\n' +
-          'description: Prepare release notes.\n' +
-          '---\n\n' +
-          'Complete private skill content.',
-      },
-      {
-        path: `${result.rootDir}/release-notes/references/style.md`,
-        content: 'Use active voice.',
-      },
-    ]);
+    expect(runs).toContain(`mkdir -p '${result.rootDir}'`);
+    const skillWrites = writes.filter(write =>
+      write.path.includes('/release-notes/'),
+    );
+    expect(skillWrites).toEqual(
+      expect.arrayContaining([
+        {
+          path: `${result.rootDir}/release-notes/SKILL.md`,
+          content:
+            '---\n' +
+            'name: release-notes\n' +
+            'description: Prepare release notes.\n' +
+            '---\n\n' +
+            'Complete private skill content.',
+        },
+        {
+          path: `${result.rootDir}/release-notes/references/style.md`,
+          content: 'Use active voice.',
+        },
+      ]),
+    );
+    expect(skillWrites).toHaveLength(2);
     expect(result.catalog).toEqual([
       {
         name: 'release-notes',
@@ -127,7 +142,6 @@ describe('materializeACPSkills', () => {
         harnessId: 'portable-acp',
         sessionId: 'session',
         skills: [{ ...skill, files }],
-        shouldMaterialize: true,
       }),
     ).rejects.toThrow(error);
     expect(runs).toEqual([]);
@@ -147,7 +161,6 @@ describe('materializeACPSkills', () => {
         harnessId: 'portable-acp',
         sessionId: 'session',
         skills: [{ ...skill, name: '../release-notes' }],
-        shouldMaterialize: true,
       }),
     ).rejects.toThrow('Invalid ACP skill name');
     await expect(
@@ -158,7 +171,6 @@ describe('materializeACPSkills', () => {
         harnessId: 'portable-acp',
         sessionId: 'session',
         skills: [skill, skill],
-        shouldMaterialize: true,
       }),
     ).rejects.toThrow('Duplicate ACP skill name');
     expect(runs).toEqual([]);
@@ -174,7 +186,6 @@ describe('materializeACPSkills', () => {
         harnessId: 'portable-acp',
         sessionId: 'session',
         skills: [skill],
-        shouldMaterialize: true,
       }),
     ).rejects.toThrow('must be outside sessionWorkDir');
   });
@@ -182,19 +193,27 @@ describe('materializeACPSkills', () => {
   it('can reconstruct the catalog without rewriting matching resumed skills', async () => {
     const runs: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];
-    const result = await materializeACPSkills({
-      sandbox: makeSandbox({ runs, writes }),
+    const sandbox = makeSandbox({ runs, writes });
+    const input = {
+      sandbox,
       sandboxHomeDir: '/home/agent',
       sessionWorkDir: '/workspace/project',
       harnessId: 'portable-acp',
       sessionId: 'session',
       skills: [skill],
-      shouldMaterialize: false,
-    });
+    } as const;
+    await materializeACPSkills(input);
+    const writesAfterFirstCall = writes.length;
+    const result = await materializeACPSkills(input);
 
     expect(result.catalog).toHaveLength(1);
-    expect(runs).toEqual([]);
-    expect(writes).toEqual([]);
+    expect(result.result).toEqual({
+      changed: false,
+      written: [],
+      removed: [],
+      unchanged: ['release-notes'],
+    });
+    expect(writes).toHaveLength(writesAfterFirstCall);
   });
 });
 
