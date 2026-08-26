@@ -41,6 +41,15 @@ function prepareJsonResponse() {
   };
 }
 
+function prepareJsonFixtureResponse(filename: string) {
+  server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+    type: 'json-value',
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
+
 function prepareChunksFixtureResponse(filename: string) {
   const chunks = fs
     .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
@@ -59,6 +68,31 @@ describe('MoonshotAIChatLanguageModel', () => {
   describe('doGenerate', () => {
     beforeEach(() => {
       prepareJsonResponse();
+    });
+
+    it('should send maxOutputTokens as max_completion_tokens', async () => {
+      prepareJsonFixtureResponse('moonshotai-max-completion-tokens');
+
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 17,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toHaveProperty('max_completion_tokens', 17);
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should omit undefined maxOutputTokens', async () => {
+      prepareJsonFixtureResponse('moonshotai-max-completion-tokens');
+
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('max_completion_tokens');
+      expect(requestBody).not.toHaveProperty('max_tokens');
     });
 
     it.each([
@@ -416,6 +450,33 @@ describe('MoonshotAIChatLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should send maxOutputTokens as max_completion_tokens when streaming', async () => {
+      prepareChunksFixtureResponse('moonshotai-max-completion-tokens');
+
+      const result = await provider.chatModel('moonshot-v1-8k').doStream({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 17,
+      });
+      await convertReadableStreamToArray(result.stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toHaveProperty('max_completion_tokens', 17);
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should omit undefined maxOutputTokens when streaming', async () => {
+      prepareChunksFixtureResponse('moonshotai-max-completion-tokens');
+
+      const result = await provider.chatModel('moonshot-v1-8k').doStream({
+        prompt: TEST_PROMPT,
+      });
+      await convertReadableStreamToArray(result.stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('max_completion_tokens');
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
     it('should omit sampling options and add v2 warnings when streaming', async () => {
       prepareChunksFixtureResponse('moonshot-text');
 

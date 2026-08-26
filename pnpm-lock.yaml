@@ -10,6 +10,19 @@ overrides:
 
 importers:
 
+  examples/ai-functions:
+    dependencies:
+      '@ai-sdk/moonshotai':
+        specifier: workspace:*
+        version: link:../../packages/moonshotai
+    devDependencies:
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
   .:
     devDependencies:
       '@changesets/cli':

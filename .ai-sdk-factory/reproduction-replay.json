@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 19556,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/moonshot-max-completion-tokens.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/moonshot-max-completion-tokens.ts",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Moonshot max token wire key mismatch: non-streaming sent max_tokens=17 and max_completion_tokens=undefined; streaming sent max_tokens=17 and max_completion_tokens=undefined"
+  }
+}
