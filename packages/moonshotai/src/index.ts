@@ -8,4 +8,5 @@ export type {
   MoonshotAIChatModelId,
   MoonshotAIMessageProviderOptions,
   MoonshotAIProviderOptions,
+  MoonshotAISystemMessageProviderOptions,
 } from './moonshotai-chat-options';

@@ -211,6 +211,66 @@ The partial assistant message must be the final prompt message. Partial Mode
 cannot be combined with JSON object response format; JSON schema response format
 is supported.
 
+### Kimi K3 Dynamic Tool Loading
+
+Kimi K3 can load complete function tool definitions at arbitrary positions in
+a conversation. Add `tools` to the Moonshot provider options of an empty system
+message. The provider sends `{ role: 'system', tools: [...] }` without a
+`content` field and normalizes each input schema to Moonshot Flavored JSON
+Schema.
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAISystemMessageProviderOptions,
+} from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: moonshotai('kimi-k3'),
+  allowSystemInMessages: true,
+  messages: [
+    { role: 'user', content: 'Help me prepare for a trip.' },
+    { role: 'assistant', content: 'I can help with that.' },
+    {
+      role: 'system',
+      content: '',
+      providerOptions: {
+        moonshotai: {
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the current weather for a city',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+                required: ['city'],
+                additionalProperties: false,
+              },
+              strict: true,
+            },
+          ],
+        } satisfies MoonshotAISystemMessageProviderOptions,
+      },
+    },
+    { role: 'user', content: 'What is the weather in San Francisco?' },
+  ],
+});
+```
+
+Each entry must include its complete function definition. Top-level tools and
+dynamically loaded tools can be used in the same request. Known unsupported
+official models omit the dynamic message and return a warning; custom model IDs
+retain it for forward compatibility.
+
+<Note>
+  Keep dynamic system messages in trusted server-side state. Tool names,
+  descriptions, and schemas are sent to Moonshot and consume context. Dynamic
+  declarations are request-local, so retain earlier declarations in later
+  requests while those tools should remain available.
+</Note>
+
 ### Reasoning Models
 
 Kimi K3 always reasons. It supports `low`, `high`, and `max` reasoning effort,

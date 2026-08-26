@@ -2,6 +2,7 @@ import { expectTypeOf, it } from 'vitest';
 import type {
   MoonshotAIAssistantMessageProviderOptions,
   MoonshotAIMessageProviderOptions,
+  MoonshotAISystemMessageProviderOptions,
 } from './index';
 
 it('should expose typed Moonshot AI message provider options', () => {
@@ -35,4 +36,17 @@ it('should reject false for Partial Mode', () => {
   expectTypeOf(
     options,
   ).toEqualTypeOf<MoonshotAIAssistantMessageProviderOptions>();
+});
+
+it('should expose names and complete dynamic function tools', () => {
+  expectTypeOf<MoonshotAISystemMessageProviderOptions>().toMatchTypeOf<{
+    name?: string;
+    tools?: Array<{
+      type: 'function';
+      name: string;
+      description?: string;
+      inputSchema: object;
+      strict?: boolean;
+    }>;
+  }>();
 });

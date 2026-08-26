@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type {
   MoonshotAIAssistantMessageProviderOptions,
   MoonshotAIMessageProviderOptions,
+  MoonshotAISystemMessageProviderOptions,
 } from './moonshotai-chat-options';
 import { createMoonshotAI } from './moonshotai-provider';
 
@@ -336,6 +337,217 @@ describe('MoonshotAIChatLanguageModel', () => {
       expect(requestBody.response_format).toMatchObject({
         type: 'json_schema',
       });
+    });
+
+    it('should send normalized dynamic tools in a K3 system message', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Calculate.' }] },
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    description: 'Evaluate an expression',
+                    inputSchema: {
+                      type: 'object',
+                      properties: {
+                        values: {
+                          type: 'array',
+                          items: [{ type: 'number' }, { type: 'number' }],
+                        },
+                      },
+                    },
+                    strict: true,
+                  },
+                ],
+              } satisfies MoonshotAISystemMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages.at(-1)).toEqual({
+        role: 'system',
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'calculator',
+              description: 'Evaluate an expression',
+              parameters: {
+                type: 'object',
+                properties: {
+                  values: {
+                    type: 'array',
+                    prefixItems: [{ type: 'number' }, { type: 'number' }],
+                  },
+                },
+              },
+              strict: true,
+            },
+          },
+        ],
+      });
+    });
+
+    it('should omit dynamic messages and warn for non-K3 official models', async () => {
+      const result = await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [],
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'other',
+        message:
+          'Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted for model "kimi-k2.6".',
+      });
+    });
+
+    it('should preserve dynamic messages for unknown custom models', async () => {
+      await provider.chatModel('custom-model').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages[0]).toMatchObject(
+        {
+          role: 'system',
+          tools: [{ function: { name: 'calculator' } }],
+        },
+      );
+    });
+
+    it('should preserve an ordinary system message when tools is empty', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are Kimi.',
+            providerOptions: { moonshotai: { tools: [] } },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages).toEqual([
+        { role: 'system', content: 'You are Kimi.' },
+      ]);
+    });
+
+    it('should reject incomplete dynamic tool definitions', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'system',
+              content: '',
+              providerOptions: {
+                moonshotai: {
+                  tools: [
+                    {
+                      type: 'function',
+                      name: 'calculator',
+                      inputSchema: null,
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
+      ).rejects.toThrow('invalid moonshotai provider options');
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should reject content alongside dynamic tools', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'system',
+              content: 'Do not send this.',
+              providerOptions: {
+                moonshotai: {
+                  tools: [
+                    {
+                      type: 'function',
+                      name: 'calculator',
+                      inputSchema: { type: 'object', properties: {} },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+      );
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should reject dynamic tools on non-system messages', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: {
+                moonshotai: {
+                  tools: [
+                    {
+                      type: 'function',
+                      name: 'calculator',
+                      inputSchema: { type: 'object', properties: {} },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        'Moonshot dynamic tools must be configured on a system message.',
+      );
+      expect(server.calls).toHaveLength(0);
     });
 
     it('should send maxOutputTokens as max_completion_tokens', async () => {
@@ -1254,6 +1466,37 @@ describe('MoonshotAIChatLanguageModel', () => {
       const parts = await getStreamParts('moonshotai-issue-19546-malformed');
 
       expect(parts.some(part => part.type === 'error')).toBe(true);
+    });
+
+    it('should send dynamic tool messages when streaming', async () => {
+      prepareChunksFixtureResponse('moonshot-text');
+
+      await provider.chatModel('kimi-k3').doStream({
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages[0]).toMatchObject(
+        {
+          role: 'system',
+          tools: [{ function: { name: 'calculator' } }],
+        },
+      );
     });
 
     it('should send maxOutputTokens as max_completion_tokens', async () => {
