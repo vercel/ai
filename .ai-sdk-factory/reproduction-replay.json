@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 19695,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19695-tool-input-streaming.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19695-tool-input-streaming.ts",
+    "packages/harness-claude-code/src/bridge/__fixtures__/tool-input-stream.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19695_REPRODUCED: Claude Code tool input deltas were dropped before completion (provider deltas: 12, emitted tool-input events: 0)"
+  }
+}
