@@ -1,6 +1,7 @@
 ---
 '@ai-sdk/provider': patch
 '@ai-sdk/google': patch
+'@ai-sdk/react': patch
 'ai': patch
 ---
 

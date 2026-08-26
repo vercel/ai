@@ -1,4 +1,5 @@
 import { cleanup, render } from '@testing-library/react';
+import type { Warning } from 'ai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const { realtimeInstances } = vi.hoisted(() => ({
@@ -6,6 +7,7 @@ const { realtimeInstances } = vi.hoisted(() => ({
     options: {
       api: { token: string };
       onError?: (error: Error) => void;
+      onWarning?: (warning: Warning) => void;
     };
     dispose: ReturnType<typeof vi.fn>;
   }>,
@@ -25,6 +27,7 @@ vi.mock('ai', () => ({
     readonly options: {
       api: { token: string };
       onError?: (error: Error) => void;
+      onWarning?: (warning: Warning) => void;
     };
     dispose = vi.fn();
 
@@ -32,6 +35,7 @@ vi.mock('ai', () => ({
       api: { token: string };
       maxEvents?: number;
       onError?: (error: Error) => void;
+      onWarning?: (warning: Warning) => void;
     }) {
       this.options = options;
       this.maxEvents = options.maxEvents ?? 500;
@@ -61,14 +65,17 @@ const testModel = {} as never;
 function TestComponent({
   token,
   onError,
+  onWarning,
 }: {
   token: string;
   onError?: (error: Error) => void;
+  onWarning?: (warning: Warning) => void;
 }) {
   experimental_useRealtime({
     model: testModel,
     api: { token },
     onError,
+    onWarning,
   });
 
   return null;
@@ -98,6 +105,31 @@ describe('experimental_useRealtime', () => {
 
     expect(firstOnError).not.toHaveBeenCalled();
     expect(secondOnError).toHaveBeenCalledOnce();
+  });
+
+  it('uses the latest onWarning callback after rerender', () => {
+    const firstOnWarning = vi.fn();
+    const secondOnWarning = vi.fn();
+
+    const { rerender } = render(
+      <TestComponent token="/api/realtime/setup" onWarning={firstOnWarning} />,
+    );
+
+    rerender(
+      <TestComponent token="/api/realtime/setup" onWarning={secondOnWarning} />,
+    );
+
+    expect(realtimeInstances).toHaveLength(1);
+
+    const warning = {
+      type: 'unsupported',
+      feature: 'test feature',
+    } satisfies Warning;
+    realtimeInstances[0].options.onWarning?.(warning);
+
+    expect(firstOnWarning).not.toHaveBeenCalled();
+    expect(secondOnWarning).toHaveBeenCalledOnce();
+    expect(secondOnWarning).toHaveBeenCalledWith(warning);
   });
 
   it('replaces the session when the token endpoint changes', () => {

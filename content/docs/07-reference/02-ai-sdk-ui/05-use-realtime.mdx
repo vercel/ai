@@ -104,10 +104,56 @@ For AI Gateway, pass `gateway.experimental_realtime(...)` as the model and point
       description: 'Called for every normalized realtime server event.',
     },
     {
+      name: 'onWarning',
+      type: '(warning: Warning) => void',
+      isOptional: true,
+      description:
+        'Called for each provider warning returned by the setup endpoint or produced while preparing the client-side session configuration. Warnings are also logged through the AI SDK warning logger.',
+    },
+    {
       name: 'onError',
       type: '(error: Error) => void',
       isOptional: true,
       description: 'Called when the realtime session encounters an error.',
+    },
+  ]}
+/>
+
+### Setup Response
+
+The `api.token` endpoint must return an
+`Experimental_RealtimeSetupResponse`:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'token',
+      type: 'string',
+      description: 'The short-lived provider token used by the browser.',
+    },
+    {
+      name: 'url',
+      type: 'string',
+      description: 'The realtime WebSocket URL.',
+    },
+    {
+      name: 'expiresAt',
+      type: 'number',
+      isOptional: true,
+      description: 'The token expiration time, when provided by the provider.',
+    },
+    {
+      name: 'tools',
+      type: 'Experimental_RealtimeToolDefinition[]',
+      description:
+        'Provider-neutral tool definitions included in the client-side session configuration.',
+    },
+    {
+      name: 'warnings',
+      type: 'Warning[]',
+      isOptional: true,
+      description:
+        'Provider warnings produced while preparing the server-side session configuration. The client deduplicates these with client-side warnings, logs them, and passes each warning to onWarning.',
     },
   ]}
 />

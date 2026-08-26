@@ -59,6 +59,11 @@ const constraintKeywords = [
 
 type ConstraintKeyword = (typeof constraintKeywords)[number];
 
+const compositionKeywords = ['allOf', 'anyOf', 'oneOf'] as const;
+
+type CompositionKeyword = (typeof compositionKeywords)[number];
+type CompositionKeywordBehavior = 'supported' | 'unsupported' | 'compatibility';
+
 const googleOpenAPISchemaConstraintKeywords = new Set<ConstraintKeyword>([
   'maxItems',
   'maxLength',
@@ -87,6 +92,26 @@ const supportedConstraintKeywordsByTarget: Record<
   functionParametersJsonSchema: googleJSONSchemaConstraintKeywords,
   realtimeFunctionParameters: googleOpenAPISchemaConstraintKeywords,
   responseSchema: googleOpenAPISchemaConstraintKeywords,
+};
+
+const googleSchemaCompositionKeywordBehaviors: Readonly<
+  Record<CompositionKeyword, CompositionKeywordBehavior>
+> = {
+  allOf: 'unsupported',
+  anyOf: 'supported',
+  oneOf: 'compatibility',
+};
+
+const compositionKeywordBehaviorsByTarget: Readonly<
+  Record<
+    GoogleSchemaTarget,
+    Readonly<Record<CompositionKeyword, CompositionKeywordBehavior>>
+  >
+> = {
+  functionParameters: googleSchemaCompositionKeywordBehaviors,
+  functionParametersJsonSchema: googleSchemaCompositionKeywordBehaviors,
+  realtimeFunctionParameters: googleSchemaCompositionKeywordBehaviors,
+  responseSchema: googleSchemaCompositionKeywordBehaviors,
 };
 
 const schemaTargetLabels: Record<GoogleSchemaTarget, string> = {
@@ -452,7 +477,11 @@ function convertJSONSchemaDefinition(
         );
   }
 
-  if (allOf) {
+  if (
+    allOf &&
+    compositionKeywordBehaviorsByTarget[referenceContext.target].allOf !==
+      'unsupported'
+  ) {
     result.allOf = allOf.map((item, index) =>
       convertJSONSchemaDefinition(
         item,
@@ -727,16 +756,35 @@ function reportLossySchemaConversion(
     });
   }
 
-  if (Object.prototype.hasOwnProperty.call(jsonSchema, 'oneOf')) {
-    onWarning({
-      type: 'compatibility',
-      feature: 'JSON Schema constraint "oneOf"',
-      details:
-        `The ${schemaTargetLabels[target]} surface treats "oneOf" as "anyOf" at "${appendJSONPointer(
-          getKeywordSourcePath(schemaPath, 'oneOf', keywordSourcePaths),
-          'oneOf',
-        )}". ` + 'Values matching multiple branches may be accepted.',
-    });
+  for (const keyword of compositionKeywords) {
+    if (!Object.prototype.hasOwnProperty.call(jsonSchema, keyword)) {
+      continue;
+    }
+
+    const behavior = compositionKeywordBehaviorsByTarget[target][keyword];
+    if (behavior === 'unsupported') {
+      onWarning({
+        type: 'unsupported',
+        feature: `JSON Schema constraint "${keyword}"`,
+        details: getUnsupportedConstraintDetails({
+          schemaPath: appendJSONPointer(
+            getKeywordSourcePath(schemaPath, keyword, keywordSourcePaths),
+            keyword,
+          ),
+          target,
+        }),
+      });
+    } else if (behavior === 'compatibility') {
+      onWarning({
+        type: 'compatibility',
+        feature: `JSON Schema constraint "${keyword}"`,
+        details:
+          `The ${schemaTargetLabels[target]} surface treats "${keyword}" as "anyOf" at "${appendJSONPointer(
+            getKeywordSourcePath(schemaPath, keyword, keywordSourcePaths),
+            keyword,
+          )}". ` + 'Values matching multiple branches may be accepted.',
+      });
+    }
   }
 }
 
