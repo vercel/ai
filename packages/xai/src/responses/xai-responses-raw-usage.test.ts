@@ -4,7 +4,6 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
 
@@ -12,38 +11,40 @@ const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
 ];
 
-const jsonFixture = JSON.parse(
-  fs.readFileSync(
-    'src/responses/__fixtures__/xai-image-generation-tool.1.json',
-    'utf8',
-  ),
-);
-const chunkFixture = fs
-  .readFileSync(
-    'src/responses/__fixtures__/xai-image-generation-tool.1.chunks.txt',
-    'utf8',
-  )
-  .trim()
-  .split('\n')
-  .map(line => {
-    const event = JSON.parse(line);
-    if (event.response?.usage != null) {
-      addUnknownUsageFields(event.response.usage);
-    }
-    return JSON.stringify(event);
-  });
+const completeUsage = {
+  input_tokens: 100,
+  output_tokens: 50,
+  total_tokens: 150,
+  input_tokens_details: {
+    cached_tokens: 20,
+    provider_input_metadata: { preserved: true },
+  },
+  output_tokens_details: {
+    reasoning_tokens: 30,
+    provider_output_metadata: ['preserved', 1],
+  },
+  context_details: {
+    input_tokens: 90,
+    output_tokens: 40,
+  },
+  server_side_tool_usage_details: {
+    web_search_calls: 1,
+  },
+  provider_usage_metadata: {
+    nested: { preserved: true },
+  },
+};
 
-function addUnknownUsageFields(usage: {
-  input_tokens_details: Record<string, unknown>;
-  output_tokens_details: Record<string, unknown>;
-  [key: string]: unknown;
-}) {
-  usage.input_tokens_details.provider_input_sentinel = { preserved: true };
-  usage.output_tokens_details.provider_output_sentinel = ['preserve', 1];
-  usage.provider_top_level_sentinel = { preserved: true };
+function createResponse(usage: Record<string, unknown>) {
+  return {
+    id: 'resp_123',
+    object: 'response',
+    status: 'completed',
+    model: 'grok-4-fast-non-reasoning',
+    output: [],
+    usage,
+  };
 }
-
-addUnknownUsageFields(jsonFixture.usage);
 
 function createModel() {
   return new XaiResponsesLanguageModel('grok-4-fast-non-reasoning', {
@@ -54,7 +55,7 @@ function createModel() {
   });
 }
 
-describe('issue #19652', () => {
+describe('XaiResponsesLanguageModel raw usage', () => {
   const server = createTestServer({
     'https://api.x.ai/v1/responses': {},
   });
@@ -62,12 +63,12 @@ describe('issue #19652', () => {
   it('preserves complete raw usage through doGenerate parsing', async () => {
     server.urls['https://api.x.ai/v1/responses'].response = {
       type: 'json-value',
-      body: jsonFixture,
+      body: createResponse(completeUsage),
     };
 
     const result = await createModel().doGenerate({ prompt: TEST_PROMPT });
 
-    expect(result.usage.raw).toStrictEqual(jsonFixture.usage);
+    expect(result.usage.raw).toStrictEqual(completeUsage);
     expect(result.usage.inputTokens).toStrictEqual({
       total: 100,
       noCache: 80,
@@ -82,11 +83,28 @@ describe('issue #19652', () => {
   });
 
   it('preserves complete raw usage from the final doStream usage event', async () => {
+    const initialUsage = {
+      input_tokens: 0,
+      output_tokens: 0,
+      provider_usage_metadata: { stage: 'initial' },
+    };
+
     server.urls['https://api.x.ai/v1/responses'].response = {
       type: 'stream-chunks',
-      chunks: chunkFixture
-        .map(line => `data: ${line}\n\n`)
-        .concat('data: [DONE]\n\n'),
+      chunks: [
+        `data: ${JSON.stringify({
+          type: 'response.created',
+          response: {
+            ...createResponse(initialUsage),
+            status: 'in_progress',
+          },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          type: 'response.completed',
+          response: createResponse(completeUsage),
+        })}\n\n`,
+        'data: [DONE]\n\n',
+      ],
     };
 
     const { stream } = await createModel().doStream({ prompt: TEST_PROMPT });
@@ -98,7 +116,7 @@ describe('issue #19652', () => {
       throw new Error('finish part missing');
     }
 
-    expect(finishPart.usage.raw).toStrictEqual(jsonFixture.usage);
+    expect(finishPart.usage.raw).toStrictEqual(completeUsage);
     expect(finishPart.usage.inputTokens).toStrictEqual({
       total: 100,
       noCache: 80,
@@ -113,11 +131,12 @@ describe('issue #19652', () => {
   });
 
   it('continues validating known usage field types', async () => {
-    const invalidFixture = structuredClone(jsonFixture);
-    invalidFixture.usage.input_tokens = '100';
     server.urls['https://api.x.ai/v1/responses'].response = {
       type: 'json-value',
-      body: invalidFixture,
+      body: createResponse({
+        ...completeUsage,
+        input_tokens: '100',
+      }),
     };
 
     await expect(
