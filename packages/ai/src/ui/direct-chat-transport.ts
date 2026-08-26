@@ -5,8 +5,17 @@ import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { Agent } from '../agent/agent';
 import type { ChatTransport } from './chat-transport';
 import { convertToModelMessages } from './convert-to-model-messages';
+<<<<<<< HEAD
 import type { InferUITools, UIMessage } from './ui-messages';
 import { validateUIMessages } from './validate-ui-messages';
+=======
+import type {
+  InferUIMessageTools,
+  InferUITools,
+  UIMessage,
+} from './ui-messages';
+import { validateUIMessagesForAgent } from './validate-ui-messages';
+>>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
 
 /**
  * Options for the `DirectChatTransport` class.
@@ -80,7 +89,7 @@ export class DirectChatTransport<
     ReadableStream<UIMessageChunk>
   > {
     // Validate the incoming UI messages
-    const validatedMessages = await validateUIMessages<UI_MESSAGE>({
+    const validatedMessages = await validateUIMessagesForAgent<UI_MESSAGE>({
       messages,
       tools: this.agent.tools,
     });
