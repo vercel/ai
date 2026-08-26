@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 4.0.191
+
+### Patch Changes
+
+- cfdc8df: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, custom vocabulary, and `mode: 'VERBATIM' | 'SMART'` transcription formatting
+- Updated dependencies [9a1656e]
+- Updated dependencies [cfdc8df]
+  - @ai-sdk/google@3.0.116
+
 ## 4.0.190
 
 ### Patch Changes

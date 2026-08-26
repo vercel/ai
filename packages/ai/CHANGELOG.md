@@ -1,5 +1,12 @@
 # ai
 
+## 6.0.270
+
+### Patch Changes
+
+- 8bc01a1: Allow chats to continue automatically after tool approval denials reach the `output-denied` state.
+- fa01949: Handle stitchable stream cancellation before an inner stream is registered.
+
 ## 6.0.269
 
 ### Patch Changes
