@@ -71,6 +71,27 @@ describe('MoonshotAIChatLanguageModel', () => {
       prepareJsonResponse();
     });
 
+    it('should send maxOutputTokens as max_completion_tokens', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 17,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.max_completion_tokens).toBe(17);
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should omit max_completion_tokens when maxOutputTokens is undefined', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('max_completion_tokens');
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
     it.each([
       'kimi-k2.5',
       'kimi-k2.6',
@@ -792,6 +813,31 @@ describe('MoonshotAIChatLanguageModel', () => {
       const parts = await getStreamParts('moonshotai-issue-19546-malformed');
 
       expect(parts.some(part => part.type === 'error')).toBe(true);
+    });
+
+    it('should send maxOutputTokens as max_completion_tokens', async () => {
+      prepareChunksFixtureResponse('moonshot-text');
+
+      await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 17,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.max_completion_tokens).toBe(17);
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should omit max_completion_tokens when maxOutputTokens is undefined', async () => {
+      prepareChunksFixtureResponse('moonshot-text');
+
+      await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('max_completion_tokens');
+      expect(requestBody).not.toHaveProperty('max_tokens');
     });
   });
 });
