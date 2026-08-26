@@ -851,38 +851,68 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should omit assistant messages that only contain unsigned reasoning and blank text', async () => {
-    const result = await convertToBedrockChatMessages([
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'First question' }],
-      },
-      {
-        role: 'assistant',
-        content: [
-          {
-            type: 'reasoning',
-            text: 'Unsigned reasoning',
-          },
-          { type: 'text', text: '\n ' },
-        ],
-      },
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'Follow-up question' }],
-      },
-    ]);
-
-    expect(result).toEqual({
-      messages: [
+  it.each([
+    {
+      description: 'only unsigned reasoning',
+      assistantContent: [
         {
-          role: 'user',
-          content: [{ text: 'First question' }, { text: 'Follow-up question' }],
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
         },
       ],
-      system: [],
-    });
-  });
+    },
+    {
+      description: 'unsigned reasoning and empty text',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+        { type: 'text' as const, text: '' },
+      ],
+    },
+    {
+      description: 'unsigned reasoning and whitespace-only text',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+        { type: 'text' as const, text: '\n ' },
+      ],
+    },
+  ])(
+    'should omit assistant messages that become empty after filtering $description',
+    async ({ assistantContent }) => {
+      const result = await convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'First question' }],
+        },
+        {
+          role: 'assistant',
+          content: assistantContent,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Follow-up question' }],
+        },
+      ]);
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { text: 'First question' },
+              { text: 'Follow-up question' },
+            ],
+          },
+        ],
+        system: [],
+      });
+    },
+  );
 
   it('should strip invalid characters from tool call names', async () => {
     const result = await convertToBedrockChatMessages([
