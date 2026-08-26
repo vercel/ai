@@ -2,6 +2,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import type {
   MoonshotAIAssistantMessageProviderOptions,
   MoonshotAILanguageModelOptions,
+  MoonshotAISystemMessageProviderOptions,
 } from './index';
 
 describe('MoonshotAILanguageModelOptions', () => {
@@ -47,5 +48,20 @@ describe('MoonshotAIAssistantMessageProviderOptions', () => {
     } satisfies MoonshotAIAssistantMessageProviderOptions;
 
     expectTypeOf(options.partial).toEqualTypeOf<false>();
+  });
+});
+
+describe('MoonshotAISystemMessageProviderOptions', () => {
+  it('exposes names and complete dynamic function tools', () => {
+    expectTypeOf<MoonshotAISystemMessageProviderOptions>().toMatchTypeOf<{
+      name?: string;
+      tools?: Array<{
+        type: 'function';
+        name: string;
+        description?: string;
+        inputSchema: object;
+        strict?: boolean;
+      }>;
+    }>();
   });
 });
