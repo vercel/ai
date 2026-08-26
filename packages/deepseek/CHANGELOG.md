@@ -1,5 +1,51 @@
 # @ai-sdk/deepseek
 
+## 1.0.54
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+
+## 1.0.53
+
+### Patch Changes
+
+- 8e31b43: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- 64f3fe0: feat(provider/deepseek): add the `userId` chat option and serialize it as `user_id`
+- 8e77e23: feat(provider/deepseek): add DeepSeek V4 Flash and Pro model IDs
+- db8d076: Add provider-specific names for DeepSeek system, user, and assistant messages.
+- d85aaea: Preserve documented DeepSeek chat response metadata for generate and stream.
+- ddea7d7: Add DeepSeek chat completion log probability request and response support.
+- d9126d6: Add support for DeepSeek beta assistant prefix completion through message provider options.
+- 865c3d3: Expose DeepSeek response system fingerprints in provider metadata for generated and streamed text.
+- 86cd8e0: Align DeepSeek thinking and reasoning effort options with the documented API values while mapping legacy options with compatibility warnings.
+- fe2c05f: Add DeepSeek image detail and inline file-data content part support.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
+## 1.0.52
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+
+## 1.0.51
+
+### Patch Changes
+
+- ed2f035: feat: add DeepSeek V4 Flash Vision Exp image input support
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
 ## 1.0.49
 
 ### Patch Changes

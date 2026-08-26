@@ -2,6 +2,18 @@ import type { Attributes } from '@opentelemetry/api';
 import type { CallSettings } from '../prompt/call-settings';
 import type { TelemetrySettings } from './telemetry-settings';
 
+export function getTelemetryMetadataAttributes(
+  telemetry: TelemetrySettings | undefined,
+): Attributes {
+  return Object.entries(telemetry?.metadata ?? {}).reduce(
+    (attributes, [key, value]) => {
+      attributes[`ai.telemetry.metadata.${key}`] = value;
+      return attributes;
+    },
+    {} as Attributes,
+  );
+}
+
 export function getBaseTelemetryAttributes({
   model,
   settings,
@@ -24,13 +36,7 @@ export function getBaseTelemetryAttributes({
     }, {} as Attributes),
 
     // add metadata as attributes:
-    ...Object.entries(telemetry?.metadata ?? {}).reduce(
-      (attributes, [key, value]) => {
-        attributes[`ai.telemetry.metadata.${key}`] = value;
-        return attributes;
-      },
-      {} as Attributes,
-    ),
+    ...getTelemetryMetadataAttributes(telemetry),
 
     // request headers
     ...Object.entries(headers ?? {}).reduce((attributes, [key, value]) => {

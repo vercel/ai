@@ -1,5 +1,48 @@
 # @ai-sdk/google
 
+## 2.0.92
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+
+## 2.0.91
+
+### Patch Changes
+
+- b616db6: Preserve recursive tool input schemas without aborting Google model calls.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+
+## 2.0.89
+
+### Patch Changes
+
+- 1284605: Inline local JSON Schema references in Google tool and structured-output schemas.
+
+## 2.0.88
+
+### Patch Changes
+
+- df0cbe9: feat(google): add `gemini-3.7-flash` model
+
+## 2.0.87
+
+### Patch Changes
+
+- 1f51a4b: Preserve Google API error details in `APICallError.data`.
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
 ## 2.0.86
 
 ### Patch Changes

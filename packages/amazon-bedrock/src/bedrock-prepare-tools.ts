@@ -18,10 +18,12 @@ export async function prepareTools({
   tools,
   toolChoice,
   modelId,
+  disableParallelToolUse,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   modelId: string;
+  disableParallelToolUse?: boolean;
 }): Promise<{
   toolConfig: BedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
@@ -96,6 +98,7 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: providerDefinedTools,
       toolChoice,
+      disableParallelToolUse,
     });
 
     toolWarnings.push(...anthropicToolWarnings);
@@ -153,9 +156,35 @@ export async function prepareTools({
     });
   }
 
+  if (
+    isAnthropicModel &&
+    !usingAnthropicTools &&
+    disableParallelToolUse &&
+    bedrockTools.length > 0 &&
+    toolChoice?.type !== 'none'
+  ) {
+    additionalTools = {
+      tool_choice:
+        toolChoice?.type === 'required'
+          ? { type: 'any', disable_parallel_tool_use: true }
+          : toolChoice?.type === 'tool'
+            ? {
+                type: 'tool',
+                name: toolChoice.toolName,
+                disable_parallel_tool_use: true,
+              }
+            : { type: 'auto', disable_parallel_tool_use: true },
+    };
+  }
+
   // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic provider-defined tools
   let bedrockToolChoice: BedrockToolConfiguration['toolChoice'] = undefined;
-  if (!usingAnthropicTools && bedrockTools.length > 0 && toolChoice) {
+  if (
+    !usingAnthropicTools &&
+    additionalTools?.tool_choice == null &&
+    bedrockTools.length > 0 &&
+    toolChoice
+  ) {
     const type = toolChoice.type;
     switch (type) {
       case 'auto':

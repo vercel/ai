@@ -117,6 +117,9 @@ importers:
       '@ai-sdk/gladia':
         specifier: workspace:*
         version: link:../../packages/gladia
+      '@ai-sdk/gmicloud':
+        specifier: workspace:*
+        version: link:../../packages/gmicloud
       '@ai-sdk/google':
         specifier: workspace:*
         version: link:../../packages/google
@@ -177,6 +180,9 @@ importers:
       '@ai-sdk/xai':
         specifier: workspace:*
         version: link:../../packages/xai
+      '@ai-sdk/zai':
+        specifier: workspace:*
+        version: link:../../packages/zai
       '@basetenlabs/performance-client':
         specifier: 0.0.10
         version: 0.0.10
@@ -1965,6 +1971,34 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/gmicloud:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
   packages/google:
     dependencies:
       '@ai-sdk/provider':
@@ -2222,6 +2256,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+      cross-spawn:
+        specifier: ^7.0.6
+        version: 7.0.6
       pkce-challenge:
         specifier: ^5.0.0
         version: 5.0.1
@@ -2229,6 +2266,9 @@ importers:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
+      '@types/cross-spawn':
+        specifier: ^6.0.6
+        version: 6.0.6
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2462,9 +2502,6 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
-      msw:
-        specifier: 2.7.0
-        version: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)
       tsup:
         specifier: ^8
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.8.3)(yaml@2.7.0)
@@ -2493,6 +2530,9 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.9.1
@@ -2899,6 +2939,34 @@ importers:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/zai:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -10011,6 +10079,9 @@ packages:
 
   '@types/cookiejar@2.1.5':
     resolution: {integrity: sha512-he+DHOWReW0nghN24E1WUqM0efK4kI9oTqDm6XmK8ZPe2djZ90BSNdGnIyCLzCPw7/pogPlGbzI2wHGGmi4O/Q==}
+
+  '@types/cross-spawn@6.0.6':
+    resolution: {integrity: sha512-fXRhhUkG4H3TQk5dBhQ7m/JDdSNHKwR2BBia62lhwEIq9xGiQKLxd6LymNhn47SjXhsUEPmxi+PKw2OkW4LLjA==}
 
   '@types/d3-array@3.2.2':
     resolution: {integrity: sha512-hOLWVbm7uRza0BYXpIIW5pxfrKe0W+D5lrFiAEYR+pb6w3N2SwSMaJbXdUfSEv+dT4MfHBLtn5js0LAWaO6otw==}
@@ -27858,6 +27929,10 @@ snapshots:
   '@types/cookie@0.6.0': {}
 
   '@types/cookiejar@2.1.5': {}
+
+  '@types/cross-spawn@6.0.6':
+    dependencies:
+      '@types/node': 22.19.19
 
   '@types/d3-array@3.2.2': {}
 

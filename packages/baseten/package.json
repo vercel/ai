@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/baseten",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -13,7 +13,7 @@
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",

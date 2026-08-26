@@ -4,6 +4,7 @@ export * from './delay';
 export { DelayedPromise } from './delayed-promise';
 export * from './extract-response-headers';
 export { DownloadError } from './download-error';
+export { EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from './embedding-model-capabilities';
 export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
 export { isBrowserRuntime } from './is-browser-runtime';
 export {

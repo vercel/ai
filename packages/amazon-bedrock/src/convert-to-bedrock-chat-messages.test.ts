@@ -527,6 +527,46 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should replay reasoning redacted as `redactedContent`', async () => {
+    const redactedContent = 'encrypted-reasoning-payload';
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: { bedrock: { redactedContent } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedContent,
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
     const result = await convertToBedrockChatMessages([
       {
@@ -811,6 +851,69 @@ describe('assistant messages', () => {
     });
   });
 
+  it.each([
+    {
+      description: 'only unsigned reasoning',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+      ],
+    },
+    {
+      description: 'unsigned reasoning and empty text',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+        { type: 'text' as const, text: '' },
+      ],
+    },
+    {
+      description: 'unsigned reasoning and whitespace-only text',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+        { type: 'text' as const, text: '\n ' },
+      ],
+    },
+  ])(
+    'should omit assistant messages that become empty after filtering $description',
+    async ({ assistantContent }) => {
+      const result = await convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'First question' }],
+        },
+        {
+          role: 'assistant',
+          content: assistantContent,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Follow-up question' }],
+        },
+      ]);
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { text: 'First question' },
+              { text: 'Follow-up question' },
+            ],
+          },
+        ],
+        system: [],
+      });
+    },
+  );
+
   it('should strip invalid characters from tool call names', async () => {
     const result = await convertToBedrockChatMessages([
       {
@@ -866,6 +969,41 @@ describe('assistant messages', () => {
         ],
       },
     ]);
+  });
+
+  it('should wrap non-object (invalid) tool call input in an object', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            // malformed JSON the model produced, kept as a raw string
+            input: '{ "city": "San Francisco", }',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'cityAttractions',
+                input: { rawInvalidInput: '{ "city": "San Francisco", }' },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
   });
 });
 

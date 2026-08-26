@@ -1,5 +1,62 @@
 # @ai-sdk/azure
 
+## 2.0.127
+
+### Patch Changes
+
+- 77d33c0: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [77d33c0]
+  - @ai-sdk/openai@2.0.121
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/deepseek@1.0.54
+
+## 2.0.126
+
+### Patch Changes
+
+- 8e31b43: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [8e31b43]
+- Updated dependencies [f364ea0]
+- Updated dependencies [64f3fe0]
+- Updated dependencies [8e77e23]
+- Updated dependencies [db8d076]
+- Updated dependencies [d85aaea]
+- Updated dependencies [ddea7d7]
+- Updated dependencies [d9126d6]
+- Updated dependencies [865c3d3]
+- Updated dependencies [86cd8e0]
+- Updated dependencies [fe2c05f]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/deepseek@1.0.53
+  - @ai-sdk/openai@2.0.120
+
+## 2.0.125
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/deepseek@1.0.52
+  - @ai-sdk/openai@2.0.119
+
+## 2.0.124
+
+### Patch Changes
+
+- Updated dependencies [ed2f035]
+  - @ai-sdk/deepseek@1.0.51
+
+## 2.0.123
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/deepseek@1.0.50
+  - @ai-sdk/openai@2.0.118
+
 ## 2.0.122
 
 ### Patch Changes

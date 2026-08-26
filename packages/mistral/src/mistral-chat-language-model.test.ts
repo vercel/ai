@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -991,6 +992,57 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should accumulate incremental tool call arguments', async () => {
+    const chunks = fs
+      .readFileSync(
+        'src/__fixtures__/mistral-incremental-tool-call.chunks.txt',
+        'utf8',
+      )
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks,
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(
+      parts.filter(
+        part => part.type === 'error' || part.type.startsWith('tool-'),
+      ),
+    ).toStrictEqual([
+      {
+        type: 'tool-input-start',
+        id: 'chatcmpl-tool-9f149c74c42f265b',
+        toolName: 'webSearchTool',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'chatcmpl-tool-9f149c74c42f265b',
+        delta: '{"query": "current Berlin weather"}',
+      },
+      {
+        type: 'tool-input-end',
+        id: 'chatcmpl-tool-9f149c74c42f265b',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'chatcmpl-tool-9f149c74c42f265b',
+        toolName: 'webSearchTool',
+        input: '{"query": "current Berlin weather"}',
+      },
+    ]);
   });
 
   it('should expose the raw response headers', async () => {

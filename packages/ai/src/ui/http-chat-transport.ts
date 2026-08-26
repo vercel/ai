@@ -255,6 +255,7 @@ export abstract class HttpChatTransport<
       method: 'GET',
       headers,
       credentials,
+      signal: options.abortSignal,
     });
 
     // no active stream found, so we do not resume

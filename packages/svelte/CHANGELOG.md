@@ -1,5 +1,136 @@
 # @ai-sdk/svelte
 
+## 3.0.248
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - ai@5.0.248
+
+## 3.0.247
+
+### Patch Changes
+
+- ai@5.0.247
+
+## 3.0.246
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+- Updated dependencies [d1aa120]
+  - @ai-sdk/provider-utils@3.0.34
+  - ai@5.0.246
+
+## 3.0.245
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - ai@5.0.245
+
+## 3.0.244
+
+### Patch Changes
+
+- ai@5.0.244
+
+## 3.0.243
+
+### Patch Changes
+
+- Updated dependencies [9e8a754]
+  - ai@5.0.243
+
+## 3.0.242
+
+### Patch Changes
+
+- Updated dependencies [e88bc9f]
+  - ai@5.0.242
+
+## 3.0.241
+
+### Patch Changes
+
+- Updated dependencies [9d0b84c]
+- Updated dependencies [05df123]
+- Updated dependencies [e532644]
+  - ai@5.0.241
+
+## 3.0.240
+
+### Patch Changes
+
+- ai@5.0.240
+
+## 3.0.239
+
+### Patch Changes
+
+- ai@5.0.239
+
+## 3.0.238
+
+### Patch Changes
+
+- ai@5.0.238
+
+## 3.0.237
+
+### Patch Changes
+
+- Updated dependencies [bf11412]
+- Updated dependencies [7ec6b69]
+  - ai@5.0.237
+
+## 3.0.236
+
+### Patch Changes
+
+- Updated dependencies [c425210]
+- Updated dependencies [eb7f2ac]
+  - ai@5.0.236
+
+## 3.0.235
+
+### Patch Changes
+
+- ai@5.0.235
+
+## 3.0.234
+
+### Patch Changes
+
+- Updated dependencies [412c15e]
+  - ai@5.0.234
+
+## 3.0.233
+
+### Patch Changes
+
+- Updated dependencies [2604cb6]
+  - ai@5.0.233
+
+## 3.0.232
+
+### Patch Changes
+
+- Updated dependencies [66dd974]
+- Updated dependencies [0e51b7b]
+  - ai@5.0.232
+  - @ai-sdk/provider-utils@3.0.32
+
+## 3.0.231
+
+### Patch Changes
+
+- Updated dependencies [2709314]
+  - ai@5.0.231
+
 ## 3.0.230
 
 ### Patch Changes

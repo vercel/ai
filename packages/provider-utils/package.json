@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "3.0.31",
+  "version": "3.0.35",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -45,7 +45,6 @@
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
-    "msw": "2.7.0",
     "tsup": "^8",
     "typescript": "5.8.3",
     "zod": "3.25.76"

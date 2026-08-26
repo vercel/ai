@@ -1,5 +1,51 @@
 # @ai-sdk/xai
 
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/openai-compatible@1.0.52
+
+## 2.0.89
+
+### Patch Changes
+
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
+
+## 2.0.88
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/openai-compatible@1.0.50
+
+## 2.0.87
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/openai-compatible@1.0.49
+
+## 2.0.86
+
+### Patch Changes
+
+- 1e632f7: feat(xai): add Grok 4.6 models
+
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/openai-compatible@1.0.48
+
 ## 2.0.84
 
 ### Patch Changes

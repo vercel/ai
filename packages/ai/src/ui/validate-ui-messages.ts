@@ -37,6 +37,7 @@ const uiMessagesSchema = lazyValidator(() =>
                 }),
                 z.object({
                   type: z.literal('reasoning'),
+                  id: z.string().optional(),
                   text: z.string(),
                   state: z.enum(['streaming', 'done']).optional(),
                   providerMetadata: providerMetadataSchema.optional(),

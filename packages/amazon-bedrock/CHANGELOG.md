@@ -1,5 +1,70 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.123
+
+### Patch Changes
+
+- 1f9e026: Omit assistant messages that become empty after unsupported reasoning content is removed.
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/anthropic@2.0.98
+
+## 3.0.122
+
+### Patch Changes
+
+- 5f3c624: Send nested reasoning effort for CRIS-prefixed OpenAI GPT-5.x Converse requests while preserving the flat gpt-oss format.
+
+## 3.0.121
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/anthropic@2.0.97
+
+## 3.0.120
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/anthropic@2.0.96
+
+## 3.0.119
+
+### Patch Changes
+
+- 1cc3b4a: fix(amazon-bedrock): surface modeled event-stream exceptions
+
+## 3.0.118
+
+### Patch Changes
+
+- 44081a8: fix (provider/amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API and replay it on subsequent turns
+
+## 3.0.117
+
+### Patch Changes
+
+- 834f16b: Reject Amazon Bedrock event streams that end with an incomplete buffered frame instead of completing normally with partial output.
+- e108d16: Surface Amazon Bedrock event stream frame decoding and processing failures instead of silently completing the stream.
+
+## 3.0.116
+
+### Patch Changes
+
+- 0ecface: fix(bedrock): wrap invalid tool input in object
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/anthropic@2.0.95
+
 ## 3.0.114
 
 ### Patch Changes
