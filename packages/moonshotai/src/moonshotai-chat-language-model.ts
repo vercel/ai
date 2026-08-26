@@ -545,9 +545,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                 isActiveReasoning = false;
               }
 
-<<<<<<< HEAD
-              for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
+              for (const [
+                fallbackIndex,
+                toolCallDelta,
+              ] of delta.tool_calls.entries()) {
+                const index = toolCallDelta.index ?? fallbackIndex;
 
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.id == null) {
@@ -615,12 +617,6 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-delta',
                   id: toolCall.id,
                   delta: toolCallDelta.function.arguments ?? '',
-=======
-              for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
-                toolCallTracker.processDelta({
-                  ...toolCallDelta,
-                  index: toolCallDelta.index ?? index,
->>>>>>> d53589a9d5 (fix: accept documented Moonshot streaming tool-call and usage variants (#19586))
                 });
               }
             }
