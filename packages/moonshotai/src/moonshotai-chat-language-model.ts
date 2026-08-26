@@ -1,11 +1,12 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import type { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
-import type {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
+import {
+  InvalidPromptError,
+  type LanguageModelV2,
+  type LanguageModelV2CallOptions,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Prompt,
+  type LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { parseProviderOptions } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -16,7 +17,7 @@ import {
   isMoonshotAIKimiModel,
   type MoonshotAIChatModelId,
   type MoonshotAIProviderOptions,
-  moonshotaiMessageProviderOptions,
+  moonshotaiAssistantMessageProviderOptions,
   moonshotaiProviderOptions,
 } from './moonshotai-chat-options';
 import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
@@ -38,6 +39,19 @@ function transformMoonshotRequestBody(
     ...(maxTokens != null ? { max_completion_tokens: maxTokens } : {}),
   };
   const responseFormat = moonshotArgs.response_format;
+
+  if (
+    responseFormat?.type === 'json_object' &&
+    moonshotArgs.messages?.some(
+      (message: Record<string, unknown>) => message.partial === true,
+    )
+  ) {
+    throw new InvalidPromptError({
+      prompt: args.messages,
+      message:
+        'Moonshot AI Partial Mode cannot be combined with JSON object response format.',
+    });
+  }
 
   if (
     responseFormat?.type !== 'json_schema' ||
@@ -77,7 +91,7 @@ async function validateLogprobsOptions(
   });
 }
 
-async function prepareMessageNameOptions(
+async function prepareMessageOptions(
   options: LanguageModelV2CallOptions,
 ): Promise<{
   options: LanguageModelV2CallOptions;
@@ -86,19 +100,38 @@ async function prepareMessageNameOptions(
   const prompt: LanguageModelV2Prompt = [];
   const warnings: LanguageModelV2CallWarning[] = [];
 
-  for (const message of options.prompt) {
+  for (const [index, message] of options.prompt.entries()) {
     const messageOptions = await parseProviderOptions({
       provider: 'moonshotai',
       providerOptions: message.providerOptions,
-      schema: moonshotaiMessageProviderOptions,
+      schema: moonshotaiAssistantMessageProviderOptions,
     });
 
-    if (messageOptions?.name == null) {
+    if (messageOptions?.partial === true && message.role !== 'assistant') {
+      throw new InvalidPromptError({
+        prompt: options.prompt,
+        message:
+          'Moonshot AI Partial Mode requires `partial: true` on an assistant message.',
+      });
+    }
+
+    if (
+      messageOptions?.partial === true &&
+      index !== options.prompt.length - 1
+    ) {
+      throw new InvalidPromptError({
+        prompt: options.prompt,
+        message:
+          'Moonshot AI Partial Mode requires the partial assistant message to be the final message.',
+      });
+    }
+
+    if (messageOptions?.name == null && messageOptions?.partial !== true) {
       prompt.push(message);
       continue;
     }
 
-    if (message.role === 'tool') {
+    if (message.role === 'tool' && messageOptions?.name != null) {
       warnings.push({
         type: 'other',
         message:
@@ -110,7 +143,8 @@ async function prepareMessageNameOptions(
 
     const openAICompatibleOptions = {
       ...message.providerOptions?.openaiCompatible,
-      name: messageOptions.name,
+      ...(messageOptions.name != null && { name: messageOptions.name }),
+      ...(messageOptions.partial === true && { partial: true }),
     };
 
     // The v5 OpenAI-compatible converter reads metadata from the text part
@@ -132,7 +166,9 @@ async function prepareMessageNameOptions(
               openaiCompatible: {
                 ...openAICompatibleOptions,
                 ...textPart.providerOptions?.openaiCompatible,
-                name: messageOptions.name,
+                ...(messageOptions.name != null && {
+                  name: messageOptions.name,
+                }),
               },
             },
           },
@@ -430,7 +466,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { options: messageOptions, warnings: messageWarnings } =
-      await prepareMessageNameOptions(options);
+      await prepareMessageOptions(options);
     await validateLogprobsOptions(messageOptions);
 
     const { options: samplingOptions, warnings: samplingWarnings } =
@@ -478,7 +514,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { options: messageOptions, warnings: messageWarnings } =
-      await prepareMessageNameOptions(options);
+      await prepareMessageOptions(options);
     await validateLogprobsOptions(messageOptions);
 
     const originalIncludeRawChunks = options.includeRawChunks;

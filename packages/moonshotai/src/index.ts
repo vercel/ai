@@ -4,6 +4,7 @@ export type {
   MoonshotAIProviderSettings,
 } from './moonshotai-provider';
 export type {
+  MoonshotAIAssistantMessageProviderOptions,
   MoonshotAIChatModelId,
   MoonshotAIMessageProviderOptions,
   MoonshotAIProviderOptions,

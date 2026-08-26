@@ -1,5 +1,8 @@
 import { expectTypeOf, it } from 'vitest';
-import type { MoonshotAIMessageProviderOptions } from './index';
+import type {
+  MoonshotAIAssistantMessageProviderOptions,
+  MoonshotAIMessageProviderOptions,
+} from './index';
 
 it('should expose typed Moonshot AI message provider options', () => {
   expectTypeOf<MoonshotAIMessageProviderOptions>().toEqualTypeOf<{
@@ -14,4 +17,22 @@ it('should reject non-string message names', () => {
   };
 
   expectTypeOf(options).toEqualTypeOf<MoonshotAIMessageProviderOptions>();
+});
+
+it('should expose typed Moonshot AI assistant message provider options', () => {
+  expectTypeOf<MoonshotAIAssistantMessageProviderOptions>().toEqualTypeOf<{
+    name?: string;
+    partial?: true;
+  }>();
+});
+
+it('should reject false for Partial Mode', () => {
+  const options: MoonshotAIAssistantMessageProviderOptions = {
+    // @ts-expect-error Moonshot AI Partial Mode only accepts true.
+    partial: false,
+  };
+
+  expectTypeOf(
+    options,
+  ).toEqualTypeOf<MoonshotAIAssistantMessageProviderOptions>();
 });
