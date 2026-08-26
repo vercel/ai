@@ -1,4 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidPromptError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { convertToMoonshotAIChatMessages } from './convert-to-moonshotai-chat-messages';
 
@@ -123,6 +126,96 @@ describe('message names', () => {
         name: 'alice',
       },
     ]);
+  });
+});
+
+describe('Partial Mode', () => {
+  it('should serialize partial true on the final assistant message', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Return a JSON object.' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '{' }],
+          providerOptions: {
+            moonshotai: { name: 'prefix', partial: true },
+          },
+        },
+      ],
+    });
+
+    expect(result.messages.at(-1)).toEqual({
+      role: 'assistant',
+      content: '{',
+      name: 'prefix',
+      partial: true,
+      tool_calls: undefined,
+    });
+  });
+
+  it('should reject partial true on a non-assistant message', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+      }),
+    ).rejects.toSatisfy(InvalidPromptError.isInstance);
+  });
+
+  it('should reject partial true on a non-final assistant message', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+      }),
+    ).rejects.toSatisfy(InvalidPromptError.isInstance);
+  });
+
+  it('should reject Partial Mode with JSON object response format', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+        responseFormat: { type: 'json_object' },
+      }),
+    ).rejects.toSatisfy(InvalidPromptError.isInstance);
+  });
+
+  it('should allow Partial Mode with JSON schema response format', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '{' }],
+          providerOptions: { moonshotai: { partial: true } },
+        },
+      ],
+      responseFormat: { type: 'json_schema' },
+    });
+
+    expect(result.messages[0]).toMatchObject({ partial: true });
   });
 });
 
@@ -663,6 +756,231 @@ describe('system messages', () => {
     ]);
 
     expect(result).toEqual([{ role: 'system', content: 'You are Kimi.' }]);
+  });
+
+  it('should serialize and normalize K3 dynamic tools without content', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'kimi-k3',
+      prompt: [
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'locate',
+                  description: 'Locate coordinates',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {
+                      coordinates: {
+                        type: 'array',
+                        items: [{ type: 'number' }, { type: 'number' }],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'system',
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'locate',
+                description: 'Locate coordinates',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    coordinates: {
+                      type: 'array',
+                      prefixItems: [{ type: 'number' }, { type: 'number' }],
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      warnings: [],
+    });
+  });
+
+  it('should omit dynamic tools and warn for known non-K3 models', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'kimi-k2.6',
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Start' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'calculator',
+                  inputSchema: { type: 'object', properties: {} },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [{ role: 'user', content: 'Start' }],
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'dynamic tool loading for model "kimi-k2.6"',
+          details:
+            'Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted.',
+        },
+      ],
+    });
+  });
+
+  it('should preserve dynamic tools for unknown custom models', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'custom-model',
+      prompt: [
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'calculator',
+                  inputSchema: { type: 'object', properties: {} },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.messages[0]).toMatchObject({
+      role: 'system',
+      tools: [{ function: { name: 'calculator' } }],
+    });
+  });
+
+  it('should preserve an ordinary system message when tools is empty', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'kimi-k3',
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are Kimi.',
+          providerOptions: { moonshotai: { tools: [] } },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [{ role: 'system', content: 'You are Kimi.' }],
+      warnings: [],
+    });
+  });
+
+  it('should reject incomplete dynamic tool definitions', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages({
+        modelId: 'kimi-k3',
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: undefined,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'providerOptions',
+      message: 'invalid moonshotai provider options',
+    });
+  });
+
+  it('should reject content alongside dynamic tools', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages({
+        modelId: 'kimi-k3',
+        prompt: [
+          {
+            role: 'system',
+            content: 'Do not send this.',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).rejects.toThrow(
+      'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+    );
+  });
+
+  it('should reject dynamic tools on non-system messages', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages({
+        modelId: 'kimi-k3',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).rejects.toThrow(
+      'Moonshot dynamic tools must be configured on a system message.',
+    );
   });
 });
 

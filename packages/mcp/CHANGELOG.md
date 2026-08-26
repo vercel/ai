@@ -1,5 +1,16 @@
 # @ai-sdk/mcp
 
+## 2.0.38
+
+### Patch Changes
+
+- bf591f0: Apply MCP scope selection to dynamic client registration as well as authorization.
+- fe69342: fix(mcp): reject private OAuth endpoints before sending credentials
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 2.0.37
 
 ### Patch Changes

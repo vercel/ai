@@ -9,10 +9,25 @@ export type MoonshotAIMessage =
   | MoonshotAIAssistantMessage
   | MoonshotAIToolMessage;
 
-export interface MoonshotAISystemMessage {
-  role: 'system';
-  content: string;
-  name?: string;
+export type MoonshotAISystemMessage =
+  | {
+      role: 'system';
+      content: string;
+      name?: string;
+    }
+  | {
+      role: 'system';
+      tools: Array<MoonshotAIFunctionTool>;
+    };
+
+export interface MoonshotAIFunctionTool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string | undefined;
+    parameters: unknown;
+    strict?: boolean;
+  };
 }
 
 export interface MoonshotAIUserMessage {
@@ -45,6 +60,7 @@ export interface MoonshotAIAssistantMessage {
   role: 'assistant';
   content?: string | null;
   name?: string;
+  partial?: true;
   reasoning_content?: string;
   tool_calls?: Array<MoonshotAIMessageToolCall>;
 }
@@ -122,8 +138,10 @@ export const moonshotAIChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
+  object: z.literal('chat.completion').nullish(),
   choices: z.array(
     z.object({
+      index: z.number().nullish(),
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
@@ -132,6 +150,7 @@ export const moonshotAIChatResponseSchema = z.object({
           .array(
             z.object({
               id: z.string().nullish(),
+              type: z.literal('function').nullish(),
               function: z.object({
                 name: z.string(),
                 arguments: z.string(),
@@ -154,8 +173,10 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
         id: z.string().nullish(),
         created: z.number().nullish(),
         model: z.string().nullish(),
+        object: z.literal('chat.completion.chunk').nullish(),
         choices: z.array(
           z.object({
+            index: z.number().nullish(),
             delta: z
               .object({
                 role: z.literal('assistant').nullish(),
@@ -166,6 +187,7 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
                     z.object({
                       index: z.number().nullish(),
                       id: z.string().nullish(),
+                      type: z.literal('function').nullish(),
                       function: z.object({
                         name: z.string().nullish(),
                         arguments: z.string().nullish(),

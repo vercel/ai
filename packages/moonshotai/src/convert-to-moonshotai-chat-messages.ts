@@ -1,4 +1,5 @@
 import {
+  InvalidPromptError,
   UnsupportedFunctionalityError,
   type LanguageModelV4FilePart,
   type LanguageModelV4Prompt,
@@ -14,7 +15,12 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
-import { moonshotaiMessageProviderOptions } from './moonshotai-chat-options';
+import {
+  getMoonshotAIModelFamily,
+  moonshotaiAllMessageProviderOptions,
+  type MoonshotAIChatModelId,
+} from './moonshotai-chat-options';
+import { prepareTools } from './moonshotai-prepare-tools';
 
 const supportedImageMediaTypes = [
   'image/jpeg',
@@ -78,27 +84,77 @@ function formatMediaUrl({
 // parts only. Anything else (audio, PDF, other file types) throws here rather
 // than being rejected by the API with a 400.
 export async function convertToMoonshotAIChatMessages({
+  modelId,
   prompt,
   providerOptionsName = 'moonshotai',
+  responseFormat,
 }: {
+  modelId?: MoonshotAIChatModelId;
   prompt: LanguageModelV4Prompt;
   providerOptionsName?: string;
+  responseFormat?: Record<string, unknown>;
 }): Promise<{
   messages: MoonshotAIMessages;
   warnings: Array<SharedV4Warning>;
 }> {
   const messages: MoonshotAIMessages = [];
   const warnings: Array<SharedV4Warning> = [];
+  const modelFamily =
+    modelId == null ? 'unknown' : getMoonshotAIModelFamily(modelId);
 
-  for (const { role, content, providerOptions } of prompt) {
+  for (const [index, { role, content, providerOptions }] of prompt.entries()) {
     const moonshotMessageOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
-      schema: moonshotaiMessageProviderOptions,
+      schema: moonshotaiAllMessageProviderOptions,
     });
+
+    if (moonshotMessageOptions?.partial === true && role !== 'assistant') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'Moonshot AI Partial Mode requires `partial: true` on an assistant message.',
+      });
+    }
+
+    if (moonshotMessageOptions?.tools != null && role !== 'system') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'Moonshot dynamic tools must be configured on a system message.',
+      });
+    }
 
     switch (role) {
       case 'system': {
+        if (moonshotMessageOptions?.tools?.length) {
+          if (content.length > 0) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+            });
+          }
+
+          if (modelFamily !== 'kimi-k3' && modelFamily !== 'unknown') {
+            warnings.push({
+              type: 'unsupported',
+              feature: `dynamic tool loading for model "${modelId}"`,
+              details:
+                'Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted.',
+            });
+            break;
+          }
+
+          const { tools, toolWarnings } = prepareTools({
+            modelId: modelId ?? 'custom-model',
+            tools: moonshotMessageOptions.tools,
+          });
+          warnings.push(...toolWarnings);
+          messages.push({ role: 'system', tools: tools ?? [] });
+          break;
+        }
+
         messages.push({
           role: 'system',
           content,
@@ -234,6 +290,24 @@ export async function convertToMoonshotAIChatMessages({
       }
 
       case 'assistant': {
+        if (moonshotMessageOptions?.partial === true) {
+          if (index !== prompt.length - 1) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'Moonshot AI Partial Mode requires the partial assistant message to be the final message.',
+            });
+          }
+
+          if (responseFormat?.type === 'json_object') {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'Moonshot AI Partial Mode cannot be combined with JSON object response format.',
+            });
+          }
+        }
+
         let text = '';
         let reasoning = '';
         const toolCalls: Array<{
@@ -271,6 +345,9 @@ export async function convertToMoonshotAIChatMessages({
           content: toolCalls.length > 0 ? text || null : text,
           ...(moonshotMessageOptions?.name != null && {
             name: moonshotMessageOptions.name,
+          }),
+          ...(moonshotMessageOptions?.partial === true && {
+            partial: true,
           }),
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
