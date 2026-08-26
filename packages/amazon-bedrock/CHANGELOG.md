@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.163
+
+### Patch Changes
+
+- 1eb654d: Preserve complete Amazon Bedrock Converse usage objects in raw usage metadata.
+
 ## 4.0.162
 
 ### Patch Changes

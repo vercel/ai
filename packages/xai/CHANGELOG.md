@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 3.0.127
+
+### Patch Changes
+
+- d44b071: Preserve complete xAI Responses usage objects in raw usage metadata.
+- 47ae3e5: Preserve complete xAI Chat Completions usage objects in generated and streamed results.
+
 ## 3.0.126
 
 ### Patch Changes
