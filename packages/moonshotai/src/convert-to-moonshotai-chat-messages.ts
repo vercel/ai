@@ -7,6 +7,7 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
+  resolveProviderReference,
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
 
@@ -101,21 +102,52 @@ export function convertToMoonshotAIChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'file': {
+                const topLevel = getTopLevelMediaType(part.mediaType);
+
                 switch (part.data.type) {
                   case 'reference': {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'file parts with provider references',
+                    if (topLevel !== 'image' && topLevel !== 'video') {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `file part media type ${part.mediaType}`,
+                      });
+                    }
+
+                    const reference = resolveProviderReference({
+                      reference: part.data.reference,
+                      provider: 'moonshotai',
                     });
+
+                    if (!reference.startsWith('ms://')) {
+                      throw new UnsupportedFunctionalityError({
+                        functionality:
+                          'Moonshot file provider references without an ms:// URL',
+                      });
+                    }
+
+                    return topLevel === 'image'
+                      ? {
+                          type: 'image_url' as const,
+                          image_url: { url: reference },
+                        }
+                      : {
+                          type: 'video_url' as const,
+                          video_url: { url: reference },
+                        };
                   }
                   case 'text': {
+                    if (topLevel === 'text') {
+                      return {
+                        type: 'text' as const,
+                        text: part.data.text,
+                      };
+                    }
+
                     throw new UnsupportedFunctionalityError({
-                      functionality: 'text file parts',
+                      functionality: `file part media type ${part.mediaType}`,
                     });
                   }
                   case 'url':
                   case 'data': {
-                    const topLevel = getTopLevelMediaType(part.mediaType);
-
                     if (topLevel === 'image') {
                       return {
                         type: 'image_url' as const,
