@@ -659,6 +659,34 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    it('should stream OpenAI reasoning summary text deltas', async () => {
+      prepareChunksFixtureResponse('openai-reasoning-summary-text.1');
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const reasoningParts = (
+        await convertReadableStreamToArray(result.stream)
+      ).filter(part => part.type.startsWith('reasoning'));
+
+      expect(reasoningParts).toStrictEqual([
+        {
+          type: 'reasoning-start',
+          id: 'rs_084abd547a8ac210006a8effb672d487d2a1c772cd76b19828',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_084abd547a8ac210006a8effb672d487d2a1c772cd76b19828',
+          delta: '**Providing concise arithmetic answer**',
+        },
+        {
+          type: 'reasoning-end',
+          id: 'rs_084abd547a8ac210006a8effb672d487d2a1c772cd76b19828',
+        },
+      ]);
+    });
+
     it('should not pollute Object.prototype from tool call item ids', async () => {
       const originalArgumentsDescriptor = Object.getOwnPropertyDescriptor(
         Object.prototype,

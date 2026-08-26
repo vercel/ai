@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19659,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19659-open-responses-reasoning-summary.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19659-open-responses-reasoning-summary.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19659_REPRODUCED: expected streamed reasoning \"Thinking.\" but received \"\""
+  }
+}
