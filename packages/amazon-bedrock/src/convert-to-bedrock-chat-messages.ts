@@ -352,22 +352,56 @@ export async function convertToBedrockChatMessages(
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
           const { content } = message;
-          const reasoningMetadata = await Promise.all(
-            content.map(part =>
-              part.type === 'reasoning'
-                ? parseProviderOptions({
-                    provider: 'bedrock',
-                    providerOptions: part.providerOptions,
-                    schema: bedrockReasoningMetadataSchema,
-                  })
-                : undefined,
-            ),
+          const convertedReasoningContent: Array<
+            BedrockAssistantMessage['content'][number] | undefined
+          > = await Promise.all(
+            content.map(async part => {
+              if (part.type !== 'reasoning') {
+                return undefined;
+              }
+
+              const metadata = await parseProviderOptions({
+                provider: 'bedrock',
+                providerOptions: part.providerOptions,
+                schema: bedrockReasoningMetadataSchema,
+              });
+
+              if (metadata?.signature != null) {
+                return {
+                  reasoningContent: {
+                    reasoningText: {
+                      // do not trim reasoning text when a signature is present:
+                      // the signature validates the exact original bytes
+                      text: part.text,
+                      signature: metadata.signature,
+                    },
+                  },
+                };
+              }
+
+              if (metadata?.redactedContent != null) {
+                return {
+                  reasoningContent: {
+                    redactedContent: metadata.redactedContent,
+                  },
+                };
+              }
+
+              if (metadata?.redactedData != null) {
+                return {
+                  reasoningContent: {
+                    redactedReasoning: {
+                      data: metadata.redactedData,
+                    },
+                  },
+                };
+              }
+
+              return undefined;
+            }),
           );
-          const hasReasoningBlocks = reasoningMetadata.some(
-            metadata =>
-              metadata?.signature != null ||
-              metadata?.redactedContent != null ||
-              metadata?.redactedData != null,
+          const hasReplayableReasoningBlocks = convertedReasoningContent.some(
+            part => part != null,
           );
 
           for (let k = 0; k < content.length; k++) {
@@ -376,8 +410,9 @@ export async function convertToBedrockChatMessages(
 
             switch (part.type) {
               case 'text': {
-                // Skip empty text blocks unless reasoning blocks are present
-                if (!part.text.trim() && !hasReasoningBlocks) {
+                // Skip empty text blocks unless replayable reasoning blocks are
+                // present and the original block order must be preserved.
+                if (!part.text.trim() && !hasReplayableReasoningBlocks) {
                   break;
                 }
 
@@ -397,33 +432,9 @@ export async function convertToBedrockChatMessages(
               }
 
               case 'reasoning': {
-                const metadata = reasoningMetadata[k];
-
-                if (metadata?.signature != null) {
-                  // do not trim reasoning text when a signature is present:
-                  // the signature validates the exact original bytes
-                  bedrockContent.push({
-                    reasoningContent: {
-                      reasoningText: {
-                        text: part.text,
-                        signature: metadata.signature,
-                      },
-                    },
-                  });
-                } else if (metadata?.redactedContent != null) {
-                  bedrockContent.push({
-                    reasoningContent: {
-                      redactedContent: metadata.redactedContent,
-                    },
-                  });
-                } else if (metadata?.redactedData != null) {
-                  bedrockContent.push({
-                    reasoningContent: {
-                      redactedReasoning: {
-                        data: metadata.redactedData,
-                      },
-                    },
-                  });
+                const convertedPart = convertedReasoningContent[k];
+                if (convertedPart != null) {
+                  bedrockContent.push(convertedPart);
                 }
                 // Unsigned reasoning is intentionally not replayed. Some
                 // Bedrock models (for example OpenAI gpt-oss) return reasoning
