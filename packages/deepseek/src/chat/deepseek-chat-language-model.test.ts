@@ -405,6 +405,66 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(result).toMatchSnapshot();
       });
 
+      it('should preserve the complete raw usage object', async () => {
+        const responseBody = JSON.parse(
+          fs.readFileSync(
+            'src/chat/__fixtures__/issue-19789-live-usage.json',
+            'utf8',
+          ),
+        );
+        responseBody.usage.top_level_sentinel = 'preserve';
+        responseBody.usage.prompt_tokens_details.prompt_sentinel = 'preserve';
+        responseBody.usage.completion_tokens_details.completion_sentinel =
+          'preserve';
+
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'json-value',
+          body: responseBody,
+        };
+
+        const result = await provider.chat('deepseek-v4-flash').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.usage).toStrictEqual({
+          inputTokens: {
+            total: 88,
+            noCache: 88,
+            cacheRead: 0,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 4,
+            text: 0,
+            reasoning: 4,
+          },
+          raw: responseBody.usage,
+        });
+      });
+
+      it('should validate prompt_tokens_details.cached_tokens', async () => {
+        const responseBody = JSON.parse(
+          fs.readFileSync(
+            'src/chat/__fixtures__/issue-19789-live-usage.json',
+            'utf8',
+          ),
+        );
+        responseBody.usage.prompt_tokens_details.cached_tokens = 'invalid';
+
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'json-value',
+          body: responseBody,
+        };
+
+        await expect(
+          provider.chat('deepseek-v4-flash').doGenerate({
+            prompt: TEST_PROMPT,
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_TypeValidationError',
+        });
+      });
+
       it('should include the system fingerprint in provider metadata', async () => {
         const result = await provider.chat('deepseek-chat').doGenerate({
           prompt: TEST_PROMPT,
@@ -1373,6 +1433,111 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+
+      it('should preserve complete usage events and select the final raw usage', async () => {
+        const responseLines = fs
+          .readFileSync(
+            'src/chat/__fixtures__/issue-19789-live-usage.chunks.txt',
+            'utf8',
+          )
+          .trim()
+          .split('\n');
+        const finalChunk = JSON.parse(responseLines.at(-1)!);
+        finalChunk.usage.top_level_sentinel = 'final';
+        finalChunk.usage.prompt_tokens_details.prompt_sentinel = 'final';
+        finalChunk.usage.completion_tokens_details.completion_sentinel =
+          'final';
+
+        const earlierChunk = structuredClone(finalChunk);
+        earlierChunk.choices = [];
+        earlierChunk.usage = {
+          ...earlierChunk.usage,
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+          top_level_sentinel: 'earlier',
+        };
+
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${responseLines[0]}\n\n`,
+            `data: ${JSON.stringify(earlierChunk)}\n\n`,
+            `data: ${JSON.stringify(finalChunk)}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const result = await provider.chat('deepseek-v4-flash').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: true,
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+        const rawUsageEvents = parts
+          .filter(part => part.type === 'raw')
+          .map(part => part.rawValue)
+          .filter(
+            (value): value is { usage: unknown } =>
+              value != null &&
+              typeof value === 'object' &&
+              'usage' in value &&
+              value.usage != null,
+          )
+          .map(value => value.usage);
+        const finish = parts.find(part => part.type === 'finish');
+
+        expect(rawUsageEvents).toStrictEqual([
+          earlierChunk.usage,
+          finalChunk.usage,
+        ]);
+        expect(finish?.usage).toStrictEqual({
+          inputTokens: {
+            total: 88,
+            noCache: 88,
+            cacheRead: 0,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 4,
+            text: 0,
+            reasoning: 4,
+          },
+          raw: finalChunk.usage,
+        });
+      });
+
+      it('should validate streamed prompt_tokens_details.cached_tokens', async () => {
+        const responseLines = fs
+          .readFileSync(
+            'src/chat/__fixtures__/issue-19789-live-usage.chunks.txt',
+            'utf8',
+          )
+          .trim()
+          .split('\n');
+        const finalChunk = JSON.parse(responseLines.at(-1)!);
+        finalChunk.usage.prompt_tokens_details.cached_tokens = 'invalid';
+
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${responseLines[0]}\n\n`,
+            `data: ${JSON.stringify(finalChunk)}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const result = await provider.chat('deepseek-v4-flash').doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts).toContainEqual({
+          type: 'error',
+          error: expect.objectContaining({
+            name: 'AI_TypeValidationError',
+          }),
+        });
       });
 
       it('should include the repeated system fingerprint in provider metadata', async () => {

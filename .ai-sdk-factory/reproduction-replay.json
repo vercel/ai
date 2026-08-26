@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 19789,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19789-deepseek-raw-usage.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19789-deepseek-raw-usage.ts",
+    "packages/deepseek/src/chat/__fixtures__/issue-19789-live-usage.json",
+    "packages/deepseek/src/chat/__fixtures__/issue-19789-live-usage.chunks.txt",
+    "packages/deepseek/src/chat/deepseek-chat-language-model.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE 19789 REPRODUCED: DeepSeek final usage.raw dropped provider usage fields"
+  }
+}
