@@ -9,6 +9,7 @@ import type {
 import { parseProviderOptions } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
+import { moonshotAIChatMetadataExtractor } from './moonshotai-chat-metadata-extractor';
 import {
   getMoonshotAIModelFamily,
   isMoonshotAIKimiModel,
@@ -336,6 +337,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   ) {
     super(modelId, {
       ...config,
+      metadataExtractor: moonshotAIChatMetadataExtractor,
       transformRequestBody: args =>
         transformMoonshotRequestBody(
           config.transformRequestBody?.(args) ?? args,
