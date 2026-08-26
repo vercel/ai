@@ -1201,6 +1201,9 @@ export async function generateText<
                       type: 'tool-approval-request',
                       approvalId,
                       toolCall,
+                      ...(toolApprovalStatus.reason != null
+                        ? { reason: toolApprovalStatus.reason }
+                        : {}),
                       ...(signature != null ? { signature } : {}),
                     };
                     blockedToolCallIds.add(toolCall.toolCallId);
