@@ -175,7 +175,13 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
         ] as UI_MESSAGE[],
       });
     } catch (error) {
-      onError(error);
+      try {
+        onError(error);
+      } catch (onErrorError) {
+        recordProcessingFailure(onErrorError);
+        await callOnFinish();
+        throw onErrorError;
+      }
     }
   };
 

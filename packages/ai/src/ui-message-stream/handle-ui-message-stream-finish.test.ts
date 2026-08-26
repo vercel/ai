@@ -673,6 +673,34 @@ describe('handleUIMessageStreamFinish', () => {
       expect(mockErrorHandler).toHaveBeenCalledWith(expect.any(Error));
     });
 
+    it('should call onFinish with a failed outcome when onStepFinish and onError throw', async () => {
+      const onErrorError = new Error('error handler failed');
+      const onFinishCallback = vi.fn();
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream([
+          { type: 'start', messageId: 'msg-error' },
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]),
+        messageId: 'msg-error',
+        onError: () => {
+          throw onErrorError;
+        },
+        onStepFinish: vi.fn().mockRejectedValue(new Error('step failed')),
+        onFinish: onFinishCallback,
+        getOutcome: () => ({ status: 'completed' }),
+      });
+
+      await expect(convertReadableStreamToArray(resultStream)).rejects.toBe(
+        onErrorError,
+      );
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+      expect(onFinishCallback.mock.calls[0][0].outcome).toEqual({
+        status: 'failed',
+        error: onErrorError,
+      });
+    });
+
     it('should handle continuation scenario with onStepFinish', async () => {
       const onStepFinishCallback = vi.fn();
       const inputChunks: UIMessageChunk[] = [
