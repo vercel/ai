@@ -267,12 +267,7 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
  */
 export type StreamTextOnErrorResult = { retry: true };
 
-export type StreamTextOnErrorCallback = (event: {
-  error: unknown;
-}) =>
-  | PromiseLike<void | StreamTextOnErrorResult>
-  | void
-  | StreamTextOnErrorResult;
+export type StreamTextOnErrorCallback = (event: { error: unknown }) => void;
 
 /**
  * Callback that is set using the `onChunk` option.
@@ -600,7 +595,9 @@ export function streamText<
      * step. Completed earlier steps and their tool results are preserved.
      *
      * Partial output from a failed attempt that was already emitted cannot be
-     * retracted and remains in consumer-facing streams.
+     * retracted and remains in consumer-facing streams. It is excluded from
+     * the recovered step result, structured output parsing, response messages,
+     * and subsequent model steps.
      *
      * Set to `0` to disable automatic retries while allowing `onError` to
      * request retries. Omit this option to disable all stream retry behavior
@@ -876,6 +873,22 @@ export type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
   partialOutput: PARTIAL_OUTPUT | undefined;
 };
 
+type StreamRetryBoundaryMetadata = {
+  request: LanguageModelRequestMetadata;
+  warnings: Array<CallWarning>;
+};
+
+const streamRetryBoundarySymbol = Symbol('streamRetryBoundary');
+const streamRetryAttemptBoundarySymbol = Symbol('streamRetryAttemptBoundary');
+
+type StreamRetryBoundaryPart = {
+  [streamRetryBoundarySymbol]?: StreamRetryBoundaryMetadata;
+};
+
+type StreamRetryAttemptBoundaryPart = {
+  [streamRetryAttemptBoundarySymbol]?: true;
+};
+
 async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
   try {
     await promise;
@@ -887,6 +900,7 @@ function createOutputTransformStream<
   OUTPUT extends Output,
 >(
   output: OUTPUT,
+  streamRetryBoundaries: WeakMap<object, StreamRetryBoundaryMetadata>,
 ): TransformStream<
   TextStreamPart<TOOLS>,
   EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
@@ -896,6 +910,35 @@ function createOutputTransformStream<
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
   let lastPublishedValue = '';
+  let pendingStreamRetryBoundary: StreamRetryBoundaryMetadata | undefined;
+
+  function resetAttemptState() {
+    firstTextChunkId = undefined;
+    text = '';
+    textChunk = '';
+    textProviderMetadata = undefined;
+    lastPublishedValue = '';
+  }
+
+  function enqueueChunk({
+    controller,
+    chunk,
+  }: {
+    controller: TransformStreamDefaultController<
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+    >;
+    chunk: EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>;
+  }) {
+    if (pendingStreamRetryBoundary != null) {
+      streamRetryBoundaries.set(
+        chunk.part as object,
+        pendingStreamRetryBoundary,
+      );
+      pendingStreamRetryBoundary = undefined;
+    }
+
+    controller.enqueue(chunk);
+  }
 
   function publishTextChunk({
     controller,
@@ -906,14 +949,17 @@ function createOutputTransformStream<
     >;
     partialOutput?: InferPartialOutput<OUTPUT>;
   }) {
-    controller.enqueue({
-      part: {
-        type: 'text-delta',
-        id: firstTextChunkId!,
-        text: textChunk,
-        providerMetadata: textProviderMetadata,
+    enqueueChunk({
+      controller,
+      chunk: {
+        part: {
+          type: 'text-delta',
+          id: firstTextChunkId!,
+          text: textChunk,
+          providerMetadata: textProviderMetadata,
+        },
+        partialOutput,
       },
-      partialOutput,
     });
     textChunk = '';
   }
@@ -923,6 +969,16 @@ function createOutputTransformStream<
     EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
+      const retryBoundary = (chunk as StreamRetryBoundaryPart)[
+        streamRetryBoundarySymbol
+      ];
+
+      if (retryBoundary != null) {
+        delete (chunk as StreamRetryBoundaryPart)[streamRetryBoundarySymbol];
+        resetAttemptState();
+        pendingStreamRetryBoundary = retryBoundary;
+      }
+
       // ensure that we publish the last text chunk before the step finish:
       if (chunk.type === 'finish-step' && textChunk.length > 0) {
         publishTextChunk({ controller });
@@ -933,7 +989,10 @@ function createOutputTransformStream<
         chunk.type !== 'text-start' &&
         chunk.type !== 'text-end'
       ) {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
+        enqueueChunk({
+          controller,
+          chunk: { part: chunk, partialOutput: undefined },
+        });
         return;
       }
 
@@ -942,12 +1001,18 @@ function createOutputTransformStream<
       if (firstTextChunkId == null) {
         firstTextChunkId = chunk.id;
       } else if (chunk.id !== firstTextChunkId) {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
+        enqueueChunk({
+          controller,
+          chunk: { part: chunk, partialOutput: undefined },
+        });
         return;
       }
 
       if (chunk.type === 'text-start') {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
+        enqueueChunk({
+          controller,
+          chunk: { part: chunk, partialOutput: undefined },
+        });
         return;
       }
 
@@ -955,7 +1020,10 @@ function createOutputTransformStream<
         if (textChunk.length > 0) {
           publishTextChunk({ controller });
         }
-        controller.enqueue({ part: chunk, partialOutput: undefined });
+        enqueueChunk({
+          controller,
+          chunk: { part: chunk, partialOutput: undefined },
+        });
         return;
       }
 
@@ -964,7 +1032,10 @@ function createOutputTransformStream<
       textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
 
       if (chunk.text.length === 0 && chunk.providerMetadata != null) {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
+        enqueueChunk({
+          controller,
+          chunk: { part: chunk, partialOutput: undefined },
+        });
         return;
       }
 
@@ -1252,15 +1323,30 @@ class DefaultStreamTextResult<
     > = createIdMap();
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
     const errorsHandledForStreamRetry = new Set<unknown>();
+    const streamRetryBoundaries = new WeakMap<
+      object,
+      StreamRetryBoundaryMetadata
+    >();
 
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >({
       async transform(chunk, controller) {
-        controller.enqueue(chunk); // forward the chunk to the next stream
-
         const { part } = chunk;
+        const retryBoundary = streamRetryBoundaries.get(part as object);
+
+        if (retryBoundary != null) {
+          streamRetryBoundaries.delete(part as object);
+          recordedContent = [];
+          activeReasoningContent = createIdMap();
+          activeTextContent = createIdMap();
+          recordedRequest = retryBoundary.request;
+          recordedRequestMessages = retryBoundary.request.messages ?? [];
+          recordedWarnings = retryBoundary.warnings;
+        }
+
+        controller.enqueue(chunk); // forward the chunk to the next stream
 
         const callbacksHandledForStreamRetry =
           part.type === 'error' && errorsHandledForStreamRetry.has(part.error);
@@ -1674,7 +1760,9 @@ class DefaultStreamTextResult<
     }
 
     this.baseStream = stream
-      .pipeThrough(createOutputTransformStream(output ?? text()))
+      .pipeThrough(
+        createOutputTransformStream(output ?? text(), streamRetryBoundaries),
+      )
       .pipeThrough(eventProcessor);
 
     const { maxRetries } = prepareRetries({
@@ -2221,6 +2309,9 @@ class DefaultStreamTextResult<
           const outputChunksHandledBeforeBuffering = new WeakSet<object>();
           const openTextParts = new Set<string>();
           const openReasoningParts = new Set<string>();
+          let pendingStreamRetryStateReset = false;
+          let hasPreparedStreamRetryStateReset = false;
+          let markNextPartAsStreamRetryBoundary = false;
           const shouldBufferToolParts =
             streamRetries > 0 || canRetryStreamViaOnError;
 
@@ -2277,6 +2368,19 @@ class DefaultStreamTextResult<
                   return;
                 }
 
+                if (markNextPartAsStreamRetryBoundary) {
+                  Object.defineProperty(
+                    value,
+                    streamRetryAttemptBoundarySymbol,
+                    {
+                      value: true,
+                      configurable: true,
+                      enumerable: true,
+                    },
+                  );
+                  markNextPartAsStreamRetryBoundary = false;
+                }
+
                 const isToolPart =
                   value.type === 'tool-input-start' ||
                   value.type === 'tool-input-delta' ||
@@ -2318,7 +2422,7 @@ class DefaultStreamTextResult<
                   callbacks: onChunk,
                 });
                 const error = wrapGatewayError(value.error);
-                let onErrorResult: void | StreamTextOnErrorResult = undefined;
+                let onErrorResult: unknown;
                 try {
                   onErrorResult = await onError({ error });
                 } catch {}
@@ -2351,6 +2455,7 @@ class DefaultStreamTextResult<
                 response = retryLanguageModelCall.response;
                 languageModelStreamReader =
                   retryLanguageModelCall.stream.getReader();
+                markNextPartAsStreamRetryBoundary = true;
               }
             },
             cancel(reason) {
@@ -2415,14 +2520,14 @@ class DefaultStreamTextResult<
 
           // Conditionally include request.body based on include settings.
           // Large payloads (e.g., base64-encoded images) can cause memory issues.
-          const stepRequest: LanguageModelRequestMetadata = {
+          const getStepRequest = (): LanguageModelRequestMetadata => ({
             ...request,
             body: include.requestBody ? request?.body : undefined,
             messages: include.requestMessages
               ? cloneModelMessages(stepMessages)
               : undefined,
-          };
-          recordedRequestMessages = stepRequest.messages ?? [];
+          });
+          recordedRequestMessages = getStepRequest().messages ?? [];
 
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
@@ -2456,16 +2561,41 @@ class DefaultStreamTextResult<
             timeBetweenOutputChunksMs: undefined,
           };
           const toolExecutionMs: Record<string, number> = {};
-          let stepResponse: { id: string; timestamp: Date; modelId: string } = {
+          const createStepResponse = () => ({
             id: generateId(),
             timestamp: new Date(),
             modelId: model.modelId,
-          };
+          });
+          let stepResponse: {
+            id: string;
+            timestamp: Date;
+            modelId: string;
+          } = createStepResponse();
 
           // maps provider-assigned IDs to stream-unique IDs for the text and
           // reasoning parts that are active in this step
           const textPartIds = new Map<string, string>();
           const reasoningPartIds = new Map<string, string>();
+
+          const enqueueStepPart = (
+            controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+            part: TextStreamPart<TOOLS>,
+          ) => {
+            if (pendingStreamRetryStateReset) {
+              Object.defineProperty(part, streamRetryBoundarySymbol, {
+                value: {
+                  request: getStepRequest(),
+                  warnings: warnings ?? [],
+                } satisfies StreamRetryBoundaryMetadata,
+                configurable: true,
+                enumerable: true,
+              });
+              pendingStreamRetryStateReset = false;
+              hasPreparedStreamRetryStateReset = false;
+            }
+
+            controller.enqueue(part);
+          };
 
           self.addStream(
             streamWithToolResults.pipeThrough(
@@ -2474,18 +2604,38 @@ class DefaultStreamTextResult<
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
+                  if (
+                    (chunk as StreamRetryAttemptBoundaryPart)[
+                      streamRetryAttemptBoundarySymbol
+                    ]
+                  ) {
+                    delete (chunk as StreamRetryAttemptBoundaryPart)[
+                      streamRetryAttemptBoundarySymbol
+                    ];
+                    pendingStreamRetryStateReset = true;
+                    hasPreparedStreamRetryStateReset = false;
+                  }
+
                   if (chunk.type === 'model-call-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
+                  }
+
+                  if (
+                    pendingStreamRetryStateReset &&
+                    !hasPreparedStreamRetryStateReset
+                  ) {
+                    stepResponse = createStepResponse();
+                    hasPreparedStreamRetryStateReset = true;
                   }
 
                   if (stepFirstChunk) {
                     stepFirstChunk = false;
 
                     // Step start:
-                    controller.enqueue({
+                    enqueueStepPart(controller, {
                       type: 'start-step',
-                      request: stepRequest,
+                      request: getStepRequest(),
                       warnings: warnings ?? [],
                     });
                   }
@@ -2519,14 +2669,14 @@ class DefaultStreamTextResult<
                     case 'tool-input-end':
                     case 'tool-input-delta':
                     case 'tool-approval-request': {
-                      controller.enqueue(chunk);
+                      enqueueStepPart(controller, chunk);
                       break;
                     }
 
                     case 'text-start': {
                       const id = reserveTextPartId(chunk.id);
                       textPartIds.set(chunk.id, id);
-                      controller.enqueue({ ...chunk, id });
+                      enqueueStepPart(controller, { ...chunk, id });
                       break;
                     }
 
@@ -2535,7 +2685,7 @@ class DefaultStreamTextResult<
                         chunk.text.length > 0 ||
                         chunk.providerMetadata != null
                       ) {
-                        controller.enqueue({
+                        enqueueStepPart(controller, {
                           ...chunk,
                           id: textPartIds.get(chunk.id) ?? chunk.id,
                         });
@@ -2544,7 +2694,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'text-end': {
-                      controller.enqueue({
+                      enqueueStepPart(controller, {
                         ...chunk,
                         id: textPartIds.get(chunk.id) ?? chunk.id,
                       });
@@ -2555,12 +2705,12 @@ class DefaultStreamTextResult<
                     case 'reasoning-start': {
                       const id = reserveReasoningPartId(chunk.id);
                       reasoningPartIds.set(chunk.id, id);
-                      controller.enqueue({ ...chunk, id });
+                      enqueueStepPart(controller, { ...chunk, id });
                       break;
                     }
 
                     case 'reasoning-delta': {
-                      controller.enqueue({
+                      enqueueStepPart(controller, {
                         ...chunk,
                         id: reasoningPartIds.get(chunk.id) ?? chunk.id,
                       });
@@ -2568,7 +2718,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'reasoning-end': {
-                      controller.enqueue({
+                      enqueueStepPart(controller, {
                         ...chunk,
                         id: reasoningPartIds.get(chunk.id) ?? chunk.id,
                       });
@@ -2577,20 +2727,20 @@ class DefaultStreamTextResult<
                     }
 
                     case 'tool-call': {
-                      controller.enqueue(chunk);
+                      enqueueStepPart(controller, chunk);
                       // store tool calls for onEnd callback and toolCalls promise:
                       stepToolCalls.push(chunk);
                       break;
                     }
 
                     case 'tool-approval-response': {
-                      controller.enqueue(chunk);
+                      enqueueStepPart(controller, chunk);
                       stepToolApprovalResponses.push(chunk);
                       break;
                     }
 
                     case 'tool-result': {
-                      controller.enqueue(chunk);
+                      enqueueStepPart(controller, chunk);
 
                       if (!chunk.preliminary) {
                         stepToolOutputs.push(chunk);
@@ -2600,7 +2750,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'tool-error': {
-                      controller.enqueue(chunk);
+                      enqueueStepPart(controller, chunk);
                       stepToolOutputs.push(chunk);
                       break;
                     }
@@ -2635,14 +2785,14 @@ class DefaultStreamTextResult<
 
                     case 'error': {
                       hasReceivedTerminalChunk = true;
-                      controller.enqueue(chunk);
+                      enqueueStepPart(controller, chunk);
                       stepFinishReason = 'error';
                       break;
                     }
 
                     case 'raw': {
                       if (include.rawChunks) {
-                        controller.enqueue(chunk);
+                        enqueueStepPart(controller, chunk);
                       }
                       break;
                     }
@@ -2660,7 +2810,7 @@ class DefaultStreamTextResult<
                   // output instead of recording an empty step. incomplete
                   // streams with partial output retain the partial result:
                   if (!hasReceivedTerminalChunk && !hasReceivedOutputChunk) {
-                    controller.enqueue({
+                    enqueueStepPart(controller, {
                       type: 'error',
                       error: new NoOutputGeneratedError({
                         message:
@@ -2692,7 +2842,7 @@ class DefaultStreamTextResult<
                     },
                   };
 
-                  controller.enqueue(finishStepPart);
+                  enqueueStepPart(controller, finishStepPart);
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 
@@ -2773,7 +2923,7 @@ class DefaultStreamTextResult<
                         }),
                       );
                     } catch (error) {
-                      controller.enqueue({
+                      enqueueStepPart(controller, {
                         type: 'error',
                         error,
                       });
@@ -2781,7 +2931,7 @@ class DefaultStreamTextResult<
                       self.closeStream();
                     }
                   } else {
-                    controller.enqueue({
+                    enqueueStepPart(controller, {
                       type: 'finish',
                       finishReason: stepFinishReason,
                       rawFinishReason: stepRawFinishReason,

@@ -101,7 +101,6 @@ try {
 }
 ```
 
-<<<<<<< HEAD
 ## Retrying provider errors after streaming starts
 
 `maxRetries` retries failures that happen while starting a model call. To retry
@@ -129,6 +128,12 @@ tool calls and tool results, are not replayed. Tool input, tool calls, approval
 requests, tool callbacks, and client-side tool execution from a failed attempt
 are discarded. They are only exposed or executed after an attempt reaches a
 successful model-call finish.
+
+Well-formed provider error events are normalized into
+[`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error)
+instances. The same instance is supplied to `onError` and, if recovery is not
+requested or retries are exhausted, to the `error` part in the full stream. Use
+its `isRetryable` metadata when deciding whether to request recovery.
 
 A retry remains part of the same logical step. `onStepStart` runs once for that
 step. `onLanguageModelCallStart` runs for each provider call attempt, while
@@ -161,8 +166,10 @@ recovered are not emitted as final `error` parts.
   model step may therefore append repeated or divergent partial text, reasoning,
   files, or sources to consumer streams. Open text and reasoning parts are ended
   before recovered output begins so UI consumers do not retain them in a
-  streaming state. Retries also add latency and may incur additional provider
-  usage and cost.
+  streaming state. Failed-attempt output is excluded from the recovered step
+  result, structured output parsing, response messages, and subsequent model
+  steps. Final request and response metadata come from the recovered attempt.
+  Retries also add latency and may incur additional provider usage and cost.
 </Note>
 
 <Note type="warning">
@@ -171,14 +178,6 @@ recovered are not emitted as final `error` parts.
   step after provider-side work may repeat that work or its cost. Use
   idempotency controls for provider-executed side effects.
 </Note>
-=======
-Well-formed provider error events that arrive after streaming starts are
-normalized into [`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error)
-instances. The same instance is supplied to callbacks such as `onError` and to
-the `error` part in the full stream. The SDK does not automatically restart a
-partially consumed stream; use `isRetryable` to implement application-managed
-retries and decide how to handle any partial output.
->>>>>>> origin/main
 
 ## Handling stream aborts
 

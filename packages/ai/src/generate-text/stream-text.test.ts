@@ -2574,7 +2574,6 @@ describe('streamText', () => {
       );
     });
 
-<<<<<<< HEAD
     it('should retry the current step after a provider error stream part', async () => {
       let callCount = 0;
 
@@ -2612,6 +2611,106 @@ describe('streamText', () => {
       ]);
       expect(callCount).toBe(2);
       expect(await result.finishReason).toBe('stop');
+    });
+
+    it('should exclude failed-attempt text from structured output state', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: '{"x":' },
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: '2' },
+                    { type: 'text-delta', id: '2', delta: '{"x":"ok"}' },
+                    { type: 'text-end', id: '2' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        output: Output.object({
+          schema: z.object({ x: z.string() }),
+        }),
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(await result.output).toEqual({ x: 'ok' });
+      expect((await result.finalStep).text).toBe('{"x":"ok"}');
+    });
+
+    it('should use request and response metadata from the recovered attempt', async () => {
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const call = ++callCount;
+
+            return {
+              request: { body: `request-${call}` },
+              response: { headers: { call: `${call}` } },
+              stream:
+                call === 1
+                  ? convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'failed-id',
+                        modelId: 'failed-model',
+                        timestamp: new Date(1),
+                      },
+                      { type: 'text-start', id: '1' },
+                      { type: 'text-delta', id: '1', delta: 'partial' },
+                      { type: 'error', error: new Error('provider error') },
+                    ])
+                  : convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'recovered-id',
+                        modelId: 'recovered-model',
+                        timestamp: new Date(2),
+                      },
+                      { type: 'text-start', id: '2' },
+                      { type: 'text-delta', id: '2', delta: 'recovered' },
+                      { type: 'text-end', id: '2' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        include: { requestBody: true },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const finalStep = await result.finalStep;
+      expect(finalStep.request.body).toBe('request-2');
+      expect(finalStep.response).toMatchObject({
+        id: 'recovered-id',
+        modelId: 'recovered-model',
+        timestamp: new Date(2),
+        headers: { call: '2' },
+      });
     });
 
     it('should retry the current step when onError requests a retry', async () => {
@@ -3251,37 +3350,11 @@ describe('streamText', () => {
               {
                 type: 'error',
                 error: new Error(`provider error ${++callCount}`),
-=======
-    it('should expose the same normalized provider error to onError and stream consumers', async () => {
-      let onErrorValue: unknown;
-
-      const result = streamText({
-        model: new MockLanguageModelV4({
-          provider: 'anthropic.messages',
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: 'Hello' },
-              {
-                type: 'error',
-                error: createProviderStreamError({
-                  message: 'Overloaded',
-                  type: 'overloaded_error',
-                  code: 'provider_overloaded',
-                  statusCode: 529,
-                  isRetryable: true,
-                  data: {
-                    type: 'overloaded_error',
-                    message: 'Overloaded',
-                  },
-                }),
->>>>>>> origin/main
               },
             ]),
           }),
         }),
         prompt: 'test-input',
-<<<<<<< HEAD
         streamRetries: 1,
         onError,
       });
@@ -3305,7 +3378,36 @@ describe('streamText', () => {
           streamRetries: -1,
         }),
       ).toThrow('streamRetries must be >= 0');
-=======
+    });
+
+    it('should expose the same normalized provider error to onError and stream consumers', async () => {
+      let onErrorValue: unknown;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          provider: 'anthropic.messages',
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              {
+                type: 'error',
+                error: createProviderStreamError({
+                  message: 'Overloaded',
+                  type: 'overloaded_error',
+                  code: 'provider_overloaded',
+                  statusCode: 529,
+                  isRetryable: true,
+                  data: {
+                    type: 'overloaded_error',
+                    message: 'Overloaded',
+                  },
+                }),
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
         onError: ({ error }) => {
           onErrorValue = error;
         },
@@ -3328,7 +3430,6 @@ describe('streamText', () => {
         isRetryable: true,
       });
       expect(onErrorValue).toBe(errorPart.error);
->>>>>>> origin/main
     });
 
     it('should invoke onError callback when error is thrown in 2nd step', async () => {

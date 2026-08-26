@@ -22,10 +22,7 @@ import type { DeepPartial } from '../util/deep-partial';
 import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
-import type {
-  StreamTextOnErrorCallback,
-  StreamTextOnErrorResult,
-} from './stream-text';
+import type { StreamTextOnErrorCallback } from './stream-text';
 
 describe('streamText types', () => {
   describe('stream retries', () => {
@@ -38,12 +35,38 @@ describe('streamText types', () => {
       });
     });
 
-    it('should expose a precise callback return union', () => {
-      expectTypeOf<ReturnType<StreamTextOnErrorCallback>>().toEqualTypeOf<
-        | PromiseLike<void | StreamTextOnErrorResult>
-        | void
-        | StreamTextOnErrorResult
-      >();
+    it('should preserve the existing void callback contract', () => {
+      expectTypeOf<
+        ReturnType<StreamTextOnErrorCallback>
+      >().toEqualTypeOf<void>();
+    });
+
+    it('should accept existing value-returning callbacks', () => {
+      const errors: unknown[] = [];
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: () => 'replacement text',
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: async () => 'replacement text',
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: ({ error }) => errors.push(error),
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: () => ({ ignored: true }),
+      });
     });
 
     it('should accept a conditional async retry result', () => {
