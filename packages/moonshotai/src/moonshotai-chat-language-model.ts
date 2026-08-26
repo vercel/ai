@@ -292,16 +292,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
     return {
       args: {
         model: this.modelId,
-<<<<<<< HEAD
-        max_tokens: maxOutputTokens,
-=======
-        ...((moonshotOptions.logprobs === true ||
-          moonshotOptions.topLogprobs != null) && { logprobs: true }),
-        ...(moonshotOptions.topLogprobs != null && {
-          top_logprobs: moonshotOptions.topLogprobs,
-        }),
         max_completion_tokens: maxOutputTokens,
->>>>>>> d354a4260d (fix: serialize Moonshot maxOutputTokens using the supported request field (#19605))
         temperature: supportsSamplingOptions ? temperature : undefined,
         top_p: supportsSamplingOptions ? topP : undefined,
         frequency_penalty: supportsSamplingOptions
