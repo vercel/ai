@@ -22,7 +22,7 @@ const schema: JSONSchema7 = {
 
 run(async () => {
   const result = await generateText({
-    model: moonshotai('kimi-k3'),
+    model: moonshotai('moonshot-v1-8k'),
     output: Output.object({
       name: 'named_pair',
       schema: jsonSchema<PairOutput>(schema),
