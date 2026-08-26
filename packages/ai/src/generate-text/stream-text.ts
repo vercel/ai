@@ -50,6 +50,7 @@ import type {
   InferUIMessageChunk,
   UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageStreamOutcome } from '../ui-message-stream/ui-message-stream-outcome';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type {
   InferUIMessageData,
@@ -1781,6 +1782,26 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
+    let outcome: UIMessageStreamOutcome = { status: 'unknown' };
+    let hasFatalFailure = false;
+
+    const setSourceOutcome = (newOutcome: UIMessageStreamOutcome) => {
+      if (
+        !hasFatalFailure &&
+        outcome.status !== 'completed' &&
+        outcome.status !== 'aborted' &&
+        newOutcome.status !== 'unknown' &&
+        (outcome.status === 'unknown' || newOutcome.status !== 'failed')
+      ) {
+        outcome = newOutcome;
+      }
+    };
+
+    const failOutcome = (error: unknown) => {
+      hasFatalFailure = true;
+      outcome = { status: 'failed', error };
+    };
+
     const responseMessageId =
       generateMessageId != null
         ? getResponseUIMessageId({
@@ -1797,7 +1818,54 @@ However, the LLM results are expected to be small enough to not cause issues.
       return dynamic ? true : undefined; // only send when dynamic to reduce data transfer
     };
 
-    const baseStream = this.fullStream.pipeThrough(
+    const sourceReader = this.fullStream.getReader();
+    let sourceReaderReleased = false;
+    let sourceStreamCancelled = false;
+
+    const releaseSourceReader = () => {
+      if (!sourceReaderReleased) {
+        sourceReader.releaseLock();
+        sourceReaderReleased = true;
+      }
+    };
+
+    const sourceStream = new ReadableStream<TextStreamPart<TOOLS>>({
+      async pull(controller) {
+        try {
+          const { done, value } = await sourceReader.read();
+
+          if (done) {
+            releaseSourceReader();
+            if (!sourceStreamCancelled) {
+              controller.close();
+            }
+          } else {
+            controller.enqueue(value);
+          }
+        } catch (error) {
+          releaseSourceReader();
+          if (!sourceStreamCancelled) {
+            failOutcome(error);
+            controller.error(error);
+          }
+        }
+      },
+
+      async cancel(reason) {
+        sourceStreamCancelled = true;
+        if (sourceReaderReleased) {
+          return;
+        }
+
+        try {
+          await sourceReader.cancel(reason);
+        } finally {
+          releaseSourceReader();
+        }
+      },
+    });
+
+    const baseStream = sourceStream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
         UIMessageChunk<
@@ -2092,17 +2160,78 @@ However, the LLM results are expected to be small enough to not cause issues.
               messageMetadata: messageMetadataValue,
             });
           }
+
+          if (part.type === 'finish') {
+            setSourceOutcome({ status: 'completed' });
+          } else if (part.type === 'abort') {
+            setSourceOutcome({ status: 'aborted' });
+          } else if (part.type === 'error') {
+            setSourceOutcome({ status: 'failed', error: part.error });
+          }
         },
       }),
     );
 
+    const baseStreamReader = baseStream.getReader();
+    let baseStreamReaderReleased = false;
+    let baseStreamCancelled = false;
+
+    const releaseBaseStreamReader = () => {
+      if (!baseStreamReaderReleased) {
+        baseStreamReader.releaseLock();
+        baseStreamReaderReleased = true;
+      }
+    };
+
+    const trackedBaseStream = new ReadableStream<
+      UIMessageChunk<
+        InferUIMessageMetadata<UI_MESSAGE>,
+        InferUIMessageData<UI_MESSAGE>
+      >
+    >({
+      async pull(controller) {
+        try {
+          const { done, value } = await baseStreamReader.read();
+
+          if (done) {
+            releaseBaseStreamReader();
+            if (!baseStreamCancelled) {
+              controller.close();
+            }
+          } else {
+            controller.enqueue(value);
+          }
+        } catch (error) {
+          releaseBaseStreamReader();
+          if (!baseStreamCancelled) {
+            failOutcome(error);
+            controller.error(error);
+          }
+        }
+      },
+
+      async cancel(reason) {
+        baseStreamCancelled = true;
+        if (baseStreamReaderReleased) {
+          return;
+        }
+
+        try {
+          await baseStreamReader.cancel(reason);
+        } finally {
+          releaseBaseStreamReader();
+        }
+      },
+    });
+
     return createAsyncIterableStream(
       handleUIMessageStreamFinish<UI_MESSAGE>({
-        stream: baseStream,
+        stream: trackedBaseStream,
         messageId: responseMessageId ?? generateMessageId?.(),
         originalMessages,
         onFinish,
         onError,
+        getOutcome: () => outcome,
       }),
     );
   }

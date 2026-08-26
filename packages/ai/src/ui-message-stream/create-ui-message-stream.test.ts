@@ -1,6 +1,6 @@
 import { delay, DelayedPromise } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { UIMessage } from '../ui/ui-messages';
 import { consumeStream } from '../util/consume-stream';
 import { createUIMessageStream } from './create-ui-message-stream';
@@ -653,7 +653,7 @@ describe('createUIMessageStream', () => {
     const observe = async (
       execute: Parameters<typeof createUIMessageStream>[0]['execute'],
     ) => {
-      let onEndCalls = 0;
+      let onFinishCalls = 0;
       let observation:
         | {
             isAborted: boolean;
@@ -666,8 +666,8 @@ describe('createUIMessageStream', () => {
         execute,
         onError: error =>
           error instanceof Error ? error.message : 'unknown error',
-        onEnd: ({ isAborted, outcome }) => {
-          onEndCalls++;
+        onFinish: ({ isAborted, outcome }) => {
+          onFinishCalls++;
           observation = {
             isAborted,
             status: outcome.status,
@@ -683,7 +683,7 @@ describe('createUIMessageStream', () => {
 
       return {
         chunkTypes: chunks.map(chunk => chunk.type),
-        onEndCalls,
+        onFinishCalls,
         ...observation!,
       };
     };
@@ -743,28 +743,28 @@ describe('createUIMessageStream', () => {
           "chunkTypes": [],
           "errorMessage": undefined,
           "isAborted": true,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "aborted",
         },
         "declaredCompleted": {
           "chunkTypes": [],
           "errorMessage": undefined,
           "isAborted": false,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "completed",
         },
         "declaredCompletedBeforeFailed": {
           "chunkTypes": [],
           "errorMessage": undefined,
           "isAborted": false,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "completed",
         },
         "declaredFailed": {
           "chunkTypes": [],
           "errorMessage": "declared failure",
           "isAborted": false,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "failed",
         },
         "errorChunk": {
@@ -773,7 +773,7 @@ describe('createUIMessageStream', () => {
           ],
           "errorMessage": undefined,
           "isAborted": false,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "unknown",
         },
         "executeRejection": {
@@ -782,7 +782,7 @@ describe('createUIMessageStream', () => {
           ],
           "errorMessage": "execute failure",
           "isAborted": false,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "failed",
         },
         "executeRejectionAfterCompleted": {
@@ -791,7 +791,7 @@ describe('createUIMessageStream', () => {
           ],
           "errorMessage": "execute failure after completion",
           "isAborted": false,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "failed",
         },
         "mergedStreamRejection": {
@@ -800,7 +800,7 @@ describe('createUIMessageStream', () => {
           ],
           "errorMessage": "merged stream failure",
           "isAborted": false,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "failed",
         },
         "mergedStreamRejectionAfterCompleted": {
@@ -809,14 +809,14 @@ describe('createUIMessageStream', () => {
           ],
           "errorMessage": "merged stream failure after completion",
           "isAborted": false,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "failed",
         },
         "undeclaredEof": {
           "chunkTypes": [],
           "errorMessage": undefined,
           "isAborted": false,
-          "onEndCalls": 1,
+          "onFinishCalls": 1,
           "status": "unknown",
         },
       }
@@ -843,20 +843,20 @@ describe('createUIMessageStream', () => {
       },
     ]) {
       const onErrorError = new Error('onError failure');
-      const onEnd = vi.fn();
+      const onFinish = vi.fn();
       const stream = createUIMessageStream({
         execute,
         onError: () => {
           throw onErrorError;
         },
-        onEnd,
+        onFinish,
       });
 
       await expect(convertReadableStreamToArray(stream)).rejects.toBe(
         onErrorError,
       );
-      expect(onEnd).toHaveBeenCalledTimes(1);
-      expect(onEnd.mock.calls[0][0].outcome).toEqual({
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
         status: 'failed',
         error: onErrorError,
       });
@@ -864,7 +864,7 @@ describe('createUIMessageStream', () => {
   });
 
   it('reports invalid chunk processing as failed after completion was declared', async () => {
-    const onEnd = vi.fn();
+    const onFinish = vi.fn();
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
         writer.setOutcome({ status: 'completed' });
@@ -875,7 +875,7 @@ describe('createUIMessageStream', () => {
           delta: 'text',
         });
       },
-      onEnd,
+      onFinish,
     });
 
     let processingError: unknown;
@@ -886,15 +886,15 @@ describe('createUIMessageStream', () => {
     }
 
     expect(processingError).toBeInstanceOf(Error);
-    expect(onEnd).toHaveBeenCalledTimes(1);
-    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+    expect(onFinish).toHaveBeenCalledTimes(1);
+    expect(onFinish.mock.calls[0][0].outcome).toEqual({
       status: 'failed',
       error: processingError,
     });
   });
 
   it('injects message IDs without mutating frozen start chunks', async () => {
-    const onEnd = vi.fn();
+    const onFinish = vi.fn();
     const startChunk = Object.freeze({ type: 'start' } as const);
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -902,15 +902,15 @@ describe('createUIMessageStream', () => {
         writer.write(startChunk);
       },
       generateId: () => 'generated-message-id',
-      onEnd,
+      onFinish,
     });
 
     await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
       { type: 'start', messageId: 'generated-message-id' },
     ]);
     expect(startChunk).toEqual({ type: 'start' });
-    expect(onEnd).toHaveBeenCalledTimes(1);
-    expect(onEnd.mock.calls[0][0].outcome).toEqual({
+    expect(onFinish).toHaveBeenCalledTimes(1);
+    expect(onFinish.mock.calls[0][0].outcome).toEqual({
       status: 'completed',
     });
   });
