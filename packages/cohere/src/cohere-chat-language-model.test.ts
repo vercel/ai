@@ -65,6 +65,37 @@ function prepareChunkLinesResponse(chunks: Array<Record<string, unknown>>) {
   };
 }
 
+function prepareJsonUsageResponse(usage: Record<string, unknown>) {
+  server.urls['https://api.cohere.com/v2/chat'].response = {
+    type: 'json-value',
+    body: {
+      generation_id: 'test-generation-id',
+      message: {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'OK' }],
+      },
+      finish_reason: 'COMPLETE',
+      usage,
+    },
+  };
+}
+
+function prepareStreamUsageResponse(usage: Record<string, unknown>) {
+  prepareChunkLinesResponse([
+    {
+      type: 'message-start',
+      id: 'test-generation-id',
+    },
+    {
+      type: 'message-end',
+      delta: {
+        finish_reason: 'COMPLETE',
+        usage,
+      },
+    },
+  ]);
+}
+
 describe('doGenerate', () => {
   describe('text', () => {
     beforeEach(() => {
@@ -733,6 +764,108 @@ describe('doGenerate', () => {
       `);
     });
 
+    it('should preserve the complete live provider usage object', async () => {
+      prepareJsonFixtureResponse('cohere-text');
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toMatchObject({
+        inputTokens: {
+          total: 507,
+          noCache: 507,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+        },
+      });
+      expect(usage.raw).toStrictEqual({
+        billed_units: {
+          input_tokens: 12,
+          output_tokens: 7,
+        },
+        tokens: {
+          input_tokens: 507,
+          output_tokens: 10,
+        },
+        cached_tokens: 448,
+      });
+    });
+
+    it('should preserve unknown usage properties', async () => {
+      const providerUsage = {
+        billed_units: {
+          input_tokens: 2,
+          output_tokens: 1,
+          nested_billed_sentinel: { retained: true },
+        },
+        tokens: {
+          input_tokens: 501,
+          output_tokens: 5,
+          nested_tokens_sentinel: ['retained'],
+        },
+        cached_tokens: 448,
+        top_level_sentinel: { retained: true },
+      };
+      prepareJsonUsageResponse(providerUsage);
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage.raw).toStrictEqual(providerUsage);
+    });
+
+    it('should validate known usage properties', async () => {
+      const invalidUsages = [
+        {
+          billed_units: {
+            input_tokens: 'invalid',
+            output_tokens: 1,
+          },
+          tokens: {
+            input_tokens: 501,
+            output_tokens: 5,
+          },
+          cached_tokens: 448,
+        },
+        {
+          billed_units: {
+            input_tokens: 2,
+            output_tokens: 1,
+          },
+          tokens: {
+            input_tokens: 'invalid',
+            output_tokens: 5,
+          },
+          cached_tokens: 448,
+        },
+        {
+          billed_units: {
+            input_tokens: 2,
+            output_tokens: 1,
+          },
+          tokens: {
+            input_tokens: 501,
+            output_tokens: 5,
+          },
+          cached_tokens: 'invalid',
+        },
+      ];
+
+      for (const invalidUsage of invalidUsages) {
+        prepareJsonUsageResponse(invalidUsage);
+
+        await expect(
+          model.doGenerate({
+            prompt: TEST_PROMPT,
+          }),
+        ).rejects.toThrow('Invalid JSON response');
+      }
+    });
+
     it('should send additional response information', async () => {
       prepareJsonFixtureResponse('cohere-text');
 
@@ -790,6 +923,117 @@ describe('doStream', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should preserve the complete live provider usage object', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const finishPart = (await convertReadableStreamToArray(stream)).find(
+        part => part.type === 'finish',
+      );
+
+      expect(finishPart?.usage).toMatchObject({
+        inputTokens: {
+          total: 507,
+          noCache: 507,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+        },
+      });
+      expect(finishPart?.usage.raw).toStrictEqual({
+        billed_units: {
+          input_tokens: 12,
+          output_tokens: 7,
+        },
+        tokens: {
+          input_tokens: 507,
+          output_tokens: 10,
+        },
+        cached_tokens: 448,
+      });
+    });
+
+    it('should preserve unknown usage properties', async () => {
+      const providerUsage = {
+        billed_units: {
+          input_tokens: 2,
+          output_tokens: 1,
+          nested_billed_sentinel: { retained: true },
+        },
+        tokens: {
+          input_tokens: 501,
+          output_tokens: 5,
+          nested_tokens_sentinel: ['retained'],
+        },
+        cached_tokens: 448,
+        top_level_sentinel: { retained: true },
+      };
+      prepareStreamUsageResponse(providerUsage);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const finishPart = (await convertReadableStreamToArray(stream)).find(
+        part => part.type === 'finish',
+      );
+
+      expect(finishPart?.usage.raw).toStrictEqual(providerUsage);
+    });
+
+    it('should validate known usage properties', async () => {
+      const invalidUsages = [
+        {
+          billed_units: {
+            input_tokens: 'invalid',
+            output_tokens: 1,
+          },
+          tokens: {
+            input_tokens: 501,
+            output_tokens: 5,
+          },
+          cached_tokens: 448,
+        },
+        {
+          billed_units: {
+            input_tokens: 2,
+            output_tokens: 1,
+          },
+          tokens: {
+            input_tokens: 'invalid',
+            output_tokens: 5,
+          },
+          cached_tokens: 448,
+        },
+        {
+          billed_units: {
+            input_tokens: 2,
+            output_tokens: 1,
+          },
+          tokens: {
+            input_tokens: 501,
+            output_tokens: 5,
+          },
+          cached_tokens: 'invalid',
+        },
+      ];
+
+      for (const invalidUsage of invalidUsages) {
+        prepareStreamUsageResponse(invalidUsage);
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+        const chunks = await convertReadableStreamToArray(stream);
+
+        expect(chunks.some(chunk => chunk.type === 'error')).toBe(true);
+      }
     });
   });
 
