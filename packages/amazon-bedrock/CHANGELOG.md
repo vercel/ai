@@ -1,5 +1,14 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.165
+
+### Patch Changes
+
+- da1ce8f: Forward the Anthropic option for disabling parallel tool use through Amazon Bedrock without sending conflicting tool choice fields.
+- Updated dependencies [426c9b3]
+- Updated dependencies [34d045d]
+  - @ai-sdk/openai@3.0.104
+
 ## 4.0.164
 
 ### Patch Changes

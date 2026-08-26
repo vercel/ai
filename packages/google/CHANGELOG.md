@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 3.0.116
+
+### Patch Changes
+
+- 9a1656e: fix(google): convert enum values to the Gemini schema format
+- cfdc8df: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, custom vocabulary, and `mode: 'VERBATIM' | 'SMART'` transcription formatting
+
 ## 3.0.115
 
 ### Patch Changes

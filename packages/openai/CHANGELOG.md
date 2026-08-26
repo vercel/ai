@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 3.0.104
+
+### Patch Changes
+
+- 426c9b3: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+- 34d045d: Fix Responses history serialization for regular functions named `tool_search`.
+
 ## 3.0.103
 
 ### Patch Changes
