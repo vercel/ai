@@ -1,4 +1,7 @@
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessV1RequestTransformation,
+  HarnessV1RequestTransformationSources,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
@@ -12,16 +15,10 @@ export const OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
 ] as const;
 
 export function createOpenCodeRequestTransformations({
-  environment,
-  sandboxEnvironment,
-  authenticationMode,
-  provider,
-}: {
-  environment: Readonly<Record<string, string>>;
-  sandboxEnvironment: Readonly<Record<string, string>>;
-  authenticationMode: OpenCodeResolvedAuthenticationMode;
-  provider: 'anthropic' | 'openai';
-}): HarnessV1RequestTransformation[] {
+  env: environment,
+  sandboxEnv: sandboxEnvironment,
+  auth: authenticationMode,
+}: HarnessV1RequestTransformationSources<OpenCodeResolvedAuthenticationMode>): HarnessV1RequestTransformation[] {
   switch (authenticationMode) {
     case 'ai-gateway':
       return environment.AI_GATEWAY_API_KEY &&
@@ -29,14 +26,18 @@ export function createOpenCodeRequestTransformations({
         ? [
             createCredentialRequestTransformation({
               matchUrl: environment.AI_GATEWAY_BASE_URL,
-              matchHeaders:
-                provider === 'anthropic'
-                  ? {
-                      'x-api-key': sandboxEnvironment.AI_GATEWAY_API_KEY,
-                    }
-                  : {
-                      Authorization: `Bearer ${sandboxEnvironment.AI_GATEWAY_API_KEY}`,
-                    },
+              matchHeaders: {
+                'x-api-key': sandboxEnvironment.AI_GATEWAY_API_KEY,
+              },
+              transformHeaders: {
+                Authorization: `Bearer ${environment.AI_GATEWAY_API_KEY}`,
+              },
+            }),
+            createCredentialRequestTransformation({
+              matchUrl: environment.AI_GATEWAY_BASE_URL,
+              matchHeaders: {
+                Authorization: `Bearer ${sandboxEnvironment.AI_GATEWAY_API_KEY}`,
+              },
               transformHeaders: {
                 Authorization: `Bearer ${environment.AI_GATEWAY_API_KEY}`,
               },

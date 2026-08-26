@@ -283,9 +283,9 @@ export function createCodex(
           ...sandboxCredentialEnvironment,
         };
         const requestTransformations = createCodexRequestTransformations({
-          environment: resolvedAuthEnvironment,
-          sandboxEnvironment: sandboxAuthEnvironment,
-          authenticationMode,
+          env: resolvedAuthEnvironment,
+          sandboxEnv: sandboxAuthEnvironment,
+          auth: authenticationMode,
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

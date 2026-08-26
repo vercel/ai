@@ -2,7 +2,10 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessV1RequestTransformation,
+  HarnessV1RequestTransformationSources,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
@@ -15,14 +18,10 @@ export const CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
 ] as const;
 
 export function createClaudeCodeRequestTransformations({
-  environment,
-  sandboxEnvironment,
-  authenticationMode,
-}: {
-  environment: Readonly<Record<string, string>>;
-  sandboxEnvironment: Readonly<Record<string, string>>;
-  authenticationMode: ClaudeCodeResolvedAuthenticationMode;
-}): HarnessV1RequestTransformation[] {
+  env: environment,
+  sandboxEnv: sandboxEnvironment,
+  auth: authenticationMode,
+}: HarnessV1RequestTransformationSources<ClaudeCodeResolvedAuthenticationMode>): HarnessV1RequestTransformation[] {
   const matchUrl =
     authenticationMode === 'ai-gateway'
       ? environment.ANTHROPIC_BASE_URL

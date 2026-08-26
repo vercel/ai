@@ -275,9 +275,9 @@ export function createDeepAgents(
           ...sandboxCredentialEnvironment,
         };
         const requestTransformations = createDeepAgentsRequestTransformations({
-          environment: resolvedAuthEnvironment,
-          sandboxEnvironment: sandboxAuthEnvironment,
-          authenticationMode,
+          env: resolvedAuthEnvironment,
+          sandboxEnv: sandboxAuthEnvironment,
+          auth: authenticationMode,
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

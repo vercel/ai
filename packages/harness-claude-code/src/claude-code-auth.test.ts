@@ -207,16 +207,16 @@ describe('createClaudeCodeRequestTransformations', () => {
   it('injects Anthropic API key and auth token headers at the configured endpoint', () => {
     expect(
       createClaudeCodeRequestTransformations({
-        environment: {
+        env: {
           ANTHROPIC_API_KEY: 'api-secret',
           ANTHROPIC_AUTH_TOKEN: 'token-secret',
           ANTHROPIC_BASE_URL: 'https://anthropic.example/v1',
         },
-        sandboxEnvironment: {
+        sandboxEnv: {
           ANTHROPIC_API_KEY: 'sandbox-api-secret',
           ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
         },
-        authenticationMode: 'direct',
+        auth: 'direct',
       }),
     ).toEqual([
       {
@@ -255,14 +255,14 @@ describe('createClaudeCodeRequestTransformations', () => {
   it('uses the resolved Gateway route', () => {
     expect(
       createClaudeCodeRequestTransformations({
-        environment: {
+        env: {
           ANTHROPIC_API_KEY: 'gateway-secret',
           ANTHROPIC_BASE_URL: 'https://gateway.example',
         },
-        sandboxEnvironment: {
+        sandboxEnv: {
           ANTHROPIC_API_KEY: 'sandbox-gateway-secret',
         },
-        authenticationMode: 'ai-gateway',
+        auth: 'ai-gateway',
       }),
     ).toEqual([
       {

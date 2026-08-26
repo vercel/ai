@@ -1,4 +1,7 @@
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessV1RequestTransformation,
+  HarnessV1RequestTransformationSources,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
@@ -13,14 +16,10 @@ export const CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES = [
 ] as const;
 
 export function createCodexRequestTransformations({
-  environment,
-  sandboxEnvironment,
-  authenticationMode,
-}: {
-  environment: Readonly<Record<string, string>>;
-  sandboxEnvironment: Readonly<Record<string, string>>;
-  authenticationMode: CodexResolvedAuthenticationMode;
-}): HarnessV1RequestTransformation[] {
+  env: environment,
+  sandboxEnv: sandboxEnvironment,
+  auth: authenticationMode,
+}: HarnessV1RequestTransformationSources<CodexResolvedAuthenticationMode>): HarnessV1RequestTransformation[] {
   if (!environment.CODEX_API_KEY || !sandboxEnvironment.CODEX_API_KEY) {
     return [];
   }

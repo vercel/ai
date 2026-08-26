@@ -1,4 +1,7 @@
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessV1RequestTransformation,
+  HarnessV1RequestTransformationSources,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
@@ -11,14 +14,10 @@ export const DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES = [
 ] as const;
 
 export function createDeepAgentsRequestTransformations({
-  environment,
-  sandboxEnvironment,
-  authenticationMode,
-}: {
-  environment: Readonly<Record<string, string>>;
-  sandboxEnvironment: Readonly<Record<string, string>>;
-  authenticationMode: DeepAgentsResolvedAuthenticationMode;
-}): HarnessV1RequestTransformation[] {
+  env: environment,
+  sandboxEnv: sandboxEnvironment,
+  auth: authenticationMode,
+}: HarnessV1RequestTransformationSources<DeepAgentsResolvedAuthenticationMode>): HarnessV1RequestTransformation[] {
   const matchUrl =
     authenticationMode === 'ai-gateway'
       ? environment.ANTHROPIC_BASE_URL

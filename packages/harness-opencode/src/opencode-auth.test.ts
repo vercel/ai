@@ -169,15 +169,14 @@ describe('createOpenCodeRequestTransformations', () => {
   it('uses the resolved OpenAI route', () => {
     expect(
       createOpenCodeRequestTransformations({
-        environment: {
+        env: {
           OPENAI_API_KEY: 'openai-secret',
           OPENAI_BASE_URL: 'https://openai.example/v1',
           AI_GATEWAY_API_KEY: 'unselected-gateway-secret',
           AI_GATEWAY_BASE_URL: 'https://unselected-gateway.example/v1',
         },
-        sandboxEnvironment: { OPENAI_API_KEY: 'sandbox-openai-secret' },
-        authenticationMode: 'openai',
-        provider: 'openai',
+        sandboxEnv: { OPENAI_API_KEY: 'sandbox-openai-secret' },
+        auth: 'openai',
       }),
     ).toEqual([
       {
@@ -198,20 +197,19 @@ describe('createOpenCodeRequestTransformations', () => {
     ]);
   });
 
-  it('uses the resolved Gateway route', () => {
+  it('matches both supported Gateway credential headers', () => {
     expect(
       createOpenCodeRequestTransformations({
-        environment: {
+        env: {
           OPENAI_API_KEY: 'unselected-openai-secret',
           OPENAI_BASE_URL: 'https://unselected-openai.example/v1',
           AI_GATEWAY_API_KEY: 'gateway-secret',
           AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
         },
-        sandboxEnvironment: {
+        sandboxEnv: {
           AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
         },
-        authenticationMode: 'ai-gateway',
-        provider: 'anthropic',
+        auth: 'ai-gateway',
       }),
     ).toEqual([
       {
@@ -229,23 +227,6 @@ describe('createOpenCodeRequestTransformations', () => {
           headers: { Authorization: 'Bearer gateway-secret' },
         },
       },
-    ]);
-  });
-
-  it('matches an OpenAI Gateway credential as a bearer token', () => {
-    expect(
-      createOpenCodeRequestTransformations({
-        environment: {
-          AI_GATEWAY_API_KEY: 'gateway-secret',
-          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
-        },
-        sandboxEnvironment: {
-          AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
-        },
-        authenticationMode: 'ai-gateway',
-        provider: 'openai',
-      }),
-    ).toEqual([
       {
         match: {
           host: 'gateway.example',
@@ -267,16 +248,15 @@ describe('createOpenCodeRequestTransformations', () => {
   it('injects both supported Anthropic credential headers', () => {
     expect(
       createOpenCodeRequestTransformations({
-        environment: {
+        env: {
           ANTHROPIC_API_KEY: 'api-secret',
           ANTHROPIC_AUTH_TOKEN: 'token-secret',
         },
-        sandboxEnvironment: {
+        sandboxEnv: {
           ANTHROPIC_API_KEY: 'sandbox-api-secret',
           ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
         },
-        authenticationMode: 'anthropic',
-        provider: 'anthropic',
+        auth: 'anthropic',
       }),
     ).toEqual([
       {

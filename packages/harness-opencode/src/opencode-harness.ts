@@ -56,7 +56,6 @@ import {
   OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
   resolveOpenCodeAuthenticationMode,
   resolveOpenCodeEnv,
-  resolveOpenCodeProvider,
   splitOpenCodeModel,
   type OpenCodeAuthOptions,
 } from './opencode-auth';
@@ -319,13 +318,9 @@ export function createOpenCode(
           ...sandboxCredentialEnvironment,
         };
         const requestTransformations = createOpenCodeRequestTransformations({
-          environment: resolvedAuthEnvironment,
-          sandboxEnvironment: sandboxAuthEnvironment,
-          authenticationMode,
-          provider: resolveOpenCodeProvider({
-            model: settings.model,
-            provider: settings.provider,
-          }),
+          env: resolvedAuthEnvironment,
+          sandboxEnv: sandboxAuthEnvironment,
+          auth: authenticationMode,
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(

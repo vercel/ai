@@ -168,12 +168,12 @@ describe('createCodexRequestTransformations', () => {
   it('uses the configured OpenAI-compatible route for direct auth', () => {
     expect(
       createCodexRequestTransformations({
-        environment: {
+        env: {
           CODEX_API_KEY: 'openai-secret',
           OPENAI_BASE_URL: 'https://openai.example/v1',
         },
-        sandboxEnvironment: { CODEX_API_KEY: 'sandbox-openai-secret' },
-        authenticationMode: 'direct',
+        sandboxEnv: { CODEX_API_KEY: 'sandbox-openai-secret' },
+        auth: 'direct',
       }),
     ).toEqual([
       {
@@ -197,9 +197,9 @@ describe('createCodexRequestTransformations', () => {
   it('falls back to the AI Gateway endpoint for Gateway auth', () => {
     expect(
       createCodexRequestTransformations({
-        environment: { CODEX_API_KEY: 'gateway-secret' },
-        sandboxEnvironment: { CODEX_API_KEY: 'sandbox-gateway-secret' },
-        authenticationMode: 'ai-gateway',
+        env: { CODEX_API_KEY: 'gateway-secret' },
+        sandboxEnv: { CODEX_API_KEY: 'sandbox-gateway-secret' },
+        auth: 'ai-gateway',
       }),
     ).toEqual([
       {
@@ -223,9 +223,9 @@ describe('createCodexRequestTransformations', () => {
   it('does not create a transformation without a credential', () => {
     expect(
       createCodexRequestTransformations({
-        environment: {},
-        sandboxEnvironment: {},
-        authenticationMode: 'direct',
+        env: {},
+        sandboxEnv: {},
+        auth: 'direct',
       }),
     ).toEqual([]);
   });

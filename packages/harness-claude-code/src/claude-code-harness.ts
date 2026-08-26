@@ -896,9 +896,9 @@ export function createClaudeCode(
           ...sandboxCredentialEnvironment,
         };
         const requestTransformations = createClaudeCodeRequestTransformations({
-          environment: claudeEnvironment,
-          sandboxEnvironment: sandboxClaudeEnvironment,
-          authenticationMode,
+          env: claudeEnvironment,
+          sandboxEnv: sandboxClaudeEnvironment,
+          auth: authenticationMode,
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
