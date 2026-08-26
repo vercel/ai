@@ -436,48 +436,6 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
   }
 }
 
-<<<<<<< HEAD
-=======
-function resolveCohereThinking({
-  reasoning,
-  cohereOptions,
-  warnings,
-}: {
-  reasoning: LanguageModelV4CallOptions['reasoning'];
-  cohereOptions: InferSchema<typeof cohereLanguageModelChatOptions>;
-  warnings: SharedV4Warning[];
-}): { thinking?: { type: string; token_budget?: number } } {
-  if (cohereOptions.thinking) {
-    return {
-      thinking: {
-        type: cohereOptions.thinking.type ?? 'enabled',
-        token_budget: cohereOptions.thinking.tokenBudget,
-      },
-    };
-  }
-
-  if (!isCustomReasoning(reasoning)) {
-    return {};
-  }
-
-  if (reasoning === 'none') {
-    return { thinking: { type: 'disabled' } };
-  }
-
-  const tokenBudget = mapReasoningToProviderBudget({
-    reasoning,
-    maxOutputTokens: 32768,
-    maxReasoningBudget: 32768,
-    warnings,
-  });
-
-  if (tokenBudget == null) {
-    return {};
-  }
-
-  return { thinking: { type: 'enabled', token_budget: tokenBudget } };
-}
-
 // Loose, nested objects included: the parsed value is returned as `usage.raw`.
 const cohereUsageSchema = z.looseObject({
   billed_units: z
@@ -493,7 +451,6 @@ const cohereUsageSchema = z.looseObject({
   cached_tokens: z.number().nullish(),
 });
 
->>>>>>> 0599400dd4 (fix: preserve complete Cohere Chat raw usage objects (#19777))
 const cohereChatResponseSchema = z.object({
   generation_id: z.string().nullish(),
   message: z.object({

@@ -12,10 +12,9 @@ export type CohereUsage = {
 };
 
 export function convertCohereUsage(
-<<<<<<< HEAD
-  tokens: CohereUsageTokens | undefined | null,
+  usage: CohereUsage | undefined | null,
 ): LanguageModelV3Usage {
-  if (tokens == null) {
+  if (usage == null) {
     return {
       inputTokens: {
         total: undefined,
@@ -30,12 +29,6 @@ export function convertCohereUsage(
       },
       raw: undefined,
     };
-=======
-  usage: CohereUsage | undefined | null,
-): LanguageModelV4Usage {
-  if (usage == null) {
-    return createNullLanguageModelUsage();
->>>>>>> 0599400dd4 (fix: preserve complete Cohere Chat raw usage objects (#19777))
   }
 
   const tokens = usage.tokens;
