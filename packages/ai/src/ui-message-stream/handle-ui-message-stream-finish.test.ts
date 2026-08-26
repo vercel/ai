@@ -114,6 +114,122 @@ describe('handleUIMessageStreamFinish', () => {
       expect(callArgs.messages[1]).toEqual(callArgs.responseMessage);
     });
 
+<<<<<<< HEAD
+=======
+    it('should prefer onEnd over deprecated onFinish', async () => {
+      const onEndCallback = vi.fn();
+      const onFinishCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-456' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish' },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-456',
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+        onFinish: onFinishCallback,
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onFinishCallback).not.toHaveBeenCalled();
+    });
+
+    it('should pass the stream owner outcome to onEnd', async () => {
+      const onEndCallback = vi.fn();
+      const error = new Error('stream failed');
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-456' },
+        { type: 'error', errorText: 'masked error' },
+      ]);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-456',
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+        getOutcome: () => ({ status: 'failed', error }),
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect({
+        isAborted: onEndCallback.mock.calls[0][0].isAborted,
+        outcome: onEndCallback.mock.calls[0][0].outcome,
+      }).toMatchInlineSnapshot(`
+        {
+          "isAborted": false,
+          "outcome": {
+            "error": [Error: stream failed],
+            "status": "failed",
+          },
+        }
+      `);
+    });
+
+    it('should report UI message processing failures before and after a declared outcome', async () => {
+      for (const inputChunks of [
+        [{ type: 'text-delta', id: 'missing', delta: 'text' }],
+        [
+          { type: 'finish' },
+          { type: 'text-delta', id: 'missing', delta: 'text' },
+        ],
+      ] satisfies UIMessageChunk[][]) {
+        const onEndCallback = vi.fn();
+        const resultStream = handleUIMessageStreamFinish<UIMessage>({
+          stream: createUIMessageStream(inputChunks),
+          messageId: 'msg-processing-error',
+          onError: mockErrorHandler,
+          onEnd: onEndCallback,
+          getOutcome: () => ({ status: 'completed' }),
+        });
+
+        let processingError: unknown;
+        try {
+          await convertReadableStreamToArray(resultStream);
+        } catch (error) {
+          processingError = error;
+        }
+
+        expect(processingError).toBeInstanceOf(Error);
+        expect(onEndCallback).toHaveBeenCalledTimes(1);
+        expect(onEndCallback.mock.calls[0][0].outcome).toEqual({
+          status: 'failed',
+          error: processingError,
+        });
+      }
+    });
+
+    it('should inject message IDs without mutating frozen start chunks', async () => {
+      const startChunk = Object.freeze({ type: 'start' } as const);
+      const onEndCallback = vi.fn();
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream([startChunk]),
+        messageId: 'msg-injected',
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+        getOutcome: () => ({ status: 'completed' }),
+      });
+
+      await expect(convertReadableStreamToArray(resultStream)).resolves.toEqual(
+        [{ type: 'start', messageId: 'msg-injected' }],
+      );
+      expect(startChunk).toEqual({ type: 'start' });
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onEndCallback.mock.calls[0][0].outcome).toEqual({
+        status: 'completed',
+      });
+    });
+
+>>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
     it('should handle empty original messages array', async () => {
       const onFinishCallback = vi.fn();
       const inputChunks: UIMessageChunk[] = [
