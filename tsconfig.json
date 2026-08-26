@@ -176,6 +176,9 @@
     },
     {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/zai"
     }
   ],
   "include": []
