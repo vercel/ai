@@ -87,7 +87,6 @@ import type {
   ACPV1Settings,
 } from './acp-v1-settings';
 import {
-  createACPSkillsFingerprint,
   materializeACPSkills,
   resolveACPPrivateSessionDirectory,
   resolveACPSkillsDirectory,
@@ -447,7 +446,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               }),
               sandbox: toolSafeSandboxSession,
               sessionWorkDir: workDir,
-              skillsFingerprint: lifecycleData.skillsFingerprint,
               skillsDirectory,
               acpSessionId: lifecycleData.acpSessionId,
               bridgePort: coords.port,
@@ -715,7 +713,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }),
         sandbox: toolSafeSandboxSession,
         sessionWorkDir: workDir,
-        skillsFingerprint: lifecycleData?.skillsFingerprint,
         skillsDirectory,
         acpSessionId: lifecycleData?.acpSessionId,
         bridgePort: boundPort,
@@ -1036,7 +1033,6 @@ function createSession({
   initialGuidanceApplied: initialGuidanceAppliedAtStart,
   sandbox,
   sessionWorkDir,
-  skillsFingerprint: skillsFingerprintAtStart,
   skillsDirectory,
   acpSessionId: acpSessionIdAtStart,
   bridgePort,
@@ -1071,7 +1067,6 @@ function createSession({
   initialGuidanceApplied: boolean;
   sandbox: SandboxSession;
   sessionWorkDir: string;
-  skillsFingerprint: string | undefined;
   skillsDirectory: string;
   acpSessionId: string | undefined;
   bridgePort: number;
@@ -1090,7 +1085,6 @@ function createSession({
   let stopped = false;
   let turnInFlight = turnInFlightAtStart;
   let initialGuidanceApplied = initialGuidanceAppliedAtStart;
-  let skillsFingerprint = skillsFingerprintAtStart;
   let latestACPSessionId = acpSessionIdAtStart;
   let latestTurnStartConfig = turnStartConfigAtStart;
 
@@ -1359,8 +1353,6 @@ function createSession({
     ...(recoveryStatus == null ? {} : { recovery: recoveryStatus }),
     ...(restoration == null ? {} : { restoration }),
     initialGuidanceApplied,
-    skillsMaterialized: skillsFingerprint != null,
-    ...(skillsFingerprint == null ? {} : { skillsFingerprint }),
     skillsDirectory,
   });
 
@@ -1371,7 +1363,6 @@ function createSession({
     skills: ReadonlyArray<HarnessV1Skill>;
     abortSignal?: AbortSignal;
   }): Promise<void> => {
-    const nextFingerprint = createACPSkillsFingerprint({ skills });
     await materializeACPSkills({
       sandbox,
       rootDir: skillsDirectory,
@@ -1379,13 +1370,6 @@ function createSession({
       skills,
       abortSignal,
     });
-    if (skillsFingerprint != null && skillsFingerprint !== nextFingerprint) {
-      throw unsupported({
-        harnessId,
-        message: `Harness '${harnessId}' does not support replacing skills between turns yet.`,
-      });
-    }
-    skillsFingerprint = nextFingerprint;
   };
 
   return {

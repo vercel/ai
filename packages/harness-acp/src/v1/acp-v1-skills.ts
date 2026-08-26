@@ -7,33 +7,6 @@ import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 const ACP_SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const DEFAULT_ACP_SKILLS_DIRECTORY = '.agents/skills';
 
-export function createACPSkillsFingerprint({
-  skills,
-}: {
-  skills: ReadonlyArray<HarnessV1Skill>;
-}): string {
-  const canonicalSkills = skills
-    .map(skill => ({
-      name: skill.name,
-      description: skill.description,
-      content: skill.content,
-      files: [...(skill.files ?? [])]
-        .map(file => ({
-          path: path.posix.normalize(file.path),
-          content: file.content,
-        }))
-        .sort((left, right) =>
-          compareCanonicalStrings({ left: left.path, right: right.path }),
-        ),
-    }))
-    .sort((left, right) =>
-      compareCanonicalStrings({ left: left.name, right: right.name }),
-    );
-  return createHash('sha256')
-    .update(JSON.stringify(canonicalSkills))
-    .digest('hex');
-}
-
 export function resolveACPPrivateSessionDirectory({
   sandboxHomeDir,
   sessionWorkDir,
@@ -220,14 +193,4 @@ function assertOutsideSessionWorkDir({
       )}.`,
     );
   }
-}
-
-function compareCanonicalStrings({
-  left,
-  right,
-}: {
-  left: string;
-  right: string;
-}): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

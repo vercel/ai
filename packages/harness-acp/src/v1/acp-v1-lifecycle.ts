@@ -6,8 +6,6 @@ import type {
 
 export type ACPPromptGuidanceLifecycleState = {
   readonly initialGuidanceApplied?: boolean;
-  readonly skillsMaterialized?: boolean;
-  readonly skillsFingerprint?: string;
   readonly skillsDirectory?: string;
 };
 

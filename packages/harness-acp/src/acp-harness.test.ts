@@ -2075,9 +2075,10 @@ describe('createACP', () => {
         providerKind: 'direct',
       },
       initialGuidanceApplied: true,
-      skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       skillsDirectory: '/home/agent/.agents/skills',
     });
+    expect(lifecycleState.data).not.toHaveProperty('skillsFingerprint');
+    expect(lifecycleState.data).not.toHaveProperty('skillsMaterialized');
   });
 
   it('materializes install-command skills relative to the private implementation home', async () => {
@@ -2225,7 +2226,8 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
-  it('writes changed skills before rejecting replacement between turns', async () => {
+  it('replaces changed skills before starting the next turn', async () => {
+    const runs: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];
     const harness = createACP({
       harnessId: 'codex-acp',
@@ -2234,7 +2236,7 @@ describe('createACP', () => {
     const session = await harness.doStart({
       sessionId: 'session-1',
       sandboxSession: fakeSandbox({
-        runs: [],
+        runs,
         spawns: [],
         writes,
         stop: async () => {},
@@ -2261,29 +2263,34 @@ describe('createACP', () => {
     });
     await first.done;
 
-    await expect(
-      session.doPromptTurn({
-        skills: [
-          {
-            name: 'release-workflow',
-            description: 'Prepare releases.',
-            content: 'Draft the release notes.',
-          },
-        ],
-        tools: [],
-        prompt: 'Prepare the release.',
-        emit: () => {},
-      }),
-    ).rejects.toMatchObject({
-      name: 'AI_HarnessCapabilityUnsupportedError',
-      harnessId: 'codex-acp',
-      message:
-        "Harness 'codex-acp' does not support replacing skills between turns yet.",
+    const second = await session.doPromptTurn({
+      skills: [
+        {
+          name: 'release-workflow',
+          description: 'Prepare releases.',
+          content: 'Draft the release notes.',
+        },
+      ],
+      tools: [],
+      prompt: 'Prepare the release.',
+      emit: () => {},
     });
+    expect(runs).toContain(
+      "rm -rf -- '/home/agent/.agents/skills/review-workflow'",
+    );
     expect(
       writes.some(write => write.path.endsWith('/release-workflow/SKILL.md')),
     ).toBe(true);
-    expect(channel.sent).toHaveLength(1);
+    expect(channel.sent[1]).toMatchObject({
+      type: 'start',
+      prompt: [{ type: 'text', text: 'Prepare the release.' }],
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await second.done;
     await session.doDestroy();
   });
 
@@ -2353,7 +2360,6 @@ describe('createACP', () => {
         sandboxId: 'sandbox-1',
       },
       initialGuidanceApplied: true,
-      skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       skillsDirectory: '/home/agent/.agents/skills',
     });
     expect(JSON.stringify(resumeFrom)).not.toContain('test-key');
@@ -2495,7 +2501,6 @@ describe('createACP', () => {
         ],
       },
       initialGuidanceApplied: true,
-      skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       skillsDirectory: '/home/agent/.agents/skills',
     });
     expect(stopped.data).not.toHaveProperty('bridge');

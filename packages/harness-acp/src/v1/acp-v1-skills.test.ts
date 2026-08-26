@@ -2,7 +2,6 @@ import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_ACP_SKILLS_DIRECTORY,
-  createACPSkillsFingerprint,
   materializeACPSkills,
   resolveACPSkillsDirectory,
 } from './acp-v1-skills';
@@ -232,45 +231,4 @@ describe('resolveACPSkillsDirectory', () => {
       ).toThrow('must be a relative POSIX path without traversal');
     },
   );
-});
-
-describe('createACPSkillsFingerprint', () => {
-  it('changes when skill contents change without exposing them', () => {
-    const first = createACPSkillsFingerprint({ skills: [skill] });
-    const second = createACPSkillsFingerprint({
-      skills: [{ ...skill, content: 'Changed content.' }],
-    });
-
-    expect(first).toMatch(/^[a-f0-9]{64}$/);
-    expect(second).toMatch(/^[a-f0-9]{64}$/);
-    expect(first).not.toBe(second);
-    expect(first).not.toContain(skill.content);
-  });
-
-  it('is stable across object construction and catalog ordering', () => {
-    const otherSkill = {
-      content: 'Other content.',
-      description: 'Use another workflow.',
-      name: 'other-workflow',
-      files: [
-        { content: 'Second', path: 'references/second.md' },
-        { content: 'First', path: 'references/first.md' },
-      ],
-    } as const;
-    const reorderedSkill = {
-      files: [
-        { path: 'references/first.md', content: 'First' },
-        { path: 'references/second.md', content: 'Second' },
-      ],
-      name: 'other-workflow',
-      content: 'Other content.',
-      description: 'Use another workflow.',
-    } as const;
-
-    expect(createACPSkillsFingerprint({ skills: [skill, otherSkill] })).toBe(
-      createACPSkillsFingerprint({
-        skills: [reorderedSkill, { ...skill }],
-      }),
-    );
-  });
 });
