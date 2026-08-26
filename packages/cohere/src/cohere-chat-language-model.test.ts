@@ -943,6 +943,53 @@ describe('doStream', () => {
       );
     });
 
+    it('should finish successfully when billed units are absent', async () => {
+      const rawUsage = {
+        tokens: {
+          input_tokens: 507,
+          output_tokens: 10,
+        },
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: rawUsage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual(
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'COMPLETE',
+          },
+          usage: {
+            inputTokens: {
+              total: 507,
+              noCache: 507,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 10,
+              text: 10,
+              reasoning: undefined,
+            },
+            raw: rawUsage,
+          },
+        },
+      );
+    });
+
     it.each([
       {
         field: 'billed input tokens',

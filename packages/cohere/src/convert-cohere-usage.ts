@@ -7,7 +7,7 @@ export type CohereUsageTokens = {
 };
 
 export type CohereUsage = {
-  billed_units: CohereUsageTokens;
+  billed_units?: CohereUsageTokens | null;
   tokens: CohereUsageTokens;
   cached_tokens?: number | null;
 };

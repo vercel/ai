@@ -502,10 +502,12 @@ function resolveCohereThinking({
 
 // Loose, nested objects included: the parsed value is returned as `usage.raw`.
 const cohereUsageSchema = z.looseObject({
-  billed_units: z.looseObject({
-    input_tokens: z.number(),
-    output_tokens: z.number(),
-  }),
+  billed_units: z
+    .looseObject({
+      input_tokens: z.number(),
+      output_tokens: z.number(),
+    })
+    .nullish(),
   tokens: z.looseObject({
     input_tokens: z.number(),
     output_tokens: z.number(),
