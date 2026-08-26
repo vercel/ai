@@ -63,10 +63,7 @@ export const moonshotaiProviderOptions = z.object({
   reasoningHistory: z.enum(['disabled', 'interleaved', 'preserved']).optional(),
 });
 
-<<<<<<< HEAD
 export type MoonshotAIProviderOptions = {
-=======
-export type MoonshotAILanguageModelOptions = {
   /**
    * Whether to use strict JSON schema validation for structured outputs.
    *
@@ -74,7 +71,6 @@ export type MoonshotAILanguageModelOptions = {
    */
   strictJsonSchema?: boolean;
 
->>>>>>> 462c49855d (fix: Moonshot structured outputs reject compatible schemas and omit strict validation (#19607))
   /** Reasoning effort for Kimi K3. */
   reasoningEffort?: 'low' | 'high' | 'max';
 

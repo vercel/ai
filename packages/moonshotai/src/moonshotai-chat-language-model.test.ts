@@ -129,250 +129,6 @@ describe('MoonshotAIChatLanguageModel', () => {
       },
     );
 
-<<<<<<< HEAD
-=======
-    it('should rely on K2.7 preserved-thinking defaults', async () => {
-      const result = await provider.chatModel('kimi-k2.7-code').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: { reasoningHistory: 'preserved' },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-        'thinking',
-      );
-      expect(result.warnings).toStrictEqual([]);
-    });
-
-    it.each(['kimi-k2.5', 'kimi-k2.6'] as const)(
-      'should map generic reasoning to thinking for %s',
-      async modelId => {
-        await provider.chatModel(modelId).doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'low',
-        });
-        expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
-          type: 'enabled',
-        });
-
-        await provider.chatModel(modelId).doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'none',
-        });
-        expect((await server.calls[1].requestBodyJson).thinking).toStrictEqual({
-          type: 'disabled',
-        });
-      },
-    );
-
-    it('should omit reasoning effort for K2 models and warn', async () => {
-      const result = await provider.chatModel('kimi-k2.6').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: { reasoningEffort: 'high' },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-        'reasoning_effort',
-      );
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported',
-          feature: 'reasoningEffort',
-          details:
-            'reasoningEffort is only supported by Kimi K3 and has been omitted for model "kimi-k2.6".',
-        },
-      ]);
-    });
-
-    it('should omit thinking and reasoning for Moonshot V1', async () => {
-      const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-        providerOptions: {
-          moonshotai: {
-            reasoningEffort: 'high',
-            thinking: { type: 'enabled' },
-            reasoningHistory: 'preserved',
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody).not.toHaveProperty('reasoning_effort');
-      expect(requestBody).not.toHaveProperty('thinking');
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported',
-          feature: 'reasoningEffort',
-          details:
-            'reasoningEffort is only supported by Kimi K3 and has been omitted for model "moonshot-v1-8k".',
-        },
-        {
-          type: 'unsupported',
-          feature: 'thinking',
-          details:
-            'thinking is not supported by model "moonshot-v1-8k" and has been omitted.',
-        },
-        {
-          type: 'unsupported',
-          feature: 'reasoning',
-          details: 'reasoning is not supported by model "moonshot-v1-8k".',
-        },
-        {
-          type: 'unsupported',
-          feature:
-            'reasoningHistory \'preserved\' is not supported by model "moonshot-v1-8k"',
-        },
-      ]);
-    });
-
-    it('should omit thinking.keep and warn on models without keep support', async () => {
-      const result = await provider.chatModel('kimi-k2.5').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: { reasoningHistory: 'preserved' },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody).not.toHaveProperty('thinking');
-      expect(requestBody).not.toHaveProperty('reasoning_history');
-      expect(result.warnings).toEqual([
-        {
-          type: 'unsupported',
-          feature: `reasoningHistory 'preserved' is not supported by model "kimi-k2.5"`,
-        },
-      ]);
-    });
-
-    it('should extract reasoning content and remap usage', async () => {
-      const result = await provider.chatModel('kimi-k2.6').doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.content).toEqual([
-        { type: 'reasoning', text: 'Let me count the letters carefully.' },
-        { type: 'text', text: 'There are three.' },
-      ]);
-      expect(result.usage).toMatchObject({
-        inputTokens: { total: 20, noCache: 10, cacheRead: 10 },
-        outputTokens: { total: 30, text: 8, reasoning: 22 },
-      });
-    });
-  });
-
-  describe('structured outputs', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-text');
-    });
-
-    it('should normalize json schemas and enable strict validation by default', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        responseFormat: {
-          type: 'json',
-          name: 'recipe',
-          description: 'A recipe response.',
-          schema: {
-            $schema: 'http://json-schema.org/draft-07/schema#',
-            type: 'object',
-            properties: {
-              ingredients: {
-                type: 'array',
-                items: [{ type: 'string' }, { type: 'number' }],
-              },
-            },
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format).toStrictEqual({
-        type: 'json_schema',
-        json_schema: {
-          name: 'recipe',
-          strict: true,
-          schema: {
-            type: 'object',
-            properties: {
-              ingredients: {
-                type: 'array',
-                prefixItems: [{ type: 'string' }, { type: 'number' }],
-              },
-            },
-          },
-        },
-      });
-    });
-
-    it('should allow strict json schema validation to be disabled', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            strictJsonSchema: false,
-          },
-        },
-        responseFormat: {
-          type: 'json',
-          schema: {
-            type: 'object',
-            properties: { name: { type: 'string' } },
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format).toStrictEqual({
-        type: 'json_schema',
-        json_schema: {
-          name: 'response',
-          strict: false,
-          schema: {
-            type: 'object',
-            properties: { name: { type: 'string' } },
-          },
-        },
-      });
-    });
-
-    it('should fall back to json_object without a schema', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        responseFormat: { type: 'json' },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format).toStrictEqual({
-        type: 'json_object',
-      });
-    });
-
-    it('should fall back to json_object for models without structured outputs', async () => {
-      await provider.chatModel('moonshot-v1-8k').doGenerate({
-        prompt: TEST_PROMPT,
-        responseFormat: {
-          type: 'json',
-          schema: { type: 'object', properties: {} },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format).toStrictEqual({
-        type: 'json_object',
-      });
-    });
-  });
-
-  describe('tool calls', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-tool-call');
-    });
-
->>>>>>> 462c49855d (fix: Moonshot structured outputs reject compatible schemas and omit strict validation (#19607))
     it.each([
       'kimi-k2.6',
       'kimi-k2.7-code',
@@ -656,6 +412,89 @@ describe('MoonshotAIChatLanguageModel', () => {
             'providerOptions.moonshotai.reasoningHistory \'preserved\' is not supported by model "kimi-k2.5" and has been omitted.',
         },
       ]);
+    });
+
+    describe('structured outputs', () => {
+      it('should normalize schemas and enable strict validation by default', async () => {
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            name: 'named_pair',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              type: 'object',
+              properties: {
+                pair: {
+                  type: 'array',
+                  items: [{ type: 'string' }, { type: 'number' }],
+                },
+              },
+            },
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format,
+        ).toStrictEqual({
+          type: 'json_schema',
+          json_schema: {
+            name: 'named_pair',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                pair: {
+                  type: 'array',
+                  prefixItems: [{ type: 'string' }, { type: 'number' }],
+                },
+              },
+            },
+          },
+        });
+      });
+
+      it('should allow strict validation to be disabled without leaking the provider option', async () => {
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: { strictJsonSchema: false },
+          },
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object', properties: {} },
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).not.toHaveProperty('strictJsonSchema');
+        expect(requestBody.response_format.json_schema.strict).toBe(false);
+      });
+
+      it('should fall back to json_object without a schema', async () => {
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: { type: 'json' },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format,
+        ).toStrictEqual({ type: 'json_object' });
+      });
+
+      it('should fall back to json_object for unknown models', async () => {
+        await provider.chatModel('custom-model').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object', properties: {} },
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format,
+        ).toStrictEqual({ type: 'json_object' });
+      });
     });
   });
 
