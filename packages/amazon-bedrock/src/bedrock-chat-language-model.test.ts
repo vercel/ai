@@ -3914,7 +3914,7 @@ describe('doGenerate', () => {
   });
 
   it('should disable parallel tool use without sending conflicting tool choices', async () => {
-    prepareJsonFixtureResponse('amazon-bedrock-text');
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       tools: [
