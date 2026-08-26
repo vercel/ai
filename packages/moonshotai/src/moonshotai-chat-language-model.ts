@@ -2,6 +2,7 @@ import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import type { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
 import {
   InvalidPromptError,
+  type JSONValue,
   type LanguageModelV2,
   type LanguageModelV2CallOptions,
   type LanguageModelV2CallWarning,
@@ -17,7 +18,7 @@ import {
   isMoonshotAIKimiModel,
   type MoonshotAIChatModelId,
   type MoonshotAIProviderOptions,
-  moonshotaiAssistantMessageProviderOptions,
+  moonshotaiAllMessageProviderOptions,
   moonshotaiProviderOptions,
 } from './moonshotai-chat-options';
 import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
@@ -38,6 +39,20 @@ function transformMoonshotRequestBody(
     ...(topLogprobs != null && { top_logprobs: topLogprobs }),
     ...(maxTokens != null ? { max_completion_tokens: maxTokens } : {}),
   };
+
+  if (Array.isArray(moonshotArgs.messages)) {
+    moonshotArgs.messages = moonshotArgs.messages.map(
+      (message: Record<string, unknown>) => {
+        if (message.role !== 'system' || !Array.isArray(message.tools)) {
+          return message;
+        }
+
+        const { content: _content, ...dynamicToolMessage } = message;
+        return dynamicToolMessage;
+      },
+    );
+  }
+
   const responseFormat = moonshotArgs.response_format;
 
   if (
@@ -91,9 +106,13 @@ async function validateLogprobsOptions(
   });
 }
 
-async function prepareMessageOptions(
-  options: LanguageModelV2CallOptions,
-): Promise<{
+async function prepareMessageOptions({
+  modelId,
+  options,
+}: {
+  modelId: MoonshotAIChatModelId;
+  options: LanguageModelV2CallOptions;
+}): Promise<{
   options: LanguageModelV2CallOptions;
   warnings: LanguageModelV2CallWarning[];
 }> {
@@ -104,7 +123,7 @@ async function prepareMessageOptions(
     const messageOptions = await parseProviderOptions({
       provider: 'moonshotai',
       providerOptions: message.providerOptions,
-      schema: moonshotaiAssistantMessageProviderOptions,
+      schema: moonshotaiAllMessageProviderOptions,
     });
 
     if (messageOptions?.partial === true && message.role !== 'assistant') {
@@ -112,6 +131,14 @@ async function prepareMessageOptions(
         prompt: options.prompt,
         message:
           'Moonshot AI Partial Mode requires `partial: true` on an assistant message.',
+      });
+    }
+
+    if (messageOptions?.tools != null && message.role !== 'system') {
+      throw new InvalidPromptError({
+        prompt: options.prompt,
+        message:
+          'Moonshot dynamic tools must be configured on a system message.',
       });
     }
 
@@ -124,6 +151,49 @@ async function prepareMessageOptions(
         message:
           'Moonshot AI Partial Mode requires the partial assistant message to be the final message.',
       });
+    }
+
+    if (messageOptions?.tools?.length && message.role === 'system') {
+      if (message.content.length > 0) {
+        throw new InvalidPromptError({
+          prompt: options.prompt,
+          message:
+            'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+        });
+      }
+
+      const modelFamily = getMoonshotAIModelFamily(modelId);
+      if (modelFamily !== 'kimi-k3' && modelFamily !== 'unknown') {
+        warnings.push({
+          type: 'other',
+          message: `Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted for model "${modelId}".`,
+        });
+        continue;
+      }
+
+      prompt.push({
+        ...message,
+        providerOptions: {
+          ...message.providerOptions,
+          openaiCompatible: {
+            ...message.providerOptions?.openaiCompatible,
+            tools: messageOptions.tools.map(tool => ({
+              type: 'function',
+              function: {
+                name: tool.name,
+                ...(tool.description != null
+                  ? { description: tool.description }
+                  : {}),
+                parameters: normalizeJsonSchemaForMFJS(
+                  tool.inputSchema,
+                ) as JSONValue,
+                ...(tool.strict != null ? { strict: tool.strict } : {}),
+              },
+            })),
+          },
+        },
+      });
+      continue;
     }
 
     if (messageOptions?.name == null && messageOptions?.partial !== true) {
@@ -466,7 +536,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { options: messageOptions, warnings: messageWarnings } =
-      await prepareMessageOptions(options);
+      await prepareMessageOptions({ modelId: this.modelId, options });
     await validateLogprobsOptions(messageOptions);
 
     const { options: samplingOptions, warnings: samplingWarnings } =
@@ -514,7 +584,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { options: messageOptions, warnings: messageWarnings } =
-      await prepareMessageOptions(options);
+      await prepareMessageOptions({ modelId: this.modelId, options });
     await validateLogprobsOptions(messageOptions);
 
     const originalIncludeRawChunks = options.includeRawChunks;
