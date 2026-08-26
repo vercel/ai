@@ -20,7 +20,10 @@ import type { GenerateTextInclude } from '../generate-text/generate-text';
 import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
-import type { StreamTextInclude } from '../generate-text/stream-text';
+import type {
+  StreamTextInclude,
+  StreamTextOnAbortCallback,
+} from '../generate-text/stream-text';
 import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
 import type { Experimental_ToolCallers } from '../generate-text/tool-caller-configuration';
 import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
@@ -244,6 +247,17 @@ export type ToolLoopAgentSettings<
      * @deprecated Use `onEnd` instead.
      */
     onFinish?: GenerateTextOnEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when the stream is aborted. Receives the steps
+     * that finished before the abort.
+     *
+     * Only applies to `stream`, since `generate` has no partial result to report.
+     */
+    onAbort?: StreamTextOnAbortCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;

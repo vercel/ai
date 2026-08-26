@@ -66,6 +66,7 @@ export {
 export {
   streamText,
   type StreamTextInclude,
+  type StreamTextOnAbortCallback,
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
   type StreamTextTransform,
