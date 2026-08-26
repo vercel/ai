@@ -44,6 +44,16 @@ function prepareChunksFixtureResponse(filename: string) {
   };
 }
 
+async function getStreamParts(filename: string) {
+  prepareChunksFixtureResponse(filename);
+
+  const result = await provider.chatModel('kimi-k3').doStream({
+    prompt: TEST_PROMPT,
+  });
+
+  return convertReadableStreamToArray(result.stream);
+}
+
 describe('doGenerate', () => {
   describe('text', () => {
     beforeEach(() => {
@@ -920,13 +930,7 @@ describe('doStream', () => {
   });
 
   it('should stream reasoning and text deltas with usage', async () => {
-    prepareChunksFixtureResponse('moonshotai-stream');
-
-    const result = await provider.chatModel('kimi-k3').doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const parts = await convertReadableStreamToArray(result.stream);
+    const parts = await getStreamParts('moonshotai-stream');
 
     expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
     expect(parts).toContainEqual({
@@ -971,5 +975,88 @@ describe('doStream', () => {
     expect(requestBody.stream_options).toStrictEqual({
       include_usage: true,
     });
+  });
+
+  it('should assemble tool calls without explicit indices', async () => {
+    const parts = await getStreamParts(
+      'moonshotai-stream-indexless-tool-calls',
+    );
+
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+    expect(
+      parts
+        .filter(part => part.type === 'tool-call')
+        .map(({ toolCallId, toolName, input }) => ({
+          toolCallId,
+          toolName,
+          input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'weather_0',
+        toolName: 'weather',
+        input: '{"location":"San Francisco"}',
+      },
+      {
+        toolCallId: 'time_1',
+        toolName: 'time',
+        input: '{"zone":"UTC"}',
+      },
+    ]);
+  });
+
+  it('should preserve explicit tool call indices', async () => {
+    const parts = await getStreamParts(
+      'moonshotai-stream-explicit-tool-call-index',
+    );
+
+    expect(parts.some(part => part.type === 'error')).toBe(false);
+    expect(
+      parts
+        .filter(part => part.type === 'tool-call')
+        .map(({ toolCallId, toolName, input }) => ({
+          toolCallId,
+          toolName,
+          input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'weather_0',
+        toolName: 'weather',
+        input: '{"location": "San Francisco"}',
+      },
+    ]);
+  });
+
+  it('should use choice-level usage when top-level usage is absent', async () => {
+    const parts = await getStreamParts('moonshotai-stream-choice-usage');
+
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      usage: {
+        inputTokens: { total: 12 },
+        outputTokens: { total: 5, reasoning: 1 },
+      },
+    });
+  });
+
+  it('should prefer top-level usage over choice-level usage', async () => {
+    const parts = await getStreamParts('moonshotai-stream-usage-precedence');
+
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      usage: {
+        inputTokens: { total: 99 },
+        outputTokens: { total: 33 },
+      },
+    });
+  });
+
+  it('should reject malformed tool call indices', async () => {
+    const parts = await getStreamParts(
+      'moonshotai-stream-malformed-tool-call-index',
+    );
+
+    expect(parts.some(part => part.type === 'error')).toBe(true);
   });
 });
