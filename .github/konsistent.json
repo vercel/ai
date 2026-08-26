@@ -377,6 +377,10 @@
               {
                 "name": "HarnessV1RequestTransformation",
                 "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "HarnessV1RequestTransformationSources",
+                "from": "@ai-sdk/harness"
               }
             ],
             "exportConstants": [
@@ -386,8 +390,7 @@
               {
                 "name": "create${harnessId.toPascalCase()}RequestTransformations",
                 "receiveParamsOfTypes": [
-                  "Record<string, string>",
-                  "${harnessId.toPascalCase()}ResolvedAuthenticationMode"
+                  "HarnessV1RequestTransformationSources<${harnessId.toPascalCase()}ResolvedAuthenticationMode>"
                 ],
                 "returnValueOfType": "HarnessV1RequestTransformation[]"
               }

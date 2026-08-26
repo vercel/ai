@@ -206,25 +206,47 @@ describe('resolveClaudeCodeAuthenticationMode', () => {
 describe('createClaudeCodeRequestTransformations', () => {
   it('injects Anthropic API key and auth token headers at the configured endpoint', () => {
     expect(
-      createClaudeCodeRequestTransformations(
-        {
+      createClaudeCodeRequestTransformations({
+        env: {
           ANTHROPIC_API_KEY: 'api-secret',
           ANTHROPIC_AUTH_TOKEN: 'token-secret',
           ANTHROPIC_BASE_URL: 'https://anthropic.example/v1',
         },
-        'direct',
-      ),
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
+        },
+        auth: 'direct',
+      }),
     ).toEqual([
       {
         match: {
           host: 'anthropic.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-api-secret' },
+            },
+          ],
         },
         transform: {
-          headers: {
-            'x-api-key': 'api-secret',
-            Authorization: 'Bearer token-secret',
-          },
+          headers: { 'x-api-key': 'api-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'anthropic.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-token-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer token-secret' },
         },
       },
     ]);
@@ -232,16 +254,27 @@ describe('createClaudeCodeRequestTransformations', () => {
 
   it('uses the resolved Gateway route', () => {
     expect(
-      createClaudeCodeRequestTransformations(
-        {
+      createClaudeCodeRequestTransformations({
+        env: {
           ANTHROPIC_API_KEY: 'gateway-secret',
           ANTHROPIC_BASE_URL: 'https://gateway.example',
         },
-        'ai-gateway',
-      ),
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-gateway-secret',
+        },
+        auth: 'ai-gateway',
+      }),
     ).toEqual([
       {
-        match: { host: 'gateway.example' },
+        match: {
+          host: 'gateway.example',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-gateway-secret' },
+            },
+          ],
+        },
         transform: { headers: { 'x-api-key': 'gateway-secret' } },
       },
     ]);

@@ -35,7 +35,7 @@ export function normalizeOpaDecision(result: unknown): PolicyDecision {
       case 'deny':
         return withReason('denied', reason);
       case 'requires-approval':
-        return { type: 'user-approval' };
+        return withReason('user-approval', reason);
       case 'not-applicable':
         return { type: 'not-applicable' };
     }
@@ -49,7 +49,7 @@ export function normalizeOpaDecision(result: unknown): PolicyDecision {
 }
 
 function withReason(
-  type: 'approved' | 'denied',
+  type: 'approved' | 'denied' | 'user-approval',
   reason: string | undefined,
 ): PolicyDecision {
   return reason ? { type, reason } : { type };

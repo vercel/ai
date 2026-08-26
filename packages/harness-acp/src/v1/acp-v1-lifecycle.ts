@@ -21,6 +21,7 @@ export type ACPBridgeCoordinates = {
 export type ACPLifecycleData = ACPPromptGuidanceLifecycleState & {
   readonly implementationIdentity: string;
   readonly authenticationProfile?: ACPAuthenticationProfileIdentity;
+  readonly sandboxCredentialEnvironment?: Readonly<Record<string, string>>;
   readonly acpSessionId?: string;
   readonly bridge?: ACPBridgeCoordinates;
   readonly coldSession?: ACPColdSessionState;

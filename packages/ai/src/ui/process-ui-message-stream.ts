@@ -748,6 +748,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolInvocation.state = 'approval-requested';
               toolInvocation.approval = {
                 id: chunk.approvalId,
+                ...(chunk.reason != null
+                  ? { requestReason: chunk.reason }
+                  : {}),
                 ...(chunk.isAutomatic === true ? { isAutomatic: true } : {}),
                 ...(chunk.signature != null
                   ? { signature: chunk.signature }
@@ -770,6 +773,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolInvocation.approval = {
                 id: chunk.approvalId,
                 approved: chunk.approved,
+                ...(approval.requestReason != null
+                  ? { requestReason: approval.requestReason }
+                  : {}),
                 ...(chunk.reason != null ? { reason: chunk.reason } : {}),
                 ...(approval.isAutomatic === true ? { isAutomatic: true } : {}),
                 ...(approval.signature != null

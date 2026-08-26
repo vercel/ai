@@ -1,5 +1,23 @@
 # @ai-sdk/harness-pi
 
+## 1.0.91
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.90
+
+### Patch Changes
+
+- 32349cc: Surface every host tool approval request when a Pi step emits multiple tool calls.
+- Updated dependencies [32349cc]
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/harness@1.0.88
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 1.0.89
 
 ### Patch Changes
