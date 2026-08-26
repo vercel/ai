@@ -59,7 +59,10 @@ export type {
   ToolExecutionOptions,
 } from './tool-execute-function';
 export type { ToolContent, ToolModelMessage } from './tool-model-message';
-export type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
+export type {
+  ToolNeedsApprovalDecision,
+  ToolNeedsApprovalFunction,
+} from './tool-needs-approval-function';
 export type { ToolResult } from './tool-result';
 export type { ToolSet } from './tool-set';
 export type { UserContent, UserModelMessage } from './user-model-message';

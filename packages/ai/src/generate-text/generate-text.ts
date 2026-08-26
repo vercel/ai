@@ -125,7 +125,7 @@ import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
 import type { TypedToolResult } from './tool-result';
 import type { ToolsContextParameter } from './tools-context-parameter';
-import { maybeSignApproval } from './tool-approval-signature';
+import { createToolApprovalRequestFields } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
 
 const originalGenerateId = createIdGenerator({
@@ -1187,13 +1187,18 @@ export async function generateText<
                 }
 
                 const approvalId = generateId();
-                const signature = await maybeSignApproval({
-                  secret: experimental_toolApprovalSecret,
-                  approvalId,
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  input: toolCall.input,
-                });
+                const approvalRequestFields =
+                  await createToolApprovalRequestFields({
+                    secret: experimental_toolApprovalSecret,
+                    approvalId,
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    input: toolCall.input,
+                    context:
+                      toolApprovalStatus.type === 'user-approval'
+                        ? toolApprovalStatus.context
+                        : undefined,
+                  });
 
                 switch (toolApprovalStatus.type) {
                   case 'user-approval': {
@@ -1201,7 +1206,7 @@ export async function generateText<
                       type: 'tool-approval-request',
                       approvalId,
                       toolCall,
-                      ...(signature != null ? { signature } : {}),
+                      ...approvalRequestFields,
                     };
                     blockedToolCallIds.add(toolCall.toolCallId);
                     break;
@@ -1213,7 +1218,7 @@ export async function generateText<
                       approvalId,
                       toolCall,
                       isAutomatic: true,
-                      ...(signature != null ? { signature } : {}),
+                      ...approvalRequestFields,
                     };
                     stepToolApprovalResponses[toolCall.toolCallId] = {
                       type: 'tool-approval-response',
@@ -1232,7 +1237,7 @@ export async function generateText<
                       approvalId,
                       toolCall,
                       isAutomatic: true,
-                      ...(signature != null ? { signature } : {}),
+                      ...approvalRequestFields,
                     };
                     stepToolApprovalResponses[toolCall.toolCallId] = {
                       type: 'tool-approval-response',

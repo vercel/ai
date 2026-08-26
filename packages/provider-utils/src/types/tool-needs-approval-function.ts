@@ -1,5 +1,29 @@
+import type { JSONValue } from '@ai-sdk/provider';
 import type { Context } from './context';
 import type { ModelMessage } from './model-message';
+
+/**
+ * Per-call decision returned by a `needsApproval` function.
+ *
+ * Use the object form to attach computed consequence context to the
+ * `approval-requested` UI part (bound to that approval id and tool call).
+ */
+export type ToolNeedsApprovalDecision =
+  | boolean
+  | {
+      /**
+       * Whether the tool call requires explicit user approval.
+       */
+      approvalRequired: boolean;
+
+      /**
+       * Dynamic, per-call context for the approval card (blast radius,
+       * consequence summary, etc.). Surfaced on the `approval-requested` part.
+       *
+       * Only used when `approvalRequired` is `true`.
+       */
+      context?: JSONValue;
+    };
 
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
@@ -36,4 +60,4 @@ export type ToolNeedsApprovalFunction<
      */
     context: CONTEXT;
   },
-) => boolean | PromiseLike<boolean>;
+) => ToolNeedsApprovalDecision | PromiseLike<ToolNeedsApprovalDecision>;

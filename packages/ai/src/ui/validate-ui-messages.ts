@@ -135,6 +135,8 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    context: jsonValueSchema.optional(),
+                    inputDigest: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -154,6 +156,8 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    context: jsonValueSchema.optional(),
+                    inputDigest: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -176,6 +180,8 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
+                      context: jsonValueSchema.optional(),
+                      inputDigest: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -199,6 +205,8 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
+                      context: jsonValueSchema.optional(),
+                      inputDigest: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -219,6 +227,8 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    context: jsonValueSchema.optional(),
+                    inputDigest: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -261,6 +271,8 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    context: jsonValueSchema.optional(),
+                    inputDigest: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -279,6 +291,8 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    context: jsonValueSchema.optional(),
+                    inputDigest: z.string().optional(),
                   }),
                 }),
                 z.object({
@@ -300,6 +314,8 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
+                      context: jsonValueSchema.optional(),
+                      inputDigest: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -322,6 +338,8 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
+                      context: jsonValueSchema.optional(),
+                      inputDigest: z.string().optional(),
                     })
                     .optional(),
                 }),
@@ -341,6 +359,8 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    context: jsonValueSchema.optional(),
+                    inputDigest: z.string().optional(),
                   }),
                 }),
               ]),

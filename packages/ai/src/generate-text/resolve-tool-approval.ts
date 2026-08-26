@@ -5,6 +5,7 @@ import type {
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { JSONValue } from '@ai-sdk/provider';
 import type {
   ToolApprovalConfiguration,
   ToolApprovalStatus,
@@ -123,7 +124,25 @@ export async function resolveToolApproval<
         })
       : tool.needsApproval;
 
-  return needsApproval ? { type: 'user-approval' } : { type: 'not-applicable' };
+  return normalizeNeedsApprovalDecision(needsApproval);
+}
+
+function normalizeNeedsApprovalDecision(
+  needsApproval: boolean | { approvalRequired: boolean; context?: JSONValue },
+): Exclude<ToolApprovalStatus, string | undefined> {
+  if (typeof needsApproval === 'boolean') {
+    return needsApproval
+      ? { type: 'user-approval' }
+      : { type: 'not-applicable' };
+  }
+
+  if (!needsApproval.approvalRequired) {
+    return { type: 'not-applicable' };
+  }
+
+  return needsApproval.context !== undefined
+    ? { type: 'user-approval', context: needsApproval.context }
+    : { type: 'user-approval' };
 }
 
 function normalizeToolApprovalStatus(

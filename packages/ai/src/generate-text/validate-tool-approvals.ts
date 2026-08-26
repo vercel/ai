@@ -10,6 +10,7 @@ import {
 import { InvalidToolApprovalSignatureError } from '../error/invalid-tool-approval-signature-error';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { getOwn } from '../util/get-own';
+import { hashCanonical } from '../util/canonical-hash';
 import type { CollectedToolApprovals } from './collect-tool-approvals';
 import { resolveToolApproval } from './resolve-tool-approval';
 import { verifyToolApprovalSignature } from './tool-approval-signature';
@@ -60,6 +61,17 @@ export async function validateApprovedToolApprovals<
     // than a prototype value that would silently skip input validation below.
     const tool = getOwn(tools, toolCall.toolName);
 
+    if (approvalRequest.inputDigest != null) {
+      const currentInputDigest = await hashCanonical(toolCall.input);
+      if (currentInputDigest !== approvalRequest.inputDigest) {
+        throw new InvalidToolApprovalSignatureError({
+          approvalId: approvalRequest.approvalId,
+          toolCallId: toolCall.toolCallId,
+          reason: 'stale input digest',
+        });
+      }
+    }
+
     if (toolApprovalSecret != null) {
       if (approvalRequest.signature == null) {
         throw new InvalidToolApprovalSignatureError({
@@ -76,6 +88,7 @@ export async function validateApprovedToolApprovals<
         toolCallId: toolCall.toolCallId,
         toolName: toolCall.toolName,
         input: toolCall.input,
+        context: approvalRequest.context,
       });
 
       if (!valid) {

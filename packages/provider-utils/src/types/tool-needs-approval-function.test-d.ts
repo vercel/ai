@@ -1,6 +1,9 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type { ModelMessage } from './model-message';
-import type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
+import type {
+  ToolNeedsApprovalDecision,
+  ToolNeedsApprovalFunction,
+} from './tool-needs-approval-function';
 
 describe('tool needs approval function type', () => {
   it('should type the input, approval metadata, and context', () => {
@@ -14,7 +17,7 @@ describe('tool needs approval function type', () => {
           messages: ModelMessage[];
           context: { requestId: string };
         },
-      ) => boolean | PromiseLike<boolean>
+      ) => ToolNeedsApprovalDecision | PromiseLike<ToolNeedsApprovalDecision>
     >();
   });
 });

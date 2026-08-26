@@ -225,4 +225,79 @@ describe('signToolApproval + verifyToolApprovalSignature', () => {
       }),
     ).toBe(false);
   });
+
+  it('should bind context into HMAC v2 and reject a swapped context', async () => {
+    const context = { recordCount: 47 };
+    const signature = await signToolApproval({
+      secret,
+      ...baseParams,
+      context,
+    });
+
+    expect(
+      await verifyToolApprovalSignature({
+        secret,
+        signature,
+        ...baseParams,
+        context,
+      }),
+    ).toBe(true);
+
+    expect(
+      await verifyToolApprovalSignature({
+        secret,
+        signature,
+        ...baseParams,
+        context: { recordCount: 1 },
+      }),
+    ).toBe(false);
+  });
+
+  it('should reject a v1 signature when context is present', async () => {
+    const signature = await signToolApproval({ secret, ...baseParams });
+
+    expect(
+      await verifyToolApprovalSignature({
+        secret,
+        signature,
+        ...baseParams,
+        context: { recordCount: 47 },
+      }),
+    ).toBe(false);
+  });
+
+  it('should reject a v2 signature when verified without context (stripped context)', async () => {
+    const signature = await signToolApproval({
+      secret,
+      ...baseParams,
+      context: { recordCount: 47 },
+    });
+
+    expect(
+      await verifyToolApprovalSignature({
+        secret,
+        signature,
+        ...baseParams,
+      }),
+    ).toBe(false);
+  });
+
+  it('should not verify an approval signed for a different tool call with the same context', async () => {
+    const context = { recordCount: 47 };
+    const signature = await signToolApproval({
+      secret,
+      ...baseParams,
+      context,
+    });
+
+    expect(
+      await verifyToolApprovalSignature({
+        secret,
+        signature,
+        ...baseParams,
+        toolCallId: 'call-2',
+        context,
+      }),
+    ).toBe(false);
+  });
 });

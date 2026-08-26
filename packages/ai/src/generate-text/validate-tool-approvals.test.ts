@@ -1,6 +1,7 @@
 import { tool } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { hashCanonical } from '../util/canonical-hash';
 import type { CollectedToolApprovals } from './collect-tool-approvals';
 import { signToolApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
@@ -416,6 +417,132 @@ describe('validateApprovedToolApprovals', () => {
       });
 
       expect(result.approvedToolApprovals).toHaveLength(1);
+    });
+  });
+
+  describe('approval request context binding', () => {
+    const tools = {
+      tool1: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async () => 'ok',
+      }),
+    };
+
+    it('should reject a stale input digest even without an HMAC secret', async () => {
+      const approval: CollectedToolApprovals<any> = {
+        approvalRequest: {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'call-1',
+          context: { recordCount: 47 },
+          inputDigest: await hashCanonical({ value: 'original' }),
+        },
+        approvalResponse: {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { value: 'forged' },
+        },
+      };
+
+      await expect(
+        validateApprovedToolApprovals({
+          approvedToolApprovals: [approval],
+          tools,
+          toolApproval: undefined,
+          messages: [],
+          toolsContext: {} as any,
+          runtimeContext: {},
+        }),
+      ).rejects.toThrowError(/stale input digest/);
+    });
+
+    it('should keep an approval whose input still matches the issued digest', async () => {
+      const input = { value: 'original' };
+      const approval: CollectedToolApprovals<any> = {
+        approvalRequest: {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'call-1',
+          context: { recordCount: 47 },
+          inputDigest: await hashCanonical(input),
+        },
+        approvalResponse: {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input,
+        },
+      };
+
+      const result = await validateApprovedToolApprovals({
+        approvedToolApprovals: [approval],
+        tools,
+        toolApproval: undefined,
+        messages: [],
+        toolsContext: {} as any,
+        runtimeContext: {},
+      });
+
+      expect(result.approvedToolApprovals).toHaveLength(1);
+    });
+
+    it('should reject HMAC verification when context is bound to a different tool call', async () => {
+      const secret = 'test-secret-for-context-bind';
+      const input = { value: 'test' };
+      const context = { recordCount: 47 };
+      const signature = await signToolApproval({
+        secret,
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        input,
+        context,
+      });
+
+      const approval: CollectedToolApprovals<any> = {
+        approvalRequest: {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'call-2',
+          signature,
+          context,
+          inputDigest: await hashCanonical(input),
+        },
+        approvalResponse: {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'tool1',
+          input,
+        },
+      };
+
+      await expect(
+        validateApprovedToolApprovals({
+          approvedToolApprovals: [approval],
+          tools,
+          toolApproval: undefined,
+          messages: [],
+          toolsContext: {} as any,
+          runtimeContext: {},
+          toolApprovalSecret: secret,
+        }),
+      ).rejects.toThrowError(/invalid signature/);
     });
   });
 });

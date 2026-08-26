@@ -603,12 +603,18 @@ describe('toUIMessageChunk', () => {
           input: { value: 'input' },
         },
         isAutomatic: true,
+        context: { recordCount: 47 },
+        inputDigest: 'digest-1',
+        signature: 'sig-1',
       }),
     ).toEqual({
       type: 'tool-approval-request',
       approvalId: 'approval-1',
       toolCallId: 'call-5',
       isAutomatic: true,
+      context: { recordCount: 47 },
+      inputDigest: 'digest-1',
+      signature: 'sig-1',
     });
 
     expect(
