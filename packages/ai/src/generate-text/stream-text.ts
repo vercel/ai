@@ -64,6 +64,7 @@ import type {
   InferUIMessageChunk,
   UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageStreamOutcome } from '../ui-message-stream/ui-message-stream-outcome';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type {
   InferUIMessageData,
@@ -2660,6 +2661,26 @@ class DefaultStreamTextResult<
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
+    let outcome: UIMessageStreamOutcome = { status: 'unknown' };
+    let hasFatalFailure = false;
+
+    const setSourceOutcome = (newOutcome: UIMessageStreamOutcome) => {
+      if (
+        !hasFatalFailure &&
+        outcome.status !== 'completed' &&
+        outcome.status !== 'aborted' &&
+        newOutcome.status !== 'unknown' &&
+        (outcome.status === 'unknown' || newOutcome.status !== 'failed')
+      ) {
+        outcome = newOutcome;
+      }
+    };
+
+    const failOutcome = (error: unknown) => {
+      hasFatalFailure = true;
+      outcome = { status: 'failed', error };
+    };
+
     const responseMessageId =
       generateMessageId != null
         ? getResponseUIMessageId({
@@ -2680,7 +2701,58 @@ class DefaultStreamTextResult<
       return tool?.type === 'dynamic' ? true : undefined;
     };
 
-    const baseStream = this.fullStream.pipeThrough(
+    const trackFatalFailures = <T>(stream: ReadableStream<T>) => {
+      const reader = stream.getReader();
+      let readerReleased = false;
+      let streamCancelled = false;
+
+      const releaseReader = () => {
+        if (!readerReleased) {
+          reader.releaseLock();
+          readerReleased = true;
+        }
+      };
+
+      return new ReadableStream<T>({
+        async pull(controller) {
+          try {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              releaseReader();
+              if (!streamCancelled) {
+                controller.close();
+              }
+            } else {
+              controller.enqueue(value);
+            }
+          } catch (error) {
+            releaseReader();
+            if (!streamCancelled) {
+              failOutcome(error);
+              controller.error(error);
+            }
+          }
+        },
+
+        async cancel(reason) {
+          streamCancelled = true;
+          if (readerReleased) {
+            return;
+          }
+
+          try {
+            await reader.cancel(reason);
+          } finally {
+            releaseReader();
+          }
+        },
+      });
+    };
+
+    const sourceStream = trackFatalFailures(this.fullStream);
+
+    const convertedStream = sourceStream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
         UIMessageChunk<
@@ -3021,9 +3093,19 @@ class DefaultStreamTextResult<
               messageMetadata: messageMetadataValue,
             });
           }
+
+          if (part.type === 'finish') {
+            setSourceOutcome({ status: 'completed' });
+          } else if (part.type === 'abort') {
+            setSourceOutcome({ status: 'aborted' });
+          } else if (part.type === 'error') {
+            setSourceOutcome({ status: 'failed', error: part.error });
+          }
         },
       }),
     );
+
+    const baseStream = trackFatalFailures(convertedStream);
 
     return createAsyncIterableStream(
       handleUIMessageStreamFinish<UI_MESSAGE>({
@@ -3032,6 +3114,7 @@ class DefaultStreamTextResult<
         originalMessages,
         onFinish,
         onError,
+        getOutcome: () => outcome,
       }),
     );
   }

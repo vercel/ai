@@ -5,13 +5,8 @@ import {
 import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
-<<<<<<< HEAD
 import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
-=======
-import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
 import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
-import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
->>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamWriterWithOutcome } from './ui-message-stream-writer';
 

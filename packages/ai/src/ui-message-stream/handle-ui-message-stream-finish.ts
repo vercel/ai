@@ -7,13 +7,8 @@ import {
 import type { UIMessage } from '../ui/ui-messages';
 import type { ErrorHandler } from '../util/error-handler';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
-<<<<<<< HEAD
 import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
-=======
-import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
 import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
-import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
->>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
@@ -45,21 +40,12 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
    */
   onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
-<<<<<<< HEAD
   onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
-=======
-  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
-
-  /**
-   * @deprecated Use `onEnd` instead.
-   */
-  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
   /**
    * Returns the operation-level outcome declared by the stream owner.
    */
   getOutcome?: () => UIMessageStreamOutcome;
->>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   // last message is only relevant for assistant messages
   let lastMessage: UI_MESSAGE | undefined =
@@ -150,10 +136,6 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     finishCalled = true;
 
     const isContinuation = state.message.id === lastMessage?.id;
-<<<<<<< HEAD
-    await onFinish({
-      isAborted,
-=======
     const declaredOutcome = getOutcome?.() ?? { status: 'unknown' };
     const outcome: UIMessageStreamOutcome = hasProcessingFailure
       ? { status: 'failed', error: processingError }
@@ -161,9 +143,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
         ? { status: 'aborted' }
         : declaredOutcome;
 
-    await resolvedOnEnd({
+    await onFinish({
       isAborted: isAborted || outcome.status === 'aborted',
->>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
       isContinuation,
       outcome,
       responseMessage: state.message as UI_MESSAGE,

@@ -47,18 +47,9 @@ const stream = createUIMessageStream({
       prompt: 'Write a haiku about AI',
     });
 
-<<<<<<< HEAD
-    writer.merge(result.toUIMessageStream());
-  },
-  onError: error => `Custom error: ${error.message}`,
-  originalMessages: existingMessages,
-  onFinish: ({ messages, isContinuation, responseMessage }) => {
-    console.log('Stream finished with messages:', messages);
-=======
     writer.merge(
-      toUIMessageStream({
-        stream: result.stream,
-        onEnd: ({ outcome }) => {
+      result.toUIMessageStream({
+        onFinish: ({ outcome }) => {
           // The composer decides that the model stream outcome is also the
           // aggregate stream outcome.
           writer.setOutcome(outcome);
@@ -68,10 +59,9 @@ const stream = createUIMessageStream({
   },
   onError: error => `Custom error: ${error.message}`,
   originalMessages: existingMessages,
-  onEnd: ({ messages, isContinuation, outcome, responseMessage }) => {
-    console.log('Stream ended with messages:', messages);
+  onFinish: ({ messages, isContinuation, outcome, responseMessage }) => {
+    console.log('Stream finished with messages:', messages);
     console.log('Stream outcome:', outcome.status);
->>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
   },
 });
 ```
@@ -79,7 +69,7 @@ const stream = createUIMessageStream({
 `setOutcome` records the composer's policy without writing a chunk or closing
 the stream. The first outcome declared through `setOutcome` is retained, but a
 fatal execution, merge, error-handling, or downstream processing failure makes
-the final `onEnd` outcome `failed`. Individual `error` chunks do not change the
+the final `onFinish` outcome `failed`. Individual `error` chunks do not change the
 outcome by themselves. When merging multiple child streams, aggregate their
 outcomes and call `setOutcome` once.
 
@@ -138,16 +128,10 @@ outcomes and call `setOutcome` once.
         'The original messages. If provided, persistence mode is assumed and a message ID is provided for the response message.',
     },
     {
-<<<<<<< HEAD
       name: 'onFinish',
-      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
+      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; outcome: UIMessageStreamOutcome; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
       description:
         'A callback function that is called when the stream finishes.',
-=======
-      name: 'onEnd',
-      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; outcome: UIMessageStreamOutcome; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
-      description: 'A callback function that is called when the stream ends.',
->>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
       properties: [
         {
           type: 'FinishOptions',
@@ -191,14 +175,6 @@ outcomes and call `setOutcome` once.
       ],
     },
     {
-<<<<<<< HEAD
-=======
-      name: 'onFinish',
-      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; outcome: UIMessageStreamOutcome; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
-      description: 'Deprecated alias for `onEnd`.',
-    },
-    {
->>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
       name: 'generateId',
       type: 'IdGenerator | undefined',
       description:
