@@ -1,6 +1,7 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
 
 const prompt = 'A cute baby sea otter';
 
@@ -542,6 +543,46 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
   });
 
   describe('doGenerate', () => {
+    it('should preserve prompt feedback when an image prompt is blocked before candidate generation', async () => {
+      const response = fs.readFileSync(
+        'src/__fixtures__/issue-19758-image-prompt-block.json',
+        'utf8',
+      );
+      const promptBlockedModel = new GoogleGenerativeAIImageModel(
+        'gemini-3.1-flash-image-preview',
+        {},
+        {
+          provider: 'google.generative-ai',
+          baseURL: 'https://api.example.com/v1beta',
+          headers: () => ({ 'api-key': 'test-api-key' }),
+          fetch: async () =>
+            new Response(response, {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            }),
+        },
+      );
+
+      const result = await promptBlockedModel.doGenerate({
+        prompt: 'Prompt blocked by Google before candidate generation.',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.providerMetadata?.google).toMatchObject({
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+          safetyRatings: null,
+        },
+      });
+    });
+
     it('should extract the generated image', async () => {
       prepareGeminiJsonResponse();
 

@@ -341,6 +341,31 @@ describe('urlContextMetadata', () => {
 });
 
 describe('doGenerate', () => {
+  it('should surface prompt-level safety blocks without candidates', async () => {
+    const response = fs.readFileSync(
+      'src/__fixtures__/issue-19758-prompt-block.json',
+      'utf8',
+    );
+    const testProvider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      fetch: async () =>
+        new Response(response, {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    });
+
+    const result = await testProvider
+      .languageModel('gemini-3.7-flash')
+      .doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.finishReason.unified).toBe('content-filter');
+    expect(result.providerMetadata?.google.promptFeedback).toEqual({
+      blockReason: 'PROHIBITED_CONTENT',
+      safetyRatings: null,
+    });
+  });
+
   it('should associate multiple generated and streamed code execution results with the same tool call', async () => {
     const response = {
       candidates: [
@@ -4223,6 +4248,35 @@ describe('doStream', () => {
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
+  });
+
+  it('should surface prompt-level safety blocks without candidates', async () => {
+    const chunk = fs
+      .readFileSync(
+        'src/__fixtures__/issue-19758-prompt-block.chunks.txt',
+        'utf8',
+      )
+      .trim();
+    const testProvider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      fetch: async () =>
+        new Response(`data: ${chunk}\n\n`, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+    });
+
+    const { stream } = await testProvider
+      .languageModel('gemini-3.7-flash')
+      .doStream({ prompt: TEST_PROMPT });
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent?.finishReason.unified).toBe('content-filter');
+    expect(finishEvent?.providerMetadata?.google.promptFeedback).toEqual({
+      blockReason: 'PROHIBITED_CONTENT',
+      safetyRatings: null,
+    });
   });
 
   function prepareChunksFixtureResponse(
