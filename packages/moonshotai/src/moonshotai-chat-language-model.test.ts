@@ -1,4 +1,7 @@
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV3Prompt,
+} from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
@@ -706,6 +709,27 @@ describe('doGenerate', () => {
   });
 
   describe('errors', () => {
+    it('should reject unsupported media before sending a request', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: new TextEncoder().encode('<svg></svg>'),
+                  mediaType: 'image/svg+xml',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toSatisfy(UnsupportedFunctionalityError.isInstance);
+
+      expect(server.calls).toHaveLength(0);
+    });
+
     it('should map the moonshot error envelope', async () => {
       server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
         type: 'error',
