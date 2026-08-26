@@ -1,5 +1,16 @@
 # ai
 
+## 5.0.246
+
+### Patch Changes
+
+- d1aa120: Include telemetry metadata on tool call spans.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+- Updated dependencies [8c37324]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/gateway@2.0.141
+
 ## 5.0.245
 
 ### Patch Changes

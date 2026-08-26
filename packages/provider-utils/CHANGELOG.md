@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 3.0.34
+
+### Patch Changes
+
+- 2fff9f1: fix(provider-utils): allow imports in runtimes without a global fetch function
+- f364ea0: Preserve schema-valued additional properties when converting Zod 4 schemas.
+
 ## 3.0.33
 
 ### Patch Changes
