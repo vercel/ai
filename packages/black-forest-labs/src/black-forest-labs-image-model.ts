@@ -52,15 +52,19 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   readonly maxImagesPerCall = 1;
 
   get supportsFileInputs(): boolean | undefined {
-    return [
-      'flux-kontext-pro',
-      'flux-kontext-max',
-      'flux-pro-1.1-ultra',
-      'flux-pro-1.1',
-      'flux-pro-1.0-fill',
-    ].includes(this.modelId)
-      ? true
-      : undefined;
+    if (
+      ['flux-kontext-pro', 'flux-kontext-max', 'flux-pro-1.0-fill'].includes(
+        this.modelId,
+      )
+    ) {
+      return true;
+    }
+
+    if (['flux-pro-1.1-ultra', 'flux-pro-1.1'].includes(this.modelId)) {
+      return false;
+    }
+
+    return undefined;
   }
 
   get supportsMaskInputs(): boolean | undefined {
@@ -68,7 +72,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       return true;
     }
 
-    return this.supportsFileInputs === true ? false : undefined;
+    return this.supportsFileInputs == null ? undefined : false;
   }
 
   get provider(): string {

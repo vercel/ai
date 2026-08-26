@@ -63,6 +63,15 @@ describe('BlackForestLabsImageModel', () => {
         },
       },
     },
+    'https://api.example.com/v1/flux-kontext-pro': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+        },
+      },
+    },
     'https://api.example.com/poll': {
       response: {
         type: 'json-value',
@@ -124,6 +133,21 @@ describe('BlackForestLabsImageModel', () => {
       {
         modelId: 'flux-kontext-pro',
         supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'flux-kontext-max',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'flux-pro-1.1',
+        supportsFileInputs: false,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'flux-pro-1.1-ultra',
+        supportsFileInputs: false,
         supportsMaskInputs: false,
       },
       {
@@ -222,8 +246,8 @@ describe('BlackForestLabsImageModel', () => {
       });
     });
 
-    it('uses input_image field for non-fill input images', async () => {
-      const model = createBasicModel();
+    it('uses input_image field for Kontext input images', async () => {
+      const model = createBasicModel({ modelId: 'flux-kontext-pro' });
 
       await model.doGenerate({
         prompt,
