@@ -1888,6 +1888,40 @@ describe('doGenerate', () => {
     ]);
   });
 
+  it('should surface prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toEqual([]);
+    expect(result.finishReason).toBe('content-filter');
+    expect(result.providerMetadata?.google).toMatchObject({
+      promptFeedback: {
+        blockReason: 'PROHIBITED_CONTENT',
+      },
+      groundingMetadata: null,
+      urlContextMetadata: null,
+      safetyRatings: null,
+      usageMetadata: {
+        promptTokenCount: 9,
+        totalTokenCount: 9,
+      },
+    });
+  });
+
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
@@ -2880,6 +2914,49 @@ describe('doStream', () => {
       ),
     };
   };
+
+  it('should surface streamed prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.find(event => event.type === 'finish')).toMatchObject({
+      type: 'finish',
+      finishReason: 'content-filter',
+      providerMetadata: {
+        google: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          groundingMetadata: null,
+          urlContextMetadata: null,
+          safetyRatings: null,
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      },
+    });
+  });
 
   it('should expose grounding metadata in provider metadata on finish', async () => {
     prepareStreamResponse({
