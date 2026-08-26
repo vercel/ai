@@ -239,10 +239,15 @@ export async function generateImage({
               .images;
           }
         } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
-            ...result.providerMetadata[providerName].images,
-          );
+          const currentEntry = providerMetadata[providerName];
+          providerMetadata[providerName] = {
+            ...(currentEntry as object | undefined),
+            ...metadata,
+            images: [
+              ...((currentEntry?.images as Array<unknown> | undefined) ?? []),
+              ...((metadata.images as Array<unknown> | undefined) ?? []),
+            ],
+          } as ImageModelV4ProviderMetadata[string];
         }
       }
     }
