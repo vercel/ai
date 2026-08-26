@@ -156,7 +156,7 @@ describe('OpenCode bridge turn settlement', () => {
     expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
   });
 
-  it('authorizes host tools for task-linked subagents only', async () => {
+  it('authorizes tools and reports usage for task-linked subagents', async () => {
     const emitted: Array<Record<string, unknown>> = [];
     const userMessages = createUserMessages();
     bridgeMock.start = {
@@ -248,6 +248,37 @@ describe('OpenCode bridge turn settlement', () => {
                 },
               };
               yield {
+                type: 'message.updated',
+                properties: {
+                  info: {
+                    id: 'child-message',
+                    sessionID: 'child-session',
+                    role: 'assistant',
+                    providerID: 'openai',
+                    modelID: 'gpt-5.6-sol',
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    id: 'child-step-finish',
+                    messageID: 'child-message',
+                    sessionID: 'child-session',
+                    type: 'step-finish',
+                    reason: 'stop',
+                    cost: 0.0042,
+                    tokens: {
+                      input: 3,
+                      output: 5,
+                      reasoning: 1,
+                      cache: { read: 10, write: 2 },
+                    },
+                  },
+                },
+              };
+              yield {
                 type: 'session.next.step.ended',
                 properties: {
                   sessionID: 'parent-session',
@@ -299,6 +330,26 @@ describe('OpenCode bridge turn settlement', () => {
       sessionID: 'child-session',
       requestID: 'child-permission',
       reply: 'always',
+    });
+    expect(emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'opencode.subagent-usage',
+        version: 1,
+        sessionId: 'child-session',
+        stepId: 'child-message',
+        modelId: 'openai/gpt-5.6-sol',
+        usage: {
+          inputTokens: {
+            total: 3,
+            noCache: 0,
+            cacheRead: 10,
+            cacheWrite: 2,
+          },
+          outputTokens: { total: 6, text: 5, reasoning: 1 },
+        },
+        cost: 0.0042,
+      },
     });
     expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
   });
