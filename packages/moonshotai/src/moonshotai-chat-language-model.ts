@@ -426,7 +426,8 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
-    let usage: MoonshotAIChatTokenUsage | undefined = undefined;
+    let topLevelUsage: MoonshotAIChatTokenUsage | undefined = undefined;
+    let choiceUsage: MoonshotAIChatTokenUsage | undefined = undefined;
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
@@ -472,10 +473,14 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              usage = value.usage;
+              topLevelUsage = value.usage;
             }
 
             const choice = value.choices[0];
+
+            if (choice?.usage != null) {
+              choiceUsage = choice.usage;
+            }
 
             if (choice?.finish_reason != null) {
               finishReason = {
@@ -540,8 +545,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                 isActiveReasoning = false;
               }
 
-              for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
+              for (const [
+                fallbackIndex,
+                toolCallDelta,
+              ] of delta.tool_calls.entries()) {
+                const index = toolCallDelta.index ?? fallbackIndex;
 
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.id == null) {
@@ -643,7 +651,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertMoonshotAIChatUsage(usage),
+              usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
             });
           },
         }),
