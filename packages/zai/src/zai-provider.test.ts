@@ -3,6 +3,10 @@ import { ZaiChatLanguageModel } from './zai-chat-language-model';
 import { createZai } from './zai-provider';
 import { VERSION } from './version';
 
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
 const TEST_PROMPT = [
   {
     role: 'user' as const,
@@ -62,7 +66,11 @@ describe('createZai', () => {
     );
     const headers = new Headers(fetch.mock.calls[0][1].headers);
     expect(headers.get('authorization')).toBe('Bearer test-key');
+<<<<<<< HEAD
     expect(headers.get('user-agent')).toContain(`ai-sdk/zai/${VERSION}`);
+=======
+    expect(headers.get('user-agent')).toContain('ai-sdk/zai/0.0.0-test');
+>>>>>>> 9921a2fde2 (fix: honor Anthropic disableParallelToolUse for Amazon Bedrock models (#19560))
   });
 
   it('reads the API key from ZAI_API_KEY by default', async () => {

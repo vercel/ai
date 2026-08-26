@@ -18,10 +18,12 @@ export async function prepareTools({
   tools,
   toolChoice,
   modelId,
+  disableParallelToolUse,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   modelId: string;
+  disableParallelToolUse?: boolean;
 }): Promise<{
   toolConfig: BedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
@@ -96,6 +98,12 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: providerDefinedTools,
       toolChoice,
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
+=======
+      disableParallelToolUse,
+      supportsStructuredOutput: false,
+      supportsStrictTools: false,
+>>>>>>> 9921a2fde2 (fix: honor Anthropic disableParallelToolUse for Amazon Bedrock models (#19560)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
     });
 
     toolWarnings.push(...anthropicToolWarnings);
@@ -153,9 +161,41 @@ export async function prepareTools({
     });
   }
 
+  if (
+    isAnthropicModel &&
+    !usingAnthropicTools &&
+    disableParallelToolUse &&
+    amazonBedrockTools.length > 0 &&
+    toolChoice?.type !== 'none'
+  ) {
+    additionalTools = {
+      tool_choice:
+        toolChoice?.type === 'required'
+          ? { type: 'any', disable_parallel_tool_use: true }
+          : toolChoice?.type === 'tool'
+            ? {
+                type: 'tool',
+                name: toolChoice.toolName,
+                disable_parallel_tool_use: true,
+              }
+            : { type: 'auto', disable_parallel_tool_use: true },
+    };
+  }
+
   // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic provider-defined tools
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
   let bedrockToolChoice: BedrockToolConfiguration['toolChoice'] = undefined;
   if (!usingAnthropicTools && bedrockTools.length > 0 && toolChoice) {
+=======
+  let amazonBedrockToolChoice: AmazonBedrockToolConfiguration['toolChoice'] =
+    undefined;
+  if (
+    !usingAnthropicTools &&
+    additionalTools?.tool_choice == null &&
+    amazonBedrockTools.length > 0 &&
+    toolChoice
+  ) {
+>>>>>>> 9921a2fde2 (fix: honor Anthropic disableParallelToolUse for Amazon Bedrock models (#19560)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
     const type = toolChoice.type;
     switch (type) {
       case 'auto':
