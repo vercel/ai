@@ -1459,7 +1459,13 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.providerMetadata).toBeUndefined();
+      expect(result.providerMetadata).toEqual({
+        moonshotai: {
+          responseObject: 'chat.completion',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+        },
+      });
     });
   });
 
@@ -1843,6 +1849,7 @@ describe('doStream', () => {
       .toMatchInlineSnapshot(`
         {
           "moonshotai": {
+            "choiceIndex": 0,
             "logprobs": {
               "content": [
                 {
@@ -1877,6 +1884,8 @@ describe('doStream', () => {
                 },
               ],
             },
+            "messageRole": "assistant",
+            "responseObject": "chat.completion.chunk",
           },
         }
       `);
