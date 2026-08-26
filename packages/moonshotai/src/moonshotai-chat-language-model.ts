@@ -39,6 +39,7 @@ import {
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
 } from './moonshotai-chat-options';
+import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 import { prepareTools } from './moonshotai-prepare-tools';
 
 export type MoonshotAIChatConfig = {
@@ -279,10 +280,8 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
           type: 'json_schema',
           json_schema: {
             name: responseFormat.name ?? 'response',
-            schema: schemaWithoutDollarSchema,
-            ...(responseFormat.description != null && {
-              description: responseFormat.description,
-            }),
+            strict: moonshotOptions.strictJsonSchema ?? true,
+            schema: normalizeJsonSchemaForMFJS(schemaWithoutDollarSchema),
           },
         };
       } else {
