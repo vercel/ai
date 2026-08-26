@@ -1,5 +1,13 @@
 # @ai-sdk/alibaba
 
+## 0.0.24
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/openai-compatible@1.0.52
+
 ## 0.0.23
 
 ### Patch Changes

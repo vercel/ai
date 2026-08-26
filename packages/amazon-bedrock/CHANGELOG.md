@@ -1,5 +1,14 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.123
+
+### Patch Changes
+
+- 1f9e026: Omit assistant messages that become empty after unsupported reasoning content is removed.
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/anthropic@2.0.98
+
 ## 3.0.122
 
 ### Patch Changes
