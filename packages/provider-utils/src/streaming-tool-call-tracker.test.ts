@@ -607,6 +607,45 @@ describe('StreamingToolCallTracker', () => {
       },
     );
 
+    it('should keep interleaved same-name calls with distinct ids and a reused index separate', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":2}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        function: { arguments: '1}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'same_tool',
+          input: '{"value":1}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_2',
+          toolName: 'same_tool',
+          input: '{"value":2}',
+        },
+      ]);
+    });
+
     it('should ignore an index-only continuation after the index is reused', () => {
       const { parts, controller } = createCollector();
       const tracker = new StreamingToolCallTracker(controller);

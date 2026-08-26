@@ -262,13 +262,13 @@ export class StreamingToolCallTracker<
       }
 
       if (matchingIndexedToolCalls.length > 0) {
-        // IDs can change during a call. A matching index/name continues the
-        // call unless the delta has evidence of a fresh structured argument
-        // payload, while repeated labels alone are not a call boundary.
-        return this.resolveMatchingToolCall(
-          matchingIndexedToolCalls,
-          hasExplicitCallStart,
-        );
+        // A previously unseen ID plus a named structured argument start is
+        // stronger evidence of a distinct call than a reused index/name. This
+        // also keeps interleaved same-name calls separate while still allowing
+        // IDs to change on ordinary continuation fragments.
+        return hasExplicitCallStart
+          ? { kind: 'new' }
+          : this.resolveMatchingToolCall(matchingIndexedToolCalls, false);
       }
 
       return { kind: 'new' };
