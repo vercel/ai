@@ -527,13 +527,23 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertMoonshotAIChatUsage(responseBody.usage),
-      ...(choice.logprobs != null && {
-        providerMetadata: {
-          [this.providerOptionsName]: {
-            logprobs: choice.logprobs,
-          },
+      providerMetadata: {
+        [this.providerOptionsName]: {
+          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
         },
-      }),
+      },
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -585,6 +595,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let responseObject: 'chat.completion.chunk' | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
 
     return {
       stream: response.pipeThrough(
@@ -636,10 +650,18 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               topLevelUsage = value.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
             const choice = value.choices[0];
 
             if (choice?.usage != null) {
               choiceUsage = choice.usage;
+            }
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
             }
 
             if (choice?.finish_reason != null) {
@@ -658,6 +680,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -710,9 +736,13 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
+                const toolCallIndex = toolCallDelta.index ?? index;
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(toolCallIndex, toolCallDelta.type);
+                }
                 toolCallTracker.processDelta({
                   ...toolCallDelta,
-                  index: toolCallDelta.index ?? index,
+                  index: toolCallIndex,
                 });
               }
             }
@@ -733,15 +763,21 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
-              ...(contentLogprobs.length > 0 && {
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    logprobs: {
-                      content: contentLogprobs,
-                    },
-                  },
+              providerMetadata: {
+                [providerOptionsName]: {
+                  ...(contentLogprobs.length > 0 && {
+                    logprobs: { content: contentLogprobs },
+                  }),
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
                 },
-              }),
+              },
             });
           },
         }),

@@ -538,6 +538,19 @@ The following optional provider options are available for Moonshot AI language m
   - `'preserved'`: Keep all reasoning in history. For Kimi K2.6, this maps to
     `thinking.keep: 'all'`. Kimi K2.7 and K3 always preserve reasoning.
 
+### Chat Response Metadata
+
+Moonshot AI preserves provider-specific response fields in
+`providerMetadata.moonshotai` for generated and streamed responses:
+
+- `responseObject`: `chat.completion` or `chat.completion.chunk`
+- `choiceIndex`: the selected response choice index
+- `messageRole`: the response message role, when supplied
+- `toolCallTypes`: the tool-call type for each returned call
+
+These fields remain in provider metadata because they are specific to
+Moonshot's Chat Completions response rather than shared AI SDK result fields.
+
 ## Model Capabilities
 
 | Model                    | Image Input | Video Input | Object Generation | Tool Usage | Tool Streaming |
