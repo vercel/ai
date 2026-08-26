@@ -4,11 +4,18 @@ export type MoonshotAIChatModelId =
   | 'moonshot-v1-8k'
   | 'moonshot-v1-32k'
   | 'moonshot-v1-128k'
+<<<<<<< HEAD
   | 'kimi-k2'
   | 'kimi-k2-0905'
   | 'kimi-k2-thinking'
   | 'kimi-k2-thinking-turbo'
   | 'kimi-k2-turbo'
+=======
+  | 'moonshot-v1-auto'
+  | 'moonshot-v1-8k-vision-preview'
+  | 'moonshot-v1-32k-vision-preview'
+  | 'moonshot-v1-128k-vision-preview'
+>>>>>>> 8037158f5e (fix: enable native structured outputs for official Moonshot V1 models (#19583))
   | 'kimi-k2.5'
   | 'kimi-k3'
   | (string & {});

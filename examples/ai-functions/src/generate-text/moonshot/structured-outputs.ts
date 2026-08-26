@@ -22,7 +22,12 @@ const schema: JSONSchema7 = {
 
 run(async () => {
   const result = await generateText({
+<<<<<<< HEAD
     model: moonshotai('kimi-k3'),
+=======
+    model: moonshotai('moonshot-v1-8k'),
+    include: { requestBody: true },
+>>>>>>> 8037158f5e (fix: enable native structured outputs for official Moonshot V1 models (#19583))
     output: Output.object({
       name: 'named_pair',
       schema: jsonSchema<PairOutput>(schema),
