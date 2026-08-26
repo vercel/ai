@@ -1,5 +1,14 @@
 # @ai-sdk/moonshotai
 
+## 0.0.22
+
+### Patch Changes
+
+- cef6cbe: Normalize Moonshot structured output schemas and enable strict validation by default.
+- c4c0ba6: Use native JSON Schema structured outputs for official Moonshot V1 models.
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
+
 ## 0.0.21
 
 ### Patch Changes
