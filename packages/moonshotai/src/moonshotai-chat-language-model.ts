@@ -424,6 +424,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
 
     const { messages, warnings: messageWarnings } =
       await convertToMoonshotAIChatMessages({
+        modelId: this.modelId,
         prompt,
         providerOptionsName: this.providerOptionsName,
         responseFormat: response_format,
