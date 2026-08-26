@@ -1,4 +1,5 @@
 import {
+  APICallError,
   UnsupportedFunctionalityError,
   type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
@@ -20,12 +21,16 @@ const server = createTestServer({
   'https://api.moonshot.ai/v1/chat/completions': {},
 });
 
+function readJsonFixture(filename: string) {
+  return JSON.parse(
+    fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+  );
+}
+
 function prepareJsonFixtureResponse(filename: string) {
   server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
     type: 'json-value',
-    body: JSON.parse(
-      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
-    ),
+    body: readJsonFixture(filename),
   };
 }
 
@@ -827,26 +832,99 @@ describe('doGenerate', () => {
       expect(server.calls).toHaveLength(0);
     });
 
-    it('should map the moonshot error envelope', async () => {
+    it('should preserve the moonshot error envelope', async () => {
+      const data = readJsonFixture('moonshotai-error');
+
       server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
         type: 'error',
         status: 400,
-        body: JSON.stringify({
-          error: {
-            message: 'Invalid request: invalid part type: file',
-            type: 'invalid_request_error',
-          },
-        }),
+        body: JSON.stringify(data),
       };
 
-      await expect(
+      const error = await Promise.resolve(
         provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
-      ).rejects.toThrow('Invalid request: invalid part type: file');
+      ).catch((error: unknown) => error);
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      if (!APICallError.isInstance(error)) {
+        expect.fail('Expected an APICallError');
+      }
+      expect(error.message).toBe(data.error.message);
+      expect(error.data).toStrictEqual(data);
+    });
+
+    it.each([
+      {
+        name: 'nullable code',
+        data: {
+          error: {
+            message: 'Invalid request with nullable code',
+            type: 'invalid_request_error',
+            code: null,
+          },
+        },
+      },
+      {
+        name: 'message-only error',
+        data: {
+          error: {
+            message: 'Invalid request',
+          },
+        },
+      },
+    ])('should preserve a $name envelope', async ({ data }) => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify(data),
+      };
+
+      const error = await Promise.resolve(
+        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
+      ).catch((error: unknown) => error);
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      if (!APICallError.isInstance(error)) {
+        expect.fail('Expected an APICallError');
+      }
+      expect(error.message).toBe(data.error.message);
+      expect(error.data).toStrictEqual(data);
     });
   });
 });
 
 describe('doStream', () => {
+<<<<<<< HEAD
+=======
+  it('should preserve a provider error envelope in stream errors', async () => {
+    const data = {
+      error: {
+        message: 'Internal server error',
+        type: 'server_error',
+        code: 'upstream_failure',
+      },
+    };
+
+    const chunks = await getStreamParts('moonshotai-error');
+    const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+    expect(errorPart?.type).toBe('error');
+    if (errorPart?.type !== 'error') {
+      expect.fail('Expected an error part');
+    }
+
+    expect(isProviderStreamError(errorPart.error)).toBe(true);
+    expect(errorPart.error).toMatchObject({
+      message: 'Internal server error',
+      type: 'server_error',
+      code: 'upstream_failure',
+      statusCode: 500,
+      isRetryable: true,
+      data,
+    });
+  });
+
+>>>>>>> 48c5f461ef (fix: preserve Moonshot API error metadata in HTTP and streaming responses (#19742))
   it('should stream reasoning and text deltas with usage', async () => {
     const parts = await getStreamParts('moonshotai-stream');
 
