@@ -1,11 +1,5 @@
-<<<<<<< HEAD
-import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
-import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
-=======
 import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
->>>>>>> e6a299277b (fix: replay regular functions named tool_search correctly in OpenAI Responses history (#19754))
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 

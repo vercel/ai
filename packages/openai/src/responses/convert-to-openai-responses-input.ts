@@ -268,11 +268,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
-<<<<<<< HEAD
-=======
-  hasComputerTool = false,
   toolSearchToolName,
->>>>>>> e6a299277b (fix: replay regular functions named tool_search correctly in OpenAI Responses history (#19754))
   customProviderToolNames,
 }: {
   prompt: LanguageModelV3Prompt;
@@ -287,11 +283,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
-<<<<<<< HEAD
-=======
-  hasComputerTool?: boolean;
   toolSearchToolName?: string;
->>>>>>> e6a299277b (fix: replay regular functions named tool_search correctly in OpenAI Responses history (#19754))
   customProviderToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;

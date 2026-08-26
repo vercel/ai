@@ -243,11 +243,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
-<<<<<<< HEAD
-=======
-        hasComputerTool: hasOpenAITool('openai.computer'),
         toolSearchToolName: getOpenAIToolName('openai.tool_search'),
->>>>>>> e6a299277b (fix: replay regular functions named tool_search correctly in OpenAI Responses history (#19754))
         customProviderToolNames:
           customProviderToolNames.size > 0
             ? customProviderToolNames
