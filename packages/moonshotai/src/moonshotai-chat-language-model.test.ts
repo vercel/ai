@@ -3,7 +3,10 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { MoonshotAIMessageProviderOptions } from './moonshotai-chat-options';
+import type {
+  MoonshotAIAssistantMessageProviderOptions,
+  MoonshotAIMessageProviderOptions,
+} from './moonshotai-chat-options';
 import { createMoonshotAI } from './moonshotai-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -207,6 +210,132 @@ describe('MoonshotAIChatLanguageModel', () => {
           ],
         }),
       ).rejects.toThrow('invalid moonshotai provider options');
+    });
+
+    it('should send partial true on the final assistant message', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue this prefix.' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'The sky is' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'writer',
+                partial: true,
+              } satisfies MoonshotAIAssistantMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          { role: 'user', content: 'Continue this prefix.' },
+          {
+            role: 'assistant',
+            content: 'The sky is',
+            name: 'writer',
+            partial: true,
+          },
+        ],
+      });
+    });
+
+    it('should reject partial true on a non-assistant message', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+              providerOptions: { moonshotai: { partial: true } },
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        'Moonshot AI Partial Mode requires `partial: true` on an assistant message.',
+      );
+
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should reject a partial assistant message that is not final', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The sky is' }],
+              providerOptions: { moonshotai: { partial: true } },
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Continue.' }],
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        'Moonshot AI Partial Mode requires the partial assistant message to be the final message.',
+      );
+
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should reject Partial Mode with JSON object response format before the API call', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: '{' }],
+              providerOptions: {
+                moonshotai: {
+                  partial: true,
+                } satisfies MoonshotAIAssistantMessageProviderOptions,
+              },
+            },
+          ],
+          responseFormat: { type: 'json' },
+        }),
+      ).rejects.toThrow(
+        'Moonshot AI Partial Mode cannot be combined with JSON object response format.',
+      );
+
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should allow Partial Mode with JSON schema response format', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: {
+              moonshotai: {
+                partial: true,
+              } satisfies MoonshotAIAssistantMessageProviderOptions,
+            },
+          },
+        ],
+        responseFormat: {
+          type: 'json',
+          name: 'result',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages[0]).toMatchObject({ partial: true });
+      expect(requestBody.response_format).toMatchObject({
+        type: 'json_schema',
+      });
     });
 
     it('should send maxOutputTokens as max_completion_tokens', async () => {
@@ -847,6 +976,28 @@ describe('MoonshotAIChatLanguageModel', () => {
         message: 'Internal server error',
         type: 'server_error',
         code: 'upstream_failure',
+      });
+    });
+
+    it('should send partial true when streaming', async () => {
+      prepareChunksFixtureResponse('moonshot-text');
+
+      await provider.chatModel('kimi-k3').doStream({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'The sky is' }],
+            providerOptions: {
+              moonshotai: {
+                partial: true,
+              } satisfies MoonshotAIAssistantMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [{ role: 'assistant', content: 'The sky is', partial: true }],
       });
     });
 
