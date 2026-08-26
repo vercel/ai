@@ -88,6 +88,80 @@ describe('doGenerate', () => {
       `);
     });
 
+<<<<<<< HEAD
+=======
+    it('should send message names', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            providerOptions: {
+              moonshotai: {
+                name: 'guide',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'alice',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, Alice.' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'assistant',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            name: 'guide',
+          },
+          { role: 'user', content: 'Hello', name: 'alice' },
+          {
+            role: 'assistant',
+            content: 'Hello, Alice.',
+            name: 'assistant',
+          },
+        ],
+      });
+    });
+
+    it('should send maxOutputTokens as max_completion_tokens', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 17,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.max_completion_tokens).toBe(17);
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should omit max_completion_tokens when maxOutputTokens is undefined', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('max_completion_tokens');
+      expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+>>>>>>> d354a4260d (fix: serialize Moonshot maxOutputTokens using the supported request field (#19605))
     it.each([
       'kimi-k2.5',
       'kimi-k2.6',
@@ -919,4 +993,127 @@ describe('doStream', () => {
 
     expect(parts.some(part => part.type === 'error')).toBe(true);
   });
+<<<<<<< HEAD
+=======
+
+  it('should collect streamed logprobs in finish provider metadata', async () => {
+    prepareChunksFixtureResponse('moonshotai-logprobs');
+
+    const result = await provider.chatModel('moonshot-v1-8k').doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        moonshotai: {
+          topLogprobs: 1,
+        } satisfies MoonshotAILanguageModelOptions,
+      },
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      logprobs: true,
+      top_logprobs: 1,
+    });
+    expect(
+      parts
+        .filter(part => part.type === 'text-delta')
+        .map(part => part.delta)
+        .join(''),
+    ).toBe('OK!');
+    expect(parts.find(part => part.type === 'finish')?.providerMetadata)
+      .toMatchInlineSnapshot(`
+        {
+          "moonshotai": {
+            "logprobs": {
+              "content": [
+                {
+                  "bytes": [
+                    79,
+                    75,
+                  ],
+                  "logprob": -0.0004457433824427426,
+                  "token": "OK",
+                  "top_logprobs": [
+                    {
+                      "bytes": [
+                        79,
+                        75,
+                      ],
+                      "logprob": -0.0004457433824427426,
+                      "token": "OK",
+                    },
+                  ],
+                },
+                {
+                  "bytes": null,
+                  "logprob": -0.01,
+                  "token": "!",
+                  "top_logprobs": [
+                    {
+                      "bytes": null,
+                      "logprob": -0.01,
+                      "token": "!",
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        }
+      `);
+  });
+
+  it('should forward text-part-array predicted content unchanged', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream');
+
+    await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        moonshotai: {
+          prediction: {
+            type: 'content',
+            content: [
+              { type: 'text', text: 'Hello' },
+              { type: 'text', text: ', world!' },
+            ],
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.prediction).toStrictEqual({
+      type: 'content',
+      content: [
+        { type: 'text', text: 'Hello' },
+        { type: 'text', text: ', world!' },
+      ],
+    });
+  });
+
+  it('should send maxOutputTokens as max_completion_tokens', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream');
+
+    await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 17,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.max_completion_tokens).toBe(17);
+    expect(requestBody).not.toHaveProperty('max_tokens');
+  });
+
+  it('should omit max_completion_tokens when maxOutputTokens is undefined', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream');
+
+    await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).not.toHaveProperty('max_completion_tokens');
+    expect(requestBody).not.toHaveProperty('max_tokens');
+  });
+>>>>>>> d354a4260d (fix: serialize Moonshot maxOutputTokens using the supported request field (#19605))
 });
