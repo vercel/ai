@@ -5,7 +5,14 @@ export type CohereUsageTokens = {
   output_tokens: number;
 };
 
+export type CohereUsage = {
+  billed_units?: CohereUsageTokens | null;
+  tokens: CohereUsageTokens;
+  cached_tokens?: number | null;
+};
+
 export function convertCohereUsage(
+<<<<<<< HEAD
   tokens: CohereUsageTokens | undefined | null,
 ): LanguageModelV3Usage {
   if (tokens == null) {
@@ -23,8 +30,15 @@ export function convertCohereUsage(
       },
       raw: undefined,
     };
+=======
+  usage: CohereUsage | undefined | null,
+): LanguageModelV4Usage {
+  if (usage == null) {
+    return createNullLanguageModelUsage();
+>>>>>>> 0599400dd4 (fix: preserve complete Cohere Chat raw usage objects (#19777))
   }
 
+  const tokens = usage.tokens;
   const inputTokens = tokens.input_tokens;
   const outputTokens = tokens.output_tokens;
 
@@ -40,6 +54,6 @@ export function convertCohereUsage(
       text: outputTokens,
       reasoning: undefined,
     },
-    raw: tokens,
+    raw: usage,
   };
 }
