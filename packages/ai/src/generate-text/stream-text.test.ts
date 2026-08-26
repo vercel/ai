@@ -3006,12 +3006,13 @@ describe('streamText', () => {
     });
 
     it('should create a ui message stream', async () => {
+      const onFinish = vi.fn();
       const result = streamText({
         model: createTestModel(),
         ...defaultSettings(),
       });
 
-      const uiMessageStream = result.toUIMessageStream();
+      const uiMessageStream = result.toUIMessageStream({ onFinish });
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
@@ -3054,6 +3055,67 @@ describe('streamText', () => {
             },
           ]
         `);
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
+        status: 'completed',
+      });
+    });
+
+    it('should report provider stream failures as failed exactly once', async () => {
+      const sourceError = new Error('provider stream failed');
+      const onFinish = vi.fn();
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              });
+              queueMicrotask(() => controller.error(sourceError));
+            },
+          }),
+        }),
+        ...defaultSettings(),
+      });
+
+      await expect(
+        convertReadableStreamToArray(result.toUIMessageStream({ onFinish })),
+      ).rejects.toBe(sourceError);
+
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
+        status: 'failed',
+        error: sourceError,
+      });
+    });
+
+    it('should report UI message conversion failures as failed exactly once', async () => {
+      const conversionError = new Error('UI message conversion failed');
+      const onFinish = vi.fn();
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      await expect(
+        convertReadableStreamToArray(
+          result.toUIMessageStream({
+            messageMetadata: () => {
+              throw conversionError;
+            },
+            onFinish,
+          }),
+        ),
+      ).rejects.toBe(conversionError);
+
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
+        status: 'failed',
+        error: conversionError,
+      });
     });
 
     it('should create a ui message stream with provider metadata', async () => {
@@ -4116,6 +4178,7 @@ describe('streamText', () => {
       expect(textPart.text).toContain('Streaming'); // Partial content
       expect(textPart.state).toBe('streaming');
       expect(callArgs.isAborted).toBe(false); // Stream was cancelled, not aborted
+      expect(callArgs.outcome).toEqual({ status: 'unknown' });
     });
 
     it('should call onFinish when async iteration stops mid-stream', async () => {
@@ -4299,6 +4362,7 @@ describe('streamText', () => {
       expect(textPart).toBeDefined();
       expect(textPart.text).toBe(nodeVersionIs24_15 ? 'Hello world' : '');
       expect(callArgs.isAborted).toBe(true); // Stream was aborted
+      expect(callArgs.outcome).toEqual({ status: 'aborted' });
 
       reader.releaseLock();
     });
