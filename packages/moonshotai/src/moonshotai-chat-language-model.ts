@@ -31,6 +31,7 @@ import {
   moonshotAIChatChunkSchema,
   moonshotAIChatResponseSchema,
   moonshotAIErrorSchema,
+  type MoonshotAIChatLogprob,
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
 import {
@@ -292,6 +293,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
     return {
       args: {
         model: this.modelId,
+        ...((moonshotOptions.logprobs === true ||
+          moonshotOptions.topLogprobs != null) && { logprobs: true }),
+        ...(moonshotOptions.topLogprobs != null && {
+          top_logprobs: moonshotOptions.topLogprobs,
+        }),
         max_completion_tokens: maxOutputTokens,
         temperature: supportsSamplingOptions ? temperature : undefined,
         top_p: supportsSamplingOptions ? topP : undefined,
@@ -391,6 +397,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
               .map(toolCall => toolCall.type)
               .filter(type => type != null),
           }),
+          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
         },
       },
       request: { body: args },
@@ -444,6 +451,8 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
     };
     let topLevelUsage: MoonshotAIChatTokenUsage | undefined = undefined;
     let choiceUsage: MoonshotAIChatTokenUsage | undefined = undefined;
+    const contentLogprobs: MoonshotAIChatLogprob[] = [];
+    const providerOptionsName = this.providerOptionsName;
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
@@ -451,7 +460,6 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
     let choiceIndex: number | undefined;
     let messageRole: 'assistant' | undefined;
     const toolCallTypes = new Map<number, 'function'>();
-    const providerOptionsName = this.providerOptionsName;
 
     return {
       stream: response.pipeThrough(
@@ -516,6 +524,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                 unified: mapMoonshotAIFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
+            }
+
+            if (choice?.logprobs?.content != null) {
+              contentLogprobs.push(...choice.logprobs.content);
             }
 
             if (choice?.delta == null) {
@@ -698,6 +710,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                     toolCallTypes: [...toolCallTypes.entries()]
                       .sort(([left], [right]) => left - right)
                       .map(([, type]) => type),
+                  }),
+                  ...(contentLogprobs.length > 0 && {
+                    logprobs: {
+                      content: contentLogprobs,
+                    },
                   }),
                 },
               },

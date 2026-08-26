@@ -168,6 +168,51 @@ console.log(text);
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
 
+### Log Probabilities
+
+Moonshot AI can return token log probabilities for Chat Completions. Set
+`logprobs` to request token probabilities, or set `topLogprobs` to request the
+most likely alternatives at each token position. Setting `topLogprobs`
+automatically enables `logprobs`.
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAILanguageModelOptions,
+} from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: moonshotai('moonshot-v1-8k'),
+  prompt: 'Reply with one word that means happy.',
+  providerOptions: {
+    moonshotai: {
+      topLogprobs: 3,
+    } satisfies MoonshotAILanguageModelOptions,
+  },
+});
+
+console.log(result.text);
+console.log(result.providerMetadata?.moonshotai?.logprobs);
+```
+
+For `generateText`, log probabilities are available at
+`providerMetadata.moonshotai.logprobs`. For `streamText`, the accumulated log
+probabilities are included in the final finish part under the same metadata
+path.
+
+Moonshot documents the request options and OpenAI Chat Completions
+compatibility, but does not separately specify the log probability response
+schema. The provider therefore preserves the OpenAI-compatible `content`
+entries, including each token's `logprob`, nullable `bytes`, and
+`top_logprobs`.
+
+<Note>
+  Token probabilities and alternatives can significantly increase response size.
+  Request them only when needed, and avoid forwarding or persistently logging
+  provider metadata unless your application requires it.
+</Note>
+
 ### Video Input
 
 Kimi K3, Kimi K2.7 Code, Kimi K2.6, and Kimi K2.5 support video input. Pass the video as a `file` content part with a video media type:
@@ -230,6 +275,16 @@ The following optional provider options are available for Moonshot AI language m
 
   Whether to use strict JSON schema validation for structured outputs. Defaults
   to `true`.
+
+- **logprobs** _boolean_
+
+  Whether to return log probabilities for generated tokens. Results are
+  available in `providerMetadata.moonshotai.logprobs`.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return at each token position. Accepts
+  integer values from `0` through `20` and automatically enables `logprobs`.
 
 - **reasoningEffort** _'low' | 'high' | 'max'_
 

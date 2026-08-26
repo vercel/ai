@@ -6,6 +6,7 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { MoonshotAILanguageModelOptions } from './moonshotai-chat-options';
 import { createMoonshotAI } from './moonshotai-provider';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
@@ -796,6 +797,140 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('logprobs', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-logprobs');
+    });
+
+    it('should send logprobs provider options', async () => {
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            logprobs: true,
+            topLogprobs: 20,
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        logprobs: true,
+        top_logprobs: 20,
+      });
+    });
+
+    it('should enable logprobs when topLogprobs is set', async () => {
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            topLogprobs: 0,
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        logprobs: true,
+        top_logprobs: 0,
+      });
+    });
+
+    it.each([-1, 1.5, 21])(
+      'should reject invalid topLogprobs value %s',
+      async topLogprobs => {
+        await expect(
+          provider.chatModel('moonshot-v1-8k').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              moonshotai: {
+                topLogprobs,
+              } satisfies MoonshotAILanguageModelOptions,
+            },
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_InvalidArgumentError',
+          argument: 'providerOptions',
+          message: 'invalid moonshotai provider options',
+        });
+
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
+    it('should expose logprobs in provider metadata without changing text', async () => {
+      const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            logprobs: true,
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(result.content).toEqual([{ type: 'text', text: 'OK!' }]);
+      expect(result.providerMetadata?.moonshotai.logprobs)
+        .toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "bytes": [
+                  79,
+                  75,
+                ],
+                "logprob": -0.0004808938247151673,
+                "token": "OK",
+                "top_logprobs": [
+                  {
+                    "bytes": [
+                      79,
+                      75,
+                    ],
+                    "logprob": -0.0004808938247151673,
+                    "token": "OK",
+                  },
+                ],
+              },
+              {
+                "bytes": null,
+                "logprob": -0.01,
+                "token": "!",
+                "top_logprobs": [
+                  {
+                    "bytes": null,
+                    "logprob": -0.01,
+                    "token": "!",
+                  },
+                ],
+              },
+            ],
+          }
+        `);
+    });
+
+    it('should parse a null logprobs response', async () => {
+      const response = JSON.parse(
+        fs.readFileSync('src/__fixtures__/moonshotai-text.json', 'utf8'),
+      );
+      response.choices[0].logprobs = null;
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: response,
+      };
+
+      const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toEqual({
+        moonshotai: {
+          responseObject: 'chat.completion',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+        },
+      });
+    });
+  });
+
   describe('supportedUrls', () => {
     it('should natively support ms:// file references', () => {
       expect(provider.chatModel('kimi-k3').supportedUrls).toEqual({
@@ -1077,4 +1212,74 @@ describe('doStream', () => {
       ).toEqual({ moonshotai: {} });
     },
   );
+
+  it('should collect streamed logprobs in finish provider metadata', async () => {
+    prepareChunksFixtureResponse('moonshotai-logprobs');
+
+    const result = await provider.chatModel('moonshot-v1-8k').doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        moonshotai: {
+          topLogprobs: 1,
+        } satisfies MoonshotAILanguageModelOptions,
+      },
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      logprobs: true,
+      top_logprobs: 1,
+    });
+    expect(
+      parts
+        .filter(part => part.type === 'text-delta')
+        .map(part => part.delta)
+        .join(''),
+    ).toBe('OK!');
+    expect(parts.find(part => part.type === 'finish')?.providerMetadata)
+      .toMatchInlineSnapshot(`
+        {
+          "moonshotai": {
+            "choiceIndex": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "bytes": [
+                    79,
+                    75,
+                  ],
+                  "logprob": -0.0004457433824427426,
+                  "token": "OK",
+                  "top_logprobs": [
+                    {
+                      "bytes": [
+                        79,
+                        75,
+                      ],
+                      "logprob": -0.0004457433824427426,
+                      "token": "OK",
+                    },
+                  ],
+                },
+                {
+                  "bytes": null,
+                  "logprob": -0.01,
+                  "token": "!",
+                  "top_logprobs": [
+                    {
+                      "bytes": null,
+                      "logprob": -0.01,
+                      "token": "!",
+                    },
+                  ],
+                },
+              ],
+            },
+            "messageRole": "assistant",
+            "responseObject": "chat.completion.chunk",
+          },
+        }
+      `);
+  });
 });
