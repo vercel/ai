@@ -681,7 +681,7 @@ export const anthropicResponseSchema = lazySchema(() =>
                     type: z.literal('web_search_result_location'),
                     cited_text: z.string(),
                     url: z.string(),
-                    title: z.string(),
+                    title: z.string().nullable(),
                     encrypted_index: z.string(),
                   }),
                   z.object({
@@ -700,8 +700,27 @@ export const anthropicResponseSchema = lazySchema(() =>
                     start_char_index: z.number(),
                     end_char_index: z.number(),
                   }),
+                  z.object({
+                    type: z.literal('content_block_location'),
+                    cited_text: z.string(),
+                    document_index: z.number(),
+                    document_title: z.string().nullable(),
+                    start_block_index: z.number(),
+                    end_block_index: z.number(),
+                    file_id: z.string().nullable(),
+                  }),
+                  z.object({
+                    type: z.literal('search_result_location'),
+                    cited_text: z.string(),
+                    search_result_index: z.number(),
+                    source: z.string(),
+                    title: z.string().nullable(),
+                    start_block_index: z.number(),
+                    end_block_index: z.number(),
+                  }),
                 ]),
               )
+              .nullable()
               .optional(),
           }),
           z.object({
@@ -926,6 +945,10 @@ export const anthropicResponseSchema = lazySchema(() =>
                 error_code: z.string(),
               }),
             ]),
+          }),
+          z.object({
+            type: z.literal('container_upload'),
+            file_id: z.string(),
           }),
           // advisor results for advisor_20260301:
           z.object({

@@ -629,6 +629,10 @@ function convertAnthropicBatchResponse(
           },
         });
         break;
+      case 'container_upload':
+        // The v4 result contract has no container-upload output block. The
+        // provider message remains successful and its usage is still returned.
+        break;
       case 'compaction':
         content.push({
           type: 'text',

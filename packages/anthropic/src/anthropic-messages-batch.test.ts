@@ -1354,6 +1354,126 @@ describe('Anthropic Messages batch language model', () => {
       ]);
     });
 
+    it('preserves successful messages with nullable and newer citation shapes', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'citation-shapes',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody('Cited answer'),
+                content: [
+                  { type: 'text', text: 'No citations', citations: null },
+                  {
+                    type: 'text',
+                    text: 'New citations',
+                    citations: [
+                      {
+                        type: 'content_block_location',
+                        cited_text: 'block',
+                        document_index: 0,
+                        document_title: null,
+                        start_block_index: 0,
+                        end_block_index: 1,
+                        file_id: null,
+                      },
+                      {
+                        type: 'search_result_location',
+                        cited_text: 'search result',
+                        search_result_index: 0,
+                        source: 'https://example.com',
+                        title: null,
+                        start_block_index: 0,
+                        end_block_index: 1,
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({ apiKey: 'test-api-key' })(
+        'claude-3-haiku-20240307',
+      );
+
+      const stream = await model.experimental_doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toMatchObject([
+        {
+          id: 'citation-shapes',
+          status: 'succeeded',
+          result: {
+            content: [
+              { type: 'text', text: 'No citations' },
+              { type: 'text', text: 'New citations' },
+            ],
+            usage: {
+              inputTokens: { total: 13 },
+              outputTokens: { total: 3 },
+            },
+          },
+        },
+      ]);
+    });
+
+    it('does not fail a successful message for a container upload block', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'container-upload',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody('Done'),
+                content: [
+                  { type: 'text', text: 'Done' },
+                  { type: 'container_upload', file_id: 'file_123' },
+                ],
+              },
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({ apiKey: 'test-api-key' })(
+        'claude-3-haiku-20240307',
+      );
+
+      const stream = await model.experimental_doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toMatchObject([
+        {
+          id: 'container-upload',
+          status: 'succeeded',
+          result: {
+            content: [{ type: 'text', text: 'Done' }],
+            usage: {
+              inputTokens: { total: 13 },
+              outputTokens: { total: 3 },
+            },
+          },
+        },
+      ]);
+    });
+
     it('rejects a completed batch without output', async () => {
       server.urls[urls.batch].response = {
         type: 'json-value',

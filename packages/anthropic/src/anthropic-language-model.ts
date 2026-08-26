@@ -133,7 +133,7 @@ export function createCitationSource(
       sourceType: 'url' as const,
       id: generateId(),
       url: citation.url,
-      title: citation.title,
+      title: citation.title ?? undefined,
       providerMetadata: {
         anthropic: {
           citedText: citation.cited_text,
