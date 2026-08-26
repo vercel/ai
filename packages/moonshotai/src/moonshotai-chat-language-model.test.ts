@@ -128,6 +128,217 @@ describe('MoonshotAIChatLanguageModel', () => {
         expect(result.warnings).toStrictEqual([]);
       },
     );
+
+    it('should omit unsupported budget tokens and warn', async () => {
+      const result = await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            thinking: { type: 'enabled', budgetTokens: 2048 },
+          },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
+        type: 'enabled',
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'other',
+          message:
+            'providerOptions.moonshotai.thinking.budgetTokens is deprecated because Moonshot Chat Completions does not support budget_tokens. The option has been omitted.',
+        },
+      ]);
+    });
+
+    it('should map K2.6 preserved reasoning to thinking.keep', async () => {
+      await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            thinking: { type: 'enabled' },
+            reasoningHistory: 'preserved',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.thinking).toStrictEqual({
+        type: 'enabled',
+        keep: 'all',
+      });
+      expect(requestBody).not.toHaveProperty('reasoningHistory');
+      expect(requestBody).not.toHaveProperty('reasoning_history');
+    });
+
+    it('should not send other reasoning history modes', async () => {
+      await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { reasoningHistory: 'interleaved' },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('reasoningHistory');
+      expect(requestBody).not.toHaveProperty('reasoning_history');
+      expect(requestBody).not.toHaveProperty('thinking');
+    });
+
+    it('should pass K3 reasoning effort through', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { reasoningEffort: 'low' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+    });
+
+    it('should omit thinking for Kimi K3', async () => {
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            thinking: { type: 'disabled' },
+            reasoningHistory: 'preserved',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'thinking',
+      );
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details:
+            'Kimi K3 always reasons and does not accept providerOptions.moonshotai.thinking. The option has been omitted.',
+        },
+      ]);
+    });
+
+    it.each(['kimi-k2.7-code', 'kimi-k2.7-code-highspeed'] as const)(
+      'should not disable thinking for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: { thinking: { type: 'disabled' } },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'thinking',
+        );
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'providerOptions',
+            details:
+              'Kimi K2.7 thinking cannot be disabled. providerOptions.moonshotai.thinking has been omitted.',
+          },
+        ]);
+      },
+    );
+
+    it('should rely on K2.7 preserved-thinking defaults', async () => {
+      const result = await provider.chatModel('kimi-k2.7-code').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { reasoningHistory: 'preserved' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'thinking',
+      );
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should omit reasoning effort for K2 models and warn', async () => {
+      const result = await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { reasoningEffort: 'high' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'reasoning_effort',
+      );
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details:
+            'providerOptions.moonshotai.reasoningEffort is only supported by Kimi K3 and has been omitted for model "kimi-k2.6".',
+        },
+      ]);
+    });
+
+    it('should omit thinking and reasoning options for Moonshot V1', async () => {
+      const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            reasoningEffort: 'high',
+            thinking: { type: 'enabled' },
+            reasoningHistory: 'preserved',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).not.toHaveProperty('reasoning_effort');
+      expect(requestBody).not.toHaveProperty('thinking');
+      expect(requestBody).not.toHaveProperty('reasoningHistory');
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details:
+            'providerOptions.moonshotai.reasoningEffort is only supported by Kimi K3 and has been omitted for model "moonshot-v1-8k".',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details:
+            'providerOptions.moonshotai.thinking is not supported by model "moonshot-v1-8k" and has been omitted.',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details:
+            'providerOptions.moonshotai.reasoningHistory \'preserved\' is not supported by model "moonshot-v1-8k" and has been omitted.',
+        },
+      ]);
+    });
+
+    it('should omit preserved reasoning for K2.5 and warn', async () => {
+      const result = await provider.chatModel('kimi-k2.5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { reasoningHistory: 'preserved' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'thinking',
+      );
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'providerOptions',
+          details:
+            'providerOptions.moonshotai.reasoningHistory \'preserved\' is not supported by model "kimi-k2.5" and has been omitted.',
+        },
+      ]);
+    });
   });
 
   describe('doStream', () => {
@@ -157,6 +368,33 @@ describe('MoonshotAIChatLanguageModel', () => {
             type: 'unsupported-setting',
             setting: 'topP',
             details: 'topP is fixed by model "kimi-k3" and has been omitted.',
+          },
+        ],
+      });
+    });
+
+    it('should sanitize thinking options and add v2 warnings when streaming', async () => {
+      prepareChunksFixtureResponse('moonshot-text');
+
+      const result = await provider.chatModel('kimi-k2.7-code').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { thinking: { type: 'disabled' } },
+        },
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'thinking',
+      );
+      expect(parts[0]).toStrictEqual({
+        type: 'stream-start',
+        warnings: [
+          {
+            type: 'unsupported-setting',
+            setting: 'providerOptions',
+            details:
+              'Kimi K2.7 thinking cannot be disabled. providerOptions.moonshotai.thinking has been omitted.',
           },
         ],
       });
