@@ -47,6 +47,11 @@ export {
   type LazySchema,
   type Schema,
 } from './schema';
+export {
+  StreamingToolCallTracker,
+  type StreamingToolCallDelta,
+  type StreamingToolCallTrackerOptions,
+} from './streaming-tool-call-tracker';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
