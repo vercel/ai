@@ -7,6 +7,7 @@ import type {
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
+import { moonshotAIChatMetadataExtractor } from './moonshotai-chat-metadata-extractor';
 import {
   getMoonshotAIModelFamily,
   isMoonshotAIKimiModel,
@@ -276,6 +277,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   ) {
     super(modelId, {
       ...config,
+      metadataExtractor: moonshotAIChatMetadataExtractor,
       transformRequestBody: args =>
         transformMoonshotRequestBody(
           config.transformRequestBody?.(args) ?? args,
