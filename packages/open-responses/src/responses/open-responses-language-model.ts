@@ -16,6 +16,7 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   isCustomReasoning,
   jsonSchema,
   mapReasoningToProviderEffort,
@@ -631,6 +632,29 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 raw: chunk.response.error?.code ?? chunk.response.status,
               };
               updateUsage(chunk.response.usage);
+              if (chunk.response.error != null) {
+                controller.enqueue({
+                  type: 'error',
+                  error: createOpenResponsesStreamError({
+                    type: chunk.type,
+                    error: chunk.response.error,
+                    data: chunk,
+                  }),
+                });
+              }
+            } else if (chunk.type === 'error') {
+              finishReason = {
+                unified: 'error',
+                raw: chunk.error.code,
+              };
+              controller.enqueue({
+                type: 'error',
+                error: createOpenResponsesStreamError({
+                  type: chunk.type,
+                  error: chunk.error,
+                  data: chunk,
+                }),
+              });
             }
           },
 
@@ -655,6 +679,23 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function createOpenResponsesStreamError({
+  type,
+  error,
+  data,
+}: {
+  type: 'error' | 'response.failed';
+  error: { message: string; code: string };
+  data: unknown;
+}) {
+  return createProviderStreamError({
+    message: error.message,
+    type,
+    code: error.code,
+    data,
+  });
 }
 
 function createReasoningProviderMetadata({

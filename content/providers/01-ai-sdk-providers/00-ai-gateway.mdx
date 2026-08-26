@@ -207,6 +207,12 @@ const { text } = await generateText({
 
 AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
 
+When an upstream provider reports a well-formed error after streaming has
+started, AI SDK Core exposes it as a
+[`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error).
+Use its `type`, `code`, `statusCode`, and `isRetryable` metadata to classify
+the failure without inspecting the Gateway's serialized error payload.
+
 ## Text Batches
 
 <Note type="warning">

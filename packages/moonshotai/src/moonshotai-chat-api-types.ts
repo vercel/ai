@@ -12,11 +12,13 @@ export type MoonshotAIMessage =
 export interface MoonshotAISystemMessage {
   role: 'system';
   content: string;
+  name?: string;
 }
 
 export interface MoonshotAIUserMessage {
   role: 'user';
   content: string | Array<MoonshotAIContentPart>;
+  name?: string;
 }
 
 export type MoonshotAIContentPart =
@@ -42,6 +44,8 @@ export interface MoonshotAIContentPartVideo {
 export interface MoonshotAIAssistantMessage {
   role: 'assistant';
   content?: string | null;
+  name?: string;
+  partial?: true;
   reasoning_content?: string;
   tool_calls?: Array<MoonshotAIMessageToolCall>;
 }
@@ -94,6 +98,27 @@ export const moonshotAIErrorSchema = z.object({
 
 export type MoonshotAIErrorData = z.infer<typeof moonshotAIErrorSchema>;
 
+const moonshotAIChatLogprobSchema = z.object({
+  token: z.string(),
+  logprob: z.number(),
+  bytes: z.array(z.number()).nullable(),
+  top_logprobs: z.array(
+    z.object({
+      token: z.string(),
+      logprob: z.number(),
+      bytes: z.array(z.number()).nullable(),
+    }),
+  ),
+});
+
+const moonshotAIChatLogprobsSchema = z
+  .object({
+    content: z.array(moonshotAIChatLogprobSchema).nullish(),
+  })
+  .nullish();
+
+export type MoonshotAIChatLogprob = z.infer<typeof moonshotAIChatLogprobSchema>;
+
 export const moonshotAIChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
@@ -116,6 +141,7 @@ export const moonshotAIChatResponseSchema = z.object({
           )
           .nullish(),
       }),
+      logprobs: moonshotAIChatLogprobsSchema,
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -139,7 +165,7 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
                 tool_calls: z
                   .array(
                     z.object({
-                      index: z.number(),
+                      index: z.number().nullish(),
                       id: z.string().nullish(),
                       function: z.object({
                         name: z.string().nullish(),
@@ -150,7 +176,9 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
                   .nullish(),
               })
               .nullish(),
+            logprobs: moonshotAIChatLogprobsSchema,
             finish_reason: z.string().nullish(),
+            usage: tokenUsageSchema,
           }),
         ),
         usage: tokenUsageSchema,
