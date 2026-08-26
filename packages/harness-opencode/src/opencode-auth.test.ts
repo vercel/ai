@@ -168,20 +168,28 @@ describe('resolveOpenCodeAuthenticationMode', () => {
 describe('createOpenCodeRequestTransformations', () => {
   it('uses the resolved OpenAI route', () => {
     expect(
-      createOpenCodeRequestTransformations(
-        {
+      createOpenCodeRequestTransformations({
+        environment: {
           OPENAI_API_KEY: 'openai-secret',
           OPENAI_BASE_URL: 'https://openai.example/v1',
           AI_GATEWAY_API_KEY: 'unselected-gateway-secret',
           AI_GATEWAY_BASE_URL: 'https://unselected-gateway.example/v1',
         },
-        'openai',
-      ),
+        sandboxEnvironment: { OPENAI_API_KEY: 'sandbox-openai-secret' },
+        authenticationMode: 'openai',
+        provider: 'openai',
+      }),
     ).toEqual([
       {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-openai-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
@@ -192,20 +200,62 @@ describe('createOpenCodeRequestTransformations', () => {
 
   it('uses the resolved Gateway route', () => {
     expect(
-      createOpenCodeRequestTransformations(
-        {
+      createOpenCodeRequestTransformations({
+        environment: {
           OPENAI_API_KEY: 'unselected-openai-secret',
           OPENAI_BASE_URL: 'https://unselected-openai.example/v1',
           AI_GATEWAY_API_KEY: 'gateway-secret',
           AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
         },
-        'ai-gateway',
-      ),
+        sandboxEnvironment: {
+          AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
+        },
+        authenticationMode: 'ai-gateway',
+        provider: 'anthropic',
+      }),
     ).toEqual([
       {
         match: {
           host: 'gateway.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-gateway-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer gateway-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('matches an OpenAI Gateway credential as a bearer token', () => {
+    expect(
+      createOpenCodeRequestTransformations({
+        environment: {
+          AI_GATEWAY_API_KEY: 'gateway-secret',
+          AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+        },
+        sandboxEnvironment: {
+          AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
+        },
+        authenticationMode: 'ai-gateway',
+        provider: 'openai',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'gateway.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-gateway-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer gateway-secret' },
@@ -216,21 +266,45 @@ describe('createOpenCodeRequestTransformations', () => {
 
   it('injects both supported Anthropic credential headers', () => {
     expect(
-      createOpenCodeRequestTransformations(
-        {
+      createOpenCodeRequestTransformations({
+        environment: {
           ANTHROPIC_API_KEY: 'api-secret',
           ANTHROPIC_AUTH_TOKEN: 'token-secret',
         },
-        'anthropic',
-      ),
+        sandboxEnvironment: {
+          ANTHROPIC_API_KEY: 'sandbox-api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
+        },
+        authenticationMode: 'anthropic',
+        provider: 'anthropic',
+      }),
     ).toEqual([
       {
-        match: { host: 'api.anthropic.com' },
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-api-secret' },
+            },
+          ],
+        },
         transform: {
-          headers: {
-            'x-api-key': 'api-secret',
-            Authorization: 'Bearer token-secret',
-          },
+          headers: { 'x-api-key': 'api-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-token-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer token-secret' },
         },
       },
     ]);

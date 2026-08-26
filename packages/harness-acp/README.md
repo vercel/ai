@@ -35,13 +35,20 @@ const codexACP = createACP({
   },
   executable: 'codex-acp',
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-  credentialBrokering: ({ env }) => {
-    const credential = env.CODEX_API_KEY ?? env.OPENAI_API_KEY;
-    if (!credential) return [];
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    const environmentVariableName = env.CODEX_API_KEY
+      ? 'CODEX_API_KEY'
+      : 'OPENAI_API_KEY';
+    const credential = env[environmentVariableName];
+    const sandboxCredential = sandboxEnv?.[environmentVariableName];
+    if (!credential || !sandboxCredential) return [];
     return [
       createCredentialRequestTransformation({
-        baseUrl: 'https://api.openai.com/v1',
-        headers: { Authorization: `Bearer ${credential}` },
+        matchUrl: 'https://api.openai.com/v1',
+        matchHeaders: {
+          Authorization: `Bearer ${sandboxCredential}`,
+        },
+        transformHeaders: { Authorization: `Bearer ${credential}` },
       }),
     ];
   },
@@ -82,7 +89,8 @@ try {
 
 Set `CODEX_API_KEY` or `OPENAI_API_KEY` in the host environment. Sandboxes that
 support additive request transformations receive only credential placeholders;
-the real value is injected into matching outbound requests. Other sandboxes
+the real value is injected only when a matching outbound request contains the
+expected placeholder. Other sandboxes
 retain the legacy behavior of forwarding the value to the ACP process. Codex
 ACP supports only `permissionMode: 'allow-all'` because its
 restrictive modes enable Codex's internal sandbox. A bridge-backed ACP harness

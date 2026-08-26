@@ -85,6 +85,7 @@ const acpResumeStateSchema = z.object({
         .optional(),
     })
     .optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
   acpSessionId: z.string().optional(),
   bridge: acpBridgeCoordsSchema.optional(),
   coldSession: acpColdSessionStateSchema.optional(),
