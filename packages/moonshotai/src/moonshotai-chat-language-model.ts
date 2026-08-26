@@ -58,6 +58,35 @@ function prepareSamplingOptions({
   };
 }
 
+function prepareToolChoiceOptions({
+  modelId,
+  options,
+}: {
+  modelId: MoonshotAIChatModelId;
+  options: LanguageModelV2CallOptions;
+}): {
+  options: LanguageModelV2CallOptions;
+  warnings: LanguageModelV2CallWarning[];
+} {
+  if (
+    options.toolChoice?.type !== 'required' ||
+    !['kimi-k2.6', 'kimi-k2.7'].includes(getMoonshotAIModelFamily(modelId))
+  ) {
+    return { options, warnings: [] };
+  }
+
+  return {
+    options: { ...options, toolChoice: undefined },
+    warnings: [
+      {
+        type: 'unsupported-setting',
+        setting: 'toolChoice',
+        details: `toolChoice "required" is not supported by model "${modelId}" and has been omitted; use "auto" or select a specific tool instead.`,
+      },
+    ],
+  };
+}
+
 function prepareReasoningOptions({
   modelId,
   options,
@@ -228,7 +257,12 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
         modelId: this.modelId,
         options: samplingOptions,
       });
-    const result = await super.doGenerate(sanitizedOptions);
+    const { options: toolChoiceOptions, warnings: toolChoiceWarnings } =
+      prepareToolChoiceOptions({
+        modelId: this.modelId,
+        options: sanitizedOptions,
+      });
+    const result = await super.doGenerate(toolChoiceOptions);
 
     // @ts-expect-error accessing response body from parent result
     const usage = result.response?.body?.usage;
@@ -236,7 +270,12 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     return {
       ...result,
       usage: convertMoonshotAIChatUsage(usage),
-      warnings: [...result.warnings, ...samplingWarnings, ...reasoningWarnings],
+      warnings: [
+        ...result.warnings,
+        ...samplingWarnings,
+        ...reasoningWarnings,
+        ...toolChoiceWarnings,
+      ],
     };
   }
 
@@ -251,12 +290,17 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
         modelId: this.modelId,
         options: samplingOptions,
       });
+    const { options: toolChoiceOptions, warnings: toolChoiceWarnings } =
+      prepareToolChoiceOptions({
+        modelId: this.modelId,
+        options: sanitizedOptions,
+      });
 
     // Enable raw chunks to capture pre-Zod usage data, since MoonshotAI
     // returns cached_tokens at the top level of usage (not nested in
     // prompt_tokens_details) and the parent's z.object() schema strips it.
     const result = await super.doStream({
-      ...sanitizedOptions,
+      ...toolChoiceOptions,
       includeRawChunks: true,
     });
 
@@ -277,6 +321,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
                   ...chunk.warnings,
                   ...samplingWarnings,
                   ...reasoningWarnings,
+                  ...toolChoiceWarnings,
                 ],
               });
               return;
