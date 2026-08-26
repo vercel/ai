@@ -1710,7 +1710,7 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
-  it('materializes skills outside the workspace and announces guidance exactly once', async () => {
+  it('materializes skills in the native directory without adding them to prompt guidance', async () => {
     const runs: string[] = [];
     const spawns: Array<{
       command: string;
@@ -1749,8 +1749,8 @@ describe('createACP', () => {
       write.path.endsWith('/release-notes/SKILL.md'),
     );
     expect(skillDefinition).toBeDefined();
-    expect(skillDefinition?.path).toMatch(
-      /^\/home\/agent\/\.ai-sdk\/harness-acp\/codex-acp\/[a-f0-9]{64}\/skills\/release-notes\/SKILL\.md$/,
+    expect(skillDefinition?.path).toBe(
+      '/home/agent/.agents/skills/release-notes/SKILL.md',
     );
     expect(skillDefinition?.path.startsWith('/workspace/user-project')).toBe(
       false,
@@ -1789,7 +1789,8 @@ describe('createACP', () => {
     expect(firstStart.prompt[0]?.text).toContain(
       'Use the supplied project context.',
     );
-    expect(firstStart.prompt[0]?.text).toContain(
+    expect(JSON.stringify(firstStart.prompt)).not.toContain('release-notes');
+    expect(JSON.stringify(firstStart.prompt)).not.toContain(
       skillDefinition?.path ?? 'missing skill path',
     );
     expect(JSON.stringify(firstStart.prompt)).not.toContain(
@@ -1831,13 +1832,57 @@ describe('createACP', () => {
       initialGuidanceApplied: true,
       skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      skillsDirectory: '/home/agent/.agents/skills',
     });
   });
 
-  it('keeps mapped instructions separate from prompts while preserving skill guidance', async () => {
+  it('materializes install-command skills relative to the private implementation home', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createACP({
+      harnessId: 'cursor-skills-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://cursor.com/install -fsS | bash',
+      },
+      executable: 'agent',
+      args: ['--disable-auto-update', 'acp'],
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        writes,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+      skills: [
+        {
+          name: 'release-notes',
+          description: 'Prepare release notes.',
+          content: 'Use active voice.',
+        },
+      ],
+    });
+
+    expect(writes).toContainEqual({
+      path: '/workspace/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
+      content:
+        '---\n' +
+        'name: release-notes\n' +
+        'description: Prepare release notes.\n' +
+        '---\n\n' +
+        'Use active voice.',
+    });
+    await session.doDestroy();
+  });
+
+  it('keeps mapped instructions and native skills separate from prompts', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
     const harness = createACP({
       harnessId: 'claude-acp',
       ...agentSettings,
+      skillsDirectory: '.claude/skills',
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],
@@ -1848,6 +1893,7 @@ describe('createACP', () => {
       sandboxSession: fakeSandbox({
         runs: [],
         spawns: [],
+        writes,
         stop: async () => {},
       }),
       sessionWorkDir: '/workspace/user-project',
@@ -1873,17 +1919,23 @@ describe('createACP', () => {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],
       },
-      prompt: [
-        {
-          type: 'text',
-          text: expect.stringContaining('<available-skills>'),
-        },
-        { type: 'text', text: 'Draft release notes.' },
-      ],
+      prompt: [{ type: 'text', text: 'Draft release notes.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.claude/skills/release-notes/SKILL.md',
+      content:
+        '---\n' +
+        'name: release-notes\n' +
+        'description: Prepare concise release notes.\n' +
+        '---\n\n' +
+        'Use active voice.',
     });
     expect(
       JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
     ).not.toContain('Answer every question in German.');
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
+    ).not.toContain('release-notes');
     channel.emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'end_turn' },
@@ -1981,6 +2033,7 @@ describe('createACP', () => {
       initialGuidanceApplied: true,
       skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      skillsDirectory: '/home/agent/.agents/skills',
     });
     expect(JSON.stringify(resumeFrom)).not.toContain('test-key');
     const writeCount = writes.length;
@@ -2122,6 +2175,7 @@ describe('createACP', () => {
       initialGuidanceApplied: true,
       skillsMaterialized: true,
       skillsFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+      skillsDirectory: '/home/agent/.agents/skills',
     });
     expect(stopped.data).not.toHaveProperty('bridge');
     expect(stopped.data).not.toHaveProperty('turnStartConfig');

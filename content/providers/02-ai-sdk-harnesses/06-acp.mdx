@@ -97,6 +97,9 @@ try {
     unavailable. This requires `providerAuthentication` configuration.
 - `providerAuthentication`: declarative runtime-specific Gateway environment.
 - `modelId`: a known implementation model identifier for Harness metadata.
+- `skillsDirectory`: native skills directory relative to the implementation's
+  effective `$HOME`. It defaults to `.agents/skills`; override it for runtimes
+  that use a different location.
 - `instructionMapping`: optional mapping from `HarnessAgent` instructions to
   an implementation's native system or developer prompt. Use `session-meta`
   for a path below the ACP session request's `_meta` field, or
@@ -271,9 +274,10 @@ By default, the adapter uses the first exposed port. Set `port` on `createACP`
 to select another exposed port. If neither is available, session startup throws
 `HarnessCapabilityUnsupportedError` with instructions to configure one.
 
-Bridge packages, ACP installations, state, replay logs, and projected skills
-live in adapter-owned directories outside the session project. The session
-workspace starts empty.
+Bridge packages, ACP installations, and replay state live in adapter-owned
+directories outside the session project. Skills are written to the configured
+native directory below the implementation's `$HOME`. The session workspace
+starts empty.
 
 ## Tools and Approvals
 
@@ -322,6 +326,7 @@ export const claudeCodeACPHarness = createACP({
     packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
+  skillsDirectory: '.claude/skills',
   credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
   credentialBrokering: ({ env }) => {
     const apiKey = env.ANTHROPIC_API_KEY;

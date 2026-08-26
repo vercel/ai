@@ -1,8 +1,10 @@
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_ACP_SKILLS_DIRECTORY,
   createACPSkillsFingerprint,
   materializeACPSkills,
+  resolveACPSkillsDirectory,
 } from './acp-v1-skills';
 
 function makeSandbox({
@@ -36,27 +38,22 @@ const skill = {
 } as const;
 
 describe('materializeACPSkills', () => {
-  it('writes complete skills beneath sandbox home and returns a compact catalog', async () => {
+  it('writes complete skills to the resolved native directory', async () => {
     const runs: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];
-    const result = await materializeACPSkills({
+    const rootDir = '/home/agent/.agents/skills';
+    await materializeACPSkills({
       sandbox: makeSandbox({ runs, writes }),
-      sandboxHomeDir: '/home/agent',
+      rootDir,
       sessionWorkDir: '/workspace/project',
-      harnessId: 'portable-acp',
-      sessionId: '../../untrusted-session',
       skills: [skill],
       shouldMaterialize: true,
     });
 
-    expect(result.rootDir).toMatch(
-      /^\/home\/agent\/\.ai-sdk\/harness-acp\/portable-acp\/[a-f0-9]{64}\/skills$/,
-    );
-    expect(result.rootDir).not.toContain('untrusted-session');
-    expect(runs).toEqual([`mkdir -p '${result.rootDir}'`]);
+    expect(runs).toEqual([`mkdir -p '${rootDir}'`]);
     expect(writes).toEqual([
       {
-        path: `${result.rootDir}/release-notes/SKILL.md`,
+        path: `${rootDir}/release-notes/SKILL.md`,
         content:
           '---\n' +
           'name: release-notes\n' +
@@ -65,21 +62,10 @@ describe('materializeACPSkills', () => {
           'Complete private skill content.',
       },
       {
-        path: `${result.rootDir}/release-notes/references/style.md`,
+        path: `${rootDir}/release-notes/references/style.md`,
         content: 'Use active voice.',
       },
     ]);
-    expect(result.catalog).toEqual([
-      {
-        name: 'release-notes',
-        description: 'Prepare release notes.',
-        path: `${result.rootDir}/release-notes/SKILL.md`,
-      },
-    ]);
-    expect(JSON.stringify(result.catalog)).not.toContain(
-      'Complete private skill content.',
-    );
-    expect(JSON.stringify(result.catalog)).not.toContain('Use active voice.');
   });
 
   it.each([
@@ -122,10 +108,8 @@ describe('materializeACPSkills', () => {
     await expect(
       materializeACPSkills({
         sandbox: makeSandbox({ runs, writes }),
-        sandboxHomeDir: '/home/agent',
+        rootDir: '/home/agent/.agents/skills',
         sessionWorkDir: '/workspace/project',
-        harnessId: 'portable-acp',
-        sessionId: 'session',
         skills: [{ ...skill, files }],
         shouldMaterialize: true,
       }),
@@ -142,10 +126,8 @@ describe('materializeACPSkills', () => {
     await expect(
       materializeACPSkills({
         sandbox,
-        sandboxHomeDir: '/home/agent',
+        rootDir: '/home/agent/.agents/skills',
         sessionWorkDir: '/workspace/project',
-        harnessId: 'portable-acp',
-        sessionId: 'session',
         skills: [{ ...skill, name: '../release-notes' }],
         shouldMaterialize: true,
       }),
@@ -153,10 +135,8 @@ describe('materializeACPSkills', () => {
     await expect(
       materializeACPSkills({
         sandbox,
-        sandboxHomeDir: '/home/agent',
+        rootDir: '/home/agent/.agents/skills',
         sessionWorkDir: '/workspace/project',
-        harnessId: 'portable-acp',
-        sessionId: 'session',
         skills: [skill, skill],
         shouldMaterialize: true,
       }),
@@ -169,33 +149,62 @@ describe('materializeACPSkills', () => {
     await expect(
       materializeACPSkills({
         sandbox: makeSandbox({ runs: [], writes: [] }),
-        sandboxHomeDir: '/workspace/project',
+        rootDir: '/workspace/project/.agents/skills',
         sessionWorkDir: '/workspace/project',
-        harnessId: 'portable-acp',
-        sessionId: 'session',
         skills: [skill],
         shouldMaterialize: true,
       }),
     ).rejects.toThrow('must be outside sessionWorkDir');
   });
 
-  it('can reconstruct the catalog without rewriting matching resumed skills', async () => {
+  it('does not rewrite matching resumed skills', async () => {
     const runs: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];
-    const result = await materializeACPSkills({
+    await materializeACPSkills({
       sandbox: makeSandbox({ runs, writes }),
-      sandboxHomeDir: '/home/agent',
+      rootDir: '/home/agent/.agents/skills',
       sessionWorkDir: '/workspace/project',
-      harnessId: 'portable-acp',
-      sessionId: 'session',
       skills: [skill],
       shouldMaterialize: false,
     });
 
-    expect(result.catalog).toHaveLength(1);
     expect(runs).toEqual([]);
     expect(writes).toEqual([]);
   });
+});
+
+describe('resolveACPSkillsDirectory', () => {
+  it('uses the standard directory by default', () => {
+    expect(
+      resolveACPSkillsDirectory({
+        implementationHomeDir: '/home/agent',
+        sessionWorkDir: '/workspace/project',
+      }),
+    ).toBe(`/home/agent/${DEFAULT_ACP_SKILLS_DIRECTORY}`);
+  });
+
+  it('resolves a runtime-specific directory relative to implementation home', () => {
+    expect(
+      resolveACPSkillsDirectory({
+        implementationHomeDir: '/home/agent',
+        skillsDirectory: '.claude/skills',
+        sessionWorkDir: '/workspace/project',
+      }),
+    ).toBe('/home/agent/.claude/skills');
+  });
+
+  it.each(['', '.', '/skills', 'C:\\skills', '.agents\\skills', '../skills'])(
+    'rejects invalid directory %j',
+    skillsDirectory => {
+      expect(() =>
+        resolveACPSkillsDirectory({
+          implementationHomeDir: '/home/agent',
+          skillsDirectory,
+          sessionWorkDir: '/workspace/project',
+        }),
+      ).toThrow('must be a relative POSIX path without traversal');
+    },
+  );
 });
 
 describe('createACPSkillsFingerprint', () => {

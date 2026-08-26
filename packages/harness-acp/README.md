@@ -95,3 +95,8 @@ instructions below the ACP session request's `_meta` field. A
 the implementation starts. Without a mapping, the adapter preserves its
 backward-compatible behavior and prepends instructions to the first user
 prompt.
+
+Skills are written to `.agents/skills` below the ACP implementation's effective
+`$HOME` and discovered natively by the implementation. Set `skillsDirectory`
+to another relative path, such as `.claude/skills`, when required by the
+implementation.

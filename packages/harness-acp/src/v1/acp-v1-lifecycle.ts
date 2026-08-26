@@ -8,6 +8,7 @@ export type ACPPromptGuidanceLifecycleState = {
   readonly initialGuidanceApplied?: boolean;
   readonly skillsMaterialized?: boolean;
   readonly skillsFingerprint?: string;
+  readonly skillsDirectory?: string;
 };
 
 export type ACPBridgeCoordinates = {
@@ -49,10 +50,12 @@ export function shouldMaterializeACPSkills({
   isResume,
   lifecycleState,
   skillsFingerprint,
+  skillsDirectory,
 }: {
   isResume: boolean;
   lifecycleState: ACPPromptGuidanceLifecycleState | undefined;
   skillsFingerprint: string;
+  skillsDirectory: string;
 }): boolean {
   if (
     isResume &&
@@ -63,7 +66,11 @@ export function shouldMaterializeACPSkills({
       'ACP lifecycle state was created with a different set of skills.',
     );
   }
-  return !isResume || lifecycleState?.skillsMaterialized !== true;
+  return (
+    !isResume ||
+    lifecycleState?.skillsMaterialized !== true ||
+    lifecycleState.skillsDirectory !== skillsDirectory
+  );
 }
 
 export function validateACPLifecycleCompatibility({
