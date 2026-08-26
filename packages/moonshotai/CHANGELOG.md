@@ -1,5 +1,14 @@
 # @ai-sdk/moonshotai
 
+## 2.0.52
+
+### Patch Changes
+
+- 645e673: Preserve documented Moonshot AI chat response metadata for generate and stream.
+- fe34c75: Add Moonshot Chat Completions log probability options and provider metadata.
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
 ## 2.0.51
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 3.0.103
+
+### Patch Changes
+
+- 9a521b9: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
 ## 3.0.102
 
 ### Patch Changes

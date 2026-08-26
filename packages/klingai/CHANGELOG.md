@@ -1,5 +1,12 @@
 # @ai-sdk/klingai
 
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
 ## 3.0.40
 
 ### Patch Changes

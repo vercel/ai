@@ -1,5 +1,13 @@
 # @ai-sdk/zai
 
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+  - @ai-sdk/openai-compatible@2.0.73
+
 ## 2.0.0
 
 ### Major Changes
