@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "Not found the model definitely-not-a-real-moonshot-model or Permission denied",
+    "type": "resource_not_found_error"
+  }
+}
