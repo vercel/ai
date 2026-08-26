@@ -26,6 +26,12 @@ interface GoogleVertexImageModelConfig {
   };
 }
 
+const googleVertexImageModelsWithFileInputSupport = new Set<string>([
+  'gemini-2.5-flash-image',
+  'gemini-3-pro-image-preview',
+  'gemini-3.1-flash-image-preview',
+]);
+
 export class GoogleVertexImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -46,7 +52,9 @@ export class GoogleVertexImageModel implements ImageModelV4 {
   readonly maxImagesPerCall = 10;
 
   get supportsFileInputs(): boolean | undefined {
-    return this.modelId.startsWith('gemini-') ? true : undefined;
+    return googleVertexImageModelsWithFileInputSupport.has(this.modelId)
+      ? true
+      : undefined;
   }
 
   get supportsMaskInputs(): boolean | undefined {

@@ -65,6 +65,31 @@ describe('GoogleVertexImageModel', () => {
         supportsMaskInputs: false,
       },
       {
+        modelId: 'gemini-3-pro-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-3.1-flash-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-2.5-pro',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-3-pro-preview',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-custom',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
         modelId: 'legacy-image-model',
         supportsFileInputs: undefined,
         supportsMaskInputs: undefined,
