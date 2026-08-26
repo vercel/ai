@@ -30,6 +30,7 @@ export { NoTranscriptGeneratedError } from './no-transcript-generated-error';
 export { NoTranslationGeneratedError } from './no-translation-generated-error';
 export { NoVideoGeneratedError } from './no-video-generated-error';
 export { NoSuchToolError } from './no-such-tool-error';
+export { StreamProviderError } from './stream-provider-error';
 export { ToolCallRepairError } from './tool-call-repair-error';
 export { UnsupportedModelVersionError } from './unsupported-model-version-error';
 export { UIMessageStreamError } from './ui-message-stream-error';

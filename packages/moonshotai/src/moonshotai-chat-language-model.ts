@@ -15,6 +15,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createLanguageModelResponseMetadata as getResponseMetadata,
+  createProviderStreamError,
   generateId,
   isCustomReasoning,
   mapReasoningToProviderEffort,
@@ -36,6 +37,7 @@ import {
   moonshotAIChatChunkSchema,
   moonshotAIChatResponseSchema,
   moonshotAIErrorSchema,
+  type MoonshotAIChatLogprob,
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
 import {
@@ -44,6 +46,7 @@ import {
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
 } from './moonshotai-chat-options';
+import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 import { prepareTools } from './moonshotai-prepare-tools';
 
 export type MoonshotAIChatConfig = {
@@ -54,6 +57,53 @@ export type MoonshotAIChatConfig = {
   includeUsage?: boolean;
   supportsStructuredOutputs?: boolean;
 };
+
+function createMoonshotAIStreamError(
+  error: { message: string; type?: string | null },
+  data: unknown,
+) {
+  return createProviderStreamError({
+    message: error.message,
+    type: error.type ?? undefined,
+    ...getMoonshotAIStreamErrorMetadata(error.type),
+    data,
+  });
+}
+
+function getMoonshotAIStreamErrorMetadata(type?: string | null): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  switch (type) {
+    case 'rate_limit_exceeded':
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'server_error':
+    case 'api_error':
+    case 'internal_server_error':
+      return { statusCode: 500, isRetryable: true };
+    case 'overloaded_error':
+    case 'service_unavailable':
+      return { statusCode: 503, isRetryable: true };
+    case 'timeout':
+    case 'timeout_error':
+      return { statusCode: 504, isRetryable: true };
+    case 'authentication_error':
+    case 'invalid_api_key':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'not_found_error':
+    case 'model_not_found':
+      return { statusCode: 404, isRetryable: false };
+    case 'bad_request':
+    case 'context_length_exceeded':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    default:
+      return {};
+  }
+}
 
 export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -126,8 +176,6 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         schema: moonshotaiLanguageModelOptions,
       })) ?? {};
 
-    const messages = convertToMoonshotAIChatMessages(prompt);
-
     const allWarnings: SharedV4Warning[] = [];
     if (topK != null) {
       allWarnings.push({ type: 'unsupported', feature: 'topK' });
@@ -171,7 +219,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       tools: moonshotTools,
       toolChoice: moonshotToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
     const modelFamily = getMoonshotAIModelFamily(this.modelId);
     const requestedThinking = moonshotOptions.thinking;
@@ -365,10 +413,8 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
           type: 'json_schema',
           json_schema: {
             name: responseFormat.name ?? 'response',
-            schema: schemaWithoutDollarSchema,
-            ...(responseFormat.description != null && {
-              description: responseFormat.description,
-            }),
+            strict: moonshotOptions.strictJsonSchema ?? true,
+            schema: normalizeJsonSchemaForMFJS(schemaWithoutDollarSchema),
           },
         };
       } else {
@@ -376,10 +422,24 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       }
     }
 
+    const { messages, warnings: messageWarnings } =
+      await convertToMoonshotAIChatMessages({
+        modelId: this.modelId,
+        prompt,
+        providerOptionsName: this.providerOptionsName,
+        responseFormat: response_format,
+      });
+    allWarnings.push(...messageWarnings);
+
     return {
       args: {
         model: this.modelId,
-        max_tokens: maxOutputTokens,
+        ...((moonshotOptions.logprobs === true ||
+          moonshotOptions.topLogprobs != null) && { logprobs: true }),
+        ...(moonshotOptions.topLogprobs != null && {
+          top_logprobs: moonshotOptions.topLogprobs,
+        }),
+        max_completion_tokens: maxOutputTokens,
         temperature: supportsSamplingOptions ? temperature : undefined,
         top_p: supportsSamplingOptions ? topP : undefined,
         frequency_penalty: supportsSamplingOptions
@@ -391,6 +451,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         messages,
         tools: moonshotTools,
         tool_choice: moonshotToolChoice,
+        ...(moonshotOptions.prediction != null && {
+          prediction: moonshotOptions.prediction,
+        }),
         ...(thinking != null ? { thinking } : {}),
         ...(reasoningEffort != null && {
           reasoning_effort: reasoningEffort,
@@ -464,6 +527,13 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertMoonshotAIChatUsage(responseBody.usage),
+      ...(choice.logprobs != null && {
+        providerMetadata: {
+          [this.providerOptionsName]: {
+            logprobs: choice.logprobs,
+          },
+        },
+      }),
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -508,7 +578,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
-    let usage: MoonshotAIChatTokenUsage | undefined = undefined;
+    let topLevelUsage: MoonshotAIChatTokenUsage | undefined = undefined;
+    let choiceUsage: MoonshotAIChatTokenUsage | undefined = undefined;
+    const contentLogprobs: MoonshotAIChatLogprob[] = [];
+    const providerOptionsName = this.providerOptionsName;
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
@@ -543,7 +616,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({ type: 'error', error: value.error.message });
+              controller.enqueue({
+                type: 'error',
+                error: createMoonshotAIStreamError(value.error, value),
+              });
               return;
             }
 
@@ -557,16 +633,24 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
             }
 
             if (value.usage != null) {
-              usage = value.usage;
+              topLevelUsage = value.usage;
             }
 
             const choice = value.choices[0];
+
+            if (choice?.usage != null) {
+              choiceUsage = choice.usage;
+            }
 
             if (choice?.finish_reason != null) {
               finishReason = {
                 unified: mapMoonshotAIFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
+            }
+
+            if (choice?.logprobs?.content != null) {
+              contentLogprobs.push(...choice.logprobs.content);
             }
 
             if (choice?.delta == null) {
@@ -625,8 +709,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
                 isActiveReasoning = false;
               }
 
-              for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(toolCallDelta);
+              for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
+                toolCallTracker.processDelta({
+                  ...toolCallDelta,
+                  index: toolCallDelta.index ?? index,
+                });
               }
             }
           },
@@ -645,7 +732,16 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertMoonshotAIChatUsage(usage),
+              usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
+              ...(contentLogprobs.length > 0 && {
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    logprobs: {
+                      content: contentLogprobs,
+                    },
+                  },
+                },
+              }),
             });
           },
         }),

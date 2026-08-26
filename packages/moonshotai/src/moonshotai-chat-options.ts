@@ -1,3 +1,4 @@
+import type { LanguageModelV4FunctionTool } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 export type MoonshotAIChatModelId =
@@ -5,6 +6,10 @@ export type MoonshotAIChatModelId =
   | 'moonshot-v1-8k'
   | 'moonshot-v1-32k'
   | 'moonshot-v1-128k'
+<<<<<<< HEAD
+=======
+  | 'moonshot-v1-auto'
+>>>>>>> origin/main
   | 'moonshot-v1-8k-vision-preview'
   | 'moonshot-v1-32k-vision-preview'
   | 'moonshot-v1-128k-vision-preview'
@@ -42,16 +47,55 @@ export function getMoonshotAIModelFamily(
 
 export const moonshotaiLanguageModelOptions = z.object({
   /**
+<<<<<<< HEAD
    * Reasoning effort for Kimi K3. Supports `low`, `high`, and `max`;
    * defaults to `max`.
+=======
+   * Whether to use strict JSON schema validation for structured outputs.
+   *
+   * @default true
+   */
+  strictJsonSchema: z.boolean().optional(),
+
+  /**
+   * Whether to return log probabilities for generated tokens.
+   */
+  logprobs: z.boolean().optional(),
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   *
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs: z.number().int().min(0).max(20).optional(),
+
+  /**
+   * Reasoning effort for Kimi K3.
+>>>>>>> origin/main
    */
   reasoningEffort: z.enum(['low', 'high', 'max']).optional(),
 
   /**
+<<<<<<< HEAD
    * Thinking configuration for Kimi K2.x models. Kimi K2.5 and K2.6 support
    * enabling or disabling thinking. Kimi K2.7 Code always has thinking
    * enabled.
    */
+=======
+   * Static predicted content that can accelerate responses when much of the
+   * output is known ahead of time.
+   */
+  prediction: z
+    .object({
+      type: z.literal('content'),
+      content: z.union([
+        z.string(),
+        z.array(z.object({ type: z.literal('text'), text: z.string() })),
+      ]),
+    })
+    .optional(),
+
+>>>>>>> origin/main
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),
@@ -86,8 +130,33 @@ export const moonshotaiLanguageModelOptions = z.object({
 });
 
 export type MoonshotAILanguageModelOptions = {
+  /**
+   * Whether to use strict JSON schema validation for structured outputs.
+   *
+   * @default true
+   */
+  strictJsonSchema?: boolean;
+
+  /** Whether to return log probabilities for generated tokens. */
+  logprobs?: boolean;
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs?: number;
+
   /** Reasoning effort for Kimi K3. */
   reasoningEffort?: 'low' | 'high' | 'max';
+
+  /**
+   * Static predicted content that can accelerate responses when much of the
+   * output is known ahead of time.
+   */
+  prediction?: {
+    type: 'content';
+    content: string | Array<{ type: 'text'; text: string }>;
+  };
 
   /** Controls thinking on Kimi K2.5 and K2.6. K2.7 is always enabled. */
   thinking?: {
@@ -110,3 +179,55 @@ export type MoonshotAILanguageModelOptions = {
   promptCacheKey?: string;
   safetyIdentifier?: string;
 };
+
+export const moonshotaiMessageProviderOptions = z.object({
+  /**
+   * The name of the participant represented by the message.
+   *
+   * Supported on system, user, and assistant messages.
+   */
+  name: z.string().optional(),
+});
+
+export type MoonshotAIMessageProviderOptions = z.infer<
+  typeof moonshotaiMessageProviderOptions
+>;
+
+export const moonshotaiAssistantMessageProviderOptions =
+  moonshotaiMessageProviderOptions.extend({
+    /**
+     * Whether the assistant message content is a partial response that Moonshot
+     * should continue. Only supported on the final assistant message and cannot
+     * be combined with JSON object response format.
+     */
+    partial: z.literal(true).optional(),
+  });
+
+export type MoonshotAIAssistantMessageProviderOptions = z.infer<
+  typeof moonshotaiAssistantMessageProviderOptions
+>;
+
+const moonshotaiDynamicToolSchema = z.object({
+  type: z.literal('function'),
+  name: z.string(),
+  description: z.string().optional(),
+  inputSchema: z.record(z.string(), z.unknown()),
+  strict: z.boolean().optional(),
+});
+
+export const moonshotaiAllMessageProviderOptions =
+  moonshotaiAssistantMessageProviderOptions.extend({
+    /** Function tools to load at this point in a Kimi K3 conversation. */
+    tools: z.array(moonshotaiDynamicToolSchema).optional(),
+  });
+
+export type MoonshotAISystemMessageProviderOptions =
+  MoonshotAIMessageProviderOptions & {
+    /** Function tools to load at this point in a Kimi K3 conversation. */
+    tools?: Array<
+      Pick<
+        LanguageModelV4FunctionTool,
+        'type' | 'name' | 'description' | 'inputSchema' | 'strict'
+      >
+    >;
+  };
