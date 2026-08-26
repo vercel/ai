@@ -2,6 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { convertToMoonshotAIChatMessages } from './convert-to-moonshotai-chat-messages';
 
 describe('user messages', () => {
+  const supportedImageMediaTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/bmp',
+    'image/heic',
+    'image/heif',
+  ];
+
+  const supportedVideoMediaTypes = [
+    'video/mp4',
+    'video/mpeg',
+    'video/mov',
+    'video/avi',
+    'video/x-flv',
+    'video/mpg',
+    'video/webm',
+    'video/wmv',
+    'video/3gpp',
+  ];
+
   it('should convert a text-only user message to string content', () => {
     const result = convertToMoonshotAIChatMessages([
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -38,6 +60,39 @@ describe('user messages', () => {
       },
     ]);
   });
+
+  it.each(supportedImageMediaTypes)(
+    'should accept supported image media type %s',
+    mediaType => {
+      const result = convertToMoonshotAIChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+              mediaType,
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: `data:${mediaType};base64,AAECAw==` },
+            },
+          ],
+        },
+      ]);
+    },
+  );
 
   it('should pass through image URLs', () => {
     const result = convertToMoonshotAIChatMessages([
@@ -97,6 +152,39 @@ describe('user messages', () => {
       },
     ]);
   });
+
+  it.each(supportedVideoMediaTypes)(
+    'should accept supported video media type %s',
+    mediaType => {
+      const result = convertToMoonshotAIChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: new Uint8Array([0, 1, 2, 3]),
+              },
+              mediaType,
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'video_url',
+              video_url: { url: `data:${mediaType};base64,AAECAw==` },
+            },
+          ],
+        },
+      ]);
+    },
+  );
 
   it('should pass through video URLs', () => {
     const result = convertToMoonshotAIChatMessages([
@@ -158,6 +246,49 @@ describe('user messages', () => {
     ]);
   });
 
+  it.each([
+    {
+      mediaType: 'image',
+      content: {
+        type: 'image_url',
+        image_url: { url: 'ms://file-image' },
+      },
+    },
+    {
+      mediaType: 'video',
+      content: {
+        type: 'video_url',
+        video_url: { url: 'ms://file-video' },
+      },
+    },
+  ] as const)(
+    'should pass through ms:// file references with top-level $mediaType media types',
+    ({ mediaType, content }) => {
+      const result = convertToMoonshotAIChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url' as const,
+                url: new URL(`ms://file-${mediaType}`),
+              },
+              mediaType,
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [content],
+        },
+      ]);
+    },
+  );
+
   it('should decode text/* file parts into text parts', () => {
     const result = convertToMoonshotAIChatMessages([
       {
@@ -179,6 +310,31 @@ describe('user messages', () => {
       { role: 'user', content: [{ type: 'text', text: 'hello markdown' }] },
     ]);
   });
+
+  it.each(['image/svg+xml', 'image/tiff', 'video/quicktime'])(
+    'should throw for unsupported multimodal media type %s',
+    mediaType => {
+      expect(() =>
+        convertToMoonshotAIChatMessages([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: new Uint8Array([0, 1, 2, 3]),
+                },
+                mediaType,
+              },
+            ],
+          },
+        ]),
+      ).toThrow(
+        `'file part media type ${mediaType}' functionality not supported`,
+      );
+    },
+  );
 
   it('should throw for audio file parts (rejected by the API)', () => {
     expect(() =>

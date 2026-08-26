@@ -1,5 +1,6 @@
 import {
   UnsupportedFunctionalityError,
+  type LanguageModelV4FilePart,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
@@ -10,6 +11,64 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
+
+const supportedImageMediaTypes = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/bmp',
+  'image/heic',
+  'image/heif',
+] as const;
+
+const supportedVideoMediaTypes = [
+  'video/mp4',
+  'video/mpeg',
+  'video/mov',
+  'video/avi',
+  'video/x-flv',
+  'video/mpg',
+  'video/webm',
+  'video/wmv',
+  'video/3gpp',
+] as const;
+
+function formatMediaUrl({
+  part,
+  supportedMediaTypes,
+  topLevelMediaType,
+}: {
+  part: LanguageModelV4FilePart;
+  supportedMediaTypes: readonly string[];
+  topLevelMediaType: 'image' | 'video';
+}): string {
+  if (part.data.type !== 'url' && part.data.type !== 'data') {
+    throw new UnsupportedFunctionalityError({
+      functionality: `file part data type ${part.data.type}`,
+    });
+  }
+
+  const mediaType =
+    part.data.type === 'url' ? part.mediaType : resolveFullMediaType({ part });
+
+  if (
+    !supportedMediaTypes.includes(mediaType) &&
+    !(
+      part.data.type === 'url' &&
+      (mediaType === topLevelMediaType ||
+        mediaType === `${topLevelMediaType}/*`)
+    )
+  ) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `file part media type ${mediaType}`,
+    });
+  }
+
+  return part.data.type === 'url'
+    ? part.data.url.toString()
+    : `data:${mediaType};base64,${convertToBase64(part.data.data)}`;
+}
 
 // Moonshot AI chat completions accepts text, image_url, and video_url content
 // parts only. Anything else (audio, PDF, other file types) throws here rather
@@ -61,10 +120,11 @@ export function convertToMoonshotAIChatMessages(
                       return {
                         type: 'image_url' as const,
                         image_url: {
-                          url:
-                            part.data.type === 'url'
-                              ? part.data.url.toString()
-                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                          url: formatMediaUrl({
+                            part,
+                            supportedMediaTypes: supportedImageMediaTypes,
+                            topLevelMediaType: 'image',
+                          }),
                         },
                       };
                     }
@@ -73,10 +133,11 @@ export function convertToMoonshotAIChatMessages(
                       return {
                         type: 'video_url' as const,
                         video_url: {
-                          url:
-                            part.data.type === 'url'
-                              ? part.data.url.toString()
-                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                          url: formatMediaUrl({
+                            part,
+                            supportedMediaTypes: supportedVideoMediaTypes,
+                            topLevelMediaType: 'video',
+                          }),
                         },
                       };
                     }

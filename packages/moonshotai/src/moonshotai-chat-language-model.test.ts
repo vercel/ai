@@ -1,4 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -216,6 +219,53 @@ describe('doGenerate', () => {
         },
       ]);
     });
+  });
+
+  describe('Files API references', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-text');
+    });
+
+    it.each([
+      {
+        mediaType: 'image',
+        content: {
+          type: 'image_url',
+          image_url: { url: 'ms://file-image' },
+        },
+      },
+      {
+        mediaType: 'video',
+        content: {
+          type: 'video_url',
+          video_url: { url: 'ms://file-video' },
+        },
+      },
+    ] as const)(
+      'should send ms:// references with top-level $mediaType media types',
+      async ({ mediaType, content }) => {
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url' as const,
+                    url: new URL(`ms://file-${mediaType}`),
+                  },
+                  mediaType,
+                },
+              ],
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.messages[0].content).toEqual([content]);
+      },
+    );
   });
 
   describe('thinking options', () => {
@@ -791,6 +841,30 @@ describe('doGenerate', () => {
   });
 
   describe('errors', () => {
+    it('should reject unsupported media before sending a request', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'data' as const,
+                    data: new TextEncoder().encode('<svg></svg>'),
+                  },
+                  mediaType: 'image/svg+xml',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toSatisfy(UnsupportedFunctionalityError.isInstance);
+
+      expect(server.calls).toHaveLength(0);
+    });
+
     it('should map the moonshot error envelope', async () => {
       server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
         type: 'error',
