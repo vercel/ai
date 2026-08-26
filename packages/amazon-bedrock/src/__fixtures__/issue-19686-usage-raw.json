@@ -1,0 +1,92 @@
+{
+  "liveTrace": {
+    "date": "2026-08-26",
+    "model": "anthropic.claude-3-haiku-20240307-v1:0",
+    "region": "us-east-1",
+    "sdkCommit": "d44b07140e29fad5aff9b5c22196e74d96209959",
+    "packageVersion": "4.0.162",
+    "converse": {
+      "providerUsage": {
+        "inputTokens": 11,
+        "outputTokens": 5,
+        "serverToolUsage": {},
+        "totalTokens": 16
+      },
+      "sdkUsage": {
+        "inputTokens": {
+          "total": 11,
+          "noCache": 11,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "outputTokens": {
+          "total": 5,
+          "text": 5
+        },
+        "raw": {
+          "inputTokens": 11,
+          "outputTokens": 5,
+          "totalTokens": 16
+        }
+      },
+      "completeRawEqual": false,
+      "fieldEquality": {
+        "inputTokens": true,
+        "outputTokens": true,
+        "totalTokens": true,
+        "serverToolUsage": false
+      }
+    },
+    "converseStream": {
+      "providerUsage": {
+        "inputTokens": 11,
+        "outputTokens": 5,
+        "serverToolUsage": {},
+        "totalTokens": 16
+      },
+      "sdkUsage": {
+        "inputTokens": {
+          "total": 11,
+          "noCache": 11,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "outputTokens": {
+          "total": 5,
+          "text": 5
+        },
+        "raw": {
+          "inputTokens": 11,
+          "outputTokens": 5
+        }
+      },
+      "completeRawEqual": false,
+      "fieldEquality": {
+        "inputTokens": true,
+        "outputTokens": true,
+        "totalTokens": false,
+        "serverToolUsage": false
+      }
+    }
+  },
+  "deterministicUsage": {
+    "inputTokens": 47,
+    "outputTokens": 20,
+    "totalTokens": 67,
+    "cacheReadInputTokens": 3,
+    "cacheWriteInputTokens": 4,
+    "cacheDetails": [
+      {
+        "inputTokens": 4,
+        "ttl": "T5M",
+        "futureCacheMetadata": {
+          "source": "issue-19686"
+        }
+      }
+    ],
+    "futureUsageMetadata": {
+      "billingClass": "test"
+    }
+  },
+  "deterministicEventStreamBase64": "AAAAWQAAADB2+EJ/DTptZXNzYWdlLXR5cGUHAAVldmVudAs6ZXZlbnQtdHlwZQcAC21lc3NhZ2VTdG9weyJzdG9wUmVhc29uIjoiZW5kX3R1cm4ife9PAscAAAE7AAAALT1Q2S4NOm1lc3NhZ2UtdHlwZQcABWV2ZW50CzpldmVudC10eXBlBwAIbWV0YWRhdGF7InVzYWdlIjp7ImlucHV0VG9rZW5zIjo0Nywib3V0cHV0VG9rZW5zIjoyMCwidG90YWxUb2tlbnMiOjY3LCJjYWNoZVJlYWRJbnB1dFRva2VucyI6MywiY2FjaGVXcml0ZUlucHV0VG9rZW5zIjo0LCJjYWNoZURldGFpbHMiOlt7ImlucHV0VG9rZW5zIjo0LCJ0dGwiOiJUNU0iLCJmdXR1cmVDYWNoZU1ldGFkYXRhIjp7InNvdXJjZSI6Imlzc3VlLTE5Njg2In19XSwiZnV0dXJlVXNhZ2VNZXRhZGF0YSI6eyJiaWxsaW5nQ2xhc3MiOiJ0ZXN0In19fZSpJ3M="
+}

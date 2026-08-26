@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 19686,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19686.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19686.ts",
+    "packages/amazon-bedrock/src/__fixtures__/issue-19686-usage-raw.json",
+    "packages/amazon-bedrock/src/bedrock-usage-raw.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #19686: Amazon Bedrock usage.raw did not preserve the complete provider usage object."
+  }
+}
