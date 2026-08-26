@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "issueId": 19639,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19639-xai-raw-usage.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19639-xai-raw-usage.ts",
+    "packages/xai/src/__fixtures__/xai-text.json",
+    "packages/xai/src/__fixtures__/xai-text.chunks.txt",
+    "packages/xai/src/__fixtures__/issue-19639-generate.json",
+    "packages/xai/src/__fixtures__/issue-19639-stream.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19639_REPRODUCED: xAI Chat Completions usage.raw dropped provider fields"
+  }
+}

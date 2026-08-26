@@ -131,6 +131,61 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should preserve complete raw usage through the response schema', async () => {
+      const response = JSON.parse(
+        fs.readFileSync('src/__fixtures__/xai-text.json', 'utf8'),
+      );
+      response.usage.provider_specific_top_level = {
+        sentinel: 'generate',
+      };
+      response.usage.prompt_tokens_details.provider_specific_nested = 'prompt';
+      response.usage.completion_tokens_details.provider_specific_nested =
+        'completion';
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: response,
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage.raw).toStrictEqual(response.usage);
+      expect(usage).toMatchObject({
+        inputTokens: { total: 12, noCache: 10, cacheRead: 2 },
+        outputTokens: { total: 229, text: 1, reasoning: 228 },
+      });
+    });
+
+    it('should preserve configured-endpoint raw usage fields', async () => {
+      const response = JSON.parse(
+        fs.readFileSync('src/__fixtures__/issue-19639-generate.json', 'utf8'),
+      );
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: response,
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage.raw).toStrictEqual(response.usage);
+      expect(usage).toMatchObject({
+        inputTokens: { total: 675, noCache: 1, cacheRead: 674 },
+        outputTokens: { total: 1, text: 1, reasoning: 0 },
+      });
+    });
+
+    it('should retain known usage field validation', async () => {
+      const response = JSON.parse(
+        fs.readFileSync('src/__fixtures__/xai-text.json', 'utf8'),
+      );
+      response.usage.prompt_tokens = '12';
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: response,
+      };
+
+      await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow();
+    });
+
     it('should send additional response information', async () => {
       prepareJsonFixtureResponse('xai-text');
 
@@ -1011,6 +1066,43 @@ describe('XaiChatLanguageModel', () => {
         });
 
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+    });
+
+    it('should preserve complete raw usage through the chunk schema', async () => {
+      const chunks = fs
+        .readFileSync('src/__fixtures__/issue-19639-stream.chunks.txt', 'utf8')
+        .split('\n')
+        .filter(line => line.length > 0)
+        .map(line => JSON.parse(line));
+      const usageChunk = chunks.at(-1);
+      usageChunk.usage.num_sources_used = 0;
+      usageChunk.usage.provider_specific_top_level = {
+        sentinel: 'stream',
+      };
+      usageChunk.usage.prompt_tokens_details.provider_specific_nested =
+        'prompt';
+      usageChunk.usage.completion_tokens_details.provider_specific_nested =
+        'completion';
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish?.usage.raw).toStrictEqual(usageChunk.usage);
+      expect(finish?.usage).toMatchObject({
+        inputTokens: { total: 675, noCache: 1, cacheRead: 674 },
+        outputTokens: { total: 1, text: 1, reasoning: 0 },
       });
     });
 
