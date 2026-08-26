@@ -626,29 +626,6 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 }
 
 // XAI API Response Schemas
-<<<<<<< HEAD
-const xaiUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  prompt_tokens_details: z
-    .object({
-      text_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      image_tokens: z.number().nullish(),
-      cached_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  completion_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      accepted_prediction_tokens: z.number().nullish(),
-      rejected_prediction_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
-=======
 const xaiUsageSchema = z
   .object({
     prompt_tokens: z.number(),
@@ -675,11 +652,10 @@ const xaiUsageSchema = z
       .nullish(),
   })
   .catchall(z.json());
->>>>>>> dfa73056f8 (fix: preserve complete xAI Chat Completions raw usage metadata (#19644))
 
 export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
-const xaiChatResponseSchema = z.object({
+export const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
