@@ -323,6 +323,18 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
+    const responseSchema =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      // Google GenAI does not support all OpenAPI Schema features,
+      // so this is needed as an escape hatch:
+      // TODO convert into provider option
+      (googleOptions?.structuredOutputs ?? true)
+        ? convertJSONSchemaToOpenAPISchema(responseFormat.schema, {
+            onWarning: warning => warnings.push(warning),
+          })
+        : undefined;
+
     return {
       args: {
         generationConfig: {
@@ -339,15 +351,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           // response format:
           responseMimeType:
             responseFormat?.type === 'json' ? 'application/json' : undefined,
-          responseSchema:
-            responseFormat?.type === 'json' &&
-            responseFormat.schema != null &&
-            // Google GenAI does not support all OpenAPI Schema features,
-            // so this is needed as an escape hatch:
-            // TODO convert into provider option
-            (googleOptions?.structuredOutputs ?? true)
-              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
-              : undefined,
+          responseSchema,
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
           }),

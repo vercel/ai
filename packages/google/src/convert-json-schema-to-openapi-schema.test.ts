@@ -834,6 +834,141 @@ it('should reject enum values with mixed types', () => {
   );
 });
 
+it('should report removed constraints with their JSON Pointer paths', () => {
+  const warnings: Array<{
+    type: string;
+    feature?: string;
+    details?: string;
+  }> = [];
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      'code/name~value': {
+        type: 'string',
+        pattern: '^[A-Z]{2}$',
+        maxLength: 2,
+      },
+      price: {
+        type: 'number',
+        exclusiveMinimum: 0,
+        multipleOf: 0.5,
+      },
+      ids: {
+        type: 'array',
+        items: {
+          type: 'integer',
+          maximum: 10,
+        },
+        uniqueItems: true,
+      },
+    },
+    additionalProperties: false,
+  };
+
+  convertJSONSchemaToOpenAPISchema(input, {
+    onWarning: warning => warnings.push(warning),
+  });
+
+  expect(warnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "additionalProperties"',
+      details:
+        'The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.',
+    },
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "maxLength"',
+      details:
+        'The constraint at "/properties/code~1name~0value/maxLength" is not supported by Google and was removed from the schema sent to the model.',
+    },
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "pattern"',
+      details:
+        'The constraint at "/properties/code~1name~0value/pattern" is not supported by Google and was removed from the schema sent to the model.',
+    },
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "exclusiveMinimum"',
+      details:
+        'The constraint at "/properties/price/exclusiveMinimum" is not supported by Google and was removed from the schema sent to the model.',
+    },
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "multipleOf"',
+      details:
+        'The constraint at "/properties/price/multipleOf" is not supported by Google and was removed from the schema sent to the model.',
+    },
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "uniqueItems"',
+      details:
+        'The constraint at "/properties/ids/uniqueItems" is not supported by Google and was removed from the schema sent to the model.',
+    },
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "maximum"',
+      details:
+        'The constraint at "/properties/ids/items/maximum" is not supported by Google and was removed from the schema sent to the model.',
+    },
+  ]);
+});
+
+it('should report constraints from referenced definitions at their source paths', () => {
+  const warnings: unknown[] = [];
+  const input = {
+    type: 'object',
+    properties: {
+      value: { $ref: '#/$defs/value~1type' },
+    },
+    $defs: {
+      'value/type': {
+        type: 'string',
+        pattern: '^value$',
+      },
+    },
+  } as JSONSchema7 & { $defs: Record<string, JSONSchema7> };
+
+  convertJSONSchemaToOpenAPISchema(input, {
+    onWarning: warning => warnings.push(warning),
+  });
+
+  expect(warnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "pattern"',
+      details:
+        'The constraint at "/$defs/value~1type/pattern" is not supported by Google and was removed from the schema sent to the model.',
+    },
+  ]);
+});
+
+it('should report oneOf compatibility without warning for preserved constraints', () => {
+  const warnings: unknown[] = [];
+
+  convertJSONSchemaToOpenAPISchema(
+    {
+      oneOf: [
+        { type: 'string', minLength: 2 },
+        { type: 'string', const: 'invoice' },
+      ],
+    },
+    {
+      onWarning: warning => warnings.push(warning),
+    },
+  );
+
+  expect(warnings).toEqual([
+    {
+      type: 'compatibility',
+      feature: 'JSON Schema constraint "oneOf"',
+      details:
+        'Google treats "oneOf" as "anyOf" at "/oneOf". Values matching multiple branches may be accepted.',
+    },
+  ]);
+});
+
 it('should convert nullable string enum', () => {
   const schemaWithEnumProperty: JSONSchema7 = {
     type: 'object',

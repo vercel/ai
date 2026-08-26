@@ -1672,6 +1672,42 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should report constraints removed from response schemas', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    const { warnings } = await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            code: {
+              type: 'string',
+              pattern: '^[A-Z]{2}$',
+            },
+          },
+          additionalProperties: false,
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'JSON Schema constraint "additionalProperties"',
+        details:
+          'The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.',
+      },
+      {
+        type: 'unsupported',
+        feature: 'JSON Schema constraint "pattern"',
+        details:
+          'The constraint at "/properties/code/pattern" is not supported by Google and was removed from the schema sent to the model.',
+      },
+    ]);
+  });
+
   it('should inline local JSON Schema references in response schemas', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -4875,6 +4911,35 @@ describe('doStream', () => {
     };
   };
 
+  it('should include removed response schema constraints in stream warnings', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'string',
+          pattern: '^[A-Z]{2}$',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events[0]).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'JSON Schema constraint "pattern"',
+          details:
+            'The constraint at "/pattern" is not supported by Google and was removed from the schema sent to the model.',
+        },
+      ],
+    });
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-text');
@@ -6847,7 +6912,13 @@ describe('doStream', () => {
     expect(events[0]).toMatchInlineSnapshot(`
       {
         "type": "stream-start",
-        "warnings": [],
+        "warnings": [
+          {
+            "details": "The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.",
+            "feature": "JSON Schema constraint "additionalProperties"",
+            "type": "unsupported",
+          },
+        ],
       }
     `);
   });
@@ -6967,6 +7038,11 @@ describe('doStream', () => {
             {
               "message": "'streamFunctionCallArguments' is only supported on the Vertex AI API and will be ignored with the current Google provider (google.generative-ai). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc",
               "type": "other",
+            },
+            {
+              "details": "The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.",
+              "feature": "JSON Schema constraint "additionalProperties"",
+              "type": "unsupported",
             },
           ],
         },

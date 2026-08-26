@@ -2,6 +2,7 @@ import {
   UnsupportedFunctionalityError,
   type JSONSchema7,
   type JSONSchema7Definition,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 
 type JSONSchema7WithDefinitions = JSONSchema7 & {
@@ -12,10 +13,36 @@ type ReferenceContext = {
   definitions: Record<string, JSONSchema7Definition> | undefined;
   dollarDefinitions: Record<string, JSONSchema7Definition> | undefined;
   resolvingReferences: ReadonlySet<string>;
+  onWarning: ((warning: SharedV4Warning) => void) | undefined;
 };
 
 const recursiveReferenceFunctionalityPrefix =
   'recursive JSON Schema reference:';
+
+const unsupportedConstraintKeywords = [
+  'additionalItems',
+  'additionalProperties',
+  'contains',
+  'dependencies',
+  'exclusiveMaximum',
+  'exclusiveMinimum',
+  'if',
+  'maxItems',
+  'maxLength',
+  'maxProperties',
+  'maximum',
+  'minItems',
+  'minProperties',
+  'minimum',
+  'multipleOf',
+  'not',
+  'pattern',
+  'patternProperties',
+  'propertyNames',
+  'then',
+  'else',
+  'uniqueItems',
+] as const;
 
 export function isRecursiveJSONSchemaReferenceError(
   error: unknown,
@@ -31,24 +58,31 @@ export function isRecursiveJSONSchemaReferenceError(
  */
 export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition | undefined,
-  isRoot = true,
+  {
+    onWarning,
+  }: {
+    onWarning?: (warning: SharedV4Warning) => void;
+  } = {},
 ): unknown {
   const rootSchema =
     typeof jsonSchema === 'object'
       ? (jsonSchema as JSONSchema7WithDefinitions)
       : undefined;
 
-  return convertJSONSchemaDefinition(jsonSchema, isRoot, {
+  return convertJSONSchemaDefinition(jsonSchema, true, '', {
     definitions: rootSchema?.definitions,
     dollarDefinitions: rootSchema?.$defs,
     resolvingReferences: new Set(),
+    onWarning,
   });
 }
 
 function convertJSONSchemaDefinition(
   jsonSchema: JSONSchema7Definition | undefined,
   isRoot: boolean,
+  schemaPath: string,
   referenceContext: ReferenceContext,
+  keywordSourcePaths?: Readonly<Record<string, string>>,
 ): unknown {
   if (jsonSchema == null) {
     return undefined;
@@ -63,9 +97,17 @@ function convertJSONSchemaDefinition(
       jsonSchema,
       reference: jsonSchema.$ref,
       isRoot,
+      schemaPath,
       referenceContext,
     });
   }
+
+  reportLossySchemaConversion(
+    jsonSchema,
+    schemaPath,
+    referenceContext,
+    keywordSourcePaths,
+  );
 
   // Handle empty object schemas: undefined at root, preserved when nested
   if (isEmptyObjectSchema(jsonSchema)) {
@@ -131,7 +173,22 @@ function convertJSONSchemaDefinition(
   if (properties != null) {
     result.properties = Object.entries(properties).reduce(
       (acc, [key, value]) => {
-        acc[key] = convertJSONSchemaDefinition(value, false, referenceContext);
+        acc[key] = convertJSONSchemaDefinition(
+          value,
+          false,
+          appendJSONPointer(
+            appendJSONPointer(
+              getKeywordSourcePath(
+                schemaPath,
+                'properties',
+                keywordSourcePaths,
+              ),
+              'properties',
+            ),
+            key,
+          ),
+          referenceContext,
+        );
         return acc;
       },
       {} as Record<string, unknown>,
@@ -140,15 +197,45 @@ function convertJSONSchemaDefinition(
 
   if (items) {
     result.items = Array.isArray(items)
-      ? items.map(item =>
-          convertJSONSchemaDefinition(item, false, referenceContext),
+      ? items.map((item, index) =>
+          convertJSONSchemaDefinition(
+            item,
+            false,
+            appendJSONPointer(
+              appendJSONPointer(
+                getKeywordSourcePath(schemaPath, 'items', keywordSourcePaths),
+                'items',
+              ),
+              String(index),
+            ),
+            referenceContext,
+          ),
         )
-      : convertJSONSchemaDefinition(items, false, referenceContext);
+      : convertJSONSchemaDefinition(
+          items,
+          false,
+          appendJSONPointer(
+            getKeywordSourcePath(schemaPath, 'items', keywordSourcePaths),
+            'items',
+          ),
+          referenceContext,
+        );
   }
 
   if (allOf) {
-    result.allOf = allOf.map(item =>
-      convertJSONSchemaDefinition(item, false, referenceContext),
+    result.allOf = allOf.map((item, index) =>
+      convertJSONSchemaDefinition(
+        item,
+        false,
+        appendJSONPointer(
+          appendJSONPointer(
+            getKeywordSourcePath(schemaPath, 'allOf', keywordSourcePaths),
+            'allOf',
+          ),
+          String(index),
+        ),
+        referenceContext,
+      ),
     );
   }
   if (anyOf) {
@@ -167,6 +254,13 @@ function convertJSONSchemaDefinition(
         const converted = convertJSONSchemaDefinition(
           nonNullSchemas[0],
           false,
+          appendJSONPointer(
+            appendJSONPointer(
+              getKeywordSourcePath(schemaPath, 'anyOf', keywordSourcePaths),
+              'anyOf',
+            ),
+            String(anyOf.indexOf(nonNullSchemas[0])),
+          ),
           referenceContext,
         );
         if (typeof converted === 'object') {
@@ -176,19 +270,52 @@ function convertJSONSchemaDefinition(
       } else {
         // If there are multiple non-null schemas, keep them in anyOf
         result.anyOf = nonNullSchemas.map(item =>
-          convertJSONSchemaDefinition(item, false, referenceContext),
+          convertJSONSchemaDefinition(
+            item,
+            false,
+            appendJSONPointer(
+              appendJSONPointer(
+                getKeywordSourcePath(schemaPath, 'anyOf', keywordSourcePaths),
+                'anyOf',
+              ),
+              String(anyOf.indexOf(item)),
+            ),
+            referenceContext,
+          ),
         );
         result.nullable = true;
       }
     } else {
-      result.anyOf = anyOf.map(item =>
-        convertJSONSchemaDefinition(item, false, referenceContext),
+      result.anyOf = anyOf.map((item, index) =>
+        convertJSONSchemaDefinition(
+          item,
+          false,
+          appendJSONPointer(
+            appendJSONPointer(
+              getKeywordSourcePath(schemaPath, 'anyOf', keywordSourcePaths),
+              'anyOf',
+            ),
+            String(index),
+          ),
+          referenceContext,
+        ),
       );
     }
   }
   if (oneOf) {
-    result.oneOf = oneOf.map(item =>
-      convertJSONSchemaDefinition(item, false, referenceContext),
+    result.oneOf = oneOf.map((item, index) =>
+      convertJSONSchemaDefinition(
+        item,
+        false,
+        appendJSONPointer(
+          appendJSONPointer(
+            getKeywordSourcePath(schemaPath, 'oneOf', keywordSourcePaths),
+            'oneOf',
+          ),
+          String(index),
+        ),
+        referenceContext,
+      ),
     );
   }
 
@@ -203,14 +330,16 @@ function convertJSONSchemaReference({
   jsonSchema,
   reference,
   isRoot,
+  schemaPath,
   referenceContext,
 }: {
   jsonSchema: JSONSchema7;
   reference: string;
   isRoot: boolean;
+  schemaPath: string;
   referenceContext: ReferenceContext;
 }): unknown {
-  const { definition, referenceKey } = getReferencedDefinition(
+  const { definition, definitionPath, referenceKey } = getReferencedDefinition(
     reference,
     referenceContext,
   );
@@ -237,11 +366,26 @@ function convertJSONSchemaReference({
         ? siblingSchema
         : false
       : { ...definition, ...siblingSchema };
+  const keywordSourcePaths =
+    typeof definition === 'object'
+      ? Object.fromEntries([
+          ...Object.keys(definition).map(key => [key, definitionPath]),
+          ...Object.keys(siblingSchema).map(key => [key, schemaPath]),
+        ])
+      : Object.fromEntries(
+          Object.keys(siblingSchema).map(key => [key, schemaPath]),
+        );
 
-  return convertJSONSchemaDefinition(resolvedSchema, isRoot, {
-    ...referenceContext,
-    resolvingReferences,
-  });
+  return convertJSONSchemaDefinition(
+    resolvedSchema,
+    isRoot,
+    definitionPath,
+    {
+      ...referenceContext,
+      resolvingReferences,
+    },
+    keywordSourcePaths,
+  );
 }
 
 function getReferencedDefinition(
@@ -249,6 +393,7 @@ function getReferencedDefinition(
   referenceContext: ReferenceContext,
 ): {
   definition: JSONSchema7Definition;
+  definitionPath: string;
   referenceKey: string;
 } {
   const definitionSources = [
@@ -305,8 +450,65 @@ function getReferencedDefinition(
 
   return {
     definition: source.definitions[definitionName],
+    definitionPath: `${source.prefix === '#/$defs/' ? '/$defs' : '/definitions'}/${escapeJSONPointerSegment(definitionName)}`,
     referenceKey: `${source.prefix}${definitionName}`,
   };
+}
+
+function reportLossySchemaConversion(
+  jsonSchema: JSONSchema7,
+  schemaPath: string,
+  { onWarning }: ReferenceContext,
+  keywordSourcePaths?: Readonly<Record<string, string>>,
+): void {
+  if (onWarning == null) {
+    return;
+  }
+
+  for (const keyword of unsupportedConstraintKeywords) {
+    if (!Object.prototype.hasOwnProperty.call(jsonSchema, keyword)) {
+      continue;
+    }
+
+    onWarning({
+      type: 'unsupported',
+      feature: `JSON Schema constraint "${keyword}"`,
+      details:
+        `The constraint at "${appendJSONPointer(
+          getKeywordSourcePath(schemaPath, keyword, keywordSourcePaths),
+          keyword,
+        )}" ` +
+        'is not supported by Google and was removed from the schema sent to the model.',
+    });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(jsonSchema, 'oneOf')) {
+    onWarning({
+      type: 'compatibility',
+      feature: 'JSON Schema constraint "oneOf"',
+      details:
+        `Google treats "oneOf" as "anyOf" at "${appendJSONPointer(
+          getKeywordSourcePath(schemaPath, 'oneOf', keywordSourcePaths),
+          'oneOf',
+        )}". ` + 'Values matching multiple branches may be accepted.',
+    });
+  }
+}
+
+function getKeywordSourcePath(
+  schemaPath: string,
+  keyword: string,
+  keywordSourcePaths: Readonly<Record<string, string>> | undefined,
+): string {
+  return keywordSourcePaths?.[keyword] ?? schemaPath;
+}
+
+function appendJSONPointer(pointer: string, segment: string): string {
+  return `${pointer}/${escapeJSONPointerSegment(segment)}`;
+}
+
+function escapeJSONPointerSegment(segment: string): string {
+  return segment.replace(/~/g, '~0').replace(/\//g, '~1');
 }
 
 function throwUnsupportedReference(reference: string): never {

@@ -1001,6 +1001,42 @@ The errors that you get in this case look like this:
 
 `GenerateContentRequest.generation_config.response_schema.properties[occupation].type: must be specified`
 
+When `generateText` or `streamText` removes a constraint while converting a
+tool input or structured output schema, the provider adds an `unsupported`
+warning to `result.warnings`. The warning identifies the removed keyword and
+its location as a JSON Pointer, for example `/properties/code/pattern`.
+
+```ts highlight="9-12,18"
+import { google } from '@ai-sdk/google';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: google('gemini-2.5-flash'),
+  tools: {
+    lookupInvoice: tool({
+      inputSchema: z.object({
+        code: z.string().regex(/^[A-Z]{2}$/),
+      }),
+    }),
+  },
+  prompt: 'Look up invoice AB.',
+});
+
+console.log(result.warnings);
+```
+
+Constraints that may be removed include string patterns and maximum lengths,
+numeric bounds and multiples, array uniqueness and size bounds, object property
+constraints, conditional schemas, and negated schemas. The converted schema can
+therefore accept values that the original schema rejects. Continue validating
+generated structured outputs and tool inputs against the original schema.
+
+Google treats JSON Schema `oneOf` like `anyOf`. The provider emits a
+`compatibility` warning for every `oneOf` location because a value that matches
+multiple branches is rejected by JSON Schema `oneOf` but can be accepted by
+Google.
+
 By default, structured outputs are enabled (and for tool calling they are required).
 You can disable structured outputs for object generation as a workaround:
 

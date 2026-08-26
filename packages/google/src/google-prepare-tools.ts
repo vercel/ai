@@ -186,7 +186,9 @@ export function prepareTools({
       const functionDeclarations: GoogleFunctionDeclaration[] = [];
       for (const tool of tools) {
         if (tool.type === 'function') {
-          functionDeclarations.push(prepareFunctionDeclaration(tool));
+          functionDeclarations.push(
+            prepareFunctionDeclaration(tool, toolWarnings),
+          );
         }
       }
 
@@ -241,7 +243,9 @@ export function prepareTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function':
-        functionDeclarations.push(prepareFunctionDeclaration(tool));
+        functionDeclarations.push(
+          prepareFunctionDeclaration(tool, toolWarnings),
+        );
         if (tool.strict === true) {
           hasStrictTools = true;
         }
@@ -316,6 +320,7 @@ export function prepareTools({
 
 function prepareFunctionDeclaration(
   tool: FunctionTool,
+  toolWarnings: SharedV4Warning[],
 ): GoogleFunctionDeclaration {
   const declaration = {
     name: tool.name,
@@ -323,9 +328,15 @@ function prepareFunctionDeclaration(
   };
 
   try {
+    const schemaWarnings: SharedV4Warning[] = [];
+    const parameters = convertJSONSchemaToOpenAPISchema(tool.inputSchema, {
+      onWarning: warning => schemaWarnings.push(warning),
+    });
+    toolWarnings.push(...schemaWarnings);
+
     return {
       ...declaration,
-      parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
+      parameters,
     };
   } catch (error) {
     if (!isRecursiveJSONSchemaReferenceError(error)) {

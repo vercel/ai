@@ -53,11 +53,50 @@ it('should correctly prepare function tools', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
+it('should report constraints removed from function tool schemas', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'lookupInvoice',
+        description: 'Look up an invoice',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            code: {
+              type: 'string',
+              pattern: '^[A-Z]{2}$',
+            },
+          },
+          additionalProperties: false,
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.toolWarnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "additionalProperties"',
+      details:
+        'The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.',
+    },
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "pattern"',
+      details:
+        'The constraint at "/properties/code/pattern" is not supported by Google and was removed from the schema sent to the model.',
+    },
+  ]);
+});
+
 it('should preserve recursive function tool schemas as JSON Schema', () => {
   const inputSchema = {
     type: 'object',
     properties: {
       condition: { $ref: '#/$defs/Condition' },
+      label: { type: 'string', pattern: '^condition-' },
     },
     required: ['condition'],
     $defs: {
@@ -96,6 +135,7 @@ it('should preserve recursive function tool schemas as JSON Schema', () => {
       ],
     },
   ]);
+  expect(result.toolWarnings).toEqual([]);
 });
 
 it('should correctly prepare provider-defined tools as array', () => {
@@ -953,7 +993,14 @@ it('should use VALIDATED mode when any function tool has strict: true', () => {
   expect(result.toolConfig).toEqual({
     functionCallingConfig: { mode: 'VALIDATED' },
   });
-  expect(result.toolWarnings).toEqual([]);
+  expect(result.toolWarnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "additionalProperties"',
+      details:
+        'The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.',
+    },
+  ]);
 });
 
 it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
