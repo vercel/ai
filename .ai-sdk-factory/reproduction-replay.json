@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19668,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-opencode-subagent-usage.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/harness-opencode-subagent-usage.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19668_REPRODUCED: completed child model step produced no opencode.subagent-usage raw record"
+  }
+}
