@@ -1,14 +1,10 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import {
-<<<<<<< HEAD
   type StandardSchemaV1,
   type Tool,
   type Validator,
   lazyValidator,
-=======
-  lazySchema,
   safeValidateTypes,
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
   validateTypes,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -23,16 +19,6 @@ import type {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
-
-<<<<<<< HEAD
-const uiMessagesSchema = lazyValidator(() =>
-=======
-const toolMetadataSchema: ZodType<JSONObject> = z.record(
-  z.string(),
-  jsonValueSchema.optional(),
-);
-
-const providerReferenceSchema = z.record(z.string(), z.string());
 
 function isEmptyObject(value: unknown): value is Record<string, never> {
   return (
@@ -53,8 +39,7 @@ function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   } as DynamicToolUIPart;
 }
 
-const uiMessagesSchema = lazySchema(() =>
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
+const uiMessagesSchema = lazyValidator(() =>
   zodSchema(
     z
       .array(
@@ -146,7 +131,8 @@ const uiMessagesSchema = lazySchema(() =>
                   toolName: z.string(),
                   toolCallId: z.string(),
                   state: z.literal('output-error'),
-                  input: z.unknown(),
+                  input: z.unknown().optional(),
+                  rawInput: z.unknown().optional(),
                   providerExecuted: z.boolean().optional(),
                   output: z.never().optional(),
                   errorText: z.string(),
@@ -226,7 +212,8 @@ const uiMessagesSchema = lazySchema(() =>
                   toolCallId: z.string(),
                   state: z.literal('output-error'),
                   providerExecuted: z.boolean().optional(),
-                  input: z.unknown(),
+                  input: z.unknown().optional(),
+                  rawInput: z.unknown().optional(),
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
@@ -302,19 +289,19 @@ type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
   };
 };
 
-async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
-  {
-    messages,
-    metadataSchema,
-    dataSchemas,
-    tools,
-  }: ValidateUIMessagesOptions<UI_MESSAGE>,
-  {
-    convertMissingTerminalToolsToDynamic,
-  }: {
-    convertMissingTerminalToolsToDynamic: boolean;
-  },
-): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
+/**
+ * Validates a list of UI messages like `validateUIMessages`,
+ * but instead of throwing it returns `{ success: true, data }`
+ * or `{ success: false, error }`.
+ */
+export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
+  messages,
+  metadataSchema,
+  dataSchemas,
+  tools,
+}: ValidateUIMessagesOptions<UI_MESSAGE>): Promise<
+  SafeValidateUIMessagesResult<UI_MESSAGE>
+> {
   try {
     if (messages == null) {
       return {
@@ -341,25 +328,11 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
       }
     }
 
-<<<<<<< HEAD
     if (dataSchemas) {
       for (const message of validatedMessages) {
         const dataParts = message.parts.filter(part =>
           part.type.startsWith('data-'),
         ) as DataUIPart<InferUIMessageData<UI_MESSAGE>>[];
-=======
-    const shouldValidateToolParts =
-      tools != null || convertMissingTerminalToolsToDynamic;
-
-    if (dataSchemas || shouldValidateToolParts) {
-      for (const [msgIdx, message] of validatedMessages.entries()) {
-        for (const [partIdx, part] of message.parts.entries()) {
-          // Data part validation
-          if (dataSchemas && part.type.startsWith('data-')) {
-            const dataPart = part as DataUIPart<InferUIMessageData<UI_MESSAGE>>;
-            const dataName = dataPart.type.slice(5);
-            const dataSchema = dataSchemas[dataName];
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
 
         for (const dataPart of dataParts) {
           const dataName = dataPart.type.slice(5);
@@ -385,13 +358,31 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
 
     if (tools) {
       for (const message of validatedMessages) {
-        const toolParts = message.parts.filter(part =>
-          part.type.startsWith('tool-'),
-        ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>[];
+        for (const [partIdx, part] of message.parts.entries()) {
+          if (!part.type.startsWith('tool-')) {
+            continue;
+          }
 
-        for (const toolPart of toolParts) {
+          const toolPart = part as {
+            type: `tool-${string}`;
+            toolCallId: string;
+            state: string;
+            input?: unknown;
+            output?: unknown;
+          };
           const toolName = toolPart.type.slice(5);
           const tool = tools[toolName];
+          const isTerminal =
+            toolPart.state === 'output-available' ||
+            toolPart.state === 'output-error' ||
+            toolPart.state === 'output-denied';
+
+          if (!tool && isTerminal) {
+            message.parts[partIdx] = asDynamicToolPart(
+              toolPart as ToolUIPart,
+            ) as (typeof message.parts)[number];
+            continue;
+          }
 
           if (!tool) {
             return {
@@ -403,129 +394,57 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
             };
           }
 
-          if (toolPart.state === 'input-available') {
+          let convertToDynamic = false;
+
+          if (toolPart.state === 'output-error') {
+            // Failed calls can retain invalid or unparsed input. Preserve
+            // absent input, and expose incompatible parsed input as unknown.
+            if (toolPart.input !== undefined) {
+              const result = await safeValidateTypes({
+                value: toolPart.input,
+                schema: tool.inputSchema,
+              });
+              convertToDynamic = !result.success;
+            }
+          } else if (toolPart.state === 'output-available') {
+            const result = await safeValidateTypes({
+              value: toolPart.input,
+              schema: tool.inputSchema,
+            });
+
+            if (!result.success) {
+              // Empty terminal input can represent incomplete persisted
+              // history. Keep it loadable without assigning the current static
+              // tool input type.
+              if (isEmptyObject(toolPart.input)) {
+                convertToDynamic = true;
+              } else {
+                throw result.error;
+              }
+            }
+          } else if (
+            toolPart.state === 'input-available' ||
+            toolPart.state === 'approval-requested' ||
+            toolPart.state === 'approval-responded' ||
+            toolPart.state === 'output-denied'
+          ) {
             await validateTypes({
               value: toolPart.input,
               schema: tool.inputSchema,
             });
           }
 
-<<<<<<< HEAD
           if (toolPart.state === 'output-available' && tool.outputSchema) {
             await validateTypes({
               value: toolPart.output,
               schema: tool.outputSchema,
             });
-=======
-          // Tool part validation
-          if (shouldValidateToolParts && part.type.startsWith('tool-')) {
-            const toolPart = part as ToolUIPart<
-              InferUIMessageTools<UI_MESSAGE>
-            >;
-            const toolName = toolPart.type.slice(5);
-            const tool = tools == null ? undefined : getOwn(tools, toolName);
-            const isTerminal =
-              toolPart.state === 'output-available' ||
-              toolPart.state === 'output-error' ||
-              toolPart.state === 'output-denied';
+          }
 
-            if (!tool && isTerminal) {
-              if (tools != null || convertMissingTerminalToolsToDynamic) {
-                // Persisted terminal history can reference tools that are no
-                // longer registered. Normalize those parts so callers do not
-                // receive unvalidated values under current static tool types.
-                message.parts[partIdx] = asDynamicToolPart(
-                  toolPart,
-                ) as (typeof message.parts)[number];
-              }
-              continue;
-            }
-
-            // TODO support dynamic tools
-            if (!tool) {
-              return {
-                success: false,
-                error: new TypeValidationError({
-                  value: toolPart.input,
-                  cause: `No tool schema found for tool part ${toolName}`,
-                  context: {
-                    field: `messages[${msgIdx}].parts[${partIdx}].input`,
-                    entityName: toolName,
-                    entityId: toolPart.toolCallId,
-                  },
-                }),
-              };
-            }
-
-            const inputValidationContext = {
-              field: `messages[${msgIdx}].parts[${partIdx}].input`,
-              entityName: toolName,
-              entityId: toolPart.toolCallId,
-            };
-            let convertToDynamic = false;
-
-            // Tool input validation
-            if (toolPart.state === 'output-error') {
-              // Failed calls can retain invalid input. Keep them loadable, but
-              // expose incompatible input as unknown instead of the current
-              // static tool input type.
-              if (toolPart.input !== undefined) {
-                const result = await safeValidateTypes({
-                  value: toolPart.input,
-                  schema: tool.inputSchema,
-                  context: inputValidationContext,
-                });
-                convertToDynamic = !result.success;
-              }
-            } else if (toolPart.state === 'output-available') {
-              const result = await safeValidateTypes({
-                value: toolPart.input,
-                schema: tool.inputSchema,
-                context: inputValidationContext,
-              });
-
-              if (!result.success) {
-                // Empty terminal input can represent aborted or incomplete
-                // history whose input was never streamed. Preserve it without
-                // claiming that it matches the current static input type.
-                if (isEmptyObject(toolPart.input)) {
-                  convertToDynamic = true;
-                } else {
-                  throw result.error;
-                }
-              }
-            } else if (
-              toolPart.state === 'input-available' ||
-              toolPart.state === 'approval-requested' ||
-              toolPart.state === 'approval-responded' ||
-              toolPart.state === 'output-denied'
-            ) {
-              await validateTypes({
-                value: toolPart.input,
-                schema: tool.inputSchema,
-                context: inputValidationContext,
-              });
-            }
-
-            // Tool output validation
-            if (toolPart.state === 'output-available' && tool.outputSchema) {
-              await validateTypes({
-                value: toolPart.output,
-                schema: tool.outputSchema,
-                context: {
-                  field: `messages[${msgIdx}].parts[${partIdx}].output`,
-                  entityName: toolName,
-                  entityId: toolPart.toolCallId,
-                },
-              });
-            }
-
-            if (convertToDynamic) {
-              message.parts[partIdx] = asDynamicToolPart(
-                toolPart,
-              ) as (typeof message.parts)[number];
-            }
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
+          if (convertToDynamic) {
+            message.parts[partIdx] = asDynamicToolPart(
+              toolPart as ToolUIPart,
+            ) as (typeof message.parts)[number];
           }
         }
       }
@@ -546,74 +465,16 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
 }
 
 /**
- * Validates a list of UI messages like `validateUIMessages`,
- * but instead of throwing it returns `{ success: true, data }`
- * or `{ success: false, error }`.
- */
-export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>(
-  options: ValidateUIMessagesOptions<UI_MESSAGE>,
-): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
-  return safeValidateUIMessagesInternal(options, {
-    convertMissingTerminalToolsToDynamic: false,
-  });
-}
-
-/**
  * Validates a list of UI messages.
  *
  * Metadata, data parts, and generic tool call structures are only validated if
  * the corresponding schemas are provided. Otherwise, they are assumed to be
  * valid.
  */
-<<<<<<< HEAD
-export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
-  messages,
-  metadataSchema,
-  dataSchemas,
-  tools,
-}: {
-  messages: unknown;
-  metadataSchema?:
-    | Validator<UIMessage['metadata']>
-    | StandardSchemaV1<unknown, UI_MESSAGE['metadata']>;
-  dataSchemas?: {
-    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?:
-      | Validator<InferUIMessageData<UI_MESSAGE>[NAME]>
-      | StandardSchemaV1<unknown, InferUIMessageData<UI_MESSAGE>[NAME]>;
-  };
-  tools?: {
-    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
-      InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-      InferUIMessageTools<UI_MESSAGE>[NAME]['output']
-    >;
-  };
-}): Promise<Array<UI_MESSAGE>> {
-  const response = await safeValidateUIMessages({
-    messages,
-    metadataSchema,
-    dataSchemas,
-    tools,
-=======
 export async function validateUIMessages<UI_MESSAGE extends UIMessage>(
   options: ValidateUIMessagesOptions<UI_MESSAGE>,
 ): Promise<Array<UI_MESSAGE>> {
   const response = await safeValidateUIMessages(options);
-
-  if (!response.success) throw response.error;
-
-  return response.data;
-}
-
-export async function validateUIMessagesForAgent<UI_MESSAGE extends UIMessage>(
-  options: ValidateUIMessagesOptions<UI_MESSAGE>,
-): Promise<Array<UI_MESSAGE>> {
-  const response = await safeValidateUIMessagesInternal(options, {
-    // Agent tool sets can include ephemeral tools (for example, tools from a
-    // disconnected MCP server), so terminal history is converted to dynamic
-    // tool parts when those tools are no longer registered.
-    convertMissingTerminalToolsToDynamic: true,
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
-  });
 
   if (!response.success) throw response.error;
 
