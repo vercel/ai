@@ -1,5 +1,8 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import {
+  createNullLanguageModelUsage,
+  resolveInputTokenUsage,
+} from '@ai-sdk/provider-utils';
 
 export function convertGroqUsage(
   usage:
@@ -37,11 +40,16 @@ export function convertGroqUsage(
       ? Math.max(0, completionTokens - reasoningTokens)
       : completionTokens;
 
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: promptTokens,
+      cachedTokens: cacheReadTokens ?? 0,
+    });
+
   return {
     inputTokens: {
-      total: promptTokens,
-      noCache:
-        cacheReadTokens != null ? promptTokens - cacheReadTokens : promptTokens,
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },

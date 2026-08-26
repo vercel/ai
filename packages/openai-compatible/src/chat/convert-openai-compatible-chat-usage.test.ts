@@ -55,4 +55,23 @@ describe('convertOpenAICompatibleChatUsage', () => {
       raw: usage,
     });
   });
+
+  it('treats prompt tokens as uncached when the cache breakdown exceeds them', () => {
+    const usage = {
+      prompt_tokens: 12,
+      completion_tokens: 40,
+      prompt_tokens_details: { cached_tokens: 4100 },
+    };
+
+    expect(convertOpenAICompatibleChatUsage(usage)).toEqual({
+      inputTokens: {
+        total: 4112,
+        noCache: 12,
+        cacheRead: 4100,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 40, text: 40, reasoning: 0 },
+      raw: usage,
+    });
+  });
 });

@@ -1,5 +1,8 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import {
+  createNullLanguageModelUsage,
+  resolveInputTokenUsage,
+} from '@ai-sdk/provider-utils';
 
 export type GoogleTokenDetail = {
   modality: string;
@@ -30,10 +33,16 @@ export function convertGoogleUsage(
   const cachedContentTokens = usage.cachedContentTokenCount ?? 0;
   const thoughtsTokens = usage.thoughtsTokenCount ?? 0;
 
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: promptTokens,
+      cachedTokens: cachedContentTokens,
+    });
+
   return {
     inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cachedContentTokens,
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cachedContentTokens,
       cacheWrite: undefined,
     },

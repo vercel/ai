@@ -1,4 +1,5 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { resolveInputTokenUsage } from '@ai-sdk/provider-utils';
 import type { XaiResponsesUsage } from './xai-responses-api';
 
 export function convertXaiResponsesUsage(
@@ -7,16 +8,16 @@ export function convertXaiResponsesUsage(
   const cacheReadTokens = usage.input_tokens_details?.cached_tokens ?? 0;
   const reasoningTokens = usage.output_tokens_details?.reasoning_tokens ?? 0;
 
-  const inputTokensIncludesCached = cacheReadTokens <= usage.input_tokens;
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: usage.input_tokens,
+      cachedTokens: cacheReadTokens,
+    });
 
   return {
     inputTokens: {
-      total: inputTokensIncludesCached
-        ? usage.input_tokens
-        : usage.input_tokens + cacheReadTokens,
-      noCache: inputTokensIncludesCached
-        ? usage.input_tokens - cacheReadTokens
-        : usage.input_tokens,
+      total: totalInputTokens,
+      noCache: noCacheInputTokens,
       cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },

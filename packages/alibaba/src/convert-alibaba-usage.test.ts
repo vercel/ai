@@ -87,4 +87,20 @@ describe('convertAlibabaUsage', () => {
 
     expect(convertAlibabaUsage(usage).raw).toEqual(usage);
   });
+
+  it('treats prompt tokens as uncached when reads plus writes exceed them', () => {
+    const result = convertAlibabaUsage({
+      prompt_tokens: 12,
+      completion_tokens: 40,
+      prompt_tokens_details: {
+        cached_tokens: 4000,
+        cache_creation_input_tokens: 100,
+      },
+    });
+
+    expect(result.inputTokens.total).toBe(4112);
+    expect(result.inputTokens.noCache).toBe(12);
+    expect(result.inputTokens.cacheRead).toBe(4000);
+    expect(result.inputTokens.cacheWrite).toBe(100);
+  });
 });

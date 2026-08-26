@@ -1,5 +1,8 @@
 import type { JSONObject, LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
+import {
+  createNullLanguageModelUsage,
+  resolveInputTokenUsage,
+} from '@ai-sdk/provider-utils';
 import type { GoogleInteractionsUsage } from './google-interactions-api';
 
 export function convertGoogleInteractionsUsage(
@@ -14,11 +17,17 @@ export function convertGoogleInteractionsUsage(
   const totalThought = usage.total_thought_tokens ?? 0;
   const totalCached = usage.total_cached_tokens ?? 0;
 
+  const { total: totalInputTokens, noCache: noCacheInputTokens } =
+    resolveInputTokenUsage({
+      reportedInputTokens: totalInput,
+      cachedTokens: totalCached,
+    });
+
   return {
     inputTokens: {
-      total: usage.total_input_tokens ?? undefined,
+      total: usage.total_input_tokens == null ? undefined : totalInputTokens,
       noCache:
-        usage.total_input_tokens == null ? undefined : totalInput - totalCached,
+        usage.total_input_tokens == null ? undefined : noCacheInputTokens,
       cacheRead: usage.total_cached_tokens ?? undefined,
       cacheWrite: undefined,
     },

@@ -5,6 +5,7 @@ import type {
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
+  resolveInputTokenUsage,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -102,12 +103,18 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
         const reasoningTokens =
           fixedRawUsage.completion_tokens_details?.reasoning_tokens ?? 0;
 
+        const { total: totalInputTokens, noCache: noCacheInputTokens } =
+          resolveInputTokenUsage({
+            reportedInputTokens: promptTokens,
+            cachedTokens: cacheReadTokens,
+          });
+
         return {
           ...result,
           usage: {
             inputTokens: {
-              total: promptTokens,
-              noCache: promptTokens - cacheReadTokens,
+              total: totalInputTokens,
+              noCache: noCacheInputTokens,
               cacheRead: cacheReadTokens,
               cacheWrite: undefined,
             },
@@ -154,12 +161,18 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
                   fixedRawUsage.completion_tokens_details?.reasoning_tokens ??
                   0;
 
+                const { total: totalInputTokens, noCache: noCacheInputTokens } =
+                  resolveInputTokenUsage({
+                    reportedInputTokens: promptTokens,
+                    cachedTokens: cacheReadTokens,
+                  });
+
                 controller.enqueue({
                   ...value,
                   usage: {
                     inputTokens: {
-                      total: promptTokens,
-                      noCache: promptTokens - cacheReadTokens,
+                      total: totalInputTokens,
+                      noCache: noCacheInputTokens,
                       cacheRead: cacheReadTokens,
                       cacheWrite: undefined,
                     },

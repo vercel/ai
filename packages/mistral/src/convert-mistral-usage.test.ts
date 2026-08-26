@@ -138,4 +138,17 @@ describe('convertMistralUsage', () => {
       raw: usage,
     });
   });
+
+  it('treats prompt tokens as uncached when the cache breakdown exceeds them', () => {
+    const result = convertMistralUsage({
+      prompt_tokens: 12,
+      completion_tokens: 40,
+      total_tokens: 52,
+      num_cached_tokens: 4100,
+    });
+
+    expect(result.inputTokens.total).toBe(4112);
+    expect(result.inputTokens.noCache).toBe(12);
+    expect(result.inputTokens.cacheRead).toBe(4100);
+  });
 });
