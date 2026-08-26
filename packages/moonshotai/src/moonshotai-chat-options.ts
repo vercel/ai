@@ -6,10 +6,6 @@ export type MoonshotAIChatModelId =
   | 'moonshot-v1-8k'
   | 'moonshot-v1-32k'
   | 'moonshot-v1-128k'
-<<<<<<< HEAD
-=======
-  | 'moonshot-v1-auto'
->>>>>>> origin/main
   | 'moonshot-v1-8k-vision-preview'
   | 'moonshot-v1-32k-vision-preview'
   | 'moonshot-v1-128k-vision-preview'
@@ -47,10 +43,6 @@ export function getMoonshotAIModelFamily(
 
 export const moonshotaiLanguageModelOptions = z.object({
   /**
-<<<<<<< HEAD
-   * Reasoning effort for Kimi K3. Supports `low`, `high`, and `max`;
-   * defaults to `max`.
-=======
    * Whether to use strict JSON schema validation for structured outputs.
    *
    * @default true
@@ -70,18 +62,12 @@ export const moonshotaiLanguageModelOptions = z.object({
   topLogprobs: z.number().int().min(0).max(20).optional(),
 
   /**
-   * Reasoning effort for Kimi K3.
->>>>>>> origin/main
+   * Reasoning effort for Kimi K3. Supports `low`, `high`, and `max`;
+   * defaults to `max`.
    */
   reasoningEffort: z.enum(['low', 'high', 'max']).optional(),
 
   /**
-<<<<<<< HEAD
-   * Thinking configuration for Kimi K2.x models. Kimi K2.5 and K2.6 support
-   * enabling or disabling thinking. Kimi K2.7 Code always has thinking
-   * enabled.
-   */
-=======
    * Static predicted content that can accelerate responses when much of the
    * output is known ahead of time.
    */
@@ -95,7 +81,11 @@ export const moonshotaiLanguageModelOptions = z.object({
     })
     .optional(),
 
->>>>>>> origin/main
+  /**
+   * Thinking configuration for Kimi K2.x models. Kimi K2.5 and K2.6 support
+   * enabling or disabling thinking. Kimi K2.7 Code always has thinking
+   * enabled.
+   */
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),
