@@ -24,10 +24,7 @@ import {
 } from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
-import {
-  convertCohereUsage,
-  type CohereUsageTokens,
-} from './convert-cohere-usage';
+import { convertCohereUsage, type CohereUsage } from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
 
@@ -210,7 +207,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
         unified: mapCohereFinishReason(response.finish_reason),
         raw: response.finish_reason ?? undefined,
       },
-      usage: convertCohereUsage(response.usage.tokens),
+      usage: convertCohereUsage(response.usage),
       request: { body: args },
       response: {
         // TODO timestamp, model id
@@ -243,7 +240,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
-    let usage: CohereUsageTokens | undefined = undefined;
+    let usage: CohereUsage | undefined = undefined;
 
     let pendingToolCall: {
       id: string;
@@ -414,7 +411,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
                   unified: mapCohereFinishReason(value.delta.finish_reason),
                   raw: value.delta.finish_reason,
                 };
-                usage = value.delta.usage.tokens;
+                usage = value.delta.usage;
                 return;
               }
 
@@ -438,6 +435,21 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
     };
   }
 }
+
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
+const cohereUsageSchema = z.looseObject({
+  billed_units: z
+    .looseObject({
+      input_tokens: z.number(),
+      output_tokens: z.number(),
+    })
+    .nullish(),
+  tokens: z.looseObject({
+    input_tokens: z.number(),
+    output_tokens: z.number(),
+  }),
+  cached_tokens: z.number().nullish(),
+});
 
 const cohereChatResponseSchema = z.object({
   generation_id: z.string().nullish(),
@@ -493,16 +505,7 @@ const cohereChatResponseSchema = z.object({
       .nullish(),
   }),
   finish_reason: z.string(),
-  usage: z.object({
-    billed_units: z.object({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
-    tokens: z.object({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
-  }),
+  usage: cohereUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -560,12 +563,7 @@ const cohereChatChunkSchema = z.discriminatedUnion('type', [
     type: z.literal('message-end'),
     delta: z.object({
       finish_reason: z.string(),
-      usage: z.object({
-        tokens: z.object({
-          input_tokens: z.number(),
-          output_tokens: z.number(),
-        }),
-      }),
+      usage: cohereUsageSchema,
     }),
   }),
   // https://docs.cohere.com/v2/docs/streaming#tool-use-stream-events-for-tool-calling
