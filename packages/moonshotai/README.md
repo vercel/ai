@@ -52,9 +52,8 @@ const { text } = await generateText({
   moonshotai: {
     thinking: {
       type: 'enabled',
-      budgetTokens: 2048,
     },
-    reasoningHistory: 'interleaved',
+    reasoningHistory: 'preserved',
   },
 });
 ```
