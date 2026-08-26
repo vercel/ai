@@ -1,5 +1,106 @@
 # @ai-sdk/harness-acp
 
+## 1.0.28
+
+### Patch Changes
+
+- 0e590d2: feat(harness): harden credential brokering to only apply with correct ephemeral secret
+- Updated dependencies [3e125ba]
+- Updated dependencies [0e590d2]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.27
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [32349cc]
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/harness@1.0.88
+  - @ai-sdk/provider-utils@5.0.31
+
+## 1.0.25
+
+### Patch Changes
+
+- 79186d1: Allow pinned OpenCode and Grok Build install scripts during pnpm 11 sandbox bootstrap.
+- b6396ff: feat(harness-acp): support `title` and `toolUseKind` for ACP tools
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.24
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+
+## 1.0.23
+
+### Patch Changes
+
+- 6352c2a: feat(harness-acp): support ACP harnesses that do not have an NPM package via new `install-command` source type
+- Updated dependencies [b74971f]
+- Updated dependencies [fa6af57]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/harness@1.0.85
+
+## 1.0.22
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.84
+
+## 1.0.21
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.83
+
+## 1.0.20
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.82
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [7f50d28]
+  - @ai-sdk/harness@1.0.81
+
+## 1.0.18
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.80
+
+## 1.0.17
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.79
+
+## 1.0.16
+
+### Patch Changes
+
+- eace6fb: feat(harness): add experimental support for steering agent conversations mid-turn
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness@1.0.78
+
 ## 1.0.15
 
 ### Patch Changes

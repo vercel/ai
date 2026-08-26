@@ -13,7 +13,11 @@ import {
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
-import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
+import {
+  getRestrictedSandboxSession,
+  resolveSandboxHomeDir,
+} from '@ai-sdk/harness/utils';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
   Agent,
   createTool,
@@ -90,7 +94,7 @@ export interface ClineSessionSettings {
 
 export interface CreateClineSessionInput {
   readonly sessionId: string;
-  readonly sandboxSession: HarnessV1NetworkSandboxSession;
+  readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   readonly sessionWorkDir: string;
   readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: ClineSessionSettings;
@@ -247,9 +251,11 @@ export async function createClineSession(
     }
   }
 
-  const sandbox = input.sandboxSession.restricted();
+  const toolSafeSandboxSession = getRestrictedSandboxSession(
+    input.sandboxSession,
+  );
   const sandboxHomeDir = await resolveSandboxHomeDir({
-    sandbox,
+    sandbox: toolSafeSandboxSession,
     ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
   const privateSessionDir = resolveClinePrivateSessionDirectory({
@@ -262,17 +268,13 @@ export async function createClineSession(
     input.builtinToolFiltering,
   );
 
-  const ops = createClineRemoteOps({
-    sandbox,
-    workDir: input.sessionWorkDir,
-  });
-
   // Materialize harness-provided skills into sandbox HOME (not the workspace)
   // and advertise them via a system prompt section.
   let skillsSection: string | undefined;
+  let skillRootDir: string | undefined;
   if (input.skills.length > 0) {
-    const skillRootDir = await writeClineSkills({
-      sandbox,
+    skillRootDir = await writeClineSkills({
+      sandbox: toolSafeSandboxSession,
       sandboxHomeDir,
       skills: input.skills,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
@@ -282,9 +284,15 @@ export async function createClineSession(
     }
   }
 
+  const ops = createClineRemoteOps({
+    sandbox: toolSafeSandboxSession,
+    workDir: input.sessionWorkDir,
+    ...(skillRootDir ? { readableRoots: [{ sandboxDir: skillRootDir }] } : {}),
+  });
+
   const baseSystemPrompt = buildSystemPrompt({
     sessionWorkDir: input.sessionWorkDir,
-    sandboxDescription: sandbox.description,
+    sandboxDescription: toolSafeSandboxSession.description,
     ...(skillsSection ? { skillsSection } : {}),
   });
 
@@ -293,7 +301,7 @@ export async function createClineSession(
   let currentMessages: readonly AgentMessage[] = [];
   if (input.isResume && input.resumeHistoryFileName) {
     const restored = await pullHistoryFromSandbox({
-      sandbox,
+      sandbox: toolSafeSandboxSession,
       privateSessionDir,
       historyFileName: safeClineHistoryFileName(input.resumeHistoryFileName),
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
@@ -369,7 +377,7 @@ export async function createClineSession(
   async function persistHistory(): Promise<void> {
     const messages = agent?.snapshot().messages ?? currentMessages;
     await persistHistoryToSandbox({
-      sandbox,
+      sandbox: toolSafeSandboxSession,
       privateSessionDir,
       historyFileName: CLINE_DEFAULT_HISTORY_FILE_NAME,
       messages,

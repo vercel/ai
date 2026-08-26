@@ -3,10 +3,13 @@ import type {
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
+  isProviderStreamError,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
+import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { WORKFLOW_SERIALIZE } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -1547,6 +1550,111 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    it('should stream reasoning summary text deltas', async () => {
+      prepareChunksFixtureResponse('openai-reasoning-summary-text.1');
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.filter(part => part.type.startsWith('reasoning')),
+      ).toStrictEqual([
+        {
+          type: 'reasoning-start',
+          id: 'rs_1',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_1',
+          delta: 'Think',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_1',
+          delta: 'ing.',
+        },
+        {
+          type: 'reasoning-end',
+          id: 'rs_1',
+          providerMetadata: {
+            lmstudio: {
+              itemId: 'rs_1',
+              reasoningSummary: [
+                {
+                  type: 'summary_text',
+                  text: 'Thinking.',
+                },
+              ],
+              reasoningContent: null,
+            },
+          },
+        },
+      ]);
+    });
+
+    it.each([
+      {
+        event: {
+          type: 'response.failed',
+          sequence_number: 1,
+          response: {
+            status: 'failed',
+            error: {
+              code: '429',
+              message: 'Rate limit reached',
+            },
+          },
+        },
+        expectedType: 'response.failed',
+        expectedMessage: 'Rate limit reached',
+        expectedCode: '429',
+      },
+      {
+        event: {
+          type: 'error',
+          sequence_number: 1,
+          error: {
+            code: '503',
+            message: 'Service unavailable',
+          },
+        },
+        expectedType: 'error',
+        expectedMessage: 'Service unavailable',
+        expectedCode: '503',
+      },
+    ])('preserves $expectedType stream errors', async testCase => {
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify(testCase.event)}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel().doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(result.stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart?.type).toBe('error');
+      if (errorPart?.type !== 'error') {
+        expect.fail('Expected an error part');
+      }
+      expect(isProviderStreamError(errorPart.error)).toBe(true);
+      expect(errorPart.error).toMatchObject({
+        message: testCase.expectedMessage,
+        type: testCase.expectedType,
+        code: testCase.expectedCode,
+        data: testCase.event,
+      });
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
       });
     });
 

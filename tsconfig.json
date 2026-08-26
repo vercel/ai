@@ -103,7 +103,13 @@
       "path": "packages/harness-codex"
     },
     {
+      "path": "packages/harness-cursor"
+    },
+    {
       "path": "packages/harness-deepagents"
+    },
+    {
+      "path": "packages/harness-fx"
     },
     {
       "path": "packages/harness-grok-build"
@@ -227,6 +233,9 @@
     },
     {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/zai"
     }
   ],
   "include": [],

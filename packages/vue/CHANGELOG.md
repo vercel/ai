@@ -1,5 +1,96 @@
 # @ai-sdk/vue
 
+## 4.0.82
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.81
+
+### Patch Changes
+
+- ai@7.0.81
+
+## 4.0.80
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+- Updated dependencies [eed7950]
+  - @ai-sdk/provider-utils@5.0.31
+  - ai@7.0.80
+
+## 4.0.79
+
+### Patch Changes
+
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 4.0.77
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - ai@7.0.77
+
+## 4.0.76
+
+### Patch Changes
+
+- 8514cff: fix(vue): preserve empty completion values when an initial completion is configured
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 4.0.75
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 4.0.74
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 4.0.73
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 4.0.72
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
 ## 4.0.70
 
 ### Patch Changes

@@ -259,6 +259,7 @@ export function runPrompt<
       ]),
     );
     const settledHostToolCallIds = new Set<string>();
+    const settledBuiltinApprovalToolCallIds = new Set<string>();
     let closingResumedStep = false;
     let pendingStopBoundary:
       | {
@@ -300,6 +301,9 @@ export function runPrompt<
     let stepText = '';
     let stepReasoning = '';
     let stepToolCalls: TurnContentPart[] = [];
+    let expectedStepToolCallCount: number | undefined;
+    let observedStepToolCallCount = 0;
+    let pauseAfterStepToolCalls = false;
     const buildStepContent = (): TurnContentPart[] => {
       const parts: TurnContentPart[] = [];
       if (stepText) parts.push({ type: 'text', text: stepText });
@@ -311,6 +315,9 @@ export function runPrompt<
       stepText = '';
       stepReasoning = '';
       stepToolCalls = [];
+      expectedStepToolCallCount = undefined;
+      observedStepToolCallCount = 0;
+      pauseAfterStepToolCalls = false;
     };
     const zeroUsage: LanguageModelV4Usage = {
       inputTokens: {
@@ -486,9 +493,9 @@ export function runPrompt<
       onToolApprovalSettled(approval.approvalId);
       pendingApprovalsByApprovalId.delete(approval.approvalId);
       pendingApprovalsByToolCallId.delete(approval.toolCallId);
-      settledHostToolCallIds.add(approval.toolCallId);
 
       if (approval.kind === 'builtin') {
+        settledBuiltinApprovalToolCallIds.add(approval.toolCallId);
         if (control.submitToolApproval == null) {
           throw new Error(
             `Harness '${input.harness.harnessId}' emitted a built-in tool approval request but does not support approval responses.`,
@@ -502,6 +509,7 @@ export function runPrompt<
         return 'continued';
       }
 
+      settledHostToolCallIds.add(approval.toolCallId);
       if (!continuation.approvalResponse.approved) {
         await control.submitToolResult({
           toolCallId: approval.toolCallId,
@@ -597,6 +605,15 @@ export function runPrompt<
       }
 
       while (true) {
+        if (
+          pauseAfterStepToolCalls &&
+          expectedStepToolCallCount != null &&
+          observedStepToolCallCount >= expectedStepToolCallCount
+        ) {
+          await finishForHostInputPause({ completeCurrentStep: true });
+          return;
+        }
+
         const { value, done } = await reader.read();
         if (done) {
           releasePendingStopBoundary();
@@ -655,8 +672,12 @@ export function runPrompt<
             displayValue.type === 'tool-result' ||
             displayValue.type === 'tool-approval-request') &&
           settledHostToolCallIds.has(displayValue.toolCallId);
+        const settledBuiltinApprovalReplay =
+          (displayValue.type === 'tool-call' ||
+            displayValue.type === 'tool-approval-request') &&
+          settledBuiltinApprovalToolCallIds.has(displayValue.toolCallId);
 
-        if (settledHostInputReplay) {
+        if (settledHostInputReplay || settledBuiltinApprovalReplay) {
           continue;
         }
 
@@ -753,6 +774,8 @@ export function runPrompt<
 
         // Telemetry: a tool execution begins on its `tool-call`.
         if (value.type === 'tool-call') {
+          observedStepToolCallCount += 1;
+          expectedStepToolCallCount ??= value.stepToolCallCount;
           stepToolCalls.push({
             type: 'tool-call',
             toolCallId: value.toolCallId,
@@ -956,11 +979,25 @@ export function runPrompt<
               approvalId: pendingApproval.approvalId,
               toolCall: pendingParsedToolCall,
             });
+            if (
+              expectedStepToolCallCount != null &&
+              observedStepToolCallCount < expectedStepToolCallCount
+            ) {
+              pauseAfterStepToolCalls = true;
+              continue;
+            }
             await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
           if (!isExecutableTool(activeTools[toolCall.toolName])) {
             recordPendingToolResult({ toolCall });
+            if (
+              expectedStepToolCallCount != null &&
+              observedStepToolCallCount < expectedStepToolCallCount
+            ) {
+              pauseAfterStepToolCalls = true;
+              continue;
+            }
             await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
@@ -1185,10 +1222,10 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
  * part on failure (unknown tool, schema mismatch, malformed JSON).
  *
  * The harness `tool-call` event is structurally a `LanguageModelV4ToolCall`
- * (plus an optional harness-only `nativeName`). `providerExecuted` already
- * lives on the V4 type — `true` for adapter builtins (Claude Code's `Bash`,
- * Codex's `shell`), false/undefined for host tools — and is passed through
- * to the AI SDK part by `parseToolCall`.
+ * plus optional harness-only fields. `providerExecuted` already lives on the
+ * V4 type — `true` for adapter builtins (Claude Code's `Bash`, Codex's
+ * `shell`), false/undefined for host tools — and is passed through to the AI
+ * SDK part by `parseToolCall`.
  */
 export async function validateToolCall<TOOLS extends ToolSet>(args: {
   event: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;

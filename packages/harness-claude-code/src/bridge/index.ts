@@ -458,7 +458,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             emitFinishStep({
               state: streamEventState,
               emit,
-              usage: harnessUsage ?? streamEventState.pendingStepUsage,
+              usage: streamEventState.pendingStepUsage ?? harnessUsage,
             });
           }
           queryInput.observeResult();

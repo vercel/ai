@@ -1,4 +1,7 @@
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessV1RequestTransformation,
+  HarnessV1RequestTransformationSources,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
@@ -12,19 +15,27 @@ export const CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES = [
   'CODEX_API_KEY',
 ] as const;
 
-export function createCodexRequestTransformations(
-  env: Record<string, string>,
-  auth: CodexResolvedAuthenticationMode,
-): HarnessV1RequestTransformation[] {
-  if (!env.CODEX_API_KEY) return [];
+export function createCodexRequestTransformations({
+  env: environment,
+  sandboxEnv: sandboxEnvironment,
+  auth: authenticationMode,
+}: HarnessV1RequestTransformationSources<CodexResolvedAuthenticationMode>): HarnessV1RequestTransformation[] {
+  if (!environment.CODEX_API_KEY || !sandboxEnvironment.CODEX_API_KEY) {
+    return [];
+  }
   return [
     createCredentialRequestTransformation({
-      baseUrl:
-        env.OPENAI_BASE_URL ??
-        (auth === 'ai-gateway'
+      matchUrl:
+        environment.OPENAI_BASE_URL ??
+        (authenticationMode === 'ai-gateway'
           ? DEFAULT_AI_GATEWAY_BASE_URL
           : DEFAULT_OPENAI_BASE_URL),
-      headers: { Authorization: `Bearer ${env.CODEX_API_KEY}` },
+      matchHeaders: {
+        Authorization: `Bearer ${sandboxEnvironment.CODEX_API_KEY}`,
+      },
+      transformHeaders: {
+        Authorization: `Bearer ${environment.CODEX_API_KEY}`,
+      },
     }),
   ];
 }

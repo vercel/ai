@@ -40,6 +40,13 @@ export type BatchV4StartOptions<REQUEST> = {
   readonly providerOptions?: SharedV4ProviderOptions;
   readonly abortSignal?: AbortSignal;
   readonly headers?: Record<string, string | undefined>;
+
+  /**
+   * URL the provider notifies when the batch reaches a terminal state.
+   * Providers that do not support completion webhooks should return an
+   * unsupported warning.
+   */
+  readonly webhookUrl?: string;
 };
 
 /**

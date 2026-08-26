@@ -60,6 +60,11 @@ export type {
   GoogleRealtimeModelId as Experimental_GoogleRealtimeModelId,
   GoogleRealtimeModelOptions as Experimental_GoogleRealtimeModelOptions,
 } from './realtime/google-realtime-model-options';
+export { GoogleTranscriptionModel } from './transcription/google-transcription-model';
+export type {
+  GoogleTranscriptionModelId,
+  GoogleTranscriptionModelOptions,
+} from './transcription/google-transcription-model-options';
 export {
   GoogleSpeechTranslationModel as Experimental_GoogleSpeechTranslationModel,
   /** @deprecated Use `Experimental_GoogleSpeechTranslationModel` instead. */

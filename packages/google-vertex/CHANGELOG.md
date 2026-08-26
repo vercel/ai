@@ -1,5 +1,79 @@
 # @ai-sdk/google-vertex
 
+## 5.0.65
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/anthropic@4.0.44
+  - @ai-sdk/google@4.0.53
+  - @ai-sdk/openai-compatible@3.0.39
+
+## 5.0.64
+
+### Patch Changes
+
+- Updated dependencies [7de3612]
+- Updated dependencies [a9782e1]
+- Updated dependencies [92e08e6]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+- Updated dependencies [0246209]
+  - @ai-sdk/anthropic@4.0.43
+  - @ai-sdk/google@4.0.52
+  - @ai-sdk/provider-utils@5.0.31
+  - @ai-sdk/openai-compatible@3.0.38
+
+## 5.0.63
+
+### Patch Changes
+
+- Updated dependencies [e7fc90e]
+- Updated dependencies [591d25b]
+  - @ai-sdk/google@4.0.51
+  - @ai-sdk/anthropic@4.0.42
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/openai-compatible@3.0.37
+  - @ai-sdk/provider-utils@5.0.30
+
+## 5.0.62
+
+### Patch Changes
+
+- Updated dependencies [ece5bdb]
+  - @ai-sdk/openai-compatible@3.0.36
+
+## 5.0.61
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+- Updated dependencies [7dd9ec3]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/openai-compatible@3.0.35
+  - @ai-sdk/anthropic@4.0.41
+  - @ai-sdk/google@4.0.50
+
+## 5.0.60
+
+### Patch Changes
+
+- f607a12: chore(google): drop support for Imagen models and their integration following API shutdown
+- Updated dependencies [99989ba]
+- Updated dependencies [f607a12]
+  - @ai-sdk/openai-compatible@3.0.34
+  - @ai-sdk/google@4.0.49
+
+## 5.0.59
+
+### Patch Changes
+
+- Updated dependencies [d68139c]
+- Updated dependencies [6c5a1ed]
+  - @ai-sdk/openai-compatible@3.0.33
+  - @ai-sdk/google@4.0.48
+
 ## 5.0.58
 
 ### Patch Changes

@@ -13,7 +13,13 @@ export {
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
 export {
+  applyCredentialForwarding,
+  createSandboxCredentialEnvironment,
+} from './credential-forwarding';
+export {
   createCredentialRequestTransformation,
+  generateSandboxCredentialPlaceholder,
+  isSandboxCredentialPlaceholder,
   maskSandboxCredentials,
   warnCredentialBrokeringUnavailable,
 } from './sandbox-credential-brokering';
@@ -40,3 +46,5 @@ export {
   forwardBridgeProcessStream,
   logBridgeError,
 } from './bridge-diagnostics';
+export { resolveSandboxDefaultWorkingDirectory } from './resolve-sandbox-default-working-directory';
+export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';

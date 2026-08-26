@@ -1,4 +1,5 @@
 export type { HarnessV1 } from './harness-v1';
+export type { HarnessV1CredentialForwarding } from './harness-v1-credential-forwarding';
 export type {
   HarnessV1Bootstrap,
   HarnessV1BootstrapCommand,
@@ -45,6 +46,7 @@ export type {
   HarnessV1NetworkSandboxSession,
   HarnessV1PortEndpoint,
   HarnessV1RequestTransformation,
+  HarnessV1RequestTransformationSources,
 } from './harness-v1-network-sandbox-session';
 export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
