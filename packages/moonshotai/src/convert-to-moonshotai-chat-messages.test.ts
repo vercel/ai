@@ -1,4 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidPromptError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { convertToMoonshotAIChatMessages } from './convert-to-moonshotai-chat-messages';
 
@@ -123,6 +126,96 @@ describe('message names', () => {
         name: 'alice',
       },
     ]);
+  });
+});
+
+describe('Partial Mode', () => {
+  it('should serialize partial true on the final assistant message', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Return a JSON object.' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '{' }],
+          providerOptions: {
+            moonshotai: { name: 'prefix', partial: true },
+          },
+        },
+      ],
+    });
+
+    expect(result.messages.at(-1)).toEqual({
+      role: 'assistant',
+      content: '{',
+      name: 'prefix',
+      partial: true,
+      tool_calls: undefined,
+    });
+  });
+
+  it('should reject partial true on a non-assistant message', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+      }),
+    ).rejects.toSatisfy(InvalidPromptError.isInstance);
+  });
+
+  it('should reject partial true on a non-final assistant message', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+      }),
+    ).rejects.toSatisfy(InvalidPromptError.isInstance);
+  });
+
+  it('should reject Partial Mode with JSON object response format', async () => {
+    await expect(
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+        responseFormat: { type: 'json_object' },
+      }),
+    ).rejects.toSatisfy(InvalidPromptError.isInstance);
+  });
+
+  it('should allow Partial Mode with JSON schema response format', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '{' }],
+          providerOptions: { moonshotai: { partial: true } },
+        },
+      ],
+      responseFormat: { type: 'json_schema' },
+    });
+
+    expect(result.messages[0]).toMatchObject({ partial: true });
   });
 });
 

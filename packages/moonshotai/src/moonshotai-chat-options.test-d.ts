@@ -1,5 +1,8 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type { MoonshotAILanguageModelOptions } from './index';
+import type {
+  MoonshotAIAssistantMessageProviderOptions,
+  MoonshotAILanguageModelOptions,
+} from './index';
 
 describe('MoonshotAILanguageModelOptions', () => {
   it('exposes official structured output, log probability, and reasoning options', () => {
@@ -24,5 +27,25 @@ describe('MoonshotAILanguageModelOptions', () => {
       strictJsonSchema: 'false',
     };
     invalidOptions;
+  });
+});
+
+describe('MoonshotAIAssistantMessageProviderOptions', () => {
+  it('accepts participant names and Partial Mode', () => {
+    const options = {
+      name: 'writer',
+      partial: true,
+    } satisfies MoonshotAIAssistantMessageProviderOptions;
+
+    expectTypeOf(options.partial).toEqualTypeOf<true>();
+  });
+
+  it('rejects partial false', () => {
+    const options = {
+      // @ts-expect-error Moonshot AI only supports enabling Partial Mode
+      partial: false,
+    } satisfies MoonshotAIAssistantMessageProviderOptions;
+
+    expectTypeOf(options.partial).toEqualTypeOf<false>();
   });
 });
