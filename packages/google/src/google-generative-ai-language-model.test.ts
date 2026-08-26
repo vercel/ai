@@ -857,6 +857,66 @@ describe('doGenerate', () => {
       expect(usage).toMatchSnapshot();
     });
 
+    it('should preserve complete raw usage metadata', async () => {
+      prepareJsonFixtureResponse('issue-19822-complete-usage');
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toEqual({
+        inputTokens: {
+          total: 19,
+          noCache: 16,
+          cacheRead: 3,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 60,
+          text: 4,
+          reasoning: 56,
+        },
+        raw: {
+          promptTokenCount: 19,
+          cachedContentTokenCount: 3,
+          candidatesTokenCount: 4,
+          toolUsePromptTokenCount: 63,
+          thoughtsTokenCount: 56,
+          totalTokenCount: 142,
+          promptTokensDetails: [
+            {
+              modality: 'TEXT',
+              tokenCount: 19,
+              futureDetailField: 'prompt',
+            },
+          ],
+          cacheTokensDetails: [
+            {
+              modality: 'TEXT',
+              tokenCount: 3,
+              futureDetailField: 'cache',
+            },
+          ],
+          candidatesTokensDetails: [
+            {
+              modality: 'TEXT',
+              tokenCount: 4,
+              futureDetailField: 'candidate',
+            },
+          ],
+          toolUsePromptTokensDetails: [
+            {
+              modality: 'TEXT',
+              tokenCount: 63,
+              futureDetailField: 'tool',
+            },
+          ],
+          serviceTier: 'standard',
+          futureUsageField: 'preserve-me',
+        },
+      });
+    });
+
     it('should send additional response information', async () => {
       const { response } = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -4252,6 +4312,45 @@ describe('doStream', () => {
       chunks,
     };
   }
+
+  it('should preserve complete raw usage from the final streaming event', async () => {
+    prepareChunksFixtureResponse('issue-19822-google-search-live');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent).toMatchObject({
+      type: 'finish',
+      usage: {
+        inputTokens: {
+          total: 17,
+          noCache: 17,
+          cacheRead: 0,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 370,
+          text: 37,
+          reasoning: 333,
+        },
+        raw: {
+          promptTokenCount: 17,
+          candidatesTokenCount: 37,
+          totalTokenCount: 695,
+          promptTokensDetails: [{ modality: 'TEXT', tokenCount: 17 }],
+          toolUsePromptTokenCount: 308,
+          toolUsePromptTokensDetails: [{ modality: 'TEXT', tokenCount: 308 }],
+          thoughtsTokenCount: 333,
+          serviceTier: 'standard',
+        },
+      },
+    });
+  });
 
   const prepareStreamResponse = ({
     content,

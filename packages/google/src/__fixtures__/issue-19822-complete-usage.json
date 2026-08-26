@@ -1,0 +1,52 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [{ "text": "42" }],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 19,
+    "cachedContentTokenCount": 3,
+    "candidatesTokenCount": 4,
+    "toolUsePromptTokenCount": 63,
+    "thoughtsTokenCount": 56,
+    "totalTokenCount": 142,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 19,
+        "futureDetailField": "prompt"
+      }
+    ],
+    "cacheTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 3,
+        "futureDetailField": "cache"
+      }
+    ],
+    "candidatesTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4,
+        "futureDetailField": "candidate"
+      }
+    ],
+    "toolUsePromptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 63,
+        "futureDetailField": "tool"
+      }
+    ],
+    "serviceTier": "standard",
+    "futureUsageField": "preserve-me"
+  },
+  "modelVersion": "gemini-2.5-flash",
+  "responseId": "sanitized-issue-19822-generate"
+}
