@@ -581,6 +581,7 @@ function convertAnthropicBatchResponse(
       { type: 'tool-call' }
     >
   > = {};
+  const citationDocuments: Array<{ mediaType: string; title: string }> = [];
   const serverToolCalls: Record<string, string> = {};
 
   for (const part of response.content) {
@@ -601,7 +602,11 @@ function convertAnthropicBatchResponse(
             }),
         });
         for (const citation of part.citations ?? []) {
-          const source = createCitationSource(citation, [], generateId);
+          const source = createCitationSource(
+            citation,
+            citationDocuments,
+            generateId,
+          );
           if (source != null) {
             content.push(source);
           }
@@ -630,8 +635,11 @@ function convertAnthropicBatchResponse(
         });
         break;
       case 'container_upload':
-        // The v4 result contract has no container-upload output block. The
-        // provider message remains successful and its usage is still returned.
+        content.push({
+          type: 'custom',
+          kind: 'anthropic.container_upload',
+          providerMetadata: { anthropic: { fileId: part.file_id } },
+        });
         break;
       case 'compaction':
         content.push({
@@ -714,6 +722,12 @@ function convertAnthropicBatchResponse(
         break;
       }
       case 'web_fetch_tool_result':
+        if (part.content.type === 'web_fetch_result') {
+          citationDocuments.push({
+            title: part.content.content.title ?? part.content.url,
+            mediaType: part.content.content.source.media_type,
+          });
+        }
         content.push({
           type: 'tool-result',
           toolCallId: part.tool_use_id,

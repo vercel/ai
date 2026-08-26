@@ -1107,6 +1107,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           });
           break;
         }
+        case 'container_upload': {
+          content.push({
+            type: 'custom',
+            kind: 'anthropic.container_upload',
+            providerMetadata: { anthropic: { fileId: part.file_id } },
+          });
+          break;
+        }
         case 'compaction': {
           content.push({
             type: 'text',

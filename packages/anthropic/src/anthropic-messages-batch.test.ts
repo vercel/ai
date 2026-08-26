@@ -979,6 +979,20 @@ describe('Anthropic Messages batch language model', () => {
                     },
                   ],
                 },
+                {
+                  type: 'text',
+                  text: 'Document excerpt',
+                  citations: [
+                    {
+                      type: 'char_location',
+                      cited_text: 'document text',
+                      document_index: 0,
+                      document_title: null,
+                      start_char_index: 0,
+                      end_char_index: 13,
+                    },
+                  ],
+                },
               ],
             },
           },
@@ -1039,6 +1053,24 @@ describe('Anthropic Messages batch language model', () => {
               sourceType: 'url',
               id: 'nullable-source',
               url: 'https://example.com/search-result',
+            },
+            {
+              type: 'text',
+              text: 'Document excerpt',
+            },
+            {
+              type: 'source',
+              sourceType: 'document',
+              id: 'nullable-source',
+              mediaType: 'text/plain',
+              title: 'https://example.com/document',
+              providerMetadata: {
+                anthropic: {
+                  citedText: 'document text',
+                  startCharIndex: 0,
+                  endCharIndex: 13,
+                },
+              },
             },
           ],
         },
@@ -1464,7 +1496,16 @@ describe('Anthropic Messages batch language model', () => {
           id: 'container-upload',
           status: 'succeeded',
           result: {
-            content: [{ type: 'text', text: 'Done' }],
+            content: [
+              { type: 'text', text: 'Done' },
+              {
+                type: 'custom',
+                kind: 'anthropic.container_upload',
+                providerMetadata: {
+                  anthropic: { fileId: 'file_123' },
+                },
+              },
+            ],
             usage: {
               inputTokens: { total: 13 },
               outputTokens: { total: 3 },
