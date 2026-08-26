@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "Invalid request: response_format.json_schema is not a valid moonshot flavored json schema, details: <At path 'properties.pair.items': items must be an object>",
+    "type": "invalid_request_error"
+  }
+}

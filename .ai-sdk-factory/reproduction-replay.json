@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "issueId": 19544,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19544-moonshot-structured-output.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-19544-moonshot-structured-output.ts",
+    "packages/moonshotai/src/__fixtures__/moonshotai-issue-19544-accepted.json",
+    "packages/moonshotai/src/__fixtures__/moonshotai-issue-19544-json-object.json",
+    "packages/moonshotai/src/__fixtures__/moonshotai-issue-19544-rejected.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19544_REPRODUCED: AI SDK Moonshot structured output did not produce the schema-conforming object that Moonshot strict mode produced."
+  }
+}

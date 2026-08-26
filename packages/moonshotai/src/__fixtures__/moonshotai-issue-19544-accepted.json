@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-1835e300-d733-9d6e-8427-9ad337a13fbf",
+  "object": "chat.completion",
+  "created": 1787762150,
+  "model": "kimi-k3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"pair\":[\"{}\",0]}",
+        "reasoning_content": "The response schema requires a string-number pair, so the structured-output constraint takes precedence over the conflicting request for an empty object."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 198,
+    "completion_tokens": 196,
+    "total_tokens": 394,
+    "cached_tokens": 198,
+    "completion_tokens_details": {
+      "reasoning_tokens": 180
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 198
+    }
+  }
+}
