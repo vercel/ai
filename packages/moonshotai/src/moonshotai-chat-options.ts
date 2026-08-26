@@ -2,19 +2,17 @@ import type { LanguageModelV3FunctionTool } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 export type MoonshotAIChatModelId =
+  | 'moonshot-v1-auto'
   | 'moonshot-v1-8k'
   | 'moonshot-v1-32k'
   | 'moonshot-v1-128k'
-  | 'moonshot-v1-auto'
   | 'moonshot-v1-8k-vision-preview'
   | 'moonshot-v1-32k-vision-preview'
   | 'moonshot-v1-128k-vision-preview'
-  | 'kimi-k2'
-  | 'kimi-k2-0905'
-  | 'kimi-k2-thinking'
-  | 'kimi-k2-thinking-turbo'
-  | 'kimi-k2-turbo'
   | 'kimi-k2.5'
+  | 'kimi-k2.6'
+  | 'kimi-k2.7-code'
+  | 'kimi-k2.7-code-highspeed'
   | 'kimi-k3'
   | (string & {});
 
@@ -64,7 +62,8 @@ export const moonshotaiLanguageModelOptions = z.object({
   topLogprobs: z.number().int().min(0).max(20).optional(),
 
   /**
-   * Reasoning effort for Kimi K3.
+   * Reasoning effort for Kimi K3. Supports `low`, `high`, and `max`;
+   * defaults to `max`.
    */
   reasoningEffort: z.enum(['low', 'high', 'max']).optional(),
 
@@ -82,15 +81,29 @@ export const moonshotaiLanguageModelOptions = z.object({
     })
     .optional(),
 
+  /**
+   * Thinking configuration for Kimi K2.x models. Kimi K2.5 and K2.6 support
+   * enabling or disabling thinking. Kimi K2.7 Code always has thinking
+   * enabled.
+   */
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),
-      // Accepted so existing callers receive a migration warning. It remains
-      // in the public compatibility type below as a deprecated property.
+      /**
+       * @deprecated Moonshot Chat Completions does not support thinking
+       * budgets. Accepted for backwards compatibility, then omitted with a
+       * warning.
+       */
       budgetTokens: z.number().int().min(1024).optional(),
     })
     .optional(),
 
+  /**
+   * Controls preserved reasoning behavior in multi-turn conversations.
+   * `disabled` and `interleaved` are compatibility values that leave the
+   * request unchanged. `preserved` maps to `thinking.keep: 'all'` for Kimi
+   * K2.6. Kimi K2.7 and K3 preserve reasoning by default.
+   */
   reasoningHistory: z.enum(['disabled', 'interleaved', 'preserved']).optional(),
 
   /**
@@ -146,6 +159,12 @@ export type MoonshotAILanguageModelOptions = {
     budgetTokens?: number;
   };
 
+  /**
+   * Controls preserved reasoning behavior in multi-turn conversations.
+   * `disabled` and `interleaved` are compatibility values that leave the
+   * request unchanged. `preserved` maps to `thinking.keep: 'all'` for Kimi
+   * K2.6. Kimi K2.7 and K3 preserve reasoning by default.
+   */
   reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
   promptCacheKey?: string;
   safetyIdentifier?: string;
