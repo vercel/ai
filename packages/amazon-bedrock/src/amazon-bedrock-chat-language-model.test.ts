@@ -93,6 +93,21 @@ const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
 )}/converse`;
 
+const usOpenaiModelId = 'us.openai.gpt-5.6-luna';
+const usOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  usOpenaiModelId,
+)}/converse`;
+
+const globalOpenaiModelId = 'global.openai.gpt-5.6-luna';
+const globalOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  globalOpenaiModelId,
+)}/converse`;
+
+const customOpenaiSubstringModelId = 'custom-openai.gpt-5.6-luna';
+const customOpenaiSubstringGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  customOpenaiSubstringModelId,
+)}/converse`;
+
 const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
 const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   newerAnthropicModelId,
@@ -126,6 +141,9 @@ const server = createTestServer({
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
+  [usOpenaiGenerateUrl]: {},
+  [globalOpenaiGenerateUrl]: {},
+  [customOpenaiSubstringGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
@@ -1028,10 +1046,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "internalServerException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Internal Server Error",
+                "name": "InternalServerException",
+              },
+            },
+            "isRetryable": true,
             "message": "Internal Server Error",
-            "name": "InternalServerException",
+            "statusCode": 500,
+            "type": "internalServerException",
           },
           "type": "error",
         },
@@ -1095,10 +1122,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "modelStreamErrorException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Model Stream Error",
+                "name": "ModelStreamErrorException",
+              },
+            },
+            "isRetryable": true,
             "message": "Model Stream Error",
-            "name": "ModelStreamErrorException",
+            "statusCode": 424,
+            "type": "modelStreamErrorException",
           },
           "type": "error",
         },
@@ -1162,10 +1198,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "throttlingException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Throttling Error",
+                "name": "ThrottlingException",
+              },
+            },
+            "isRetryable": true,
             "message": "Throttling Error",
-            "name": "ThrottlingException",
+            "statusCode": 429,
+            "type": "throttlingException",
           },
           "type": "error",
         },
@@ -1229,10 +1274,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "validationException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Validation Error",
+                "name": "ValidationException",
+              },
+            },
+            "isRetryable": false,
             "message": "Validation Error",
-            "name": "ValidationException",
+            "statusCode": 400,
+            "type": "validationException",
           },
           "type": "error",
         },
@@ -3732,10 +3786,13 @@ describe('doGenerate', () => {
             "total": 57,
           },
           "raw": {
+            "cacheReadInputTokenCount": 0,
             "cacheReadInputTokens": 0,
+            "cacheWriteInputTokenCount": 0,
             "cacheWriteInputTokens": 0,
             "inputTokens": 22,
             "outputTokens": 57,
+            "serverToolUsage": {},
             "totalTokens": 79,
           },
         }
@@ -5287,7 +5344,7 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
-  it('maps maxReasoningEffort to reasoning_effort for OpenAI models (generate)', async () => {
+  it('maps maxReasoningEffort to reasoning_effort for OpenAI gpt-oss models (generate)', async () => {
     server.urls[openaiGenerateUrl].response = {
       type: 'json-value',
       body: {
@@ -5320,6 +5377,101 @@ describe('doGenerate', () => {
       requestBody.additionalModelRequestFields?.reasoningConfig,
     ).toBeUndefined();
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'maps maxReasoningEffort to nested reasoning.effort for CRIS model %s (generate)',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'stop_sequence',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new AmazonBedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              maxReasoningEffort: 'medium',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        additionalModelRequestFields: {
+          reasoning: { effort: 'medium' },
+        },
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.reasoning_effort,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    },
+  );
+
+  it('does not classify custom model IDs containing openai. as OpenAI models', async () => {
+    server.urls[customOpenaiSubstringGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const customModel = new AmazonBedrockChatLanguageModel(
+      customOpenaiSubstringModelId,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      },
+    );
+
+    await customModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoningConfig: { maxReasoningEffort: 'medium' },
+      },
+    });
+    expect(requestBody.additionalModelRequestFields?.reasoning).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.reasoning_effort,
+    ).toBeUndefined();
   });
 
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
@@ -7045,7 +7197,7 @@ describe('doGenerate', () => {
       ).toBe(1024);
     });
 
-    it('should map reasoning directly to reasoning_effort for OpenAI models', async () => {
+    it('should map reasoning directly to reasoning_effort for OpenAI gpt-oss models', async () => {
       server.urls[openaiGenerateUrl].response = simpleResponse;
 
       await openaiModel.doGenerate({

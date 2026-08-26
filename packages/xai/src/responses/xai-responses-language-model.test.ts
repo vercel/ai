@@ -3381,6 +3381,10 @@ describe('XaiResponsesLanguageModel', () => {
                   "total": 50,
                 },
                 "raw": {
+                  "context_details": {
+                    "input_tokens": 80,
+                    "output_tokens": 20,
+                  },
                   "cost_in_usd_ticks": 123456,
                   "input_tokens": 100,
                   "input_tokens_details": {
@@ -3391,6 +3395,15 @@ describe('XaiResponsesLanguageModel', () => {
                   "output_tokens": 50,
                   "output_tokens_details": {
                     "reasoning_tokens": 30,
+                  },
+                  "server_side_tool_usage_details": {
+                    "code_interpreter_calls": 0,
+                    "document_search_calls": 0,
+                    "file_search_calls": 0,
+                    "image_generation_calls": 1,
+                    "mcp_calls": 0,
+                    "web_search_calls": 0,
+                    "x_search_calls": 0,
                   },
                   "total_tokens": 150,
                 },
@@ -4764,6 +4777,17 @@ describe('XaiResponsesLanguageModel', () => {
 
   describe('response.failed handling', () => {
     it('should set finish reason to error', async () => {
+      const responseFailedEvent = {
+        type: 'response.failed',
+        response: {
+          error: {
+            code: 'server_error',
+            message: 'Internal server error',
+          },
+          usage: { input_tokens: 50, output_tokens: 0 },
+        },
+      } as const;
+
       prepareStreamChunks([
         JSON.stringify({
           type: 'response.created',
@@ -4774,16 +4798,7 @@ describe('XaiResponsesLanguageModel', () => {
             output: [],
           },
         }),
-        JSON.stringify({
-          type: 'response.failed',
-          response: {
-            error: {
-              code: 'server_error',
-              message: 'Internal server error',
-            },
-            usage: { input_tokens: 50, output_tokens: 0 },
-          },
-        }),
+        JSON.stringify(responseFailedEvent),
       ]);
 
       const { stream } = await createModel().doStream({
@@ -4792,6 +4807,7 @@ describe('XaiResponsesLanguageModel', () => {
 
       const parts = await convertReadableStreamToArray(stream);
       const finish = parts.find(part => part.type === 'finish');
+      const errorPart = parts.find(part => part.type === 'error');
 
       expect(finish).toMatchObject({
         type: 'finish',
@@ -4803,6 +4819,62 @@ describe('XaiResponsesLanguageModel', () => {
           inputTokens: expect.objectContaining({ total: 50 }),
           outputTokens: expect.objectContaining({ total: 0 }),
         }),
+      });
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: responseFailedEvent.response.error.message,
+          type: responseFailedEvent.type,
+          code: responseFailedEvent.response.error.code,
+          statusCode: 500,
+          isRetryable: true,
+          data: responseFailedEvent,
+        },
+      });
+    });
+
+    it('should classify insufficient quota as non-retryable', async () => {
+      const responseFailedEvent = {
+        type: 'response.failed',
+        response: {
+          error: {
+            code: 'insufficient_quota',
+            message: 'You exceeded your current quota.',
+          },
+          usage: { input_tokens: 50, output_tokens: 0 },
+        },
+      } as const;
+
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify(responseFailedEvent),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: responseFailedEvent.response.error.message,
+          type: responseFailedEvent.type,
+          code: responseFailedEvent.response.error.code,
+          statusCode: 429,
+          isRetryable: false,
+          data: responseFailedEvent,
+        },
       });
     });
 
@@ -4849,6 +4921,13 @@ describe('XaiResponsesLanguageModel', () => {
 
   describe('error event handling', () => {
     it('should emit error chunk for server error events', async () => {
+      const errorEvent = {
+        type: 'error',
+        code: 'server_error',
+        message: 'Internal server error',
+        param: null,
+      } as const;
+
       prepareStreamChunks([
         JSON.stringify({
           type: 'response.created',
@@ -4859,13 +4938,7 @@ describe('XaiResponsesLanguageModel', () => {
             output: [],
           },
         }),
-        JSON.stringify({
-          type: 'error',
-          code: null,
-          message:
-            'Service temporarily unavailable. The model did not respond to this request.',
-          param: null,
-        }),
+        JSON.stringify(errorEvent),
       ]);
 
       const { stream } = await createModel().doStream({
@@ -4878,11 +4951,12 @@ describe('XaiResponsesLanguageModel', () => {
       expect(errorPart).toMatchObject({
         type: 'error',
         error: {
-          type: 'error',
-          code: null,
-          message:
-            'Service temporarily unavailable. The model did not respond to this request.',
-          param: null,
+          message: errorEvent.message,
+          type: errorEvent.type,
+          code: errorEvent.code,
+          statusCode: 500,
+          isRetryable: true,
+          data: errorEvent,
         },
       });
     });

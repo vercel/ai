@@ -1,5 +1,13 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.88
+
+### Patch Changes
+
+- 309ba00: fix(workflow-harness): prevent time-slice deadlines from suspending harness turns that have already completed.
+- Updated dependencies [32349cc]
+  - @ai-sdk/harness@1.0.88
+
 ## 1.0.87
 
 ### Patch Changes

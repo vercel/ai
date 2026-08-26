@@ -1,5 +1,18 @@
 # @ai-sdk/openai
 
+## 4.0.48
+
+### Patch Changes
+
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- eee6200: Signal schema-invalid known Responses stream events and preserve the error finish reason.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 4.0.47
 
 ### Patch Changes
