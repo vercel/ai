@@ -164,6 +164,7 @@ describe('OpenCode bridge turn settlement', () => {
       operation: 'prompt',
       prompt: 'Delegate this task.',
       tools: [{ name: 'lookup' }],
+      responseFormat: { type: 'json' },
     };
     bridgeMock.turn = {
       emit: (event: Record<string, unknown>) => emitted.push(event),
@@ -203,6 +204,30 @@ describe('OpenCode bridge turn settlement', () => {
                         parentSessionId: 'parent-session',
                         sessionId: 'child-session',
                       },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'message.updated',
+                properties: {
+                  info: {
+                    id: 'child-message',
+                    sessionID: 'child-session',
+                    role: 'assistant',
+                    structured: { leaked: true },
+                  },
+                },
+              };
+              yield {
+                type: 'session.updated',
+                properties: {
+                  info: {
+                    id: 'child-session',
+                    summary: {
+                      additions: 99,
+                      deletions: 99,
+                      files: 99,
                     },
                   },
                 },
@@ -248,31 +273,14 @@ describe('OpenCode bridge turn settlement', () => {
                 },
               };
               yield {
-                type: 'session.next.step.ended',
+                type: 'message.updated',
                 properties: {
-                  sessionID: 'parent-session',
-                  finish: 'stop',
-                  tokens: {
-                    input: 1,
-                    output: 1,
-                    reasoning: 0,
-                    cache: { read: 0, write: 0 },
+                  info: {
+                    id: 'parent-message',
+                    sessionID: 'parent-session',
+                    role: 'assistant',
+                    structured: { result: 'parent' },
                   },
-                  cost: 0,
-                },
-              };
-              yield {
-                type: 'session.status',
-                properties: {
-                  sessionID: 'parent-session',
-                  status: { type: 'busy' },
-                },
-              };
-              yield {
-                type: 'session.status',
-                properties: {
-                  sessionID: 'parent-session',
-                  status: { type: 'idle' },
                 },
               };
             },
@@ -300,6 +308,14 @@ describe('OpenCode bridge turn settlement', () => {
       requestID: 'child-permission',
       reply: 'always',
     });
+    expect(emitted).toContainEqual({
+      type: 'text-delta',
+      id: 'parent-message',
+      delta: JSON.stringify({ result: 'parent' }),
+    });
+    expect(emitted).not.toContainEqual(
+      expect.objectContaining({ delta: JSON.stringify({ leaked: true }) }),
+    );
     expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
   });
 });
