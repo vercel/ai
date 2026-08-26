@@ -17,12 +17,12 @@ import {
   applyCredentialForwarding,
   createBridgeErrorHandler,
   createBridgeStartupError,
+  createSandboxCredentialEnvironment,
   classifyDiskLog,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  maskSandboxCredentials,
   resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
@@ -237,6 +237,25 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           sandboxSession,
           abortSignal: startOptions.abortSignal,
         });
+      const continueFrom =
+        startOptions.continueFrom ?? startOptions.resumeFrom?.continueFrom;
+      const lifecycleState = continueFrom ?? startOptions.resumeFrom;
+      const isContinue = continueFrom != null;
+      const isResume = lifecycleState != null;
+      const lifecycleData =
+        lifecycleState != null
+          ? (lifecycleState.data as unknown as ACPLifecycleData)
+          : undefined;
+      if (lifecycleData != null && lifecycleState != null) {
+        validateACPLifecycleCompatibility({
+          harnessId: settings.harnessId,
+          lifecycleHarnessId: lifecycleState.harnessId,
+          implementationIdentity,
+          authenticationProfile,
+          lifecycleData,
+          sandboxId,
+        });
+      }
       const implementationEnvironment = resolveImplementationEnvironment({
         implementation,
         env,
@@ -261,6 +280,9 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           }),
         ]),
       ];
+      let sandboxCredentialEnvironment:
+        | Readonly<Record<string, string>>
+        | undefined;
 
       if (
         settings.credentialBrokering != null &&
@@ -271,31 +293,36 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           resolvedProviderAuthentication,
           clientApp,
         });
+        const brokeringEnvironment = {
+          ...implementationEnvironment,
+          ...providerEnvironment,
+        };
+        sandboxCredentialEnvironment =
+          lifecycleData?.sandboxCredentialEnvironment ??
+          (await createSandboxCredentialEnvironment({
+            environment: brokeringEnvironment,
+            credentialEnvironmentVariables:
+              credentialForwardingEnvironmentVariables,
+            credentialForwarding: settings.credentialForwarding,
+          }));
+        sandboxImplementationEnvironment = {
+          ...brokeringEnvironment,
+          ...sandboxCredentialEnvironment,
+        };
         const requestTransformations = settings.credentialBrokering({
-          env: {
-            ...implementationEnvironment,
-            ...providerEnvironment,
-          },
+          env: brokeringEnvironment,
+          sandboxEnv: sandboxImplementationEnvironment,
         });
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,
           );
         }
-        sandboxImplementationEnvironment = maskSandboxCredentials({
-          environment: implementationEnvironment,
-          credentialEnvironmentVariables,
-        });
-
-        /*
-         * Each profile environment variable is resolved with its own name as
-         * the fake Gateway credential. This preserves profile transformations
-         * without exposing the real credential to the sandbox process.
-         */
-        sandboxProviderEnvironment = resolveBrokeredProviderEnvironment({
-          resolvedProviderAuthentication,
-          clientApp,
-        });
+        sandboxProviderEnvironment =
+          resolvedProviderAuthentication.providerAuthentication?.type ===
+          'ai-gateway'
+            ? {}
+            : undefined;
       } else if (settings.credentialBrokering != null) {
         warnCredentialBrokeringUnavailable();
       }
@@ -348,25 +375,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         sessionWorkDir: workDir,
       });
       const bridgeStateDir = `${privateSessionDir}/bridge`;
-      const continueFrom =
-        startOptions.continueFrom ?? startOptions.resumeFrom?.continueFrom;
-      const lifecycleState = continueFrom ?? startOptions.resumeFrom;
-      const isContinue = continueFrom != null;
-      const isResume = lifecycleState != null;
-      const lifecycleData =
-        lifecycleState != null
-          ? (lifecycleState.data as unknown as ACPLifecycleData)
-          : undefined;
-      if (lifecycleData != null && lifecycleState != null) {
-        validateACPLifecycleCompatibility({
-          harnessId: settings.harnessId,
-          lifecycleHarnessId: lifecycleState.harnessId,
-          implementationIdentity,
-          authenticationProfile,
-          lifecycleData,
-          sandboxId,
-        });
-      }
       const skills = startOptions.skills ?? [];
       const skillsFingerprint = createACPSkillsFingerprint({ skills });
       const shouldMaterializeSkills = shouldMaterializeACPSkills({
@@ -467,6 +475,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               turnStartConfig: lifecycleData.turnStartConfig,
               recoveryStatus: lifecycleData.recovery,
               restoration: lifecycleData.restoration,
+              sandboxCredentialEnvironment,
               replayOnly: false,
               lossyRerun: false,
             });
@@ -548,12 +557,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
 
       const forwardedImplementationEnvironment =
-        await applyCredentialForwarding({
-          environment: sandboxImplementationEnvironment,
-          credentialEnvironmentVariables:
-            credentialForwardingEnvironmentVariables,
-          credentialForwarding: settings.credentialForwarding,
-        });
+        sandboxCredentialEnvironment == null
+          ? await applyCredentialForwarding({
+              environment: sandboxImplementationEnvironment,
+              credentialEnvironmentVariables:
+                credentialForwardingEnvironmentVariables,
+              credentialForwarding: settings.credentialForwarding,
+            })
+          : sandboxImplementationEnvironment;
       const port = resolveBridgePort({
         sandboxSession,
         override: portOverride,
@@ -746,6 +757,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           coldRestoration == null
             ? lifecycleData?.restoration
             : { method: coldRestoration },
+        sandboxCredentialEnvironment,
         replayOnly: respawnStrategy?.mode === 'disk-replay',
         lossyRerun: respawnStrategy?.mode === 'lossy-rerun',
       });
@@ -783,45 +795,6 @@ function resolveProviderEnvironment({
       clientAppVersion: clientApp.version,
     },
   });
-}
-
-function resolveBrokeredProviderEnvironment({
-  resolvedProviderAuthentication,
-  clientApp,
-}: {
-  resolvedProviderAuthentication: ReturnType<
-    typeof resolveACPProviderAuthentication
-  >;
-  clientApp: ACPClientApp;
-}): Record<string, string> {
-  const providerAuthentication =
-    resolvedProviderAuthentication.providerAuthentication;
-  if (providerAuthentication?.type !== 'ai-gateway') return {};
-
-  const baseUrl = requireResolvedEnvironmentValue({
-    environment: resolvedProviderAuthentication.env,
-    name: 'AI_SDK_ACP_GATEWAY_BASE_URL',
-  });
-
-  return Object.fromEntries(
-    Object.entries(providerAuthentication.env).map(
-      ([environmentVariableName, value]) => {
-        const environment = resolveACPLaunchEnvironment({
-          providerAuthentication: {
-            type: 'ai-gateway',
-            env: { [environmentVariableName]: value },
-          },
-          gateway: {
-            apiKey: environmentVariableName,
-            baseUrl,
-            clientAppName: clientApp.name,
-            clientAppVersion: clientApp.version,
-          },
-        });
-        return [environmentVariableName, environment[environmentVariableName]!];
-      },
-    ),
-  );
 }
 
 function resolveACPProviderCredentialEnvironmentVariables({
@@ -1087,6 +1060,7 @@ function createSession({
   turnStartConfig: turnStartConfigAtStart,
   recoveryStatus,
   restoration,
+  sandboxCredentialEnvironment,
   replayOnly,
   lossyRerun,
 }: {
@@ -1119,6 +1093,7 @@ function createSession({
   turnStartConfig: ACPTurnStartConfig | undefined;
   recoveryStatus: ACPLifecycleData['recovery'];
   restoration: ACPLifecycleData['restoration'];
+  sandboxCredentialEnvironment: Readonly<Record<string, string>> | undefined;
   replayOnly: boolean;
   lossyRerun: boolean;
 }): HarnessV1Session {
@@ -1374,6 +1349,9 @@ function createSession({
   }): ACPLifecycleData => ({
     implementationIdentity,
     authenticationProfile,
+    ...(sandboxCredentialEnvironment == null
+      ? {}
+      : { sandboxCredentialEnvironment }),
     ...(latestACPSessionId == null ? {} : { acpSessionId: latestACPSessionId }),
     ...(bridge == null ? {} : { bridge }),
     ...(latestTurnStartConfig == null

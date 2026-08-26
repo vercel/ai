@@ -1,5 +1,16 @@
 # @ai-sdk/moonshotai
 
+## 3.0.40
+
+### Patch Changes
+
+- a336b12: Add first-class Moonshot V1 auto and vision-preview model IDs while preserving custom and retired model ID support.
+- e4f665c: Preserve documented Moonshot AI chat response metadata for generate and stream.
+- 85463b9: Add Moonshot AI Partial Mode support for continuing a final assistant message.
+- d354a42: fix(provider/moonshotai): send max output tokens with the current Moonshot request field
+- e5d5cbe: feat(provider/moonshotai): add predicted output support
+- 3da2b7d: Support Kimi K3 dynamic tool-loading system messages.
+
 ## 3.0.39
 
 ### Patch Changes

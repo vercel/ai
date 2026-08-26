@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.66
+
+### Patch Changes
+
+- 81bebaf: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+
 ## 4.0.65
 
 ### Patch Changes
