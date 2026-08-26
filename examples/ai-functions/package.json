@@ -50,6 +50,7 @@
     "@ai-sdk/vercel": "workspace:*",
     "@ai-sdk/voyage": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
+    "@ai-sdk/zai": "workspace:*",
     "@basetenlabs/performance-client": "0.0.10",
     "@google/generative-ai": "0.21.0",
     "@langfuse/otel": "^4.5.0",
