@@ -1,5 +1,11 @@
 # @ai-sdk/prodia
 
+## 1.0.54
+
+### Patch Changes
+
+- 529ac56: Warn when the unsupported `seed` language model setting is provided.
+
 ## 1.0.53
 
 ### Patch Changes

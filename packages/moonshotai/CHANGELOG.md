@@ -1,5 +1,13 @@
 # @ai-sdk/moonshotai
 
+## 2.0.50
+
+### Patch Changes
+
+- 172effc: fix(provider/moonshotai): align thinking and reasoning options by model
+- cc1743a: fix(provider/moonshotai): omit unsupported sampling settings for Kimi models
+- 12e6be3: Omit required tool choice with a warning for Moonshot Kimi models that reject it.
+
 ## 2.0.49
 
 ### Patch Changes

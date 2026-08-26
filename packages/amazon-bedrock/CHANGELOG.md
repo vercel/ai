@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.162
+
+### Patch Changes
+
+- 46e5f91: Send nested reasoning effort for CRIS-prefixed OpenAI GPT-5.x Converse requests while preserving the flat gpt-oss format.
+- Updated dependencies [087d7e2]
+  - @ai-sdk/openai@3.0.102
+
 ## 4.0.161
 
 ### Patch Changes

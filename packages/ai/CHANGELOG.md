@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.267
+
+### Patch Changes
+
+- cd29175: Include telemetry metadata attributes on tool call spans.
+- e88c835: Expose structured output parsing diagnostics from `generateText` when generation stops because of the output token limit.
+- Updated dependencies [845ad6d]
+- Updated dependencies [fe80a3c]
+  - @ai-sdk/gateway@3.0.182
+
 ## 6.0.266
 
 ### Patch Changes
