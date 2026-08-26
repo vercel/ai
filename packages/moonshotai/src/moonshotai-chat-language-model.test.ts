@@ -437,8 +437,50 @@ describe('doGenerate', () => {
 
   describe('structured outputs', () => {
     beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-text');
+      prepareJsonFixtureResponse('moonshotai-v1-structured-output');
     });
+
+    it.each([
+      'moonshot-v1-8k',
+      'moonshot-v1-32k',
+      'moonshot-v1-128k',
+      'moonshot-v1-auto',
+      'moonshot-v1-8k-vision-preview',
+      'moonshot-v1-32k-vision-preview',
+      'moonshot-v1-128k-vision-preview',
+    ] as const)(
+      'should use native JSON-schema structured output for %s',
+      async modelId => {
+        await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            name: 'structured_response',
+            schema: {
+              type: 'object',
+              properties: { answer: { type: 'string' } },
+              required: ['answer'],
+              additionalProperties: false,
+            },
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.response_format).toStrictEqual({
+          type: 'json_schema',
+          json_schema: {
+            name: 'structured_response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: { answer: { type: 'string' } },
+              required: ['answer'],
+              additionalProperties: false,
+            },
+          },
+        });
+      },
+    );
 
     it('should normalize json schemas and enable strict validation by default', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
@@ -522,8 +564,8 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should fall back to json_object for models without structured outputs', async () => {
-      await provider.chatModel('moonshot-v1-8k').doGenerate({
+    it('should fall back to json_object for unknown models', async () => {
+      await provider.chatModel('custom-model-id').doGenerate({
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
