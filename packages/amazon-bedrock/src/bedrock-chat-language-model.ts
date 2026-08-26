@@ -46,6 +46,10 @@ type BedrockChatConfig = {
   generateId: () => string;
 };
 
+const anthropicProviderOptions = z.object({
+  disableParallelToolUse: z.boolean().optional(),
+});
+
 export class BedrockChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
@@ -82,6 +86,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         providerOptions,
         schema: bedrockProviderOptions,
       })) ?? {};
+
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions,
+      schema: anthropicProviderOptions,
+    });
 
     const warnings: LanguageModelV2CallWarning[] = [];
 
@@ -167,6 +177,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
+        disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 
     warnings.push(...toolWarnings);

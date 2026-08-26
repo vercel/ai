@@ -2877,6 +2877,41 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should disable parallel tool use without sending conflicting tool choices', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          description: 'A test tool',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          disableParallelToolUse: true,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields).toMatchObject({
+      tool_choice: {
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      },
+    });
+    expect(requestBody.toolConfig.toolChoice).toBeUndefined();
+  });
+
   it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
     prepareJsonResponse({});
 
