@@ -894,8 +894,6 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-<<<<<<< HEAD
-=======
   it('should preserve a provider error envelope in stream errors', async () => {
     const data = {
       error: {
@@ -913,18 +911,13 @@ describe('doStream', () => {
       expect.fail('Expected an error part');
     }
 
-    expect(isProviderStreamError(errorPart.error)).toBe(true);
-    expect(errorPart.error).toMatchObject({
+    expect(errorPart.error).toStrictEqual({
       message: 'Internal server error',
       type: 'server_error',
       code: 'upstream_failure',
-      statusCode: 500,
-      isRetryable: true,
-      data,
     });
   });
 
->>>>>>> 48c5f461ef (fix: preserve Moonshot API error metadata in HTTP and streaming responses (#19742))
   it('should stream reasoning and text deltas with usage', async () => {
     const parts = await getStreamParts('moonshotai-stream');
 
