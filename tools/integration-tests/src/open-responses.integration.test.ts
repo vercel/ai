@@ -2,16 +2,24 @@ import {
   createOpenResponses,
   type Experimental_OpenResponsesExtension,
 } from '@ai-sdk/open-responses';
-import type { ModelMessage } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  generateText,
+  type ModelMessage,
+  StreamProviderError,
+  streamText,
+} from 'ai';
 import { describe, expect, it } from 'vitest';
-import { generateText } from './generate-text';
 
-describe('Open Responses extension round trip', () => {
-  const URL = 'https://localhost:1234/v1/responses';
-  const server = createTestServer({ [URL]: {} });
+describe('Open Responses integration', () => {
+  const roundTripUrl = 'https://localhost:1234/v1/responses';
+  const providerErrorUrl = 'https://api.test.com/open-responses';
+  const server = createTestServer({
+    [roundTripUrl]: {},
+    [providerErrorUrl]: {},
+  });
 
-  it('replays a source-only item through generateText response messages', async () => {
+  it('replays a source-only extension item through generateText response messages', async () => {
     const receipt = {
       type: 'acme:document_search_source' as const,
       id: 'source_1',
@@ -34,7 +42,7 @@ describe('Open Responses extension round trip', () => {
       ],
     };
 
-    server.urls[URL].response = [
+    server.urls[roundTripUrl].response = [
       {
         type: 'json-value',
         body: createResponse({
@@ -84,7 +92,7 @@ describe('Open Responses extension round trip', () => {
 
     const model = createOpenResponses({
       name: 'acme',
-      url: URL,
+      url: roundTripUrl,
       experimental_extensions: [extension],
     })('acme-model');
     const messages: ModelMessage[] = [
@@ -118,6 +126,55 @@ describe('Open Responses extension round trip', () => {
           item.type === receipt.type && item.id === receipt.id,
       ),
     ).toHaveLength(1);
+  });
+
+  it('normalizes an Open Responses error event without merging type and code', async () => {
+    const data = {
+      type: 'error',
+      sequence_number: 1,
+      error: {
+        code: '429',
+        message: 'Rate limit reached',
+      },
+    };
+
+    server.urls[providerErrorUrl].response = {
+      type: 'stream-chunks',
+      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
+    };
+
+    let onErrorValue: unknown;
+    const result = streamText({
+      model: createOpenResponses({
+        name: 'test-open-responses',
+        url: providerErrorUrl,
+        apiKey: 'test-api-key',
+      })('test-model'),
+      prompt: 'Test prompt',
+      onError: ({ error }) => {
+        onErrorValue = error;
+      },
+    });
+    const parts = [];
+    for await (const part of result.fullStream) {
+      parts.push(part);
+    }
+    const errorPart = parts.find(part => part.type === 'error');
+
+    expect(errorPart?.type).toBe('error');
+    if (errorPart?.type !== 'error') {
+      expect.fail('Expected an error part');
+    }
+    expect(StreamProviderError.isInstance(errorPart.error)).toBe(true);
+    expect(errorPart.error).toMatchObject({
+      message: data.error.message,
+      type: data.type,
+      code: data.error.code,
+      statusCode: 429,
+      isRetryable: true,
+      data,
+    });
+    expect(onErrorValue).toBe(errorPart.error);
   });
 });
 

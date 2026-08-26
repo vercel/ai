@@ -67,7 +67,6 @@
     "@ai-sdk/groq": "workspace:*",
     "@ai-sdk/huggingface": "workspace:*",
     "@ai-sdk/moonshotai": "workspace:*",
-    "@ai-sdk/open-responses": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/test-server": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
