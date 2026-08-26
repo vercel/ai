@@ -210,6 +210,38 @@ You can also pass a URL. Since Moonshot AI does not fetch external URLs, the AI 
   inputs are not supported by Moonshot AI chat completions.
 </Note>
 
+### File References and Text Files
+
+Images and videos uploaded through the Moonshot Files API can be passed as
+provider references. Prefix the uploaded file ID with `ms://` and use an image
+or video media type:
+
+```ts
+{
+  type: 'file',
+  data: {
+    type: 'reference',
+    reference: {
+      moonshotai: 'ms://file-id',
+    },
+  },
+  mediaType: 'image/png',
+}
+```
+
+Inline text file data is sent as a native text content part:
+
+```ts
+{
+  type: 'file',
+  data: {
+    type: 'text',
+    text: 'Document contents',
+  },
+  mediaType: 'text/plain',
+}
+```
+
 ### Provider Options
 
 The following optional provider options are available for Moonshot AI language models:
