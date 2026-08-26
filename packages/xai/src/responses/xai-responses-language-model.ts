@@ -1380,20 +1380,20 @@ const webSearchWireSourceSchema = z.object({
 const webSearchWireActionSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('search'),
-    query: z.string().optional(),
-    queries: z.array(z.string()).optional(),
-    sources: z.array(z.unknown()).optional(),
+    query: z.string().nullish(),
+    queries: z.array(z.string()).nullish(),
+    sources: z.array(z.unknown()).nullish(),
   }),
   z.object({
     type: z.literal('open_page'),
-    url: z.string().optional(),
-    sources: z.array(z.unknown()).optional(),
+    url: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
   }),
   z.object({
     type: z.literal('find_in_page'),
-    url: z.string().optional(),
-    pattern: z.string().optional(),
-    sources: z.array(z.unknown()).optional(),
+    url: z.string().nullish(),
+    pattern: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
   }),
 ]);
 
@@ -1415,8 +1415,8 @@ function mapWebSearchAction(
       return {
         action: {
           type: 'search',
-          ...(a.query !== undefined && { query: a.query }),
-          ...(a.queries !== undefined && { queries: a.queries }),
+          ...(a.query != null && { query: a.query }),
+          ...(a.queries != null && { queries: a.queries }),
         },
         ...sourcesExtra,
       };
