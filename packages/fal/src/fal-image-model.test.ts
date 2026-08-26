@@ -43,6 +43,21 @@ describe('FalImageModel', () => {
         },
       },
     },
+    'https://api.example.com/fal-ai/flux-2/edit': {
+      response: {
+        type: 'json-value',
+        body: {
+          images: [
+            {
+              url: 'https://api.example.com/image.png',
+              width: 1024,
+              height: 1024,
+              content_type: 'image/png',
+            },
+          ],
+        },
+      },
+    },
     'https://api.example.com/image.png': {
       response: {
         type: 'binary',
@@ -55,6 +70,11 @@ describe('FalImageModel', () => {
     it.each([
       {
         modelId: 'fal-ai/flux/dev/image-to-image',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'fal-ai/flux-2/edit',
         supportsFileInputs: true,
         supportsMaskInputs: false,
       },
@@ -603,10 +623,16 @@ describe('FalImageModel', () => {
       });
     });
 
-    it('should send image_urls when useMultipleImages is true', async () => {
+    it('should send files as image_urls for fal-ai/flux-2/edit', async () => {
       const imageData = new Uint8Array([137, 80, 78, 71]);
 
-      await createBasicModel().doGenerate({
+      const model = new FalImageModel('fal-ai/flux-2/edit', {
+        provider: 'fal.image',
+        baseURL: 'https://api.example.com',
+        headers: { 'api-key': 'test-key' },
+      });
+
+      await model.doGenerate({
         prompt: 'Edit these images',
         files: [
           {

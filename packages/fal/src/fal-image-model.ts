@@ -36,6 +36,7 @@ export class FalImageModel implements ImageModelV4 {
 
   get supportsFileInputs(): boolean | undefined {
     if (
+      this.modelId === 'fal-ai/flux-2/edit' ||
       this.modelId === 'fal-ai/flux-pro/kontext' ||
       this.modelId === 'fal-ai/flux-pro/kontext/max' ||
       this.modelId.endsWith('/image-to-image') ||
