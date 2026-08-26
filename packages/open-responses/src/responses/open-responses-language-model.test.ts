@@ -1215,6 +1215,46 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    it('should stream OpenAI reasoning summary text deltas', async () => {
+      prepareChunksFixtureResponse('openai-reasoning-summary-text.1');
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const reasoningParts = (
+        await convertReadableStreamToArray(result.stream)
+      ).filter(part => part.type.startsWith('reasoning-'));
+
+      expect(reasoningParts).toStrictEqual([
+        {
+          type: 'reasoning-start',
+          id: 'rs_0d9f928e52c3acfc006a8e6658d2c887d2a1565c1d41ef8411',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_0d9f928e52c3acfc006a8e6658d2c887d2a1565c1d41ef8411',
+          delta: '**Calculating multiplication**\n\nI',
+        },
+        {
+          type: 'reasoning-end',
+          id: 'rs_0d9f928e52c3acfc006a8e6658d2c887d2a1565c1d41ef8411',
+          providerMetadata: {
+            lmstudio: {
+              itemId: 'rs_0d9f928e52c3acfc006a8e6658d2c887d2a1565c1d41ef8411',
+              reasoningSummary: [
+                {
+                  type: 'summary_text',
+                  text: '**Calculating multiplication**\n\nI’m computing 37 multiplied by 41. So, first, I do 37 times 40, which is 1480, and then I add 37 for a total of 1517. Alternatively, I could use the difference of squares: (39-2)(39+2) would give me 39 squared minus 4, which is 1521-4, also totaling 1517. I’ll make sure to briefly explain these steps for clarity. Done!',
+                },
+              ],
+              reasoningContent: [],
+            },
+          },
+        },
+      ]);
+    });
+
     it('should close unfinished reasoning items with their original ids', async () => {
       server.urls[URL].response = {
         type: 'stream-chunks',
