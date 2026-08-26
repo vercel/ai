@@ -340,7 +340,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     };
   }
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
   async doGenerate(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
@@ -369,30 +368,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const candidate = response.candidates[0];
-    const content: Array<LanguageModelV3Content> = [];
-=======
-  protected convertGenerateContentResponse({
-    response,
-    warnings,
-    providerOptionsNames,
-  }: {
-    response: InferSchema<typeof responseSchema>;
-    warnings: SharedV4Warning[];
-    providerOptionsNames: readonly string[];
-  }): LanguageModelV4GenerateResult {
-    const wrapProviderMetadata = (payload: Record<string, unknown>) =>
-      Object.fromEntries(
-        providerOptionsNames.map(name => [name, payload]),
-      ) as SharedV4ProviderMetadata;
     const candidate = response.candidates?.[0];
     const promptBlockReason = response.promptFeedback?.blockReason;
     const isPromptBlocked =
       candidate?.finishReason == null && promptBlockReason != null;
     const rawFinishReason =
       candidate?.finishReason ?? promptBlockReason ?? undefined;
-    const content: Array<LanguageModelV4Content> = [];
->>>>>>> 56d492f616 (fix: surface Google prompt-level safety blocks without candidates as content-filter (#19767)):packages/google/src/google-language-model.ts
+    const content: Array<LanguageModelV3Content> = [];
 
     // map ordered parts to content:
     const parts = candidate?.content?.parts ?? [];
@@ -548,19 +530,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: {
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
-        unified: mapGoogleGenerativeAIFinishReason({
-          finishReason: candidate.finishReason,
-          // Only count client-executed tool calls for finish reason determination.
-          hasToolCalls: content.some(
-            part => part.type === 'tool-call' && !part.providerExecuted,
-          ),
-        }),
-        raw: candidate.finishReason ?? undefined,
-=======
         unified: isPromptBlocked
           ? 'content-filter'
-          : mapGoogleFinishReason({
+          : mapGoogleGenerativeAIFinishReason({
               finishReason: rawFinishReason,
               // Only count client-executed tool calls for finish reason determination.
               hasToolCalls: content.some(
@@ -568,34 +540,21 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               ),
             }),
         raw: rawFinishReason,
->>>>>>> 56d492f616 (fix: surface Google prompt-level safety blocks without candidates as content-filter (#19767)):packages/google/src/google-language-model.ts
       },
       usage: convertGoogleGenerativeAIUsage(usageMetadata),
       warnings,
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
       providerMetadata: {
         [providerOptionsName]: {
           promptFeedback: response.promptFeedback ?? null,
-          groundingMetadata: candidate.groundingMetadata ?? null,
-          urlContextMetadata: candidate.urlContextMetadata ?? null,
-          safetyRatings: candidate.safetyRatings ?? null,
+          groundingMetadata: candidate?.groundingMetadata ?? null,
+          urlContextMetadata: candidate?.urlContextMetadata ?? null,
+          safetyRatings: candidate?.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
-          finishMessage: candidate.finishMessage ?? null,
+          finishMessage: candidate?.finishMessage ?? null,
           serviceTier: usageMetadata?.serviceTier ?? null,
         } satisfies GoogleGenerativeAIProviderMetadata,
       },
       request: { body: args },
-=======
-      providerMetadata: wrapProviderMetadata({
-        promptFeedback: response.promptFeedback ?? null,
-        groundingMetadata: candidate?.groundingMetadata ?? null,
-        urlContextMetadata: candidate?.urlContextMetadata ?? null,
-        safetyRatings: candidate?.safetyRatings ?? null,
-        usageMetadata: usageMetadata ?? null,
-        finishMessage: candidate?.finishMessage ?? null,
-        serviceTier: usageMetadata?.serviceTier ?? null,
-      } satisfies GoogleProviderMetadata),
->>>>>>> 56d492f616 (fix: surface Google prompt-level safety blocks without candidates as content-filter (#19767)):packages/google/src/google-language-model.ts
       response: {
         // TODO timestamp, model id
         id: response.responseId ?? undefined,
@@ -743,15 +702,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   unified: 'content-filter',
                   raw: promptBlockReason,
                 };
-                providerMetadata = wrapProviderMetadata({
-                  promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: lastGroundingMetadata,
-                  urlContextMetadata: lastUrlContextMetadata,
-                  safetyRatings: null,
-                  usageMetadata: usageMetadata ?? null,
-                  finishMessage: null,
-                  serviceTier: usage?.serviceTier ?? null,
-                } satisfies GoogleProviderMetadata);
+                providerMetadata = {
+                  [providerOptionsName]: {
+                    promptFeedback: value.promptFeedback ?? null,
+                    groundingMetadata: lastGroundingMetadata,
+                    urlContextMetadata: lastUrlContextMetadata,
+                    safetyRatings: null,
+                    usageMetadata: usageMetadata ?? null,
+                    finishMessage: null,
+                    serviceTier: usage?.serviceTier ?? null,
+                  } satisfies GoogleGenerativeAIProviderMetadata,
+                };
               }
               return;
             }
@@ -1150,21 +1111,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
             if (rawFinishReason != null) {
               finishReason = {
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
-                unified: mapGoogleGenerativeAIFinishReason({
-                  finishReason: candidate.finishReason,
-                  hasToolCalls,
-                }),
-                raw: candidate.finishReason,
-=======
                 unified: isPromptBlocked
                   ? 'content-filter'
-                  : mapGoogleFinishReason({
+                  : mapGoogleGenerativeAIFinishReason({
                       finishReason: rawFinishReason,
                       hasToolCalls,
                     }),
                 raw: rawFinishReason,
->>>>>>> 56d492f616 (fix: surface Google prompt-level safety blocks without candidates as content-filter (#19767)):packages/google/src/google-language-model.ts
               };
 
               providerMetadata = {
@@ -1567,16 +1520,12 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
-type ContentSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['content']
->;
-=======
 type CandidateSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates']
 >[number];
 
->>>>>>> 56d492f616 (fix: surface Google prompt-level safety blocks without candidates as content-filter (#19767)):packages/google/src/google-language-model.ts
+type ContentSchema = NonNullable<CandidateSchema['content']>;
+
 export type GroundingMetadataSchema = NonNullable<
   CandidateSchema['groundingMetadata']
 >;
