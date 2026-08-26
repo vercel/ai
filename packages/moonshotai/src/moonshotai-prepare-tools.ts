@@ -3,6 +3,7 @@ import {
   type LanguageModelV3CallOptions,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
+import type { MoonshotAIFunctionTool } from './moonshotai-chat-api-types';
 import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
 import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 
@@ -15,17 +16,7 @@ export function prepareTools({
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: MoonshotAIChatModelId;
 }): {
-  tools:
-    | undefined
-    | Array<{
-        type: 'function';
-        function: {
-          name: string;
-          description: string | undefined;
-          parameters: unknown;
-          strict?: boolean;
-        };
-      }>;
+  tools: undefined | Array<MoonshotAIFunctionTool>;
   toolChoice:
     | { type: 'function'; function: { name: string } }
     | 'auto'
@@ -43,15 +34,7 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const moonshotTools: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: unknown;
-      strict?: boolean;
-    };
-  }> = [];
+  const moonshotTools: Array<MoonshotAIFunctionTool> = [];
 
   for (const tool of tools) {
     if (tool.type === 'provider') {

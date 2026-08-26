@@ -290,6 +290,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
 
     const { messages, warnings: messageWarnings } =
       convertToMoonshotAIChatMessages({
+        modelId: this.modelId,
         prompt,
         providerOptionsName: this.providerOptionsName,
         responseFormat: response_format,

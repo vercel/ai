@@ -553,6 +553,225 @@ describe('system messages', () => {
 
     expect(result).toEqual([{ role: 'system', content: 'You are Kimi.' }]);
   });
+
+  it('should serialize and normalize K3 dynamic tools without content', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'kimi-k3',
+      prompt: [
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'locate',
+                  description: 'Locate coordinates',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {
+                      coordinates: {
+                        type: 'array',
+                        items: [{ type: 'number' }, { type: 'number' }],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'system',
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'locate',
+                description: 'Locate coordinates',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    coordinates: {
+                      type: 'array',
+                      prefixItems: [{ type: 'number' }, { type: 'number' }],
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      warnings: [],
+    });
+  });
+
+  it('should omit dynamic tools and warn for known non-K3 models', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'kimi-k2.6',
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Start' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'calculator',
+                  inputSchema: { type: 'object', properties: {} },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [{ role: 'user', content: 'Start' }],
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'dynamic tool loading for model "kimi-k2.6"',
+          details:
+            'Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted.',
+        },
+      ],
+    });
+  });
+
+  it('should preserve dynamic tools for unknown custom models', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'custom-model',
+      prompt: [
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'calculator',
+                  inputSchema: { type: 'object', properties: {} },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.messages[0]).toMatchObject({
+      role: 'system',
+      tools: [{ function: { name: 'calculator' } }],
+    });
+  });
+
+  it('should preserve an ordinary system message when tools is empty', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'kimi-k3',
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are Kimi.',
+          providerOptions: { moonshotai: { tools: [] } },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [{ role: 'system', content: 'You are Kimi.' }],
+      warnings: [],
+    });
+  });
+
+  it('should reject incomplete dynamic tool definitions', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        modelId: 'kimi-k3',
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: undefined,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).toThrow('invalid moonshotai provider options');
+  });
+
+  it('should reject content alongside dynamic tools', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        modelId: 'kimi-k3',
+        prompt: [
+          {
+            role: 'system',
+            content: 'Do not send this.',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).toThrow(
+      'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+    );
+  });
+
+  it('should reject dynamic tools on non-system messages', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        modelId: 'kimi-k3',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).toThrow('Moonshot dynamic tools must be configured on a system message.');
+  });
 });
 
 describe('assistant messages', () => {
