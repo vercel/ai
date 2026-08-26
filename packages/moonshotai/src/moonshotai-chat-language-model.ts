@@ -317,6 +317,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
         messages,
         tools: moonshotTools,
         tool_choice: moonshotToolChoice,
+        ...(moonshotOptions.prediction != null && {
+          prediction: moonshotOptions.prediction,
+        }),
         ...(thinking != null ? { thinking } : {}),
         ...(reasoningEffort != null && {
           reasoning_effort: reasoningEffort,

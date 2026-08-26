@@ -410,6 +410,66 @@ You can also pass a URL. Since Moonshot AI does not fetch external URLs, the AI 
   inputs are not supported by Moonshot AI chat completions.
 </Note>
 
+### Predicted Outputs
+
+You can provide static predicted content when much of the expected response is
+already known. Moonshot AI can use the prediction to accelerate the response
+while still generating any changed content:
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAILanguageModelOptions,
+} from '@ai-sdk/moonshotai';
+import { streamText } from 'ai';
+
+const source = `export function greet(name: string) {
+  return \`Hello, \${name}!\`;
+}`;
+
+const result = streamText({
+  model: moonshotai('kimi-k3'),
+  messages: [
+    {
+      role: 'user',
+      content:
+        'Change the function to say "Welcome" instead of "Hello". Respond only with the updated code.',
+    },
+    { role: 'user', content: source },
+  ],
+  providerOptions: {
+    moonshotai: {
+      prediction: {
+        type: 'content',
+        content: source,
+      },
+    } satisfies MoonshotAILanguageModelOptions,
+  },
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+The `content` can also be an array of text parts:
+
+```ts
+prediction: {
+  type: 'content',
+  content: [
+    { type: 'text', text: 'First known section' },
+    { type: 'text', text: 'Second known section' },
+  ],
+}
+```
+
+<Note>
+  Predicted content is sent to Moonshot AI as part of the request. Avoid
+  including sensitive or proprietary text unless you intend to share it with the
+  provider.
+</Note>
+
 ### Provider Options
 
 The following optional provider options are available for Moonshot AI language models:
@@ -432,6 +492,11 @@ The following optional provider options are available for Moonshot AI language m
 - **reasoningEffort** _'low' | 'high' | 'max'_
 
   Reasoning effort for Kimi K3.
+
+- **prediction** _&#123; type: 'content'; content: string | Array&lt;&#123; type: 'text'; text: string &#125;&gt; &#125;_
+
+  Supplies static predicted output that can accelerate requests where most of
+  the response is already known.
 
 - **thinking** _object_
 

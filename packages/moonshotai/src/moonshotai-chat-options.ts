@@ -68,6 +68,20 @@ export const moonshotaiLanguageModelOptions = z.object({
    */
   reasoningEffort: z.enum(['low', 'high', 'max']).optional(),
 
+  /**
+   * Static predicted content that can accelerate responses when much of the
+   * output is known ahead of time.
+   */
+  prediction: z
+    .object({
+      type: z.literal('content'),
+      content: z.union([
+        z.string(),
+        z.array(z.object({ type: z.literal('text'), text: z.string() })),
+      ]),
+    })
+    .optional(),
+
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),
@@ -111,6 +125,15 @@ export type MoonshotAILanguageModelOptions = {
 
   /** Reasoning effort for Kimi K3. */
   reasoningEffort?: 'low' | 'high' | 'max';
+
+  /**
+   * Static predicted content that can accelerate responses when much of the
+   * output is known ahead of time.
+   */
+  prediction?: {
+    type: 'content';
+    content: string | Array<{ type: 'text'; text: string }>;
+  };
 
   /** Controls thinking on Kimi K2.5 and K2.6. K2.7 is always enabled. */
   thinking?: {
