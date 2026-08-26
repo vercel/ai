@@ -1,5 +1,12 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.92
+
+### Patch Changes
+
+- eccb89e: fix(harness-opencode): authorize host tools and resolve permissions for task-linked subagents.
+  - @ai-sdk/harness@1.0.91
+
 ## 1.0.91
 
 ### Patch Changes

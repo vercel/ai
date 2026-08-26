@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.50
+
+### Patch Changes
+
+- e6a2992: Fix Responses history serialization for regular functions named `tool_search`.
+
 ## 4.0.49
 
 ### Patch Changes
