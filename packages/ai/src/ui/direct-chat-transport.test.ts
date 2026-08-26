@@ -4,12 +4,8 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, beforeEach } from 'vitest';
-<<<<<<< HEAD
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-=======
 import { z } from 'zod/v4';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { ToolLoopAgent } from '../agent/tool-loop-agent';
 import { DirectChatTransport } from './direct-chat-transport';
 

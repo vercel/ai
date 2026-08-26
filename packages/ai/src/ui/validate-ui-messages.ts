@@ -5,11 +5,8 @@ import {
 } from '@ai-sdk/provider';
 import {
   lazySchema,
-<<<<<<< HEAD
-  StandardSchemaV1,
-=======
   safeValidateTypes,
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
+  StandardSchemaV1,
   validateTypes,
   zodSchema,
   type FlexibleSchema,
@@ -33,10 +30,6 @@ const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
   jsonValueSchema.optional(),
 );
 
-<<<<<<< HEAD
-=======
-const providerReferenceSchema = z.record(z.string(), z.string());
-
 function isEmptyObject(value: unknown): value is Record<string, never> {
   return (
     value != null &&
@@ -56,7 +49,6 @@ function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   } as DynamicToolUIPart;
 }
 
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
 const uiMessagesSchema = lazySchema(() =>
   zodSchema(
     z
@@ -486,15 +478,11 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               InferUIMessageTools<UI_MESSAGE>
             >;
             const toolName = toolPart.type.slice(5);
-<<<<<<< HEAD
-            const tool = tools[toolName];
-=======
-            const tool = tools == null ? undefined : getOwn(tools, toolName);
+            const tool = tools?.[toolName];
             const isTerminal =
               toolPart.state === 'output-available' ||
               toolPart.state === 'output-error' ||
               toolPart.state === 'output-denied';
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
 
             if (!tool && isTerminal) {
               if (tools != null || convertMissingTerminalToolsToDynamic) {

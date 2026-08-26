@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createAgentUIStream } from './create-agent-ui-stream';
 import { ToolLoopAgent } from './tool-loop-agent';
 
@@ -15,7 +15,7 @@ const currentTool = tool({
 });
 
 function createMockModel() {
-  return new MockLanguageModelV4({
+  return new MockLanguageModelV3({
     doStream: async () => ({
       stream: convertArrayToReadableStream([
         { type: 'stream-start', warnings: [] },
@@ -86,7 +86,7 @@ describe('createAgentUIStream', () => {
       model: createMockModel(),
       tools: { current: currentTool },
     });
-    const onEnd = vi.fn();
+    const onFinish = vi.fn();
 
     const stream = await createAgentUIStream({
       agent,
@@ -110,13 +110,13 @@ describe('createAgentUIStream', () => {
           parts: [{ type: 'text', text: 'continue' }],
         },
       ],
-      onEnd,
+      onFinish,
     });
 
     await convertReadableStreamToArray(stream);
 
-    expect(onEnd).toHaveBeenCalledOnce();
-    expect(onEnd.mock.calls[0][0].messages[0].parts[0]).toEqual({
+    expect(onFinish).toHaveBeenCalledOnce();
+    expect(onFinish.mock.calls[0][0].messages[0].parts[0]).toEqual({
       type: 'dynamic-tool',
       toolName: 'removed',
       toolCallId: 'call-1',
@@ -130,7 +130,7 @@ describe('createAgentUIStream', () => {
     const agent = new ToolLoopAgent({
       model: createMockModel(),
     });
-    const onEnd = vi.fn();
+    const onFinish = vi.fn();
 
     const stream = await createAgentUIStream({
       agent,
@@ -154,13 +154,13 @@ describe('createAgentUIStream', () => {
           parts: [{ type: 'text', text: 'continue' }],
         },
       ],
-      onEnd,
+      onFinish,
     });
 
     await convertReadableStreamToArray(stream);
 
-    expect(onEnd).toHaveBeenCalledOnce();
-    expect(onEnd.mock.calls[0][0].messages[0].parts[0]).toEqual({
+    expect(onFinish).toHaveBeenCalledOnce();
+    expect(onFinish.mock.calls[0][0].messages[0].parts[0]).toEqual({
       type: 'dynamic-tool',
       toolName: 'removed',
       toolCallId: 'call-1',

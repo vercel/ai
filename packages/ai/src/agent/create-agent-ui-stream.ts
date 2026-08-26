@@ -7,22 +7,9 @@ import type { ToolSet } from '../generate-text/tool-set';
 import type { TimeoutConfiguration } from '../prompt/call-settings';
 import type { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
-<<<<<<< HEAD
 import type { InferUITools, UIMessage } from '../ui/ui-messages';
-import { validateUIMessages } from '../ui/validate-ui-messages';
-import type { AsyncIterableStream } from '../util/async-iterable-stream';
-=======
-import type {
-  InferUIMessageTools,
-  InferUITools,
-  UIMessage,
-} from '../ui/ui-messages';
 import { validateUIMessagesForAgent } from '../ui/validate-ui-messages';
-import {
-  createAsyncIterableStream,
-  type AsyncIterableStream,
-} from '../util/async-iterable-stream';
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { Agent } from './agent';
 import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
@@ -71,13 +58,9 @@ export async function createAgentUIStream<
     InferUIMessageChunk<UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>>
   >
 > {
-<<<<<<< HEAD
-  const validatedMessages = await validateUIMessages<
+  const validatedMessages = await validateUIMessagesForAgent<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >({
-=======
-  const validatedMessages = await validateUIMessagesForAgent<UI_MESSAGE>({
->>>>>>> 8dd86a903e (fix: reject stale persisted tool inputs without blocking unparsed or unavailable-tool history (#19363))
     messages: uiMessages,
     tools: agent.tools,
   });
