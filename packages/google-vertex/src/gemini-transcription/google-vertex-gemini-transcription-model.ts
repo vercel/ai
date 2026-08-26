@@ -208,14 +208,37 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       fetch: this.config.fetch,
     });
 
-    const text = (response.candidates?.[0]?.content?.parts ?? [])
-      .map(part => part.text ?? '')
+    const parts = response.candidates?.[0]?.content?.parts ?? [];
+    const plainText = parts.map(part => part.text ?? '').join('');
+    const transcriptionText = parts
+      .map(part => part.audioTranscription?.text ?? '')
       .join('');
+    const text = plainText !== '' ? plainText : transcriptionText;
+
+    let language: string | undefined;
+    const segments: Array<{
+      text: string;
+      startSecond: number;
+      endSecond: number;
+    }> = [];
+    for (const part of parts) {
+      const transcription = part.audioTranscription;
+      if (transcription == null) continue;
+      language ??= transcription.languageCode ?? undefined;
+      for (const word of transcription.words ?? []) {
+        const startSecond = parseOffsetSeconds(word.startOffset);
+        const endSecond = parseOffsetSeconds(word.endOffset);
+        if (word.word == null || startSecond == null || endSecond == null) {
+          continue;
+        }
+        segments.push({ text: word.word, startSecond, endSecond });
+      }
+    }
 
     return {
       text,
-      segments: [],
-      language: undefined,
+      segments,
+      language,
       durationInSeconds: undefined,
       warnings,
       response: {
@@ -639,13 +662,44 @@ function validateLiveInputAudioFormat(
   }
 }
 
+/** Parses a Google duration offset such as `"1s"` or `"9.400s"` to seconds. */
+function parseOffsetSeconds(
+  offset: string | undefined | null,
+): number | undefined {
+  if (offset == null) return undefined;
+  const parsed = Number.parseFloat(offset);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+const googleVertexGeminiTranscriptionWordSchema = z.object({
+  word: z.string().nullish(),
+  startOffset: z.string().nullish(),
+  endOffset: z.string().nullish(),
+});
+
 const googleVertexGeminiTranscriptionResponseSchema = z.object({
   candidates: z
     .array(
       z.object({
         content: z
           .object({
-            parts: z.array(z.object({ text: z.string().nullish() })).nullish(),
+            parts: z
+              .array(
+                z.object({
+                  text: z.string().nullish(),
+                  audioTranscription: z
+                    .object({
+                      text: z.string().nullish(),
+                      languageCode: z.string().nullish(),
+                      speakerLabel: z.string().nullish(),
+                      words: z
+                        .array(googleVertexGeminiTranscriptionWordSchema)
+                        .nullish(),
+                    })
+                    .nullish(),
+                }),
+              )
+              .nullish(),
           })
           .nullish(),
       }),
