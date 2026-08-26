@@ -49,6 +49,18 @@ export const moonshotaiLanguageModelOptions = z.object({
   strictJsonSchema: z.boolean().optional(),
 
   /**
+   * Whether to return log probabilities for generated tokens.
+   */
+  logprobs: z.boolean().optional(),
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   *
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs: z.number().int().min(0).max(20).optional(),
+
+  /**
    * Reasoning effort for Kimi K3.
    */
   reasoningEffort: z.enum(['low', 'high', 'max']).optional(),
@@ -84,6 +96,15 @@ export type MoonshotAILanguageModelOptions = {
    * @default true
    */
   strictJsonSchema?: boolean;
+
+  /** Whether to return log probabilities for generated tokens. */
+  logprobs?: boolean;
+
+  /**
+   * Number of most likely tokens to return at each token position.
+   * Setting this option automatically enables `logprobs`.
+   */
+  topLogprobs?: number;
 
   /** Reasoning effort for Kimi K3. */
   reasoningEffort?: 'low' | 'high' | 'max';

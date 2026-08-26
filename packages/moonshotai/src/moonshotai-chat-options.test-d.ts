@@ -2,8 +2,10 @@ import { describe, expectTypeOf, it } from 'vitest';
 import type { MoonshotAILanguageModelOptions } from './index';
 
 describe('MoonshotAILanguageModelOptions', () => {
-  it('only exposes official thinking and reasoning effort fields', () => {
+  it('exposes official structured output, log probability, and reasoning options', () => {
     expectTypeOf<MoonshotAILanguageModelOptions>().toEqualTypeOf<{
+      logprobs?: boolean;
+      topLogprobs?: number;
       reasoningEffort?: 'low' | 'high' | 'max';
       thinking?: {
         type?: 'enabled' | 'disabled';
