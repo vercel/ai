@@ -1,5 +1,27 @@
 # @ai-sdk/azure
 
+## 2.0.126
+
+### Patch Changes
+
+- 8e31b43: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [8e31b43]
+- Updated dependencies [f364ea0]
+- Updated dependencies [64f3fe0]
+- Updated dependencies [8e77e23]
+- Updated dependencies [db8d076]
+- Updated dependencies [d85aaea]
+- Updated dependencies [ddea7d7]
+- Updated dependencies [d9126d6]
+- Updated dependencies [865c3d3]
+- Updated dependencies [86cd8e0]
+- Updated dependencies [fe2c05f]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/deepseek@1.0.53
+  - @ai-sdk/openai@2.0.120
+
 ## 2.0.125
 
 ### Patch Changes
