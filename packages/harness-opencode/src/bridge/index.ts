@@ -232,6 +232,7 @@ function buildOpenCodeConfig({
       webfetch: 'ask',
       doom_loop: 'ask',
       task: 'ask',
+      question: 'deny',
     },
   };
   if (start.model) config.model = start.model;
