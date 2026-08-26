@@ -18,21 +18,25 @@ import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 function transformMoonshotRequestBody(
   args: Record<string, any>,
 ): Record<string, any> {
-  const { strictJsonSchema, ...transformedArgs } = args;
-  const responseFormat = transformedArgs.response_format;
+  const { strictJsonSchema, max_tokens: maxTokens, ...transformedArgs } = args;
+  const moonshotArgs: Record<string, any> = {
+    ...transformedArgs,
+    ...(maxTokens != null ? { max_completion_tokens: maxTokens } : {}),
+  };
+  const responseFormat = moonshotArgs.response_format;
 
   if (
     responseFormat?.type !== 'json_schema' ||
     responseFormat.json_schema?.schema == null
   ) {
-    return transformedArgs;
+    return moonshotArgs;
   }
 
   const { $schema: _$schema, ...schemaWithoutDollarSchema } =
     responseFormat.json_schema.schema;
 
   return {
-    ...transformedArgs,
+    ...moonshotArgs,
     response_format: {
       type: 'json_schema',
       json_schema: {
