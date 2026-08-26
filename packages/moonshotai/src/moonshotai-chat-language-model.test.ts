@@ -7,7 +7,10 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { MoonshotAILanguageModelOptions } from './moonshotai-chat-options';
+import type {
+  MoonshotAILanguageModelOptions,
+  MoonshotAIMessageProviderOptions,
+} from './moonshotai-chat-options';
 import { createMoonshotAI } from './moonshotai-provider';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
@@ -88,6 +91,56 @@ describe('doGenerate', () => {
           "top_p": 0.3,
         }
       `);
+    });
+
+    it('should send message names', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            providerOptions: {
+              moonshotai: {
+                name: 'guide',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'alice',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, Alice.' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'assistant',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            name: 'guide',
+          },
+          { role: 'user', content: 'Hello', name: 'alice' },
+          {
+            role: 'assistant',
+            content: 'Hello, Alice.',
+            name: 'assistant',
+          },
+        ],
+      });
     });
 
     it.each([
@@ -893,6 +946,37 @@ describe('doGenerate', () => {
         { type: 'unsupported', feature: 'seed' },
       ]);
     });
+
+    it('should warn when a message name is set on a tool message', async () => {
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                output: { type: 'text', value: 'sunny' },
+              },
+            ],
+            providerOptions: {
+              moonshotai: {
+                name: 'weather_tool',
+              } satisfies MoonshotAIMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'message name on tool messages',
+      });
+      expect(
+        (await server.calls[0].requestBodyJson).messages[0],
+      ).not.toHaveProperty('name');
+    });
   });
 
   describe('provider options passthrough', () => {
@@ -1178,6 +1262,81 @@ describe('doStream', () => {
     expect(requestBody.stream).toBe(true);
     expect(requestBody.stream_options).toStrictEqual({
       include_usage: true,
+    });
+  });
+
+  it('should send message names', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream');
+
+    await provider.chatModel('kimi-k3').doStream({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          providerOptions: {
+            moonshotai: {
+              name: 'guide',
+            } satisfies MoonshotAIMessageProviderOptions,
+          },
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerOptions: {
+            moonshotai: {
+              name: 'alice',
+            } satisfies MoonshotAIMessageProviderOptions,
+          },
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          name: 'guide',
+        },
+        { role: 'user', content: 'Hello', name: 'alice' },
+      ],
+      stream: true,
+    });
+  });
+
+  it('should include tool-message name warnings in the stream start', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream');
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              output: { type: 'text', value: 'sunny' },
+            },
+          ],
+          providerOptions: {
+            moonshotai: {
+              name: 'weather_tool',
+            } satisfies MoonshotAIMessageProviderOptions,
+          },
+        },
+      ],
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+    expect(parts[0]).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'message name on tool messages',
+        },
+      ],
     });
   });
 
