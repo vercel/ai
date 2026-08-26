@@ -2,7 +2,10 @@ import {
   UnsupportedFunctionalityError,
   type JSONSchema7,
 } from '@ai-sdk/provider';
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
+import {
+  convertJSONSchemaToOpenAPISchema,
+  type GoogleSchemaTarget,
+} from './convert-json-schema-to-openapi-schema';
 import { it, expect } from 'vitest';
 
 it('should remove additionalProperties and $schema', () => {
@@ -865,7 +868,7 @@ it('should report removed constraints with their JSON Pointer paths', () => {
     additionalProperties: false,
   };
 
-  convertJSONSchemaToOpenAPISchema(input, {
+  const converted = convertJSONSchemaToOpenAPISchema(input, {
     onWarning: warning => warnings.push(warning),
   });
 
@@ -874,45 +877,40 @@ it('should report removed constraints with their JSON Pointer paths', () => {
       type: 'unsupported',
       feature: 'JSON Schema constraint "additionalProperties"',
       details:
-        'The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.',
-    },
-    {
-      type: 'unsupported',
-      feature: 'JSON Schema constraint "maxLength"',
-      details:
-        'The constraint at "/properties/code~1name~0value/maxLength" is not supported by Google and was removed from the schema sent to the model.',
-    },
-    {
-      type: 'unsupported',
-      feature: 'JSON Schema constraint "pattern"',
-      details:
-        'The constraint at "/properties/code~1name~0value/pattern" is not supported by Google and was removed from the schema sent to the model.',
+        'The constraint at "/additionalProperties" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
     },
     {
       type: 'unsupported',
       feature: 'JSON Schema constraint "exclusiveMinimum"',
       details:
-        'The constraint at "/properties/price/exclusiveMinimum" is not supported by Google and was removed from the schema sent to the model.',
+        'The constraint at "/properties/price/exclusiveMinimum" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
     },
     {
       type: 'unsupported',
       feature: 'JSON Schema constraint "multipleOf"',
       details:
-        'The constraint at "/properties/price/multipleOf" is not supported by Google and was removed from the schema sent to the model.',
+        'The constraint at "/properties/price/multipleOf" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
     },
     {
       type: 'unsupported',
       feature: 'JSON Schema constraint "uniqueItems"',
       details:
-        'The constraint at "/properties/ids/uniqueItems" is not supported by Google and was removed from the schema sent to the model.',
-    },
-    {
-      type: 'unsupported',
-      feature: 'JSON Schema constraint "maximum"',
-      details:
-        'The constraint at "/properties/ids/items/maximum" is not supported by Google and was removed from the schema sent to the model.',
+        'The constraint at "/properties/ids/uniqueItems" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
     },
   ]);
+  expect(converted).toMatchObject({
+    properties: {
+      'code/name~value': {
+        maxLength: 2,
+        pattern: '^[A-Z]{2}$',
+      },
+      ids: {
+        items: {
+          maximum: 10,
+        },
+      },
+    },
+  });
 });
 
 it('should report constraints from referenced definitions at their source paths', () => {
@@ -924,8 +922,8 @@ it('should report constraints from referenced definitions at their source paths'
     },
     $defs: {
       'value/type': {
-        type: 'string',
-        pattern: '^value$',
+        type: 'number',
+        multipleOf: 0.5,
       },
     },
   } as JSONSchema7 & { $defs: Record<string, JSONSchema7> };
@@ -937,9 +935,9 @@ it('should report constraints from referenced definitions at their source paths'
   expect(warnings).toEqual([
     {
       type: 'unsupported',
-      feature: 'JSON Schema constraint "pattern"',
+      feature: 'JSON Schema constraint "multipleOf"',
       details:
-        'The constraint at "/$defs/value~1type/pattern" is not supported by Google and was removed from the schema sent to the model.',
+        'The constraint at "/$defs/value~1type/multipleOf" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
     },
   ]);
 });
@@ -964,10 +962,178 @@ it('should report oneOf compatibility without warning for preserved constraints'
       type: 'compatibility',
       feature: 'JSON Schema constraint "oneOf"',
       details:
-        'Google treats "oneOf" as "anyOf" at "/oneOf". Values matching multiple branches may be accepted.',
+        'The Google function parameter schema surface treats "oneOf" as "anyOf" at "/oneOf". Values matching multiple branches may be accepted.',
     },
   ]);
 });
+
+it('should report false schemas that widen during conversion', () => {
+  const warnings: unknown[] = [];
+
+  expect(
+    convertJSONSchemaToOpenAPISchema(false, {
+      onWarning: warning => warnings.push(warning),
+      target: 'responseSchema',
+    }),
+  ).toEqual({ type: 'boolean', properties: {} });
+
+  expect(warnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema boolean schema "false"',
+      details:
+        'The Google response schema surface cannot represent the root schema as always invalid. It was converted to a boolean schema that accepts values.',
+    },
+  ]);
+});
+
+it('should report repeated nullable anyOf schema instances at each source index', () => {
+  const warnings: unknown[] = [];
+  const repeatedSchema = {
+    type: 'number',
+    multipleOf: 0.5,
+  } satisfies JSONSchema7;
+
+  convertJSONSchemaToOpenAPISchema(
+    {
+      anyOf: [repeatedSchema, repeatedSchema, { type: 'null' }],
+    },
+    {
+      onWarning: warning => warnings.push(warning),
+    },
+  );
+
+  expect(warnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "multipleOf"',
+      details:
+        'The constraint at "/anyOf/0/multipleOf" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
+    },
+    {
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "multipleOf"',
+      details:
+        'The constraint at "/anyOf/1/multipleOf" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
+    },
+  ]);
+});
+
+const schemaTargets: GoogleSchemaTarget[] = [
+  'functionParameters',
+  'realtimeFunctionParameters',
+  'responseSchema',
+];
+
+it.each(schemaTargets)(
+  'should preserve constraints supported by the %s surface',
+  target => {
+    const input = {
+      type: 'array',
+      minItems: 1,
+      maxItems: 4,
+      items: {
+        type: 'object',
+        minProperties: 1,
+        maxProperties: 3,
+        properties: {
+          label: {
+            type: 'string',
+            minLength: 2,
+            maxLength: 8,
+            pattern: '^[a-z]+$',
+          },
+          score: {
+            type: 'number',
+            minimum: 0,
+            maximum: 10,
+          },
+        },
+      },
+    } satisfies JSONSchema7;
+    const warnings: unknown[] = [];
+
+    expect(
+      convertJSONSchemaToOpenAPISchema(input, {
+        onWarning: warning => warnings.push(warning),
+        target,
+      }),
+    ).toEqual(input);
+    expect(warnings).toEqual([]);
+  },
+);
+
+it.each(schemaTargets)(
+  'should report every removed constraint for the %s surface',
+  target => {
+    const input = {
+      ...Object.fromEntries([
+        // oxlint-disable-next-line unicorn/no-thenable -- JSON Schema defines a "then" keyword.
+        ['then', { required: ['thenValue'] }],
+        ['else', { required: ['elseValue'] }],
+      ]),
+      type: 'object',
+      properties: {
+        value: { type: 'string' },
+      },
+      additionalItems: false,
+      additionalProperties: false,
+      contains: { type: 'string' },
+      dependencies: { value: ['other'] },
+      exclusiveMaximum: 10,
+      exclusiveMinimum: 0,
+      if: { required: ['value'] },
+      multipleOf: 0.5,
+      not: { type: 'null' },
+      patternProperties: { '^x-': { type: 'string' } },
+      propertyNames: { pattern: '^[a-z]+$' },
+      uniqueItems: true,
+    } satisfies JSONSchema7;
+    const warnings: unknown[] = [];
+
+    const converted = convertJSONSchemaToOpenAPISchema(input, {
+      onWarning: warning => warnings.push(warning),
+      target,
+    }) as Record<string, unknown>;
+
+    expect(
+      warnings.map(warning => (warning as { feature?: string }).feature),
+    ).toEqual([
+      'JSON Schema constraint "additionalItems"',
+      'JSON Schema constraint "additionalProperties"',
+      'JSON Schema constraint "contains"',
+      'JSON Schema constraint "dependencies"',
+      'JSON Schema constraint "exclusiveMaximum"',
+      'JSON Schema constraint "exclusiveMinimum"',
+      'JSON Schema constraint "if"',
+      'JSON Schema constraint "multipleOf"',
+      'JSON Schema constraint "not"',
+      'JSON Schema constraint "patternProperties"',
+      'JSON Schema constraint "propertyNames"',
+      'JSON Schema constraint "then"',
+      'JSON Schema constraint "else"',
+      'JSON Schema constraint "uniqueItems"',
+    ]);
+    for (const keyword of [
+      'additionalItems',
+      'additionalProperties',
+      'contains',
+      'dependencies',
+      'exclusiveMaximum',
+      'exclusiveMinimum',
+      'if',
+      'multipleOf',
+      'not',
+      'patternProperties',
+      'propertyNames',
+      'then',
+      'else',
+      'uniqueItems',
+    ]) {
+      expect(converted).not.toHaveProperty(keyword);
+    }
+  },
+);
 
 it('should convert nullable string enum', () => {
   const schemaWithEnumProperty: JSONSchema7 = {

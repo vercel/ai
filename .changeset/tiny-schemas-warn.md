@@ -1,5 +1,7 @@
 ---
+'@ai-sdk/provider': patch
 '@ai-sdk/google': patch
+'ai': patch
 ---
 
-feat(google): warn when schema conversion removes or weakens JSON Schema constraints
+Warn when Google schema conversion removes or weakens JSON Schema constraints, including realtime session tools.

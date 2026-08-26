@@ -5,6 +5,7 @@ import type {
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
@@ -76,9 +77,13 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
       now + openWindowMs + 30 * 60 * 1000,
     ).toISOString();
 
+    const warnings: SharedV4Warning[] = [];
     const setupPayload = buildGoogleSessionConfig(
       options.sessionConfig,
       this.modelId,
+      {
+        onWarning: warning => warnings.push(warning),
+      },
     );
 
     const response = await fetchFn(
@@ -116,6 +121,7 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
       expiresAt: data.expireTime
         ? Math.floor(new Date(data.expireTime).getTime() / 1000)
         : undefined,
+      warnings,
     };
   }
 
@@ -144,5 +150,15 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
     config: RealtimeModelV4SessionConfig,
   ): Record<string, unknown> {
     return buildGoogleSessionConfig(config, this.modelId);
+  }
+
+  getSessionConfigWarnings(
+    config: RealtimeModelV4SessionConfig,
+  ): SharedV4Warning[] {
+    const warnings: SharedV4Warning[] = [];
+    buildGoogleSessionConfig(config, this.modelId, {
+      onWarning: warning => warnings.push(warning),
+    });
+    return warnings;
   }
 }

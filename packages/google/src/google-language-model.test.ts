@@ -1681,9 +1681,9 @@ describe('doGenerate', () => {
         schema: {
           type: 'object',
           properties: {
-            code: {
-              type: 'string',
-              pattern: '^[A-Z]{2}$',
+            price: {
+              type: 'number',
+              multipleOf: 0.5,
             },
           },
           additionalProperties: false,
@@ -1697,13 +1697,13 @@ describe('doGenerate', () => {
         type: 'unsupported',
         feature: 'JSON Schema constraint "additionalProperties"',
         details:
-          'The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.',
+          'The constraint at "/additionalProperties" is not supported by the Google response schema surface and was removed from the schema sent to the model.',
       },
       {
         type: 'unsupported',
-        feature: 'JSON Schema constraint "pattern"',
+        feature: 'JSON Schema constraint "multipleOf"',
         details:
-          'The constraint at "/properties/code/pattern" is not supported by Google and was removed from the schema sent to the model.',
+          'The constraint at "/properties/price/multipleOf" is not supported by the Google response schema surface and was removed from the schema sent to the model.',
       },
     ]);
   });
@@ -4918,8 +4918,8 @@ describe('doStream', () => {
       responseFormat: {
         type: 'json',
         schema: {
-          type: 'string',
-          pattern: '^[A-Z]{2}$',
+          type: 'number',
+          multipleOf: 0.5,
         },
       },
       prompt: TEST_PROMPT,
@@ -4932,9 +4932,9 @@ describe('doStream', () => {
       warnings: [
         {
           type: 'unsupported',
-          feature: 'JSON Schema constraint "pattern"',
+          feature: 'JSON Schema constraint "multipleOf"',
           details:
-            'The constraint at "/pattern" is not supported by Google and was removed from the schema sent to the model.',
+            'The constraint at "/multipleOf" is not supported by the Google response schema surface and was removed from the schema sent to the model.',
         },
       ],
     });
@@ -6914,7 +6914,7 @@ describe('doStream', () => {
         "type": "stream-start",
         "warnings": [
           {
-            "details": "The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.",
+            "details": "The constraint at "/additionalProperties" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.",
             "feature": "JSON Schema constraint "additionalProperties"",
             "type": "unsupported",
           },
@@ -7040,7 +7040,7 @@ describe('doStream', () => {
               "type": "other",
             },
             {
-              "details": "The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.",
+              "details": "The constraint at "/additionalProperties" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.",
               "feature": "JSON Schema constraint "additionalProperties"",
               "type": "unsupported",
             },

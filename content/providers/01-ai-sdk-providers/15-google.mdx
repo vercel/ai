@@ -1003,8 +1003,9 @@ The errors that you get in this case look like this:
 
 When `generateText` or `streamText` removes a constraint while converting a
 tool input or structured output schema, the provider adds an `unsupported`
-warning to `result.warnings`. The warning identifies the removed keyword and
-its location as a JSON Pointer, for example `/properties/code/pattern`.
+warning to `result.warnings`. The warning identifies the removed keyword,
+the target Google schema surface, and its location as a JSON Pointer, for
+example `/properties/price/multipleOf`.
 
 ```ts highlight="9-12,18"
 import { google } from '@ai-sdk/google';
@@ -1016,26 +1017,34 @@ const result = await generateText({
   tools: {
     lookupInvoice: tool({
       inputSchema: z.object({
-        code: z.string().regex(/^[A-Z]{2}$/),
+        price: z.number().positive().multipleOf(0.5),
       }),
     }),
   },
-  prompt: 'Look up invoice AB.',
+  prompt: 'Look up the invoice priced at $12.50.',
 });
 
 console.log(result.warnings);
 ```
 
-Constraints that may be removed include string patterns and maximum lengths,
-numeric bounds and multiples, array uniqueness and size bounds, object property
-constraints, conditional schemas, and negated schemas. The converted schema can
-therefore accept values that the original schema rejects. Continue validating
-generated structured outputs and tool inputs against the original schema.
+The provider preserves constraints supported by Google's OpenAPI schema
+surfaces, including string patterns and length bounds, inclusive numeric bounds,
+array size bounds, and object property-count bounds. Constraints that may still
+be removed include exclusive numeric bounds, numeric multiples, array
+uniqueness and containment, additional or pattern properties, dependencies,
+conditional schemas, and negated schemas. Boolean `false` schemas also cannot be
+represented without widening. Continue validating generated structured outputs
+and tool inputs against the original schema.
 
 Google treats JSON Schema `oneOf` like `anyOf`. The provider emits a
 `compatibility` warning for every `oneOf` location because a value that matches
 multiple branches is rejected by JSON Schema `oneOf` but can be accepted by
 Google.
+
+Google realtime tool conversion uses the same diagnostics. Warnings are
+returned by `google.experimental_realtime.getToken`, and AI SDK realtime
+sessions automatically log them and pass each warning to the optional
+`onWarning` session callback.
 
 By default, structured outputs are enabled (and for tool calling they are required).
 You can disable structured outputs for object generation as a workaround:

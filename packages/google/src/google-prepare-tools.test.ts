@@ -63,9 +63,9 @@ it('should report constraints removed from function tool schemas', () => {
         inputSchema: {
           type: 'object',
           properties: {
-            code: {
-              type: 'string',
-              pattern: '^[A-Z]{2}$',
+            price: {
+              type: 'number',
+              multipleOf: 0.5,
             },
           },
           additionalProperties: false,
@@ -80,13 +80,13 @@ it('should report constraints removed from function tool schemas', () => {
       type: 'unsupported',
       feature: 'JSON Schema constraint "additionalProperties"',
       details:
-        'The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.',
+        'The constraint at "/additionalProperties" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
     },
     {
       type: 'unsupported',
-      feature: 'JSON Schema constraint "pattern"',
+      feature: 'JSON Schema constraint "multipleOf"',
       details:
-        'The constraint at "/properties/code/pattern" is not supported by Google and was removed from the schema sent to the model.',
+        'The constraint at "/properties/price/multipleOf" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
     },
   ]);
 });
@@ -998,7 +998,7 @@ it('should use VALIDATED mode when any function tool has strict: true', () => {
       type: 'unsupported',
       feature: 'JSON Schema constraint "additionalProperties"',
       details:
-        'The constraint at "/additionalProperties" is not supported by Google and was removed from the schema sent to the model.',
+        'The constraint at "/additionalProperties" is not supported by the Google function parameter schema surface and was removed from the schema sent to the model.',
     },
   ]);
 });

@@ -14,12 +14,18 @@ type ReferenceContext = {
   dollarDefinitions: Record<string, JSONSchema7Definition> | undefined;
   resolvingReferences: ReadonlySet<string>;
   onWarning: ((warning: SharedV4Warning) => void) | undefined;
+  target: GoogleSchemaTarget;
 };
 
 const recursiveReferenceFunctionalityPrefix =
   'recursive JSON Schema reference:';
 
-const unsupportedConstraintKeywords = [
+export type GoogleSchemaTarget =
+  | 'functionParameters'
+  | 'realtimeFunctionParameters'
+  | 'responseSchema';
+
+const constraintKeywords = [
   'additionalItems',
   'additionalProperties',
   'contains',
@@ -32,6 +38,7 @@ const unsupportedConstraintKeywords = [
   'maxProperties',
   'maximum',
   'minItems',
+  'minLength',
   'minProperties',
   'minimum',
   'multipleOf',
@@ -43,6 +50,35 @@ const unsupportedConstraintKeywords = [
   'else',
   'uniqueItems',
 ] as const;
+
+type ConstraintKeyword = (typeof constraintKeywords)[number];
+
+const googleOpenAPISchemaConstraintKeywords = new Set<ConstraintKeyword>([
+  'maxItems',
+  'maxLength',
+  'maxProperties',
+  'maximum',
+  'minItems',
+  'minLength',
+  'minProperties',
+  'minimum',
+  'pattern',
+]);
+
+const supportedConstraintKeywordsByTarget: Record<
+  GoogleSchemaTarget,
+  ReadonlySet<ConstraintKeyword>
+> = {
+  functionParameters: googleOpenAPISchemaConstraintKeywords,
+  realtimeFunctionParameters: googleOpenAPISchemaConstraintKeywords,
+  responseSchema: googleOpenAPISchemaConstraintKeywords,
+};
+
+const schemaTargetLabels: Record<GoogleSchemaTarget, string> = {
+  functionParameters: 'Google function parameter schema',
+  realtimeFunctionParameters: 'Google realtime function parameter schema',
+  responseSchema: 'Google response schema',
+};
 
 export function isRecursiveJSONSchemaReferenceError(
   error: unknown,
@@ -60,8 +96,10 @@ export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition | undefined,
   {
     onWarning,
+    target = 'functionParameters',
   }: {
     onWarning?: (warning: SharedV4Warning) => void;
+    target?: GoogleSchemaTarget;
   } = {},
 ): unknown {
   const rootSchema =
@@ -74,6 +112,7 @@ export function convertJSONSchemaToOpenAPISchema(
     dollarDefinitions: rootSchema?.$defs,
     resolvingReferences: new Set(),
     onWarning,
+    target,
   });
 }
 
@@ -89,6 +128,9 @@ function convertJSONSchemaDefinition(
   }
 
   if (typeof jsonSchema === 'boolean') {
+    if (jsonSchema === false) {
+      reportFalseSchemaConversion(schemaPath, referenceContext);
+    }
     return { type: 'boolean', properties: {} };
   }
 
@@ -132,7 +174,6 @@ function convertJSONSchemaDefinition(
     oneOf,
     format,
     const: constValue,
-    minLength,
     enum: enumValues,
   } = jsonSchema;
 
@@ -245,21 +286,24 @@ function convertJSONSchemaDefinition(
         schema => typeof schema === 'object' && schema?.type === 'null',
       )
     ) {
-      const nonNullSchemas = anyOf.filter(
-        schema => !(typeof schema === 'object' && schema?.type === 'null'),
-      );
+      const nonNullSchemas = anyOf
+        .map((schema, index) => ({ index, schema }))
+        .filter(
+          ({ schema }) =>
+            !(typeof schema === 'object' && schema?.type === 'null'),
+        );
 
       if (nonNullSchemas.length === 1) {
         // If there's only one non-null schema, convert it and make it nullable
         const converted = convertJSONSchemaDefinition(
-          nonNullSchemas[0],
+          nonNullSchemas[0].schema,
           false,
           appendJSONPointer(
             appendJSONPointer(
               getKeywordSourcePath(schemaPath, 'anyOf', keywordSourcePaths),
               'anyOf',
             ),
-            String(anyOf.indexOf(nonNullSchemas[0])),
+            String(nonNullSchemas[0].index),
           ),
           referenceContext,
         );
@@ -269,16 +313,16 @@ function convertJSONSchemaDefinition(
         }
       } else {
         // If there are multiple non-null schemas, keep them in anyOf
-        result.anyOf = nonNullSchemas.map(item =>
+        result.anyOf = nonNullSchemas.map(({ index, schema }) =>
           convertJSONSchemaDefinition(
-            item,
+            schema,
             false,
             appendJSONPointer(
               appendJSONPointer(
                 getKeywordSourcePath(schemaPath, 'anyOf', keywordSourcePaths),
                 'anyOf',
               ),
-              String(anyOf.indexOf(item)),
+              String(index),
             ),
             referenceContext,
           ),
@@ -319,9 +363,7 @@ function convertJSONSchemaDefinition(
     );
   }
 
-  if (minLength !== undefined) {
-    result.minLength = minLength;
-  }
+  copySupportedConstraints(jsonSchema, result, referenceContext.target);
 
   return result;
 }
@@ -458,14 +500,21 @@ function getReferencedDefinition(
 function reportLossySchemaConversion(
   jsonSchema: JSONSchema7,
   schemaPath: string,
-  { onWarning }: ReferenceContext,
+  { onWarning, target }: ReferenceContext,
   keywordSourcePaths?: Readonly<Record<string, string>>,
 ): void {
   if (onWarning == null) {
     return;
   }
 
-  for (const keyword of unsupportedConstraintKeywords) {
+  const supportedConstraintKeywords =
+    supportedConstraintKeywordsByTarget[target];
+
+  for (const keyword of constraintKeywords) {
+    if (supportedConstraintKeywords.has(keyword)) {
+      continue;
+    }
+
     if (!Object.prototype.hasOwnProperty.call(jsonSchema, keyword)) {
       continue;
     }
@@ -478,7 +527,7 @@ function reportLossySchemaConversion(
           getKeywordSourcePath(schemaPath, keyword, keywordSourcePaths),
           keyword,
         )}" ` +
-        'is not supported by Google and was removed from the schema sent to the model.',
+        `is not supported by the ${schemaTargetLabels[target]} surface and was removed from the schema sent to the model.`,
     });
   }
 
@@ -487,11 +536,44 @@ function reportLossySchemaConversion(
       type: 'compatibility',
       feature: 'JSON Schema constraint "oneOf"',
       details:
-        `Google treats "oneOf" as "anyOf" at "${appendJSONPointer(
+        `The ${schemaTargetLabels[target]} surface treats "oneOf" as "anyOf" at "${appendJSONPointer(
           getKeywordSourcePath(schemaPath, 'oneOf', keywordSourcePaths),
           'oneOf',
         )}". ` + 'Values matching multiple branches may be accepted.',
     });
+  }
+}
+
+function reportFalseSchemaConversion(
+  schemaPath: string,
+  { onWarning, target }: ReferenceContext,
+): void {
+  if (onWarning == null) {
+    return;
+  }
+
+  const location =
+    schemaPath === '' ? 'the root schema' : `the schema at "${schemaPath}"`;
+
+  onWarning({
+    type: 'unsupported',
+    feature: 'JSON Schema boolean schema "false"',
+    details:
+      `The ${schemaTargetLabels[target]} surface cannot represent ${location} as always invalid. ` +
+      'It was converted to a boolean schema that accepts values.',
+  });
+}
+
+function copySupportedConstraints(
+  jsonSchema: JSONSchema7,
+  result: Record<string, unknown>,
+  target: GoogleSchemaTarget,
+): void {
+  for (const keyword of supportedConstraintKeywordsByTarget[target]) {
+    const value = jsonSchema[keyword];
+    if (value !== undefined) {
+      result[keyword] = value;
+    }
   }
 }
 

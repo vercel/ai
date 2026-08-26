@@ -331,6 +331,7 @@ function prepareFunctionDeclaration(
     const schemaWarnings: SharedV4Warning[] = [];
     const parameters = convertJSONSchemaToOpenAPISchema(tool.inputSchema, {
       onWarning: warning => schemaWarnings.push(warning),
+      target: 'functionParameters',
     });
     toolWarnings.push(...schemaWarnings);
 

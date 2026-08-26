@@ -756,6 +756,66 @@ describe('buildGoogleSessionConfig', () => {
     `);
   });
 
+  it('reports lossy realtime tool schema conversions', () => {
+    const warnings: unknown[] = [];
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'getPrice',
+            description: 'Get a price',
+            parameters: {
+              type: 'object',
+              properties: {
+                amount: {
+                  type: 'number',
+                  minimum: 0,
+                  multipleOf: 0.5,
+                },
+              },
+              additionalProperties: false,
+            },
+          },
+        ],
+      },
+      'gemini-2.0-flash',
+      {
+        onWarning: warning => warnings.push(warning),
+      },
+    );
+
+    expect(warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'JSON Schema constraint "additionalProperties"',
+        details:
+          'The constraint at "/additionalProperties" is not supported by the Google realtime function parameter schema surface and was removed from the schema sent to the model.',
+      },
+      {
+        type: 'unsupported',
+        feature: 'JSON Schema constraint "multipleOf"',
+        details:
+          'The constraint at "/properties/amount/multipleOf" is not supported by the Google realtime function parameter schema surface and was removed from the schema sent to the model.',
+      },
+    ]);
+    expect(result.tools).toMatchObject([
+      {
+        functionDeclarations: [
+          {
+            parameters: {
+              properties: {
+                amount: {
+                  minimum: 0,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('builds config with inlined local JSON Schema references', () => {
     const result = buildGoogleSessionConfig(
       {

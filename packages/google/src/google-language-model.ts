@@ -332,6 +332,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       (googleOptions?.structuredOutputs ?? true)
         ? convertJSONSchemaToOpenAPISchema(responseFormat.schema, {
             onWarning: warning => warnings.push(warning),
+            target: 'responseSchema',
           })
         : undefined;
 

@@ -8,13 +8,13 @@ run(async () => {
     model: google('gemini-2.5-flash'),
     tools: {
       lookupInvoice: tool({
-        description: 'Look up an invoice by its two-letter code.',
+        description: 'Look up an invoice by price.',
         inputSchema: z.object({
-          code: z.string().regex(/^[A-Z]{2}$/),
+          price: z.number().positive().multipleOf(0.5),
         }),
       }),
     },
-    prompt: 'Look up invoice AB.',
+    prompt: 'Look up the invoice priced at $12.50.',
   });
 
   console.log(JSON.stringify(result.warnings, null, 2));
