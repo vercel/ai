@@ -11,7 +11,22 @@ describe('MoonshotAIProviderOptions', () => {
       };
       reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
       strictJsonSchema?: boolean;
+      logprobs?: boolean;
+      topLogprobs?: number;
     }>();
+  });
+
+  it('rejects invalid logprobs options', () => {
+    const invalidLogprobs: MoonshotAIProviderOptions = {
+      // @ts-expect-error logprobs must be a boolean
+      logprobs: 1,
+    };
+    const invalidTopLogprobs: MoonshotAIProviderOptions = {
+      // @ts-expect-error topLogprobs must be a number
+      topLogprobs: '1',
+    };
+    invalidLogprobs;
+    invalidTopLogprobs;
   });
 
   it('rejects non-boolean strictJsonSchema values', () => {

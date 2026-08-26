@@ -557,6 +557,83 @@ describe('MoonshotAIChatLanguageModel', () => {
         ).toStrictEqual({ type: 'json_object' });
       });
     });
+
+    it('should send logprobs options and expose response logprobs', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: JSON.parse(
+          fs.readFileSync('src/__fixtures__/moonshotai-logprobs.json', 'utf8'),
+        ),
+      };
+
+      const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            logprobs: true,
+            topLogprobs: 1,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        logprobs: true,
+        top_logprobs: 1,
+      });
+      expect(result.providerMetadata?.moonshotai.logprobs).toEqual({
+        content: [
+          {
+            token: 'OK',
+            logprob: -0.0004808938247151673,
+            bytes: [79, 75],
+            top_logprobs: [
+              {
+                token: 'OK',
+                logprob: -0.0004808938247151673,
+                bytes: [79, 75],
+              },
+            ],
+          },
+          {
+            token: '!',
+            logprob: -0.01,
+            bytes: null,
+            top_logprobs: [
+              {
+                token: '!',
+                logprob: -0.01,
+                bytes: null,
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('should enable logprobs when topLogprobs is set', async () => {
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { topLogprobs: 0 },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        logprobs: true,
+        top_logprobs: 0,
+      });
+    });
+
+    it('should validate topLogprobs at runtime', async () => {
+      await expect(
+        provider.chatModel('moonshot-v1-8k').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: { topLogprobs: 21 },
+          },
+        }),
+      ).rejects.toThrow('invalid moonshotai provider options');
+    });
   });
 
   describe('doStream', () => {
@@ -838,6 +915,60 @@ describe('MoonshotAIChatLanguageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).not.toHaveProperty('max_completion_tokens');
       expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should collect streamed logprobs in finish provider metadata', async () => {
+      prepareChunksFixtureResponse('moonshotai-logprobs');
+
+      const result = await provider.chatModel('moonshot-v1-8k').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: { topLogprobs: 1 },
+        },
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        logprobs: true,
+        top_logprobs: 1,
+      });
+      expect(
+        parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => part.delta)
+          .join(''),
+      ).toBe('OK!');
+      expect(
+        parts.find(part => part.type === 'finish')?.providerMetadata?.moonshotai
+          .logprobs,
+      ).toEqual({
+        content: [
+          {
+            token: 'OK',
+            logprob: -0.0004457433824427426,
+            bytes: [79, 75],
+            top_logprobs: [
+              {
+                token: 'OK',
+                logprob: -0.0004457433824427426,
+                bytes: [79, 75],
+              },
+            ],
+          },
+          {
+            token: '!',
+            logprob: -0.01,
+            bytes: null,
+            top_logprobs: [
+              {
+                token: '!',
+                logprob: -0.01,
+                bytes: null,
+              },
+            ],
+          },
+        ],
+      });
     });
   });
 });

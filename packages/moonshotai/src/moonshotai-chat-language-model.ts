@@ -6,21 +6,32 @@ import type {
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
+import { parseProviderOptions } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
 import {
   getMoonshotAIModelFamily,
   isMoonshotAIKimiModel,
   type MoonshotAIChatModelId,
   type MoonshotAIProviderOptions,
+  moonshotaiProviderOptions,
 } from './moonshotai-chat-options';
 import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 
 function transformMoonshotRequestBody(
   args: Record<string, any>,
 ): Record<string, any> {
-  const { strictJsonSchema, max_tokens: maxTokens, ...transformedArgs } = args;
+  const {
+    strictJsonSchema,
+    max_tokens: maxTokens,
+    logprobs,
+    topLogprobs,
+    ...transformedArgs
+  } = args;
   const moonshotArgs: Record<string, any> = {
     ...transformedArgs,
+    ...((logprobs === true || topLogprobs != null) && { logprobs: true }),
+    ...(topLogprobs != null && { top_logprobs: topLogprobs }),
     ...(maxTokens != null ? { max_completion_tokens: maxTokens } : {}),
   };
   const responseFormat = moonshotArgs.response_format;
@@ -46,6 +57,51 @@ function transformMoonshotRequestBody(
       },
     },
   };
+}
+
+const moonshotAILogprobsOptionsSchema = moonshotaiProviderOptions.pick({
+  logprobs: true,
+  topLogprobs: true,
+});
+
+async function validateLogprobsOptions(
+  options: LanguageModelV2CallOptions,
+): Promise<void> {
+  await parseProviderOptions({
+    provider: 'moonshotai',
+    providerOptions: options.providerOptions,
+    schema: moonshotAILogprobsOptionsSchema,
+  });
+}
+
+const moonshotAIChatLogprobSchema = z.object({
+  token: z.string(),
+  logprob: z.number(),
+  bytes: z.array(z.number()).nullable(),
+  top_logprobs: z.array(
+    z.object({
+      token: z.string(),
+      logprob: z.number(),
+      bytes: z.array(z.number()).nullable(),
+    }),
+  ),
+});
+
+const moonshotAIChatLogprobsSchema = z
+  .object({
+    content: z.array(moonshotAIChatLogprobSchema).nullish(),
+  })
+  .nullish();
+
+type MoonshotAIChatLogprob = z.infer<typeof moonshotAIChatLogprobSchema>;
+
+function extractMoonshotAIChatLogprobs(value: unknown) {
+  const result = moonshotAIChatLogprobsSchema.safeParse(
+    (value as { choices?: Array<{ logprobs?: unknown }> })?.choices?.[0]
+      ?.logprobs,
+  );
+
+  return result.success ? (result.data ?? undefined) : undefined;
 }
 
 function prepareSamplingOptions({
@@ -290,6 +346,8 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    await validateLogprobsOptions(options);
+
     const { options: samplingOptions, warnings: samplingWarnings } =
       prepareSamplingOptions({ modelId: this.modelId, options });
     const { options: sanitizedOptions, warnings: reasoningWarnings } =
@@ -306,10 +364,18 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
 
     // @ts-expect-error accessing response body from parent result
     const usage = result.response?.body?.usage;
+    const logprobs = extractMoonshotAIChatLogprobs(result.response?.body);
 
     return {
       ...result,
       usage: convertMoonshotAIChatUsage(usage),
+      providerMetadata: {
+        ...result.providerMetadata,
+        moonshotai: {
+          ...result.providerMetadata?.moonshotai,
+          ...(logprobs != null && { logprobs }),
+        },
+      },
       warnings: [
         ...result.warnings,
         ...samplingWarnings,
@@ -322,6 +388,8 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    await validateLogprobsOptions(options);
+
     const originalIncludeRawChunks = options.includeRawChunks;
     const { options: samplingOptions, warnings: samplingWarnings } =
       prepareSamplingOptions({ modelId: this.modelId, options });
@@ -345,6 +413,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     });
 
     let rawUsage: unknown = undefined;
+    const contentLogprobs: MoonshotAIChatLogprob[] = [];
 
     return {
       ...result,
@@ -374,6 +443,11 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
                 rawUsage = rawValue.usage;
               }
 
+              const logprobs = extractMoonshotAIChatLogprobs(rawValue);
+              if (logprobs?.content != null) {
+                contentLogprobs.push(...logprobs.content);
+              }
+
               // Only forward raw chunks if originally requested
               if (originalIncludeRawChunks) {
                 controller.enqueue(chunk);
@@ -388,6 +462,15 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
                 usage: rawUsage
                   ? convertMoonshotAIChatUsage(rawUsage as any)
                   : chunk.usage,
+                providerMetadata: {
+                  ...chunk.providerMetadata,
+                  moonshotai: {
+                    ...chunk.providerMetadata?.moonshotai,
+                    ...(contentLogprobs.length > 0 && {
+                      logprobs: { content: contentLogprobs },
+                    }),
+                  },
+                },
               });
               return;
             }

@@ -101,6 +101,32 @@ models reject that setting, so the provider omits it and returns an
 unsupported-setting warning for those model IDs. Other tool choice modes are
 passed through unchanged.
 
+### Log Probabilities
+
+Moonshot V1 models can return token log probabilities through provider
+options. Set `logprobs` to `true`, or set `topLogprobs` to automatically enable
+log probabilities and request up to 20 alternatives per token:
+
+```ts
+import { moonshotai, type MoonshotAIProviderOptions } from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: moonshotai('moonshot-v1-8k'),
+  prompt: 'Reply with one word that means happy.',
+  providerOptions: {
+    moonshotai: {
+      topLogprobs: 3,
+    } satisfies MoonshotAIProviderOptions,
+  },
+});
+
+console.log(result.providerMetadata?.moonshotai.logprobs);
+```
+
+The complete `content` logprob objects are available in Moonshot provider
+metadata for both generated and streamed responses.
+
 ### Structured Outputs
 
 Native structured outputs are enabled for Kimi K models and the official
@@ -171,6 +197,15 @@ The following optional provider options are available for Moonshot AI language m
 
   Whether to use strict JSON schema validation for structured outputs. Defaults
   to `true`.
+
+- **logprobs** _boolean_
+
+  Whether to return log probabilities for generated tokens.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return at each token position, from 0 to 20.
+  Setting this option automatically enables `logprobs`.
 
 - **reasoningEffort** _'low' | 'high' | 'max'_
 
