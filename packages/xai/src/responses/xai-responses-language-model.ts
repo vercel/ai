@@ -25,7 +25,7 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
-import type { z } from 'zod/v4';
+import { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
 import type { webSearchOutputSchema } from '../tool/web-search';
@@ -1372,63 +1372,60 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
   }
 }
 
+const webSearchWireSourceSchema = z.object({
+  type: z.literal('url'),
+  url: z.string(),
+});
+
+const webSearchWireActionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('search'),
+    query: z.string().optional(),
+    queries: z.array(z.string()).optional(),
+    sources: z.array(z.unknown()).optional(),
+  }),
+  z.object({
+    type: z.literal('open_page'),
+    url: z.string().optional(),
+    sources: z.array(z.unknown()).optional(),
+  }),
+  z.object({
+    type: z.literal('find_in_page'),
+    url: z.string().optional(),
+    pattern: z.string().optional(),
+    sources: z.array(z.unknown()).optional(),
+  }),
+]);
+
 function mapWebSearchAction(
   action: unknown,
 ): InferSchema<typeof webSearchOutputSchema> {
-  if (action == null || typeof action !== 'object' || Array.isArray(action)) {
-    return {};
-  }
+  const parsed = webSearchWireActionSchema.safeParse(action);
+  if (!parsed.success) return {};
 
-  const a = action as {
-    type?: unknown;
-    query?: unknown;
-    queries?: unknown;
-    url?: unknown;
-    pattern?: unknown;
-    sources?: unknown;
-  };
-
-  const sources = Array.isArray(a.sources)
-    ? a.sources.filter(
-        (s): s is { type: 'url'; url: string } =>
-          s != null &&
-          typeof s === 'object' &&
-          (s as { type?: unknown }).type === 'url' &&
-          typeof (s as { url?: unknown }).url === 'string',
-      )
-    : undefined;
+  const a = parsed.data;
+  const sources = a.sources?.flatMap(s => {
+    const source = webSearchWireSourceSchema.safeParse(s);
+    return source.success ? [source.data] : [];
+  });
+  const sourcesExtra = sources != null && sources.length > 0 ? { sources } : {};
 
   switch (a.type) {
     case 'search':
       return {
         action: {
           type: 'search',
-          ...(typeof a.query === 'string' && { query: a.query }),
-          ...(Array.isArray(a.queries) &&
-            a.queries.every(q => typeof q === 'string') && {
-              queries: a.queries as string[],
-            }),
+          ...(a.query !== undefined && { query: a.query }),
+          ...(a.queries !== undefined && { queries: a.queries }),
         },
-        ...(sources != null && sources.length > 0 && { sources }),
+        ...sourcesExtra,
       };
     case 'open_page':
-      return {
-        action: {
-          type: 'openPage',
-          url: typeof a.url === 'string' ? a.url : undefined,
-        },
-        ...(sources != null && sources.length > 0 && { sources }),
-      };
+      return { action: { type: 'openPage', url: a.url }, ...sourcesExtra };
     case 'find_in_page':
       return {
-        action: {
-          type: 'findInPage',
-          url: typeof a.url === 'string' ? a.url : undefined,
-          pattern: typeof a.pattern === 'string' ? a.pattern : undefined,
-        },
-        ...(sources != null && sources.length > 0 && { sources }),
+        action: { type: 'findInPage', url: a.url, pattern: a.pattern },
+        ...sourcesExtra,
       };
-    default:
-      return {};
   }
 }
