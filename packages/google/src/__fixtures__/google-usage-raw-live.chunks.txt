@@ -1,0 +1,2 @@
+data: {"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":71,"totalTokenCount":237,"cachedContentTokenCount":4,"promptTokensDetails":[{"modality":"TEXT","tokenCount":12}],"cacheTokensDetails":[{"modality":"TEXT","tokenCount":4}],"toolUsePromptTokenCount":65,"toolUsePromptTokensDetails":[{"modality":"TEXT","tokenCount":65}],"thoughtsTokenCount":89,"serviceTier":"standard"}}
+
