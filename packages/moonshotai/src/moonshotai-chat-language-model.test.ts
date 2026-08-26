@@ -413,6 +413,89 @@ describe('MoonshotAIChatLanguageModel', () => {
         },
       ]);
     });
+
+    describe('structured outputs', () => {
+      it('should normalize schemas and enable strict validation by default', async () => {
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            name: 'named_pair',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              type: 'object',
+              properties: {
+                pair: {
+                  type: 'array',
+                  items: [{ type: 'string' }, { type: 'number' }],
+                },
+              },
+            },
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format,
+        ).toStrictEqual({
+          type: 'json_schema',
+          json_schema: {
+            name: 'named_pair',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                pair: {
+                  type: 'array',
+                  prefixItems: [{ type: 'string' }, { type: 'number' }],
+                },
+              },
+            },
+          },
+        });
+      });
+
+      it('should allow strict validation to be disabled without leaking the provider option', async () => {
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: { strictJsonSchema: false },
+          },
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object', properties: {} },
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).not.toHaveProperty('strictJsonSchema');
+        expect(requestBody.response_format.json_schema.strict).toBe(false);
+      });
+
+      it('should fall back to json_object without a schema', async () => {
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: { type: 'json' },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format,
+        ).toStrictEqual({ type: 'json_object' });
+      });
+
+      it('should fall back to json_object for unknown models', async () => {
+        await provider.chatModel('custom-model').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object', properties: {} },
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format,
+        ).toStrictEqual({ type: 'json_object' });
+      });
+    });
   });
 
   describe('doStream', () => {

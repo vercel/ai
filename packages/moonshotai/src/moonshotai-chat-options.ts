@@ -40,6 +40,13 @@ export function isMoonshotAIKimiModel(modelId: MoonshotAIChatModelId): boolean {
 
 export const moonshotaiProviderOptions = z.object({
   /**
+   * Whether to use strict JSON schema validation for structured outputs.
+   *
+   * @default true
+   */
+  strictJsonSchema: z.boolean().optional(),
+
+  /**
    * Reasoning effort for Kimi K3.
    */
   reasoningEffort: z.enum(['low', 'high', 'max']).optional(),
@@ -57,6 +64,13 @@ export const moonshotaiProviderOptions = z.object({
 });
 
 export type MoonshotAIProviderOptions = {
+  /**
+   * Whether to use strict JSON schema validation for structured outputs.
+   *
+   * @default true
+   */
+  strictJsonSchema?: boolean;
+
   /** Reasoning effort for Kimi K3. */
   reasoningEffort?: 'low' | 'high' | 'max';
 

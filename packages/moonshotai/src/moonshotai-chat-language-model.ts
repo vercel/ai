@@ -13,6 +13,36 @@ import {
   type MoonshotAIChatModelId,
   type MoonshotAIProviderOptions,
 } from './moonshotai-chat-options';
+import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
+
+function transformMoonshotRequestBody(
+  args: Record<string, any>,
+): Record<string, any> {
+  const { strictJsonSchema, ...transformedArgs } = args;
+  const responseFormat = transformedArgs.response_format;
+
+  if (
+    responseFormat?.type !== 'json_schema' ||
+    responseFormat.json_schema?.schema == null
+  ) {
+    return transformedArgs;
+  }
+
+  const { $schema: _$schema, ...schemaWithoutDollarSchema } =
+    responseFormat.json_schema.schema;
+
+  return {
+    ...transformedArgs,
+    response_format: {
+      type: 'json_schema',
+      json_schema: {
+        name: responseFormat.json_schema.name ?? 'response',
+        strict: strictJsonSchema ?? true,
+        schema: normalizeJsonSchemaForMFJS(schemaWithoutDollarSchema),
+      },
+    },
+  };
+}
 
 function prepareSamplingOptions({
   modelId,
@@ -244,7 +274,13 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     modelId: MoonshotAIChatModelId,
     config: OpenAICompatibleChatConfig,
   ) {
-    super(modelId, config);
+    super(modelId, {
+      ...config,
+      transformRequestBody: args =>
+        transformMoonshotRequestBody(
+          config.transformRequestBody?.(args) ?? args,
+        ),
+    });
   }
 
   async doGenerate(
