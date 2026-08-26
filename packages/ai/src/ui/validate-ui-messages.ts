@@ -27,22 +27,12 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
 
 const providerReferenceSchema = z.record(z.string(), z.string());
 
-const legacyAbortedToolOutput = '{"error":"Tool was aborted by the user."}';
-
-function isLegacyAbortedToolCall(
-  toolPart: ToolUIPart,
-): toolPart is ToolUIPart & {
-  state: 'output-available';
-  input: Record<string, never>;
-  output: typeof legacyAbortedToolOutput;
-} {
+function isEmptyObject(value: unknown): value is Record<string, never> {
   return (
-    toolPart.state === 'output-available' &&
-    toolPart.input != null &&
-    typeof toolPart.input === 'object' &&
-    !Array.isArray(toolPart.input) &&
-    Object.keys(toolPart.input).length === 0 &&
-    toolPart.output === legacyAbortedToolOutput
+    value != null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
   );
 }
 
@@ -438,9 +428,9 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
     tools,
   }: ValidateUIMessagesOptions<UI_MESSAGE>,
   {
-    allowMissingTerminalTools,
+    convertMissingTerminalToolsToDynamic,
   }: {
-    allowMissingTerminalTools: boolean;
+    convertMissingTerminalToolsToDynamic: boolean;
   },
 ): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
   try {
@@ -473,7 +463,10 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
       }
     }
 
-    if (dataSchemas || tools) {
+    const shouldValidateToolParts =
+      tools != null || convertMissingTerminalToolsToDynamic;
+
+    if (dataSchemas || shouldValidateToolParts) {
       for (const [msgIdx, message] of validatedMessages.entries()) {
         for (const [partIdx, part] of message.parts.entries()) {
           // Data part validation
@@ -509,24 +502,26 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
           }
 
           // Tool part validation
-          if (tools && part.type.startsWith('tool-')) {
+          if (shouldValidateToolParts && part.type.startsWith('tool-')) {
             const toolPart = part as ToolUIPart<
               InferUIMessageTools<UI_MESSAGE>
             >;
             const toolName = toolPart.type.slice(5);
-            const tool = getOwn(tools, toolName);
+            const tool = tools == null ? undefined : getOwn(tools, toolName);
             const isTerminal =
               toolPart.state === 'output-available' ||
               toolPart.state === 'output-error' ||
               toolPart.state === 'output-denied';
 
-            if (!tool && allowMissingTerminalTools && isTerminal) {
-              // Preserve terminal history from unavailable ephemeral tools,
-              // but represent it as a dynamic tool so callbacks do not receive
-              // unvalidated values under the current static tool types.
-              message.parts[partIdx] = asDynamicToolPart(
-                toolPart,
-              ) as (typeof message.parts)[number];
+            if (!tool && isTerminal) {
+              if (convertMissingTerminalToolsToDynamic) {
+                // Agent tool sets can omit ephemeral tools that produced
+                // persisted terminal history. Normalize those parts so agent
+                // callbacks do not receive them under current static types.
+                message.parts[partIdx] = asDynamicToolPart(
+                  toolPart,
+                ) as (typeof message.parts)[number];
+              }
               continue;
             }
 
@@ -547,17 +542,15 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
             }
 
             // Tool input validation
-            // The legacy abort path persisted an exact synthetic output with
-            // empty input. Only that identifiable terminal shape is exempt;
-            // completed empty-input calls are still checked against the current
-            // schema.
+            // Terminal calls with empty input can represent aborted or
+            // incomplete history whose input was never streamed.
             if (
               toolPart.state === 'input-available' ||
               toolPart.state === 'approval-requested' ||
               toolPart.state === 'approval-responded' ||
               toolPart.state === 'output-denied' ||
               (toolPart.state === 'output-available' &&
-                !isLegacyAbortedToolCall(toolPart))
+                !isEmptyObject(toolPart.input))
             ) {
               await validateTypes({
                 value: toolPart.input,
@@ -610,7 +603,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>(
   options: ValidateUIMessagesOptions<UI_MESSAGE>,
 ): Promise<SafeValidateUIMessagesResult<UI_MESSAGE>> {
   return safeValidateUIMessagesInternal(options, {
-    allowMissingTerminalTools: false,
+    convertMissingTerminalToolsToDynamic: false,
   });
 }
 
@@ -638,7 +631,7 @@ export async function validateUIMessagesForAgent<UI_MESSAGE extends UIMessage>(
     // Agent tool sets can include ephemeral tools (for example, tools from a
     // disconnected MCP server), so terminal history is converted to dynamic
     // tool parts when those tools are no longer registered.
-    allowMissingTerminalTools: true,
+    convertMissingTerminalToolsToDynamic: true,
   });
 
   if (!response.success) throw response.error;

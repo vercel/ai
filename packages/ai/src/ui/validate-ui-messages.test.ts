@@ -1269,20 +1269,8 @@ describe('validateUIMessages', () => {
       );
     });
 
-    it('should preserve identifiable legacy aborted output-available tool calls with empty input', async () => {
-      const abortingTool = {
-        name: 'foo',
-        inputSchema: z.object({ foo: z.string() }),
-        outputSchema: z.string(),
-      };
-
-      type AbortingMessage = UIMessage<
-        never,
-        never,
-        { foo: InferUITool<typeof abortingTool> }
-      >;
-
-      const inputMessages: AbortingMessage[] = [
+    it('should preserve output-available tool calls with empty input', async () => {
+      const inputMessages: TestMessage[] = [
         {
           id: '1',
           role: 'assistant',
@@ -1292,23 +1280,23 @@ describe('validateUIMessages', () => {
               toolCallId: '1',
               state: 'output-available',
               input: {} as { foo: string },
-              output: '{"error":"Tool was aborted by the user."}',
+              output: { result: 'success' },
             },
           ],
         },
       ];
 
-      const messages = await validateUIMessages<AbortingMessage>({
+      const messages = await validateUIMessages<TestMessage>({
         messages: inputMessages,
         tools: {
-          foo: abortingTool,
+          foo: testTool,
         },
       });
 
       expect(messages).toEqual(inputMessages);
     });
 
-    it('should reject completed output-available tool calls with stale empty input', async () => {
+    it('should validate output when an output-available tool call has empty input', async () => {
       await expect(
         validateUIMessages<TestMessage>({
           messages: [
@@ -1321,7 +1309,7 @@ describe('validateUIMessages', () => {
                   toolCallId: '1',
                   state: 'output-available',
                   input: {} as { foo: string },
-                  output: { result: 'success' },
+                  output: {} as { result: string },
                 },
               ],
             },
@@ -1331,7 +1319,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowError(
-        'Type validation failed for messages[0].parts[0].input',
+        'Type validation failed for messages[0].parts[0].output',
       );
     });
 
@@ -1604,7 +1592,7 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should reject a tool part in output-available state when the current tool is missing', async () => {
+    it('should preserve a tool part in output-available state when the current tool is missing', async () => {
       const inputMessages: TestMessage[] = [
         {
           id: '1',
@@ -1629,10 +1617,10 @@ describe('validateUIMessages', () => {
             foo: testTool,
           },
         }),
-      ).rejects.toThrowError('No tool schema found for tool part bar');
+      ).resolves.toEqual(inputMessages);
     });
 
-    it('should reject a tool part in output-error state when the current tool is missing', async () => {
+    it('should preserve a tool part in output-error state when the current tool is missing', async () => {
       const inputMessages: TestMessage[] = [
         {
           id: '1',
@@ -1657,10 +1645,10 @@ describe('validateUIMessages', () => {
             foo: testTool,
           },
         }),
-      ).rejects.toThrowError('No tool schema found for tool part bar');
+      ).resolves.toEqual(inputMessages);
     });
 
-    it('should reject a tool part in output-denied state when the current tool is missing', async () => {
+    it('should preserve a tool part in output-denied state when the current tool is missing', async () => {
       const inputMessages: TestMessage[] = [
         {
           id: '1',
@@ -1687,7 +1675,7 @@ describe('validateUIMessages', () => {
             foo: testTool,
           },
         }),
-      ).rejects.toThrowError('No tool schema found for tool part bar');
+      ).resolves.toEqual(inputMessages);
     });
 
     it('should represent terminal calls from unavailable agent tools as dynamic tool parts', async () => {
@@ -1766,6 +1754,35 @@ describe('validateUIMessages', () => {
           ],
         },
       ]);
+    });
+
+    it('should represent terminal calls as dynamic tool parts when agent tools are omitted', async () => {
+      const messages = await validateUIMessagesForAgent<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-bar' as 'tool-foo',
+                toolCallId: '1',
+                state: 'output-available',
+                input: { previous: 'value' } as never,
+                output: { result: 'success' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(messages[0].parts[0]).toEqual({
+        type: 'dynamic-tool',
+        toolName: 'bar',
+        toolCallId: '1',
+        state: 'output-available',
+        input: { previous: 'value' },
+        output: { result: 'success' },
+      });
     });
 
     it('should reject stale terminal input for an available agent tool', async () => {

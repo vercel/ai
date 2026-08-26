@@ -125,4 +125,48 @@ describe('createAgentUIStream', () => {
       output: { result: 'done' },
     });
   });
+
+  it('should expose terminal tool history as dynamic parts when tools are omitted', async () => {
+    const agent = new ToolLoopAgent({
+      model: createMockModel(),
+    });
+    const onEnd = vi.fn();
+
+    const stream = await createAgentUIStream({
+      agent,
+      uiMessages: [
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-removed',
+              toolCallId: 'call-1',
+              state: 'output-available',
+              input: { previous: 'value' },
+              output: { result: 'done' },
+            },
+          ],
+        },
+        {
+          id: 'user-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'continue' }],
+        },
+      ],
+      onEnd,
+    });
+
+    await convertReadableStreamToArray(stream);
+
+    expect(onEnd).toHaveBeenCalledOnce();
+    expect(onEnd.mock.calls[0][0].messages[0].parts[0]).toEqual({
+      type: 'dynamic-tool',
+      toolName: 'removed',
+      toolCallId: 'call-1',
+      state: 'output-available',
+      input: { previous: 'value' },
+      output: { result: 'done' },
+    });
+  });
 });

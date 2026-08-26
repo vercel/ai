@@ -466,16 +466,8 @@ describe('DirectChatTransport', () => {
       );
     });
 
-    it('should continue with terminal history from an unavailable tool', async () => {
-      const agent = new ToolLoopAgent({
-        model: mockModel,
-        tools: {
-          current: tool({
-            inputSchema: z.object({ current: z.string() }),
-            outputSchema: z.object({ result: z.string() }),
-          }),
-        },
-      });
+    it('should continue with terminal tool history when tools are omitted', async () => {
+      const agent = new ToolLoopAgent({ model: mockModel });
       const transport = new DirectChatTransport({ agent });
 
       const stream = await transport.sendMessages({
@@ -488,11 +480,11 @@ describe('DirectChatTransport', () => {
             role: 'assistant',
             parts: [
               {
-                type: 'tool-removed' as 'tool-current',
+                type: 'tool-removed' as never,
                 toolCallId: 'call-1',
                 state: 'output-available',
                 input: { previous: 'value' } as never,
-                output: { result: 'done' },
+                output: { result: 'done' } as never,
               },
             ],
           },
