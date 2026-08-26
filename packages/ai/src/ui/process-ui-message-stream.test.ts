@@ -7870,6 +7870,7 @@ describe('processUIMessageStream', () => {
           approvalId: 'id-1',
           toolCallId: 'call-1',
           type: 'tool-approval-request',
+          reason: 'requires operator review',
           signature: 'test-sig',
         },
         {
@@ -7896,7 +7897,7 @@ describe('processUIMessageStream', () => {
       });
     });
 
-    it('should propagate signature into the approval object', async () => {
+    it('should propagate request details into the approval object', async () => {
       const toolPart = state!.message.parts.find(
         part => part.type === 'tool-tool1',
       ) as any;
@@ -7904,6 +7905,7 @@ describe('processUIMessageStream', () => {
       expect(toolPart.state).toBe('approval-requested');
       expect(toolPart.approval).toEqual({
         id: 'id-1',
+        requestReason: 'requires operator review',
         signature: 'test-sig',
       });
     });
@@ -7930,11 +7932,13 @@ describe('processUIMessageStream', () => {
           approvalId: 'id-1',
           toolCallId: 'call-1',
           type: 'tool-approval-request',
+          reason: 'requires operator review',
           signature: 'test-sig',
         },
         {
           approvalId: 'id-1',
           approved: true,
+          reason: 'approved by operator',
           type: 'tool-approval-response',
         },
         {
@@ -7961,7 +7965,7 @@ describe('processUIMessageStream', () => {
       });
     });
 
-    it('preserves signature when transitioning to approval-responded', async () => {
+    it('preserves request details separately from the response reason', async () => {
       const toolPart = state!.message.parts.find(
         part => part.type === 'tool-tool1',
       ) as any;
@@ -7970,6 +7974,8 @@ describe('processUIMessageStream', () => {
       expect(toolPart.approval).toEqual({
         id: 'id-1',
         approved: true,
+        requestReason: 'requires operator review',
+        reason: 'approved by operator',
         signature: 'test-sig',
       });
     });

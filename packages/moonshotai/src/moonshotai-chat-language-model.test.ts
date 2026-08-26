@@ -1,4 +1,5 @@
 import {
+  APICallError,
   UnsupportedFunctionalityError,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
@@ -26,12 +27,16 @@ const server = createTestServer({
   'https://api.moonshot.ai/v1/chat/completions': {},
 });
 
+function readJsonFixture(filename: string) {
+  return JSON.parse(
+    fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+  );
+}
+
 function prepareJsonFixtureResponse(filename: string) {
   server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
     type: 'json-value',
-    body: JSON.parse(
-      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
-    ),
+    body: readJsonFixture(filename),
   };
 }
 
@@ -270,6 +275,90 @@ describe('doGenerate', () => {
         expect(result.providerMetadata).toEqual({ moonshotai: {} });
       },
     );
+
+    it('should preserve extra top-level and nested fields in raw usage', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-raw-usage',
+          object: 'chat.completion',
+          created: 1785880000,
+          model: 'kimi-k3',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'Hello' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 100,
+            completion_tokens: 50,
+            total_tokens: 150,
+            cached_tokens: 20,
+            provider_usage_id: 'usage-123',
+            prompt_tokens_details: {
+              cached_tokens: 20,
+              cache_type: 'ephemeral',
+            },
+            completion_tokens_details: {
+              reasoning_tokens: 10,
+              billable_tokens: 42,
+            },
+          },
+        },
+      };
+
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage).toMatchObject({
+        inputTokens: { total: 100, noCache: 80, cacheRead: 20 },
+        outputTokens: { total: 50, text: 40, reasoning: 10 },
+        raw: {
+          prompt_tokens: 100,
+          completion_tokens: 50,
+          total_tokens: 150,
+          cached_tokens: 20,
+          provider_usage_id: 'usage-123',
+          prompt_tokens_details: {
+            cached_tokens: 20,
+            cache_type: 'ephemeral',
+          },
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+            billable_tokens: 42,
+          },
+        },
+      });
+    });
+
+    it('should continue validating known usage field types', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-invalid-usage',
+          created: 1785880000,
+          model: 'kimi-k3',
+          choices: [
+            {
+              message: { role: 'assistant', content: 'Hello' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: '100',
+            completion_tokens: 50,
+            total_tokens: 150,
+          },
+        },
+      };
+
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow();
+    });
   });
 
   describe('video input', () => {
@@ -1503,21 +1592,63 @@ describe('doGenerate', () => {
       expect(server.calls).toHaveLength(0);
     });
 
-    it('should map the moonshot error envelope', async () => {
+    it('should preserve the moonshot error envelope', async () => {
+      const data = readJsonFixture('moonshotai-error');
+
       server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
         type: 'error',
         status: 400,
-        body: JSON.stringify({
-          error: {
-            message: 'Invalid request: invalid part type: file',
-            type: 'invalid_request_error',
-          },
-        }),
+        body: JSON.stringify(data),
       };
 
-      await expect(
+      const error = await Promise.resolve(
         provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
-      ).rejects.toThrow('Invalid request: invalid part type: file');
+      ).catch((error: unknown) => error);
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      if (!APICallError.isInstance(error)) {
+        expect.fail('Expected an APICallError');
+      }
+      expect(error.message).toBe(data.error.message);
+      expect(error.data).toStrictEqual(data);
+    });
+
+    it.each([
+      {
+        name: 'nullable code',
+        data: {
+          error: {
+            message: 'Invalid request with nullable code',
+            type: 'invalid_request_error',
+            code: null,
+          },
+        },
+      },
+      {
+        name: 'message-only error',
+        data: {
+          error: {
+            message: 'Invalid request',
+          },
+        },
+      },
+    ])('should preserve a $name envelope', async ({ data }) => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify(data),
+      };
+
+      const error = await Promise.resolve(
+        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
+      ).catch((error: unknown) => error);
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      if (!APICallError.isInstance(error)) {
+        expect.fail('Expected an APICallError');
+      }
+      expect(error.message).toBe(data.error.message);
+      expect(error.data).toStrictEqual(data);
     });
   });
 });
@@ -1528,18 +1659,11 @@ describe('doStream', () => {
       error: {
         message: 'Internal server error',
         type: 'server_error',
+        code: 'upstream_failure',
       },
     };
 
-    server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
-    };
-
-    const result = await provider.chatModel('kimi-k3').doStream({
-      prompt: TEST_PROMPT,
-    });
-    const chunks = await convertReadableStreamToArray(result.stream);
+    const chunks = await getStreamParts('moonshotai-error');
     const errorPart = chunks.find(chunk => chunk.type === 'error');
 
     expect(errorPart?.type).toBe('error');
@@ -1551,6 +1675,7 @@ describe('doStream', () => {
     expect(errorPart.error).toMatchObject({
       message: 'Internal server error',
       type: 'server_error',
+      code: 'upstream_failure',
       statusCode: 500,
       isRetryable: true,
       data,
@@ -1592,6 +1717,71 @@ describe('doStream', () => {
       },
     });
   });
+
+  it.each(['choice-level finish chunk', 'separate top-level usage chunk'])(
+    'should preserve extra fields in streamed raw usage from a %s',
+    async usageLocation => {
+      const usage = {
+        prompt_tokens: 100,
+        completion_tokens: 50,
+        total_tokens: 150,
+        cached_tokens: 20,
+        provider_usage_id: 'usage-123',
+        prompt_tokens_details: {
+          cached_tokens: 20,
+          cache_type: 'ephemeral',
+        },
+        completion_tokens_details: {
+          reasoning_tokens: 10,
+          billable_tokens: 42,
+        },
+      };
+      const finishChunk = {
+        id: 'chatcmpl-raw-usage',
+        object: 'chat.completion.chunk',
+        choices: [
+          {
+            index: 0,
+            delta: {},
+            finish_reason: 'stop',
+            ...(usageLocation === 'choice-level finish chunk' && { usage }),
+          },
+        ],
+      };
+      const chunks: Array<Record<string, unknown>> = [finishChunk];
+
+      if (usageLocation === 'separate top-level usage chunk') {
+        chunks.push({
+          id: 'chatcmpl-raw-usage',
+          object: 'chat.completion.chunk',
+          choices: [],
+          usage,
+        });
+      }
+
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        usage: {
+          inputTokens: { total: 100, noCache: 80, cacheRead: 20 },
+          outputTokens: { total: 50, text: 40, reasoning: 10 },
+          raw: usage,
+        },
+      });
+    },
+  );
 
   it('should include stream options with usage', async () => {
     prepareChunksFixtureResponse('moonshotai-stream');

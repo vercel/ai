@@ -26804,6 +26804,68 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
+    it('should surface the reason for streamed user approval requests', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        toolApproval: {
+          tool1: {
+            type: 'user-approval',
+            reason: 'requires operator review',
+          },
+        },
+        prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      expect(
+        (await result.content).find(
+          part => part.type === 'tool-approval-request',
+        ),
+      ).toMatchObject({
+        type: 'tool-approval-request',
+        approvalId: 'id-1',
+        reason: 'requires operator review',
+      });
+      expect(
+        await convertAsyncIterableToArray(result.toUIMessageStream()),
+      ).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'id-1',
+        toolCallId: 'call-1',
+        reason: 'requires operator review',
+      });
+      expect((await result.responseMessages)[0].content).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-approval-request',
+          approvalId: 'id-1',
+          reason: 'requires operator review',
+        }),
+      );
+    });
+
     it('should stream invalid approved input as a tool error and continue', async () => {
       const executeFunction = vi.fn().mockReturnValue('result1');
       const prompts: LanguageModelV4Prompt[] = [];

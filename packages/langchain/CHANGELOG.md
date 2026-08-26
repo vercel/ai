@@ -1,5 +1,18 @@
 # @ai-sdk/langchain
 
+## 3.0.82
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+
+## 3.0.81
+
+### Patch Changes
+
+- ai@7.0.81
+
 ## 3.0.80
 
 ### Patch Changes

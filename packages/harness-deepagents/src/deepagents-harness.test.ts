@@ -281,13 +281,21 @@ describe('createDeepAgents', () => {
 
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
-        match: { host: 'anthropic.example' },
+        match: {
+          host: 'anthropic.example',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'ephemeral-ANTHROPIC_API_KEY' },
+            },
+          ],
+        },
         transform: { headers: { 'x-api-key': 'anthropic-secret' } },
       },
     ]);
     expect(forwardedCredentials).toEqual([
       {
-        credential: 'ANTHROPIC_API_KEY',
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
         environmentVariableName: 'ANTHROPIC_API_KEY',
       },
     ]);

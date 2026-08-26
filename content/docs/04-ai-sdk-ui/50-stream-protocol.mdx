@@ -367,11 +367,11 @@ Format: Server-Sent Event with JSON object
 Example:
 
 ```
-data: {"type":"tool-approval-request","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","approvalId":"approval_123","isAutomatic":true}
+data: {"type":"tool-approval-request","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","approvalId":"approval_123","reason":"Requires operator review"}
 
 ```
 
-When `isAutomatic` is omitted, the request expects an explicit approval response from the client.
+When `isAutomatic` is omitted, the request expects an explicit approval response from the client. `reason` is optional and explains why the tool call requires approval.
 
 ### Tool Approval Response Part
 

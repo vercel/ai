@@ -141,6 +141,9 @@ export function executeToolsFromStream<
                   type: 'tool-approval-request',
                   approvalId,
                   toolCall: chunk,
+                  ...(toolApprovalStatus.reason != null
+                    ? { reason: toolApprovalStatus.reason }
+                    : {}),
                   ...(signature != null ? { signature } : {}),
                 });
 

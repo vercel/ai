@@ -59,12 +59,13 @@ export type MoonshotAIChatConfig = {
 };
 
 function createMoonshotAIStreamError(
-  error: { message: string; type?: string | null },
+  error: { message: string; type?: string | null; code?: string | null },
   data: unknown,
 ) {
   return createProviderStreamError({
     message: error.message,
     type: error.type ?? undefined,
+    code: error.code ?? undefined,
     ...getMoonshotAIStreamErrorMetadata(error.type),
     data,
   });
