@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.114
+
+### Patch Changes
+
+- 1df2ced: Preserve recursive tool input schemas without aborting Google model calls.
+
 ## 3.0.113
 
 ### Patch Changes

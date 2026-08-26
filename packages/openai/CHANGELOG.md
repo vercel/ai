@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.102
+
+### Patch Changes
+
+- 087d7e2: Signal schema-invalid known Responses stream events and preserve the error finish reason.
+
 ## 3.0.101
 
 ### Patch Changes
