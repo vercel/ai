@@ -377,11 +377,8 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertMoonshotAIChatUsage(responseBody.usage),
-<<<<<<< HEAD
-=======
       providerMetadata: {
         [this.providerOptionsName]: {
-          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
           ...(responseBody.object != null && {
             responseObject: responseBody.object,
           }),
@@ -396,7 +393,6 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
           }),
         },
       },
->>>>>>> e4f665c06a (fix: Moonshot chat results dropped provider response metadata (#19593))
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -455,6 +451,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
     let choiceIndex: number | undefined;
     let messageRole: 'assistant' | undefined;
     const toolCallTypes = new Map<number, 'function'>();
+    const providerOptionsName = this.providerOptionsName;
 
     return {
       stream: response.pipeThrough(
@@ -581,12 +578,15 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                 isActiveReasoning = false;
               }
 
-<<<<<<< HEAD
               for (const [
                 fallbackIndex,
                 toolCallDelta,
               ] of delta.tool_calls.entries()) {
                 const index = toolCallDelta.index ?? fallbackIndex;
+
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(index, toolCallDelta.type);
+                }
 
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.id == null) {
@@ -654,16 +654,6 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-delta',
                   id: toolCall.id,
                   delta: toolCallDelta.function.arguments ?? '',
-=======
-              for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
-                const toolCallIndex = toolCallDelta.index ?? index;
-                if (toolCallDelta.type != null) {
-                  toolCallTypes.set(toolCallIndex, toolCallDelta.type);
-                }
-                toolCallTracker.processDelta({
-                  ...toolCallDelta,
-                  index: toolCallIndex,
->>>>>>> e4f665c06a (fix: Moonshot chat results dropped provider response metadata (#19593))
                 });
               }
             }
@@ -699,13 +689,8 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
               type: 'finish',
               finishReason,
               usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
-<<<<<<< HEAD
-=======
               providerMetadata: {
                 [providerOptionsName]: {
-                  ...(contentLogprobs.length > 0 && {
-                    logprobs: { content: contentLogprobs },
-                  }),
                   ...(responseObject != null && { responseObject }),
                   ...(choiceIndex != null && { choiceIndex }),
                   ...(messageRole != null && { messageRole }),
@@ -716,7 +701,6 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                   }),
                 },
               },
->>>>>>> e4f665c06a (fix: Moonshot chat results dropped provider response metadata (#19593))
             });
           },
         }),
