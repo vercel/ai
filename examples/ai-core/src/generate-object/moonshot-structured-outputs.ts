@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: moonshotai('kimi-k3'),
+    model: moonshotai('moonshot-v1-8k'),
     schemaName: 'recipe',
     schema: z.object({
       name: z.string(),

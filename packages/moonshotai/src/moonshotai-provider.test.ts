@@ -30,7 +30,14 @@ describe('getModelStructuredOutputSupport', () => {
     ['kimi-k2.6', true],
     ['kimi-k2.7-code', true],
     ['kimi-k3', true],
-    ['moonshot-v1-8k', false],
+    ['moonshot-v1-8k', true],
+    ['moonshot-v1-32k', true],
+    ['moonshot-v1-128k', true],
+    ['moonshot-v1-auto', true],
+    ['moonshot-v1-8k-vision-preview', true],
+    ['moonshot-v1-32k-vision-preview', true],
+    ['moonshot-v1-128k-vision-preview', true],
+    ['moonshot-v1-custom', false],
     ['custom-model', false],
   ])('returns %s support as %s', (modelId, expected) => {
     expect(getModelStructuredOutputSupport(modelId)).toBe(expected);

@@ -492,6 +492,36 @@ describe('MoonshotAIChatLanguageModel', () => {
         ).toStrictEqual({ type: 'json_object' });
       });
 
+      it.each([
+        'moonshot-v1-8k',
+        'moonshot-v1-32k',
+        'moonshot-v1-128k',
+        'moonshot-v1-auto',
+        'moonshot-v1-8k-vision-preview',
+        'moonshot-v1-32k-vision-preview',
+        'moonshot-v1-128k-vision-preview',
+      ])('should use json_schema for %s', async modelId => {
+        await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            name: 'response',
+            schema: { type: 'object', properties: {} },
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format,
+        ).toStrictEqual({
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: { type: 'object', properties: {} },
+          },
+        });
+      });
+
       it('should fall back to json_object for unknown models', async () => {
         await provider.chatModel('custom-model').doGenerate({
           prompt: TEST_PROMPT,
