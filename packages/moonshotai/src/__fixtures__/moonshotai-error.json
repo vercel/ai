@@ -1,6 +1,6 @@
 {
   "error": {
-    "message": "Invalid request: documented error metadata",
+    "message": "Invalid request: invalid part type: file",
     "type": "invalid_request_error",
     "code": "invalid_parameter"
   }
