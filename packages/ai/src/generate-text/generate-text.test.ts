@@ -29,6 +29,7 @@ import {
   vitest,
 } from 'vitest';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { ToolChoiceViolationError } from '../error/tool-choice-violation-error';
 import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -753,6 +754,123 @@ describe('generateText', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('tool choice enforcement', () => {
+    it('should reject when a required tool choice produces no tool call', async () => {
+      const result = generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              { type: 'reasoning', text: 'I will not call the tool.' },
+              { type: 'text', text: 'No tool call.' },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+      });
+
+      const error = await result.catch(error => error);
+
+      expect(ToolChoiceViolationError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        message:
+          'Model response did not contain a tool call even though tool choice was required.',
+        toolChoice: { type: 'required' },
+        finishReason: 'stop',
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+      });
+    });
+
+    it('should reject when a different tool is called instead of the required tool', async () => {
+      const result = generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool2',
+                input: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+          tool2: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+        prompt: 'test-input',
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        message:
+          "Model response did not contain a call to the required tool 'tool1'.",
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+      });
+    });
+
+    it('should enforce the tool choice returned by prepareStep', async () => {
+      const result = generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'No tool call.' }],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'auto',
+        prepareStep: async () => ({ toolChoice: 'required' }),
+        prompt: 'test-input',
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'required' },
+      });
+    });
+
+    it('should allow prepareStep to replace a required tool choice', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'No tool call.' }],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'required',
+        prepareStep: async () => ({ toolChoice: 'auto' }),
+        prompt: 'test-input',
+      });
+
+      expect(result.text).toBe('No tool call.');
     });
   });
 
