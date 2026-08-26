@@ -8,6 +8,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type {
+  MoonshotAIAssistantMessageProviderOptions,
   MoonshotAILanguageModelOptions,
   MoonshotAIMessageProviderOptions,
 } from './moonshotai-chat-options';
@@ -812,6 +813,98 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('Partial Mode', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-text');
+    });
+
+    it('should send partial true on the final assistant message', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue this prefix.' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'The sky is' }],
+            providerOptions: {
+              moonshotai: {
+                name: 'writer',
+                partial: true,
+              } satisfies MoonshotAIAssistantMessageProviderOptions,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          { role: 'user', content: 'Continue this prefix.' },
+          {
+            role: 'assistant',
+            content: 'The sky is',
+            name: 'writer',
+            partial: true,
+          },
+        ],
+      });
+    });
+
+    it('should reject Partial Mode with JSON object response format before the API call', async () => {
+      await expect(
+        provider.chatModel('kimi-k3').doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: '{' }],
+              providerOptions: {
+                moonshotai: {
+                  partial: true,
+                } satisfies MoonshotAIAssistantMessageProviderOptions,
+              },
+            },
+          ],
+          responseFormat: { type: 'json' },
+        }),
+      ).rejects.toThrow(
+        'Moonshot AI Partial Mode cannot be combined with JSON object response format.',
+      );
+
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should allow Partial Mode with JSON schema response format', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: {
+              moonshotai: {
+                partial: true,
+              } satisfies MoonshotAIAssistantMessageProviderOptions,
+            },
+          },
+        ],
+        responseFormat: {
+          type: 'json',
+          name: 'result',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages[0]).toMatchObject({ partial: true });
+      expect(requestBody.response_format).toMatchObject({
+        type: 'json_schema',
+      });
+    });
+  });
+
   describe('tool calls', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('moonshotai-tool-call');
@@ -1262,6 +1355,35 @@ describe('doStream', () => {
     expect(requestBody.stream).toBe(true);
     expect(requestBody.stream_options).toStrictEqual({
       include_usage: true,
+    });
+  });
+
+  it('should send partial true on the final assistant message', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream');
+
+    await provider.chatModel('kimi-k3').doStream({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'The answer is' }],
+          providerOptions: {
+            moonshotai: {
+              partial: true,
+            } satisfies MoonshotAIAssistantMessageProviderOptions,
+          },
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'assistant',
+          content: 'The answer is',
+          partial: true,
+        },
+      ],
+      stream: true,
     });
   });
 

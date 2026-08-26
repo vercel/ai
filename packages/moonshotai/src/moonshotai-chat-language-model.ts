@@ -176,13 +176,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         schema: moonshotaiLanguageModelOptions,
       })) ?? {};
 
-    const { messages, warnings: messageWarnings } =
-      await convertToMoonshotAIChatMessages({
-        prompt,
-        providerOptionsName: this.providerOptionsName,
-      });
-
-    const allWarnings: SharedV4Warning[] = [...messageWarnings];
+    const allWarnings: SharedV4Warning[] = [];
     if (topK != null) {
       allWarnings.push({ type: 'unsupported', feature: 'topK' });
     }
@@ -427,6 +421,14 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         response_format = { type: 'json_object' };
       }
     }
+
+    const { messages, warnings: messageWarnings } =
+      await convertToMoonshotAIChatMessages({
+        prompt,
+        providerOptionsName: this.providerOptionsName,
+        responseFormat: response_format,
+      });
+    allWarnings.push(...messageWarnings);
 
     return {
       args: {
