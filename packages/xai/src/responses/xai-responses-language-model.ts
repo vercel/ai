@@ -22,11 +22,13 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
+  type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
@@ -521,6 +523,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           input: toolInput,
           providerExecuted: true,
         });
+
+        if (part.type === 'web_search_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: mapWebSearchAction(part.action),
+          });
+        }
 
         continue;
       }
@@ -1239,7 +1250,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     type: 'tool-result',
                     toolCallId: part.id,
                     toolName,
-                    result: {},
+                    result:
+                      part.type === 'web_search_call'
+                        ? mapWebSearchAction(part.action)
+                        : {},
                   });
                 }
 
@@ -1355,5 +1369,66 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapWebSearchAction(
+  action: unknown,
+): InferSchema<typeof webSearchOutputSchema> {
+  if (action == null || typeof action !== 'object' || Array.isArray(action)) {
+    return {};
+  }
+
+  const a = action as {
+    type?: unknown;
+    query?: unknown;
+    queries?: unknown;
+    url?: unknown;
+    pattern?: unknown;
+    sources?: unknown;
+  };
+
+  const sources = Array.isArray(a.sources)
+    ? a.sources.filter(
+        (s): s is { type: 'url'; url: string } =>
+          s != null &&
+          typeof s === 'object' &&
+          (s as { type?: unknown }).type === 'url' &&
+          typeof (s as { url?: unknown }).url === 'string',
+      )
+    : undefined;
+
+  switch (a.type) {
+    case 'search':
+      return {
+        action: {
+          type: 'search',
+          ...(typeof a.query === 'string' && { query: a.query }),
+          ...(Array.isArray(a.queries) &&
+            a.queries.every(q => typeof q === 'string') && {
+              queries: a.queries as string[],
+            }),
+        },
+        ...(sources != null && sources.length > 0 && { sources }),
+      };
+    case 'open_page':
+      return {
+        action: {
+          type: 'openPage',
+          url: typeof a.url === 'string' ? a.url : undefined,
+        },
+        ...(sources != null && sources.length > 0 && { sources }),
+      };
+    case 'find_in_page':
+      return {
+        action: {
+          type: 'findInPage',
+          url: typeof a.url === 'string' ? a.url : undefined,
+          pattern: typeof a.pattern === 'string' ? a.pattern : undefined,
+        },
+        ...(sources != null && sources.length > 0 && { sources }),
+      };
+    default:
+      return {};
   }
 }
