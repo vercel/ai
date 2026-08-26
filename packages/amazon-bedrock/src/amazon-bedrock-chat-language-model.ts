@@ -51,6 +51,7 @@ import {
   isAnthropicModel as detectAnthropicModel,
   supportsNativeStructuredOutput,
   supportsStrictTools,
+  supportsRequiredToolChoice,
 } from './amazon-bedrock-anthropic-model-support';
 import {
   amazonBedrockFailedResponseHandler,
@@ -362,7 +363,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       await prepareTools({
         tools: jsonResponseTool ? [...(tools ?? []), jsonResponseTool] : tools,
         toolChoice:
-          jsonResponseTool != null ? { type: 'required' } : toolChoice,
+          jsonResponseTool != null
+            ? supportsRequiredToolChoice(this.modelId)
+              ? { type: 'required' }
+              : undefined
+            : toolChoice,
         modelId: this.modelId,
         modelFamily: this.config.modelFamily,
         reasoningBudgetTokens:
