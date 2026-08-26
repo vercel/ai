@@ -228,6 +228,14 @@ const { text } = await generateText({
 Amazon Bedrock language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Structured Outputs
+
+When native structured output is unavailable, the provider uses a JSON tool fallback.
+
+<Note type="warning">
+  Meta models reject required tool choice, so tool use is not forced and structured output may be less reliable.
+</Note>
+
 ### File Inputs
 
 <Note type="warning">

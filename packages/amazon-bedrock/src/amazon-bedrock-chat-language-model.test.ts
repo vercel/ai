@@ -128,6 +128,11 @@ const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   sonnet5AnthropicModelId,
 )}/converse`;
 
+const metaModelId = 'us.meta.llama4-maverick-17b-instruct-v1:0';
+const metaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  metaModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -148,6 +153,7 @@ const server = createTestServer({
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
   [sonnet5AnthropicGenerateUrl]: {},
+  [metaGenerateUrl]: {},
 });
 
 describe('supportedUrls', () => {
@@ -228,6 +234,13 @@ const novaModel = new AmazonBedrockChatLanguageModel(novaModelId, {
 });
 
 const openaiModel = new AmazonBedrockChatLanguageModel(openaiModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const metaModel = new AmazonBedrockChatLanguageModel(metaModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -5639,6 +5652,70 @@ describe('doGenerate', () => {
       ]
     `);
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+  });
+
+  it('should not force the json tool for Meta models', async () => {
+    server.urls[metaGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const result = await metaModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toEqual({
+      tools: [
+        {
+          toolSpec: {
+            description: 'Respond with a JSON object.',
+            inputSchema: {
+              json: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+                required: ['name'],
+              },
+            },
+            name: 'json',
+          },
+        },
+      ],
+    });
+    expect(result.content).toEqual([{ type: 'text', text: '{"name":"Test"}' }]);
   });
 
   it('should use the json tool fallback for claude-opus-5 (Bedrock rejects output_config.format)', async () => {
