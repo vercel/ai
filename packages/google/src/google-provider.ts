@@ -4,6 +4,7 @@ import type {
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -32,6 +33,8 @@ import {
 } from './interactions/google-interactions-language-model';
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
+import { GoogleTranscriptionModel } from './transcription/google-transcription-model';
+import type { GoogleTranscriptionModelId } from './transcription/google-transcription-model-options';
 
 export interface GoogleGenerativeAIProvider extends ProviderV3 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV3;
@@ -74,6 +77,17 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV3;
+
+  /**
+   * Creates a model for transcription (speech-to-text), e.g.
+   * `gemini-3.5-transcribe`.
+   */
+  transcription(modelId: GoogleTranscriptionModelId): TranscriptionModelV3;
+
+  /**
+   * Creates a model for transcription (speech-to-text).
+   */
+  transcriptionModel(modelId: GoogleTranscriptionModelId): TranscriptionModelV3;
 
   /**
    * Creates a model for video generation.
@@ -245,6 +259,14 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+  const createTranscriptionModel = (modelId: GoogleTranscriptionModelId) =>
+    new GoogleTranscriptionModel(modelId, {
+      provider: `${providerName}.transcription`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createVideoModel = (modelId: GoogleGenerativeAIVideoModelId) =>
     new GoogleGenerativeAIVideoModel(modelId, {
       provider: providerName,
@@ -291,6 +313,8 @@ export function createGoogleGenerativeAI(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
   provider.interactions = createInteractionsModel;
