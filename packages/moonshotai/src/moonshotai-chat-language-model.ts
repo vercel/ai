@@ -151,7 +151,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
       tools: moonshotTools,
       toolChoice: moonshotToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
     const modelFamily = getMoonshotAIModelFamily(this.modelId);
     const requestedThinking = moonshotOptions.thinking;
