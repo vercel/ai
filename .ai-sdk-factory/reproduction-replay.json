@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 19558,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/moonshot-v1-structured-output.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/moonshot-v1-structured-output.ts",
+    "packages/moonshotai/src/__fixtures__/moonshotai-v1-structured-output.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Moonshot V1 structured output downgrade: expected json_schema for official models, received json_object for moonshot-v1-8k"
+  }
+}

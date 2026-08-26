@@ -41,6 +41,15 @@ function prepareJsonResponse() {
   };
 }
 
+function prepareJsonFixtureResponse(filename: string) {
+  server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+    type: 'json-value',
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
+
 function prepareChunksFixtureResponse(filename: string) {
   const chunks = fs
     .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
@@ -128,6 +137,66 @@ describe('MoonshotAIChatLanguageModel', () => {
         expect(result.warnings).toStrictEqual([]);
       },
     );
+
+    it.each([
+      'moonshot-v1-8k',
+      'moonshot-v1-32k',
+      'moonshot-v1-128k',
+      'moonshot-v1-auto',
+      'moonshot-v1-8k-vision-preview',
+      'moonshot-v1-32k-vision-preview',
+      'moonshot-v1-128k-vision-preview',
+    ] as const)(
+      'should use native JSON schema structured output for %s',
+      async modelId => {
+        prepareJsonFixtureResponse('moonshotai-v1-structured-output');
+
+        await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            name: 'result',
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+            },
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format,
+        ).toMatchObject({
+          type: 'json_schema',
+          json_schema: {
+            name: 'result',
+          },
+        });
+      },
+    );
+
+    it('should retain JSON object fallback for an unknown model ID', async () => {
+      await provider.chatModel('unknown-custom-model').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'result',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).response_format,
+      ).toStrictEqual({
+        type: 'json_object',
+      });
+    });
 
     it.each([
       'kimi-k2.6',
