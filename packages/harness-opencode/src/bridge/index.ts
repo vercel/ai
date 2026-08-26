@@ -1024,7 +1024,7 @@ function getSubagentStepId(event: OpenCodeEvent | undefined) {
   if (event?.type === 'message.part.updated') {
     const part = asOpenCodeObject(event.properties?.part);
     if (part?.type !== 'step-finish') return undefined;
-    return stringValue(part.messageID) ?? stringValue(part.id) ?? event.id;
+    return stringValue(part.id) ?? stringValue(part.messageID) ?? event.id;
   }
   if (event?.type !== 'session.next.step.ended') return undefined;
   return stringValue(event.properties?.stepID) ?? event.id;

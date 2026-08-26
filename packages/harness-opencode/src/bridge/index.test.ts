@@ -279,6 +279,25 @@ describe('OpenCode bridge turn settlement', () => {
                 },
               };
               yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    id: 'child-step-finish-2',
+                    messageID: 'child-message',
+                    sessionID: 'child-session',
+                    type: 'step-finish',
+                    reason: 'stop',
+                    cost: 0.0021,
+                    tokens: {
+                      input: 2,
+                      output: 3,
+                      reasoning: 0,
+                      cache: { read: 4, write: 0 },
+                    },
+                  },
+                },
+              };
+              yield {
                 type: 'session.next.step.ended',
                 properties: {
                   sessionID: 'parent-session',
@@ -337,7 +356,7 @@ describe('OpenCode bridge turn settlement', () => {
         type: 'opencode.subagent-usage',
         version: 1,
         sessionId: 'child-session',
-        stepId: 'child-message',
+        stepId: 'child-step-finish',
         modelId: 'openai/gpt-5.6-sol',
         usage: {
           inputTokens: {
@@ -349,6 +368,26 @@ describe('OpenCode bridge turn settlement', () => {
           outputTokens: { total: 6, text: 5, reasoning: 1 },
         },
         cost: 0.0042,
+      },
+    });
+    expect(emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'opencode.subagent-usage',
+        version: 1,
+        sessionId: 'child-session',
+        stepId: 'child-step-finish-2',
+        modelId: 'openai/gpt-5.6-sol',
+        usage: {
+          inputTokens: {
+            total: 2,
+            noCache: 0,
+            cacheRead: 4,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 3, text: 3, reasoning: 0 },
+        },
+        cost: 0.0021,
       },
     });
     expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
