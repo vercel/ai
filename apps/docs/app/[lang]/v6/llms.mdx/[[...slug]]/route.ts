@@ -9,4 +9,3 @@ const markdownRoute = createDocsMarkdownRoute({
 
 export const GET = markdownRoute.GET;
 export const generateStaticParams = markdownRoute.generateStaticParams;
-export const revalidate = false;

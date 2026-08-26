@@ -47,6 +47,8 @@ const CardLink = ({
   <Link
     className="flex min-w-0 flex-col gap-1 rounded-lg border border-gray-alpha-400 p-4 text-gray-1000 transition-colors hover:border-gray-alpha-600 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-700"
     href={href}
+    // Fully prefetch static docs pages so navigation never shows a shell.
+    prefetch
   >
     <span className="font-medium">{title}</span>
     {description ? (

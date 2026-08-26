@@ -8,4 +8,3 @@ const llmsRoute = createLlmsRoute({
 });
 
 export const GET = llmsRoute.GET;
-export const revalidate = false;
