@@ -1,0 +1,72 @@
+{
+  "trace": {
+    "date": "2026-08-26",
+    "commit": "a01c48165516d5f3f271c0b669183204e01dd2ea",
+    "packageVersion": "5.0.63",
+    "model": "anthropic.claude-3-haiku-20240307-v1:0",
+    "region": "us-east-1",
+    "converseUsage": {
+      "inputTokens": 13,
+      "outputTokens": 4,
+      "serverToolUsage": {},
+      "totalTokens": 17
+    },
+    "converseSdkUsage": {
+      "inputTokens": {
+        "total": 13,
+        "noCache": 13,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "outputTokens": {
+        "total": 4,
+        "text": 4
+      },
+      "raw": {
+        "inputTokens": 13,
+        "outputTokens": 4,
+        "totalTokens": 17
+      }
+    },
+    "converseUsageFieldEquality": false,
+    "converseStreamMetadataUsage": {
+      "inputTokens": 13,
+      "outputTokens": 5,
+      "serverToolUsage": {},
+      "totalTokens": 18
+    },
+    "converseStreamSdkFinishUsage": {
+      "inputTokens": {
+        "total": 13,
+        "noCache": 13,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "outputTokens": {
+        "total": 5,
+        "text": 5
+      },
+      "raw": {
+        "inputTokens": 13,
+        "outputTokens": 5
+      }
+    },
+    "converseStreamUsageFieldEquality": false
+  },
+  "cacheUsage": {
+    "cacheReadInputTokens": 3,
+    "cacheWriteInputTokens": 2,
+    "cacheDetails": [
+      {
+        "inputTokens": 2,
+        "ttl": "T5M",
+        "futureNestedMetadata": {
+          "source": "regression-fixture"
+        }
+      }
+    ]
+  },
+  "futureTopLevelMetadata": {
+    "source": "regression-fixture"
+  }
+}
