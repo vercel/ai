@@ -72,7 +72,20 @@ const defaultBaseURL = 'https://api.moonshot.ai/v1';
 export function getModelStructuredOutputSupport(
   modelId: MoonshotAIChatModelId,
 ): boolean {
+<<<<<<< HEAD
   return modelId.startsWith('kimi-k');
+=======
+  return (
+    modelId.startsWith('kimi-k') ||
+    modelId === 'moonshot-v1-8k' ||
+    modelId === 'moonshot-v1-32k' ||
+    modelId === 'moonshot-v1-128k' ||
+    modelId === 'moonshot-v1-auto' ||
+    modelId === 'moonshot-v1-8k-vision-preview' ||
+    modelId === 'moonshot-v1-32k-vision-preview' ||
+    modelId === 'moonshot-v1-128k-vision-preview'
+  );
+>>>>>>> 8037158f5e (fix: enable native structured outputs for official Moonshot V1 models (#19583))
 }
 
 export function createMoonshotAI(
