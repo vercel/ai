@@ -1,0 +1,40 @@
+{
+  "$schema": "https://openapi.vercel.sh/microfrontends.json",
+  "version": "1",
+  "applications": {
+    "ai-sdk-playground": {
+      "development": {
+        "fallback": "ai-sdk-playground-prod.vercel.sh"
+      }
+    },
+    "ai-sdk-docs": {
+      "routing": [
+        {
+          "paths": [
+            "/v4/:path*",
+            "/v5/:path*",
+            "/v6/:path*",
+            "/v7/:path*",
+            "/docs/:path*",
+            "/cookbook/:path*",
+            "/providers/:path*",
+            "/resources/:path*",
+            "/api/chat",
+            "/api/search",
+            "/llms.txt",
+            "/llms.mdx/:path*",
+            "/sitemap.md",
+            "/sitemap.xml",
+            "/robots.txt",
+            "/og/:path*",
+            "/tools-registry/:path*",
+            "/showcase",
+            "/examples/:path*",
+            "/elements/:path*",
+            "/model-library"
+          ]
+        }
+      ]
+    }
+  }
+}

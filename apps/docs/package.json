@@ -17,6 +17,7 @@
     "@shikijs/transformers": "3.23.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/geistdocs": "1.20.4",
+    "@vercel/microfrontends": "2.4.0",
     "fumadocs-core": "16.2.2",
     "fumadocs-mdx": "14.0.4",
     "fumadocs-ui": "16.2.2",

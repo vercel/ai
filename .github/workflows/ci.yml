@@ -188,6 +188,10 @@ jobs:
 
       - name: Test and build docs
         if: steps.docs-changes.outputs.changed == 'true'
+        # GitHub-hosted runners do not receive the microfrontends group config
+        # that Vercel injects into deployments, so use an equivalent CI fixture.
+        env:
+          VC_MICROFRONTENDS_CONFIG: ${{ github.workspace }}/apps/docs/microfrontends.ci.json
         run: pnpm --filter ai-sdk-docs validate:site
 
   build-packages:
