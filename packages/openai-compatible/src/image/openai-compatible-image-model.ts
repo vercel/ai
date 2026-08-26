@@ -1,6 +1,7 @@
 import type {
   ImageModelV4,
   ImageModelV4File,
+  ImageModelV4ProviderMetadata,
   ImageModelV4Usage,
   SharedV4ProviderOptions,
   SharedV4Warning,
@@ -159,6 +160,10 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
           modelId: this.modelId,
           headers: responseHeaders,
         },
+        providerMetadata: getProviderMetadata(
+          this.providerOptionsKey,
+          response,
+        ),
       };
     }
 
@@ -195,6 +200,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
+      providerMetadata: getProviderMetadata(this.providerOptionsKey, response),
     };
   }
 }
@@ -215,8 +221,8 @@ function mapImageUsage(
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatibleImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
+const openaiCompatibleImageResponseSchema = z.looseObject({
+  data: z.array(z.looseObject({ b64_json: z.string() })),
   usage: z
     .object({
       input_tokens: z.number().nullish(),
@@ -225,6 +231,21 @@ const openaiCompatibleImageResponseSchema = z.object({
     })
     .nullish(),
 });
+
+function getProviderMetadata(
+  providerOptionsKey: string,
+  response: z.infer<typeof openaiCompatibleImageResponseSchema>,
+): ImageModelV4ProviderMetadata {
+  const { data, usage: _usage, ...responseMetadata } = response;
+  return {
+    [providerOptionsKey]: {
+      ...responseMetadata,
+      images: data.map(
+        ({ b64_json: _b64_json, ...imageMetadata }) => imageMetadata,
+      ),
+    },
+  } as ImageModelV4ProviderMetadata;
+}
 
 type OpenAICompatibleFormDataInput = {
   model: string;
