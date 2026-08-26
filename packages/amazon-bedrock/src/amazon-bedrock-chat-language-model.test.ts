@@ -3786,10 +3786,13 @@ describe('doGenerate', () => {
             "total": 57,
           },
           "raw": {
+            "cacheReadInputTokenCount": 0,
             "cacheReadInputTokens": 0,
+            "cacheWriteInputTokenCount": 0,
             "cacheWriteInputTokens": 0,
             "inputTokens": 22,
             "outputTokens": 57,
+            "serverToolUsage": {},
             "totalTokens": 79,
           },
         }
