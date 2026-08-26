@@ -1,5 +1,12 @@
 # @ai-sdk/harness-acp
 
+## 1.0.29
+
+### Patch Changes
+
+- 20312d6: fix(harness-acp): place skills in their harnesses' natively supported directory instead of applying a manual workaround
+  - @ai-sdk/harness@1.0.91
+
 ## 1.0.28
 
 ### Patch Changes
