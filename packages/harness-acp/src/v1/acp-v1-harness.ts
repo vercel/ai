@@ -76,7 +76,6 @@ import {
 import {
   convertHarnessPromptToACPTextBlocks,
   prependACPInitialGuidance,
-  type ACPSkillCatalogEntry,
 } from './acp-v1-prompt';
 import type {
   ACPInstructionMapping,
@@ -91,6 +90,7 @@ import {
   createACPSkillsFingerprint,
   materializeACPSkills,
   resolveACPPrivateSessionDirectory,
+  resolveACPSkillsDirectory,
 } from './acp-v1-skills';
 
 const HARNESS_ID_REGEXP = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -366,6 +366,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         harnessId: settings.harnessId,
         sessionId: startOptions.sessionId,
       });
+      const skillsDirectory = resolveACPSkillsDirectory({
+        implementationHomeDir:
+          implementation.source.type === 'install-command'
+            ? `${resolvedImplementationDir}/home`
+            : sandboxHomeDir,
+        skillsDirectory: settings.skillsDirectory,
+        sessionWorkDir: workDir,
+      });
       const bridgeStateDir = `${privateSessionDir}/bridge`;
       const skills = startOptions.skills ?? [];
       const skillsFingerprint = createACPSkillsFingerprint({ skills });
@@ -373,21 +381,17 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         isResume,
         lifecycleState: lifecycleData,
         skillsFingerprint,
+        skillsDirectory,
       });
-      let skillCatalog: ReadonlyArray<ACPSkillCatalogEntry> = [];
       if (skills.length > 0) {
-        skillCatalog = (
-          await materializeACPSkills({
-            sandbox: toolSafeSandboxSession,
-            sandboxHomeDir,
-            sessionWorkDir: workDir,
-            harnessId: settings.harnessId,
-            sessionId: startOptions.sessionId,
-            skills,
-            shouldMaterialize: shouldMaterializeSkills,
-            abortSignal: startOptions.abortSignal,
-          })
-        ).catalog;
+        await materializeACPSkills({
+          sandbox: toolSafeSandboxSession,
+          rootDir: skillsDirectory,
+          sessionWorkDir: workDir,
+          skills,
+          shouldMaterialize: shouldMaterializeSkills,
+          abortSignal: startOptions.abortSignal,
+        });
       }
       const report = startOptions.observability?.report;
       const onDiagnostic = report
@@ -459,8 +463,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                 isResume: true,
                 lifecycleState: lifecycleData,
               }),
-              skillCatalog,
               skillsFingerprint,
+              skillsDirectory,
               acpSessionId: lifecycleData.acpSessionId,
               bridgePort: coords.port,
               bridgeToken: coords.token,
@@ -725,8 +729,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           isResume,
           lifecycleState: lifecycleData,
         }),
-        skillCatalog,
         skillsFingerprint,
+        skillsDirectory,
         acpSessionId: lifecycleData?.acpSessionId,
         bridgePort: boundPort,
         bridgeToken: token,
@@ -1044,8 +1048,8 @@ function createSession({
   mcpServers,
   isMcpToolCall,
   initialGuidanceApplied: initialGuidanceAppliedAtStart,
-  skillCatalog,
   skillsFingerprint,
+  skillsDirectory,
   acpSessionId: acpSessionIdAtStart,
   bridgePort,
   bridgeToken,
@@ -1077,8 +1081,8 @@ function createSession({
   mcpServers: Record<string, unknown> | undefined;
   isMcpToolCall: ((toolCall: ACPToolCall) => boolean) | undefined;
   initialGuidanceApplied: boolean;
-  skillCatalog: ReadonlyArray<ACPSkillCatalogEntry>;
   skillsFingerprint: string;
+  skillsDirectory: string;
   acpSessionId: string | undefined;
   bridgePort: number;
   bridgeToken: string;
@@ -1366,6 +1370,7 @@ function createSession({
     initialGuidanceApplied,
     skillsMaterialized: true,
     skillsFingerprint,
+    skillsDirectory,
   });
 
   return {
@@ -1436,7 +1441,6 @@ function createSession({
                     instructionMapping == null
                       ? options.instructions
                       : undefined,
-                  skills: skillCatalog,
                 }),
             ...(instructionMapping == null
               ? {}

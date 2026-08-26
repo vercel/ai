@@ -1,5 +1,14 @@
 # @ai-sdk/harness-pi
 
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+- Updated dependencies [0e590d2]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/harness@1.0.90
+
 ## 1.0.91
 
 ### Patch Changes
