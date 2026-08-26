@@ -8,6 +8,7 @@ import {
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
+  type HarnessV1CredentialForwarding,
   type HarnessV1DebugConfig,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
@@ -20,13 +21,17 @@ import {
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
+  applyCredentialForwarding,
   classifyDiskLog,
+  experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
   markBridgeStarting,
   maskSandboxCredentials,
+  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -37,7 +42,7 @@ import {
 import {
   safeParseJSON,
   tool,
-  type Experimental_SandboxSession,
+  type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
@@ -71,6 +76,12 @@ const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
 
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthOptions;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
@@ -108,6 +119,11 @@ export type ClaudeCodeHarnessSettings = {
    * is reserved for something else.
    */
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
@@ -813,18 +829,49 @@ export function createClaudeCode(
     getBootstrap: getClaudeCodeBootstrap,
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: settings.port,
+        portEndpoint: settings.portEndpoint,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'claude-code',
+          message:
+            'The Claude Code harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
+        });
+      }
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal: startOpts.abortSignal,
+        });
       const authenticationMode = resolveClaudeCodeAuthenticationMode(
         settings.auth,
       );
       const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
-      let authEnv = resolvedAuthEnvironment;
-      let sandboxTurnEnvironment = settings.env;
-      if (sandboxSession.addRequestTransformations != null) {
+      let sandboxClaudeEnvironment = {
+        ...resolvedAuthEnvironment,
+        /*
+         * The Claude Agent SDK does not expose arbitrary model-request
+         * headers. It reads this environment variable and sends the value as
+         * `x-client-app`, while also appending `client-app/<value>` to
+         * `User-Agent`, so this is the attribution path for AI Gateway.
+         */
+        ...(resolvedAuthEnvironment.AI_GATEWAY_BASE_URL
+          ? { CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP }
+          : {}),
+        ...settings.env,
+      };
+      if (
+        'addRequestTransformations' in sandboxSession &&
+        sandboxSession.addRequestTransformations != null
+      ) {
         const requestTransformations = createClaudeCodeRequestTransformations(
-          {
-            ...resolvedAuthEnvironment,
-            ...settings.env,
-          },
+          sandboxClaudeEnvironment,
           authenticationMode,
         );
         if (requestTransformations.length > 0) {
@@ -832,23 +879,22 @@ export function createClaudeCode(
             requestTransformations,
           );
         }
-        authEnv = maskSandboxCredentials({
-          environment: resolvedAuthEnvironment,
-          credentialEnvironmentVariables:
-            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
-        });
-        sandboxTurnEnvironment = maskSandboxCredentials({
-          environment: settings.env ?? {},
+        sandboxClaudeEnvironment = maskSandboxCredentials({
+          environment: sandboxClaudeEnvironment,
           credentialEnvironmentVariables:
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
       } else {
         warnCredentialBrokeringUnavailable();
       }
-      const session = sandboxSession.restricted();
-      const sandboxId = sandboxSession.id;
+      sandboxClaudeEnvironment = await applyCredentialForwarding({
+        environment: sandboxClaudeEnvironment,
+        credentialEnvironmentVariables:
+          CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        credentialForwarding: settings.credentialForwarding,
+      });
       const bootstrapDir = posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
+        defaultWorkingDirectory,
         BOOTSTRAP_DIR,
       );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
@@ -859,7 +905,7 @@ export function createClaudeCode(
         : undefined;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -880,13 +926,20 @@ export function createClaudeCode(
         harnessId: 'claude-code',
         sessionId: startOpts.sessionId,
       });
+      let supportsUserMessageResponses = false;
 
       // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
       // (re)connect: open the socket, then wait for `bridge-hello` so the
       // end-to-end link is proven live before any frame is sent.
       const buildConnect =
         (endpoint: HarnessV1PortEndpoint) => async (): Promise<WebSocket> => {
-          return openBridgeWebSocket({ endpoint, timeoutMs });
+          return openBridgeWebSocket({
+            endpoint,
+            timeoutMs,
+            onHello: supportsResponses => {
+              supportsUserMessageResponses = supportsResponses;
+            },
+          });
         };
 
       /*
@@ -899,9 +952,10 @@ export function createClaudeCode(
        */
       if (coords) {
         try {
-          const endpoint = await sandboxSession.getPortEndpoint({
+          const endpoint = await resolveBridgeEndpoint({
+            sandboxSession,
+            override: settings.portEndpoint,
             port: coords.port,
-            protocol: 'ws',
           });
           const attachEndpoint = withBridgeToken({
             endpoint,
@@ -924,7 +978,7 @@ export function createClaudeCode(
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
-            env: sandboxTurnEnvironment,
+            env: sandboxClaudeEnvironment,
             thinking,
             effort: settings.effort,
             isResume: true,
@@ -938,6 +992,7 @@ export function createClaudeCode(
             builtinToolFiltering: startOpts.builtinToolFiltering,
             skills: startOpts.skills ?? [],
             mcpServers: settings.mcpServers,
+            supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -958,7 +1013,7 @@ export function createClaudeCode(
         : undefined;
       if (coords && isContinue) {
         const logRaw = await Promise.resolve(
-          session.readTextFile({
+          toolSafeSandboxSession.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
             abortSignal: startOpts.abortSignal,
           }),
@@ -971,26 +1026,19 @@ export function createClaudeCode(
       const sandboxHomeDir =
         startOpts.skills && startOpts.skills.length > 0
           ? await resolveSandboxHomeDir({
-              sandbox: session,
+              sandbox: toolSafeSandboxSession,
               abortSignal: startOpts.abortSignal,
             })
           : undefined;
-      const port = resolveBridgePort(sandboxSession, settings.port);
+      const port = resolveBridgePort({
+        sandboxSession,
+        override: settings.port,
+      });
       const token =
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
-          : settings.mintBridgeToken(sandboxId);
+          : settings.mintBridgeToken(sandboxId!);
       const env = {
-        ...authEnv,
-        /*
-         * The Claude Agent SDK does not expose arbitrary model-request
-         * headers. It reads this environment variable and sends the value as
-         * `x-client-app`, while also appending `client-app/<value>` to
-         * `User-Agent`, so this is the attribution path for AI Gateway.
-         */
-        ...(authEnv.AI_GATEWAY_BASE_URL
-          ? { CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP }
-          : {}),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         ...(sandboxHomeDir ? { HOME: sandboxHomeDir } : {}),
@@ -1006,7 +1054,7 @@ export function createClaudeCode(
        * spawn — `BRIDGE_CHANNEL_TOKEN` rotates per start.
        */
       if (respawnStrategy === undefined) {
-        await session.run({
+        await toolSafeSandboxSession.run({
           command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
@@ -1016,7 +1064,7 @@ export function createClaudeCode(
             throw new Error('Unable to resolve sandbox HOME directory.');
           }
           await writeClaudeCodeSkills({
-            sandbox: session,
+            sandbox: toolSafeSandboxSession,
             homeDir: sandboxHomeDir,
             skills: startOpts.skills,
             abortSignal: startOpts.abortSignal,
@@ -1025,13 +1073,13 @@ export function createClaudeCode(
       }
 
       await markBridgeStarting({
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'claude-code',
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await session.spawn({
+      const proc = await toolSafeSandboxSession.spawn({
         command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
@@ -1047,7 +1095,7 @@ export function createClaudeCode(
       void bridgeStartupStderrDone;
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'claude-code',
         timeoutMs,
@@ -1071,9 +1119,10 @@ export function createClaudeCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await sandboxSession.getPortEndpoint({
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: settings.portEndpoint,
         port: boundPort,
-        protocol: 'ws',
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
@@ -1099,7 +1148,7 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
-        env: sandboxTurnEnvironment,
+        env: sandboxClaudeEnvironment,
         thinking,
         effort: settings.effort,
         isResume: respawnStrategy !== undefined,
@@ -1113,22 +1162,74 @@ export function createClaudeCode(
         builtinToolFiltering: startOpts.builtinToolFiltering,
         skills: startOpts.skills ?? [],
         mcpServers: settings.mcpServers,
+        supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
   };
 }
 
-function resolveBridgePort(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  override: number | undefined,
-): number {
+function resolveBridgePort({
+  sandboxSession,
+  override,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: number | undefined;
+}): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'claude-code',
     message:
       'The claude-code harness needs a TCP port exposed by the sandbox. ' +
       'Create the sandbox with `ports: [<port>]` or pass `createClaudeCode({ port })`.',
+  });
+}
+
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'claude-code',
+      message:
+        'The Claude Code harness requires an explicit `port` when using a basic sandbox session.',
+    });
+  }
+  if (portEndpoint == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'claude-code',
+      message:
+        'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+    });
+  }
+}
+
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'claude-code',
+    message:
+      'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
   });
 }
 
@@ -1145,7 +1246,7 @@ async function writeClaudeCodeSkills({
   skills,
   abortSignal,
 }: {
-  sandbox: Experimental_SandboxSession;
+  sandbox: SandboxSession;
   homeDir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
@@ -1178,10 +1279,12 @@ function openWebSocketAndWaitForBridgeHello({
   endpoint,
   openTimeoutMs,
   getHelloTimeoutMs,
+  onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   openTimeoutMs: number;
   getHelloTimeoutMs: () => number;
+  onHello: (supportsUserMessageResponses: boolean) => void;
 }): Promise<WebSocket> {
   return new Promise<WebSocket>((resolve, reject) => {
     const ws = new WebSocket(endpoint.url, {
@@ -1253,6 +1356,12 @@ function openWebSocketAndWaitForBridgeHello({
           !Array.isArray(value) &&
           (value as { type?: unknown }).type === 'bridge-hello'
         ) {
+          const capabilities = (
+            value as {
+              capabilities?: { experimental_userMessageResponses?: unknown };
+            }
+          ).capabilities;
+          onHello(capabilities?.experimental_userMessageResponses === true);
           sawBridgeHello = true;
           tryResolve();
         }
@@ -1280,9 +1389,11 @@ function openWebSocketAndWaitForBridgeHello({
 async function openBridgeWebSocket({
   endpoint,
   timeoutMs,
+  onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   timeoutMs: number;
+  onHello: (supportsUserMessageResponses: boolean) => void;
 }): Promise<WebSocket> {
   const deadline = Date.now() + timeoutMs;
   let attempt = 0;
@@ -1297,6 +1408,7 @@ async function openBridgeWebSocket({
         openTimeoutMs: Math.min(10_000, remaining),
         getHelloTimeoutMs: () =>
           Math.min(5_000, Math.max(1, deadline - Date.now())),
+        onHello,
       });
     } catch (err) {
       lastError = err;
@@ -1368,6 +1480,7 @@ function createSession({
   builtinToolFiltering,
   skills,
   mcpServers,
+  supportsUserMessageResponses,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -1383,12 +1496,13 @@ function createSession({
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
-  sandboxId: string;
+  sandboxId: string | undefined;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   skills: ReadonlyArray<HarnessV1Skill>;
   mcpServers: Record<string, unknown> | undefined;
+  supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1417,7 +1531,13 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
-
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? experimental_createBridgeUserMessageSubmitter({
+          send: message => channel.send(message),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
       try {
@@ -1429,12 +1549,14 @@ function createSession({
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
     };
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -1528,9 +1650,13 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
+      ...(userMessageSubmitter == null
+        ? {}
+        : {
+            submitUserMessage: async (text: string) => {
+              await userMessageSubmitter.submit(text);
+            },
+          }),
       done,
     };
   };
@@ -1689,7 +1815,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };
@@ -1827,7 +1953,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };

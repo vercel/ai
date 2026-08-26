@@ -27,9 +27,13 @@ describe('createGrokBuild', () => {
       ...settings.source,
       packageJson: JSON.parse(settings.source.packageJson),
       pnpmLockYaml: '<pnpm-lock.yaml>',
+      pnpmWorkspaceYaml: '<pnpm-workspace.yaml>',
     };
     expect(settings.source.pnpmLockYaml).toContain(
       "'@xai-official/grok@0.2.111'",
+    );
+    expect(settings.source.pnpmWorkspaceYaml).toBe(
+      "allowBuilds:\n  '@xai-official/grok@0.2.111': true\n",
     );
 
     expect({
@@ -136,6 +140,7 @@ describe('createGrokBuild', () => {
             "version": "0.0.0",
           },
           "pnpmLockYaml": "<pnpm-lock.yaml>",
+          "pnpmWorkspaceYaml": "<pnpm-workspace.yaml>",
           "type": "npm-locked",
         },
         "version": "v1",
@@ -164,10 +169,18 @@ describe('createGrokBuild', () => {
 
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
+    const credentialForwarding = async ({
+      credential,
+    }: {
+      credential: string;
+    }) => `ephemeral-${credential}`;
+    const portEndpoint = { url: 'wss://sandbox.example/bridge' };
     createGrokBuild({
       auth: 'direct',
+      credentialForwarding,
       model: 'grok-code-fast-1',
       port: 4319,
+      portEndpoint,
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
@@ -177,15 +190,19 @@ describe('createGrokBuild', () => {
 
     expect({
       auth: settings.auth,
+      credentialForwarding: settings.credentialForwarding,
       modelId: settings.modelId,
       port: settings.port,
+      portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
       auth: 'direct',
+      credentialForwarding,
       modelId: 'grok-code-fast-1',
       port: 4319,
+      portEndpoint,
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,

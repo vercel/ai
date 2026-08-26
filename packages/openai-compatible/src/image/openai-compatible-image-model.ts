@@ -2,6 +2,7 @@ import type {
   ImageModelV4,
   ImageModelV4File,
   ImageModelV4ProviderMetadata,
+  ImageModelV4Usage,
   SharedV4ProviderOptions,
   SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -153,6 +154,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
       return {
         images: response.data.map(item => item.b64_json),
         warnings,
+        usage: mapImageUsage(response.usage),
         response: {
           timestamp: currentDate,
           modelId: this.modelId,
@@ -192,6 +194,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
     return {
       images: response.data.map(item => item.b64_json),
       warnings,
+      usage: mapImageUsage(response.usage),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -202,17 +205,38 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
   }
 }
 
+// Providers that omit `usage` are not warned about: many OpenAI-compatible
+// backends legitimately do not report token counts for image generation.
+function mapImageUsage(
+  usage: z.infer<typeof openaiCompatibleImageResponseSchema>['usage'],
+): ImageModelV4Usage | undefined {
+  return usage == null
+    ? undefined
+    : {
+        inputTokens: usage.input_tokens ?? undefined,
+        outputTokens: usage.output_tokens ?? undefined,
+        totalTokens: usage.total_tokens ?? undefined,
+      };
+}
+
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiCompatibleImageResponseSchema = z.looseObject({
   data: z.array(z.looseObject({ b64_json: z.string() })),
+  usage: z
+    .object({
+      input_tokens: z.number().nullish(),
+      output_tokens: z.number().nullish(),
+      total_tokens: z.number().nullish(),
+    })
+    .nullish(),
 });
 
 function getProviderMetadata(
   providerOptionsKey: string,
   response: z.infer<typeof openaiCompatibleImageResponseSchema>,
 ): ImageModelV4ProviderMetadata {
-  const { data, ...responseMetadata } = response;
+  const { data, usage: _usage, ...responseMetadata } = response;
   return {
     [providerOptionsKey]: {
       ...responseMetadata,

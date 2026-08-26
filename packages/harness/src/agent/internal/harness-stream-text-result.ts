@@ -824,21 +824,10 @@ export class HarnessStreamTextResult<
         return;
       }
       case 'tool-call':
-        this.currentStepContent.push({
-          ...(part as object),
-        } as ContentPart<TOOLS>);
-        return;
       case 'tool-approval-request':
-        this.currentStepContent.push({
-          ...(part as object),
-        } as ContentPart<TOOLS>);
-        return;
       case 'tool-approval-response':
-        this.currentStepContent.push({
-          ...(part as object),
-        } as ContentPart<TOOLS>);
-        return;
       case 'tool-result':
+      case 'tool-error':
         this.currentStepContent.push({
           ...(part as object),
         } as ContentPart<TOOLS>);

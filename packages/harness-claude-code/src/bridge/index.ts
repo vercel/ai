@@ -8,6 +8,8 @@ import {
   runBridge,
   type BridgeEvent,
   type BridgeTurn,
+  type Experimental_BridgeUserMessage,
+  type Experimental_BridgeUserMessageQueue,
 } from '@ai-sdk/harness/bridge';
 import { createCompactionLatch } from './compaction-latch';
 import type { StartMessage } from '../claude-code-bridge-protocol';
@@ -314,7 +316,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const queryInput = createQueryInput({
     initialUserMessage: start.prompt,
-    pendingUserMessages: turn.pendingUserMessages,
+    userMessages: turn.experimental_userMessages,
     abortSignal: abortCtl.signal,
   });
   const skillsOption = toClaudeSkillsOption(start.skills);
@@ -419,6 +421,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
       const type = msg.type;
 
+      if (type === 'command_lifecycle') {
+        queryInput.handleLifecycle(msg);
+      }
+
       emitStreamEvent(msg);
 
       if (type === 'result') {
@@ -430,7 +436,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           }
           const usage = msg.usage ?? msg.message?.usage;
           const harnessUsage = mapUsage(usage);
-          if (harnessUsage) turnUsage = harnessUsage;
+          if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
           if (typeof msg.total_cost_usd === 'number') {
             totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
           }
@@ -452,11 +458,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             emitFinishStep({
               state: streamEventState,
               emit,
-              usage: harnessUsage ?? streamEventState.pendingStepUsage,
+              usage: streamEventState.pendingStepUsage ?? harnessUsage,
             });
           }
-          queryInput.close();
-          break;
+          queryInput.observeResult();
+          if (!queryInput.hasActiveUserMessages()) {
+            queryInput.close();
+            break;
+          }
         } else {
           emitTerminalError(
             (Array.isArray(msg.errors) ? msg.errors.join('\n') : undefined) ||
@@ -466,6 +475,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           );
         }
         continue;
+      }
+
+      if (queryInput.hasObservedResult && !queryInput.hasActiveUserMessages()) {
+        queryInput.close();
+        break;
       }
     }
   } catch (err) {
@@ -492,64 +506,156 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
 function createQueryInput({
   initialUserMessage,
-  pendingUserMessages,
+  userMessages,
   abortSignal,
 }: {
   initialUserMessage: string;
-  pendingUserMessages: string[];
+  userMessages: Experimental_BridgeUserMessageQueue;
   abortSignal: AbortSignal;
 }): {
   input: AsyncIterable<unknown>;
-  close(): void;
+  close(error?: unknown): void;
+  handleLifecycle(message: ClaudeMessage): void;
+  hasActiveUserMessages(): boolean;
+  observeResult(): void;
+  readonly hasObservedResult: boolean;
 } {
   let closed = false;
-  const close = (): void => {
+  let observedResult = false;
+  const submittedMessages = new Map<string, Experimental_BridgeUserMessage>();
+  const close = (error?: unknown): void => {
+    if (closed) return;
     closed = true;
+    userMessages.close(error);
   };
   if (abortSignal.aborted) {
-    close();
+    close(abortSignal.reason);
   } else {
-    abortSignal.addEventListener('abort', close, { once: true });
+    abortSignal.addEventListener('abort', () => close(abortSignal.reason), {
+      once: true,
+    });
   }
 
-  const toUserMessage = (text: string): unknown => ({
+  const toUserMessage = (options: {
+    text: string;
+    messageId: string;
+    priority?: 'next';
+  }): unknown => ({
     type: 'user',
     message: {
       role: 'user',
-      content: [{ type: 'text', text }],
+      content: [{ type: 'text', text: options.text }],
     },
+    parent_tool_use_id: null,
+    uuid: options.messageId,
+    ...(options.priority == null ? {} : { priority: options.priority }),
   });
+
+  const messageIterator = userMessages[Symbol.asyncIterator]();
 
   return {
     close,
+    handleLifecycle: message => {
+      const lifecycle = message as ClaudeMessage & {
+        command_uuid?: string;
+        state?: 'queued' | 'started' | 'completed' | 'cancelled' | 'discarded';
+      };
+      if (lifecycle.command_uuid == null || lifecycle.state == null) return;
+      const submitted = submittedMessages.get(lifecycle.command_uuid);
+      if (submitted == null) return;
+      if (lifecycle.state === 'queued' || lifecycle.state === 'started') {
+        submitted.accept();
+        return;
+      }
+      if (lifecycle.state === 'cancelled' || lifecycle.state === 'discarded') {
+        submitted.reject(
+          new Error(`Claude Code ${lifecycle.state} the user message.`),
+        );
+      }
+      submittedMessages.delete(lifecycle.command_uuid);
+    },
+    hasActiveUserMessages: () =>
+      submittedMessages.size > 0 || userMessages.pendingCount > 0,
+    observeResult: () => {
+      observedResult = true;
+    },
+    get hasObservedResult() {
+      return observedResult;
+    },
     input: {
       [Symbol.asyncIterator]() {
         let sentInitial = false;
         return {
           async next() {
-            // eslint-disable-next-line no-unmodified-loop-condition
-            while (!closed && !abortSignal.aborted) {
-              if (!sentInitial) {
-                sentInitial = true;
-                return {
-                  value: toUserMessage(initialUserMessage),
-                  done: false,
-                };
-              }
-              if (pendingUserMessages.length > 0) {
-                return {
-                  value: toUserMessage(pendingUserMessages.shift()!),
-                  done: false,
-                };
-              }
-              await new Promise(resolve => setTimeout(resolve, 50));
+            if (closed || abortSignal.aborted) {
+              return {
+                value: undefined,
+                done: true,
+              } as IteratorResult<unknown>;
             }
-            return { value: undefined, done: true } as IteratorResult<unknown>;
+            if (!sentInitial) {
+              sentInitial = true;
+              return {
+                value: toUserMessage({
+                  text: initialUserMessage,
+                  messageId: randomUUID(),
+                }),
+                done: false,
+              };
+            }
+            const nextMessage = await messageIterator.next();
+            if (nextMessage.done) {
+              return {
+                value: undefined,
+                done: true,
+              } as IteratorResult<unknown>;
+            }
+            submittedMessages.set(
+              nextMessage.value.messageId,
+              nextMessage.value,
+            );
+            return {
+              value: toUserMessage({
+                text: nextMessage.value.text,
+                messageId: nextMessage.value.messageId,
+                priority: 'next',
+              }),
+              done: false,
+            };
           },
         };
       },
     },
   };
+}
+
+function addUsage(
+  total: Record<string, unknown> | undefined,
+  usage: Record<string, unknown>,
+): Record<string, unknown> {
+  if (total == null) return usage;
+  const result: Record<string, unknown> = { ...total };
+  for (const [key, value] of Object.entries(usage)) {
+    const previous = result[key];
+    if (typeof value === 'number' && typeof previous === 'number') {
+      result[key] = previous + value;
+    } else if (
+      value != null &&
+      previous != null &&
+      typeof value === 'object' &&
+      typeof previous === 'object' &&
+      !Array.isArray(value) &&
+      !Array.isArray(previous)
+    ) {
+      result[key] = addUsage(
+        previous as Record<string, unknown>,
+        value as Record<string, unknown>,
+      );
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 function parseArgs(args: string[]): {

@@ -14,13 +14,16 @@ import {
 } from '@ai-sdk/harness';
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
+  applyCredentialForwarding,
   createBridgeErrorHandler,
   createBridgeStartupError,
   classifyDiskLog,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
   markBridgeStarting,
   maskSandboxCredentials,
+  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -30,6 +33,7 @@ import {
 import {
   asSchema,
   type Experimental_SandboxProcess,
+  type Experimental_SandboxSession as SandboxSession,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
@@ -79,6 +83,7 @@ import type {
   ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
+  ACPProfileValue,
   ACPSerializableValue,
   ACPV1Settings,
 } from './acp-v1-settings';
@@ -114,6 +119,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   settings,
   builtinTools,
   port: portOverride,
+  portEndpoint: portEndpointOverride,
   startupTimeoutMs,
   clientApp,
   lifecycleStateSchema,
@@ -121,6 +127,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   settings: ACPV1Settings;
   builtinTools: TBuiltinTools;
   port?: number;
+  portEndpoint?: HarnessV1PortEndpoint;
   startupTimeoutMs?: number;
   clientApp: ACPClientApp;
   lifecycleStateSchema: NonNullable<
@@ -210,6 +217,26 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         compatibility: providerAuthenticationCompatibility,
       });
       const sandboxSession = startOptions.sandboxSession;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: portOverride,
+        portEndpoint: portEndpointOverride,
+        harnessId: settings.harnessId,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw unsupported({
+          harnessId: settings.harnessId,
+          message: `The ${settings.harnessId} ACP harness cannot use \`mintBridgeToken\` with a sandbox session that does not expose an id.`,
+        });
+      }
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal: startOptions.abortSignal,
+        });
       const implementationEnvironment = resolveImplementationEnvironment({
         implementation,
         env,
@@ -218,22 +245,32 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       let sandboxProviderAuthenticationEnvironment =
         resolvedProviderAuthentication.env;
       let sandboxProviderEnvironment: Record<string, string> | undefined;
+      const credentialEnvironmentVariables = [
+        ...new Set([
+          ...(settings.credentialEnv ?? []),
+          'AI_GATEWAY_API_KEY',
+          'VERCEL_OIDC_TOKEN',
+        ]),
+      ];
+      const credentialForwardingEnvironmentVariables = [
+        ...new Set([
+          ...credentialEnvironmentVariables,
+          ...resolveACPProviderCredentialEnvironmentVariables({
+            providerAuthentication:
+              resolvedProviderAuthentication.providerAuthentication,
+          }),
+        ]),
+      ];
 
       if (
         settings.credentialBrokering != null &&
+        'addRequestTransformations' in sandboxSession &&
         sandboxSession.addRequestTransformations != null
       ) {
         const providerEnvironment = resolveProviderEnvironment({
           resolvedProviderAuthentication,
           clientApp,
         });
-        const credentialEnvironmentVariables = [
-          ...new Set([
-            ...(settings.credentialEnv ?? []),
-            'AI_GATEWAY_API_KEY',
-            'VERCEL_OIDC_TOKEN',
-          ]),
-        ];
         const requestTransformations = settings.credentialBrokering({
           env: {
             ...implementationEnvironment,
@@ -251,20 +288,33 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         });
 
         /*
-         * Gateway profiles are resolved on the host twice: real values feed
-         * the transformation callback, while the bridge receives only a
-         * structurally equivalent environment with credential placeholders.
-         * Resolving the profile inside the sandbox would require serializing
-         * the Gateway credential into the bridge process environment.
+         * Each profile environment variable is resolved with its own name as
+         * the fake Gateway credential. This preserves profile transformations
+         * without exposing the real credential to the sandbox process.
          */
-        sandboxProviderEnvironment = maskSandboxCredentials({
-          environment: resolveProviderEnvironment({
-            resolvedProviderAuthentication,
-            clientApp,
-            gatewayApiKey: 'AI_GATEWAY_API_KEY',
-          }),
-          credentialEnvironmentVariables,
+        sandboxProviderEnvironment = resolveBrokeredProviderEnvironment({
+          resolvedProviderAuthentication,
+          clientApp,
         });
+      } else if (settings.credentialBrokering != null) {
+        warnCredentialBrokeringUnavailable();
+      }
+      if (
+        settings.credentialForwarding != null &&
+        sandboxProviderEnvironment == null &&
+        resolvedProviderAuthentication.providerAuthentication?.type ===
+          'ai-gateway'
+      ) {
+        sandboxProviderEnvironment = resolveProviderEnvironment({
+          resolvedProviderAuthentication,
+          clientApp,
+        });
+      }
+      if (sandboxProviderEnvironment != null) {
+        sandboxImplementationEnvironment = {
+          ...sandboxImplementationEnvironment,
+          ...sandboxProviderEnvironment,
+        };
         sandboxProviderAuthenticationEnvironment = Object.fromEntries(
           Object.entries(resolvedProviderAuthentication.env).filter(
             ([key]) =>
@@ -272,18 +322,15 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               key !== 'AI_SDK_ACP_GATEWAY_BASE_URL',
           ),
         );
-      } else if (settings.credentialBrokering != null) {
-        warnCredentialBrokeringUnavailable();
       }
-      const sandbox = sandboxSession.restricted();
       const resolvedBridgeDir = posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
+        defaultWorkingDirectory,
         bootstrap.bootstrapDir,
       );
       const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
       const workDir = startOptions.sessionWorkDir;
       const sandboxHomeDir = await resolveSandboxHomeDir({
-        sandbox,
+        sandbox: toolSafeSandboxSession,
         abortSignal: startOptions.abortSignal,
       });
       const privateSessionDir = resolveACPPrivateSessionDirectory({
@@ -309,7 +356,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           implementationIdentity,
           authenticationProfile,
           lifecycleData,
-          sandboxId: sandboxSession.id,
+          sandboxId,
         });
       }
       const skills = startOptions.skills ?? [];
@@ -323,7 +370,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       if (skills.length > 0) {
         skillCatalog = (
           await materializeACPSkills({
-            sandbox,
+            sandbox: toolSafeSandboxSession,
             sandboxHomeDir,
             sessionWorkDir: workDir,
             harnessId: settings.harnessId,
@@ -365,9 +412,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }
         if (coords != null) {
           try {
-            const endpoint = await sandboxSession.getPortEndpoint({
+            const endpoint = await resolveBridgeEndpoint({
+              sandboxSession,
+              override: portEndpointOverride,
               port: coords.port,
-              protocol: 'ws',
+              harnessId: settings.harnessId,
             });
             const attachEndpoint = withBridgeToken({
               endpoint,
@@ -407,7 +456,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               acpSessionId: lifecycleData.acpSessionId,
               bridgePort: coords.port,
               bridgeToken: coords.token,
-              sandboxId: sandboxSession.id,
+              sandboxId,
               isResume: true,
               turnInFlight: isContinue,
               bridgeStateDir,
@@ -420,7 +469,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           } catch (error) {
             if (isContinue) {
               const eventLog = await Promise.resolve(
-                sandbox.readTextFile({
+                toolSafeSandboxSession.readTextFile({
                   path: `${bridgeStateDir}/event-log.ndjson`,
                   abortSignal: startOptions.abortSignal,
                 }),
@@ -494,6 +543,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }
       }
 
+      const forwardedImplementationEnvironment =
+        await applyCredentialForwarding({
+          environment: sandboxImplementationEnvironment,
+          credentialEnvironmentVariables:
+            credentialForwardingEnvironmentVariables,
+          credentialForwarding: settings.credentialForwarding,
+        });
       const port = resolveBridgePort({
         sandboxSession,
         override: portOverride,
@@ -502,19 +558,19 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const token =
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
-          : settings.mintBridgeToken(sandboxSession.id);
-      await sandbox.run({
+          : settings.mintBridgeToken(sandboxId!);
+      await toolSafeSandboxSession.run({
         command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
         abortSignal: startOptions.abortSignal,
       });
       await markBridgeStarting({
-        sandbox,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: settings.harnessId,
         abortSignal: startOptions.abortSignal,
       });
 
-      const proc = await sandbox.spawn({
+      const proc = await toolSafeSandboxSession.spawn({
         command:
           `node ${shellQuote(`${resolvedBridgeDir}/bridge.mjs`)}` +
           ` --workdir ${shellQuote(workDir)}` +
@@ -522,12 +578,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ` --implementation-dir ${shellQuote(resolvedImplementationDir)}` +
           ` --bridge-type ${shellQuote(settings.harnessId)}`,
         env: {
-          ...sandboxImplementationEnvironment,
+          ...forwardedImplementationEnvironment,
           ...createACPBridgeEnvironment({
             authentication: settings.authentication,
             providerAuthentication:
               resolvedProviderAuthentication.providerAuthentication,
-            providerEnvironment: sandboxProviderEnvironment,
+            providerEnvironment:
+              sandboxProviderEnvironment == null ? undefined : {},
             sessionMeta: settings.session?.meta,
           }),
           ...sandboxProviderAuthenticationEnvironment,
@@ -551,7 +608,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const timeoutMs = startupTimeoutMs ?? 120_000;
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        sandbox,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: settings.harnessId,
         timeoutMs,
@@ -575,9 +632,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await sandboxSession.getPortEndpoint({
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: portEndpointOverride,
         port: boundPort,
-        protocol: 'ws',
+        harnessId: settings.harnessId,
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
       const channel: ACPChannel = new SandboxChannel({
@@ -660,7 +719,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         acpSessionId: lifecycleData?.acpSessionId,
         bridgePort: boundPort,
         bridgeToken: token,
-        sandboxId: sandboxSession.id,
+        sandboxId,
         isResume,
         turnInFlight:
           respawnStrategy?.mode === 'disk-replay' ||
@@ -693,13 +752,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
 function resolveProviderEnvironment({
   resolvedProviderAuthentication,
   clientApp,
-  gatewayApiKey,
 }: {
   resolvedProviderAuthentication: ReturnType<
     typeof resolveACPProviderAuthentication
   >;
   clientApp: ACPClientApp;
-  gatewayApiKey?: string;
 }): Record<string, string> {
   if (
     resolvedProviderAuthentication.providerAuthentication?.type !== 'ai-gateway'
@@ -710,12 +767,10 @@ function resolveProviderEnvironment({
     providerAuthentication:
       resolvedProviderAuthentication.providerAuthentication,
     gateway: {
-      apiKey:
-        gatewayApiKey ??
-        requireResolvedEnvironmentValue({
-          environment: resolvedProviderAuthentication.env,
-          name: 'AI_SDK_ACP_GATEWAY_API_KEY',
-        }),
+      apiKey: requireResolvedEnvironmentValue({
+        environment: resolvedProviderAuthentication.env,
+        name: 'AI_SDK_ACP_GATEWAY_API_KEY',
+      }),
       baseUrl: requireResolvedEnvironmentValue({
         environment: resolvedProviderAuthentication.env,
         name: 'AI_SDK_ACP_GATEWAY_BASE_URL',
@@ -724,6 +779,79 @@ function resolveProviderEnvironment({
       clientAppVersion: clientApp.version,
     },
   });
+}
+
+function resolveBrokeredProviderEnvironment({
+  resolvedProviderAuthentication,
+  clientApp,
+}: {
+  resolvedProviderAuthentication: ReturnType<
+    typeof resolveACPProviderAuthentication
+  >;
+  clientApp: ACPClientApp;
+}): Record<string, string> {
+  const providerAuthentication =
+    resolvedProviderAuthentication.providerAuthentication;
+  if (providerAuthentication?.type !== 'ai-gateway') return {};
+
+  const baseUrl = requireResolvedEnvironmentValue({
+    environment: resolvedProviderAuthentication.env,
+    name: 'AI_SDK_ACP_GATEWAY_BASE_URL',
+  });
+
+  return Object.fromEntries(
+    Object.entries(providerAuthentication.env).map(
+      ([environmentVariableName, value]) => {
+        const environment = resolveACPLaunchEnvironment({
+          providerAuthentication: {
+            type: 'ai-gateway',
+            env: { [environmentVariableName]: value },
+          },
+          gateway: {
+            apiKey: environmentVariableName,
+            baseUrl,
+            clientAppName: clientApp.name,
+            clientAppVersion: clientApp.version,
+          },
+        });
+        return [environmentVariableName, environment[environmentVariableName]!];
+      },
+    ),
+  );
+}
+
+function resolveACPProviderCredentialEnvironmentVariables({
+  providerAuthentication,
+}: {
+  providerAuthentication: ReturnType<
+    typeof resolveACPProviderAuthentication
+  >['providerAuthentication'];
+}): string[] {
+  if (providerAuthentication?.type !== 'ai-gateway') return [];
+
+  return Object.entries(providerAuthentication.env)
+    .filter(([, value]) => containsACPProviderCredential({ value }))
+    .map(([name]) => name);
+}
+
+function containsACPProviderCredential({
+  value,
+}: {
+  value: ACPProfileValue;
+}): boolean {
+  if (Array.isArray(value)) {
+    return value.some(item => containsACPProviderCredential({ value: item }));
+  }
+  if (value == null || typeof value !== 'object') return false;
+  if ('$source' in value) {
+    return (
+      value.$source === 'gateway-api-key' ||
+      value.$source === 'gateway-authorization'
+    );
+  }
+  return Object.values(value).some(item =>
+    containsACPProviderCredential({ value: item }),
+  );
 }
 
 function requireResolvedEnvironmentValue({
@@ -745,17 +873,66 @@ function resolveBridgePort({
   override,
   harnessId,
 }: {
-  sandboxSession: HarnessV1NetworkSandboxSession;
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   override: number | undefined;
   harnessId: string;
 }): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw unsupported({
     harnessId,
     message:
       `The ${harnessId} ACP harness needs a TCP port exposed by the sandbox. ` +
       'Create the sandbox with `ports: [<port>]` or configure the harness `port`.',
+  });
+}
+
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
+  harnessId,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+  harnessId: string;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw unsupported({
+      harnessId,
+      message: `The ${harnessId} ACP harness requires an explicit \`port\` when using a basic sandbox session.`,
+    });
+  }
+  if (portEndpoint == null) {
+    throw unsupported({
+      harnessId,
+      message: `The ${harnessId} ACP harness requires an explicit \`portEndpoint\` when using a basic sandbox session.`,
+    });
+  }
+}
+
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+  harnessId,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+  harnessId: string;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw unsupported({
+    harnessId,
+    message: `The ${harnessId} ACP harness requires an explicit \`portEndpoint\` when using a basic sandbox session.`,
   });
 }
 
@@ -1505,6 +1682,22 @@ export function serializeBuiltinTools({
       typeof tool.nativeName === 'string'
         ? tool.nativeName
         : undefined;
+    const title =
+      tool != null &&
+      typeof tool === 'object' &&
+      'title' in tool &&
+      typeof tool.title === 'string'
+        ? tool.title
+        : undefined;
+    const toolUseKind =
+      tool != null &&
+      typeof tool === 'object' &&
+      'toolUseKind' in tool &&
+      (tool.toolUseKind === 'readonly' ||
+        tool.toolUseKind === 'edit' ||
+        tool.toolUseKind === 'bash')
+        ? tool.toolUseKind
+        : undefined;
     let inputSchema: ACPBuiltinToolMapping['inputSchema'];
     if (
       tool != null &&
@@ -1521,6 +1714,8 @@ export function serializeBuiltinTools({
     return {
       toolName,
       ...(nativeName == null ? {} : { nativeName }),
+      ...(title == null ? {} : { title }),
+      ...(toolUseKind == null ? {} : { toolUseKind }),
       ...(inputSchema == null ? {} : { inputSchema }),
     };
   });

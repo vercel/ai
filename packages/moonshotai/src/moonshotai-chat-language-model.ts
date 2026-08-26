@@ -15,6 +15,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createLanguageModelResponseMetadata as getResponseMetadata,
+  createProviderStreamError,
   generateId,
   isCustomReasoning,
   mapReasoningToProviderEffort,
@@ -36,13 +37,16 @@ import {
   moonshotAIChatChunkSchema,
   moonshotAIChatResponseSchema,
   moonshotAIErrorSchema,
+  type MoonshotAIChatLogprob,
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
 import {
-  getModelThinkingKeepSupport,
+  getMoonshotAIModelFamily,
+  isMoonshotAIKimiModel,
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
 } from './moonshotai-chat-options';
+import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 import { prepareTools } from './moonshotai-prepare-tools';
 
 export type MoonshotAIChatConfig = {
@@ -53,6 +57,53 @@ export type MoonshotAIChatConfig = {
   includeUsage?: boolean;
   supportsStructuredOutputs?: boolean;
 };
+
+function createMoonshotAIStreamError(
+  error: { message: string; type?: string | null },
+  data: unknown,
+) {
+  return createProviderStreamError({
+    message: error.message,
+    type: error.type ?? undefined,
+    ...getMoonshotAIStreamErrorMetadata(error.type),
+    data,
+  });
+}
+
+function getMoonshotAIStreamErrorMetadata(type?: string | null): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  switch (type) {
+    case 'rate_limit_exceeded':
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'server_error':
+    case 'api_error':
+    case 'internal_server_error':
+      return { statusCode: 500, isRetryable: true };
+    case 'overloaded_error':
+    case 'service_unavailable':
+      return { statusCode: 503, isRetryable: true };
+    case 'timeout':
+    case 'timeout_error':
+      return { statusCode: 504, isRetryable: true };
+    case 'authentication_error':
+    case 'invalid_api_key':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'not_found_error':
+    case 'model_not_found':
+      return { statusCode: 404, isRetryable: false };
+    case 'bad_request':
+    case 'context_length_exceeded':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    default:
+      return {};
+  }
+}
 
 export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -125,9 +176,13 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         schema: moonshotaiLanguageModelOptions,
       })) ?? {};
 
-    const messages = convertToMoonshotAIChatMessages(prompt);
+    const { messages, warnings: messageWarnings } =
+      await convertToMoonshotAIChatMessages({
+        prompt,
+        providerOptionsName: this.providerOptionsName,
+      });
 
-    const allWarnings: SharedV4Warning[] = [];
+    const allWarnings: SharedV4Warning[] = [...messageWarnings];
     if (topK != null) {
       allWarnings.push({ type: 'unsupported', feature: 'topK' });
     }
@@ -135,57 +190,217 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       allWarnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
+    const supportsSamplingOptions = !isMoonshotAIKimiModel(this.modelId);
+
+    if (!supportsSamplingOptions && temperature != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'temperature',
+        details: `temperature is fixed by model "${this.modelId}" and has been omitted.`,
+      });
+    }
+    if (!supportsSamplingOptions && topP != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'topP',
+        details: `topP is fixed by model "${this.modelId}" and has been omitted.`,
+      });
+    }
+    if (!supportsSamplingOptions && frequencyPenalty != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+        details: `frequencyPenalty is fixed by model "${this.modelId}" and has been omitted.`,
+      });
+    }
+    if (!supportsSamplingOptions && presencePenalty != null) {
+      allWarnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+        details: `presencePenalty is fixed by model "${this.modelId}" and has been omitted.`,
+      });
+    }
+
     const {
       tools: moonshotTools,
       toolChoice: moonshotToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice });
+    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
 
-    // Thinking is configured through explicit provider options only.
-    const thinking = moonshotOptions.thinking;
+    const modelFamily = getMoonshotAIModelFamily(this.modelId);
+    const requestedThinking = moonshotOptions.thinking;
+    const requestedReasoningEffort = moonshotOptions.reasoningEffort;
+    const preserveReasoning = moonshotOptions.reasoningHistory === 'preserved';
 
-    // Moonshot has no reasoning_history field; the API silently ignores it
-    // (verified against the live API). Preserved Thinking maps to
-    // thinking.keep, which only accepts 'all' and only on some models
-    // (verified: k2.6, k2.7-code, k3 accept it; k2.5 rejects it). Other
-    // reasoningHistory values use the server default.
-    let keep: 'all' | undefined;
-    if (moonshotOptions.reasoningHistory === 'preserved') {
-      if (getModelThinkingKeepSupport(this.modelId)) {
-        keep = 'all';
-      } else {
-        allWarnings.push({
-          type: 'unsupported',
-          feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
-        });
-      }
-    }
-
-    // Map the generic reasoning call option to Moonshot's reasoning_effort
-    // (explicit provider options win). 'none' cannot disable Moonshot
-    // thinking from here; use thinking: { type: 'disabled' } instead.
-    if (reasoning === 'none') {
+    if (requestedThinking?.budgetTokens != null) {
       allWarnings.push({
-        type: 'unsupported',
-        feature:
-          'reasoning "none" (use providerOptions.moonshotai.thinking to control thinking)',
+        type: 'deprecated',
+        setting: 'providerOptions.moonshotai.thinking.budgetTokens',
+        message:
+          'Moonshot Chat Completions does not support budget_tokens. Remove budgetTokens; the option has been omitted.',
       });
     }
-    const reasoningEffort =
-      moonshotOptions.reasoningEffort ??
-      (isCustomReasoning(reasoning) && reasoning !== 'none'
-        ? mapReasoningToProviderEffort({
-            reasoning,
-            effortMap: {
-              minimal: 'low',
-              low: 'low',
-              medium: 'high',
-              high: 'high',
-              xhigh: 'max',
-            },
-            warnings: allWarnings,
-          })
-        : undefined);
+
+    let thinking: { type: 'enabled' | 'disabled'; keep?: 'all' } | undefined;
+    let reasoningEffort: 'low' | 'high' | 'max' | undefined;
+
+    const warnUnsupportedReasoningEffort = () => {
+      if (requestedReasoningEffort != null) {
+        allWarnings.push({
+          type: 'unsupported',
+          feature: 'reasoningEffort',
+          details: `reasoningEffort is only supported by Kimi K3 and has been omitted for model "${this.modelId}".`,
+        });
+      }
+    };
+
+    switch (modelFamily) {
+      case 'kimi-k3': {
+        if (requestedThinking != null) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: 'thinking',
+            details:
+              'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
+          });
+        }
+        if (reasoning === 'none') {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: 'reasoning "none"',
+            details: 'Kimi K3 reasoning cannot be disabled.',
+          });
+        }
+        reasoningEffort =
+          requestedReasoningEffort ??
+          (isCustomReasoning(reasoning) && reasoning !== 'none'
+            ? mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'low',
+                  low: 'low',
+                  medium: 'high',
+                  high: 'high',
+                  xhigh: 'max',
+                },
+                warnings: allWarnings,
+              })
+            : undefined);
+        break;
+      }
+      case 'kimi-k2.7': {
+        warnUnsupportedReasoningEffort();
+        if (requestedThinking?.type === 'disabled' || reasoning === 'none') {
+          allWarnings.push({
+            type: 'unsupported',
+            feature:
+              requestedThinking?.type === 'disabled'
+                ? 'thinking.type "disabled"'
+                : 'reasoning "none"',
+            details: 'Kimi K2.7 thinking cannot be disabled.',
+          });
+        } else if (requestedThinking?.type === 'enabled') {
+          thinking = { type: 'enabled' };
+        }
+        break;
+      }
+      case 'kimi-k2.6': {
+        warnUnsupportedReasoningEffort();
+        const thinkingType =
+          requestedThinking?.type ??
+          (isCustomReasoning(reasoning)
+            ? reasoning === 'none'
+              ? 'disabled'
+              : 'enabled'
+            : undefined);
+        if (thinkingType != null || preserveReasoning) {
+          thinking = {
+            type: thinkingType ?? 'enabled',
+            ...(preserveReasoning ? { keep: 'all' as const } : {}),
+          };
+        }
+        break;
+      }
+      case 'kimi-k2.5': {
+        warnUnsupportedReasoningEffort();
+        const thinkingType =
+          requestedThinking?.type ??
+          (isCustomReasoning(reasoning)
+            ? reasoning === 'none'
+              ? 'disabled'
+              : 'enabled'
+            : undefined);
+        if (thinkingType != null) {
+          thinking = { type: thinkingType };
+        }
+        if (preserveReasoning) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
+          });
+        }
+        break;
+      }
+      case 'moonshot-v1': {
+        warnUnsupportedReasoningEffort();
+        if (requestedThinking != null) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: 'thinking',
+            details: `thinking is not supported by model "${this.modelId}" and has been omitted.`,
+          });
+        }
+        if (isCustomReasoning(reasoning) && reasoning !== 'none') {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: 'reasoning',
+            details: `reasoning is not supported by model "${this.modelId}".`,
+          });
+        }
+        if (preserveReasoning) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
+          });
+        }
+        break;
+      }
+      case 'unknown': {
+        if (reasoning === 'none') {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: 'reasoning "none"',
+            details:
+              'Use providerOptions.moonshotai.thinking to control thinking on custom models.',
+          });
+        }
+        reasoningEffort =
+          requestedReasoningEffort ??
+          (isCustomReasoning(reasoning) && reasoning !== 'none'
+            ? mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'low',
+                  low: 'low',
+                  medium: 'high',
+                  high: 'high',
+                  xhigh: 'max',
+                },
+                warnings: allWarnings,
+              })
+            : undefined);
+        if (requestedThinking?.type != null) {
+          thinking = { type: requestedThinking.type };
+        }
+        if (preserveReasoning) {
+          allWarnings.push({
+            type: 'unsupported',
+            feature: `reasoningHistory 'preserved' is not supported by model "${this.modelId}"`,
+          });
+        }
+        break;
+      }
+    }
 
     let response_format: Record<string, unknown> | undefined;
     if (responseFormat?.type === 'json') {
@@ -204,10 +419,8 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
           type: 'json_schema',
           json_schema: {
             name: responseFormat.name ?? 'response',
-            schema: schemaWithoutDollarSchema,
-            ...(responseFormat.description != null && {
-              description: responseFormat.description,
-            }),
+            strict: moonshotOptions.strictJsonSchema ?? true,
+            schema: normalizeJsonSchemaForMFJS(schemaWithoutDollarSchema),
           },
         };
       } else {
@@ -218,27 +431,24 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     return {
       args: {
         model: this.modelId,
+        ...((moonshotOptions.logprobs === true ||
+          moonshotOptions.topLogprobs != null) && { logprobs: true }),
+        ...(moonshotOptions.topLogprobs != null && {
+          top_logprobs: moonshotOptions.topLogprobs,
+        }),
         max_tokens: maxOutputTokens,
-        temperature,
-        top_p: topP,
-        frequency_penalty: frequencyPenalty,
-        presence_penalty: presencePenalty,
+        temperature: supportsSamplingOptions ? temperature : undefined,
+        top_p: supportsSamplingOptions ? topP : undefined,
+        frequency_penalty: supportsSamplingOptions
+          ? frequencyPenalty
+          : undefined,
+        presence_penalty: supportsSamplingOptions ? presencePenalty : undefined,
         response_format,
         stop: stopSequences,
         messages,
         tools: moonshotTools,
         tool_choice: moonshotToolChoice,
-        ...(thinking != null || keep != null
-          ? {
-              thinking: {
-                ...(thinking?.type != null && { type: thinking.type }),
-                ...(thinking?.budgetTokens !== undefined && {
-                  budget_tokens: thinking.budgetTokens,
-                }),
-                ...(keep != null && { keep }),
-              },
-            }
-          : {}),
+        ...(thinking != null ? { thinking } : {}),
         ...(reasoningEffort != null && {
           reasoning_effort: reasoningEffort,
         }),
@@ -291,7 +501,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments ?? '',
         });
@@ -311,6 +521,13 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertMoonshotAIChatUsage(responseBody.usage),
+      ...(choice.logprobs != null && {
+        providerMetadata: {
+          [this.providerOptionsName]: {
+            logprobs: choice.logprobs,
+          },
+        },
+      }),
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -355,7 +572,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
-    let usage: MoonshotAIChatTokenUsage | undefined = undefined;
+    let topLevelUsage: MoonshotAIChatTokenUsage | undefined = undefined;
+    let choiceUsage: MoonshotAIChatTokenUsage | undefined = undefined;
+    const contentLogprobs: MoonshotAIChatLogprob[] = [];
+    const providerOptionsName = this.providerOptionsName;
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
@@ -390,7 +610,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({ type: 'error', error: value.error.message });
+              controller.enqueue({
+                type: 'error',
+                error: createMoonshotAIStreamError(value.error, value),
+              });
               return;
             }
 
@@ -404,16 +627,24 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
             }
 
             if (value.usage != null) {
-              usage = value.usage;
+              topLevelUsage = value.usage;
             }
 
             const choice = value.choices[0];
+
+            if (choice?.usage != null) {
+              choiceUsage = choice.usage;
+            }
 
             if (choice?.finish_reason != null) {
               finishReason = {
                 unified: mapMoonshotAIFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
+            }
+
+            if (choice?.logprobs?.content != null) {
+              contentLogprobs.push(...choice.logprobs.content);
             }
 
             if (choice?.delta == null) {
@@ -472,8 +703,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
                 isActiveReasoning = false;
               }
 
-              for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(toolCallDelta);
+              for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
+                toolCallTracker.processDelta({
+                  ...toolCallDelta,
+                  index: toolCallDelta.index ?? index,
+                });
               }
             }
           },
@@ -492,7 +726,16 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertMoonshotAIChatUsage(usage),
+              usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
+              ...(contentLogprobs.length > 0 && {
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    logprobs: {
+                      content: contentLogprobs,
+                    },
+                  },
+                },
+              }),
             });
           },
         }),

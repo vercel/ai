@@ -8,6 +8,7 @@ import {
   type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
+  type HarnessV1CredentialForwarding,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1PortEndpoint,
@@ -19,13 +20,16 @@ import {
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import {
+  applyCredentialForwarding,
   classifyDiskLog,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
   markBridgeStarting,
   maskSandboxCredentials,
+  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -35,7 +39,7 @@ import {
 } from '@ai-sdk/harness/utils';
 import {
   type Experimental_SandboxProcess,
-  type Experimental_SandboxSession,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
@@ -87,6 +91,12 @@ const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthOptions;
   /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
+  /**
    * Additional configuration passed through to Codex as-is. Codex config keys
    * typically use snake_case and must be provided in that form. Values managed
    * by this adapter take precedence over conflicting entries.
@@ -118,6 +128,11 @@ export type CodexHarnessSettings = {
    * is reserved for something else.
    */
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
@@ -208,10 +223,33 @@ export function createCodex(
         });
       }
       const sandboxSession = startOpts.sandboxSession;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: settings.port,
+        portEndpoint: settings.portEndpoint,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'codex',
+          message:
+            'The codex harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
+        });
+      }
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal: startOpts.abortSignal,
+        });
       const authenticationMode = resolveCodexAuthenticationMode(settings.auth);
       const resolvedAuthEnvironment = resolveCodexEnv(settings.auth);
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
-      if (sandboxSession.addRequestTransformations != null) {
+      if (
+        'addRequestTransformations' in sandboxSession &&
+        sandboxSession.addRequestTransformations != null
+      ) {
         const requestTransformations = createCodexRequestTransformations(
           resolvedAuthEnvironment,
           authenticationMode,
@@ -242,10 +280,8 @@ export function createCodex(
       } else {
         warnCredentialBrokeringUnavailable();
       }
-      const session = sandboxSession.restricted();
-      const sandboxId = sandboxSession.id;
       const bootstrapDir = path.posix.resolve(
-        sandboxSession.defaultWorkingDirectory,
+        defaultWorkingDirectory,
         BOOTSTRAP_DIR,
       );
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
@@ -266,7 +302,7 @@ export function createCodex(
       const coords = resumeData?.bridge;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const cliShimDir = `${sessionDataDir}/codex`;
       const cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
@@ -300,9 +336,10 @@ export function createCodex(
        */
       if (coords) {
         try {
-          const endpoint = await sandboxSession.getPortEndpoint({
+          const endpoint = await resolveBridgeEndpoint({
+            sandboxSession,
+            override: settings.portEndpoint,
             port: coords.port,
-            protocol: 'ws',
           });
           const attachEndpoint = withBridgeToken({
             endpoint,
@@ -355,7 +392,7 @@ export function createCodex(
         : undefined;
       if (coords && isContinue) {
         const logRaw = await Promise.resolve(
-          session.readTextFile({
+          toolSafeSandboxSession.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
             abortSignal: startOpts.abortSignal,
           }),
@@ -365,21 +402,29 @@ export function createCodex(
         }
       }
 
-      const port = resolveBridgePort(sandboxSession, settings.port);
+      const port = resolveBridgePort({
+        sandboxSession,
+        override: settings.port,
+      });
       const token =
         settings.mintBridgeToken == null
           ? randomBytes(32).toString('hex')
-          : settings.mintBridgeToken(sandboxId);
+          : settings.mintBridgeToken(sandboxId!);
+      const forwardedAuthEnvironment = await applyCredentialForwarding({
+        environment: sandboxAuthEnvironment,
+        credentialEnvironmentVariables: CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        credentialForwarding: settings.credentialForwarding,
+      });
       const codexSkillSetup =
         startOpts.skills && startOpts.skills.length > 0
           ? await writeCodexSkills({
-              sandbox: session,
+              sandbox: toolSafeSandboxSession,
               skills: startOpts.skills,
               abortSignal: startOpts.abortSignal,
             })
           : undefined;
       const env = {
-        ...sandboxAuthEnvironment,
+        ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
@@ -395,20 +440,20 @@ export function createCodex(
       };
 
       if (respawnStrategy === undefined) {
-        await session.run({
+        await toolSafeSandboxSession.run({
           command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
       }
 
       await markBridgeStarting({
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'codex',
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await session.spawn({
+      const proc = await toolSafeSandboxSession.spawn({
         command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
@@ -423,7 +468,7 @@ export function createCodex(
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'codex',
         timeoutMs,
@@ -447,9 +492,10 @@ export function createCodex(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await sandboxSession.getPortEndpoint({
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: settings.portEndpoint,
         port: boundPort,
-        protocol: 'ws',
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
@@ -493,12 +539,17 @@ export function createCodex(
   };
 }
 
-function resolveBridgePort(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  override: number | undefined,
-): number {
+function resolveBridgePort({
+  sandboxSession,
+  override,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: number | undefined;
+}): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'codex',
     message:
@@ -507,12 +558,58 @@ function resolveBridgePort(
   });
 }
 
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'codex',
+      message:
+        'The codex harness requires an explicit `port` when using a basic sandbox session.',
+    });
+  }
+  if (portEndpoint == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'codex',
+      message:
+        'The codex harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+    });
+  }
+}
+
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'codex',
+    message:
+      'The codex harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+  });
+}
+
 async function writeCodexSkills({
   sandbox,
   skills,
   abortSignal,
 }: {
-  sandbox: Experimental_SandboxSession;
+  sandbox: SandboxSession;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<WriteSkillsResult> {
@@ -609,7 +706,7 @@ function createSession({
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
-  sandboxId: string;
+  sandboxId: string | undefined;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
 }): HarnessV1Session {
@@ -771,9 +868,6 @@ function createSession({
           approved: input.approved,
           reason: input.reason,
         });
-      },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
       },
       done,
     };
@@ -964,7 +1058,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };
@@ -1102,7 +1196,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };

@@ -104,7 +104,7 @@ describe('inboundMessageSchema', () => {
 
   it('accepts user-message, abort, stop, and destroy', () => {
     for (const sample of [
-      { type: 'user-message', text: 'hi' },
+      { type: 'user-message', messageId: 'message-1', text: 'hi' },
       { type: 'abort' },
       { type: 'stop' },
       { type: 'destroy' },

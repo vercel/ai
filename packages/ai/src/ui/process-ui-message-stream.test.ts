@@ -7,7 +7,11 @@ import {
   type StreamingUIMessageState,
   type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
-import type { InferUIMessageData, UIMessage } from './ui-messages';
+import {
+  isToolUIPart,
+  type InferUIMessageData,
+  type UIMessage,
+} from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
@@ -52,6 +56,150 @@ describe('processUIMessageStream', () => {
       },
     });
   };
+
+  describe('finish-step', () => {
+    it('preserves active text and reasoning parts across interleaved step boundaries', async () => {
+      const stream = createUIMessageStream([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'first ' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'thinking ',
+        },
+        { type: 'start-step' },
+        { type: 'finish-step' },
+        { type: 'text-delta', id: 'text-1', delta: 'second' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'continued',
+        },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        {
+          type: 'text',
+          text: 'first second',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        {
+          type: 'reasoning',
+          id: 'reasoning-1',
+          text: 'thinking continued',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        { type: 'step-start' },
+      ]);
+      expect(state.activeTextParts).toEqual({});
+      expect(state.activeReasoningParts).toEqual({});
+    });
+  });
+
+  describe('reset-step', () => {
+    it('removes parts from the current step and accepts retried parts', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        { type: 'text-start', id: 'completed-text' },
+        {
+          type: 'text-delta',
+          id: 'completed-text',
+          delta: 'Completed step',
+        },
+        { type: 'text-end', id: 'completed-text' },
+        { type: 'finish-step' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'stale-tool',
+          toolName: 'deleteFile',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'stale-tool',
+          inputTextDelta: '{"path":"partial',
+        },
+        { type: 'reset-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'retried-tool',
+          toolName: 'deleteFile',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'retried-tool',
+          inputTextDelta: '{"path":"target"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'retried-tool',
+          toolName: 'deleteFile',
+          input: { path: 'target' },
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Completed step',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        { type: 'step-start' },
+        {
+          type: 'tool-deleteFile',
+          toolCallId: 'retried-tool',
+          state: 'input-available',
+          input: { path: 'target' },
+          providerExecuted: undefined,
+          callProviderMetadata: undefined,
+          title: undefined,
+          toolMetadata: undefined,
+        },
+      ]);
+      expect(
+        state.message.parts.some(
+          part => isToolUIPart(part) && part.toolCallId === 'stale-tool',
+        ),
+      ).toBe(false);
+    });
+  });
 
   describe('text', () => {
     beforeEach(async () => {

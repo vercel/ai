@@ -86,6 +86,9 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     on(): () => void {
       return () => {};
     }
+    onReconnect(): () => void {
+      return () => {};
+    }
     onClose(): void {}
     send(msg: Record<string, unknown>): void {
       sentMessages.push(msg);
@@ -114,6 +117,8 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
+      if (path.endsWith('/bridge/pnpm-workspace.yaml'))
+        return "allowBuilds:\n  '@anthropic-ai/claude-code@2.1.213': true\n";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
     }),
@@ -407,15 +412,27 @@ describe('createClaudeCode adapter', () => {
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
     });
 
-    expect(spawnEnvs.at(0)?.CLAUDE_AGENT_SDK_CLIENT_APP).toBe(
-      'ai-sdk/harness-claude-code/0.0.0-test',
-    );
+    await session.doPromptTurn({
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: {
+        CLAUDE_AGENT_SDK_CLIENT_APP: 'ai-sdk/harness-claude-code/0.0.0-test',
+      },
+    });
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     await session.doDestroy();
   });
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
     const addRequestTransformations = vi.fn(async () => {});
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
@@ -431,12 +448,21 @@ describe('createClaudeCode adapter', () => {
           baseUrl: 'https://anthropic.example/v1',
         },
       },
+      credentialForwarding: async options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.environmentVariableName}`;
+      },
     });
 
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession,
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    await session.doPromptTurn({
+      prompt: 'Hello',
+      emit: () => {},
     });
 
     expect(addRequestTransformations).toHaveBeenCalledWith([
@@ -448,8 +474,116 @@ describe('createClaudeCode adapter', () => {
         transform: { headers: { 'x-api-key': 'anthropic-secret' } },
       },
     ]);
-    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe('ANTHROPIC_API_KEY');
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'ANTHROPIC_API_KEY',
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: { ANTHROPIC_API_KEY: 'ephemeral-ANTHROPIC_API_KEY' },
+    });
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
+  it('customizes real credentials when request transformations are unavailable', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const harness = createClaudeCode({
+      auth: { anthropic: { apiKey: 'anthropic-secret' } },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return 'caller-managed-credential';
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs,
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    await session.doPromptTurn({
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'anthropic-secret',
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: { ANTHROPIC_API_KEY: 'caller-managed-credential' },
+    });
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
+  it('customizes credentials forwarded through the Claude process environment', async () => {
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const harness = createClaudeCode({
+      auth: { anthropic: { apiKey: 'bridge-secret' } },
+      env: {
+        ANTHROPIC_API_KEY: 'turn-api-key',
+        ANTHROPIC_AUTH_TOKEN: 'turn-auth-token',
+        NON_SECRET: 'preserved',
+      },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.credential}`;
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    await session.doPromptTurn({
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'turn-api-key',
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+      {
+        credential: 'turn-auth-token',
+        environmentVariableName: 'ANTHROPIC_AUTH_TOKEN',
+      },
+    ]);
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: {
+        ANTHROPIC_API_KEY: 'ephemeral-turn-api-key',
+        ANTHROPIC_AUTH_TOKEN: 'ephemeral-turn-auth-token',
+        NON_SECRET: 'preserved',
+      },
+    });
 
     await session.doDestroy();
   });
@@ -514,12 +648,16 @@ describe('createClaudeCode adapter', () => {
       },
     );
     const headers = { 'E2B-Traffic-Access-Token': 'traffic-token' };
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge?existing=value',
+      headers,
+    };
     const harness = createClaudeCode({
       mintBridgeToken: () => 'bridge-token',
+      portEndpoint,
     });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
-      bridgePortUrl: 'wss://sandbox.example/bridge?existing=value',
-      bridgePortHeaders: headers,
+      bridgePortUrl: 'ws://unused.example',
       writes: [],
       runs: [],
     });
@@ -867,6 +1005,48 @@ describe('createClaudeCode adapter', () => {
       await session.doDestroy();
     });
 
+    it('exposes steering when the bridge advertises acknowledged user messages', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit(
+            'message',
+            JSON.stringify({
+              type: 'bridge-hello',
+              capabilities: { experimental_userMessageResponses: true },
+            }),
+          );
+        });
+      });
+
+      const session = await startWithFakeBridgeSocket();
+      const control = await session.doPromptTurn({
+        prompt: 'Weather in Paris?',
+        emit: () => {},
+      });
+
+      expect(control.submitUserMessage).toBeTypeOf('function');
+      await session.doDestroy();
+    });
+
+    it('submits compaction without requiring an active acknowledged turn', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+
+      const session = await startWithFakeBridgeSocket();
+      await session.doCompact?.('keep the error trace');
+
+      expect(sentMessages).toContainEqual({
+        type: 'user-message',
+        text: '/compact keep the error trace',
+      });
+      await session.doDestroy();
+    });
+
     it('rejects when the socket opens but bridge-hello never arrives', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
@@ -934,7 +1114,7 @@ describe('createClaudeCode adapter', () => {
       expect(recipe.bootstrapDir).toBe('.harness-bootstrap/claude-code');
     });
 
-    it('includes bridge.mjs, package.json, and pnpm-lock.yaml under the bootstrap dir', async () => {
+    it('includes bridge and package-manager assets under the bootstrap dir', async () => {
       const harness = createClaudeCode();
       const recipe = await harness.getBootstrap!();
       const paths = recipe.files.map(f => f.path).sort();
@@ -942,22 +1122,28 @@ describe('createClaudeCode adapter', () => {
         '.harness-bootstrap/claude-code/bridge.mjs',
         '.harness-bootstrap/claude-code/package.json',
         '.harness-bootstrap/claude-code/pnpm-lock.yaml',
+        '.harness-bootstrap/claude-code/pnpm-workspace.yaml',
       ]);
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
     });
 
-    it('declares pnpm install and claude post-install commands for the bootstrap cwd', async () => {
+    it('allows the pinned Claude Code build and verifies the installed CLI', async () => {
       const harness = createClaudeCode();
       const recipe = await harness.getBootstrap!();
       const commands = recipe.commands.map(c => c.command);
+      const workspace = recipe.files.find(file =>
+        file.path.endsWith('/pnpm-workspace.yaml'),
+      );
       expect(commands).toHaveLength(2);
       expect(commands[0]).toBe(
         'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       );
-      expect(commands[1]).toContain('claude --version');
-      expect(commands[1]).not.toContain('cd ');
+      expect(commands[1]).toBe('./node_modules/.bin/claude --version');
+      expect(workspace?.content).toContain(
+        "'@anthropic-ai/claude-code@2.1.213': true",
+      );
     });
 
     it('caches the recipe across calls', async () => {

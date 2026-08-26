@@ -2,7 +2,13 @@
 import './global';
 
 // re-exports:
-export { createGateway, gateway, type GatewayModelId } from '@ai-sdk/gateway';
+export {
+  createGateway,
+  gateway,
+  type GatewayAsyncJobMetadata,
+  type GatewayModelId,
+  type GatewayProviderMetadata,
+} from '@ai-sdk/gateway';
 export {
   asSchema,
   createIdGenerator,

@@ -1,5 +1,131 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.24
+
+### Patch Changes
+
+- 79186d1: Allow pinned OpenCode and Grok Build install scripts during pnpm 11 sandbox bootstrap.
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [79186d1]
+- Updated dependencies [b6396ff]
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness-acp@1.0.25
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.23
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+- @ai-sdk/harness-acp@1.0.24
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+- Updated dependencies [6352c2a]
+- Updated dependencies [fa6af57]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/harness-acp@1.0.23
+  - @ai-sdk/harness@1.0.85
+
+## 1.0.21
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.84
+- @ai-sdk/harness-acp@1.0.22
+
+## 1.0.20
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.83
+- @ai-sdk/harness-acp@1.0.21
+
+## 1.0.19
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.82
+- @ai-sdk/harness-acp@1.0.20
+
+## 1.0.18
+
+### Patch Changes
+
+- Updated dependencies [7f50d28]
+  - @ai-sdk/harness@1.0.81
+  - @ai-sdk/harness-acp@1.0.19
+
+## 1.0.17
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.80
+- @ai-sdk/harness-acp@1.0.18
+
+## 1.0.16
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.79
+- @ai-sdk/harness-acp@1.0.17
+
+## 1.0.15
+
+### Patch Changes
+
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness-acp@1.0.16
+  - @ai-sdk/harness@1.0.78
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+  - @ai-sdk/harness-acp@1.0.15
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+  - @ai-sdk/harness-acp@1.0.14
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+  - @ai-sdk/harness-acp@1.0.13
+
+## 1.0.11
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+- @ai-sdk/harness-acp@1.0.12
+
+## 1.0.10
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness-acp@1.0.11
+  - @ai-sdk/harness@1.0.73
+
 ## 1.0.9
 
 ### Patch Changes

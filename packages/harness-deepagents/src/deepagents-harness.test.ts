@@ -253,6 +253,10 @@ describe('createDeepAgents', () => {
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
     const addRequestTransformations = vi.fn(async () => {});
     const sandboxSession = fakeSandboxSession({ spawnEnvs });
     Object.assign(sandboxSession, { addRequestTransformations });
@@ -262,6 +266,10 @@ describe('createDeepAgents', () => {
           apiKey: 'anthropic-secret',
           baseUrl: 'https://anthropic.example',
         },
+      },
+      credentialForwarding: async options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.environmentVariableName}`;
       },
     });
 
@@ -277,7 +285,49 @@ describe('createDeepAgents', () => {
         transform: { headers: { 'x-api-key': 'anthropic-secret' } },
       },
     ]);
-    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe('ANTHROPIC_API_KEY');
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'ANTHROPIC_API_KEY',
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe(
+      'ephemeral-ANTHROPIC_API_KEY',
+    );
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
+  it('customizes real credentials when request transformations are unavailable', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const harness = createDeepAgents({
+      auth: { anthropic: { apiKey: 'anthropic-secret' } },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return 'caller-managed-credential';
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession({ spawnEnvs }),
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'anthropic-secret',
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe(
+      'caller-managed-credential',
+    );
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
 
     await session.doDestroy();
@@ -348,13 +398,14 @@ describe('createDeepAgents', () => {
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
-    const harness = createDeepAgents({ mintBridgeToken });
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge?existing=value',
+      headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+    };
+    const harness = createDeepAgents({ mintBridgeToken, portEndpoint });
     const sandboxSession = fakeSandboxSession({
       spawnEnvs,
-      bridgePortEndpoint: {
-        url: 'wss://sandbox.example/bridge?existing=value',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
-      },
+      bridgePortEndpoint: { url: 'ws://unused.example' },
     });
     const session = await harness.doStart({
       sessionId: 'test-session',
@@ -382,11 +433,11 @@ describe('createDeepAgents', () => {
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
     ]);
     await attachedSession.doDetach();

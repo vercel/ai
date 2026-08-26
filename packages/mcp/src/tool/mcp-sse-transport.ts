@@ -14,7 +14,7 @@ import {
   auth,
   type OAuthClientProvider,
 } from './oauth';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import { LATEST_LEGACY_PROTOCOL_VERSION } from './types';
 
 function isMessageEvent(event: string | undefined): boolean {
   return event === undefined || event === 'message';
@@ -69,7 +69,8 @@ export class SseMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': this.protocolVersion ?? LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version':
+        this.protocolVersion ?? LATEST_LEGACY_PROTOCOL_VERSION,
     };
 
     if (this.authProvider) {
@@ -279,21 +280,14 @@ export class SseMCPTransport implements MCPTransport {
           const { resourceMetadataUrl, scope } =
             extractWWWAuthenticateParams(response);
           this.resourceMetadataUrl = resourceMetadataUrl;
-          try {
-            const result = await auth(this.authProvider, {
-              serverUrl: this.url,
-              resourceMetadataUrl: this.resourceMetadataUrl,
-              scope,
-              fetchFn: this.fetchFn,
-            });
-            if (result !== 'AUTHORIZED') {
-              const error = new UnauthorizedError();
-              this.onerror?.(error);
-              return;
-            }
-          } catch (error) {
-            this.onerror?.(error);
-            return;
+          const result = await auth(this.authProvider, {
+            serverUrl: this.url,
+            resourceMetadataUrl: this.resourceMetadataUrl,
+            scope,
+            fetchFn: this.fetchFn,
+          });
+          if (result !== 'AUTHORIZED') {
+            throw new UnauthorizedError();
           }
           return attempt(true);
         }
@@ -302,16 +296,18 @@ export class SseMCPTransport implements MCPTransport {
           const text = await response.text().catch(() => null);
           const error = new MCPClientError({
             message: `MCP SSE Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`,
+            statusCode: response.status,
+            url: endpoint.href,
+            responseBody: text ?? undefined,
           });
-          this.onerror?.(error);
-          return;
+          throw error;
         }
       } catch (error) {
         if (options?.signal?.aborted) {
           throw error;
         }
         this.onerror?.(error);
-        return;
+        throw error;
       }
     };
     await attempt();

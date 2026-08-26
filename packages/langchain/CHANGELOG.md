@@ -1,5 +1,97 @@
 # @ai-sdk/langchain
 
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 3.0.77
+
+### Patch Changes
+
+- ai@7.0.77
+
+## 3.0.76
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 3.0.75
+
+### Patch Changes
+
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 3.0.74
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 3.0.73
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 3.0.72
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 3.0.71
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 3.0.70
+
+### Patch Changes
+
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - ai@7.0.70
+
+## 3.0.69
+
+### Patch Changes
+
+- ai@7.0.69
+
+## 3.0.68
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 3.0.67
+
+### Patch Changes
+
+- 404a9d9: Preserve tool input lifecycles when LangGraph steps reuse a provider tool call ID.
+  - ai@7.0.67
+
 ## 3.0.66
 
 ### Patch Changes

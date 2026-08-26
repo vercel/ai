@@ -274,6 +274,9 @@ function fakeSandbox({
       if (command === 'printf "%s" "$HOME"') {
         return { exitCode: 0, stdout: homeDir, stderr: '' };
       }
+      if (command === 'pwd') {
+        return { exitCode: 0, stdout: '/workspace\n', stderr: '' };
+      }
       return { exitCode: 0, stdout: '', stderr: '' };
     },
     spawn: async ({
@@ -480,12 +483,20 @@ describe('createACP', () => {
       command: string;
       env: Record<string, string | undefined>;
     }> = [];
+    const credentialForwarding = vi.fn(
+      async ({
+        environmentVariableName,
+      }: {
+        environmentVariableName: string;
+      }) => `ephemeral-${environmentVariableName}`,
+    );
     const harness = createACP({
       harnessId: 'direct-brokered-acp',
       ...agentSettings,
       forwardEnv: ['PROVIDER_BASE_URL'],
       credentialEnv: ['PROVIDER_API_KEY'],
       credentialBrokering,
+      credentialForwarding,
       env: { STATIC_SETTING: 'literal-value' },
     });
 
@@ -516,9 +527,13 @@ describe('createACP', () => {
       },
     ]);
     expect(spawns[0]!.env).toMatchObject({
-      PROVIDER_API_KEY: 'PROVIDER_API_KEY',
+      PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
       PROVIDER_BASE_URL: 'https://provider.example/v1',
       STATIC_SETTING: 'literal-value',
+    });
+    expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
+      credential: 'PROVIDER_API_KEY',
+      environmentVariableName: 'PROVIDER_API_KEY',
     });
     expect(JSON.stringify(spawns[0]!.env)).not.toContain('direct-secret');
 
@@ -544,6 +559,13 @@ describe('createACP', () => {
       command: string;
       env: Record<string, string | undefined>;
     }> = [];
+    const credentialForwarding = vi.fn(
+      async ({
+        environmentVariableName,
+      }: {
+        environmentVariableName: string;
+      }) => `ephemeral-${environmentVariableName}`,
+    );
     const harness = createACP({
       harnessId: 'gateway-brokered-acp',
       auth: 'ai-gateway',
@@ -551,6 +573,7 @@ describe('createACP', () => {
       forwardEnv: [],
       credentialEnv: ['PROVIDER_API_KEY'],
       credentialBrokering,
+      credentialForwarding,
       providerAuthentication: {
         gateway: {
           env: {
@@ -589,7 +612,8 @@ describe('createACP', () => {
         },
       },
     ]);
-    expect(spawns[0]!.env.PROVIDER_API_KEY).toBe('PROVIDER_API_KEY');
+    expect(spawns[0]!.env.PROVIDER_API_KEY).toBe('ephemeral-PROVIDER_API_KEY');
+    expect(spawns[0]!.env.PROVIDER_BASE_URL).toBe('https://gateway.example/v1');
     expect(spawns[0]!.env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
     expect(JSON.stringify(spawns[0]!.env)).not.toContain('gateway-secret');
     await expect(
@@ -600,12 +624,89 @@ describe('createACP', () => {
       success: true,
       value: {
         providerAuthentication: { type: 'ai-gateway' },
-        providerEnvironment: {
-          PROVIDER_API_KEY: 'PROVIDER_API_KEY',
-          PROVIDER_BASE_URL: 'https://gateway.example/v1',
+        providerEnvironment: {},
+      },
+    });
+    expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
+      credential: 'PROVIDER_API_KEY',
+      environmentVariableName: 'PROVIDER_API_KEY',
+    });
+
+    await session.doDestroy();
+  });
+
+  it('uses the exposed environment variable name for brokered Gateway credentials', async () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
+    const addRequestTransformations = vi.fn(async () => {});
+    const credentialBrokering = vi.fn(
+      ({ env }: { env: Readonly<Record<string, string>> }) => [
+        {
+          match: { host: 'gateway.example' },
+          transform: {
+            headers: {
+              Authorization: `Bearer ${env.RUNTIME_PROVIDER_API_KEY}`,
+            },
+          },
+        },
+      ],
+    );
+    const credentialForwarding = vi.fn(
+      async ({ credential }: { credential: string }) => credential,
+    );
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'renamed-gateway-credential-acp',
+      auth: 'ai-gateway',
+      ...agentSettings,
+      forwardEnv: [],
+      credentialEnv: [],
+      credentialBrokering,
+      credentialForwarding,
+      providerAuthentication: {
+        gateway: {
+          env: {
+            RUNTIME_PROVIDER_API_KEY: { $source: 'gateway-api-key' },
+          },
         },
       },
     });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns,
+        stop: async () => {},
+        addRequestTransformations,
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(credentialBrokering).toHaveBeenCalledWith({
+      env: {
+        RUNTIME_PROVIDER_API_KEY: 'gateway-secret',
+      },
+    });
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: { host: 'gateway.example' },
+        transform: {
+          headers: { Authorization: 'Bearer gateway-secret' },
+        },
+      },
+    ]);
+    expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
+      credential: 'RUNTIME_PROVIDER_API_KEY',
+      environmentVariableName: 'RUNTIME_PROVIDER_API_KEY',
+    });
+    expect(spawns[0]!.env.RUNTIME_PROVIDER_API_KEY).toBe(
+      'RUNTIME_PROVIDER_API_KEY',
+    );
+    expect(spawns[0]!.env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
+    expect(JSON.stringify(spawns[0]!.env)).not.toContain('gateway-secret');
 
     await session.doDestroy();
   });
@@ -639,6 +740,107 @@ describe('createACP', () => {
     expect(spawns[0]!.env.PROVIDER_API_KEY).toBe('legacy-secret');
 
     await session.doDestroy();
+  });
+
+  it('customizes direct and Gateway credentials under their sandbox environment names', async () => {
+    vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-secret');
+    const credentialBrokering = vi.fn(() => []);
+    const credentialForwarding = vi.fn(
+      async ({ credential }: { credential: string }) =>
+        credential === 'gateway-secret'
+          ? 'ephemeral-gateway-credential'
+          : 'ephemeral-direct-credential',
+    );
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'custom-forwarding-acp',
+      auth: 'ai-gateway',
+      ...agentSettings,
+      forwardEnv: [],
+      credentialEnv: ['PROVIDER_API_KEY'],
+      credentialBrokering,
+      credentialForwarding,
+      providerAuthentication: {
+        gateway: {
+          env: {
+            RUNTIME_PROVIDER_API_KEY: { $source: 'gateway-api-key' },
+          },
+        },
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(credentialBrokering).not.toHaveBeenCalled();
+    expect(credentialForwarding).toHaveBeenNthCalledWith(1, {
+      credential: 'direct-secret',
+      environmentVariableName: 'PROVIDER_API_KEY',
+    });
+    expect(credentialForwarding).toHaveBeenNthCalledWith(2, {
+      credential: 'gateway-secret',
+      environmentVariableName: 'RUNTIME_PROVIDER_API_KEY',
+    });
+    expect(spawns[0]!.env.PROVIDER_API_KEY).toBe('ephemeral-direct-credential');
+    expect(spawns[0]!.env.RUNTIME_PROVIDER_API_KEY).toBe(
+      'ephemeral-gateway-credential',
+    );
+    expect(spawns[0]!.env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
+    await expect(
+      safeParseJSON({
+        text: spawns[0]!.env[ACP_BRIDGE_CONFIGURATION_ENV]!,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      value: {
+        providerEnvironment: {},
+      },
+    });
+
+    await session.doDestroy();
+  });
+
+  it('aborts before spawning when credential forwarding fails', async () => {
+    vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
+    const error = new Error('credential forwarding failed');
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'failed-forwarding-acp',
+      ...agentSettings,
+      forwardEnv: [],
+      credentialEnv: ['PROVIDER_API_KEY'],
+      credentialBrokering: () => [],
+      credentialForwarding: async () => {
+        throw error;
+      },
+    });
+
+    await expect(
+      harness.doStart({
+        sessionId: 'session-1',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns,
+          stop: async () => {},
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toBe(error);
+    expect(spawns).toEqual([]);
   });
 
   it('aborts before attach or spawn when credential brokering fails', async () => {
@@ -959,13 +1161,17 @@ describe('createACP', () => {
     expect(harness.builtinTools.bash.nativeName).toBe('shell');
   });
 
-  it('serializes built-in names and input schemas across the bridge', () => {
+  it('serializes built-in matching fields and input schemas across the bridge', () => {
     const builtinTools = {
-      bash: commonTool('bash', {
-        nativeName: 'shell',
-        description: 'Execute a command',
-        inputSchema: z.object({ command: z.string() }),
-      }),
+      bash: {
+        ...commonTool('bash', {
+          nativeName: 'shell',
+          toolUseKind: 'bash',
+          description: 'Execute a command',
+          inputSchema: z.object({ command: z.string() }),
+        }),
+        title: 'Terminal',
+      },
     };
 
     expect(serializeBuiltinTools({ builtinTools })).toMatchInlineSnapshot(`
@@ -985,7 +1191,9 @@ describe('createACP', () => {
             "type": "object",
           },
           "nativeName": "shell",
+          "title": "Terminal",
           "toolName": "bash",
+          "toolUseKind": "bash",
         },
       ]
     `);
@@ -1057,7 +1265,7 @@ describe('createACP', () => {
       first.files.find(file =>
         file.path.endsWith('/implementation/implementation.json'),
       )?.content,
-    ).toContain('"executable": "codex-acp"');
+    ).toContain('"executablePath": "node_modules/.bin/codex-acp"');
     expect(first.commands.map(command => command.command)).toEqual([
       'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       'pnpm --dir implementation install --prod --store-dir ../.pnpm-store',
@@ -1092,12 +1300,15 @@ describe('createACP', () => {
   });
 
   it('uses caller-provided artifacts for locked frozen acquisition', async () => {
+    const pnpmWorkspaceYaml =
+      "allowBuilds:\n  '@example/codex-acp@1.2.3': true\n";
     const harness = createACP({
       harnessId: 'codex-acp-locked',
       source: {
         type: 'npm-locked',
         packageJson: lockedPackageJson,
         pnpmLockYaml: lockedPnpmLockYaml,
+        pnpmWorkspaceYaml,
       },
       executable: 'codex-acp',
     });
@@ -1117,9 +1328,50 @@ describe('createACP', () => {
           '.harness-bootstrap/codex-acp-locked/implementation/pnpm-lock.yaml',
       )?.content,
     ).toBe(lockedPnpmLockYaml);
+    expect(
+      bootstrap.files.find(
+        file =>
+          file.path ===
+          '.harness-bootstrap/codex-acp-locked/implementation/pnpm-workspace.yaml',
+      )?.content,
+    ).toBe(pnpmWorkspaceYaml);
     expect(bootstrap.commands.map(command => command.command)).toContain(
       'pnpm --dir implementation install --frozen-lockfile --prod --store-dir ../.pnpm-store',
     );
+  });
+
+  it('generates isolated install command acquisition without npm implementation files', async () => {
+    const harness = createACP({
+      harnessId: 'cursor-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://cursor.com/install -fsS | bash',
+      },
+      executable: 'agent',
+      args: ['--disable-auto-update', 'acp'],
+    });
+    const bootstrap = await harness.getBootstrap!();
+    const implementationFiles = bootstrap.files.filter(file =>
+      file.path.includes('/implementation/'),
+    );
+
+    expect(implementationFiles.map(file => file.path).sort()).toEqual([
+      '.harness-bootstrap/cursor-acp/implementation/implementation.json',
+      '.harness-bootstrap/cursor-acp/implementation/install.sh',
+    ]);
+    expect(
+      implementationFiles.find(file => file.path.endsWith('/install.sh'))
+        ?.content,
+    ).toContain('curl https://cursor.com/install -fsS | bash');
+    expect(
+      implementationFiles.find(file =>
+        file.path.endsWith('/implementation.json'),
+      )?.content,
+    ).toContain('"executablePath": "home/.local/bin/agent"');
+    expect(bootstrap.commands.map(command => command.command)).toEqual([
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      'bash implementation/install.sh',
+    ]);
   });
 
   it('resolves bridge assets from source and bundled module layouts', () => {
@@ -1202,6 +1454,93 @@ describe('createACP', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  it('requires explicit bridge settings for a basic sandbox session', async () => {
+    const networkSession = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+    const sandboxSession = networkSession.restricted();
+
+    await expect(
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+      }).doStart({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(/explicit `port`/);
+
+    await expect(
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        port: 4319,
+      }).doStart({
+        sessionId: 'session-1',
+        sandboxSession,
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(/explicit `portEndpoint`/);
+  });
+
+  it('uses a basic sandbox session with explicit bridge settings', async () => {
+    const runs: string[] = [];
+    const networkSession = fakeSandbox({
+      runs,
+      spawns: [],
+      stop: async () => {},
+    });
+    const session = await createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      port: 4319,
+      portEndpoint: { url: 'ws://127.0.0.1:4319' },
+    }).doStart({
+      sessionId: 'session-1',
+      sandboxSession: networkSession.restricted(),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(runs[0]).toBe('pwd');
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toMatchObject({
+      bridge: {
+        port: 4319,
+        token: expect.any(String),
+        lastSeenEventId: 0,
+      },
+    });
+    expect(resumeFrom.data).not.toMatchObject({
+      bridge: { sandboxId: expect.anything() },
+    });
+  });
+
+  it('requires a sandbox id for custom bridge token minting', async () => {
+    const networkSession = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+
+    await expect(
+      createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        port: 4319,
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+        mintBridgeToken: sandboxId => sandboxId,
+      }).doStart({
+        sessionId: 'session-1',
+        sandboxSession: networkSession.restricted(),
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(/does not expose an id/);
+  });
+
   it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
     harnessUtilsMocks.connectOnOpen = true;
     const spawns: Array<{
@@ -1211,19 +1550,21 @@ describe('createACP', () => {
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge?existing=value',
+      headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+    };
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
       mintBridgeToken,
+      portEndpoint,
     });
     const sandboxSession = fakeSandbox({
       runs: [],
       spawns,
       stop: async () => {},
-      bridgePortEndpoint: {
-        url: 'wss://sandbox.example/bridge?existing=value',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
-      },
+      bridgePortEndpoint: { url: 'ws://unused.example' },
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -1249,11 +1590,11 @@ describe('createACP', () => {
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
     ]);
     await attachedSession.doDetach();

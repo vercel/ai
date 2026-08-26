@@ -16,13 +16,21 @@ describe('createACP built-in tool inference', () => {
     expectTypeOf<
       Extract<
         keyof ACPV1Settings,
-        'builtinTools' | 'port' | 'startupTimeoutMs' | 'clientApp'
+        | 'builtinTools'
+        | 'port'
+        | 'portEndpoint'
+        | 'startupTimeoutMs'
+        | 'clientApp'
       >
     >().toEqualTypeOf<never>();
     expectTypeOf<
       Omit<
         ACPHarnessSettings,
-        'builtinTools' | 'port' | 'startupTimeoutMs' | 'clientApp'
+        | 'builtinTools'
+        | 'port'
+        | 'portEndpoint'
+        | 'startupTimeoutMs'
+        | 'clientApp'
       >
     >().toEqualTypeOf<ACPV1Settings>();
   });
@@ -47,7 +55,7 @@ describe('createACP built-in tool inference', () => {
     expectTypeOf(harness.builtinTools).toEqualTypeOf<{ bash: typeof bash }>();
   });
 
-  test('accepts discriminated simple and locked npm sources', () => {
+  test('accepts discriminated npm and install command sources', () => {
     createACP({
       harnessId: 'simple-acp',
       source: {
@@ -71,6 +79,14 @@ describe('createACP built-in tool inference', () => {
         type: 'npm-locked',
         packageJson: '{"private":true}',
         pnpmLockYaml: "lockfileVersion: '9.0'\n",
+      },
+      executable: 'acp-agent',
+    });
+    createACP({
+      harnessId: 'install-command-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://example.com/install -fsS | bash',
       },
       executable: 'acp-agent',
     });
@@ -101,6 +117,19 @@ describe('createACP built-in tool inference', () => {
         variable: 'CODEX_CONFIG',
         path: ['developer_instructions'],
       },
+    });
+  });
+
+  test('accepts asynchronous credential forwarding', () => {
+    createACP({
+      harnessId: 'credential-forwarding-acp',
+      source: {
+        type: 'npm-simple',
+        packageName: '@example/acp-agent',
+      },
+      executable: 'acp-agent',
+      credentialForwarding: async ({ credential, environmentVariableName }) =>
+        `${environmentVariableName}:${credential}`,
     });
   });
 });

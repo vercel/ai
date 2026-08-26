@@ -1,5 +1,60 @@
 # @ai-sdk/togetherai
 
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/openai-compatible@3.0.37
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [ece5bdb]
+  - @ai-sdk/openai-compatible@3.0.36
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+- Updated dependencies [7dd9ec3]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/openai-compatible@3.0.35
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [99989ba]
+  - @ai-sdk/openai-compatible@3.0.34
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [d68139c]
+  - @ai-sdk/openai-compatible@3.0.33
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+- Updated dependencies [2f77de8]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/openai-compatible@3.0.32
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [86892f3]
+  - @ai-sdk/openai-compatible@3.0.31
+
 ## 3.0.31
 
 ### Patch Changes

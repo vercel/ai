@@ -4,7 +4,7 @@ import {
   type ACPPermissionModeMapping,
   type ACPSource,
 } from '@ai-sdk/harness-acp';
-import { commonTool } from '@ai-sdk/harness';
+import { commonTool, type HarnessV1PortEndpoint } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -77,6 +77,8 @@ export type CodexACPHarnessSettings = {
   auth?: ACPAuthOptions;
   mcpServers?: Record<string, unknown>;
   mintBridgeToken?: (sandboxId: string) => string;
+  port?: number;
+  portEndpoint?: HarnessV1PortEndpoint;
   reasoningEffort?: 'low' | 'medium' | 'high';
   webSearch?: boolean;
   source?: ACPSource;
@@ -86,6 +88,8 @@ export function createCodexACP({
   auth = 'auto',
   mcpServers,
   mintBridgeToken,
+  port,
+  portEndpoint,
   reasoningEffort,
   webSearch,
   source = CODEX_ACP_SOURCE,
@@ -96,6 +100,8 @@ export function createCodexACP({
     mcpServers,
     isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
     mintBridgeToken,
+    port,
+    portEndpoint,
     source,
     executable: CODEX_ACP_EXECUTABLE,
     forwardEnv: webSearch ? [] : ['CODEX_CONFIG'],

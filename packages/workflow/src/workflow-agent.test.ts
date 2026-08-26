@@ -2457,7 +2457,7 @@ describe('WorkflowAgent', () => {
   });
 
   describe('callbacks', () => {
-    it('should pass onError callback to streamTextIterator', async () => {
+    it('should keep onError handling at the WorkflowAgent boundary', async () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
@@ -2486,11 +2486,8 @@ describe('WorkflowAgent', () => {
         onError,
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
-        expect.objectContaining({
-          onError,
-        }),
-      );
+      const call = vi.mocked(streamTextIterator).mock.lastCall?.[0];
+      expect(call).not.toHaveProperty('onError');
     });
 
     it('should convert tool execution error to error-text result instead of failing stream', async () => {
@@ -3753,7 +3750,7 @@ describe('WorkflowAgent', () => {
       expect(mockIterator.next).toHaveBeenCalled();
     });
 
-    it('should not execute an approved tool when the forged input does not match the schema', async () => {
+    it('should continue with a model-visible error when approved input does not match the schema', async () => {
       const executeFn = vi.fn().mockResolvedValue({ ok: true });
       const tools: ToolSet = {
         getWeather: {
@@ -3818,6 +3815,27 @@ describe('WorkflowAgent', () => {
 
       // The tool must NOT have been executed with the forged input
       expect(executeFn).not.toHaveBeenCalled();
+      expect(mockIterator.next).toHaveBeenCalled();
+      const iteratorOptions = vi
+        .mocked(streamTextIterator)
+        .mock.calls.at(-1)?.[0];
+      expect(iteratorOptions).toBeDefined();
+      const initialMessages = iteratorOptions?.initialMessages;
+      expect(initialMessages).toBeDefined();
+      expect(initialMessages!.at(-1)).toMatchObject({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: {
+              type: 'error-text',
+              value: expect.stringMatching(/Invalid input for tool getWeather/),
+            },
+          },
+        ],
+      });
     });
 
     it('should not execute an approved tool when it does not declare needsApproval', async () => {

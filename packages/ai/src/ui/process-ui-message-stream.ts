@@ -90,7 +90,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
-  messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
+  messageMetadataSchema?: FlexibleSchema<UI_MESSAGE['metadata']>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
@@ -881,9 +881,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'finish-step': {
-              // reset the current text and reasoning parts
+              // Active parts are closed by their explicit end chunks. A merged
+              // stream's step can finish while another stream's part is active.
+              break;
+            }
+
+            case 'reset-step': {
+              const currentStepParts = getCurrentStepParts();
+
               state.activeTextParts = createIdMap();
               state.activeReasoningParts = createIdMap();
+              state.partialToolCalls = createIdMap();
+
+              if (currentStepParts.length > 0) {
+                state.message.parts.splice(
+                  state.message.parts.length - currentStepParts.length,
+                  currentStepParts.length,
+                );
+                write();
+              }
               break;
             }
 

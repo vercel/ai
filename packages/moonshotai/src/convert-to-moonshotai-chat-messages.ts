@@ -1,27 +1,111 @@
 import {
   UnsupportedFunctionalityError,
+  type LanguageModelV4FilePart,
   type LanguageModelV4Prompt,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
+  parseProviderOptions,
+  resolveProviderReference,
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
+import { moonshotaiMessageProviderOptions } from './moonshotai-chat-options';
+
+const supportedImageMediaTypes = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/bmp',
+  'image/heic',
+  'image/heif',
+] as const;
+
+const supportedVideoMediaTypes = [
+  'video/mp4',
+  'video/mpeg',
+  'video/mov',
+  'video/avi',
+  'video/x-flv',
+  'video/mpg',
+  'video/webm',
+  'video/wmv',
+  'video/3gpp',
+] as const;
+
+function formatMediaUrl({
+  part,
+  supportedMediaTypes,
+  topLevelMediaType,
+}: {
+  part: LanguageModelV4FilePart;
+  supportedMediaTypes: readonly string[];
+  topLevelMediaType: 'image' | 'video';
+}): string {
+  if (part.data.type !== 'url' && part.data.type !== 'data') {
+    throw new UnsupportedFunctionalityError({
+      functionality: `file part data type ${part.data.type}`,
+    });
+  }
+
+  const mediaType =
+    part.data.type === 'url' ? part.mediaType : resolveFullMediaType({ part });
+
+  if (
+    !supportedMediaTypes.includes(mediaType) &&
+    !(
+      part.data.type === 'url' &&
+      (mediaType === topLevelMediaType ||
+        mediaType === `${topLevelMediaType}/*`)
+    )
+  ) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `file part media type ${mediaType}`,
+    });
+  }
+
+  return part.data.type === 'url'
+    ? part.data.url.toString()
+    : `data:${mediaType};base64,${convertToBase64(part.data.data)}`;
+}
 
 // Moonshot AI chat completions accepts text, image_url, and video_url content
 // parts only. Anything else (audio, PDF, other file types) throws here rather
 // than being rejected by the API with a 400.
-export function convertToMoonshotAIChatMessages(
-  prompt: LanguageModelV4Prompt,
-): MoonshotAIMessages {
+export async function convertToMoonshotAIChatMessages({
+  prompt,
+  providerOptionsName = 'moonshotai',
+}: {
+  prompt: LanguageModelV4Prompt;
+  providerOptionsName?: string;
+}): Promise<{
+  messages: MoonshotAIMessages;
+  warnings: Array<SharedV4Warning>;
+}> {
   const messages: MoonshotAIMessages = [];
-  for (const { role, content } of prompt) {
+  const warnings: Array<SharedV4Warning> = [];
+
+  for (const { role, content, providerOptions } of prompt) {
+    const moonshotMessageOptions = await parseProviderOptions({
+      provider: providerOptionsName,
+      providerOptions,
+      schema: moonshotaiMessageProviderOptions,
+    });
+
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        messages.push({
+          role: 'system',
+          content,
+          ...(moonshotMessageOptions?.name != null && {
+            name: moonshotMessageOptions.name,
+          }),
+        });
         break;
       }
 
@@ -30,6 +114,9 @@ export function convertToMoonshotAIChatMessages(
           messages.push({
             role: 'user',
             content: content[0].text,
+            ...(moonshotMessageOptions?.name != null && {
+              name: moonshotMessageOptions.name,
+            }),
           });
           break;
         }
@@ -42,29 +129,61 @@ export function convertToMoonshotAIChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'file': {
+                const topLevel = getTopLevelMediaType(part.mediaType);
+
                 switch (part.data.type) {
                   case 'reference': {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'file parts with provider references',
+                    if (topLevel !== 'image' && topLevel !== 'video') {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: `file part media type ${part.mediaType}`,
+                      });
+                    }
+
+                    const reference = resolveProviderReference({
+                      reference: part.data.reference,
+                      provider: 'moonshotai',
                     });
+
+                    if (!reference.startsWith('ms://')) {
+                      throw new UnsupportedFunctionalityError({
+                        functionality:
+                          'Moonshot file provider references without an ms:// URL',
+                      });
+                    }
+
+                    return topLevel === 'image'
+                      ? {
+                          type: 'image_url' as const,
+                          image_url: { url: reference },
+                        }
+                      : {
+                          type: 'video_url' as const,
+                          video_url: { url: reference },
+                        };
                   }
                   case 'text': {
+                    if (topLevel === 'text') {
+                      return {
+                        type: 'text' as const,
+                        text: part.data.text,
+                      };
+                    }
+
                     throw new UnsupportedFunctionalityError({
-                      functionality: 'text file parts',
+                      functionality: `file part media type ${part.mediaType}`,
                     });
                   }
                   case 'url':
                   case 'data': {
-                    const topLevel = getTopLevelMediaType(part.mediaType);
-
                     if (topLevel === 'image') {
                       return {
                         type: 'image_url' as const,
                         image_url: {
-                          url:
-                            part.data.type === 'url'
-                              ? part.data.url.toString()
-                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                          url: formatMediaUrl({
+                            part,
+                            supportedMediaTypes: supportedImageMediaTypes,
+                            topLevelMediaType: 'image',
+                          }),
                         },
                       };
                     }
@@ -73,10 +192,11 @@ export function convertToMoonshotAIChatMessages(
                       return {
                         type: 'video_url' as const,
                         video_url: {
-                          url:
-                            part.data.type === 'url'
-                              ? part.data.url.toString()
-                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                          url: formatMediaUrl({
+                            part,
+                            supportedMediaTypes: supportedVideoMediaTypes,
+                            topLevelMediaType: 'video',
+                          }),
                         },
                       };
                     }
@@ -104,6 +224,9 @@ export function convertToMoonshotAIChatMessages(
                 }
               }
             }
+          }),
+          ...(moonshotMessageOptions?.name != null && {
+            name: moonshotMessageOptions.name,
           }),
         });
 
@@ -146,6 +269,9 @@ export function convertToMoonshotAIChatMessages(
         messages.push({
           role: 'assistant',
           content: toolCalls.length > 0 ? text || null : text,
+          ...(moonshotMessageOptions?.name != null && {
+            name: moonshotMessageOptions.name,
+          }),
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
@@ -154,6 +280,13 @@ export function convertToMoonshotAIChatMessages(
       }
 
       case 'tool': {
+        if (moonshotMessageOptions?.name != null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          });
+        }
+
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
             continue;
@@ -193,5 +326,5 @@ export function convertToMoonshotAIChatMessages(
     }
   }
 
-  return messages;
+  return { messages, warnings };
 }

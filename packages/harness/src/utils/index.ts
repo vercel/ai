@@ -4,8 +4,15 @@ export {
   type SandboxChannelOptions,
   type SandboxChannelReconnectOptions,
 } from './sandbox-channel';
+export {
+  experimental_createBridgeUserMessageSubmitter,
+  type Experimental_BridgeUserMessageRequest,
+  type Experimental_BridgeUserMessageResponse,
+  type Experimental_BridgeUserMessageSubmitter,
+} from './bridge-user-message-submitter';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
+export { applyCredentialForwarding } from './credential-forwarding';
 export {
   createCredentialRequestTransformation,
   maskSandboxCredentials,
@@ -34,3 +41,5 @@ export {
   forwardBridgeProcessStream,
   logBridgeError,
 } from './bridge-diagnostics';
+export { resolveSandboxDefaultWorkingDirectory } from './resolve-sandbox-default-working-directory';
+export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';
