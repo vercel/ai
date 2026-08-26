@@ -10,4 +10,14 @@ export {
 } from './ui-message-chunks';
 export { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
 export type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+<<<<<<< HEAD
 export type { UIMessageStreamWriter } from './ui-message-stream-writer';
+=======
+export type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
+export type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
+export type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
+export type {
+  UIMessageStreamWriter,
+  UIMessageStreamWriterWithOutcome,
+} from './ui-message-stream-writer';
+>>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))

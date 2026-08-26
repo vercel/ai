@@ -7,7 +7,14 @@ import {
 import type { UIMessage } from '../ui/ui-messages';
 import type { ErrorHandler } from '../util/error-handler';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
+<<<<<<< HEAD
 import type { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+=======
+import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
+import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
+import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
+>>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
@@ -15,6 +22,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   onFinish,
   onError,
   stream,
+  getOutcome,
 }: {
   stream: ReadableStream<InferUIMessageChunk<UI_MESSAGE>>;
 
@@ -31,7 +39,33 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 
   onError: ErrorHandler;
 
+<<<<<<< HEAD
   onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+=======
+  /**
+   * Callback that is called when each step ends during multi-step agent runs.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /**
+   * Callback that is called when each step ends during multi-step agent runs.
+   *
+   * @deprecated Use `onStepEnd` instead.
+   */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
+
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * Returns the operation-level outcome declared by the stream owner.
+   */
+  getOutcome?: () => UIMessageStreamOutcome;
+>>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   // last message is only relevant for assistant messages
   let lastMessage: UI_MESSAGE | undefined =
@@ -44,6 +78,13 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   }
 
   let isAborted = false;
+  let hasProcessingFailure = false;
+  let processingError: unknown;
+
+  const recordProcessingFailure = (error: unknown) => {
+    hasProcessingFailure = true;
+    processingError = error;
+  };
 
   const idInjectedStream = stream.pipeThrough(
     new TransformStream<
@@ -51,21 +92,31 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       InferUIMessageChunk<UI_MESSAGE>
     >({
       transform(chunk, controller) {
-        // when there is no messageId in the start chunk,
-        // but the user checked for persistence,
-        // inject the messageId into the chunk
-        if (chunk.type === 'start') {
-          const startChunk = chunk as UIMessageChunk & { type: 'start' };
-          if (startChunk.messageId == null && messageId != null) {
-            startChunk.messageId = messageId;
+        try {
+          let outputChunk = chunk;
+
+          // when there is no messageId in the start chunk,
+          // but the user checked for persistence,
+          // inject the messageId into the chunk
+          if (chunk.type === 'start') {
+            const startChunk = chunk as UIMessageChunk & { type: 'start' };
+            if (startChunk.messageId == null && messageId != null) {
+              outputChunk = {
+                ...startChunk,
+                messageId,
+              } as InferUIMessageChunk<UI_MESSAGE>;
+            }
           }
-        }
 
-        if (chunk.type === 'abort') {
-          isAborted = true;
-        }
+          if (chunk.type === 'abort') {
+            isAborted = true;
+          }
 
-        controller.enqueue(chunk);
+          controller.enqueue(outputChunk);
+        } catch (error) {
+          recordProcessingFailure(error);
+          throw error;
+        }
       },
     }),
   );
@@ -87,7 +138,12 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => {
-    await job({ state, write: () => {} });
+    try {
+      await job({ state, write: () => {} });
+    } catch (error) {
+      recordProcessingFailure(error);
+      throw error;
+    }
   };
 
   let finishCalled = false;
@@ -99,9 +155,22 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     finishCalled = true;
 
     const isContinuation = state.message.id === lastMessage?.id;
+<<<<<<< HEAD
     await onFinish({
       isAborted,
+=======
+    const declaredOutcome = getOutcome?.() ?? { status: 'unknown' };
+    const outcome: UIMessageStreamOutcome = hasProcessingFailure
+      ? { status: 'failed', error: processingError }
+      : declaredOutcome.status === 'unknown' && isAborted
+        ? { status: 'aborted' }
+        : declaredOutcome;
+
+    await resolvedOnEnd({
+      isAborted: isAborted || outcome.status === 'aborted',
+>>>>>>> 957146cf24 (fix: UI message stream end callbacks cannot distinguish failed responses from completed streams (#17578))
       isContinuation,
+      outcome,
       responseMessage: state.message as UI_MESSAGE,
       messages: [
         ...(isContinuation ? originalMessages.slice(0, -1) : originalMessages),
