@@ -1032,6 +1032,127 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('dynamic tool loading', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-tool-call');
+    });
+
+    it('should send normalized dynamic tools in a K3 system message', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Calculate.' }] },
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    description: 'Evaluate an expression',
+                    inputSchema: {
+                      type: 'object',
+                      properties: {
+                        values: {
+                          type: 'array',
+                          items: [{ type: 'number' }, { type: 'number' }],
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages.at(-1)).toEqual({
+        role: 'system',
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'calculator',
+              description: 'Evaluate an expression',
+              parameters: {
+                type: 'object',
+                properties: {
+                  values: {
+                    type: 'array',
+                    prefixItems: [{ type: 'number' }, { type: 'number' }],
+                  },
+                },
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it('should omit dynamic messages and warn for non-K3 official models', async () => {
+      const result = await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [],
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'dynamic tool loading for model "kimi-k2.6"',
+        details:
+          'Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted.',
+      });
+    });
+
+    it('should preserve dynamic messages for unknown custom models', async () => {
+      await provider.chatModel('custom-model').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages[0]).toMatchObject(
+        {
+          role: 'system',
+          tools: [{ function: { name: 'calculator' } }],
+        },
+      );
+    });
+  });
+
   describe('logprobs', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('moonshotai-logprobs');
@@ -1393,6 +1514,35 @@ describe('doStream', () => {
     expect(requestBody.stream).toBe(true);
     expect(requestBody.stream_options).toStrictEqual({
       include_usage: true,
+    });
+  });
+
+  it('should send dynamic tool messages when streaming', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream');
+
+    await provider.chatModel('kimi-k3').doStream({
+      prompt: [
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'calculator',
+                  inputSchema: { type: 'object', properties: {} },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).messages[0]).toMatchObject({
+      role: 'system',
+      tools: [{ function: { name: 'calculator' } }],
     });
   });
 

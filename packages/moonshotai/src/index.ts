@@ -8,6 +8,7 @@ export type {
   MoonshotAIChatModelId,
   MoonshotAILanguageModelOptions,
   MoonshotAIMessageProviderOptions,
+  MoonshotAISystemMessageProviderOptions,
   /** @deprecated Use `MoonshotAILanguageModelOptions` instead. */
   MoonshotAILanguageModelOptions as MoonshotAIProviderOptions,
 } from './moonshotai-chat-options';
