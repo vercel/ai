@@ -772,6 +772,46 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should replay reasoning redacted as `redactedContent`', async () => {
+    const redactedContent = 'encrypted-reasoning-payload';
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: { bedrock: { redactedContent } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedContent,
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
     const result = await convertToBedrockChatMessages([
       {
@@ -995,6 +1035,69 @@ describe('assistant messages', () => {
       }
     `);
   });
+
+  it.each([
+    {
+      description: 'only unsigned reasoning',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+      ],
+    },
+    {
+      description: 'unsigned reasoning and empty text',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+        { type: 'text' as const, text: '' },
+      ],
+    },
+    {
+      description: 'unsigned reasoning and whitespace-only text',
+      assistantContent: [
+        {
+          type: 'reasoning' as const,
+          text: 'Unsigned reasoning',
+        },
+        { type: 'text' as const, text: '\n ' },
+      ],
+    },
+  ])(
+    'should omit assistant messages that become empty after filtering $description',
+    async ({ assistantContent }) => {
+      const result = await convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'First question' }],
+        },
+        {
+          role: 'assistant',
+          content: assistantContent,
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Follow-up question' }],
+        },
+      ]);
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { text: 'First question' },
+              { text: 'Follow-up question' },
+            ],
+          },
+        ],
+        system: [],
+      });
+    },
+  );
 
   it('should omit unsigned reasoning while preserving tool calls in multi-turn tool use', async () => {
     const result = await convertToBedrockChatMessages([
@@ -1347,7 +1450,42 @@ describe('assistant messages', () => {
     ]);
   });
 
-  it('should preserve empty text blocks when reasoning blocks are present', async () => {
+  it('should wrap non-object (invalid) tool call input in an object', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            // malformed JSON the model produced, kept as a raw string
+            input: '{ "city": "San Francisco", }',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'cityAttractions',
+                input: { rawInvalidInput: '{ "city": "San Francisco", }' },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should preserve empty text blocks when replayable signed reasoning is present', async () => {
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
@@ -1410,6 +1548,71 @@ describe('assistant messages', () => {
       system: [],
     });
   });
+
+  it.each([
+    {
+      description: 'redactedContent',
+      providerOptions: {
+        bedrock: { redactedContent: 'encrypted-reasoning-payload' },
+      },
+      expectedReasoningContent: {
+        reasoningContent: {
+          redactedContent: 'encrypted-reasoning-payload',
+        },
+      },
+    },
+    {
+      description: 'redactedData',
+      providerOptions: {
+        bedrock: { redactedData: 'redacted-reasoning-data' },
+      },
+      expectedReasoningContent: {
+        reasoningContent: {
+          redactedReasoning: { data: 'redacted-reasoning-data' },
+        },
+      },
+    },
+  ])(
+    'should preserve empty text blocks when replayable $description reasoning is present',
+    async ({ providerOptions, expectedReasoningContent }) => {
+      const result = await convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: '',
+              providerOptions,
+            },
+            { type: 'text', text: '' },
+            { type: 'text', text: 'response text' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'user',
+            content: [{ text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              expectedReasoningContent,
+              { text: '' },
+              { text: 'response text' },
+            ],
+          },
+        ],
+        system: [],
+      });
+    },
+  );
 });
 
 describe('tool messages', () => {

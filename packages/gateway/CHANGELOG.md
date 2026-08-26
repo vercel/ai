@@ -1,5 +1,124 @@
 # @ai-sdk/gateway
 
+## 3.0.184
+
+### Patch Changes
+
+- 8ddf255: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 3.0.183
+
+### Patch Changes
+
+- ad28ecb: Backport: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+
+## 3.0.182
+
+### Patch Changes
+
+- 845ad6d: Remove the internal-only `relevance_score` and `citation_number` fields from
+  published Tako Search response types and schemas. Code that reads either field
+  must be updated; Gateway responses still pass the values through at runtime,
+  but they are no longer typed. Also document data surcharge controls.
+- fe80a3c: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.181
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 3.0.180
+
+### Patch Changes
+
+- f6efa51: Backport: chore(provider/gateway): update gateway model settings files
+- 3539755: feat (provider/gateway): add Tako Search tool support
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
+## 3.0.179
+
+### Patch Changes
+
+- 1e70580: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.178
+
+### Patch Changes
+
+- 7de3226: Backport: chore(provider/gateway): update gateway model settings files
+- 504da15: feat: add DeepSeek V4 Flash Vision Exp image input support
+
+## 3.0.177
+
+### Patch Changes
+
+- def7999: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.176
+
+### Patch Changes
+
+- 96304fc: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.175
+
+### Patch Changes
+
+- 000b243: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.174
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 3.0.173
+
+### Patch Changes
+
+- 71e94ad: feat(google): add `gemini-3.7-flash` model
+
+## 3.0.172
+
+### Patch Changes
+
+- 0ec239b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.171
+
+### Patch Changes
+
+- 18b0965: Serialize structured Gateway error responses in nested API call error messages.
+- 451d2c3: feat(xai): Add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 3.0.170
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.169
+
+### Patch Changes
+
+- b39f987: Backport: chore(provider/gateway): update gateway model settings files
+- d79117b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.168
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 3.0.167
 
 ### Patch Changes

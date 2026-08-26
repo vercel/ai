@@ -1,5 +1,96 @@
 # @ai-sdk/xai
 
+## 3.0.128
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+  - @ai-sdk/openai-compatible@2.0.73
+
+## 3.0.127
+
+### Patch Changes
+
+- d44b071: Preserve complete xAI Responses usage objects in raw usage metadata.
+- 47ae3e5: Preserve complete xAI Chat Completions usage objects in generated and streamed results.
+
+## 3.0.126
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/openai-compatible@2.0.72
+
+## 3.0.125
+
+### Patch Changes
+
+- f33a407: fix(provider/xai): report image moderation blocks as content policy errors
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/openai-compatible@2.0.71
+
+## 3.0.124
+
+### Patch Changes
+
+- Updated dependencies [c79dd10]
+  - @ai-sdk/openai-compatible@2.0.70
+
+## 3.0.123
+
+### Patch Changes
+
+- Updated dependencies [7440d89]
+  - @ai-sdk/openai-compatible@2.0.69
+
+## 3.0.122
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/openai-compatible@2.0.68
+
+## 3.0.121
+
+### Patch Changes
+
+- 70a6c3b: feat (provider/xai): support Grok Imagine Video 1.5. Adds the `grok-imagine-video-1.5` model id and native `1080p` for text-to-video and image-to-video (the standard `resolution: '1920x1080'` now maps to `1080p`). Reference-to-video remains capped at `720p`, so a `1080p` request in that mode is downgraded with a warning. Also fixes reference routing: previously any non-empty `inputReferences` array selected reference-to-video, so an array holding only a non-image reference sent `reference_images: []` with no usable references.
+- 70a6c3b: feat (provider/xai): add `referenceVoiceIds` for reference-to-video reference audio. Pass up to 3 xAI preset voice ids (e.g. `['eve']`) and reference them from the prompt with `<AUDIO_0>`–`<AUDIO_2>`; they are sent as `reference_audios: [{ voice_id }]` on `POST /v1/videos/generations`.
+
+## 3.0.120
+
+### Patch Changes
+
+- 3283e3e: feat(xai): support the priority service tier on chat and responses
+
+## 3.0.119
+
+### Patch Changes
+
+- 451d2c3: feat(xai): Add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 3.0.118
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/openai-compatible@2.0.67
+
+## 3.0.117
+
+### Patch Changes
+
+- Updated dependencies [de18066]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai-compatible@2.0.66
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 3.0.116
 
 ### Patch Changes

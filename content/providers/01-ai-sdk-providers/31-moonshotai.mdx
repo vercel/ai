@@ -91,17 +91,114 @@ const model = moonshotai.languageModel('kimi-k3');
 Moonshot AI language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+Moonshot V1 models support the standard `temperature`, `topP`,
+`presencePenalty`, and `frequencyPenalty` settings. Kimi models use fixed
+sampling parameters; the provider omits those settings for Kimi requests and
+returns an unsupported-setting warning when they are supplied.
+
+Kimi K3 supports `toolChoice: 'required'`. Kimi K2.6 and the Kimi K2.7 Code
+models reject that setting, so the provider omits it and returns an unsupported
+warning for those model IDs. Other tool choice modes are passed through
+unchanged.
+
 #### Structured Outputs
 
-Native structured outputs are enabled for Moonshot models whose model ID starts with `kimi-`.
+Native structured outputs are enabled for Kimi K models and the official
+Moonshot V1 text, auto, and vision models.
 
-For other Moonshot models, object generation falls back to JSON mode instead of schema-constrained decoding.
+The provider normalizes schemas to Moonshot's supported JSON Schema subset and
+enables strict schema validation by default.
+
+For unknown custom model IDs, object generation falls back to JSON mode instead
+of schema-constrained decoding.
 
 For best reliability, it is strongly recommended to include your schema requirements in your prompt in addition to passing the schema through `Output`.
 
+### Message Names
+
+Moonshot AI supports optional participant names on system, user, and assistant
+messages. Set `providerOptions.moonshotai.name` on each message that should
+include a name:
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAIMessageProviderOptions,
+} from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: moonshotai('kimi-k3'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Suggest a name for my neighborhood book club.',
+      providerOptions: {
+        moonshotai: {
+          name: 'organizer',
+        } satisfies MoonshotAIMessageProviderOptions,
+      },
+    },
+  ],
+});
+```
+
+The same option works with `streamText`. Names are omitted when unset. The
+provider ignores a name on a tool message and returns an unsupported warning.
+Avoid including unnecessary personal or identifying information in message
+names.
+
+### Partial Mode
+
+Moonshot AI's [Partial Mode](https://platform.moonshot.ai/docs/api/partial)
+continues the content of a final assistant message. Set `partial: true` in that
+assistant message's provider options:
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAIAssistantMessageProviderOptions,
+} from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const prefix = 'The sky is';
+
+const { text } = await generateText({
+  model: moonshotai('kimi-k3'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Write one short sentence about the color of the sky.',
+    },
+    {
+      role: 'assistant',
+      content: prefix,
+      providerOptions: {
+        moonshotai: {
+          partial: true,
+        } satisfies MoonshotAIAssistantMessageProviderOptions,
+      },
+    },
+  ],
+});
+
+const completeResponse = prefix + text;
+```
+
+The partial message must be the final assistant message in the prompt. Moonshot
+returns only the continuation, so concatenate the prefix and generated text
+when you need the complete response.
+
+<Note>
+  Partial Mode cannot be combined with Moonshot's `json_object` response format.
+  The provider rejects that combination before sending the request. A supported
+  `json_schema` response remains available, but structured-output parsing
+  validates only the returned continuation.
+</Note>
+
 ### Reasoning Models
 
-Kimi K3 always reasons. It currently supports only the `max` reasoning effort,
+Kimi K3 always reasons. It supports `low`, `high`, and `max` reasoning effort,
 which you can configure through provider options:
 
 ```ts
@@ -125,7 +222,9 @@ console.log(reasoningText);
 console.log(text);
 ```
 
-Moonshot AI offers thinking models like `kimi-k2-thinking` that generate intermediate reasoning tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
+Kimi K2.5 and K2.6 can enable or disable thinking. Kimi K2.7 always has
+thinking and preserved reasoning enabled. The reasoning output is streamed
+through the standard AI SDK reasoning parts.
 
 ```ts
 import {
@@ -135,11 +234,11 @@ import {
 import { generateText } from 'ai';
 
 const { text, reasoningText } = await generateText({
-  model: moonshotai('kimi-k2-thinking'),
+  model: moonshotai('kimi-k2.6'),
   providerOptions: {
     moonshotai: {
-      thinking: { type: 'enabled', budgetTokens: 2048 },
-      reasoningHistory: 'interleaved',
+      thinking: { type: 'enabled' },
+      reasoningHistory: 'preserved',
     } satisfies MoonshotAILanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
@@ -151,45 +250,176 @@ console.log(text);
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
 
+### Log Probabilities
+
+Moonshot AI can return token log probabilities for Chat Completions. Set
+`logprobs` to request token probabilities, or set `topLogprobs` to request the
+most likely alternatives at each token position. Setting `topLogprobs`
+automatically enables `logprobs`.
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAILanguageModelOptions,
+} from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: moonshotai('moonshot-v1-8k'),
+  prompt: 'Reply with one word that means happy.',
+  providerOptions: {
+    moonshotai: {
+      topLogprobs: 3,
+    } satisfies MoonshotAILanguageModelOptions,
+  },
+});
+
+console.log(result.text);
+console.log(result.providerMetadata?.moonshotai?.logprobs);
+```
+
+For `generateText`, log probabilities are available at
+`providerMetadata.moonshotai.logprobs`. For `streamText`, the accumulated log
+probabilities are included in the final finish part under the same metadata
+path.
+
+Moonshot documents the request options and OpenAI Chat Completions
+compatibility, but does not separately specify the log probability response
+schema. The provider therefore preserves the OpenAI-compatible `content`
+entries, including each token's `logprob`, nullable `bytes`, and
+`top_logprobs`.
+
+<Note>
+  Token probabilities and alternatives can significantly increase response size.
+  Request them only when needed, and avoid forwarding or persistently logging
+  provider metadata unless your application requires it.
+</Note>
+
+### Video Input
+
+Kimi K3, Kimi K2.7 Code, Kimi K2.6, and Kimi K2.5 support video input. Pass the video as a `file` content part with a video media type:
+
+```ts
+import { moonshotai } from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+import fs from 'node:fs';
+
+const { text } = await generateText({
+  model: moonshotai('kimi-k3'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize what happens in this video.' },
+        {
+          type: 'file',
+          data: fs.readFileSync('./video.mp4'),
+          mediaType: 'video/mp4',
+        },
+      ],
+    },
+  ],
+});
+
+console.log(text);
+```
+
+You can also pass a URL. Since Moonshot AI does not fetch external URLs, the AI SDK downloads the video and inlines it as base64 before sending:
+
+```ts
+{
+  type: 'file',
+  data: new URL('https://example.com/video.mp4'),
+  mediaType: 'video/mp4',
+}
+```
+
+<Note>
+  Supported image media types are `image/jpeg`, `image/png`, `image/gif`,
+  `image/webp`, `image/bmp`, `image/heic`, and `image/heif`. Supported video
+  media types are `video/mp4`, `video/mpeg`, `video/mov`, `video/avi`,
+  `video/x-flv`, `video/mpg`, `video/webm`, `video/wmv`, and `video/3gpp`. Other
+  image and video media types are rejected before a request is sent.
+</Note>
+
+<Note>
+  Moonshot AI recommends videos up to 1080p. For larger videos, or videos you
+  reuse across many requests, upload them with the [Moonshot Files
+  API](https://platform.moonshot.ai/docs/api/files) instead. Audio and PDF
+  inputs are not supported by Moonshot AI chat completions.
+</Note>
+
 ### Provider Options
 
 The following optional provider options are available for Moonshot AI language models:
 
-- **reasoningEffort** _'max'_
+- **strictJsonSchema** _boolean_
 
-  Reasoning effort for Kimi K3. Currently, only `'max'` is supported.
+  Whether to use strict JSON schema validation for structured outputs. Defaults
+  to `true`.
+
+- **logprobs** _boolean_
+
+  Whether to return log probabilities for generated tokens. Results are
+  available in `providerMetadata.moonshotai.logprobs`.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return at each token position. Accepts
+  integer values from `0` through `20` and automatically enables `logprobs`.
+
+- **reasoningEffort** _'low' | 'high' | 'max'_
+
+  Reasoning effort for Kimi K3.
 
 - **thinking** _object_
 
-  Configuration for thinking/reasoning models like Kimi K2 Thinking.
+  Configuration for Kimi K2.5 and K2.6. Kimi K2.7 accepts only `enabled`
+  because its thinking cannot be disabled. Kimi K3 does not accept this field.
   - **type** _'enabled' | 'disabled'_
 
     Whether to enable thinking mode
 
-  - **budgetTokens** _number_
-
-    Maximum number of tokens for thinking (minimum 1024)
+  The previously exposed `budgetTokens` option is deprecated because Moonshot
+  Chat Completions does not support thinking budgets. The provider omits it and
+  returns a warning.
 
 - **reasoningHistory** _'disabled' | 'interleaved' | 'preserved'_
 
   Controls how reasoning history is handled in multi-turn conversations:
   - `'disabled'`: Remove reasoning from history
   - `'interleaved'`: Include reasoning between tool calls within a single turn
-  - `'preserved'`: Keep all reasoning in history
+  - `'preserved'`: Keep all reasoning in history. For Kimi K2.6, this maps to
+    `thinking.keep: 'all'`. Kimi K2.7 and K3 always preserve reasoning.
+
+### Chat Response Metadata
+
+Moonshot AI preserves provider-specific response fields in
+`providerMetadata.moonshotai` for generated and streamed responses:
+
+- `responseObject`: `chat.completion` or `chat.completion.chunk`
+- `choiceIndex`: the selected response choice index
+- `messageRole`: the response message role, when supplied
+- `toolCallTypes`: the tool-call type for each returned call
+
+These fields remain in provider metadata because they are specific to
+Moonshot's Chat Completions response rather than shared AI SDK result fields.
 
 ## Model Capabilities
 
-| Model                    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `moonshot-v1-8k`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `moonshot-v1-32k`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `moonshot-v1-128k`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `kimi-k2`                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `kimi-k2.5`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `kimi-k3`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `kimi-k2-thinking`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `kimi-k2-thinking-turbo` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `kimi-k2-turbo`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                    | Image Input         | Video Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `moonshot-v1-8k`         | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `moonshot-v1-32k`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `moonshot-v1-128k`       | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k2`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k2.5`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k2-thinking`       | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k2-thinking-turbo` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k2-turbo`          | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k2.6`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k2.7-code`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `kimi-k3`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   Please see the [Moonshot AI docs](https://platform.moonshot.ai/docs/intro) for

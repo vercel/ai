@@ -435,13 +435,14 @@ export function toUIMessageStream<TState = unknown>(
     messageSeen: new Map(),
     messageNamespaces: new Map(),
     messageConcat: new Map(),
+    messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolCallsInCurrentStepByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
-    currentStep: null as number | null,
-    stepNamespace: null,
+    currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   };
@@ -608,7 +609,7 @@ export function toUIMessageStream<TState = unknown>(
           /**
            * Emit finish-step if a step was started
            */
-          if (langGraphState.currentStep !== null) {
+          if (langGraphState.currentStepsByNamespace.size > 0) {
             controller.enqueue({ type: 'finish-step' });
           }
           controller.enqueue({ type: 'finish' });

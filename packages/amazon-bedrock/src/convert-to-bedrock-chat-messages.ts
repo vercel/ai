@@ -1,6 +1,7 @@
 import {
   UnsupportedFunctionalityError,
   type JSONObject,
+  type JSONValue,
   type LanguageModelV3FilePart,
   type LanguageModelV3Message,
   type LanguageModelV3Prompt,
@@ -333,7 +334,12 @@ export async function convertToBedrockChatMessages(
           pushCachePoint(bedrockContent, providerOptions);
         }
 
-        messages.push({ role: 'user', content: bedrockContent });
+        const previousMessage = messages.at(-1);
+        if (previousMessage?.role === 'user') {
+          previousMessage.content.push(...bedrockContent);
+        } else {
+          messages.push({ role: 'user', content: bedrockContent });
+        }
 
         break;
       }
@@ -346,8 +352,56 @@ export async function convertToBedrockChatMessages(
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
           const { content } = message;
-          const hasReasoningBlocks = content.some(
-            part => part.type === 'reasoning',
+          const convertedReasoningContent: Array<
+            BedrockAssistantMessage['content'][number] | undefined
+          > = await Promise.all(
+            content.map(async part => {
+              if (part.type !== 'reasoning') {
+                return undefined;
+              }
+
+              const metadata = await parseProviderOptions({
+                provider: 'bedrock',
+                providerOptions: part.providerOptions,
+                schema: bedrockReasoningMetadataSchema,
+              });
+
+              if (metadata?.signature != null) {
+                return {
+                  reasoningContent: {
+                    reasoningText: {
+                      // do not trim reasoning text when a signature is present:
+                      // the signature validates the exact original bytes
+                      text: part.text,
+                      signature: metadata.signature,
+                    },
+                  },
+                };
+              }
+
+              if (metadata?.redactedContent != null) {
+                return {
+                  reasoningContent: {
+                    redactedContent: metadata.redactedContent,
+                  },
+                };
+              }
+
+              if (metadata?.redactedData != null) {
+                return {
+                  reasoningContent: {
+                    redactedReasoning: {
+                      data: metadata.redactedData,
+                    },
+                  },
+                };
+              }
+
+              return undefined;
+            }),
+          );
+          const hasReplayableReasoningBlocks = convertedReasoningContent.some(
+            part => part != null,
           );
 
           for (let k = 0; k < content.length; k++) {
@@ -356,8 +410,9 @@ export async function convertToBedrockChatMessages(
 
             switch (part.type) {
               case 'text': {
-                // Skip empty text blocks unless reasoning blocks are present
-                if (!part.text.trim() && !hasReasoningBlocks) {
+                // Skip empty text blocks unless replayable reasoning blocks are
+                // present and the original block order must be preserved.
+                if (!part.text.trim() && !hasReplayableReasoningBlocks) {
                   break;
                 }
 
@@ -377,31 +432,9 @@ export async function convertToBedrockChatMessages(
               }
 
               case 'reasoning': {
-                const reasoningMetadata = await parseProviderOptions({
-                  provider: 'bedrock',
-                  providerOptions: part.providerOptions,
-                  schema: bedrockReasoningMetadataSchema,
-                });
-
-                if (reasoningMetadata?.signature != null) {
-                  // do not trim reasoning text when a signature is present:
-                  // the signature validates the exact original bytes
-                  bedrockContent.push({
-                    reasoningContent: {
-                      reasoningText: {
-                        text: part.text,
-                        signature: reasoningMetadata.signature,
-                      },
-                    },
-                  });
-                } else if (reasoningMetadata?.redactedData != null) {
-                  bedrockContent.push({
-                    reasoningContent: {
-                      redactedReasoning: {
-                        data: reasoningMetadata.redactedData,
-                      },
-                    },
-                  });
+                const convertedPart = convertedReasoningContent[k];
+                if (convertedPart != null) {
+                  bedrockContent.push(convertedPart);
                 }
                 // Unsigned reasoning is intentionally not replayed. Some
                 // Bedrock models (for example OpenAI gpt-oss) return reasoning
@@ -415,7 +448,7 @@ export async function convertToBedrockChatMessages(
                   toolUse: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
                     name: sanitizeToolName(part.toolName),
-                    input: part.input as JSONObject,
+                    input: toBedrockToolInput(part.input),
                   },
                 });
                 break;
@@ -427,7 +460,9 @@ export async function convertToBedrockChatMessages(
           pushCachePoint(bedrockContent, message.providerOptions);
         }
 
-        messages.push({ role: 'assistant', content: bedrockContent });
+        if (bedrockContent.length > 0) {
+          messages.push({ role: 'assistant', content: bedrockContent });
+        }
 
         break;
       }
@@ -440,6 +475,13 @@ export async function convertToBedrockChatMessages(
   }
 
   return { system, messages };
+}
+
+// wrap invalid tool call input because Bedrock requires it to be an object
+function toBedrockToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }
 
 function isBedrockImageFormat(format: string): format is BedrockImageFormat {

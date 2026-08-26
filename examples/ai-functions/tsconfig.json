@@ -85,6 +85,9 @@
       "path": "../../packages/gladia"
     },
     {
+      "path": "../../packages/gmicloud"
+    },
+    {
       "path": "../../packages/google"
     },
     {
@@ -136,6 +139,9 @@
       "path": "../../packages/provider"
     },
     {
+      "path": "../../packages/provider-utils"
+    },
+    {
       "path": "../../packages/quiverai"
     },
     {
@@ -158,6 +164,9 @@
     },
     {
       "path": "../../packages/xai"
+    },
+    {
+      "path": "../../packages/zai"
     }
   ]
 }

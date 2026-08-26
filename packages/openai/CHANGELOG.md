@@ -1,5 +1,96 @@
 # @ai-sdk/openai
 
+## 3.0.103
+
+### Patch Changes
+
+- 9a521b9: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 3.0.102
+
+### Patch Changes
+
+- 087d7e2: Signal schema-invalid known Responses stream events and preserve the error finish reason.
+
+## 3.0.101
+
+### Patch Changes
+
+- 313a441: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 3.0.100
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
+## 3.0.99
+
+### Patch Changes
+
+- f40afcf: fix(openai): expand internal parallel tool call wrappers from the Responses API while preserving stateful continuation and streaming fallbacks
+
+## 3.0.98
+
+### Patch Changes
+
+- 91880b9: fix(openai): support built-in and provider-defined tools in the Responses `allowedTools` option
+
+  `allowedTools` emitted every allow-list entry as `{ type: 'function', name }`, but OpenAI identifies
+  built-in tools by type. Allow-listing a declared provider-defined tool (web search, image generation,
+  MCP, custom, ...) therefore failed with `Tool choice '<name>' not found in 'tools' parameter`. Entries
+  are now derived from the declared tool, including the MCP server label and custom tool name.
+
+  Tools that OpenAI cannot allow-list (the tool search tool, deferred tools, and namespaced tools) are
+  dropped from the allow-list with a warning, and an error is thrown if that would leave the allow-list
+  empty rather than silently sending an unrestricted request.
+
+  Ambiguous names are now reported instead of resolved silently. A name that matches both a declared tool
+  and another tool's provider tool name resolves to the declared tool and warns; a provider tool name
+  shared by several tools in the same request (two MCP servers, for example) is dropped with a warning.
+  A name that matches no declared tool keeps its existing behavior and is now warned about.
+
+## 3.0.97
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 3.0.96
+
+### Patch Changes
+
+- 64facff: Reconstruct provider-executed shell calls when continuing OpenAI Responses with storage disabled.
+
+## 3.0.95
+
+### Patch Changes
+
+- bdb46fe: Avoid duplicate MCP approval request references when continuing stored OpenAI Responses.
+
+## 3.0.94
+
+### Patch Changes
+
+- d3247d7: Keep client-executed function calls paired with their outputs when chaining OpenAI Responses with a previous response ID.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.93
+
+### Patch Changes
+
+- f471a1c: Accept `serviceTier: 'fast'` on OpenAI chat and responses models. OpenAI renamed priority processing to Fast mode and accepts `service_tier: 'fast'` and `'priority'` interchangeably, so `'fast'` is now passed through verbatim and gated on the same model capability as `'priority'`.
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 3.0.92
 
 ### Patch Changes

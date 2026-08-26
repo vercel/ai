@@ -9,7 +9,7 @@ import { parseJSONRPCMessage, type JSONRPCMessage } from './json-rpc-message';
 import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  extractResourceMetadataUrl,
+  extractWWWAuthenticateParams,
   UnauthorizedError,
   auth,
   type OAuthClientProvider,
@@ -106,11 +106,14 @@ export class SseMCPTransport implements MCPTransport {
           });
 
           if (response.status === 401 && this.authProvider && !triedAuth) {
-            this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+            const { resourceMetadataUrl, scope } =
+              extractWWWAuthenticateParams(response);
+            this.resourceMetadataUrl = resourceMetadataUrl;
             try {
               const result = await auth(this.authProvider, {
                 serverUrl: this.url,
                 resourceMetadataUrl: this.resourceMetadataUrl,
+                scope,
                 fetchFn: this.fetchFn,
               });
               if (result !== 'AUTHORIZED') {
@@ -273,21 +276,17 @@ export class SseMCPTransport implements MCPTransport {
         const response = await this.fetchFn(endpoint.href, init);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
-          this.resourceMetadataUrl = extractResourceMetadataUrl(response);
-          try {
-            const result = await auth(this.authProvider, {
-              serverUrl: this.url,
-              resourceMetadataUrl: this.resourceMetadataUrl,
-              fetchFn: this.fetchFn,
-            });
-            if (result !== 'AUTHORIZED') {
-              const error = new UnauthorizedError();
-              this.onerror?.(error);
-              return;
-            }
-          } catch (error) {
-            this.onerror?.(error);
-            return;
+          const { resourceMetadataUrl, scope } =
+            extractWWWAuthenticateParams(response);
+          this.resourceMetadataUrl = resourceMetadataUrl;
+          const result = await auth(this.authProvider, {
+            serverUrl: this.url,
+            resourceMetadataUrl: this.resourceMetadataUrl,
+            scope,
+            fetchFn: this.fetchFn,
+          });
+          if (result !== 'AUTHORIZED') {
+            throw new UnauthorizedError();
           }
           return attempt(true);
         }
@@ -296,16 +295,18 @@ export class SseMCPTransport implements MCPTransport {
           const text = await response.text().catch(() => null);
           const error = new MCPClientError({
             message: `MCP SSE Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`,
+            statusCode: response.status,
+            url: endpoint.href,
+            responseBody: text ?? undefined,
           });
-          this.onerror?.(error);
-          return;
+          throw error;
         }
       } catch (error) {
         if (options?.signal?.aborted) {
           throw error;
         }
         this.onerror?.(error);
-        return;
+        throw error;
       }
     };
     await attempt();

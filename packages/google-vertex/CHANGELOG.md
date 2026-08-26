@@ -1,5 +1,112 @@
 # @ai-sdk/google-vertex
 
+## 4.0.190
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+  - @ai-sdk/anthropic@3.0.114
+  - @ai-sdk/google@3.0.115
+  - @ai-sdk/openai-compatible@2.0.73
+
+## 4.0.189
+
+### Patch Changes
+
+- Updated dependencies [1df2ced]
+  - @ai-sdk/google@3.0.114
+
+## 4.0.188
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/anthropic@3.0.113
+  - @ai-sdk/google@3.0.113
+  - @ai-sdk/openai-compatible@2.0.72
+
+## 4.0.187
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/anthropic@3.0.112
+  - @ai-sdk/google@3.0.112
+  - @ai-sdk/openai-compatible@2.0.71
+
+## 4.0.186
+
+### Patch Changes
+
+- Updated dependencies [c79dd10]
+  - @ai-sdk/openai-compatible@2.0.70
+
+## 4.0.185
+
+### Patch Changes
+
+- Updated dependencies [c715588]
+  - @ai-sdk/google@3.0.111
+
+## 4.0.184
+
+### Patch Changes
+
+- Updated dependencies [7440d89]
+  - @ai-sdk/openai-compatible@2.0.69
+
+## 4.0.183
+
+### Patch Changes
+
+- Updated dependencies [8533108]
+- Updated dependencies [31205a4]
+  - @ai-sdk/anthropic@3.0.111
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/google@3.0.110
+  - @ai-sdk/openai-compatible@2.0.68
+
+## 4.0.182
+
+### Patch Changes
+
+- 71e94ad: feat(google): add `gemini-3.7-flash` model
+- Updated dependencies [71e94ad]
+  - @ai-sdk/google@3.0.109
+
+## 4.0.181
+
+### Patch Changes
+
+- Updated dependencies [dd7ecd7]
+  - @ai-sdk/google@3.0.108
+
+## 4.0.180
+
+### Patch Changes
+
+- Updated dependencies [c29b64f]
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/google@3.0.107
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/anthropic@3.0.110
+  - @ai-sdk/openai-compatible@2.0.67
+
+## 4.0.179
+
+### Patch Changes
+
+- Updated dependencies [de18066]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai-compatible@2.0.66
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/anthropic@3.0.109
+  - @ai-sdk/google@3.0.106
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 4.0.178
 
 ### Patch Changes

@@ -73,6 +73,9 @@
       "path": "packages/gladia"
     },
     {
+      "path": "packages/gmicloud"
+    },
+    {
       "path": "packages/google-vertex"
     },
     {
@@ -173,6 +176,9 @@
     },
     {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/zai"
     }
   ],
   "include": []

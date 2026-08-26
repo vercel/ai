@@ -419,7 +419,7 @@ import { generateText, tool } from "ai";
 import { z } from "zod";
 
 const { text } = await generateText({
-  model: "xai/grok-4.5",
+  model: "xai/grok-4.6",
   prompt: "What is the weather like in San Francisco?",
   tools: {
     getWeather: tool({
@@ -654,6 +654,112 @@ This initial Gateway integration supports Exa's plain Search modes and
 token-efficient content controls. Deep synthesis modes and generated summaries
 are intentionally not exposed yet because they have separate pricing from
 standard Search.
+
+#### Tako Search
+
+The Tako Search tool enables models to search the web and Tako's curated knowledge graph in a single call using [Tako's Search API](https://docs.tako.com/documentation/integrating-tako/search/overview). This tool is executed by the AI Gateway and returns token-efficient web excerpts, plus knowledge-graph results that carry structured data, premium source attribution, and an embed-ready visualization.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.4-nano',
+  prompt: 'How has Nvidia quarterly revenue changed over the last two years?',
+  tools: {
+    tako_search: gateway.tools.takoSearch(),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+Configure the search with effort, source selection, and localization defaults. These defaults override values the model includes in a tool call:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.4-nano',
+  prompt: 'AMD vs. Nvidia headcount since 2013',
+  tools: {
+    tako_search: gateway.tools.takoSearch({
+      effort: 'fast',
+      sources: {
+        data: {
+          contentFormat: 'json_compact',
+          includeContents: true,
+          maxRows: 100,
+        },
+        web: {
+          count: 3,
+        },
+      },
+      countryCode: 'US',
+      locale: 'en-US',
+    }),
+  },
+});
+
+console.log(result.text);
+```
+
+The Tako Search tool supports these optional configuration options:
+
+- **effort** _'fast' | 'instant' | 'deep'_ - Search effort. `'fast'` is the balanced default, `'instant'` favors cached low-latency results, and `'deep'` broadens retrieval with reranking at higher cost and latency.
+- **sources** _object_ - Omit to search both curated Tako data and the live web. When set, only source keys present are searched.
+- **sources.web** _object_ - Configure web results:
+  - **count** _number_ - Maximum web results, 1-20.
+  - **category** _'finance' | 'news' | 'sports'_ - Restrict web results to one category.
+  - **includeDomains** / **excludeDomains** _string[]_ - Only return, or drop, results from these bare domains. Up to 20 each.
+  - **publishedAfter** / **publishedBefore** _string_ - Keep results published on or after, or on or before, this `YYYY-MM-DD` date.
+  - **snippetMaxChars** _number_ - Character cap on each result's text excerpt. Defaults to 4,000; maximum 20,000.
+  - **highlights** _boolean_ - Return query-relevant passages as each result's snippet instead of the opening text of the page. The snippet can hold multiple passages joined by `' ... '`, and a page with no highlight returns `snippet: null`. Defaults to `true` in the AI Gateway.
+  - **includeContents** _boolean_ - Inline each page's extracted full text in `content`. **articleContentMaxChars** caps it, defaulting to 30,000 characters (maximum 1,000,000).
+- **sources.data** _object_ - Configure data results:
+  - **count** _number_ - Maximum data results, 1-20. Defaults to 5.
+  - **includeContents** _boolean_ - Inline each card's underlying rows in `content.dataset` as typed, unit-labeled columns. This adds a data surcharge based on the row count and dataset source. To estimate cost, first search with `includeContents: false` and inspect `cards.content.export_pricing`. Because this applies to every returned card, use `count` and `maxRows` to control cost.
+  - **contentFormat** _'json_compact' | 'json_records' | 'csv' | 'card_json'_ - Serialization for inlined card data. Defaults to `'json_compact'`.
+  - **maxRows** _number_ - Row cap per result. Omit to use the allowance in `cards.content.export_pricing`. A data surcharge applies per 1,000 exported rows; lower values reduce cost.
+  - **nodeIds** _string[]_ - Data Graph node IDs to prioritize. Up to 20.
+  - **strict** _boolean_ - Only return cards matching `nodeIds`. Requires at least one `nodeIds` value.
+- **location** _object_ - End-user `{ latitude, longitude }` coordinates for localized results.
+- **countryCode** _string_ - ISO 3166-1 alpha-2 country code, such as `'US'`.
+- **locale** _string_ - BCP-47 locale, such as `'en-US'`.
+- **timezone** _string_ - IANA timezone, such as `'America/New_York'`.
+- **outputSettings** _object_ - Card rendering controls. `forceRefresh` is available only with `'instant'` effort.
+- **includeRelated** _number_ - Number of related search suggestions to include (1-20).
+
+For precise entity matching, quote a phrase in the query and optionally append a label: `"Tesla":PRODUCT price`. Tako treats the quoted phrase as one entity before searching.
+
+The tool works with both `generateText` and `streamText`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-5.4-nano',
+  prompt: 'What is the latest US inflation rate?',
+  tools: {
+    tako_search: gateway.tools.takoSearch(),
+  },
+});
+
+for await (const part of result.stream) {
+  switch (part.type) {
+    case 'text-delta':
+      process.stdout.write(part.text);
+      break;
+    case 'tool-call':
+      console.log('\nTool call:', JSON.stringify(part, null, 2));
+      break;
+    case 'tool-result':
+      console.log('\nTool result:', JSON.stringify(part, null, 2));
+      break;
+  }
+}
+```
 
 #### Parallel Search
 

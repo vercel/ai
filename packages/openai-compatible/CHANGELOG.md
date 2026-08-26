@@ -1,5 +1,75 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.73
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 2.0.72
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
+## 2.0.70
+
+### Patch Changes
+
+- c79dd10: fix(openai-compatible): report truncated chat streams as errors
+
+## 2.0.69
+
+### Patch Changes
+
+- 7440d89: fix(openai-compatible): preserve unmapped usage fields in `usage.raw`
+
+  `usage.raw` is specified as usage "in the shape that the provider returns",
+  and the chat model already parsed the usage object loosely so that extra
+  top-level fields survived. The nested `prompt_tokens_details` and
+  `completion_tokens_details` objects were still strict, so anything a provider
+  reported inside them was dropped — which is where providers put their most
+  distinguishing detail. The existing "should preserve extra usage fields"
+  fixture was itself losing `audio_tokens`, `image_tokens` and `text_tokens`
+  this way.
+
+  Both nested objects are now parsed loosely, as is the completion model's usage
+  schema, which was strict throughout despite feeding the same `raw` field.
+
+  Only `usage.raw` changes. The mapped token counts are unaffected.
+
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 2.0.67
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 2.0.66
+
+### Patch Changes
+
+- de18066: fix(provider/openai-compatible): clamp `outputTokens.text` at 0 when a provider reports `completion_tokens_details.reasoning_tokens` greater than `completion_tokens` (observed with Baseten serving reasoning models that hit the length stop mid-reasoning). The text share of completion tokens can never be negative; `total` and `reasoning` remain as reported by the provider.
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 2.0.65
 
 ### Patch Changes

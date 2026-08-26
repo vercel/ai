@@ -1,5 +1,84 @@
 # @ai-sdk/moonshotai
 
+## 2.0.52
+
+### Patch Changes
+
+- 645e673: Preserve documented Moonshot AI chat response metadata for generate and stream.
+- fe34c75: Add Moonshot Chat Completions log probability options and provider metadata.
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 2.0.51
+
+### Patch Changes
+
+- 8e81d87: Accept Moonshot streaming tool calls without indices and preserve choice-level usage.
+- d48615f: Normalize Moonshot structured output schemas and enable strict validation by default.
+- b6d6564: Use native JSON Schema structured outputs for official Moonshot V1 models.
+- aa748d8: Reject unsupported image and video media types before sending Moonshot chat requests.
+- e565062: fix(provider/moonshotai): send max output tokens with the current Moonshot request field
+
+## 2.0.50
+
+### Patch Changes
+
+- 172effc: fix(provider/moonshotai): align thinking and reasoning options by model
+- cc1743a: fix(provider/moonshotai): omit unsupported sampling settings for Kimi models
+- 12e6be3: Omit required tool choice with a warning for Moonshot Kimi models that reject it.
+
+## 2.0.49
+
+### Patch Changes
+
+- 313a441: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 2.0.48
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
+## 2.0.47
+
+### Patch Changes
+
+- c01944c: feat(provider/moonshotai): normalize tool schemas for Moonshot's MFJS validator. Tuple `items` arrays become `prefixItems`, `type` next to `anyOf` moves into the branches, and non-`object` root schemas fail with a clear client-side error instead of Moonshot's opaque 400. Everything else passes through unchanged; the original schema is still used for AI SDK result validation.
+
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 2.0.45
+
+### Patch Changes
+
+- 4d1b345: feat(provider/moonshotai): own the chat implementation, support video input. The provider no longer builds on `@ai-sdk/openai-compatible`; the converter, language model, and helpers are owned by the package. Video file parts (e.g. `mediaType: 'video/mp4'`) are converted to Moonshot's `video_url` content parts for video-capable models (`kimi-k3`, `kimi-k2.7-code`, `kimi-k2.6`, `kimi-k2.5`). Audio and PDF file parts now throw client-side (the API rejects those part types). `reasoningHistory: 'preserved'` now maps to Moonshot's `thinking.keep: 'all'` request field (previously a no-op, the API ignores `reasoning_history`), gated per model with a warning on models without `thinking.keep` support. Adds `promptCacheKey` and `safetyIdentifier` provider options, widens `reasoningEffort` to `'low' | 'high' | 'max'` per Moonshot's docs, maps the generic `reasoning` call option to `reasoning_effort`, and passes `ms://` Files API references through natively (declared in `supportedUrls`).
+
+## 2.0.44
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/openai-compatible@2.0.67
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [de18066]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai-compatible@2.0.66
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 2.0.42
 
 ### Patch Changes

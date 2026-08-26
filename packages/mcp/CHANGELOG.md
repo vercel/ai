@@ -1,5 +1,64 @@
 # @ai-sdk/mcp
 
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 1.0.75
+
+### Patch Changes
+
+- 878bdb9: Apply MCP scope selection to dynamic client registration as well as authorization.
+- 204ce6c: fix(mcp): reject private OAuth endpoints before sending credentials
+
+## 1.0.74
+
+### Patch Changes
+
+- e7d359e: Fetch all paginated tool definitions when creating an MCP tool set.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 1.0.73
+
+### Patch Changes
+
+- b8e4215: fix(mcp): support spawning command shims such as `npx` on Windows
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
+## 1.0.72
+
+### Patch Changes
+
+- 0075ed5: fix(mcp): reject SSE requests when POST responses are unsuccessful
+
+## 1.0.71
+
+### Patch Changes
+
+- b0e77c0: Select MCP OAuth authorization scopes from `WWW-Authenticate` challenges or Protected Resource Metadata.
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 1.0.70
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 1.0.68
 
 ### Patch Changes

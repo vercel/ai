@@ -350,7 +350,8 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV3 
   }
 }
 
-const usageSchema = z.object({
+// Loose: the parsed value is returned as `usage.raw`.
+const usageSchema = z.looseObject({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),

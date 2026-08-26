@@ -4,6 +4,7 @@ import type {
   LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -628,8 +629,11 @@ describe('deepseek', () => {
         },
         "providerMetadata": {
           "azure": {
+            "choiceIndex": 0,
+            "messageRole": "assistant",
             "promptCacheHitTokens": undefined,
             "promptCacheMissTokens": undefined,
+            "responseObject": "chat.completion.chunk",
           },
         },
         "type": "finish",
@@ -823,6 +827,15 @@ describe('embedding', () => {
     [0.6, 0.7, 0.8, 0.9, 1.0],
   ];
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
+
+  it('should expose the aggregate token limit', () => {
+    expect(
+      Reflect.get(
+        provider.embedding('my-embedding'),
+        EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+      ),
+    ).toBe(300_000);
+  });
 
   describe('doEmbed', () => {
     const model = provider.embedding('my-embedding');

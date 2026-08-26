@@ -92,69 +92,6 @@ describe('MoonshotAIProvider', () => {
 
       expect(model).toBeInstanceOf(MoonshotAIChatLanguageModel);
     });
-
-    it('should pass transformRequestBody that converts thinking options', () => {
-      const provider = createMoonshotAI();
-      provider.chatModel('kimi-k2-thinking');
-
-      const constructorCall = MoonshotAIChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'kimi-k2-thinking',
-        messages: [],
-        thinking: { type: 'enabled', budgetTokens: 2048 },
-        reasoningHistory: 'interleaved',
-      });
-
-      expect(result).toEqual({
-        model: 'kimi-k2-thinking',
-        messages: [],
-        thinking: { type: 'enabled', budget_tokens: 2048 },
-        reasoning_history: 'interleaved',
-      });
-    });
-
-    it('should handle thinking without budgetTokens', () => {
-      const provider = createMoonshotAI();
-      provider.chatModel('kimi-k2-thinking');
-
-      const constructorCall = MoonshotAIChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'kimi-k2-thinking',
-        messages: [],
-        thinking: { type: 'enabled' },
-      });
-
-      expect(result).toEqual({
-        model: 'kimi-k2-thinking',
-        messages: [],
-        thinking: { type: 'enabled' },
-      });
-    });
-
-    it('should handle request without thinking options', () => {
-      const provider = createMoonshotAI();
-      provider.chatModel('kimi-k2.5');
-
-      const constructorCall = MoonshotAIChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'kimi-k2.5',
-        messages: [],
-      });
-
-      expect(result).toEqual({
-        model: 'kimi-k2.5',
-        messages: [],
-      });
-    });
   });
 
   describe('languageModel', () => {
@@ -175,9 +112,14 @@ describe('getMoonshotAILanguageModelCapabilities', () => {
     ['kimi-k2.6', true],
     ['kimi-k2.7-code', true],
     ['kimi-k3', true],
-    ['moonshot-v1-8k', false],
-    ['moonshot-v1-32k', false],
-    ['moonshot-v1-128k', false],
+    ['moonshot-v1-8k', true],
+    ['moonshot-v1-32k', true],
+    ['moonshot-v1-128k', true],
+    ['moonshot-v1-auto', true],
+    ['moonshot-v1-8k-vision-preview', true],
+    ['moonshot-v1-32k-vision-preview', true],
+    ['moonshot-v1-128k-vision-preview', true],
+    ['moonshot-v1-custom', false],
     ['custom-model-id', false],
   ])(
     'supportsStructuredOutputs for %s is %s',

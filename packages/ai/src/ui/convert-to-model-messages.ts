@@ -58,7 +58,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         part =>
           !isToolUIPart(part) ||
           part.state === 'approval-responded' ||
-          part.state === 'output-available' ||
+          (part.state === 'output-available' && part.preliminary !== true) ||
           part.state === 'output-error' ||
           part.state === 'output-denied',
       ),

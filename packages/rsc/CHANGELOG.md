@@ -1,5 +1,171 @@
 # @ai-sdk/rsc
 
+## 2.0.269
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+  - ai@6.0.269
+
+## 2.0.268
+
+### Patch Changes
+
+- ai@6.0.268
+
+## 2.0.267
+
+### Patch Changes
+
+- Updated dependencies [cd29175]
+- Updated dependencies [e88c835]
+  - ai@6.0.267
+
+## 2.0.266
+
+### Patch Changes
+
+- Updated dependencies [a1bafb1]
+- Updated dependencies [5642849]
+- Updated dependencies [3cb50fc]
+  - ai@6.0.266
+  - @ai-sdk/provider-utils@4.0.48
+
+## 2.0.265
+
+### Patch Changes
+
+- 0c23c63: Preserve concurrent AI state updates from keyed setters and wrapped actions.
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - ai@6.0.265
+
+## 2.0.264
+
+### Patch Changes
+
+- Updated dependencies [6a7e701]
+  - ai@6.0.264
+
+## 2.0.263
+
+### Patch Changes
+
+- ai@6.0.263
+
+## 2.0.262
+
+### Patch Changes
+
+- Updated dependencies [30526e9]
+  - ai@6.0.262
+
+## 2.0.261
+
+### Patch Changes
+
+- Updated dependencies [f1afbf9]
+  - ai@6.0.261
+
+## 2.0.260
+
+### Patch Changes
+
+- Updated dependencies [98c656f]
+- Updated dependencies [b253d52]
+- Updated dependencies [9e15cb4]
+  - ai@6.0.260
+
+## 2.0.259
+
+### Patch Changes
+
+- ai@6.0.259
+
+## 2.0.258
+
+### Patch Changes
+
+- ai@6.0.258
+
+## 2.0.257
+
+### Patch Changes
+
+- ai@6.0.257
+
+## 2.0.256
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - ai@6.0.256
+
+## 2.0.255
+
+### Patch Changes
+
+- Updated dependencies [35a94b0]
+- Updated dependencies [93d24c6]
+- Updated dependencies [1bd1caf]
+  - ai@6.0.255
+
+## 2.0.254
+
+### Patch Changes
+
+- ai@6.0.254
+
+## 2.0.253
+
+### Patch Changes
+
+- Updated dependencies [d91d30b]
+  - ai@6.0.253
+
+## 2.0.252
+
+### Patch Changes
+
+- Updated dependencies [2f96d3f]
+- Updated dependencies [afb1965]
+  - ai@6.0.252
+
+## 2.0.251
+
+### Patch Changes
+
+- Updated dependencies [d13c2e9]
+  - ai@6.0.251
+
+## 2.0.250
+
+### Patch Changes
+
+- Updated dependencies [a077695]
+- Updated dependencies [7ce3b8c]
+- Updated dependencies [b2a4d5a]
+  - ai@6.0.250
+  - @ai-sdk/provider-utils@4.0.45
+
+## 2.0.249
+
+### Patch Changes
+
+- Updated dependencies [a774b7b]
+  - ai@6.0.249
+
+## 2.0.248
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - ai@6.0.248
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 2.0.247
 
 ### Patch Changes

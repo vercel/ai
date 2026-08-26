@@ -101,6 +101,21 @@ const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
 )}/converse`;
 
+const usOpenaiModelId = 'us.openai.gpt-5.6-luna';
+const usOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  usOpenaiModelId,
+)}/converse`;
+
+const globalOpenaiModelId = 'global.openai.gpt-5.6-luna';
+const globalOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  globalOpenaiModelId,
+)}/converse`;
+
+const customOpenaiSubstringModelId = 'custom-openai.gpt-5.6-luna';
+const customOpenaiSubstringGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  customOpenaiSubstringModelId,
+)}/converse`;
+
 const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
 const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   newerAnthropicModelId,
@@ -135,6 +150,9 @@ const server = createTestServer({
   [futureAnthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
+  [usOpenaiGenerateUrl]: {},
+  [globalOpenaiGenerateUrl]: {},
+  [customOpenaiSubstringGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
@@ -3411,10 +3429,13 @@ describe('doGenerate', () => {
             "total": 57,
           },
           "raw": {
+            "cacheReadInputTokenCount": 0,
             "cacheReadInputTokens": 0,
+            "cacheWriteInputTokenCount": 0,
             "cacheWriteInputTokens": 0,
             "inputTokens": 22,
             "outputTokens": 57,
+            "serverToolUsage": {},
             "totalTokens": 79,
           },
         }
@@ -3890,6 +3911,41 @@ describe('doGenerate', () => {
         ],
       },
     });
+  });
+
+  it('should disable parallel tool use without sending conflicting tool choices', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          description: 'A test tool',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          disableParallelToolUse: true,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields).toMatchObject({
+      tool_choice: {
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      },
+    });
+    expect(requestBody.toolConfig.toolChoice).toBeUndefined();
   });
 
   it('should only send the forced tool when toolChoice specifies a specific tool', async () => {
@@ -4703,7 +4759,7 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
-  it('maps maxReasoningEffort to reasoning_effort for OpenAI models (generate)', async () => {
+  it('maps maxReasoningEffort to reasoning_effort for OpenAI gpt-oss models (generate)', async () => {
     server.urls[openaiGenerateUrl].response = {
       type: 'json-value',
       body: {
@@ -4736,6 +4792,101 @@ describe('doGenerate', () => {
       requestBody.additionalModelRequestFields?.reasoningConfig,
     ).toBeUndefined();
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'maps maxReasoningEffort to nested reasoning.effort for CRIS model %s (generate)',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'stop_sequence',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new BedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              maxReasoningEffort: 'medium',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        additionalModelRequestFields: {
+          reasoning: { effort: 'medium' },
+        },
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.reasoning_effort,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    },
+  );
+
+  it('does not classify custom model IDs containing openai. as OpenAI models', async () => {
+    server.urls[customOpenaiSubstringGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const customModel = new BedrockChatLanguageModel(
+      customOpenaiSubstringModelId,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      },
+    );
+
+    await customModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoningConfig: { maxReasoningEffort: 'medium' },
+      },
+    });
+    expect(requestBody.additionalModelRequestFields?.reasoning).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.reasoning_effort,
+    ).toBeUndefined();
   });
 
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
@@ -5475,6 +5626,55 @@ describe('doGenerate', () => {
           "providerMetadata": {
             "bedrock": {
               "redactedData": "redacted-reasoning-data",
+            },
+          },
+          "text": "",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should expose reasoning redacted as `redactedContent` for replay', async () => {
+    // `redactedContent` is a member of the ReasoningContentBlock union
+    // in the Converse API. OpenAI models on Bedrock (e.g. `us.openai.gpt-5.6-luna`)
+    // return their encrypted reasoning in this shape. It is surfaced as provider
+    // metadata so that it can be replayed on subsequent turns.
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  redactedContent: 'encrypted-reasoning-payload',
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "redactedContent": "encrypted-reasoning-payload",
             },
           },
           "text": "",

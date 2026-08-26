@@ -1,5 +1,127 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.164
+
+### Patch Changes
+
+- d69e9a1: Omit assistant messages that become empty after unsupported reasoning content is removed.
+- Updated dependencies [9a521b9]
+  - @ai-sdk/openai@3.0.103
+  - @ai-sdk/provider-utils@4.0.49
+  - @ai-sdk/anthropic@3.0.114
+
+## 4.0.163
+
+### Patch Changes
+
+- 1eb654d: Preserve complete Amazon Bedrock Converse usage objects in raw usage metadata.
+
+## 4.0.162
+
+### Patch Changes
+
+- 46e5f91: Send nested reasoning effort for CRIS-prefixed OpenAI GPT-5.x Converse requests while preserving the flat gpt-oss format.
+- Updated dependencies [087d7e2]
+  - @ai-sdk/openai@3.0.102
+
+## 4.0.161
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+- Updated dependencies [313a441]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/openai@3.0.101
+  - @ai-sdk/anthropic@3.0.113
+
+## 4.0.160
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/anthropic@3.0.112
+  - @ai-sdk/openai@3.0.100
+
+## 4.0.159
+
+### Patch Changes
+
+- 46e063a: fix(amazon-bedrock): surface modeled event-stream exceptions
+- Updated dependencies [f40afcf]
+  - @ai-sdk/openai@3.0.99
+
+## 4.0.158
+
+### Patch Changes
+
+- 3fadddb: fix (provider/amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API and replay it on subsequent turns
+
+## 4.0.157
+
+### Patch Changes
+
+- 4c5e34f: Reject Amazon Bedrock event streams that end with an incomplete buffered frame instead of completing normally with partial output.
+- 50be36b: Surface Amazon Bedrock event stream frame decoding and processing failures instead of silently completing the stream.
+
+## 4.0.156
+
+### Patch Changes
+
+- Updated dependencies [91880b9]
+  - @ai-sdk/openai@3.0.98
+
+## 4.0.155
+
+### Patch Changes
+
+- 4b4dc23: fix(bedrock): wrap invalid tool input in object
+
+## 4.0.154
+
+### Patch Changes
+
+- Updated dependencies [8533108]
+- Updated dependencies [31205a4]
+  - @ai-sdk/anthropic@3.0.111
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/openai@3.0.97
+
+## 4.0.153
+
+### Patch Changes
+
+- Updated dependencies [64facff]
+  - @ai-sdk/openai@3.0.96
+
+## 4.0.152
+
+### Patch Changes
+
+- Updated dependencies [bdb46fe]
+  - @ai-sdk/openai@3.0.95
+
+## 4.0.151
+
+### Patch Changes
+
+- Updated dependencies [d3247d7]
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/openai@3.0.94
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/anthropic@3.0.110
+
+## 4.0.150
+
+### Patch Changes
+
+- Updated dependencies [f471a1c]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai@3.0.93
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/anthropic@3.0.109
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 4.0.149
 
 ### Patch Changes

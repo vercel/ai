@@ -1,5 +1,42 @@
 # @ai-sdk/provider-utils
 
+## 4.0.49
+
+### Patch Changes
+
+- 9a521b9: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+
+## 4.0.48
+
+### Patch Changes
+
+- 5642849: fix(provider-utils): allow imports in runtimes without a global fetch function
+
+## 4.0.47
+
+### Patch Changes
+
+- 2d172fb: Preserve schema-valued additional properties when converting Zod 4 schemas.
+
+## 4.0.46
+
+### Patch Changes
+
+- 31205a4: chore(provider-utils): upgrade undici to a maintained release
+
+## 4.0.45
+
+### Patch Changes
+
+- b2a4d5a: Preserve streamed download size-limit errors when response cancellation fails.
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+
 ## 4.0.43
 
 ### Patch Changes

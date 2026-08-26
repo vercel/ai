@@ -202,6 +202,7 @@ export type ToolLoopAgentSettings<
       | 'frequencyPenalty'
       | 'stopSequences'
       | 'seed'
+      | 'timeout'
       | 'headers'
       | 'instructions'
       | 'allowSystemInMessages'

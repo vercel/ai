@@ -957,13 +957,14 @@ describe('processLangGraphEvent', () => {
     messageSeen: new Map(),
     messageNamespaces: new Map(),
     messageConcat: new Map(),
+    messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolCallsInCurrentStepByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
-    currentStep: null as number | null,
-    stepNamespace: null,
+    currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });
@@ -1726,12 +1727,12 @@ describe('processLangGraphEvent', () => {
     processLangGraphEvent(['messages', [aiChunk, metadata]], state, controller);
 
     expect(chunks).toContainEqual({ type: 'start-step' });
-    expect(state.currentStep).toBe(1);
+    expect(state.currentStepsByNamespace.get('[]')).toBe(1);
   });
 
   it('should emit finish-step and start-step on step change', () => {
     const state = createMockState();
-    state.currentStep = 1;
+    state.currentStepsByNamespace.set('[]', 1);
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
@@ -1742,12 +1743,12 @@ describe('processLangGraphEvent', () => {
 
     expect(chunks[0]).toEqual({ type: 'finish-step' });
     expect(chunks[1]).toEqual({ type: 'start-step' });
-    expect(state.currentStep).toBe(2);
+    expect(state.currentStepsByNamespace.get('[]')).toBe(2);
   });
 
   it('should not emit step events when step unchanged', () => {
     const state = createMockState();
-    state.currentStep = 1;
+    state.currentStepsByNamespace.set('[]', 1);
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
@@ -2473,13 +2474,14 @@ describe('processLangGraphEvent - sources', () => {
     messageSeen: new Map(),
     messageNamespaces: new Map(),
     messageConcat: new Map(),
+    messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolCallsInCurrentStepByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
-    currentStep: null as number | null,
-    stepNamespace: null,
+    currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   });

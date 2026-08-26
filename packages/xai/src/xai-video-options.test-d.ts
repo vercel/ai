@@ -34,6 +34,17 @@ describe('XaiVideoModelOptions type', () => {
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
   });
 
+  it('should allow reference-to-video with referenceVoiceIds and 1080p', () => {
+    const options = {
+      mode: 'reference-to-video',
+      referenceImageUrls: ['https://example.com/ref.png'],
+      referenceVoiceIds: ['eve', 'leo'],
+      resolution: '1080p',
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
   it('should allow reference-to-video with multiple hardcoded URLs', () => {
     const options = {
       mode: 'reference-to-video',

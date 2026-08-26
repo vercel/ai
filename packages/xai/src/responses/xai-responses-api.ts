@@ -248,23 +248,27 @@ const outputItemSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export const xaiResponsesUsageSchema = z.object({
-  input_tokens: z.number(),
-  output_tokens: z.number(),
-  total_tokens: z.number().optional(),
-  input_tokens_details: z
-    .object({
-      cached_tokens: z.number().optional(),
-    })
-    .optional(),
-  output_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().optional(),
-    })
-    .optional(),
-  num_sources_used: z.number().optional(),
-  num_server_side_tools_used: z.number().optional(),
-});
+export const xaiResponsesUsageSchema = z
+  .object({
+    input_tokens: z.number(),
+    output_tokens: z.number(),
+    total_tokens: z.number().optional(),
+    input_tokens_details: z
+      .object({
+        cached_tokens: z.number().optional(),
+      })
+      .catchall(z.json())
+      .optional(),
+    output_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().optional(),
+      })
+      .catchall(z.json())
+      .optional(),
+    num_sources_used: z.number().optional(),
+    num_server_side_tools_used: z.number().optional(),
+  })
+  .catchall(z.json());
 
 export const xaiResponsesResponseSchema = z.object({
   id: z.string().nullish(),
@@ -274,6 +278,7 @@ export const xaiResponsesResponseSchema = z.object({
   output: z.array(outputItemSchema),
   usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
+  service_tier: z.string().nullish(),
 });
 
 export const xaiResponsesChunkSchema = z.union([
@@ -543,6 +548,7 @@ export const xaiResponsesChunkSchema = z.union([
     response: z.object({
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: xaiResponsesUsageSchema.nullish(),
+      service_tier: z.string().nullish(),
     }),
   }),
   z.object({

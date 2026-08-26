@@ -1,5 +1,195 @@
 # ai
 
+## 6.0.269
+
+### Patch Changes
+
+- 9a521b9: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [8ddf255]
+- Updated dependencies [9a521b9]
+  - @ai-sdk/gateway@3.0.184
+  - @ai-sdk/provider-utils@4.0.49
+
+## 6.0.268
+
+### Patch Changes
+
+- Updated dependencies [ad28ecb]
+  - @ai-sdk/gateway@3.0.183
+
+## 6.0.267
+
+### Patch Changes
+
+- cd29175: Include telemetry metadata attributes on tool call spans.
+- e88c835: Expose structured output parsing diagnostics from `generateText` when generation stops because of the output token limit.
+- Updated dependencies [845ad6d]
+- Updated dependencies [fe80a3c]
+  - @ai-sdk/gateway@3.0.182
+
+## 6.0.266
+
+### Patch Changes
+
+- a1bafb1: Continue approved `generateText` and `streamText` turns with a model-visible tool error when revalidated tool input is invalid.
+- 3cb50fc: Prevent aborted, errored, or cancelled `streamText` calls from retaining per-call state through abort cleanup listeners.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/gateway@3.0.181
+
+## 6.0.265
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+- Updated dependencies [f6efa51]
+- Updated dependencies [3539755]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/gateway@3.0.180
+
+## 6.0.264
+
+### Patch Changes
+
+- 6a7e701: fix(ai): prevent duplicate text and reasoning part ids
+
+## 6.0.263
+
+### Patch Changes
+
+- Updated dependencies [1e70580]
+  - @ai-sdk/gateway@3.0.179
+
+## 6.0.262
+
+### Patch Changes
+
+- 30526e9: Prevent exceptions in streaming `onChunk` and `onError` callbacks from terminating the stream or masking provider errors.
+- Updated dependencies [7de3226]
+- Updated dependencies [504da15]
+  - @ai-sdk/gateway@3.0.178
+
+## 6.0.261
+
+### Patch Changes
+
+- f1afbf9: Fix array-backed language model mocks to return configured results in order from the first call.
+
+## 6.0.260
+
+### Patch Changes
+
+- 98c656f: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- b253d52: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- 9e15cb4: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+
+## 6.0.259
+
+### Patch Changes
+
+- Updated dependencies [def7999]
+  - @ai-sdk/gateway@3.0.177
+
+## 6.0.258
+
+### Patch Changes
+
+- Updated dependencies [96304fc]
+  - @ai-sdk/gateway@3.0.176
+
+## 6.0.257
+
+### Patch Changes
+
+- Updated dependencies [000b243]
+  - @ai-sdk/gateway@3.0.175
+
+## 6.0.256
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/gateway@3.0.174
+
+## 6.0.255
+
+### Patch Changes
+
+- 35a94b0: Keep chat status submitted until response content begins streaming.
+- 93d24c6: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 1bd1caf: Fix declaration emit for exported values that infer an `Output` type.
+
+## 6.0.254
+
+### Patch Changes
+
+- Updated dependencies [71e94ad]
+  - @ai-sdk/gateway@3.0.173
+
+## 6.0.253
+
+### Patch Changes
+
+- d91d30b: Preserve reasoning block IDs from UI message streams on reasoning UI parts.
+- Updated dependencies [0ec239b]
+  - @ai-sdk/gateway@3.0.172
+
+## 6.0.252
+
+### Patch Changes
+
+- 2f96d3f: Allow providers without reranking model support to satisfy the `Provider` type.
+- afb1965: Propagate errors thrown by the Chat `onFinish` callback to the initiating request.
+- Updated dependencies [18b0965]
+- Updated dependencies [451d2c3]
+  - @ai-sdk/gateway@3.0.171
+
+## 6.0.251
+
+### Patch Changes
+
+- d13c2e9: Respect ToolLoopAgent timeouts configured in agent settings.
+
+## 6.0.250
+
+### Patch Changes
+
+- a077695: Prevent streaming telemetry spans from ending twice when model calls fail.
+- 7ce3b8c: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/gateway@3.0.170
+
+## 6.0.249
+
+### Patch Changes
+
+- a774b7b: Stop pending and active resumed chat streams after cancellation, and prevent
+  overlapping resumptions from applying stale updates.
+- Updated dependencies [b39f987]
+- Updated dependencies [d79117b]
+  - @ai-sdk/gateway@3.0.169
+
+## 6.0.248
+
+### Patch Changes
+
+- 2171d15: feat(video): allow `aspectRatio: 'adaptive'` on `generateVideo`
+
+  Some video models derive the output ratio from the input and reject explicit
+  `{width}:{height}` values — BytePlus Seedance 2.5 does this for first-frame,
+  first-and-last-frame, editing, and extension tasks. `aspectRatio` on
+  `VideoModelV3CallOptions`, and
+  `experimental_generateVideo` is now `` `${number}:${number}` | 'adaptive' ``, so
+  those calls no longer need a type assertion. Support is provider-specific.
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/gateway@3.0.168
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 6.0.247
 
 ### Patch Changes

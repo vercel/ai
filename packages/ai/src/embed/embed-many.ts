@@ -3,6 +3,7 @@ import {
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
+import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -21,8 +22,9 @@ import { VERSION } from '../version';
  * Embed several values using an embedding model. The type of the value is defined
  * by the embedding model.
  *
- * `embedMany` automatically splits large requests into smaller chunks if the model
- * has a limit on how many embeddings can be generated in a single call.
+ * `embedMany` automatically splits large requests into smaller chunks when the
+ * model has a limit on either the number of embeddings or the UTF-8 input bytes
+ * that can be processed in a single call.
  *
  * @param model - The embedding model to use.
  * @param values - The values that should be embedded.
@@ -134,14 +136,24 @@ export async function embedMany({
     }),
     tracer,
     fn: async span => {
-      const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all([
+      const [
+        maxEmbeddingsPerCall,
+        maxInputBytesPerCall,
+        supportsParallelCalls,
+      ] = await Promise.all([
         model.maxEmbeddingsPerCall,
+        getEmbeddingModelMaxInputBytesPerCall(model),
         model.supportsParallelCalls,
       ]);
 
+      const hasEmbeddingLimit =
+        maxEmbeddingsPerCall != null && maxEmbeddingsPerCall !== Infinity;
+      const hasInputByteLimit =
+        maxInputBytesPerCall != null && maxInputBytesPerCall !== Infinity;
+
       // the model has not specified limits on
-      // how many embeddings can be generated in a single call
-      if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
+      // how many embeddings or input bytes can be processed in a single call
+      if (!hasEmbeddingLimit && !hasInputByteLimit) {
         const { embeddings, usage, warnings, response, providerMetadata } =
           await retry(() => {
             // nested spans to align with the embedMany telemetry data:
@@ -229,7 +241,15 @@ export async function embedMany({
       }
 
       // split the values into chunks that are small enough for the model:
-      const valueChunks = splitArray(values, maxEmbeddingsPerCall);
+      const valueChunks = splitByEmbeddingLimits({
+        values,
+        maxEmbeddingsPerCall: hasEmbeddingLimit
+          ? maxEmbeddingsPerCall
+          : Infinity,
+        maxInputBytesPerCall: hasInputByteLimit
+          ? maxInputBytesPerCall
+          : Infinity,
+      });
 
       // serially embed the chunks:
       const embeddings: Array<Embedding> = [];
@@ -361,6 +381,55 @@ export async function embedMany({
       });
     },
   });
+}
+
+const textEncoder = new TextEncoder();
+
+function splitByEmbeddingLimits({
+  values,
+  maxEmbeddingsPerCall,
+  maxInputBytesPerCall,
+}: {
+  values: Array<string>;
+  maxEmbeddingsPerCall: number;
+  maxInputBytesPerCall: number;
+}): Array<Array<string>> {
+  if (maxEmbeddingsPerCall <= 0) {
+    throw new Error('maxEmbeddingsPerCall must be greater than 0');
+  }
+
+  if (maxInputBytesPerCall <= 0) {
+    throw new Error('maxInputBytesPerCall must be greater than 0');
+  }
+
+  if (values.length === 0) {
+    return [];
+  }
+
+  const chunks: Array<Array<string>> = [];
+  let currentChunk: Array<string> = [];
+  let currentInputBytes = 0;
+
+  for (const value of values) {
+    const inputBytes = textEncoder.encode(value).length;
+
+    if (
+      currentChunk.length > 0 &&
+      (currentChunk.length >= maxEmbeddingsPerCall ||
+        currentInputBytes + inputBytes > maxInputBytesPerCall)
+    ) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentInputBytes = 0;
+    }
+
+    currentChunk.push(value);
+    currentInputBytes += inputBytes;
+  }
+
+  chunks.push(currentChunk);
+
+  return chunks;
 }
 
 class DefaultEmbedManyResult implements EmbedManyResult {

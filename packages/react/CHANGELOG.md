@@ -1,5 +1,177 @@
 # @ai-sdk/react
 
+## 3.0.272
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+  - ai@6.0.269
+
+## 3.0.271
+
+### Patch Changes
+
+- ai@6.0.268
+
+## 3.0.270
+
+### Patch Changes
+
+- Updated dependencies [cd29175]
+- Updated dependencies [e88c835]
+  - ai@6.0.267
+
+## 3.0.269
+
+### Patch Changes
+
+- Updated dependencies [a1bafb1]
+- Updated dependencies [5642849]
+- Updated dependencies [3cb50fc]
+  - ai@6.0.266
+  - @ai-sdk/provider-utils@4.0.48
+
+## 3.0.268
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - ai@6.0.265
+
+## 3.0.267
+
+### Patch Changes
+
+- Updated dependencies [6a7e701]
+  - ai@6.0.264
+
+## 3.0.266
+
+### Patch Changes
+
+- ai@6.0.263
+
+## 3.0.265
+
+### Patch Changes
+
+- Updated dependencies [30526e9]
+  - ai@6.0.262
+
+## 3.0.264
+
+### Patch Changes
+
+- Updated dependencies [f1afbf9]
+  - ai@6.0.261
+
+## 3.0.263
+
+### Patch Changes
+
+- Updated dependencies [98c656f]
+- Updated dependencies [b253d52]
+- Updated dependencies [9e15cb4]
+  - ai@6.0.260
+
+## 3.0.262
+
+### Patch Changes
+
+- ai@6.0.259
+
+## 3.0.261
+
+### Patch Changes
+
+- ai@6.0.258
+
+## 3.0.260
+
+### Patch Changes
+
+- ai@6.0.257
+
+## 3.0.259
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - ai@6.0.256
+
+## 3.0.258
+
+### Patch Changes
+
+- Updated dependencies [35a94b0]
+- Updated dependencies [93d24c6]
+- Updated dependencies [1bd1caf]
+  - ai@6.0.255
+
+## 3.0.257
+
+### Patch Changes
+
+- b519617: Preserve the generated `useObject` value when the API URL changes.
+  - ai@6.0.254
+
+## 3.0.256
+
+### Patch Changes
+
+- d3d3124: Avoid repeatedly deep-cloning accumulated message payloads during chat streaming.
+
+## 3.0.255
+
+### Patch Changes
+
+- Updated dependencies [d91d30b]
+  - ai@6.0.253
+
+## 3.0.254
+
+### Patch Changes
+
+- Updated dependencies [2f96d3f]
+- Updated dependencies [afb1965]
+  - ai@6.0.252
+
+## 3.0.253
+
+### Patch Changes
+
+- fb9a415: Reset the useCompletion input after submitting a prompt.
+- Updated dependencies [d13c2e9]
+  - ai@6.0.251
+
+## 3.0.252
+
+### Patch Changes
+
+- Updated dependencies [a077695]
+- Updated dependencies [7ce3b8c]
+- Updated dependencies [b2a4d5a]
+  - ai@6.0.250
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.251
+
+### Patch Changes
+
+- Updated dependencies [a774b7b]
+  - ai@6.0.249
+
+## 3.0.250
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - ai@6.0.248
+  - @ai-sdk/provider-utils@4.0.44
+
 ## 3.0.249
 
 ### Patch Changes
