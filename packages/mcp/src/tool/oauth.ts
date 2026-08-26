@@ -1290,6 +1290,12 @@ async function authInternal(
   );
   const currentAuthorizationServerInformation =
     createAuthorizationServerInformation(authorizationServerUrl, metadata);
+  const clientMetadata = provider.clientMetadata;
+  const selectedScope = selectScope({
+    scope,
+    resourceMetadata,
+    clientMetadata,
+  });
 
   /** Load or register client credentials with the AS pin attached. */
   let clientInformation = await Promise.resolve(provider.clientInformation());
@@ -1322,7 +1328,10 @@ async function authInternal(
 
     const fullInformation = await registerClient(authorizationServerUrl, {
       metadata,
-      clientMetadata: provider.clientMetadata,
+      clientMetadata: {
+        ...clientMetadata,
+        scope: selectedScope,
+      },
       fetchFn,
     });
 
@@ -1456,11 +1465,7 @@ async function authInternal(
       clientInformation,
       state,
       redirectUrl: provider.redirectUrl,
-      scope: selectScope({
-        scope,
-        resourceMetadata,
-        clientMetadata: provider.clientMetadata,
-      }),
+      scope: selectedScope,
       resource,
     },
   );

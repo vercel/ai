@@ -153,12 +153,22 @@ describe('createGrokBuild', () => {
           XAI_API_KEY: 'xai-secret',
           GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
         },
+        sandboxEnv: {
+          XAI_API_KEY: 'sandbox-xai-secret',
+          GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
+        },
       }),
     ).toEqual([
       {
         match: {
           host: 'api.x.ai',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-xai-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer xai-secret' },

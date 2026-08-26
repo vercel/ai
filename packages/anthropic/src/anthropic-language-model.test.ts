@@ -8163,7 +8163,14 @@ describe('AnthropicLanguageModel', () => {
           },
           {
             "error": {
+              "code": undefined,
+              "data": {
+                "message": "test error",
+                "type": "error",
+              },
+              "isRetryable": undefined,
               "message": "test error",
+              "statusCode": undefined,
               "type": "error",
             },
             "type": "error",
@@ -10709,49 +10716,103 @@ describe('AnthropicLanguageModel', () => {
       }
     });
 
-    it('should forward overloaded error during streaming', async () => {
+    it.each([
+      {
+        type: 'overloaded_error',
+        message: 'Overloaded',
+        statusCode: 529,
+        isRetryable: true,
+      },
+      {
+        type: 'api_error',
+        message: 'Internal server error',
+        statusCode: 500,
+        isRetryable: true,
+      },
+      {
+        type: 'request_too_large',
+        message: 'Request too large',
+        statusCode: 413,
+        isRetryable: false,
+      },
+    ])(
+      'should attach provider-owned metadata to a mid-stream $type error',
+      async ({ type, message, statusCode, isRetryable }) => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+            `event: error\n`,
+            `data: ${JSON.stringify({
+              type: 'error',
+              error: { type, message },
+            })}\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const chunks = await convertReadableStreamToArray(stream);
+        const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+        expect(chunks).toMatchObject([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'response-metadata',
+            id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+            modelId: 'claude-3-haiku-20240307',
+          },
+          { type: 'text-start', id: '0' },
+          { type: 'text-delta', id: '0', delta: 'Hello' },
+          { type: 'error' },
+        ]);
+        expect(errorPart?.type).toBe('error');
+        if (errorPart?.type !== 'error') {
+          expect.fail('Expected an error part');
+        }
+        expect(errorPart.error).toMatchObject({
+          message,
+          type,
+          statusCode,
+          isRetryable,
+          data: { message, type },
+        });
+      },
+    );
+
+    it('should preserve explicit metadata from an Anthropic-compatible transport', async () => {
+      const data = {
+        message: 'The model stream failed',
+        originalStatusCode: 503,
+      };
+      const error = {
+        type: 'modelStreamErrorException',
+        code: 'bedrock_stream_error',
+        message: data.message,
+        statusCode: 424,
+        isRetryable: true,
+        data,
+      };
+
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
         chunks: [
           `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
-          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
-          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
           `event: error\n`,
-          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n\n`,
+          `data: ${JSON.stringify({ type: 'error', error })}\n\n`,
         ],
       };
 
       const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const chunks = await convertReadableStreamToArray(stream);
+      const errorPart = chunks.find(chunk => chunk.type === 'error');
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
-            "modelId": "claude-3-haiku-20240307",
-            "type": "response-metadata",
-          },
-          {
-            "id": "0",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "error": {
-              "message": "Overloaded",
-              "type": "overloaded_error",
-            },
-            "type": "error",
-          },
-        ]
-      `);
+      expect(errorPart?.type).toBe('error');
+      if (errorPart?.type !== 'error') {
+        expect.fail('Expected an error part');
+      }
+      expect(errorPart.error).toMatchObject(error);
     });
   });
 
