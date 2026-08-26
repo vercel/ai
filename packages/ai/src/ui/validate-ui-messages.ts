@@ -1,6 +1,7 @@
 import { TypeValidationError, type JSONObject } from '@ai-sdk/provider';
 import {
   lazySchema,
+  safeValidateTypes,
   validateTypes,
   zodSchema,
   type FlexibleSchema,
@@ -26,6 +27,15 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
 );
 
 const providerReferenceSchema = z.record(z.string(), z.string());
+
+function isEmptyObject(value: unknown): value is Record<string, never> {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
+  );
+}
 
 function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   const { type, ...part } = toolPart;
@@ -532,24 +542,53 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               };
             }
 
+            const inputValidationContext = {
+              field: `messages[${msgIdx}].parts[${partIdx}].input`,
+              entityName: toolName,
+              entityId: toolPart.toolCallId,
+            };
+            let convertToDynamic = false;
+
             // Tool input validation
-            if (
+            if (toolPart.state === 'output-error') {
+              // Failed calls can retain invalid input. Keep them loadable, but
+              // expose incompatible input as unknown instead of the current
+              // static tool input type.
+              if (toolPart.input !== undefined) {
+                const result = await safeValidateTypes({
+                  value: toolPart.input,
+                  schema: tool.inputSchema,
+                  context: inputValidationContext,
+                });
+                convertToDynamic = !result.success;
+              }
+            } else if (toolPart.state === 'output-available') {
+              const result = await safeValidateTypes({
+                value: toolPart.input,
+                schema: tool.inputSchema,
+                context: inputValidationContext,
+              });
+
+              if (!result.success) {
+                // Empty terminal input can represent aborted or incomplete
+                // history whose input was never streamed. Preserve it without
+                // claiming that it matches the current static input type.
+                if (isEmptyObject(toolPart.input)) {
+                  convertToDynamic = true;
+                } else {
+                  throw result.error;
+                }
+              }
+            } else if (
               toolPart.state === 'input-available' ||
               toolPart.state === 'approval-requested' ||
               toolPart.state === 'approval-responded' ||
-              toolPart.state === 'output-denied' ||
-              toolPart.state === 'output-available' ||
-              (toolPart.state === 'output-error' &&
-                toolPart.input !== undefined)
+              toolPart.state === 'output-denied'
             ) {
               await validateTypes({
                 value: toolPart.input,
                 schema: tool.inputSchema,
-                context: {
-                  field: `messages[${msgIdx}].parts[${partIdx}].input`,
-                  entityName: toolName,
-                  entityId: toolPart.toolCallId,
-                },
+                context: inputValidationContext,
               });
             }
 
@@ -564,6 +603,12 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
                   entityId: toolPart.toolCallId,
                 },
               });
+            }
+
+            if (convertToDynamic) {
+              message.parts[partIdx] = asDynamicToolPart(
+                toolPart,
+              ) as (typeof message.parts)[number];
             }
           }
         }

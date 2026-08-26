@@ -1269,31 +1269,46 @@ describe('validateUIMessages', () => {
       );
     });
 
-    it('should reject completed empty input when the current schema requires fields', async () => {
-      await expect(
-        validateUIMessages<TestMessage>({
-          messages: [
+    it('should represent schema-incompatible output-available empty input as a dynamic tool part', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
             {
-              id: '1',
-              role: 'assistant',
-              parts: [
-                {
-                  type: 'tool-foo',
-                  toolCallId: '1',
-                  state: 'output-available',
-                  input: {} as { foo: string },
-                  output: { result: 'success' },
-                },
-              ],
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: {} as { foo: string },
+              output: { result: 'success' },
             },
           ],
-          tools: {
-            foo: testTool,
-          },
-        }),
-      ).rejects.toThrowError(
-        'Type validation failed for messages[0].parts[0].input',
-      );
+        },
+      ];
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages).toEqual([
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: {},
+              output: { result: 'success' },
+            },
+          ],
+        },
+      ]);
     });
 
     it('should validate output when an output-available tool call has empty input', async () => {
@@ -1394,32 +1409,51 @@ describe('validateUIMessages', () => {
       });
     });
 
-    it('should reject stale input when state is output-error', async () => {
-      await expect(
-        validateUIMessages<TestMessage>({
-          messages: [
+    it('should represent schema-incompatible output-error input as a dynamic tool part', async () => {
+      // A tool call that failed with an invalid-input error keeps its (invalid)
+      // input. The history must stay loadable without exposing that input under
+      // the current static tool type.
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-error',
+                input: { foo: 123 } as unknown as { foo: string },
+                errorText: 'AI_InvalidToolInputError',
+                providerExecuted: false,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages).toEqual([
+        {
+          id: '1',
+          parts: [
             {
-              id: '1',
-              role: 'assistant',
-              parts: [
-                {
-                  type: 'tool-foo',
-                  toolCallId: '1',
-                  state: 'output-error',
-                  input: { foo: 123 } as unknown as { foo: string },
-                  errorText: 'Tool execution failed',
-                  providerExecuted: false,
-                },
-              ],
+              errorText: 'AI_InvalidToolInputError',
+              input: {
+                foo: 123,
+              },
+              providerExecuted: false,
+              state: 'output-error',
+              toolCallId: '1',
+              toolName: 'foo',
+              type: 'dynamic-tool',
             },
           ],
-          tools: {
-            foo: testTool,
-          },
-        }),
-      ).rejects.toThrowError(
-        'Type validation failed for messages[0].parts[0].input',
-      );
+          role: 'assistant',
+        },
+      ]);
     });
 
     it('should preserve result provider metadata when state is output-error', async () => {
@@ -2148,7 +2182,7 @@ describe('safeValidateUIMessages', () => {
     expect(result.error.message).toContain('Type validation failed');
   });
 
-  it('should return failure for completed empty input that no longer matches the tool schema', async () => {
+  it('should return completed empty input as a dynamic tool part when it no longer matches the tool schema', async () => {
     const testTool = {
       inputSchema: z.object({ foo: z.string() }),
       outputSchema: z.object({ result: z.string() }),
@@ -2173,10 +2207,15 @@ describe('safeValidateUIMessages', () => {
       tools: { foo: testTool },
     });
 
-    expectToBe(result.success, false);
-    expect(result.error.message).toContain(
-      'Type validation failed for messages[0].parts[0].input',
-    );
+    expectToBe(result.success, true);
+    expect(result.data[0].parts[0]).toEqual({
+      type: 'dynamic-tool',
+      toolName: 'foo',
+      toolCallId: '1',
+      state: 'output-available',
+      input: {},
+      output: { result: 'success' },
+    });
   });
 
   it('should return unavailable terminal tools as dynamic tool parts', async () => {
