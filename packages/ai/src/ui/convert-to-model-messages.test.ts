@@ -2681,6 +2681,39 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should propagate reason from a pending approval request', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              approval: {
+                id: 'a1',
+                reason: 'requires operator review',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-requested',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      const assistantMessage = result.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'call-1',
+        isAutomatic: undefined,
+        reason: 'requires operator review',
+      });
+    });
+
     it('should propagate signature from approval to tool-approval-request part', async () => {
       const result = await convertToModelMessages([
         {

@@ -1574,6 +1574,36 @@ describe('validateUIMessages', () => {
       expect(result).toEqual(inputMessages);
     });
 
+    it('should validate reasons on pending approval requests', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'approval-requested',
+              input: { foo: 'bar' },
+              approval: {
+                id: 'approval-1',
+                reason: 'requires operator review',
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
     it('should throw error when tool input validation fails', async () => {
       await expect(
         validateUIMessages<TestMessage>({
