@@ -148,6 +148,54 @@ provider ignores a name on a tool message and returns an unsupported warning.
 Avoid including unnecessary personal or identifying information in message
 names.
 
+### Partial Mode
+
+Moonshot AI's [Partial Mode](https://platform.moonshot.ai/docs/api/partial)
+continues the content of a final assistant message. Set `partial: true` in that
+assistant message's provider options:
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAIAssistantMessageProviderOptions,
+} from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const prefix = 'The sky is';
+
+const { text } = await generateText({
+  model: moonshotai('kimi-k3'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Write one short sentence about the color of the sky.',
+    },
+    {
+      role: 'assistant',
+      content: prefix,
+      providerOptions: {
+        moonshotai: {
+          partial: true,
+        } satisfies MoonshotAIAssistantMessageProviderOptions,
+      },
+    },
+  ],
+});
+
+const completeResponse = prefix + text;
+```
+
+The partial message must be the final assistant message in the prompt. Moonshot
+returns only the continuation, so concatenate the prefix and generated text
+when you need the complete response.
+
+<Note>
+  Partial Mode cannot be combined with Moonshot's `json_object` response format.
+  The provider rejects that combination before sending the request. A supported
+  `json_schema` response remains available, but structured-output parsing
+  validates only the returned continuation.
+</Note>
+
 ### Reasoning Models
 
 Kimi K3 always reasons. It supports `low`, `high`, and `max` reasoning effort,

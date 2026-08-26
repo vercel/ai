@@ -139,3 +139,17 @@ export const moonshotaiMessageProviderOptions = z.object({
 export type MoonshotAIMessageProviderOptions = z.infer<
   typeof moonshotaiMessageProviderOptions
 >;
+
+export const moonshotaiAssistantMessageProviderOptions =
+  moonshotaiMessageProviderOptions.extend({
+    /**
+     * Whether the assistant message content is a partial response that Moonshot
+     * should continue. Only supported on the final assistant message and cannot
+     * be combined with JSON object response format.
+     */
+    partial: z.literal(true).optional(),
+  });
+
+export type MoonshotAIAssistantMessageProviderOptions = z.infer<
+  typeof moonshotaiAssistantMessageProviderOptions
+>;

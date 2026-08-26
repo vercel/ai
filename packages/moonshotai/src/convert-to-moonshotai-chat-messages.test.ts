@@ -122,6 +122,102 @@ describe('message names', () => {
   });
 });
 
+describe('Partial Mode', () => {
+  it('should serialize partial true on the final assistant message', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue the prefix.' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'The sky is' }],
+          providerOptions: {
+            moonshotai: { name: 'writer', partial: true },
+          },
+        },
+      ],
+    });
+
+    expect(result.messages.at(-1)).toEqual({
+      role: 'assistant',
+      content: 'The sky is',
+      name: 'writer',
+      partial: true,
+      tool_calls: undefined,
+    });
+  });
+
+  it('should reject partial true on a non-assistant message', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+      }),
+    ).toThrow(
+      'Moonshot AI Partial Mode requires `partial: true` on an assistant message.',
+    );
+  });
+
+  it('should reject partial true on a non-final assistant message', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'The sky is' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+      }),
+    ).toThrow(
+      'Moonshot AI Partial Mode requires the partial assistant message to be the final message.',
+    );
+  });
+
+  it('should reject Partial Mode with JSON object response format', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+        responseFormat: { type: 'json_object' },
+      }),
+    ).toThrow(
+      'Moonshot AI Partial Mode cannot be combined with JSON object response format.',
+    );
+  });
+
+  it('should allow Partial Mode with JSON schema response format', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '{' }],
+          providerOptions: { moonshotai: { partial: true } },
+        },
+      ],
+      responseFormat: { type: 'json_schema' },
+    });
+
+    expect(result.messages[0]).toMatchObject({ partial: true });
+  });
+});
+
 describe('user messages', () => {
   const supportedImageMediaTypes = [
     'image/jpeg',

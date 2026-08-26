@@ -45,6 +45,7 @@ export interface MoonshotAIAssistantMessage {
   role: 'assistant';
   content?: string | null;
   name?: string;
+  partial?: true;
   reasoning_content?: string;
   tool_calls?: Array<MoonshotAIMessageToolCall>;
 }
