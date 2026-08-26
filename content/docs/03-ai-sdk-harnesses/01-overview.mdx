@@ -73,8 +73,8 @@ That means you can consume familiar fields:
 - `result.responseMessages`
 
 Harness-specific events are translated into compatible stream parts. Text,
-reasoning, tool calls, tool results, usage, and finish reasons use the same AI
-SDK shapes where possible. Events without a first-class AI SDK part, such as
+reasoning, streaming tool input, tool calls, tool results, usage, and finish
+reasons use the same AI SDK shapes where possible. Events without a first-class AI SDK part, such as
 workspace file changes and compaction, are surfaced as dynamic
 provider-executed tool parts.
 

@@ -103,6 +103,39 @@ export function translateStreamPart<TOOLS extends ToolSet>(
         } as TextStreamPart<TOOLS>,
       ];
 
+    case 'tool-input-start':
+      return [
+        {
+          type: 'tool-input-start',
+          id: event.id,
+          toolName: event.toolName,
+          ...(event.providerExecuted != null
+            ? { providerExecuted: event.providerExecuted }
+            : {}),
+          ...(event.dynamic != null ? { dynamic: event.dynamic } : {}),
+          providerMetadata: event.harnessMetadata,
+        } as TextStreamPart<TOOLS>,
+      ];
+
+    case 'tool-input-delta':
+      return [
+        {
+          type: 'tool-input-delta',
+          id: event.id,
+          delta: event.delta,
+          providerMetadata: event.harnessMetadata,
+        } as TextStreamPart<TOOLS>,
+      ];
+
+    case 'tool-input-end':
+      return [
+        {
+          type: 'tool-input-end',
+          id: event.id,
+          providerMetadata: event.harnessMetadata,
+        } as TextStreamPart<TOOLS>,
+      ];
+
     case 'tool-call':
       // Tool-call validation is async (it parses input against the tool's
       // schema) and lives in `run-prompt.ts` where the merged tool set is in

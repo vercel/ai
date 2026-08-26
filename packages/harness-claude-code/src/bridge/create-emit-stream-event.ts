@@ -21,8 +21,13 @@ export type ClaudeMessage = {
   event?: {
     type?: string;
     index?: number;
-    content_block?: { type?: string };
-    delta?: { type?: string; text?: string; thinking?: string };
+    content_block?: { type?: string; id?: string; name?: string };
+    delta?: {
+      type?: string;
+      text?: string;
+      thinking?: string;
+      partial_json?: string;
+    };
   };
   message?: {
     content?: ReadonlyArray<MessageBlock>;
@@ -47,6 +52,15 @@ type MessageBlock = {
   is_error?: boolean;
 };
 
+/**
+ * A content block still streaming. `tool_use` carries the tool call id from
+ * `content_block_start`, so the deltas and the `tool-input-end` that follow
+ * reference the same id the eventual `tool-call` will use.
+ */
+type PartialBlock =
+  | { id: string; kind: 'text' | 'thinking' }
+  | { id: string; kind: 'tool_use'; toolName: string; nativeName: string };
+
 export type ClaudeStreamEventState = {
   /*
    * Map of native tool-use id → tool name. Claude assistant messages emit
@@ -56,7 +70,7 @@ export type ClaudeStreamEventState = {
    */
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>;
+  partialBlocks: Map<number, PartialBlock>;
   stepUsage: Record<string, unknown> | undefined;
   pendingStepToolUseIds: Set<string>;
   pendingStepUsage: Record<string, unknown> | undefined;
@@ -195,7 +209,7 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'stream_event') {
-      handleStreamEvent(msg.event, state.partialBlocks, emit);
+      handleStreamEvent(msg.event, state.partialBlocks, emit, toCommonName);
       return;
     }
 
@@ -221,6 +235,7 @@ export function createEmitStreamEvent({
             opensStep = true;
             continue;
           }
+          endToolInput(state.partialBlocks, block.id, emit);
           state.nativeToolCallNames.set(block.id, block.name);
           const dynamic = block.name.startsWith('mcp__');
           if (dynamic) state.externalMcpToolUseIds.add(block.id);
@@ -371,10 +386,33 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
     : 'Claude Code API retry';
 }
 
+/**
+ * Closes a streaming `tool_use` block, if one is open for this id.
+ *
+ * The runtime emits the `assistant` message carrying the finished `tool_use`
+ * block BEFORE that block's `content_block_stop`, so closing only on
+ * `content_block_stop` would place `tool-input-end` after the `tool-call` it
+ * belongs to. Whichever arrives first closes the block and removes it, leaving
+ * the other a no-op, so the order is always start -> delta -> end -> call.
+ */
+function endToolInput(
+  partialBlocks: Map<number, PartialBlock>,
+  toolUseId: string,
+  send: Emit,
+): void {
+  for (const [index, block] of partialBlocks) {
+    if (block.kind !== 'tool_use' || block.id !== toolUseId) continue;
+    partialBlocks.delete(index);
+    send({ type: 'tool-input-end', id: block.id });
+    return;
+  }
+}
+
 function handleStreamEvent(
   event: ClaudeMessage['event'] | undefined,
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>,
+  partialBlocks: Map<number, PartialBlock>,
   send: Emit,
+  toCommonName: (nativeName: string) => string,
 ): void {
   if (!event || typeof event.index !== 'number') return;
   const index = event.index;
@@ -389,6 +427,30 @@ function handleStreamEvent(
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'thinking' });
       send({ type: 'reasoning-start', id });
+    } else if (blockType === 'tool_use') {
+      const id = event.content_block?.id;
+      const nativeName = event.content_block?.name;
+      if (typeof id !== 'string' || typeof nativeName !== 'string') return;
+      /*
+       * Mirrors the `assistant` branch's filtering, so that every
+       * `tool-input-start` is followed by a `tool-call` carrying the same id:
+       * `StructuredOutput` is internal and never surfaces, and a host tool
+       * (`mcp__harness-tools__…`) has its call emitted by the MCP path rather
+       * than from the assistant message.
+       */
+      if (nativeName === 'StructuredOutput') return;
+      if (nativeName.startsWith('mcp__harness-tools__')) return;
+      const dynamic = nativeName.startsWith('mcp__');
+      const toolName = toCommonName(nativeName);
+      partialBlocks.set(index, { id, kind: 'tool_use', toolName, nativeName });
+      send({
+        type: 'tool-input-start',
+        id,
+        toolName,
+        nativeName,
+        providerExecuted: true,
+        ...(dynamic ? { dynamic: true } : {}),
+      });
     }
     return;
   }
@@ -412,6 +474,16 @@ function handleStreamEvent(
         id: block.id,
         delta: event.delta.thinking,
       });
+    } else if (
+      block.kind === 'tool_use' &&
+      event.delta?.type === 'input_json_delta' &&
+      typeof event.delta.partial_json === 'string'
+    ) {
+      send({
+        type: 'tool-input-delta',
+        id: block.id,
+        delta: event.delta.partial_json,
+      });
     }
     return;
   }
@@ -422,8 +494,10 @@ function handleStreamEvent(
     partialBlocks.delete(index);
     if (block.kind === 'text') {
       send({ type: 'text-end', id: block.id });
-    } else {
+    } else if (block.kind === 'thinking') {
       send({ type: 'reasoning-end', id: block.id });
+    } else {
+      send({ type: 'tool-input-end', id: block.id });
     }
   }
 }
