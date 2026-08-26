@@ -1,6 +1,6 @@
 /**
  * Z.AI chat model ids from the official OpenAPI 1.0.0 specification,
- * retrieved from https://docs.z.ai/openapi.json on 2026-08-25.
+ * retrieved from https://docs.z.ai/openapi.json on 2026-08-26.
  */
 export type ZaiChatModelId =
   | 'glm-5.3'
@@ -18,6 +18,7 @@ export type ZaiChatModelId =
   | 'glm-4.5-airx'
   | 'glm-4.5-flash'
   | 'glm-4-32b-0414-128k'
+  | 'glm-5.3-flash'
   | 'glm-5v-turbo'
   | 'glm-4.6v'
   | 'glm-4.6v-flash'
