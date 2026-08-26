@@ -46,39 +46,12 @@ type BedrockChatConfig = {
   generateId: () => string;
 };
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
-export class BedrockChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
-=======
 const anthropicProviderOptions = z.object({
   disableParallelToolUse: z.boolean().optional(),
 });
 
-function createAmazonBedrockStreamError({
-  type,
-  error,
-  data,
-}: {
-  type: AmazonBedrockStreamErrorType;
-  error: Record<string, unknown>;
-  data: unknown;
-}) {
-  const message =
-    typeof error.message === 'string'
-      ? error.message
-      : `Amazon Bedrock stream failed with ${type}`;
-
-  return createProviderStreamError({
-    message,
-    type,
-    ...getAmazonBedrockStreamErrorMetadata(type),
-    data,
-  });
-}
-
-export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
-  readonly specificationVersion = 'v4';
->>>>>>> 9921a2fde2 (fix: honor Anthropic disableParallelToolUse for Amazon Bedrock models (#19560)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
+export class BedrockChatLanguageModel implements LanguageModelV2 {
+  readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
 
   constructor(
@@ -114,17 +87,13 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         schema: bedrockProviderOptions,
       })) ?? {};
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
-    const warnings: LanguageModelV2CallWarning[] = [];
-=======
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
       providerOptions,
       schema: anthropicProviderOptions,
     });
 
-    const warnings: SharedV4Warning[] = [];
->>>>>>> 9921a2fde2 (fix: honor Anthropic disableParallelToolUse for Amazon Bedrock models (#19560)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({

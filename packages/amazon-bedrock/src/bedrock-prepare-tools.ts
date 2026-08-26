@@ -98,12 +98,7 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: providerDefinedTools,
       toolChoice,
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
-=======
       disableParallelToolUse,
-      supportsStructuredOutput: false,
-      supportsStrictTools: false,
->>>>>>> 9921a2fde2 (fix: honor Anthropic disableParallelToolUse for Amazon Bedrock models (#19560)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
     });
 
     toolWarnings.push(...anthropicToolWarnings);
@@ -165,7 +160,7 @@ export async function prepareTools({
     isAnthropicModel &&
     !usingAnthropicTools &&
     disableParallelToolUse &&
-    amazonBedrockTools.length > 0 &&
+    bedrockTools.length > 0 &&
     toolChoice?.type !== 'none'
   ) {
     additionalTools = {
@@ -183,19 +178,13 @@ export async function prepareTools({
   }
 
   // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic provider-defined tools
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
   let bedrockToolChoice: BedrockToolConfiguration['toolChoice'] = undefined;
-  if (!usingAnthropicTools && bedrockTools.length > 0 && toolChoice) {
-=======
-  let amazonBedrockToolChoice: AmazonBedrockToolConfiguration['toolChoice'] =
-    undefined;
   if (
     !usingAnthropicTools &&
     additionalTools?.tool_choice == null &&
-    amazonBedrockTools.length > 0 &&
+    bedrockTools.length > 0 &&
     toolChoice
   ) {
->>>>>>> 9921a2fde2 (fix: honor Anthropic disableParallelToolUse for Amazon Bedrock models (#19560)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
     const type = toolChoice.type;
     switch (type) {
       case 'auto':
