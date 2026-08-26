@@ -1,5 +1,6 @@
 import {
   InvalidArgumentError,
+  InvalidPromptError,
   UnsupportedFunctionalityError,
   type LanguageModelV3Prompt,
   type SharedV3Warning,
@@ -10,7 +11,7 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
-import { moonshotaiMessageProviderOptions } from './moonshotai-chat-options';
+import { moonshotaiAssistantMessageProviderOptions } from './moonshotai-chat-options';
 
 function parseMoonshotAIMessageProviderOptions({
   providerOptions,
@@ -24,7 +25,7 @@ function parseMoonshotAIMessageProviderOptions({
     return undefined;
   }
 
-  const result = moonshotaiMessageProviderOptions.safeParse(value);
+  const result = moonshotaiAssistantMessageProviderOptions.safeParse(value);
   if (!result.success) {
     throw new InvalidArgumentError({
       argument: 'providerOptions',
@@ -89,9 +90,11 @@ function validateMediaType({
 export function convertToMoonshotAIChatMessages({
   prompt,
   providerOptionsName = 'moonshotai',
+  responseFormat,
 }: {
   prompt: LanguageModelV3Prompt;
   providerOptionsName?: string;
+  responseFormat?: Record<string, unknown>;
 }): {
   messages: MoonshotAIMessages;
   warnings: Array<SharedV3Warning>;
@@ -99,11 +102,19 @@ export function convertToMoonshotAIChatMessages({
   const messages: MoonshotAIMessages = [];
   const warnings: Array<SharedV3Warning> = [];
 
-  for (const { role, content, providerOptions } of prompt) {
+  for (const [index, { role, content, providerOptions }] of prompt.entries()) {
     const moonshotMessageOptions = parseMoonshotAIMessageProviderOptions({
       providerOptions,
       providerOptionsName,
     });
+
+    if (moonshotMessageOptions?.partial === true && role !== 'assistant') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'Moonshot AI Partial Mode requires `partial: true` on an assistant message.',
+      });
+    }
 
     switch (role) {
       case 'system': {
@@ -204,6 +215,24 @@ export function convertToMoonshotAIChatMessages({
       }
 
       case 'assistant': {
+        if (moonshotMessageOptions?.partial === true) {
+          if (index !== prompt.length - 1) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'Moonshot AI Partial Mode requires the partial assistant message to be the final message.',
+            });
+          }
+
+          if (responseFormat?.type === 'json_object') {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'Moonshot AI Partial Mode cannot be combined with JSON object response format.',
+            });
+          }
+        }
+
         let text = '';
         let reasoning = '';
         const toolCalls: Array<{
@@ -241,6 +270,9 @@ export function convertToMoonshotAIChatMessages({
           content: toolCalls.length > 0 ? text || null : text,
           ...(moonshotMessageOptions?.name != null && {
             name: moonshotMessageOptions.name,
+          }),
+          ...(moonshotMessageOptions?.partial === true && {
+            partial: true,
           }),
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
