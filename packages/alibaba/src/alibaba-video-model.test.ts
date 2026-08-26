@@ -366,6 +366,535 @@ describe('AlibabaVideoModel', () => {
       });
     });
 
+    describe('wan3 (all-in-one)', () => {
+      // wan3 ships one id for every mode, so the request's own media — not the
+      // model id — decides text- vs image- vs reference-to-video.
+      it('should send a bare prompt with no media for text-to-video', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        await model.doStart({ ...defaultOptions });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).toMatchObject({
+          model: 'wan3.0-video',
+          input: { prompt },
+        });
+        expect(body.input).not.toHaveProperty('media');
+        expect(body.input).not.toHaveProperty('img_url');
+      });
+
+      it('should carry the start image in input.media instead of img_url', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        await model.doStart({
+          ...defaultOptions,
+          image: { type: 'url', url: 'https://example.com/first.jpg' },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).toMatchObject({
+          media: [
+            { type: 'first_frame', url: 'https://example.com/first.jpg' },
+          ],
+        });
+        expect(body.input).not.toHaveProperty('img_url');
+      });
+
+      it('should send both frame images without warning', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          frameImages: [
+            {
+              frameType: 'first_frame',
+              image: { type: 'url', url: 'https://example.com/first.jpg' },
+            },
+            {
+              frameType: 'last_frame',
+              image: { type: 'url', url: 'https://example.com/last.jpg' },
+            },
+          ],
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).toMatchObject({
+          media: [
+            { type: 'first_frame', url: 'https://example.com/first.jpg' },
+            { type: 'last_frame', url: 'https://example.com/last.jpg' },
+          ],
+        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'frameImages' }),
+        );
+      });
+
+      it('should map inputReferences to media without a dedicated r2v id', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          inputReferences: [
+            { type: 'url', url: 'https://example.com/ref.jpg' },
+            { type: 'url', url: 'https://example.com/ref.mp4' },
+          ],
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).toMatchObject({
+          media: [
+            { type: 'reference_image', url: 'https://example.com/ref.jpg' },
+            { type: 'reference_video', url: 'https://example.com/ref.mp4' },
+          ],
+        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'inputReferences' }),
+        );
+      });
+
+      it('should send resolution tiers, including 480P', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          resolution: '832x480',
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).toMatchObject({ parameters: { resolution: '480P' } });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'resolution' }),
+        );
+      });
+
+      it('should warn on a resolution outside the three tiers', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          resolution: '3840x2160',
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters).not.toHaveProperty('resolution');
+        expect(result.warnings).toContainEqual(
+          expect.objectContaining({
+            type: 'unsupported',
+            feature: 'resolution',
+          }),
+        );
+      });
+
+      it('should send the audio toggle, adaptive ratio, and smart duration', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          generateAudio: false,
+          duration: -1,
+          providerOptions: { alibaba: { ratio: 'adaptive' } },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).toMatchObject({
+          parameters: { audio: false, ratio: 'adaptive', duration: -1 },
+        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'generateAudio' }),
+        );
+      });
+
+      it('should pass through wan3-only media types from providerOptions', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        await model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            alibaba: {
+              media: [
+                {
+                  type: 'reference_audio',
+                  url: 'https://example.com/voice.mp3',
+                },
+                { type: 'file', url: 'https://example.com/deck.pdf' },
+                { type: 'link', url: 'https://example.com/article' },
+              ],
+            },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).toMatchObject({
+          media: [
+            { type: 'reference_audio', url: 'https://example.com/voice.mp3' },
+            { type: 'file', url: 'https://example.com/deck.pdf' },
+            { type: 'link', url: 'https://example.com/article' },
+          ],
+        });
+      });
+
+      it('should warn about shotType, which wan3 dropped', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          providerOptions: { alibaba: { shotType: 'multi' } },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters).not.toHaveProperty('shot_type');
+        expect(result.warnings).toContainEqual(
+          expect.objectContaining({
+            type: 'unsupported',
+            feature: 'shotType',
+          }),
+        );
+      });
+
+      it('should prefer frameImages first_frame over the legacy image option', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        await model.doStart({
+          ...defaultOptions,
+          image: { type: 'url', url: 'https://example.com/legacy.jpg' },
+          frameImages: [
+            {
+              frameType: 'first_frame',
+              image: { type: 'url', url: 'https://example.com/first.jpg' },
+            },
+          ],
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).toMatchObject({
+          media: [
+            { type: 'first_frame', url: 'https://example.com/first.jpg' },
+          ],
+        });
+      });
+
+      it('should send last_frame alone without warning', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          frameImages: [
+            {
+              frameType: 'last_frame',
+              image: { type: 'url', url: 'https://example.com/last.jpg' },
+            },
+          ],
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).toMatchObject({
+          media: [{ type: 'last_frame', url: 'https://example.com/last.jpg' }],
+        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'frameImages' }),
+        );
+      });
+
+      it('should combine inputReferences with first and last frames', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          inputReferences: [
+            { type: 'url', url: 'https://example.com/character.png' },
+            { type: 'url', url: 'https://example.com/role.mp4' },
+          ],
+          frameImages: [
+            {
+              frameType: 'first_frame',
+              image: { type: 'url', url: 'https://example.com/first.jpg' },
+            },
+            {
+              frameType: 'last_frame',
+              image: { type: 'url', url: 'https://example.com/last.jpg' },
+            },
+          ],
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).toMatchObject({
+          media: [
+            {
+              type: 'reference_image',
+              url: 'https://example.com/character.png',
+            },
+            { type: 'reference_video', url: 'https://example.com/role.mp4' },
+            { type: 'first_frame', url: 'https://example.com/first.jpg' },
+            { type: 'last_frame', url: 'https://example.com/last.jpg' },
+          ],
+        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'frameImages' }),
+        );
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'inputReferences' }),
+        );
+      });
+
+      it.each([
+        ['1280x720', '720P'],
+        ['1920x1080', '1080P'],
+        ['720x1280', '720P'],
+        ['832x480', '480P'],
+      ] as const)(
+        'should map resolution %s to %s',
+        async (resolution, tier) => {
+          const model = createModel({ modelId: 'wan3.0-video' });
+
+          const result = await model.doStart({
+            ...defaultOptions,
+            resolution,
+          });
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.parameters).toMatchObject({ resolution: tier });
+          expect(body.parameters).not.toHaveProperty('size');
+          expect(result.warnings).not.toContainEqual(
+            expect.objectContaining({ feature: 'resolution' }),
+          );
+        },
+      );
+
+      it('should derive a supported ratio from the resolution', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        await model.doStart({
+          ...defaultOptions,
+          resolution: '720x1280',
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters).toMatchObject({
+          resolution: '720P',
+          ratio: '9:16',
+        });
+      });
+
+      it('should map aspectRatio, including adaptive, without warning', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          aspectRatio: 'adaptive',
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters).toMatchObject({ ratio: 'adaptive' });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'aspectRatio' }),
+        );
+      });
+
+      it('should prefer providerOptions.alibaba.ratio over aspectRatio', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        await model.doStart({
+          ...defaultOptions,
+          aspectRatio: '9:16',
+          providerOptions: { alibaba: { ratio: '1:1' } },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters).toMatchObject({ ratio: '1:1' });
+      });
+
+      it('should let generateAudio override the legacy audio option', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          generateAudio: false,
+          providerOptions: { alibaba: { audio: true } },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters).toMatchObject({ audio: false });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'generateAudio' }),
+        );
+      });
+
+      it('should send the legacy audio option when generateAudio is omitted', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        await model.doStart({
+          ...defaultOptions,
+          providerOptions: { alibaba: { audio: false } },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters).toMatchObject({ audio: false });
+      });
+
+      it('should still send audio_url, prompt rewrite, watermark, and seed', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        await model.doStart({
+          ...defaultOptions,
+          seed: 42,
+          duration: 8,
+          providerOptions: {
+            alibaba: {
+              audioUrl: 'https://example.com/soundtrack.mp3',
+              negativePrompt: 'blurry, low quality',
+              promptExtend: false,
+              watermark: true,
+            },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).toMatchObject({
+          input: {
+            prompt,
+            audio_url: 'https://example.com/soundtrack.mp3',
+            negative_prompt: 'blurry, low quality',
+          },
+          parameters: {
+            seed: 42,
+            duration: 8,
+            prompt_extend: false,
+            watermark: true,
+          },
+        });
+      });
+
+      it('should send file images as data URIs for frames and references', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+        const imageData = new Uint8Array([137, 80, 78, 71]);
+
+        await model.doStart({
+          ...defaultOptions,
+          inputReferences: [
+            { type: 'file', data: imageData, mediaType: 'image/png' },
+          ],
+          frameImages: [
+            {
+              frameType: 'first_frame',
+              image: {
+                type: 'file',
+                data: imageData,
+                mediaType: 'image/png',
+              },
+            },
+          ],
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).toMatchObject({
+          media: [
+            {
+              type: 'reference_image',
+              url: 'data:image/png;base64,iVBORw==',
+            },
+            {
+              type: 'first_frame',
+              url: 'data:image/png;base64,iVBORw==',
+            },
+          ],
+        });
+      });
+
+      it('should warn and skip non-URL video references', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          inputReferences: [
+            {
+              type: 'file',
+              data: new Uint8Array([0, 0, 0, 24]),
+              mediaType: 'video/mp4',
+            },
+          ],
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).not.toHaveProperty('media');
+        expect(result.warnings).toContainEqual(
+          expect.objectContaining({
+            type: 'unsupported',
+            feature: 'inputReferences',
+          }),
+        );
+      });
+
+      it('should use providerOptions.alibaba.media as an override', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        await model.doStart({
+          ...defaultOptions,
+          inputReferences: [
+            { type: 'url', url: 'https://example.com/ignored.png' },
+          ],
+          frameImages: [
+            {
+              frameType: 'first_frame',
+              image: {
+                type: 'url',
+                url: 'https://example.com/ignored-first.jpg',
+              },
+            },
+          ],
+          providerOptions: {
+            alibaba: {
+              media: [
+                {
+                  type: 'reference_video',
+                  url: 'https://example.com/character.mp4',
+                  referenceVoice: 'https://example.com/voice.mp3',
+                },
+                {
+                  type: 'last_frame',
+                  url: 'https://example.com/closing.png',
+                },
+              ],
+            },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input).toMatchObject({
+          media: [
+            {
+              type: 'reference_video',
+              url: 'https://example.com/character.mp4',
+              reference_voice: 'https://example.com/voice.mp3',
+            },
+            { type: 'last_frame', url: 'https://example.com/closing.png' },
+          ],
+        });
+      });
+
+      it('should still warn about unsupported fps and n > 1', async () => {
+        const model = createModel({ modelId: 'wan3.0-video' });
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          fps: 24,
+          n: 3,
+        });
+
+        expect(result.warnings).toContainEqual(
+          expect.objectContaining({
+            type: 'unsupported',
+            feature: 'fps',
+          }),
+        );
+        expect(result.warnings).toContainEqual(
+          expect.objectContaining({
+            type: 'unsupported',
+            feature: 'n',
+          }),
+        );
+      });
+    });
+
     describe('warnings', () => {
       it('should warn about unsupported aspectRatio', async () => {
         const model = createModel();
@@ -658,6 +1187,49 @@ describe('AlibabaVideoModel', () => {
           },
         });
       }
+    });
+
+    it('should surface wan3 usage facts when the task reports them', async () => {
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: {
+          ...succeededTaskResponse,
+          usage: {
+            duration: 12,
+            output_video_duration: 8,
+            input_video_duration: 4,
+            fps: 24,
+            SR: 720,
+            size: '1280x720',
+            ratio: '16:9',
+          },
+        },
+      };
+
+      const model = createModel({ modelId: 'wan3.0-video' });
+
+      const result = await model.doStatus({
+        operation: { taskId: 'task-abc-123' },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.providerMetadata?.alibaba.usage).toStrictEqual({
+          duration: 12,
+          outputVideoDuration: 8,
+          inputVideoDuration: 4,
+          fps: 24,
+          resolution: 720,
+          size: '1280x720',
+          ratio: '16:9',
+        });
+      }
+
+      // Reset
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: succeededTaskResponse,
+      };
     });
 
     it('should include timestamp, modelId, and headers in response', async () => {

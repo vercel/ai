@@ -1,4 +1,7 @@
-import type { HarnessV1RequestTransformation } from '@ai-sdk/harness';
+import type {
+  HarnessV1RequestTransformation,
+  HarnessV1RequestTransformationSources,
+} from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   getAiGatewayAuthFromEnv,
@@ -11,47 +14,91 @@ export const OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
   'ANTHROPIC_AUTH_TOKEN',
 ] as const;
 
-export function createOpenCodeRequestTransformations(
-  env: Record<string, string>,
-  auth: OpenCodeResolvedAuthenticationMode,
-): HarnessV1RequestTransformation[] {
-  switch (auth) {
+export function createOpenCodeRequestTransformations({
+  env: environment,
+  sandboxEnv: sandboxEnvironment,
+  auth: authenticationMode,
+}: HarnessV1RequestTransformationSources<OpenCodeResolvedAuthenticationMode>): HarnessV1RequestTransformation[] {
+  switch (authenticationMode) {
     case 'ai-gateway':
-      return env.AI_GATEWAY_API_KEY
+      return environment.AI_GATEWAY_API_KEY &&
+        sandboxEnvironment.AI_GATEWAY_API_KEY
         ? [
             createCredentialRequestTransformation({
-              baseUrl: env.AI_GATEWAY_BASE_URL,
-              headers: {
-                Authorization: `Bearer ${env.AI_GATEWAY_API_KEY}`,
+              matchUrl: environment.AI_GATEWAY_BASE_URL,
+              matchHeaders: {
+                'x-api-key': sandboxEnvironment.AI_GATEWAY_API_KEY,
+              },
+              transformHeaders: {
+                Authorization: `Bearer ${environment.AI_GATEWAY_API_KEY}`,
+              },
+            }),
+            createCredentialRequestTransformation({
+              matchUrl: environment.AI_GATEWAY_BASE_URL,
+              matchHeaders: {
+                Authorization: `Bearer ${sandboxEnvironment.AI_GATEWAY_API_KEY}`,
+              },
+              transformHeaders: {
+                Authorization: `Bearer ${environment.AI_GATEWAY_API_KEY}`,
               },
             }),
           ]
         : [];
     case 'openai':
-      return env.OPENAI_API_KEY
+      return environment.OPENAI_API_KEY && sandboxEnvironment.OPENAI_API_KEY
         ? [
             createCredentialRequestTransformation({
-              baseUrl: env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
-              headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
+              matchUrl:
+                environment.OPENAI_BASE_URL ?? 'https://api.openai.com/v1',
+              matchHeaders: {
+                Authorization: `Bearer ${sandboxEnvironment.OPENAI_API_KEY}`,
+              },
+              transformHeaders: {
+                Authorization: `Bearer ${environment.OPENAI_API_KEY}`,
+              },
             }),
           ]
         : [];
     case 'anthropic': {
-      const headers: Record<string, string> = {};
-      if (env.ANTHROPIC_API_KEY) {
-        headers['x-api-key'] = env.ANTHROPIC_API_KEY;
+      const matchUrl =
+        environment.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com';
+      const transformations: HarnessV1RequestTransformation[] = [];
+
+      if (
+        environment.ANTHROPIC_API_KEY != null &&
+        sandboxEnvironment.ANTHROPIC_API_KEY != null
+      ) {
+        transformations.push(
+          createCredentialRequestTransformation({
+            matchUrl,
+            matchHeaders: {
+              'x-api-key': sandboxEnvironment.ANTHROPIC_API_KEY,
+            },
+            transformHeaders: {
+              'x-api-key': environment.ANTHROPIC_API_KEY,
+            },
+          }),
+        );
       }
-      if (env.ANTHROPIC_AUTH_TOKEN) {
-        headers.Authorization = `Bearer ${env.ANTHROPIC_AUTH_TOKEN}`;
+
+      if (
+        environment.ANTHROPIC_AUTH_TOKEN != null &&
+        sandboxEnvironment.ANTHROPIC_AUTH_TOKEN != null
+      ) {
+        transformations.push(
+          createCredentialRequestTransformation({
+            matchUrl,
+            matchHeaders: {
+              Authorization: `Bearer ${sandboxEnvironment.ANTHROPIC_AUTH_TOKEN}`,
+            },
+            transformHeaders: {
+              Authorization: `Bearer ${environment.ANTHROPIC_AUTH_TOKEN}`,
+            },
+          }),
+        );
       }
-      return Object.keys(headers).length === 0
-        ? []
-        : [
-            createCredentialRequestTransformation({
-              baseUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
-              headers,
-            }),
-          ];
+
+      return transformations;
     }
   }
 }

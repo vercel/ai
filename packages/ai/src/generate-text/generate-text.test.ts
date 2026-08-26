@@ -1,6 +1,8 @@
 import {
   InvalidPromptError,
+  JSONParseError,
   type LanguageModelV4CallOptions,
+  type LanguageModelV4FinishReason,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4Prompt,
   type LanguageModelV4ProviderTool,
@@ -29,6 +31,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { signToolApproval } from './tool-approval-signature';
 import { z } from 'zod/v4';
@@ -7825,6 +7828,63 @@ describe('generateText', () => {
         expect(result.output).toEqual({ value: 'test-value' });
       });
 
+      it('should expose parse diagnostics when output is truncated', async () => {
+        const truncatedText = '{"value":"test';
+
+        try {
+          await generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: async () => ({
+                ...dummyResponseValues,
+                finishReason: { unified: 'length', raw: 'length' },
+                content: [{ type: 'text', text: truncatedText }],
+              }),
+            }),
+            prompt: 'prompt',
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+          });
+
+          assert.fail('must throw error');
+        } catch (error) {
+          expect(NoObjectGeneratedError.isInstance(error)).toBe(true);
+
+          if (!NoObjectGeneratedError.isInstance(error)) {
+            return;
+          }
+
+          expect(error.message).toBe(
+            'No object generated: could not parse the response.',
+          );
+          expect(error.cause).toBeInstanceOf(JSONParseError);
+          expect(error.text).toBe(truncatedText);
+          expect(error.finishReason).toBe('length');
+          expect(error.usage?.outputTokens).toBe(10);
+        }
+      });
+
+      it('should parse the output when the finish reason is missing', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              finishReason: {
+                unified: undefined,
+                raw: undefined,
+              } as unknown as LanguageModelV4FinishReason,
+              content: [{ type: 'text', text: `{ "value": "test-value" }` }],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.output).toEqual({ value: 'test-value' });
+      });
+
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
         let callOptions: LanguageModelV4CallOptions;
 
@@ -8050,13 +8110,19 @@ describe('generateText', () => {
       });
     });
 
-    it('should not parse output when finish reason is tool-calls', async () => {
+    it('should not parse mixed text and tool calls as output', async () => {
+      const explanatoryText = 'I will use the test tool.';
+
       const result = await generateText({
         model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             finishReason: { unified: 'tool-calls', raw: undefined },
             content: [
+              {
+                type: 'text',
+                text: explanatoryText,
+              },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -8079,7 +8145,9 @@ describe('generateText', () => {
         },
       });
 
-      // output should be undefined when finish reason is tool-calls
+      expect(result.text).toBe(explanatoryText);
+
+      // output should be unavailable when finish reason is tool-calls
       expect(() => {
         result.output;
       }).toThrow('No output generated');
@@ -10615,6 +10683,56 @@ describe('generateText', () => {
   });
 
   describe('tool execution approval', () => {
+    it('should surface the reason for user approval requests', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        toolApproval: {
+          tool1: {
+            type: 'user-approval',
+            reason: 'requires operator review',
+          },
+        },
+        prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      expect(
+        result.content.find(part => part.type === 'tool-approval-request'),
+      ).toMatchObject({
+        type: 'tool-approval-request',
+        approvalId: 'id-1',
+        reason: 'requires operator review',
+      });
+      expect(result.responseMessages[0].content).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-approval-request',
+          approvalId: 'id-1',
+          reason: 'requires operator review',
+        }),
+      );
+    });
+
     describe('when a single tool needs approval (user-defined)', () => {
       let result: GenerateTextResult<any, any, any>;
 

@@ -37,7 +37,7 @@ async function main() {
     if ('error' in output) continue;
 
     for (const web of output.web_results ?? []) {
-      console.log(`[${web.citation_number}] ${web.source_name} - ${web.url}`);
+      console.log(`${web.source_name} - ${web.url}`);
     }
 
     for (const card of output.cards ?? []) {

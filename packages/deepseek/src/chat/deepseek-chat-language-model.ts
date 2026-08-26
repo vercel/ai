@@ -14,6 +14,7 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   isCustomReasoning,
   mapReasoningToProviderEffort,
@@ -51,10 +52,106 @@ export type DeepSeekChatConfig = {
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   supportsAssistantPrefixCompletion?: boolean;
+  supportsStrictToolCalls?: boolean;
   supportsPenaltySampling?: boolean;
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
+
+function createDeepSeekStreamError(
+  error: {
+    message: string;
+    type?: string | null;
+    code?: string | number | null;
+  },
+  data: unknown,
+) {
+  const metadata = getDeepSeekStreamErrorMetadata(error);
+
+  return createProviderStreamError({
+    message: error.message,
+    type: error.type ?? undefined,
+    code: error.code ?? undefined,
+    ...metadata,
+    data,
+  });
+}
+
+function getDeepSeekStreamErrorMetadata(error: {
+  type?: string | null;
+  code?: string | number | null;
+}): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  if (
+    error.code === 'insufficient_quota' ||
+    error.type === 'insufficient_quota'
+  ) {
+    return { statusCode: 429, isRetryable: false };
+  }
+
+  const explicitStatusCode = getHttpStatusCode(error.code);
+  if (explicitStatusCode != null) {
+    return {
+      statusCode: explicitStatusCode,
+      isRetryable: isRetryableStatusCode(explicitStatusCode),
+    };
+  }
+
+  for (const discriminator of [error.code, error.type]) {
+    switch (discriminator) {
+      case 'rate_limit_exceeded':
+      case 'rate_limit_error':
+        return { statusCode: 429, isRetryable: true };
+      case 'server_error':
+      case 'api_error':
+      case 'internal_server_error':
+        return { statusCode: 500, isRetryable: true };
+      case 'overloaded_error':
+      case 'service_unavailable':
+        return { statusCode: 503, isRetryable: true };
+      case 'timeout':
+      case 'timeout_error':
+        return { statusCode: 504, isRetryable: true };
+      case 'authentication_error':
+      case 'invalid_api_key':
+        return { statusCode: 401, isRetryable: false };
+      case 'permission_error':
+        return { statusCode: 403, isRetryable: false };
+      case 'not_found_error':
+      case 'model_not_found':
+        return { statusCode: 404, isRetryable: false };
+      case 'bad_request':
+      case 'context_length_exceeded':
+      case 'invalid_request_error':
+        return { statusCode: 400, isRetryable: false };
+    }
+  }
+
+  return {};
+}
+
+function getHttpStatusCode(value: unknown): number | undefined {
+  const statusCode =
+    typeof value === 'string' && /^\d{3}$/.test(value) ? Number(value) : value;
+
+  return typeof statusCode === 'number' &&
+    Number.isInteger(statusCode) &&
+    statusCode >= 400 &&
+    statusCode <= 599
+    ? statusCode
+    : undefined;
+}
+
+function isRetryableStatusCode(statusCode: number): boolean {
+  return (
+    statusCode === 408 ||
+    statusCode === 409 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
+}
 
 function mapDeepSeekProviderReasoningEffort({
   reasoningEffort,
@@ -198,6 +295,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     } = prepareTools({
       tools,
       toolChoice,
+      supportsStrictToolCalls: this.config.supportsStrictToolCalls,
     });
 
     const thinkingType = deepseekOptions.thinking?.type;
@@ -375,6 +473,18 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         [this.providerOptionsName]: {
           promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
           promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
           ...(choice.logprobs != null && { logprobs: choice.logprobs }),
           ...(responseBody.system_fingerprint != null && {
             systemFingerprint: responseBody.system_fingerprint,
@@ -429,6 +539,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let responseObject: 'chat.completion.chunk' | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
     const contentLogprobs: DeepSeekChatLogprob[] = [];
     const reasoningLogprobs: DeepSeekChatLogprob[] = [];
 
@@ -462,7 +576,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({ type: 'error', error: value.error.message });
+              controller.enqueue({
+                type: 'error',
+                error: createDeepSeekStreamError(value.error, value),
+              });
               return;
             }
 
@@ -479,6 +596,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               usage = value.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
             // The fingerprint is repeated on stream chunks; keep the latest
             // non-null value in case it changes during the response.
             if (value.system_fingerprint != null) {
@@ -486,6 +607,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
             }
 
             const choice = value.choices[0];
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
+            }
 
             if (choice?.finish_reason != null) {
               finishReason = {
@@ -507,6 +632,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -559,6 +688,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(toolCallDelta.index, toolCallDelta.type);
+                }
                 toolCallTracker.processDelta(toolCallDelta);
               }
             }
@@ -585,6 +717,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                     usage?.prompt_cache_hit_tokens ?? undefined,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? undefined,
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
                   ...((contentLogprobs.length > 0 ||
                     reasoningLogprobs.length > 0) && {
                     logprobs: {

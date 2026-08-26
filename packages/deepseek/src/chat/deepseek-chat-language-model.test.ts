@@ -1,4 +1,5 @@
 import type { JSONSchema7, LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
@@ -288,6 +289,88 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
           'user_id',
         );
+      });
+
+      it('should reject strict tools on the standard endpoint before fetching', async () => {
+        await expect(
+          provider.chat('deepseek-chat').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function',
+                name: 'getWeather',
+                inputSchema: { type: 'object', properties: {} },
+                strict: true,
+              },
+            ],
+          }),
+        ).rejects.toThrow(
+          'DeepSeek strict tool calls require a beta base URL ending in `/beta`.',
+        );
+
+        expect(server.calls).toHaveLength(0);
+      });
+
+      it('should send all-strict tools on the beta endpoint', async () => {
+        server.urls['https://api.deepseek.com/beta/chat/completions'].response =
+          {
+            type: 'json-value',
+            body: JSON.parse(
+              fs.readFileSync(
+                'src/chat/__fixtures__/deepseek-text.json',
+                'utf8',
+              ),
+            ),
+          };
+
+        await betaProvider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'getWeather',
+              inputSchema: { type: 'object', properties: {} },
+              strict: true,
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'getWeather',
+                strict: true,
+              },
+            },
+          ],
+        });
+      });
+
+      it('should reject mixed strict tools in streaming requests', async () => {
+        await expect(
+          betaProvider.chat('deepseek-chat').doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function',
+                name: 'strictTool',
+                inputSchema: { type: 'object', properties: {} },
+                strict: true,
+              },
+              {
+                type: 'function',
+                name: 'nonStrictTool',
+                inputSchema: { type: 'object', properties: {} },
+              },
+            ],
+          }),
+        ).rejects.toThrow(
+          'DeepSeek strict mode requires every function tool in the request to set `strict: true`.',
+        );
+
+        expect(server.calls).toHaveLength(0);
       });
 
       it.each([
@@ -1198,6 +1281,108 @@ describe('DeepSeekChatLanguageModel', () => {
       };
     }
 
+    it('should preserve a provider error envelope in stream errors', async () => {
+      const data = {
+        error: {
+          message: 'Rate limit reached',
+          type: 'rate_limit_error',
+          code: 'rate_limit_exceeded',
+        },
+      };
+
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
+      };
+
+      const result = await provider.chat('deepseek-chat').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const chunks = await convertReadableStreamToArray(result.stream);
+      const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+      expect(errorPart?.type).toBe('error');
+      if (errorPart?.type !== 'error') {
+        expect.fail('Expected an error part');
+      }
+
+      expect(isProviderStreamError(errorPart.error)).toBe(true);
+      expect(errorPart.error).toMatchObject({
+        message: 'Rate limit reached',
+        type: 'rate_limit_error',
+        code: 'rate_limit_exceeded',
+        statusCode: 429,
+        isRetryable: true,
+        data,
+      });
+    });
+
+    it('should classify insufficient quota as non-retryable', async () => {
+      const data = {
+        error: {
+          message: 'You exceeded your current quota.',
+          type: 'rate_limit_error',
+          code: 'insufficient_quota',
+        },
+      };
+
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
+      };
+
+      const result = await provider.chat('deepseek-chat').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const chunks = await convertReadableStreamToArray(result.stream);
+      const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: data.error.message,
+          type: data.error.type,
+          code: data.error.code,
+          statusCode: 429,
+          isRetryable: false,
+          data,
+        },
+      });
+    });
+
+    it('should preserve the provider type when code is an HTTP status', async () => {
+      const data = {
+        error: {
+          message: 'Rate limit reached',
+          type: 'rate_limit_error',
+          code: '429',
+        },
+      };
+
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
+      };
+
+      const result = await provider.chat('deepseek-chat').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const chunks = await convertReadableStreamToArray(result.stream);
+      const errorPart = chunks.find(chunk => chunk.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          message: data.error.message,
+          type: data.error.type,
+          code: data.error.code,
+          statusCode: 429,
+          isRetryable: true,
+          data,
+        },
+      });
+    });
+
     describe('text', () => {
       beforeEach(() => {
         prepareChunksFixtureResponse('deepseek-text');
@@ -1568,6 +1753,7 @@ describe('DeepSeekChatLanguageModel', () => {
           .toMatchInlineSnapshot(`
             {
               "deepseek": {
+                "choiceIndex": 0,
                 "logprobs": {
                   "content": [
                     {
@@ -1604,8 +1790,10 @@ describe('DeepSeekChatLanguageModel', () => {
                     },
                   ],
                 },
+                "messageRole": "assistant",
                 "promptCacheHitTokens": 0,
                 "promptCacheMissTokens": 9,
+                "responseObject": "chat.completion.chunk",
               },
             }
           `);

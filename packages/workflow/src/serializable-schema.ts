@@ -27,6 +27,10 @@ import Ajv from 'ajv';
 export type SerializableToolDef = {
   description?: string;
   inputSchema: JSONSchema7;
+  /** Input examples forwarded to providers that support them. */
+  inputExamples?: Array<{ input: unknown }>;
+  /** Provider-specific options attached to the tool definition. */
+  providerOptions?: Tool['providerOptions'];
   /** Present on provider tools (e.g. anthropic.tools.webSearch). */
   type?: 'provider';
   /** Provider tool is executed by the provider. */
@@ -38,10 +42,9 @@ export type SerializableToolDef = {
 };
 
 /**
- * Converts a ToolSet (with zod/standard schemas and execute functions) to a
- * serializable record of tool definitions. Only description and inputSchema
- * (as JSON Schema) are preserved — execute functions are stripped since they
- * run outside the step.
+ * Converts a ToolSet (with Zod/standard schemas and execute functions) to a
+ * serializable record of tool definitions. Execution functions and callbacks
+ * are stripped because they run outside the step.
  */
 export function serializeToolSet<TOOLS extends ToolSet>(
   tools: TOOLS,
@@ -63,6 +66,8 @@ export function serializeToolSet<TOOLS extends ToolSet>(
           experimental_sandbox: sandbox,
         }),
         inputSchema: asSchema(t.inputSchema).jsonSchema as JSONSchema7,
+        inputExamples: t.inputExamples,
+        providerOptions: t.providerOptions,
       };
 
       // Preserve provider tool identity so the Gateway can recognize
@@ -125,6 +130,7 @@ export function resolveSerializableTools(
             args: t.args ?? {},
             isProviderExecuted: t.isProviderExecuted ?? false,
             inputSchema: jsonSchema(t.inputSchema),
+            providerOptions: t.providerOptions,
           }),
         ];
       }
@@ -135,6 +141,8 @@ export function resolveSerializableTools(
         name,
         tool({
           description: t.description,
+          inputExamples: t.inputExamples,
+          providerOptions: t.providerOptions,
           inputSchema: jsonSchema(t.inputSchema, {
             validate: value => {
               if (validateFn(value)) {

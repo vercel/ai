@@ -405,9 +405,15 @@ importers:
       '@ai-sdk/harness-codex':
         specifier: workspace:*
         version: link:../../packages/harness-codex
+      '@ai-sdk/harness-cursor':
+        specifier: workspace:*
+        version: link:../../packages/harness-cursor
       '@ai-sdk/harness-deepagents':
         specifier: workspace:*
         version: link:../../packages/harness-deepagents
+      '@ai-sdk/harness-fx':
+        specifier: workspace:*
+        version: link:../../packages/harness-fx
       '@ai-sdk/harness-grok-build':
         specifier: workspace:*
         version: link:../../packages/harness-grok-build
@@ -501,6 +507,9 @@ importers:
       '@ai-sdk/xai':
         specifier: workspace:*
         version: link:../../packages/xai
+      '@ai-sdk/zai':
+        specifier: workspace:*
+        version: link:../../packages/zai
       '@basetenlabs/performance-client':
         specifier: 0.0.10
         version: 0.0.10
@@ -736,9 +745,15 @@ importers:
       '@ai-sdk/harness-codex':
         specifier: workspace:*
         version: link:../../packages/harness-codex
+      '@ai-sdk/harness-cursor':
+        specifier: workspace:*
+        version: link:../../packages/harness-cursor
       '@ai-sdk/harness-deepagents':
         specifier: workspace:*
         version: link:../../packages/harness-deepagents
+      '@ai-sdk/harness-fx':
+        specifier: workspace:*
+        version: link:../../packages/harness-fx
       '@ai-sdk/harness-grok-build':
         specifier: workspace:*
         version: link:../../packages/harness-grok-build
@@ -1778,12 +1793,45 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/amazon-bedrock':
+        specifier: workspace:*
+        version: link:../amazon-bedrock
+      '@ai-sdk/deepseek':
+        specifier: workspace:*
+        version: link:../deepseek
+      '@ai-sdk/google':
+        specifier: workspace:*
+        version: link:../google
+      '@ai-sdk/groq':
+        specifier: workspace:*
+        version: link:../groq
+      '@ai-sdk/huggingface':
+        specifier: workspace:*
+        version: link:../huggingface
+      '@ai-sdk/moonshotai':
+        specifier: workspace:*
+        version: link:../moonshotai
+      '@ai-sdk/open-responses':
+        specifier: workspace:*
+        version: link:../open-responses
+      '@ai-sdk/openai':
+        specifier: workspace:*
+        version: link:../openai
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
+      '@ai-sdk/xai':
+        specifier: workspace:*
+        version: link:../xai
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
+      '@smithy/eventstream-codec':
+        specifier: ^4.3.3
+        version: 4.3.3
+      '@smithy/util-utf8':
+        specifier: ^4.3.3
+        version: 4.3.3
       '@types/json-schema':
         specifier: 7.0.15
         version: 7.0.15
@@ -2953,6 +3001,34 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/harness-cursor:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@ai-sdk/harness-acp':
+        specifier: workspace:*
+        version: link:../harness-acp
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.12)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
   packages/harness-deepagents:
     dependencies:
       '@ai-sdk/harness':
@@ -2995,6 +3071,34 @@ importers:
       langsmith:
         specifier: ^0.7.17
         version: 0.7.17(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(openai@6.38.0(ws@8.21.0)(zod@3.25.76))(ws@8.21.0)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.12)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/harness-fx:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@ai-sdk/harness-acp':
+        specifier: workspace:*
+        version: link:../harness-acp
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.12)(typescript@5.8.3)(yaml@2.9.0)
@@ -4292,6 +4396,34 @@ importers:
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.21))(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.12)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/zai:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19

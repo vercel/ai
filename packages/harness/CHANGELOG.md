@@ -1,5 +1,44 @@
 # @ai-sdk/harness
 
+## 1.0.90
+
+### Patch Changes
+
+- 0e590d2: feat(harness): harden credential brokering to only apply with correct ephemeral secret
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+  - @ai-sdk/provider-utils@5.0.32
+
+## 1.0.89
+
+### Patch Changes
+
+- ai@7.0.81
+
+## 1.0.88
+
+### Patch Changes
+
+- 32349cc: Surface every host tool approval request when a Pi step emits multiple tool calls.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+- Updated dependencies [eed7950]
+  - @ai-sdk/provider-utils@5.0.31
+  - ai@7.0.80
+
+## 1.0.87
+
+### Patch Changes
+
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 1.0.86
 
 ### Patch Changes

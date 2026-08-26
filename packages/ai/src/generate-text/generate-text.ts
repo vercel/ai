@@ -1201,6 +1201,9 @@ export async function generateText<
                       type: 'tool-approval-request',
                       approvalId,
                       toolCall,
+                      ...(toolApprovalStatus.reason != null
+                        ? { reason: toolApprovalStatus.reason }
+                        : {}),
                       ...(signature != null ? { signature } : {}),
                     };
                     blockedToolCallIds.add(toolCall.toolCallId);
@@ -1538,9 +1541,13 @@ export async function generateText<
         callbacks: [onEnd, telemetryDispatcher.onEnd],
       });
 
-      // parse output only if the last step was finished with "stop":
+      // parse output for stop responses and non-empty responses that are not
+      // tool calls:
       let resolvedOutput;
-      if (lastStep.finishReason === 'stop') {
+      if (
+        lastStep.finishReason === 'stop' ||
+        (lastStep.finishReason !== 'tool-calls' && lastStep.text.length > 0)
+      ) {
         const outputSpecification = output ?? text();
         resolvedOutput = await outputSpecification.parseCompleteOutput(
           { text: lastStep.text },
