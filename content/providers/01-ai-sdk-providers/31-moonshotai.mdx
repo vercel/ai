@@ -141,6 +141,39 @@ of schema-constrained decoding.
 For best reliability, include your schema requirements in the prompt in
 addition to passing the schema to `generateObject`.
 
+### Message Names
+
+Moonshot AI supports optional participant names on system, user, and assistant
+messages. Set `providerOptions.moonshotai.name` on each message that should
+include a name:
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAIMessageProviderOptions,
+} from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: moonshotai('kimi-k3'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Suggest a name for my neighborhood book club.',
+      providerOptions: {
+        moonshotai: {
+          name: 'organizer',
+        } satisfies MoonshotAIMessageProviderOptions,
+      },
+    },
+  ],
+});
+```
+
+The same option works with `streamText`. Names are omitted when unset. The
+provider ignores a name on a tool message and returns a warning. Avoid including
+unnecessary personal or identifying information in message names.
+
 ### Reasoning Models
 
 Kimi K3 always reasons. It supports `low`, `high`, and `max` reasoning effort,

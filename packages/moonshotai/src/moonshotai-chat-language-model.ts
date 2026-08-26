@@ -4,6 +4,7 @@ import type {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
+  LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { parseProviderOptions } from '@ai-sdk/provider-utils';
@@ -15,6 +16,7 @@ import {
   isMoonshotAIKimiModel,
   type MoonshotAIChatModelId,
   type MoonshotAIProviderOptions,
+  moonshotaiMessageProviderOptions,
   moonshotaiProviderOptions,
 } from './moonshotai-chat-options';
 import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
@@ -73,6 +75,85 @@ async function validateLogprobsOptions(
     providerOptions: options.providerOptions,
     schema: moonshotAILogprobsOptionsSchema,
   });
+}
+
+async function prepareMessageNameOptions(
+  options: LanguageModelV2CallOptions,
+): Promise<{
+  options: LanguageModelV2CallOptions;
+  warnings: LanguageModelV2CallWarning[];
+}> {
+  const prompt: LanguageModelV2Prompt = [];
+  const warnings: LanguageModelV2CallWarning[] = [];
+
+  for (const message of options.prompt) {
+    const messageOptions = await parseProviderOptions({
+      provider: 'moonshotai',
+      providerOptions: message.providerOptions,
+      schema: moonshotaiMessageProviderOptions,
+    });
+
+    if (messageOptions?.name == null) {
+      prompt.push(message);
+      continue;
+    }
+
+    if (message.role === 'tool') {
+      warnings.push({
+        type: 'other',
+        message:
+          'Moonshot AI does not support message names on tool messages. The name has been omitted.',
+      });
+      prompt.push(message);
+      continue;
+    }
+
+    const openAICompatibleOptions = {
+      ...message.providerOptions?.openaiCompatible,
+      name: messageOptions.name,
+    };
+
+    // The v5 OpenAI-compatible converter reads metadata from the text part
+    // for single-part user messages and from the message for every other
+    // supported message shape.
+    if (
+      message.role === 'user' &&
+      message.content.length === 1 &&
+      message.content[0].type === 'text'
+    ) {
+      const textPart = message.content[0];
+      prompt.push({
+        ...message,
+        content: [
+          {
+            ...textPart,
+            providerOptions: {
+              ...textPart.providerOptions,
+              openaiCompatible: {
+                ...openAICompatibleOptions,
+                ...textPart.providerOptions?.openaiCompatible,
+                name: messageOptions.name,
+              },
+            },
+          },
+        ],
+      });
+      continue;
+    }
+
+    prompt.push({
+      ...message,
+      providerOptions: {
+        ...message.providerOptions,
+        openaiCompatible: openAICompatibleOptions,
+      },
+    });
+  }
+
+  return {
+    options: { ...options, prompt },
+    warnings,
+  };
 }
 
 const moonshotAIChatLogprobSchema = z.object({
@@ -348,10 +429,15 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    await validateLogprobsOptions(options);
+    const { options: messageOptions, warnings: messageWarnings } =
+      await prepareMessageNameOptions(options);
+    await validateLogprobsOptions(messageOptions);
 
     const { options: samplingOptions, warnings: samplingWarnings } =
-      prepareSamplingOptions({ modelId: this.modelId, options });
+      prepareSamplingOptions({
+        modelId: this.modelId,
+        options: messageOptions,
+      });
     const { options: sanitizedOptions, warnings: reasoningWarnings } =
       prepareReasoningOptions({
         modelId: this.modelId,
@@ -380,6 +466,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
       },
       warnings: [
         ...result.warnings,
+        ...messageWarnings,
         ...samplingWarnings,
         ...reasoningWarnings,
         ...toolChoiceWarnings,
@@ -390,11 +477,16 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    await validateLogprobsOptions(options);
+    const { options: messageOptions, warnings: messageWarnings } =
+      await prepareMessageNameOptions(options);
+    await validateLogprobsOptions(messageOptions);
 
     const originalIncludeRawChunks = options.includeRawChunks;
     const { options: samplingOptions, warnings: samplingWarnings } =
-      prepareSamplingOptions({ modelId: this.modelId, options });
+      prepareSamplingOptions({
+        modelId: this.modelId,
+        options: messageOptions,
+      });
     const { options: sanitizedOptions, warnings: reasoningWarnings } =
       prepareReasoningOptions({
         modelId: this.modelId,
@@ -430,6 +522,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
                 ...chunk,
                 warnings: [
                   ...chunk.warnings,
+                  ...messageWarnings,
                   ...samplingWarnings,
                   ...reasoningWarnings,
                   ...toolChoiceWarnings,
