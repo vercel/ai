@@ -61,7 +61,7 @@ describe('createZai', () => {
     );
     const headers = new Headers(fetch.mock.calls[0][1].headers);
     expect(headers.get('authorization')).toBe('Bearer test-key');
-    expect(headers.get('user-agent')).toContain('ai-sdk/zai/1.0.0');
+    expect(headers.get('user-agent')).toContain('ai-sdk/zai/0.0.0');
   });
 
   it('reads the API key from ZAI_API_KEY by default', async () => {
