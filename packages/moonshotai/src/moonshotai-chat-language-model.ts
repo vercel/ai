@@ -91,18 +91,19 @@ function transformMoonshotRequestBody(
   };
 }
 
-const moonshotAILogprobsOptionsSchema = moonshotaiProviderOptions.pick({
+const moonshotAIValidatedOptionsSchema = moonshotaiProviderOptions.pick({
   logprobs: true,
   topLogprobs: true,
+  prediction: true,
 });
 
-async function validateLogprobsOptions(
+async function validateProviderOptions(
   options: LanguageModelV2CallOptions,
 ): Promise<void> {
   await parseProviderOptions({
     provider: 'moonshotai',
     providerOptions: options.providerOptions,
-    schema: moonshotAILogprobsOptionsSchema,
+    schema: moonshotAIValidatedOptionsSchema,
   });
 }
 
@@ -537,7 +538,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { options: messageOptions, warnings: messageWarnings } =
       await prepareMessageOptions({ modelId: this.modelId, options });
-    await validateLogprobsOptions(messageOptions);
+    await validateProviderOptions(messageOptions);
 
     const { options: samplingOptions, warnings: samplingWarnings } =
       prepareSamplingOptions({
@@ -585,7 +586,7 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { options: messageOptions, warnings: messageWarnings } =
       await prepareMessageOptions({ modelId: this.modelId, options });
-    await validateLogprobsOptions(messageOptions);
+    await validateProviderOptions(messageOptions);
 
     const originalIncludeRawChunks = options.includeRawChunks;
     const { options: samplingOptions, warnings: samplingWarnings } =

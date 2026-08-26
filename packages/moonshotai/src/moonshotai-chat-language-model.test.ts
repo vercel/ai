@@ -339,6 +339,68 @@ describe('MoonshotAIChatLanguageModel', () => {
       });
     });
 
+    it('should forward string predicted content unchanged', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            prediction: {
+              type: 'content',
+              content: 'Hello, world!',
+            },
+          },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).prediction).toStrictEqual({
+        type: 'content',
+        content: 'Hello, world!',
+      });
+    });
+
+    it('should omit prediction when it is not configured', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'prediction',
+      );
+    });
+
+    it.each([
+      {
+        type: 'text',
+        content: 'Hello, world!',
+      },
+      {
+        type: 'content',
+        content: [{ type: 'image', text: 'Hello, world!' }],
+      },
+      {
+        type: 'content',
+        content: 123,
+      },
+    ])(
+      'should reject invalid predicted content before making a request',
+      async prediction => {
+        await expect(
+          provider.chatModel('kimi-k3').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              moonshotai: { prediction },
+            },
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_InvalidArgumentError',
+          argument: 'providerOptions',
+          message: 'invalid moonshotai provider options',
+        });
+
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
     it('should send normalized dynamic tools in a K3 system message', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
         prompt: [
@@ -1522,6 +1584,33 @@ describe('MoonshotAIChatLanguageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).not.toHaveProperty('max_completion_tokens');
       expect(requestBody).not.toHaveProperty('max_tokens');
+    });
+
+    it('should forward text-part-array predicted content unchanged', async () => {
+      prepareChunksFixtureResponse('moonshot-text');
+
+      await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            prediction: {
+              type: 'content',
+              content: [
+                { type: 'text', text: 'Hello' },
+                { type: 'text', text: ', world!' },
+              ],
+            },
+          },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).prediction).toStrictEqual({
+        type: 'content',
+        content: [
+          { type: 'text', text: 'Hello' },
+          { type: 'text', text: ', world!' },
+        ],
+      });
     });
 
     it('should collect streamed logprobs in finish provider metadata', async () => {
