@@ -370,13 +370,14 @@ describe('toUIMessageStream', () => {
   it('reports an errored source stream as failed exactly once', async () => {
     const sourceError = new Error('source stream failed');
     const onEnd = vi.fn();
+    const sourceStream = new ReadableStream<TextStreamPart<{}>>({
+      start(controller) {
+        controller.error(sourceError);
+      },
+    });
 
     const stream = toUIMessageStream({
-      stream: new ReadableStream({
-        start(controller) {
-          controller.error(sourceError);
-        },
-      }),
+      stream: sourceStream,
       tools: undefined,
       onEnd,
     });
@@ -390,6 +391,34 @@ describe('toUIMessageStream', () => {
       status: 'failed',
       error: sourceError,
     });
+    expect(sourceStream.locked).toBe(false);
+  });
+
+  it('releases the source reader lock after completion', async () => {
+    const sourceStream = convertArrayToReadableStream<TextStreamPart<{}>>([]);
+
+    await convertReadableStreamToArray(
+      toUIMessageStream({ stream: sourceStream, tools: undefined }),
+    );
+
+    expect(sourceStream.locked).toBe(false);
+  });
+
+  it('releases the source reader lock after cancellation', async () => {
+    const sourceStream = new ReadableStream<TextStreamPart<{}>>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+      },
+    });
+    const reader = toUIMessageStream({
+      stream: sourceStream,
+      tools: undefined,
+    }).getReader();
+
+    await reader.read();
+    await reader.cancel('consumer cancelled');
+
+    await vi.waitFor(() => expect(sourceStream.locked).toBe(false));
   });
 
   it('does not let an earlier finish part hide a source stream failure', async () => {

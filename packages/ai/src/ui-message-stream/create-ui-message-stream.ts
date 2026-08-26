@@ -95,6 +95,36 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     }
   }
 
+  function failOutcome(error: unknown) {
+    outcome = { status: 'failed', error };
+  }
+
+  function safeError(error: unknown) {
+    try {
+      controller.error(error);
+    } catch {
+      // suppress errors when the stream has been closed
+    }
+  }
+
+  function handleError(error: unknown) {
+    failOutcome(error);
+
+    let errorText: string;
+    try {
+      errorText = onError(error);
+    } catch (onErrorError) {
+      failOutcome(onErrorError);
+      safeError(onErrorError);
+      return;
+    }
+
+    safeEnqueue({
+      type: 'error',
+      errorText,
+    } as InferUIMessageChunk<UI_MESSAGE>);
+  }
+
   try {
     const result = execute({
       writer: {
@@ -111,11 +141,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
                 safeEnqueue(value);
               }
             })().catch(error => {
-              setOutcome({ status: 'failed', error });
-              safeEnqueue({
-                type: 'error',
-                errorText: onError(error),
-              } as InferUIMessageChunk<UI_MESSAGE>);
+              handleError(error);
             }),
           );
         },
@@ -127,32 +153,23 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     if (result) {
       ongoingStreamPromises.push(
         result.catch(error => {
-          setOutcome({ status: 'failed', error });
-          safeEnqueue({
-            type: 'error',
-            errorText: onError(error),
-          } as InferUIMessageChunk<UI_MESSAGE>);
+          handleError(error);
         }),
       );
     }
   } catch (error) {
-    setOutcome({ status: 'failed', error });
-    safeEnqueue({
-      type: 'error',
-      errorText: onError(error),
-    } as InferUIMessageChunk<UI_MESSAGE>);
+    handleError(error);
   }
 
   // Wait until all ongoing streams are done. This approach enables merging
   // streams even after execute has returned, as long as there is still an
   // open merged stream. This is important to e.g. forward new streams and
   // from callbacks.
-  const waitForStreams: Promise<void> = new Promise(async resolve => {
+  const waitForStreams: Promise<void> = (async () => {
     while (ongoingStreamPromises.length > 0) {
       await ongoingStreamPromises.shift();
     }
-    resolve();
-  });
+  })();
 
   waitForStreams.finally(() => {
     try {

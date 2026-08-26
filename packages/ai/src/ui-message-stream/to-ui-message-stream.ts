@@ -67,24 +67,49 @@ export function toUIMessageStream<
       : undefined;
 
   const sourceReader = stream.getReader();
+  let sourceReaderReleased = false;
+  let sourceStreamCancelled = false;
+
+  const releaseSourceReader = () => {
+    if (!sourceReaderReleased) {
+      sourceReader.releaseLock();
+      sourceReaderReleased = true;
+    }
+  };
+
   const sourceStream = new ReadableStream<TextStreamPart<TOOLS>>({
     async pull(controller) {
       try {
         const { done, value } = await sourceReader.read();
 
         if (done) {
-          controller.close();
+          releaseSourceReader();
+          if (!sourceStreamCancelled) {
+            controller.close();
+          }
         } else {
           controller.enqueue(value);
         }
       } catch (error) {
-        failOutcome(error);
-        controller.error(error);
+        releaseSourceReader();
+        if (!sourceStreamCancelled) {
+          failOutcome(error);
+          controller.error(error);
+        }
       }
     },
 
-    cancel(reason) {
-      return sourceReader.cancel(reason);
+    async cancel(reason) {
+      sourceStreamCancelled = true;
+      if (sourceReaderReleased) {
+        return;
+      }
+
+      try {
+        await sourceReader.cancel(reason);
+      } finally {
+        releaseSourceReader();
+      }
     },
   });
 

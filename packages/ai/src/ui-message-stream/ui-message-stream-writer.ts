@@ -30,8 +30,10 @@ export interface UIMessageStreamWriterWithOutcome<
   /**
    * Declares the operation-level outcome of the composed stream.
    *
-   * The first terminal outcome is retained. Declaring an outcome does not
-   * write a chunk or close the stream.
+   * The first outcome declared through this method is retained. Fatal
+   * execution, merge, error-handling, or downstream processing failures
+   * override declared outcomes. Declaring an outcome does not write a chunk or
+   * close the stream.
    */
   setOutcome(outcome: UIMessageStreamOutcome): void;
 }

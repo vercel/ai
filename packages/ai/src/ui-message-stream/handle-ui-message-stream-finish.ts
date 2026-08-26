@@ -88,13 +88,18 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     >({
       transform(chunk, controller) {
         try {
+          let outputChunk = chunk;
+
           // when there is no messageId in the start chunk,
           // but the user checked for persistence,
           // inject the messageId into the chunk
           if (chunk.type === 'start') {
             const startChunk = chunk as UIMessageChunk & { type: 'start' };
             if (startChunk.messageId == null && messageId != null) {
-              startChunk.messageId = messageId;
+              outputChunk = {
+                ...startChunk,
+                messageId,
+              } as InferUIMessageChunk<UI_MESSAGE>;
             }
           }
 
@@ -102,7 +107,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
             isAborted = true;
           }
 
-          controller.enqueue(chunk);
+          controller.enqueue(outputChunk);
         } catch (error) {
           recordProcessingFailure(error);
           throw error;

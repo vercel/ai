@@ -21,7 +21,8 @@ export type UIMessageStreamOnEndCallback<UI_MESSAGE extends UIMessage> =
     isAborted: boolean;
 
     /**
-     * The operation-level outcome declared by the owner of the stream.
+     * The operation-level outcome of the stream. Fatal stream-processing
+     * failures override outcomes declared by the stream owner.
      */
     outcome: UIMessageStreamOutcome;
 

@@ -739,6 +739,10 @@ describe('createUIMessageStream', () => {
       declaredCompleted: await observe(({ writer }) => {
         writer.setOutcome({ status: 'completed' });
       }),
+      declaredCompletedBeforeFailed: await observe(({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        writer.setOutcome({ status: 'failed', error: new Error('ignored') });
+      }),
       declaredFailed: await observe(({ writer }) => {
         writer.setOutcome({
           status: 'failed',
@@ -751,11 +755,27 @@ describe('createUIMessageStream', () => {
       executeRejection: await observe(async () => {
         throw new Error('execute failure');
       }),
+      executeRejectionAfterCompleted: await observe(async ({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        throw new Error('execute failure after completion');
+      }),
       mergedStreamRejection: await observe(({ writer }) => {
         writer.merge(
           new ReadableStream({
             start(controller) {
               controller.error(new Error('merged stream failure'));
+            },
+          }),
+        );
+      }),
+      mergedStreamRejectionAfterCompleted: await observe(({ writer }) => {
+        writer.setOutcome({ status: 'completed' });
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.error(
+                new Error('merged stream failure after completion'),
+              );
             },
           }),
         );
@@ -770,6 +790,13 @@ describe('createUIMessageStream', () => {
           "status": "aborted",
         },
         "declaredCompleted": {
+          "chunkTypes": [],
+          "errorMessage": undefined,
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "completed",
+        },
+        "declaredCompletedBeforeFailed": {
           "chunkTypes": [],
           "errorMessage": undefined,
           "isAborted": false,
@@ -801,11 +828,29 @@ describe('createUIMessageStream', () => {
           "onEndCalls": 1,
           "status": "failed",
         },
+        "executeRejectionAfterCompleted": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": "execute failure after completion",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
         "mergedStreamRejection": {
           "chunkTypes": [
             "error",
           ],
           "errorMessage": "merged stream failure",
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "failed",
+        },
+        "mergedStreamRejectionAfterCompleted": {
+          "chunkTypes": [
+            "error",
+          ],
+          "errorMessage": "merged stream failure after completion",
           "isAborted": false,
           "onEndCalls": 1,
           "status": "failed",
@@ -819,6 +864,46 @@ describe('createUIMessageStream', () => {
         },
       }
     `);
+  });
+
+  it('reports errors thrown by onError as failed exactly once', async () => {
+    for (const execute of [
+      async () => {
+        throw new Error('execute failure');
+      },
+      ({
+        writer,
+      }: Parameters<
+        Parameters<typeof createUIMessageStream>[0]['execute']
+      >[0]) => {
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new Error('merged stream failure'));
+            },
+          }),
+        );
+      },
+    ]) {
+      const onErrorError = new Error('onError failure');
+      const onEnd = vi.fn();
+      const stream = createUIMessageStream({
+        execute,
+        onError: () => {
+          throw onErrorError;
+        },
+        onEnd,
+      });
+
+      await expect(convertReadableStreamToArray(stream)).rejects.toBe(
+        onErrorError,
+      );
+      expect(onEnd).toHaveBeenCalledTimes(1);
+      expect(onEnd.mock.calls[0][0].outcome).toEqual({
+        status: 'failed',
+        error: onErrorError,
+      });
+    }
   });
 
   it('reports invalid chunk processing as failed after completion was declared', async () => {
@@ -851,29 +936,25 @@ describe('createUIMessageStream', () => {
     });
   });
 
-  it('reports message ID injection failures as failed after completion was declared', async () => {
+  it('injects message IDs without mutating frozen start chunks', async () => {
     const onEnd = vi.fn();
+    const startChunk = Object.freeze({ type: 'start' } as const);
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
         writer.setOutcome({ status: 'completed' });
-        writer.write(Object.freeze({ type: 'start' }));
+        writer.write(startChunk);
       },
       generateId: () => 'generated-message-id',
       onEnd,
     });
 
-    let processingError: unknown;
-    try {
-      await convertReadableStreamToArray(stream);
-    } catch (error) {
-      processingError = error;
-    }
-
-    expect(processingError).toBeInstanceOf(TypeError);
+    await expect(convertReadableStreamToArray(stream)).resolves.toEqual([
+      { type: 'start', messageId: 'generated-message-id' },
+    ]);
+    expect(startChunk).toEqual({ type: 'start' });
     expect(onEnd).toHaveBeenCalledTimes(1);
     expect(onEnd.mock.calls[0][0].outcome).toEqual({
-      status: 'failed',
-      error: processingError,
+      status: 'completed',
     });
   });
 });
