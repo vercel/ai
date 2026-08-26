@@ -10,6 +10,15 @@ describe('MoonshotAIProviderOptions', () => {
         budgetTokens?: number;
       };
       reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
+      strictJsonSchema?: boolean;
     }>();
+  });
+
+  it('rejects non-boolean strictJsonSchema values', () => {
+    const invalidOptions: MoonshotAIProviderOptions = {
+      // @ts-expect-error strictJsonSchema must be a boolean
+      strictJsonSchema: 'false',
+    };
+    invalidOptions;
   });
 });
