@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.122
+
+### Patch Changes
+
+- f70d0a3: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+
 ## 2.0.121
 
 ### Patch Changes
