@@ -129,6 +129,80 @@ describe('MoonshotAIChatLanguageModel', () => {
       },
     );
 
+    it.each([
+      'kimi-k2.6',
+      'kimi-k2.7-code',
+      'kimi-k2.7-code-highspeed',
+    ] as const)(
+      'should omit required tool choice and warn for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the weather',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+          toolChoice: { type: 'required' },
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'tool_choice',
+        );
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'toolChoice',
+            details: `toolChoice "required" is not supported by model "${modelId}" and has been omitted; use "auto" or select a specific tool instead.`,
+          },
+        ]);
+      },
+    );
+
+    it.each(['kimi-k3', 'custom-model'] as const)(
+      'should preserve required tool choice for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the weather',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+          toolChoice: { type: 'required' },
+        });
+
+        expect((await server.calls[0].requestBodyJson).tool_choice).toBe(
+          'required',
+        );
+        expect(result.warnings).toStrictEqual([]);
+      },
+    );
+
+    it('should preserve non-required tool choices for unsupported models', async () => {
+      const result = await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: { type: 'auto' },
+      });
+
+      expect((await server.calls[0].requestBodyJson).tool_choice).toBe('auto');
+      expect(result.warnings).toStrictEqual([]);
+    });
+
     it('should omit unsupported budget tokens and warn', async () => {
       const result = await provider.chatModel('kimi-k2.6').doGenerate({
         prompt: TEST_PROMPT,
@@ -395,6 +469,39 @@ describe('MoonshotAIChatLanguageModel', () => {
             setting: 'providerOptions',
             details:
               'Kimi K2.7 thinking cannot be disabled. providerOptions.moonshotai.thinking has been omitted.',
+          },
+        ],
+      });
+    });
+
+    it('should omit required tool choice and add a v2 warning when streaming', async () => {
+      prepareChunksFixtureResponse('moonshot-text');
+
+      const result = await provider.chatModel('kimi-k2.6').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: { type: 'required' },
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'tool_choice',
+      );
+      expect(parts[0]).toStrictEqual({
+        type: 'stream-start',
+        warnings: [
+          {
+            type: 'unsupported-setting',
+            setting: 'toolChoice',
+            details:
+              'toolChoice "required" is not supported by model "kimi-k2.6" and has been omitted; use "auto" or select a specific tool instead.',
           },
         ],
       });
