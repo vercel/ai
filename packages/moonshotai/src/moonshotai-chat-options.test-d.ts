@@ -11,6 +11,10 @@ describe('MoonshotAILanguageModelOptions', () => {
       logprobs?: boolean;
       topLogprobs?: number;
       reasoningEffort?: 'low' | 'high' | 'max';
+      prediction?: {
+        type: 'content';
+        content: string | Array<{ type: 'text'; text: string }>;
+      };
       thinking?: {
         type?: 'enabled' | 'disabled';
         budgetTokens?: number;
@@ -20,6 +24,58 @@ describe('MoonshotAILanguageModelOptions', () => {
       promptCacheKey?: string;
       safetyIdentifier?: string;
     }>();
+  });
+
+  it('exposes and constrains predicted output options', () => {
+    type Prediction = NonNullable<MoonshotAILanguageModelOptions['prediction']>;
+
+    const stringPrediction = {
+      type: 'content',
+      content: 'Hello, world!',
+    } satisfies Prediction;
+
+    const textPartPrediction = {
+      type: 'content',
+      content: [
+        { type: 'text', text: 'Hello' },
+        { type: 'text', text: ', world!' },
+      ],
+    } satisfies Prediction;
+
+    expectTypeOf(stringPrediction).toMatchTypeOf<Prediction>();
+    expectTypeOf(textPartPrediction).toMatchTypeOf<Prediction>();
+
+    const invalidPredictionType: MoonshotAILanguageModelOptions = {
+      prediction: {
+        // @ts-expect-error prediction type must be content
+        type: 'text',
+        content: 'Hello, world!',
+      },
+    };
+    invalidPredictionType;
+
+    const invalidPredictionPart: MoonshotAILanguageModelOptions = {
+      prediction: {
+        type: 'content',
+        content: [
+          {
+            // @ts-expect-error prediction arrays only support text parts
+            type: 'image',
+            text: 'Hello, world!',
+          },
+        ],
+      },
+    };
+    invalidPredictionPart;
+
+    const invalidPredictionContent: MoonshotAILanguageModelOptions = {
+      prediction: {
+        type: 'content',
+        // @ts-expect-error prediction content must be a string or text-part array
+        content: 123,
+      },
+    };
+    invalidPredictionContent;
   });
 
   it('rejects non-boolean strictJsonSchema values', () => {
