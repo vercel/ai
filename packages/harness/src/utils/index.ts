@@ -24,6 +24,7 @@ export {
   writeSkills,
   type SkillFilePathMode,
   type WriteSkillsOptions,
+  type WriteSkillsResult,
 } from './write-skills';
 export {
   markBridgeStarting,
