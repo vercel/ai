@@ -377,6 +377,26 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertMoonshotAIChatUsage(responseBody.usage),
+<<<<<<< HEAD
+=======
+      providerMetadata: {
+        [this.providerOptionsName]: {
+          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
+        },
+      },
+>>>>>>> e4f665c06a (fix: Moonshot chat results dropped provider response metadata (#19593))
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -431,6 +451,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let responseObject: 'chat.completion.chunk' | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
 
     return {
       stream: response.pipeThrough(
@@ -476,10 +500,18 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
               topLevelUsage = value.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
             const choice = value.choices[0];
 
             if (choice?.usage != null) {
               choiceUsage = choice.usage;
+            }
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
             }
 
             if (choice?.finish_reason != null) {
@@ -494,6 +526,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -545,6 +581,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                 isActiveReasoning = false;
               }
 
+<<<<<<< HEAD
               for (const [
                 fallbackIndex,
                 toolCallDelta,
@@ -617,6 +654,16 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-delta',
                   id: toolCall.id,
                   delta: toolCallDelta.function.arguments ?? '',
+=======
+              for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
+                const toolCallIndex = toolCallDelta.index ?? index;
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(toolCallIndex, toolCallDelta.type);
+                }
+                toolCallTracker.processDelta({
+                  ...toolCallDelta,
+                  index: toolCallIndex,
+>>>>>>> e4f665c06a (fix: Moonshot chat results dropped provider response metadata (#19593))
                 });
               }
             }
@@ -652,6 +699,24 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
               type: 'finish',
               finishReason,
               usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
+<<<<<<< HEAD
+=======
+              providerMetadata: {
+                [providerOptionsName]: {
+                  ...(contentLogprobs.length > 0 && {
+                    logprobs: { content: contentLogprobs },
+                  }),
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
+                },
+              },
+>>>>>>> e4f665c06a (fix: Moonshot chat results dropped provider response metadata (#19593))
             });
           },
         }),

@@ -185,6 +185,35 @@ describe('doGenerate', () => {
         outputTokens: { total: 5, text: 5, reasoning: 0 },
       });
     });
+
+    it.each([null, undefined])(
+      'should tolerate %s response metadata fields',
+      async metadataValue => {
+        const responseBody = JSON.parse(
+          fs.readFileSync('src/__fixtures__/moonshotai-text.json', 'utf8'),
+        );
+        responseBody.object = metadataValue;
+        responseBody.choices[0].index = metadataValue;
+        responseBody.choices[0].message.role = metadataValue;
+
+        if (metadataValue === undefined) {
+          delete responseBody.object;
+          delete responseBody.choices[0].index;
+          delete responseBody.choices[0].message.role;
+        }
+
+        server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+          type: 'json-value',
+          body: responseBody,
+        };
+
+        const result = await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toEqual({ moonshotai: {} });
+      },
+    );
   });
 
   describe('video input', () => {
@@ -715,6 +744,14 @@ describe('doGenerate', () => {
         unified: 'tool-calls',
         raw: 'tool_calls',
       });
+      expect(result.providerMetadata).toEqual({
+        moonshotai: {
+          responseObject: 'chat.completion',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+          toolCallTypes: ['function'],
+        },
+      });
     });
   });
 
@@ -759,6 +796,264 @@ describe('doGenerate', () => {
     });
   });
 
+<<<<<<< HEAD
+=======
+  describe('dynamic tool loading', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-tool-call');
+    });
+
+    it('should send normalized dynamic tools in a K3 system message', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Calculate.' }] },
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    description: 'Evaluate an expression',
+                    inputSchema: {
+                      type: 'object',
+                      properties: {
+                        values: {
+                          type: 'array',
+                          items: [{ type: 'number' }, { type: 'number' }],
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages.at(-1)).toEqual({
+        role: 'system',
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'calculator',
+              description: 'Evaluate an expression',
+              parameters: {
+                type: 'object',
+                properties: {
+                  values: {
+                    type: 'array',
+                    prefixItems: [{ type: 'number' }, { type: 'number' }],
+                  },
+                },
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it('should omit dynamic messages and warn for non-K3 official models', async () => {
+      const result = await provider.chatModel('kimi-k2.6').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [],
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'dynamic tool loading for model "kimi-k2.6"',
+        details:
+          'Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted.',
+      });
+    });
+
+    it('should preserve dynamic messages for unknown custom models', async () => {
+      await provider.chatModel('custom-model').doGenerate({
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).messages[0]).toMatchObject(
+        {
+          role: 'system',
+          tools: [{ function: { name: 'calculator' } }],
+        },
+      );
+    });
+  });
+
+  describe('logprobs', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-logprobs');
+    });
+
+    it('should send logprobs provider options', async () => {
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            logprobs: true,
+            topLogprobs: 20,
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        logprobs: true,
+        top_logprobs: 20,
+      });
+    });
+
+    it('should enable logprobs when topLogprobs is set', async () => {
+      await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            topLogprobs: 0,
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        logprobs: true,
+        top_logprobs: 0,
+      });
+    });
+
+    it.each([-1, 1.5, 21])(
+      'should reject invalid topLogprobs value %s',
+      async topLogprobs => {
+        await expect(
+          provider.chatModel('moonshot-v1-8k').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              moonshotai: {
+                topLogprobs,
+              } satisfies MoonshotAILanguageModelOptions,
+            },
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_InvalidArgumentError',
+          argument: 'providerOptions',
+          message: 'invalid moonshotai provider options',
+        });
+
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
+    it('should expose logprobs in provider metadata without changing text', async () => {
+      const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            logprobs: true,
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(result.content).toEqual([{ type: 'text', text: 'OK!' }]);
+      expect(result.providerMetadata?.moonshotai.logprobs)
+        .toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "bytes": [
+                  79,
+                  75,
+                ],
+                "logprob": -0.0004808938247151673,
+                "token": "OK",
+                "top_logprobs": [
+                  {
+                    "bytes": [
+                      79,
+                      75,
+                    ],
+                    "logprob": -0.0004808938247151673,
+                    "token": "OK",
+                  },
+                ],
+              },
+              {
+                "bytes": null,
+                "logprob": -0.01,
+                "token": "!",
+                "top_logprobs": [
+                  {
+                    "bytes": null,
+                    "logprob": -0.01,
+                    "token": "!",
+                  },
+                ],
+              },
+            ],
+          }
+        `);
+    });
+
+    it('should parse a null logprobs response', async () => {
+      const response = JSON.parse(
+        fs.readFileSync('src/__fixtures__/moonshotai-text.json', 'utf8'),
+      );
+      response.choices[0].logprobs = null;
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: response,
+      };
+
+      const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toEqual({
+        moonshotai: {
+          responseObject: 'chat.completion',
+          choiceIndex: 0,
+          messageRole: 'assistant',
+        },
+      });
+    });
+  });
+
+>>>>>>> e4f665c06a (fix: Moonshot chat results dropped provider response metadata (#19593))
   describe('supportedUrls', () => {
     it('should natively support ms:// file references', () => {
       expect(provider.chatModel('kimi-k3').supportedUrls).toEqual({
@@ -941,6 +1236,107 @@ describe('doStream', () => {
     expect(parts.some(part => part.type === 'error')).toBe(true);
   });
 
+<<<<<<< HEAD
+=======
+  it('should collect streamed logprobs in finish provider metadata', async () => {
+    prepareChunksFixtureResponse('moonshotai-logprobs');
+
+    const result = await provider.chatModel('moonshot-v1-8k').doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        moonshotai: {
+          topLogprobs: 1,
+        } satisfies MoonshotAILanguageModelOptions,
+      },
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      logprobs: true,
+      top_logprobs: 1,
+    });
+    expect(
+      parts
+        .filter(part => part.type === 'text-delta')
+        .map(part => part.delta)
+        .join(''),
+    ).toBe('OK!');
+    expect(parts.find(part => part.type === 'finish')?.providerMetadata)
+      .toMatchInlineSnapshot(`
+        {
+          "moonshotai": {
+            "choiceIndex": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "bytes": [
+                    79,
+                    75,
+                  ],
+                  "logprob": -0.0004457433824427426,
+                  "token": "OK",
+                  "top_logprobs": [
+                    {
+                      "bytes": [
+                        79,
+                        75,
+                      ],
+                      "logprob": -0.0004457433824427426,
+                      "token": "OK",
+                    },
+                  ],
+                },
+                {
+                  "bytes": null,
+                  "logprob": -0.01,
+                  "token": "!",
+                  "top_logprobs": [
+                    {
+                      "bytes": null,
+                      "logprob": -0.01,
+                      "token": "!",
+                    },
+                  ],
+                },
+              ],
+            },
+            "messageRole": "assistant",
+            "responseObject": "chat.completion.chunk",
+          },
+        }
+      `);
+  });
+
+  it('should forward text-part-array predicted content unchanged', async () => {
+    prepareChunksFixtureResponse('moonshotai-stream');
+
+    await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        moonshotai: {
+          prediction: {
+            type: 'content',
+            content: [
+              { type: 'text', text: 'Hello' },
+              { type: 'text', text: ', world!' },
+            ],
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.prediction).toStrictEqual({
+      type: 'content',
+      content: [
+        { type: 'text', text: 'Hello' },
+        { type: 'text', text: ', world!' },
+      ],
+    });
+  });
+
+>>>>>>> e4f665c06a (fix: Moonshot chat results dropped provider response metadata (#19593))
   it('should send maxOutputTokens as max_completion_tokens', async () => {
     prepareChunksFixtureResponse('moonshotai-stream');
 
@@ -965,4 +1361,79 @@ describe('doStream', () => {
     expect(requestBody).not.toHaveProperty('max_completion_tokens');
     expect(requestBody).not.toHaveProperty('max_tokens');
   });
+  it('should preserve response metadata and raw tool-call chunks', async () => {
+    prepareChunksFixtureResponse('moonshotai-tool-call');
+
+    const result = await provider.chatModel('kimi-k3').doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+    const rawChunks = fs
+      .readFileSync('src/__fixtures__/moonshotai-tool-call.chunks.txt', 'utf8')
+      .split('\n')
+      .filter(line => line.length > 0)
+      .map(line => JSON.parse(line));
+
+    expect(
+      parts.filter(part => part.type === 'raw').map(part => part.rawValue),
+    ).toEqual(rawChunks);
+    expect(parts).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'call_abc123',
+      toolName: 'get_weather',
+      input: '{"city":"Paris"}',
+    });
+    expect(
+      parts.find(part => part.type === 'finish')?.providerMetadata,
+    ).toEqual({
+      moonshotai: {
+        responseObject: 'chat.completion.chunk',
+        choiceIndex: 0,
+        messageRole: 'assistant',
+        toolCallTypes: ['function'],
+      },
+    });
+  });
+
+  it.each([null, undefined])(
+    'should tolerate %s streamed response metadata fields',
+    async metadataValue => {
+      const responseBody = {
+        id: 'chatcmpl-stream',
+        object: metadataValue,
+        choices: [
+          {
+            index: metadataValue,
+            delta: { role: metadataValue, content: 'Hello' },
+            finish_reason: 'stop',
+          },
+        ],
+      };
+
+      if (metadataValue === undefined) {
+        delete responseBody.object;
+        delete responseBody.choices[0].index;
+        delete responseBody.choices[0].delta.role;
+      }
+
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify(responseBody)}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await provider.chatModel('kimi-k3').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.find(part => part.type === 'finish')?.providerMetadata,
+      ).toEqual({ moonshotai: {} });
+    },
+  );
 });
