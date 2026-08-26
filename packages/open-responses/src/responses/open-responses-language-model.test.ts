@@ -1052,6 +1052,51 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    it('should stream reasoning summary text deltas', async () => {
+      prepareChunksFixtureResponse('openai-reasoning-summary-text.1');
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.filter(part => part.type.startsWith('reasoning')),
+      ).toStrictEqual([
+        {
+          type: 'reasoning-start',
+          id: 'rs_1',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_1',
+          delta: 'Think',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_1',
+          delta: 'ing.',
+        },
+        {
+          type: 'reasoning-end',
+          id: 'rs_1',
+          providerMetadata: {
+            lmstudio: {
+              itemId: 'rs_1',
+              reasoningSummary: [
+                {
+                  type: 'summary_text',
+                  text: 'Thinking.',
+                },
+              ],
+              reasoningContent: null,
+            },
+          },
+        },
+      ]);
+    });
+
     it.each([
       {
         event: {
