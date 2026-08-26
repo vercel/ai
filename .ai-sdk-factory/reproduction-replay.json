@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19358,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19358-validate-ui-message-tool-input.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19358-validate-ui-message-tool-input.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19358 REPRODUCED: stale output-available tool input passed validation and caused a runtime access failure"
+  }
+}
