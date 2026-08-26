@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import fs from 'node:fs';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
 import {
@@ -125,6 +126,39 @@ describe('GatewayLanguageModel', () => {
         prompt_tokens: 10,
         completion_tokens: 20,
       });
+    });
+
+    it('should preserve a recorded no-tool response when required tool choice was forwarded', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/issue-8992-deepinfra-required-tool-choice.json',
+          'utf8',
+        ),
+      );
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: fixture.response,
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: fixture.request.prompt,
+        tools: fixture.request.tools,
+        toolChoice: fixture.request.toolChoice,
+        providerOptions: fixture.request.providerOptions,
+        maxOutputTokens: fixture.request.maxOutputTokens,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        toolChoice: { type: 'required' },
+        providerOptions: { gateway: { only: ['deepinfra'] } },
+      });
+      expect(result.content).toEqual(fixture.response.content);
+      expect(
+        result.content.filter(
+          (part: { type: string }) => part.type === 'tool-call',
+        ),
+      ).toHaveLength(0);
     });
 
     it('should remove abortSignal from the request body', async () => {
