@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19654,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19654-policy-approval-reason.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19654-policy-approval-reason.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19654_REPRODUCED: human approval request is missing the documented policy reason in generateText and streamText."
+  }
+}
