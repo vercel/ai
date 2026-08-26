@@ -4,6 +4,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  collectJSONSchemaWarnings,
   convertJSONSchemaToOpenAPISchema,
   isRecursiveJSONSchemaReferenceError,
 } from './convert-json-schema-to-openapi-schema';
@@ -343,6 +344,11 @@ function prepareFunctionDeclaration(
     if (!isRecursiveJSONSchemaReferenceError(error)) {
       throw error;
     }
+
+    collectJSONSchemaWarnings(tool.inputSchema, {
+      onWarning: warning => toolWarnings.push(warning),
+      target: 'functionParametersJsonSchema',
+    });
 
     return {
       ...declaration,
