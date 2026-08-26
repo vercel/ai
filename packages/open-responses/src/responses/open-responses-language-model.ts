@@ -441,8 +441,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
               });
               isActiveReasoning = true;
             } else if (
+              chunk.type === 'response.reasoning_summary_text.delta' ||
               (chunk as { type: string }).type ===
-              'response.reasoning_text.delta'
+                'response.reasoning_text.delta'
             ) {
               const reasoningChunk = chunk as {
                 item_id: string;
