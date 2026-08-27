@@ -49,6 +49,10 @@ import type { GoogleTranscriptionModelId } from './transcription/google-transcri
 import { GoogleSpeechTranslationModel } from './speech-translation/google-speech-translation-model';
 import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
 
+const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+const googleFilesUrlPattern =
+  /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/.*$/;
+
 export interface GoogleProvider extends ProviderV4 {
   (modelId: GoogleModelId): BatchLanguageModelV4;
 
@@ -237,9 +241,7 @@ function supportsExternalFileUrls(modelId: string) {
 export function createGoogle(
   options: GoogleProviderSettings = {},
 ): GoogleProvider {
-  const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
-    'https://generativelanguage.googleapis.com/v1beta';
+  const baseURL = withoutTrailingSlash(options.baseURL) ?? DEFAULT_BASE_URL;
 
   const providerName = options.name ?? 'google.generative-ai';
 
@@ -264,8 +266,10 @@ export function createGoogle(
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         '*': [
-          // Google Generative Language "files" endpoint
+          // Default Google Generative Language "files" endpoint
           // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
+          googleFilesUrlPattern,
+          // Configured Google Generative Language "files" endpoint
           new RegExp(`^${baseURL}/files/.*$`),
           // YouTube URLs (public or unlisted videos)
           new RegExp(

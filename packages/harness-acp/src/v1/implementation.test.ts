@@ -367,6 +367,26 @@ describe('ACP implementation', () => {
       SECOND_PROVIDER_API_KEY: 'second-provider-secret',
       PROVIDER_BASE_URL: 'https://provider.example',
     });
+    expect(
+      resolveImplementationEnvironment({
+        implementation: {
+          ...simpleImplementation,
+          forwardEnv: ['SECOND_PROVIDER_API_KEY'],
+          credentialEnv: ['PROVIDER_API_KEY'],
+        },
+        env: {
+          PROVIDER_API_KEY: 'ambient-provider-secret',
+          SECOND_PROVIDER_API_KEY: 'forwarded-value',
+        },
+        credentialEnv: {
+          PROVIDER_API_KEY: 'programmatic-provider-secret',
+        },
+      }),
+    ).toEqual({
+      PROVIDER_API_KEY: 'programmatic-provider-secret',
+      SECOND_PROVIDER_API_KEY: 'forwarded-value',
+      PROVIDER_BASE_URL: 'https://provider.example',
+    });
   });
 
   it('keeps sensitive values out of immutable descriptors', () => {

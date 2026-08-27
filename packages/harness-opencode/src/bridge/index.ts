@@ -4,7 +4,6 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import type { StartMessage } from '../opencode-bridge-protocol';
@@ -127,8 +126,6 @@ const runtime: RuntimeState = {
 };
 prependOpenCodeBinToPath({ bootstrapDir, env: procEnv });
 
-mkdirSync(process.env.HOME ?? '/tmp/opencode-home', { recursive: true });
-
 await runBridge<StartMessage>({
   bridgeType: 'opencode',
   bridgeStateDir,
@@ -143,6 +140,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   try {
     await ensureRuntime({ start, turn, emit });
     const client = runtime.client!;
+    if (start.skillsChanged) {
+      await client.instance.dispose({ directory: workdir });
+    }
     const sessionId = await ensureSession({ client, start, emit });
 
     if (start.operation === 'compact') {
@@ -232,6 +232,7 @@ function buildOpenCodeConfig({
       webfetch: 'ask',
       doom_loop: 'ask',
       task: 'ask',
+      question: 'deny',
     },
   };
   if (start.model) config.model = start.model;

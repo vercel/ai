@@ -250,6 +250,20 @@ describe('GoogleBatchLanguageModel', () => {
             ),
           },
         },
+        {
+          requestId: 'france',
+          warning: {
+            type: 'unsupported',
+            feature: 'frequencyPenalty',
+          },
+        },
+        {
+          requestId: 'france',
+          warning: {
+            type: 'unsupported',
+            feature: 'presencePenalty',
+          },
+        },
       ],
     });
 
@@ -276,8 +290,6 @@ describe('GoogleBatchLanguageModel', () => {
                     temperature: 0.2,
                     topK: 10,
                     topP: 0.9,
-                    frequencyPenalty: 0.1,
-                    presencePenalty: 0.2,
                     stopSequences: ['END'],
                     seed: 42,
                   },

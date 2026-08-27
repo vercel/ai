@@ -152,6 +152,47 @@ describe('GoogleImageModel', () => {
       `);
     });
 
+    it('should preserve prompt feedback when a prompt block returns no candidates', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.providerMetadata?.google).toMatchObject({
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+        images: [],
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+          serviceTier: 'standard',
+        },
+        serviceTier: 'standard',
+      });
+    });
+
     it('should send response modalities, aspect ratio, seed, and headers', async () => {
       prepareJsonResponse({});
 

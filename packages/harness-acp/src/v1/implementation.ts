@@ -277,16 +277,21 @@ ${implementation.source.command}
 export function resolveImplementationEnvironment({
   implementation,
   env,
+  credentialEnv = env,
 }: {
   implementation: ACPImplementation;
   env: Readonly<Record<string, string | undefined>>;
+  credentialEnv?: Readonly<Record<string, string | undefined>>;
 }): Record<string, string> {
   const forwardedEnvironment: Record<string, string> = {};
-  for (const name of [
-    ...(implementation.forwardEnv ?? []),
-    ...(implementation.credentialEnv ?? []),
-  ]) {
+  for (const name of implementation.forwardEnv ?? []) {
     const value = env[name];
+    if (value != null && value.length > 0) {
+      forwardedEnvironment[name] = value;
+    }
+  }
+  for (const name of implementation.credentialEnv ?? []) {
+    const value = credentialEnv[name];
     if (value != null && value.length > 0) {
       forwardedEnvironment[name] = value;
     }

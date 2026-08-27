@@ -1,5 +1,19 @@
 # @ai-sdk/harness-codex
 
+## 1.0.94
+
+### Patch Changes
+
+- e0d7cfb: feat(harness): allow harness sessions to optionally authenticate from an isolated environment supplied through the `auth` option, and remove support for the formerly deprecated legacy auth options types
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.93
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.91
+
 ## 1.0.92
 
 ### Patch Changes

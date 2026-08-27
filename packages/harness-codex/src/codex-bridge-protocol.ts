@@ -27,6 +27,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   // The host sources the id from lifecycle state `data` cached from a prior
   // `agent.detach`.
   resumeThreadId: z.string().optional(),
+  restartThread: z.boolean().optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

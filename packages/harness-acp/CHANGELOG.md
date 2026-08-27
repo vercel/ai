@@ -1,5 +1,20 @@
 # @ai-sdk/harness-acp
 
+## 1.0.30
+
+### Patch Changes
+
+- e0d7cfb: feat(harness): allow harness sessions to optionally authenticate from an isolated environment supplied through the `auth` option, and remove support for the formerly deprecated legacy auth options types
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.29
+
+### Patch Changes
+
+- 20312d6: fix(harness-acp): place skills in their harnesses' natively supported directory instead of applying a manual workaround
+  - @ai-sdk/harness@1.0.91
+
 ## 1.0.28
 
 ### Patch Changes

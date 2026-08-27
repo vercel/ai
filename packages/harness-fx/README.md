@@ -38,6 +38,6 @@ try {
 
 The adapter uses `@ai-sdk/harness-acp`, which installs the latest fx release inside the sandbox with the canonical fx installer. The sandbox must provide network access and at least one exposed TCP port.
 
-fx uses Vercel AI Gateway. Set `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` to authenticate.
+fx uses Vercel AI Gateway. Set `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` to authenticate, or pass an isolated authentication environment with `createFx({ auth: { AI_GATEWAY_API_KEY: token } })`.
 
 See the [fx harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/fx) for settings, tools, and limitations.
