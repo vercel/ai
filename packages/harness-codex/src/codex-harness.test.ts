@@ -387,10 +387,8 @@ describe('createCodex adapter', () => {
     });
     const harness = createCodex({
       auth: {
-        openai: {
-          apiKey: 'openai-secret',
-          baseUrl: 'https://openai.example/v1',
-        },
+        OPENAI_API_KEY: 'openai-secret',
+        OPENAI_BASE_URL: 'https://openai.example/v1',
       },
       credentialForwarding: async options => {
         forwardedCredentials.push(options);
@@ -448,7 +446,7 @@ describe('createCodex adapter', () => {
     });
     Object.assign(sandboxSession, { addRequestTransformations: undefined });
     const harness = createCodex({
-      auth: { openai: { apiKey: 'openai-secret' } },
+      auth: { OPENAI_API_KEY: 'openai-secret' },
       credentialForwarding: options => {
         forwardedCredentials.push(options);
         return 'caller-managed-credential';
@@ -485,7 +483,7 @@ describe('createCodex adapter', () => {
       addRequestTransformations,
     });
     const harness = createCodex({
-      auth: { openai: { apiKey: 'openai-secret' } },
+      auth: { OPENAI_API_KEY: 'openai-secret' },
     });
 
     const session = await harness.doStart({

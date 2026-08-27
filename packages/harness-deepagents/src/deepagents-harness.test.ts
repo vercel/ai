@@ -262,10 +262,8 @@ describe('createDeepAgents', () => {
     Object.assign(sandboxSession, { addRequestTransformations });
     const harness = createDeepAgents({
       auth: {
-        anthropic: {
-          apiKey: 'anthropic-secret',
-          baseUrl: 'https://anthropic.example',
-        },
+        ANTHROPIC_API_KEY: 'anthropic-secret',
+        ANTHROPIC_BASE_URL: 'https://anthropic.example',
       },
       credentialForwarding: async options => {
         forwardedCredentials.push(options);
@@ -314,7 +312,7 @@ describe('createDeepAgents', () => {
       environmentVariableName: string;
     }> = [];
     const harness = createDeepAgents({
-      auth: { anthropic: { apiKey: 'anthropic-secret' } },
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
       credentialForwarding: options => {
         forwardedCredentials.push(options);
         return 'caller-managed-credential';

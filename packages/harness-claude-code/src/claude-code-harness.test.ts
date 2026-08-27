@@ -419,7 +419,7 @@ describe('createClaudeCode adapter', () => {
   it('sets the client app for AI Gateway auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({
-      auth: { gateway: { apiKey: 'gateway-key' } },
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
     });
     const session = await harness.doStart({
       sessionId: 's1',
@@ -463,10 +463,8 @@ describe('createClaudeCode adapter', () => {
     Object.assign(sandboxSession, { addRequestTransformations });
     const harness = createClaudeCode({
       auth: {
-        anthropic: {
-          apiKey: 'anthropic-secret',
-          baseUrl: 'https://anthropic.example/v1',
-        },
+        ANTHROPIC_API_KEY: 'anthropic-secret',
+        ANTHROPIC_BASE_URL: 'https://anthropic.example/v1',
       },
       credentialForwarding: async options => {
         forwardedCredentials.push(options);
@@ -522,7 +520,7 @@ describe('createClaudeCode adapter', () => {
       environmentVariableName: string;
     }> = [];
     const harness = createClaudeCode({
-      auth: { anthropic: { apiKey: 'anthropic-secret' } },
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
       credentialForwarding: options => {
         forwardedCredentials.push(options);
         return 'caller-managed-credential';
@@ -566,7 +564,7 @@ describe('createClaudeCode adapter', () => {
       environmentVariableName: string;
     }> = [];
     const harness = createClaudeCode({
-      auth: { anthropic: { apiKey: 'bridge-secret' } },
+      auth: { ANTHROPIC_API_KEY: 'bridge-secret' },
       env: {
         ANTHROPIC_API_KEY: 'turn-api-key',
         ANTHROPIC_AUTH_TOKEN: 'turn-auth-token',
@@ -713,7 +711,7 @@ describe('createClaudeCode adapter', () => {
   it('does not set the client app for direct Anthropic auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({
-      auth: { anthropic: { apiKey: 'anthropic-key' } },
+      auth: { ANTHROPIC_API_KEY: 'anthropic-key' },
     });
     const session = await harness.doStart({
       sessionId: 's1',

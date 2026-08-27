@@ -82,6 +82,7 @@ const parkedClineSessions = new Map<string, HarnessV1Session>();
 
 export interface ClineSessionSettings {
   readonly authEnv: Record<string, string>;
+  readonly isAuthenticationEnvironmentOverride: boolean;
   readonly mcpServers?: Record<string, unknown>;
   readonly providerId?: string;
   readonly modelId?: string;
@@ -209,7 +210,9 @@ function createClineAgentModel({
         ...(apiKey ? { apiKey } : {}),
         ...(baseUrl ? { baseUrl } : {}),
         ...(headers ? { headers } : {}),
-        ...(isAiGateway ? { apiKeyEnv: [] } : {}),
+        ...(isAiGateway || settings.isAuthenticationEnvironmentOverride
+          ? { apiKeyEnv: [] }
+          : {}),
       },
     ],
   });

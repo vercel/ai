@@ -383,10 +383,8 @@ describe('createOpenCode adapter', () => {
     const harness = createOpenCode({
       provider: 'openai',
       auth: {
-        openai: {
-          apiKey: 'openai-secret',
-          baseUrl: 'https://openai.example/v1',
-        },
+        OPENAI_API_KEY: 'openai-secret',
+        OPENAI_BASE_URL: 'https://openai.example/v1',
       },
       credentialForwarding: async options => {
         forwardedCredentials.push(options);
@@ -476,7 +474,7 @@ describe('createOpenCode adapter', () => {
     } as unknown as HarnessV1NetworkSandboxSession;
     const harness = createOpenCode({
       provider: 'openai',
-      auth: { openai: { apiKey: 'openai-secret' } },
+      auth: { OPENAI_API_KEY: 'openai-secret' },
       credentialForwarding: options => {
         forwardedCredentials.push(options);
         return 'caller-managed-credential';

@@ -1,4 +1,5 @@
 import type {
+  HarnessV1Authentication,
   HarnessV1CredentialForwarding,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
@@ -66,7 +67,7 @@ export type ACPAuthentication = {
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
 };
 
-export type ACPProviderAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+export type ACPAuthenticationMode = HarnessV1Authentication;
 
 export type ACPProviderAuthentication = {
   readonly gateway: {
@@ -123,7 +124,7 @@ export type ACPV1Settings = {
   readonly harnessId: string;
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: ACPAuthenticationMode;
   readonly source: ACPSource;
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;

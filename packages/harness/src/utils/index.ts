@@ -12,6 +12,7 @@ export {
 } from './bridge-user-message-submitter';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
+export { isHarnessAuthenticationEnvironment } from './authentication-environment';
 export {
   applyCredentialForwarding,
   createSandboxCredentialEnvironment,

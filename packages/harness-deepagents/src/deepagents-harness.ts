@@ -52,7 +52,7 @@ import {
   DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
   resolveDeepAgentsAuthenticationMode,
   resolveDeepAgentsEnv,
-  type DeepAgentsAuthOptions,
+  type DeepAgentsAuthenticationMode,
 } from './deepagents-auth';
 import {
   outboundMessageSchema,
@@ -86,7 +86,7 @@ export type DeepAgentsThinkingConfig =
 const SKILLS_SOURCE_PATH = '/.agents/skills';
 
 export type DeepAgentsHarnessSettings = {
-  readonly auth?: DeepAgentsAuthOptions;
+  readonly auth?: DeepAgentsAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
