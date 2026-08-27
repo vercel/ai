@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19853,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/sandbox-just-bash-per-command-env.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/sandbox-just-bash-per-command-env.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "PER_COMMAND_ENV_BUG: env must be available to run and spawn, and mkdir must create WORK_DIR"
+  }
+}
