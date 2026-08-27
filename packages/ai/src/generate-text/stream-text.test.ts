@@ -20812,105 +20812,10 @@ describe('streamText', () => {
         expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
       });
 
-      it('should complete onFinish work before the output promise resolves', async () => {
-        let persistedOutput: { value: string } | undefined;
-
-        const result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              { type: 'text-start', id: '1' },
-              {
-                type: 'text-delta',
-                id: '1',
-                delta: '{ "value": "Hello, world!" }',
-              },
-              { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
-            ]),
-          }),
-          output: Output.object({
-            schema: z.object({ value: z.string() }),
-          }),
-          prompt: 'prompt',
-          onFinish: async ({ output }) => {
-            await delay(1);
-            persistedOutput = output;
-          },
-        });
-
-        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
-        expect(persistedOutput).toStrictEqual({ value: 'Hello, world!' });
-      });
-
-      it('should wait for an active onFinish callback when output is first accessed externally', async () => {
-        const callbackStarted = new DelayedPromise<void>();
-        const finishCallback = new DelayedPromise<void>();
-        let callbackCompleted = false;
-
-        const result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              { type: 'text-start', id: '1' },
-              {
-                type: 'text-delta',
-                id: '1',
-                delta: '{ "value": "Hello, world!" }',
-              },
-              { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
-            ]),
-          }),
-          output: Output.object({
-            schema: z.object({ value: z.string() }),
-          }),
-          prompt: 'prompt',
-          onFinish: async () => {
-            callbackStarted.resolve();
-            await finishCallback.promise;
-            callbackCompleted = true;
-          },
-        });
-
-        const consumePromise = result.consumeStream();
-        await callbackStarted.promise;
-
-        let outputSettled = false;
-        const outputPromise = Promise.resolve(result.output).then(output => {
-          outputSettled = true;
-          return output;
-        });
-
-        await delay(1);
-        expect(outputSettled).toBe(false);
-
-        finishCallback.resolve();
-
-        expect(await outputPromise).toStrictEqual({ value: 'Hello, world!' });
-        expect(callbackCompleted).toBe(true);
-        await consumePromise;
-      });
-
-      it('should distinguish callback output access from concurrent external access', async () => {
-        const output = Output.object({
-          schema: z.object({ value: z.string() }),
-        });
-        const callbackStarted = new DelayedPromise<void>();
-        const allowCallbackOutputAccess = new DelayedPromise<void>();
-        const callbackReadOutput = new DelayedPromise<void>();
-        const finishCallback = new DelayedPromise<void>();
+      it('should expose parsed output to onEnd after the stream completes', async () => {
         let callbackOutput: { value: string } | undefined;
-        let callbackCompleted = false;
-        let result!: StreamTextResult<any, any, typeof output>;
 
-        result = streamText({
+        const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
@@ -20927,45 +20832,21 @@ describe('streamText', () => {
               },
             ]),
           }),
-          output,
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
           prompt: 'prompt',
-          onFinish: async () => {
-            callbackStarted.resolve();
-            await allowCallbackOutputAccess.promise;
-            callbackOutput = await result.output;
-            callbackReadOutput.resolve();
-            await finishCallback.promise;
-            callbackCompleted = true;
+          onEnd: ({ output }) => {
+            callbackOutput = output;
           },
         });
 
-        const consumePromise = result.consumeStream();
-        await callbackStarted.promise;
-
-        let externalOutputSettled = false;
-        const externalOutputPromise = Promise.resolve(result.output).then(
-          output => {
-            externalOutputSettled = true;
-            return output;
-          },
-        );
-
-        allowCallbackOutputAccess.resolve();
-        await callbackReadOutput.promise;
+        await result.consumeStream();
 
         expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
-        expect(externalOutputSettled).toBe(false);
-
-        finishCallback.resolve();
-
-        expect(await externalOutputPromise).toStrictEqual({
-          value: 'Hello, world!',
-        });
-        expect(callbackCompleted).toBe(true);
-        await consumePromise;
       });
 
-      it('should not delay default text output for an active onFinish callback', async () => {
+      it('should not delay output for an active onEnd callback', async () => {
         const callbackStarted = new DelayedPromise<void>();
         const finishCallback = new DelayedPromise<void>();
 
@@ -20976,7 +20857,7 @@ describe('streamText', () => {
               {
                 type: 'text-delta',
                 id: '1',
-                delta: 'Hello, world!',
+                delta: '{ "value": "Hello, world!" }',
               },
               { type: 'text-end', id: '1' },
               {
@@ -20986,8 +20867,11 @@ describe('streamText', () => {
               },
             ]),
           }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
           prompt: 'prompt',
-          onFinish: async () => {
+          onEnd: async () => {
             callbackStarted.resolve();
             await finishCallback.promise;
           },
@@ -20996,13 +20880,13 @@ describe('streamText', () => {
         const outputPromise = Promise.resolve(result.output);
         await callbackStarted.promise;
 
-        expect(await outputPromise).toBe('Hello, world!');
+        expect(await outputPromise).toStrictEqual({ value: 'Hello, world!' });
 
         finishCallback.resolve();
         await result.consumeStream();
       });
 
-      it('should parse complete output once for onFinish and the output promise', async () => {
+      it('should parse complete output once for onEnd and the output promise', async () => {
         const output = Output.object({
           schema: z.object({ value: z.string() }),
         });
@@ -21028,31 +20912,32 @@ describe('streamText', () => {
           }),
           output,
           prompt: 'prompt',
-          onFinish: async ({ output }) => {
+          onEnd: async ({ output }) => {
             callbackOutput = output;
           },
         });
 
-        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
+        const [resultOutput] = await Promise.all([
+          result.output,
+          result.consumeStream(),
+        ]);
+
+        expect(resultOutput).toStrictEqual({ value: 'Hello, world!' });
         expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
         expect(parseCompleteOutput).toHaveBeenCalledTimes(1);
       });
 
-      it('should allow onFinish to await the output promise', async () => {
-        const output = Output.object({
-          schema: z.object({ value: z.string() }),
-        });
+      it('should provide undefined output to onEnd when parsing fails', async () => {
         let callbackOutput: { value: string } | undefined;
-        let result!: StreamTextResult<any, any, typeof output>;
 
-        result = streamText({
+        const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
               {
                 type: 'text-delta',
                 id: '1',
-                delta: '{ "value": "Hello, world!" }',
+                delta: '{ "value": 42 }',
               },
               { type: 'text-end', id: '1' },
               {
@@ -21062,20 +20947,24 @@ describe('streamText', () => {
               },
             ]),
           }),
-          output,
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
           prompt: 'prompt',
-          onFinish: async () => {
-            callbackOutput = await result.output;
+          onEnd: ({ output }) => {
+            callbackOutput = output;
           },
         });
 
         await result.consumeStream();
 
-        expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
-        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
+        expect(callbackOutput).toBeUndefined();
+        await expect(result.output).rejects.toThrow(
+          'No object generated: response did not match schema.',
+        );
       });
 
-      it('should allow onFinish to await the output promise after asynchronous work', async () => {
+      it('should allow onEnd to await the output promise after asynchronous work', async () => {
         const output = Output.object({
           schema: z.object({ value: z.string() }),
         });
@@ -21101,7 +20990,7 @@ describe('streamText', () => {
           }),
           output,
           prompt: 'prompt',
-          onFinish: async () => {
+          onEnd: async () => {
             await delay(1);
             callbackOutput = await result.output;
           },

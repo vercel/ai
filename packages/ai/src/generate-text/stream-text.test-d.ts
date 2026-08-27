@@ -8,7 +8,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
-import { Output, streamText } from '../generate-text';
+import {
+  Output,
+  streamText,
+  type StreamTextEndEvent,
+  type StreamTextOnEndCallback,
+} from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { ProviderMetadata } from '../types';
@@ -106,6 +111,31 @@ describe('streamText types', () => {
             StepResult<any>['providerMetadata']
           >();
         },
+      });
+    });
+
+    it('should infer structured output for reusable callbacks', () => {
+      const output = Output.object({
+        schema: z.object({ value: z.string() }),
+      });
+      const onEnd: StreamTextOnEndCallback<
+        {},
+        Context,
+        typeof output
+      > = event => {
+        expectTypeOf(event).toEqualTypeOf<
+          StreamTextEndEvent<{}, Context, typeof output>
+        >();
+        expectTypeOf(event.output).toEqualTypeOf<
+          { value: string } | undefined
+        >();
+      };
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output,
+        onEnd,
       });
     });
   });
