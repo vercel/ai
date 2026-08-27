@@ -1,13 +1,9 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
 import type {
   LanguageModelV3CallOptions,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-=======
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
->>>>>>> b2eb608541 (fix: accept valid citation deltas in Amazon Bedrock streams (#18250)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
