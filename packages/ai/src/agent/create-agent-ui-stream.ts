@@ -8,7 +8,7 @@ import type { TimeoutConfiguration } from '../prompt/call-settings';
 import type { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type { InferUITools, UIMessage } from '../ui/ui-messages';
-import { validateUIMessages } from '../ui/validate-ui-messages';
+import { validateUIMessagesForAgent } from '../ui/validate-ui-messages';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { Agent } from './agent';
 import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
@@ -58,7 +58,7 @@ export async function createAgentUIStream<
     InferUIMessageChunk<UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>>
   >
 > {
-  const validatedMessages = await validateUIMessages<
+  const validatedMessages = await validateUIMessagesForAgent<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >({
     messages: uiMessages,

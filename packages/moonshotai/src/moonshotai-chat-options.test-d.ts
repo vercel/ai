@@ -6,7 +6,7 @@ import type {
 } from './index';
 
 describe('MoonshotAILanguageModelOptions', () => {
-  it('exposes official structured output, log probability, and reasoning options', () => {
+  it('exposes supported official and backwards-compatible option fields', () => {
     expectTypeOf<MoonshotAILanguageModelOptions>().toEqualTypeOf<{
       logprobs?: boolean;
       topLogprobs?: number;
