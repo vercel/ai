@@ -21,11 +21,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
-<<<<<<< HEAD
-=======
-import { supportsReasoningEffort } from '../supports-reasoning-effort';
 import type { webSearchOutputSchema } from '../tool/web-search';
->>>>>>> 684378819e (fix(xai): preserve web_search action (query, sources, open_page) in responses tool results (#19796))
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
