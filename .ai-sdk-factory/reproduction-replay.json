@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19874,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/tool-loop-agent-approval-secret-types.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/tool-loop-agent-approval-secret-types.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19874_REPRODUCED: ToolLoopAgent types reject experimental_toolApprovalSecret in settings and prepareCall."
+  }
+}
