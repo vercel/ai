@@ -22,14 +22,26 @@ export class GatewayResponseError extends GatewayError {
     response,
     validationError,
     cause,
+<<<<<<< HEAD
+=======
+    generationId,
+    isRetryable,
+>>>>>>> cc23556703 (Backport: fix: mark response body network errors as retryable (#19896))
   }: {
     message?: string;
     statusCode?: number;
     response?: unknown;
     validationError?: TypeValidationError;
     cause?: unknown;
+<<<<<<< HEAD
   } = {}) {
     super({ message, statusCode, cause });
+=======
+    generationId?: string;
+    isRetryable?: boolean;
+  } = {}) {
+    super({ message, statusCode, cause, generationId, isRetryable });
+>>>>>>> cc23556703 (Backport: fix: mark response body network errors as retryable (#19896))
     this.response = response;
     this.validationError = validationError;
   }

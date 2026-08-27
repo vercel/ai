@@ -1,7 +1,13 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import type { ZodType } from 'zod/v4';
 import { extractResponseHeaders } from './extract-response-headers';
+<<<<<<< HEAD
 import { type ParseResult, parseJSON, safeParseJSON } from './parse-json';
+=======
+import { handleFetchError } from './handle-fetch-error';
+import { isAbortError } from './is-abort-error';
+import { parseJSON, safeParseJSON, type ParseResult } from './parse-json';
+>>>>>>> cc23556703 (Backport: fix: mark response body network errors as retryable (#19896))
 import { parseJsonEventStream } from './parse-json-event-stream';
 import { readResponseWithSizeLimit } from './read-response-with-size-limit';
 import type { FlexibleValidator } from './validator';
@@ -17,6 +23,74 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
 }>;
 
 const textDecoder = new TextDecoder();
+
+function wrapResponseBodyStream({
+  stream,
+  url,
+  requestBodyValues,
+  statusCode,
+  responseHeaders,
+}: {
+  stream: ReadableStream<Uint8Array>;
+  url: string;
+  requestBodyValues: unknown;
+  statusCode: number;
+  responseHeaders: Record<string, string>;
+}): ReadableStream<Uint8Array> {
+  const reader = stream.getReader();
+  let readerReleased = false;
+
+  const releaseReader = () => {
+    if (!readerReleased) {
+      reader.releaseLock();
+      readerReleased = true;
+    }
+  };
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          releaseReader();
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        releaseReader();
+
+        if (isAbortError(error)) {
+          controller.error(error);
+          return;
+        }
+
+        controller.error(
+          handleFetchError({
+            error: new APICallError({
+              message: 'Failed to process successful response',
+              cause: error,
+              statusCode,
+              url,
+              responseHeaders,
+              requestBodyValues,
+            }),
+            url,
+            requestBodyValues,
+          }),
+        );
+      }
+    },
+    async cancel(reason) {
+      try {
+        await reader.cancel(reason);
+      } finally {
+        releaseReader();
+      }
+    },
+  });
+}
 
 async function readResponseBodyAsText({
   response,
@@ -103,7 +177,7 @@ export const createEventSourceResponseHandler =
   <T>(
     chunkSchema: FlexibleValidator<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
-  async ({ response }: { response: Response }) => {
+  async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
 
     if (response.body == null) {
@@ -113,7 +187,13 @@ export const createEventSourceResponseHandler =
     return {
       responseHeaders,
       value: parseJsonEventStream({
-        stream: response.body,
+        stream: wrapResponseBodyStream({
+          stream: response.body,
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+          responseHeaders,
+        }),
         schema: chunkSchema,
       }),
     };

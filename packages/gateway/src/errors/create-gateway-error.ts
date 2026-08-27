@@ -27,12 +27,14 @@ export async function createGatewayErrorFromResponse({
   defaultMessage = 'Gateway request failed',
   cause,
   authMethod,
+  isRetryable,
 }: {
   response: unknown;
   statusCode: number;
   defaultMessage?: string;
   cause?: unknown;
   authMethod?: 'api-key' | 'oidc';
+  isRetryable?: boolean;
 }): Promise<GatewayError> {
   const parseResult = await safeValidateTypes({
     value: response,
@@ -46,6 +48,11 @@ export async function createGatewayErrorFromResponse({
       response,
       validationError: parseResult.error,
       cause,
+<<<<<<< HEAD
+=======
+      generationId: rawGenerationId,
+      isRetryable,
+>>>>>>> cc23556703 (Backport: fix: mark response body network errors as retryable (#19896))
     });
   }
 
