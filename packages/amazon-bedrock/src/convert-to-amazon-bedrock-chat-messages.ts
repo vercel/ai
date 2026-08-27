@@ -624,7 +624,13 @@ export async function convertToAmazonBedrockChatMessages(
           pushCachePoint(amazonBedrockContent, message.providerOptions);
         }
 
-        if (amazonBedrockContent.length > 0) {
+        // A message that contains only cachePoint blocks is invalid: Bedrock
+        // rejects it with "There is nothing available to cache. Please remove
+        // the invalid cache point and try again." — a cache point must follow
+        // content within its message. This happens when every content part was
+        // filtered out (e.g. unsigned reasoning) while the message carried a
+        // cachePoint provider option.
+        if (amazonBedrockContent.some(block => !('cachePoint' in block))) {
           messages.push({ role: 'assistant', content: amazonBedrockContent });
         }
 

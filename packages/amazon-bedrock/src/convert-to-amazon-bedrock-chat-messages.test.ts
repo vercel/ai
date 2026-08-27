@@ -1429,6 +1429,123 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should omit an assistant message whose only remaining content is a message-level cache point', async () => {
+    // A cachePoint provider option on a message whose every content part was
+    // filtered out (unsigned reasoning) must not produce
+    // content: [{ cachePoint }] — Bedrock rejects it with "There is nothing
+    // available to cache. Please remove the invalid cache point and try again."
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me consider the options',
+          },
+        ],
+        providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello?' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Think hard then answer' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Hello?' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should omit an assistant message whose only remaining content is a part-level cache point', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me consider the options',
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default' } },
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello?' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Think hard then answer' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Hello?' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should keep the cache point when an assistant message retains other content', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me consider the options',
+          },
+          { type: 'text', text: 'The answer is 42.' },
+        ],
+        providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Think hard then answer' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { text: 'The answer is 42.' },
+            { cachePoint: { type: 'default' } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit multiple reasoning parts without signatures', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
