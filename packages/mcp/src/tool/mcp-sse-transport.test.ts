@@ -5,7 +5,7 @@ import {
 import { MCPClientError } from '../error/mcp-client-error';
 import { deserializeMessage, SseMCPTransport } from './mcp-sse-transport';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import { LATEST_LEGACY_PROTOCOL_VERSION } from './types';
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({
@@ -60,7 +60,7 @@ describe('SseMCPTransport', () => {
     expect(server.calls[0].requestMethod).toBe('GET');
     expect(server.calls[0].requestUrl).toBe('http://localhost:3000/sse');
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'text/event-stream',
     });
   });
@@ -395,7 +395,7 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
-  it('should handle POST request errors', async () => {
+  it('should reject non-2xx POST responses with HTTP details', async () => {
     const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
@@ -409,9 +409,10 @@ describe('SseMCPTransport', () => {
       body: 'Internal Server Error',
     };
 
-    const errorPromise = new Promise<unknown>(resolve => {
-      transport.onerror = err => resolve(err);
-    });
+    let reportedError: unknown;
+    transport.onerror = error => {
+      reportedError = error;
+    };
 
     const connectPromise = transport.start();
     controller.write(
@@ -426,11 +427,19 @@ describe('SseMCPTransport', () => {
       id: '1',
     };
 
-    await transport.send(message);
-
-    const error = await errorPromise;
-    expect(error).toBeInstanceOf(MCPClientError);
-    expect((error as Error).message).toContain('Error: POSTing to endpoint');
+    await expect(transport.send(message)).rejects.toMatchObject({
+      message:
+        'MCP SSE Transport Error: POSTing to endpoint (HTTP 500): Internal Server Error',
+      statusCode: 500,
+      url: 'http://localhost:3000/messages',
+      responseBody: 'Internal Server Error',
+    });
+    expect(reportedError).toBeInstanceOf(MCPClientError);
+    expect(reportedError).toMatchObject({
+      statusCode: 500,
+      url: 'http://localhost:3000/messages',
+      responseBody: 'Internal Server Error',
+    });
     expect(transport['connected']).toBe(true);
 
     await transport.close();
@@ -498,7 +507,7 @@ describe('SseMCPTransport', () => {
 
     // Verify SSE connection headers
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -507,7 +516,7 @@ describe('SseMCPTransport', () => {
     // Verify POST request headers
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       ...customHeaders,
     });
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');

@@ -2,12 +2,12 @@ import type { UIMessageChunk } from 'ai';
 
 /**
  * Tracks, for one part family (text or reasoning), which part ids are open or
- * ended within the current step.
+ * have ended since the latest step boundary.
  */
 interface PartFrameState {
-  /** A `*-start` was seen and not yet ended in the current step. */
+  /** A `*-start` was seen and has not yet received its explicit `*-end`. */
   open: Set<string>;
-  /** A part that was opened and ended in the current step. */
+  /** A part that ended since the latest step boundary. */
   ended: Set<string>;
 }
 
@@ -18,7 +18,7 @@ const newPartFrameState = (): PartFrameState => ({
 
 /**
  * Repairs the framing for a single `*-start` / `*-delta` / `*-end` chunk
- * against the running per-step state, yielding the chunks the consumer should
+ * against the running framing state, yielding the chunks the consumer should
  * see. Text and reasoning parts share this logic (`startType` differentiates
  * the synthesized start chunk).
  *
@@ -32,7 +32,8 @@ function* repairPart(
   startType: 'text-start' | 'reasoning-start',
 ): Generator<UIMessageChunk> {
   if (kind === 'start') {
-    // Drop a duplicate/replayed start for a part already framed this step.
+    // Drop a duplicate/replayed start for a part that is still open or has
+    // already ended since the latest step boundary.
     if (state.open.has(id) || state.ended.has(id)) {
       return;
     }
@@ -70,10 +71,9 @@ function* repairPart(
  * whole turn. Two properties of the durable streaming model make that error
  * reachable:
  *
- * - A workflow run owns a single shared stream, and the consumer resets its
- *   active-part maps on every `finish-step`. Multi-step turns reuse the same
- *   part id (commonly `"0"`) in each step, so a single dropped or duplicated
- *   `*-start` across a step boundary orphans the rest of that step's content.
+ * - A workflow run owns a single shared stream. Multi-step turns can reuse the
+ *   same part id (commonly `"0"`), so a dropped or duplicated `*-start` can
+ *   orphan the rest of that part's content.
  * - The same stream is read across reconnects, and a stream-producing step can
  *   run more than once (retry/redelivery, or the concurrent-worker duplication
  *   tracked in vercel/workflow#2331 and #2039). Either can interleave or
@@ -86,11 +86,12 @@ function* repairPart(
  *
  * ## What it does
  *
- * Mirrors the consumer's part-lifetime state machine, per part type, per step:
- * - resets tracking on `finish-step` (exactly where the consumer resets);
+ * Mirrors the consumer's explicit-end part-lifetime state machine per part type:
+ * - keeps open parts active across `finish-step`, while allowing ended ids to
+ *   be reused by a later step;
  * - synthesizes a missing `*-start` when an orphaned `*-delta`/`*-end` arrives;
  * - drops a re-delivered `*-start`/`*-delta`/`*-end` for a part already
- *   open or ended in the current step (reconnect/replay overlap).
+ *   open or ended since the latest step boundary (reconnect/replay overlap).
  *
  * A well-formed stream passes through unchanged.
  *
@@ -115,12 +116,21 @@ export async function* normalizeUIMessageStreamParts(
 
   for await (const chunk of source) {
     switch (chunk.type) {
-      case 'finish-step':
-        // The consumer clears its active-part maps here, so part ids may be
-        // legitimately reused in the next step. Reset to match.
+      case 'reset-step':
+        // A retried model-call step starts a new frame. Forget parts from the
+        // invalidated attempt so reused ids are framed normally.
         text.open.clear();
         text.ended.clear();
         reasoning.open.clear();
+        reasoning.ended.clear();
+        yield chunk;
+        break;
+
+      case 'finish-step':
+        // Open parts are closed only by explicit end chunks. A finish-step can
+        // come from another interleaved execution while a part is still open.
+        // Ended ids may be reused by the next step.
+        text.ended.clear();
         reasoning.ended.clear();
         yield chunk;
         break;

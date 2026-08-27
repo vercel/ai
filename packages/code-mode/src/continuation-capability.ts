@@ -82,6 +82,24 @@ export function verifyCodeModeContinuation(
   continuation: CodeModeContinuation,
   security: CodeModeContinuationSecurityOptions = {},
 ): void {
+  if (
+    typeof continuation !== 'object' ||
+    continuation === null ||
+    continuation.version !== 2 ||
+    typeof continuation.js !== 'string' ||
+    typeof continuation.outerToolCallId !== 'string' ||
+    !Array.isArray(continuation.toolNames) ||
+    !continuation.toolNames.every(name => typeof name === 'string') ||
+    typeof continuation.token !== 'string' ||
+    continuation.token.length === 0 ||
+    !Array.isArray(continuation.pendingInterruptions) ||
+    continuation.pendingInterruptions.length === 0 ||
+    !Array.isArray(continuation.resolutions)
+  ) {
+    throw new CodeModeProtocolError(
+      'Code mode continuation envelope is malformed.',
+    );
+  }
   assertAuthShape(continuation.auth);
   const now = Date.now();
   if (continuation.auth.expiresAtMs < now) {

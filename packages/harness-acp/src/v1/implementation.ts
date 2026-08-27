@@ -18,11 +18,12 @@ import type {
  * two shapes are required to agree, and createACPV1Implementation is the only
  * place that maps between them.
  */
-export type ACPNpmImplementation = {
+export type ACPImplementation = {
   readonly source: ACPSource;
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;
   readonly forwardEnv?: ReadonlyArray<string>;
+  readonly credentialEnv?: ReadonlyArray<string>;
   readonly env?: Readonly<Record<string, string>>;
 };
 
@@ -30,12 +31,13 @@ export function createACPV1Implementation({
   settings,
 }: {
   settings: ACPV1Settings;
-}): ACPNpmImplementation {
+}): ACPImplementation {
   return {
     source: settings.source,
     executable: settings.executable,
     args: settings.args,
     forwardEnv: settings.forwardEnv,
+    credentialEnv: settings.credentialEnv,
     env: settings.env,
   };
 }
@@ -48,7 +50,7 @@ const EXECUTABLE_NAME_REGEXP = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const ENVIRONMENT_VARIABLE_NAME_REGEXP = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export function validateACPV1Implementation(
-  implementation: ACPNpmImplementation,
+  implementation: ACPImplementation,
 ): void {
   const { source } = implementation;
   if (source.type === 'npm-locked') {
@@ -58,22 +60,41 @@ export function validateACPV1Implementation(
     if (source.pnpmLockYaml.length === 0) {
       throw new Error('ACP source.pnpmLockYaml must not be empty.');
     }
-  } else {
+    if (source.pnpmWorkspaceYaml?.length === 0) {
+      throw new Error('ACP source.pnpmWorkspaceYaml must not be empty.');
+    }
+  } else if (source.type === 'npm-simple') {
     validateNpmSimpleSource({ source });
+  } else if (source.command.trim().length === 0) {
+    throw new Error('ACP source.command must not be empty.');
   }
   if (!EXECUTABLE_NAME_REGEXP.test(implementation.executable)) {
     throw new Error(
-      `ACP executable must be a package bin name without a path; received ${JSON.stringify(implementation.executable)}.`,
+      `ACP executable must be a bare command name without a path; received ${JSON.stringify(implementation.executable)}.`,
     );
   }
 
   validateForwardEnvironment({ forwardEnv: implementation.forwardEnv });
+  validateForwardEnvironment({ forwardEnv: implementation.credentialEnv });
   validateEnvironment({ env: implementation.env });
   const forwardedKeys = new Set(implementation.forwardEnv ?? []);
+  const credentialKeys = new Set(implementation.credentialEnv ?? []);
+  for (const key of credentialKeys) {
+    if (forwardedKeys.has(key)) {
+      throw new Error(
+        `ACP runtime environment key ${JSON.stringify(key)} cannot be configured in both forwardEnv and credentialEnv.`,
+      );
+    }
+  }
   for (const key of Object.keys(implementation.env ?? {})) {
     if (forwardedKeys.has(key)) {
       throw new Error(
         `ACP runtime environment key ${JSON.stringify(key)} cannot be configured in both forwardEnv and env.`,
+      );
+    }
+    if (credentialKeys.has(key)) {
+      throw new Error(
+        `ACP runtime environment key ${JSON.stringify(key)} cannot be configured in both credentialEnv and env.`,
       );
     }
   }
@@ -82,9 +103,10 @@ export function validateACPV1Implementation(
 export function createImplementationManifest({
   implementation,
 }: {
-  implementation: ACPNpmImplementation;
-}): string {
+  implementation: ACPImplementation;
+}): string | undefined {
   const { source } = implementation;
+  if (source.type === 'install-command') return undefined;
   if (source.type === 'npm-locked') {
     return source.packageJson;
   }
@@ -108,21 +130,34 @@ export function createImplementationManifest({
 export function getImplementationLockfile({
   implementation,
 }: {
-  implementation: ACPNpmImplementation;
+  implementation: ACPImplementation;
 }): string | undefined {
   const { source } = implementation;
   return source.type === 'npm-locked' ? source.pnpmLockYaml : undefined;
 }
 
+export function getImplementationWorkspaceFile({
+  implementation,
+}: {
+  implementation: ACPImplementation;
+}): string | undefined {
+  const { source } = implementation;
+  return source.type === 'npm-locked' ? source.pnpmWorkspaceYaml : undefined;
+}
+
 export function createImplementationDescriptor({
   implementation,
 }: {
-  implementation: ACPNpmImplementation;
+  implementation: ACPImplementation;
 }): string {
   return (
     JSON.stringify(
       {
-        executable: implementation.executable,
+        executablePath:
+          implementation.source.type === 'install-command'
+            ? `home/.local/bin/${implementation.executable}`
+            : `node_modules/.bin/${implementation.executable}`,
+        privateHome: implementation.source.type === 'install-command',
         args: implementation.args ?? [],
         envKeys: getImplementationEnvironmentKeys({ implementation }),
       },
@@ -142,7 +177,7 @@ export function createImplementationIdentity({
 }: {
   harnessId: string;
   acpVersion: 'v1';
-  implementation: ACPNpmImplementation;
+  implementation: ACPImplementation;
   clientApp: ACPClientApp;
   providerAuthentication: ACPProviderAuthenticationCompatibility | undefined;
   permissionModeMapping?: ACPPermissionModeMapping;
@@ -154,16 +189,25 @@ export function createImplementationIdentity({
           type: source.type,
           packageJson: source.packageJson,
           pnpmLockYaml: source.pnpmLockYaml,
+          pnpmWorkspaceYaml: source.pnpmWorkspaceYaml,
         }
-      : {
-          type: source.type,
-          packageName: source.packageName,
-          ...(source.packageVersion == null
-            ? {}
-            : { packageVersion: source.packageVersion }),
-        };
+      : source.type === 'npm-simple'
+        ? {
+            type: source.type,
+            packageName: source.packageName,
+            ...(source.packageVersion == null
+              ? {}
+              : { packageVersion: source.packageVersion }),
+          }
+        : {
+            type: source.type,
+            command: source.command,
+          };
   const forwardedEnvironment = [
     ...new Set(implementation.forwardEnv ?? []),
+  ].sort();
+  const credentialEnvironment = [
+    ...new Set(implementation.credentialEnv ?? []),
   ].sort();
   const literalEnvironment = Object.fromEntries(
     Object.entries(implementation.env ?? {})
@@ -179,6 +223,7 @@ export function createImplementationIdentity({
     clientApp,
     environment: {
       forwarded: forwardedEnvironment,
+      credential: credentialEnvironment,
       literal: literalEnvironment,
     },
     providerAuthentication: providerAuthentication ?? null,
@@ -196,8 +241,11 @@ export function createImplementationInstallCommand({
 }: {
   implementationDir: string;
   storeDir: string;
-  implementation: ACPNpmImplementation;
+  implementation: ACPImplementation;
 }): string {
+  if (implementation.source.type === 'install-command') {
+    return 'bash implementation/install.sh';
+  }
   return (
     `pnpm --dir ${implementationDir} install` +
     (implementation.source.type === 'npm-locked' ? ' --frozen-lockfile' : '') +
@@ -205,15 +253,39 @@ export function createImplementationInstallCommand({
   );
 }
 
+export function getImplementationInstallScript({
+  implementation,
+}: {
+  implementation: ACPImplementation;
+}): string | undefined {
+  if (implementation.source.type !== 'install-command') return undefined;
+  return `#!/usr/bin/env bash
+set -euo pipefail
+
+ACP_IMPLEMENTATION_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+ACP_INSTALL_HOME="$ACP_IMPLEMENTATION_DIR/home"
+export HOME="$ACP_INSTALL_HOME"
+export PATH="$ACP_INSTALL_HOME/.local/bin:$PATH"
+
+mkdir -p "$ACP_INSTALL_HOME/.local/bin"
+cd "$ACP_IMPLEMENTATION_DIR"
+
+${implementation.source.command}
+`;
+}
+
 export function resolveImplementationEnvironment({
   implementation,
   env,
 }: {
-  implementation: ACPNpmImplementation;
+  implementation: ACPImplementation;
   env: Readonly<Record<string, string | undefined>>;
 }): Record<string, string> {
   const forwardedEnvironment: Record<string, string> = {};
-  for (const name of implementation.forwardEnv ?? []) {
+  for (const name of [
+    ...(implementation.forwardEnv ?? []),
+    ...(implementation.credentialEnv ?? []),
+  ]) {
     const value = env[name];
     if (value != null && value.length > 0) {
       forwardedEnvironment[name] = value;
@@ -279,11 +351,12 @@ function validateForwardEnvironment({
 function getImplementationEnvironmentKeys({
   implementation,
 }: {
-  implementation: ACPNpmImplementation;
+  implementation: ACPImplementation;
 }): string[] {
   return [
     ...new Set([
       ...(implementation.forwardEnv ?? []),
+      ...(implementation.credentialEnv ?? []),
       ...Object.keys(implementation.env ?? {}),
     ]),
   ].sort();

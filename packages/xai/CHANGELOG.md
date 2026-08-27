@@ -1,5 +1,105 @@
 # @ai-sdk/xai
 
+## 4.0.48
+
+### Patch Changes
+
+- 6843788: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.46
+
+### Patch Changes
+
+- 41e7760: Preserve complete xAI Responses usage objects in raw usage metadata.
+
+## 4.0.45
+
+### Patch Changes
+
+- 7de3612: Encode provider-returned identifiers before using them in credentialed follow-up request paths.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- 3f8fa93: feat(xai): batch API support
+- dfa7305: Preserve complete xAI Chat Completions usage objects in generated and streamed results.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.42
+
+### Patch Changes
+
+- ef05760: fix(provider/xai): report image moderation blocks as content policy errors
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.40
+
+### Patch Changes
+
+- 1ffa1d2: feat(xai): speech timestamps, pronunciation replacements, provider metadata, and error parsing
+
+  - Add `withTimestamps` and `replace` provider options for text to speech. With
+    `withTimestamps`, the JSON envelope is decoded and the audio returned as
+    usual, while duration, content type, and character-level alignment are
+    exposed via `providerMetadata.xai`.
+  - Return `providerMetadata.xai.traceId` (from the `x-trace-id` response
+    header) on every speech response.
+  - Parse the text to speech error shape (`{"error":"..."}`) so `APICallError`
+    messages carry xAI's real error detail instead of the HTTP reason phrase.
+
+## 4.0.39
+
+### Patch Changes
+
+- 646c86e: fix(provider/xai): report video moderation blocks and missing URLs as an error status instead of throwing
+
+## 4.0.38
+
+### Patch Changes
+
+- 484293f: feat(xai): support the priority service tier on chat and responses
+
+## 4.0.37
+
+### Patch Changes
+
+- a4d386d: feat(xai): add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 4.0.36
+
+### Patch Changes
+
+- 8edc775: feat (provider/xai): support Grok Imagine Video 1.5. Adds the `grok-imagine-video-1.5` model id and native `1080p` for text-to-video and image-to-video (the standard `resolution: '1920x1080'` now maps to `1080p`). Reference-to-video remains capped at `720p`, so a `1080p` request in that mode is downgraded with a warning. Also fixes reference routing: previously any non-empty `inputReferences` array selected reference-to-video, so an array holding only a non-image reference sent `reference_images: []` with no usable references.
+- 3d05053: feat (provider/xai): add `referenceVoiceIds` for reference-to-video reference audio. Pass up to 3 xAI preset voice ids (e.g. `['eve']`) and reference them from the prompt with `<AUDIO_0>`–`<AUDIO_2>`; they are sent as `reference_audios: [{ voice_id }]` on `POST /v1/videos/generations`.
+
 ## 4.0.35
 
 ### Patch Changes

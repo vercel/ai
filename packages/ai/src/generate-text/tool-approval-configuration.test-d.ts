@@ -32,7 +32,10 @@ describe('ToolApprovalConfiguration', () => {
   describe('per-tool (object) configuration', () => {
     it('allows string statuses and object statuses with an optional reason', () => {
       const _config: ToolApprovalConfiguration<Tools, Context> = {
-        weather: 'not-applicable',
+        weather: {
+          type: 'user-approval',
+          reason: 'requires operator review',
+        },
         calculator: { type: 'denied', reason: 'blocked by policy' },
       };
     });

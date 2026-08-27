@@ -231,6 +231,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "auth": {},
                     "mcpServers": {}
                   }
                 }
@@ -255,15 +256,20 @@
           "for": { "files": ["${harnessId}-harness.ts"] },
           "if": { "hasFile": "bridge/index.ts" },
           "must": {
-            "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "haveFiles": [
+              "${harnessId}-bridge-protocol.ts",
+              "${harnessId}-bootstrap.ts"
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "credentialForwarding": {},
                     "mintBridgeToken": {},
                     "port": { "type": "number" },
+                    "portEndpoint": {},
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
@@ -282,15 +288,20 @@
           "for": { "files": ["${harnessId}-harness.ts"] },
           "if": { "hasFile": "*/bridge/index.ts" },
           "must": {
-            "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "haveFiles": [
+              "${harnessId}-bridge-protocol.ts",
+              "${harnessId}-bootstrap.ts"
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "credentialForwarding": {},
                     "mintBridgeToken": {},
                     "port": { "type": "number" },
+                    "portEndpoint": {},
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
@@ -323,7 +334,11 @@
           "name": "harness-file-must-have-corresponding-auth-file",
           "description": "Every harness file must be accompanied by its corresponding auth file.",
           "for": { "files": ["${harnessId}-harness.ts"] },
-          "excludeFiles": ["grok-build-harness.ts"],
+          "excludeFiles": [
+            "cursor-harness.ts",
+            "fx-harness.ts",
+            "grok-build-harness.ts"
+          ],
           "must": {
             "haveFiles": ["${harnessId}-auth.ts"]
           }
@@ -353,6 +368,36 @@
           }
         },
         {
+          "name": "harness-auth-file-for-bridge-harness-must-export-relevant-symbols",
+          "description": "Every harness auth file for a bridge based harness must export the relevant symbols.",
+          "for": { "files": ["${harnessId}-auth.ts"] },
+          "if": { "hasFile": "bridge/index.ts" },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1RequestTransformation",
+                "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "HarnessV1RequestTransformationSources",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "exportConstants": [
+              "${harnessId.toConstantCase()}_CREDENTIAL_ENVIRONMENT_VARIABLES"
+            ],
+            "exportFunctions": [
+              {
+                "name": "create${harnessId.toPascalCase()}RequestTransformations",
+                "receiveParamsOfTypes": [
+                  "HarnessV1RequestTransformationSources<${harnessId.toPascalCase()}ResolvedAuthenticationMode>"
+                ],
+                "returnValueOfType": "HarnessV1RequestTransformation[]"
+              }
+            ]
+          }
+        },
+        {
           "name": "harness-bridge-protocol-file-must-export-relevant-symbols",
           "description": "Every harness bridge protocol file must export the relevant symbols.",
           "for": { "files": ["${harnessId}-bridge-protocol.ts"] },
@@ -378,6 +423,27 @@
               "InboundMessage",
               "bridgeReadySchema",
               "BridgeReady"
+            ]
+          }
+        },
+        {
+          "name": "harness-sandbox-bootstrap-file-must-export-relevant-symbols",
+          "description": "Every harness sandbox bootstrap file must export the relevant symbols.",
+          "for": { "files": ["${harnessId}-bootstrap.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1Bootstrap",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "exportConstants": ["${harnessId.toConstantCase()}_BOOTSTRAP_DIR"],
+            "exportFunctions": [
+              {
+                "name": "get${harnessId.toPascalCase()}Bootstrap",
+                "receiveParamsOfTypes": [],
+                "returnValueOfType": "Promise<HarnessV1Bootstrap>"
+              }
             ]
           }
         },

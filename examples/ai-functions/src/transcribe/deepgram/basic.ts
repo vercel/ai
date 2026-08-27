@@ -7,6 +7,11 @@ run(async () => {
   const result = await transcribe({
     model: deepgram.transcription('nova-3'),
     audio: await readFile('data/galileo.mp3'),
+    providerOptions: {
+      // keyterm boosting is the nova-3-recommended way to improve
+      // recognition of domain terms.
+      deepgram: { keyterm: 'Galileo' },
+    },
   });
 
   console.log('Text:', result.text);

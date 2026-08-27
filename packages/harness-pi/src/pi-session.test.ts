@@ -9,8 +9,15 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import type {
   HarnessV1NetworkSandboxSession,
+  HarnessV1SandboxProvider,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
+import {
+  HarnessAgent,
+  type HarnessAgentContinueTurnState,
+} from '@ai-sdk/harness/agent';
+import { tool } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { createPi } from './pi-harness';
 import { createPiSession } from './pi-session';
 
@@ -53,6 +60,7 @@ const piMock = vi.hoisted(() => {
     resourceLoaderReloadCount: 0,
     resourceLoaderOptions: [] as ResourceLoaderOptions[],
     session: undefined as AgentSession | undefined,
+    sessionManagerOpen: vi.fn(),
   };
 });
 
@@ -117,9 +125,7 @@ vi.mock('@earendil-works/pi-coding-agent', () => {
       create: vi.fn(() => ({
         getSessionFile: () => undefined,
       })),
-      open: vi.fn(() => ({
-        getSessionFile: () => undefined,
-      })),
+      open: piMock.sessionManagerOpen,
     },
     SettingsManager: {
       inMemory: vi.fn(() => ({})),
@@ -148,6 +154,40 @@ describe('createPiSession', () => {
       piMock.customTools = options.customTools;
       return { session: piMock.session };
     });
+    piMock.sessionManagerOpen.mockReset();
+    piMock.sessionManagerOpen.mockImplementation(() => ({
+      getSessionFile: () => undefined,
+    }));
+  });
+
+  it('rejects structured output turns', async () => {
+    const session = await createPiSession({
+      sessionId: 'session-structured-output',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      await expect(
+        session.doPromptTurn({
+          prompt: 'Generate an object.',
+          responseFormat: {
+            type: 'json',
+            schema: { type: 'object' },
+          },
+          emit: () => {},
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_HarnessCapabilityUnsupportedError',
+        harnessId: 'pi',
+      });
+    } finally {
+      await session.doDestroy();
+    }
   });
 
   it('loads a caller-supplied inline extension factory through createPi', async () => {
@@ -242,6 +282,49 @@ describe('createPiSession', () => {
       expect(observedEvents).toEqual(['agent_start', 'agent_start']);
       expect(piMock.resourceLoaderReloadCount).toBe(3);
       expect(piMock.agentSessionExtensionResults).toHaveLength(1);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('steers the active Pi session', async () => {
+    let finishPrompt!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      finishPrompt = resolve;
+    });
+    const steer = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => promptDone),
+      steer,
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+    const session = await createPiSession({
+      sessionId: 'session-steering',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Weather in Paris?',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.submitUserMessage?.('Actually, Paris, Texas.');
+
+      expect(steer).toHaveBeenCalledExactlyOnceWith('Actually, Paris, Texas.');
+      finishPrompt();
+      await control.done;
     } finally {
       await session.doDestroy();
     }
@@ -556,6 +639,520 @@ describe('createPiSession', () => {
     );
   });
 
+  it('holds a cross-process rerun until dangling host tool results arrive, then injects them into the journal', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const { journal, appendedMessages } = createJournal([
+      userMessage('ask the user something'),
+      assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+    ]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+
+    const sandboxSession = createSandboxSession({
+      sessionFileContent: 'pi-journal',
+    });
+    const session = await createPiSession({
+      sessionId: 'session-cross-process',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'pi-session.jsonl',
+    });
+
+    const emit = vi.fn();
+    const control = await session.doContinueTurn({
+      tools: [{ name: 'askUser' }],
+      instructions: 'Return the tool result exactly.',
+      emit,
+    });
+
+    // The rerun must wait for the framework to re-deliver the result of the
+    // journal-pending tool call; starting it eagerly would resolve the call
+    // as a synthetic empty result and drop the submission below.
+    expect(prompt).not.toHaveBeenCalled();
+
+    await control.submitToolResult({
+      toolCallId: 'tool-1',
+      output: { selection: 'Option A' },
+    });
+    await control.done;
+
+    expect(appendedMessages).toEqual([
+      {
+        role: 'toolResult',
+        toolCallId: 'tool-1',
+        toolName: 'askUser',
+        content: [{ type: 'text', text: '{"selection":"Option A"}' }],
+        isError: false,
+        timestamp: expect.any(Number),
+      },
+    ]);
+    expect(prompt).toHaveBeenCalledTimes(1);
+    expect(prompt).toHaveBeenCalledWith('');
+    expect(emit.mock.calls.slice(0, 2)).toEqual([
+      [{ type: 'stream-start' }],
+      [
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: 0,
+              noCache: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+            },
+            outputTokens: {
+              total: 0,
+              text: 0,
+              reasoning: 0,
+            },
+          },
+          harnessMetadata: { pi: { inferredStep: true } },
+        },
+      ],
+    ]);
+    expect(piMock.appendSystemPrompts.at(-1)).toEqual([
+      'Return the tool result exactly.',
+    ]);
+    expect(piMock.sessionManagerOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the error flag when injecting a cross-process tool result', async () => {
+    const { session: fakePiSession } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const { journal, appendedMessages } = createJournal([
+      userMessage('call the tool'),
+      assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+    ]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+
+    const session = await createPiSession({
+      sessionId: 'session-cross-process-error',
+      sandboxSession: createSandboxSession({
+        sessionFileContent: 'pi-journal',
+      }),
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'pi-session.jsonl',
+    });
+    const control = await session.doContinueTurn({
+      tools: [{ name: 'askUser' }],
+      emit: vi.fn(),
+    });
+
+    await control.submitToolResult({
+      toolCallId: 'tool-1',
+      output: { error: 'answer unavailable' },
+      isError: true,
+    });
+    await control.done;
+
+    expect(appendedMessages).toMatchInlineSnapshot(
+      [
+        {
+          timestamp: expect.any(Number),
+        },
+      ],
+      `
+      [
+        {
+          "content": [
+            {
+              "text": "{\"error\":\"answer unavailable\"}",
+              "type": "text",
+            },
+          ],
+          "isError": true,
+          "role": "toolResult",
+          "timestamp": Any<Number>,
+          "toolCallId": "tool-1",
+          "toolName": "askUser",
+        },
+      ]
+    `,
+    );
+  });
+
+  it('reruns immediately on cross-process resume when the journal has no dangling host tool calls', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const { journal } = createJournal([
+      userMessage('ask the user something'),
+      assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+      {
+        role: 'toolResult',
+        toolCallId: 'tool-1',
+        toolName: 'askUser',
+        content: [{ type: 'text', text: 'already answered' }],
+        isError: false,
+        timestamp: 0,
+      },
+    ]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+
+    const sandboxSession = createSandboxSession({
+      sessionFileContent: 'pi-journal',
+    });
+    const session = await createPiSession({
+      sessionId: 'session-cross-process-resolved',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'pi-session.jsonl',
+    });
+
+    const control = await session.doContinueTurn({
+      tools: [{ name: 'askUser' }],
+      emit: vi.fn(),
+    });
+    await control.done;
+
+    expect(prompt).toHaveBeenCalledTimes(1);
+    expect(prompt).toHaveBeenCalledWith('');
+    expect(journal.appendMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not re-await results already delivered by a previous continuation of the same session', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const { journal, appendedMessages } = createJournal([
+      userMessage('ask the user two things'),
+      assistantMessageWithToolCalls([
+        { id: 'tool-1', name: 'askUser' },
+        { id: 'tool-2', name: 'askUser' },
+      ]),
+    ]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+
+    const sandboxSession = createSandboxSession({
+      sessionFileContent: 'pi-journal',
+    });
+    const session = await createPiSession({
+      sessionId: 'session-cross-process-reentrant',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'pi-session.jsonl',
+    });
+
+    // First continuation delivers only tool-1's result, then ends (e.g. it
+    // paused again awaiting a tool-result continuation for tool-2).
+    const firstControl = await session.doContinueTurn({
+      tools: [{ name: 'askUser' }],
+      emit: vi.fn(),
+    });
+    await firstControl.submitToolResult({
+      toolCallId: 'tool-1',
+      output: 'first answer',
+    });
+    expect(prompt).not.toHaveBeenCalled();
+
+    // Second continuation: the framework will only re-deliver tool-2 — it
+    // marked tool-1 settled. The new barrier must not wait on tool-1 again.
+    const secondControl = await session.doContinueTurn({
+      tools: [{ name: 'askUser' }],
+      emit: vi.fn(),
+    });
+    // Installing the new barrier settles the abandoned first turn cleanly.
+    await expect(firstControl.done).resolves.toBeUndefined();
+    expect(prompt).not.toHaveBeenCalled();
+
+    await secondControl.submitToolResult({
+      toolCallId: 'tool-2',
+      output: 'second answer',
+    });
+    await secondControl.done;
+
+    expect(appendedMessages).toEqual([
+      {
+        role: 'toolResult',
+        toolCallId: 'tool-1',
+        toolName: 'askUser',
+        content: [{ type: 'text', text: 'first answer' }],
+        isError: false,
+        timestamp: expect.any(Number),
+      },
+      {
+        role: 'toolResult',
+        toolCallId: 'tool-2',
+        toolName: 'askUser',
+        content: [{ type: 'text', text: 'second answer' }],
+        isError: false,
+        timestamp: expect.any(Number),
+      },
+    ]);
+    expect(prompt).toHaveBeenCalledTimes(1);
+    expect(prompt).toHaveBeenCalledWith('');
+  });
+
+  it('flushes results delivered before a suspend into the journal so a later resume sees them', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const { journal, appendedMessages } = createJournal([
+      userMessage('ask the user two things'),
+      assistantMessageWithToolCalls([
+        { id: 'tool-1', name: 'askUser' },
+        { id: 'tool-2', name: 'askUser' },
+      ]),
+    ]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+
+    const sandboxSession = createSandboxSession({
+      sessionFileContent: 'pi-journal',
+    });
+    const session = await createPiSession({
+      sessionId: 'session-cross-process-partial',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      skills: [],
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'pi-session.jsonl',
+    });
+
+    const control = await session.doContinueTurn({
+      tools: [{ name: 'askUser' }],
+      emit: vi.fn(),
+    });
+    await control.submitToolResult({
+      toolCallId: 'tool-1',
+      output: 'first answer',
+    });
+
+    // Still awaiting tool-2; the rerun has not started.
+    expect(prompt).not.toHaveBeenCalled();
+
+    await expect(session.doSuspendTurn()).resolves.toEqual({
+      type: 'continue-turn',
+      harnessId: 'pi',
+      specificationVersion: 'harness-v1',
+      data: { sessionFileName: 'pi-session.jsonl' },
+    });
+    await control.done;
+
+    expect(appendedMessages).toEqual([
+      {
+        role: 'toolResult',
+        toolCallId: 'tool-1',
+        toolName: 'askUser',
+        content: [{ type: 'text', text: 'first answer' }],
+        isError: false,
+        timestamp: expect.any(Number),
+      },
+    ]);
+    expect(prompt).not.toHaveBeenCalled();
+    // The updated journal is pushed back into the sandbox for the next resume.
+    expect(sandboxSession.writeBinaryFile).toHaveBeenCalled();
+  });
+
+  it('cancels a deferred rerun initialization before suspending', async () => {
+    const setup = await startDeferredCrossProcessRerun({
+      sessionId: 'session-cross-process-suspend-during-startup',
+    });
+
+    const suspension = setup.session.doSuspendTurn();
+    setup.agentSessionCreation.resolve({ session: setup.fakePiSession });
+
+    await expect(suspension).resolves.toEqual({
+      type: 'continue-turn',
+      harnessId: 'pi',
+      specificationVersion: 'harness-v1',
+      data: { sessionFileName: 'pi-session.jsonl' },
+    });
+    await expect(setup.control.done).resolves.toBeUndefined();
+    expect(setup.prompt).not.toHaveBeenCalled();
+    expect(setup.dispose).toHaveBeenCalledOnce();
+  });
+
+  it('waits for deferred rerun initialization to cancel before stopping', async () => {
+    const setup = await startDeferredCrossProcessRerun({
+      sessionId: 'session-cross-process-stop-during-startup',
+    });
+    const done = expect(setup.control.done).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+
+    const stopping = setup.session.doStop();
+    setup.agentSessionCreation.resolve({ session: setup.fakePiSession });
+
+    await expect(stopping).resolves.toEqual({
+      type: 'resume-session',
+      harnessId: 'pi',
+      specificationVersion: 'harness-v1',
+      data: { sessionFileName: 'pi-session.jsonl' },
+    });
+    await done;
+    expect(setup.prompt).not.toHaveBeenCalled();
+    expect(setup.dispose).toHaveBeenCalledOnce();
+  });
+
+  it('rejects an abort received during deferred rerun initialization', async () => {
+    const abortController = new AbortController();
+    const setup = await startDeferredCrossProcessRerun({
+      sessionId: 'session-cross-process-abort-during-startup',
+      abortSignal: abortController.signal,
+    });
+    const done = expect(setup.control.done).rejects.toThrow(
+      'cancel deferred rerun',
+    );
+
+    abortController.abort(new Error('cancel deferred rerun'));
+    setup.agentSessionCreation.resolve({ session: setup.fakePiSession });
+
+    await done;
+    expect(setup.prompt).not.toHaveBeenCalled();
+    await setup.session.doDestroy();
+    expect(setup.dispose).toHaveBeenCalledOnce();
+  });
+
+  it('attaches another continuation to deferred rerun initialization', async () => {
+    const setup = await startDeferredCrossProcessRerun({
+      sessionId: 'session-cross-process-attach-during-startup',
+    });
+    const attachedEmit = vi.fn();
+
+    const attachedControl = await setup.session.doContinueTurn({
+      tools: [{ name: 'askUser' }],
+      emit: attachedEmit,
+    });
+    setup.agentSessionCreation.resolve({ session: setup.fakePiSession });
+
+    await Promise.all([setup.control.done, attachedControl.done]);
+    expect(piMock.createAgentSession).toHaveBeenCalledOnce();
+    expect(setup.prompt).toHaveBeenCalledOnce();
+    expect(setup.emit).not.toHaveBeenCalledWith({ type: 'stream-start' });
+    expect(attachedEmit).toHaveBeenCalledWith({ type: 'stream-start' });
+    await setup.session.doDestroy();
+  });
+
+  it('replays an approved host tool through HarnessAgent before rerunning Pi', async () => {
+    const execute = vi.fn(async () => ({ selection: 'Option A' }));
+    const askUser = tool({
+      description: 'Ask the user to select an option.',
+      inputSchema: z.object({ question: z.string() }),
+      execute,
+    });
+    const { session: fakePiSession, prompt } = createFakePiSession({
+      promptEvents: [
+        { type: 'turn_start' },
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        },
+        {
+          type: 'message_update',
+          assistantMessageEvent: {
+            type: 'text_delta',
+            delta: 'Option A',
+          },
+        },
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Option A' }],
+            stopReason: 'stop',
+          },
+        },
+        {
+          type: 'turn_end',
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Option A' }],
+            stopReason: 'stop',
+          },
+        },
+      ],
+    });
+    piMock.session = fakePiSession;
+    const { journal, appendedMessages } = createJournal([
+      userMessage('ask the user something'),
+      assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+    ]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+    const sandboxSession = createSandboxSession({
+      sessionFileContent: 'pi-journal',
+    });
+    const continueFrom: HarnessAgentContinueTurnState = {
+      type: 'continue-turn',
+      harnessId: 'pi',
+      specificationVersion: 'harness-v1',
+      data: { sessionFileName: 'pi-session.jsonl' },
+      pendingToolApprovals: [
+        {
+          approvalId: 'approval-1',
+          toolCallId: 'tool-1',
+          toolName: 'askUser',
+          input: '{"question":"Choose an option"}',
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+    };
+    const agent = new HarnessAgent({
+      harness: createPi(),
+      sandbox: createSandboxProvider({ sandboxSession }),
+      tools: { askUser },
+      toolApproval: { askUser: 'user-approval' },
+    });
+    const session = await agent.createSession({
+      sessionId: 'session-harness-agent-cross-process',
+      continueFrom,
+    });
+
+    try {
+      const result = await agent.continueGenerate({
+        session,
+        toolApprovalContinuations: [
+          {
+            approvalResponse: {
+              type: 'tool-approval-response',
+              approvalId: 'approval-1',
+              approved: true,
+            },
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'tool-1',
+              toolName: 'askUser',
+              input: { question: 'Choose an option' },
+              providerExecuted: false,
+            },
+          },
+        ],
+      });
+
+      expect(execute).toHaveBeenCalledOnce();
+      expect(result.text).toBe('Option A');
+      expect(appendedMessages).toEqual([
+        {
+          role: 'toolResult',
+          toolCallId: 'tool-1',
+          toolName: 'askUser',
+          content: [{ type: 'text', text: '{"selection":"Option A"}' }],
+          isError: false,
+          timestamp: expect.any(Number),
+        },
+      ]);
+      expect(prompt).toHaveBeenCalledWith('');
+    } finally {
+      await session.destroy();
+    }
+  });
+
   it('uses agentDir for auth, models, and settings when provided', async () => {
     vi.mocked(ModelRuntime.create).mockClear();
     vi.mocked(SettingsManager.inMemory).mockClear();
@@ -613,17 +1210,171 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createSandboxSession(): HarnessV1NetworkSandboxSession {
+function createFakePiSession({
+  promptEvents = [],
+}: {
+  promptEvents?: unknown[];
+} = {}) {
+  const subscribers = new Set<(event: unknown) => void>();
+  const prompt = vi.fn(async (_text: string) => {
+    for (const event of promptEvents) {
+      for (const subscriber of subscribers) {
+        subscriber(event);
+      }
+    }
+  });
+  const abort = vi.fn(async () => {});
+  const dispose = vi.fn();
+  const session = {
+    abort,
+    compact: vi.fn(async () => {}),
+    dispose,
+    getSessionStats: () => ({
+      tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    }),
+    prompt,
+    steer: vi.fn(async () => {}),
+    subscribe: vi.fn((subscriber: (event: unknown) => void) => {
+      subscribers.add(subscriber);
+      return () => subscribers.delete(subscriber);
+    }),
+  } as unknown as AgentSession;
+  return { session, prompt, abort, dispose };
+}
+
+async function startDeferredCrossProcessRerun({
+  sessionId,
+  abortSignal,
+}: {
+  sessionId: string;
+  abortSignal?: AbortSignal;
+}) {
+  const { session: fakePiSession, prompt, dispose } = createFakePiSession();
+  const { journal } = createJournal([
+    userMessage('ask the user something'),
+    assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+  ]);
+  piMock.sessionManagerOpen.mockImplementation(() => journal);
+  const agentSessionCreation = createDeferred<{ session: AgentSession }>();
+  piMock.createAgentSession.mockImplementation(
+    async () => agentSessionCreation.promise,
+  );
+  const session = await createPiSession({
+    sessionId,
+    sandboxSession: createSandboxSession({
+      sessionFileContent: 'pi-journal',
+    }),
+    sessionWorkDir: '/sandbox/work',
+    skills: [],
+    settings: {},
+    clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+    isResume: true,
+    resumeSessionFileName: 'pi-session.jsonl',
+  });
+  const emit = vi.fn();
+  const control = await session.doContinueTurn({
+    tools: [{ name: 'askUser' }],
+    emit,
+    ...(abortSignal ? { abortSignal } : {}),
+  });
+  await control.submitToolResult({
+    toolCallId: 'tool-1',
+    output: 'answer',
+  });
+  await vi.waitFor(() => {
+    expect(piMock.createAgentSession).toHaveBeenCalledOnce();
+  });
+
+  return {
+    session,
+    control,
+    emit,
+    agentSessionCreation,
+    fakePiSession,
+    prompt,
+    dispose,
+  };
+}
+
+/**
+ * Fake `SessionManager` handle over a fixed restored journal. Records
+ * messages appended by the adapter (the injected host tool results).
+ */
+function createJournal(messages: unknown[]) {
+  const appendedMessages: unknown[] = [];
+  const journal = {
+    getSessionFile: () => 'pi-session.jsonl',
+    buildSessionContext: () => ({ messages }),
+    appendMessage: vi.fn((message: unknown) => {
+      appendedMessages.push(message);
+      return 'appended-entry';
+    }),
+  };
+  return { journal, appendedMessages };
+}
+
+function userMessage(text: string) {
+  return {
+    role: 'user',
+    content: [{ type: 'text', text }],
+    timestamp: 0,
+  };
+}
+
+function assistantMessageWithToolCalls(
+  toolCalls: Array<{ id: string; name: string }>,
+) {
+  return {
+    role: 'assistant',
+    content: toolCalls.map(toolCall => ({
+      type: 'toolCall',
+      id: toolCall.id,
+      name: toolCall.name,
+      arguments: {},
+    })),
+    stopReason: 'toolUse',
+    timestamp: 0,
+  };
+}
+
+function createSandboxSession(options?: {
+  /** When set, resume-path `readBinaryFile` finds a persisted session file. */
+  sessionFileContent?: string;
+}): HarnessV1NetworkSandboxSession {
   const sandbox = {
+    id: 'sandbox',
     defaultWorkingDirectory: '/sandbox',
+    ports: [],
     destroy: vi.fn(async () => {}),
+    getPortEndpoint: vi.fn(),
     getPortUrl: vi.fn(),
-    readBinaryFile: vi.fn(async () => undefined),
+    readBinaryFile: vi.fn(async () =>
+      options?.sessionFileContent != null
+        ? new TextEncoder().encode(options.sessionFileContent)
+        : undefined,
+    ),
     restricted: vi.fn(() => sandbox),
-    run: vi.fn(async () => ({ stdout: '', stderr: '', exitCode: 0 })),
+    run: vi.fn(async ({ command }: { command: string }) => ({
+      stdout: command === 'printf "%s" "$HOME"' ? '/sandbox/home' : '',
+      stderr: '',
+      exitCode: 0,
+    })),
     stop: vi.fn(async () => {}),
     writeBinaryFile: vi.fn(async () => {}),
     writeTextFile: vi.fn(async () => {}),
   };
   return sandbox as unknown as HarnessV1NetworkSandboxSession;
+}
+
+function createSandboxProvider({
+  sandboxSession,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession;
+}): HarnessV1SandboxProvider {
+  return {
+    specificationVersion: 'harness-sandbox-v1',
+    providerId: 'test-sandbox',
+    createSession: async () => sandboxSession,
+    resumeSession: async () => sandboxSession,
+  };
 }

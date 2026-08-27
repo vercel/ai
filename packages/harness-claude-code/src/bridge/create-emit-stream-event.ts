@@ -5,6 +5,7 @@ type Emit = (message: Record<string, unknown>) => void;
 export type ClaudeMessage = {
   type?: string;
   subtype?: string;
+  parent_tool_use_id?: string | null;
   model?: string;
   error?: string;
   error_status?: number | null;
@@ -31,6 +32,7 @@ export type ClaudeMessage = {
   errors?: ReadonlyArray<string>;
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
+  structured_output?: unknown;
 };
 
 type MessageBlock = {
@@ -68,6 +70,7 @@ export type ClaudeStreamEventState = {
    */
   mcpToolUseIds: Set<string>;
   externalMcpToolUseIds: Set<string>;
+  structuredOutputToolUseIds: Set<string>;
   observedTerminalError: string | undefined;
 };
 
@@ -82,6 +85,7 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     stepOpen: false,
     mcpToolUseIds: new Set(),
     externalMcpToolUseIds: new Set(),
+    structuredOutputToolUseIds: new Set(),
     observedTerminalError: undefined,
   };
 }
@@ -183,6 +187,13 @@ export function createEmitStreamEvent({
       return;
     }
 
+    // Messages emitted by a Task-tool subagent carry the parent tool-use id.
+    // They belong to the subagent stream and must not affect the parent step,
+    // including partial stream events that arrive before assistant messages.
+    if (msg.parent_tool_use_id != null) {
+      return;
+    }
+
     if (type === 'stream_event') {
       handleStreamEvent(msg.event, state.partialBlocks, emit);
       return;
@@ -199,6 +210,10 @@ export function createEmitStreamEvent({
           typeof block.name === 'string'
         ) {
           toolUseIds.push(block.id);
+          if (block.name === 'StructuredOutput') {
+            state.structuredOutputToolUseIds.add(block.id);
+            continue;
+          }
           const mcpPrefix = 'mcp__harness-tools__';
           if (block.name.startsWith(mcpPrefix)) {
             state.pendingStepToolUseIds.add(block.id);
@@ -238,6 +253,9 @@ export function createEmitStreamEvent({
           block.type === 'tool_result' &&
           typeof block.tool_use_id === 'string'
         ) {
+          if (state.structuredOutputToolUseIds.delete(block.tool_use_id)) {
+            continue;
+          }
           if (state.mcpToolUseIds.has(block.tool_use_id)) {
             state.mcpToolUseIds.delete(block.tool_use_id);
             state.pendingStepToolUseIds.delete(block.tool_use_id);

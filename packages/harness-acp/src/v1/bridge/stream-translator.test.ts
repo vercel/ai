@@ -449,6 +449,87 @@ describe('createACPStreamTranslator', () => {
     `);
   });
 
+  it('matches an unnamed built-in by the longest compatible title prefix', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        {
+          toolName: 'read',
+          title: 'Read',
+          toolUseKind: 'readonly',
+        },
+        {
+          toolName: 'readLints',
+          title: 'Read Lints',
+          toolUseKind: 'readonly',
+        },
+        {
+          toolName: 'edit',
+          title: 'Read Lints',
+          toolUseKind: 'edit',
+        },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-cursor-lints',
+      title: 'Read Lints `src/index.ts`',
+      kind: 'read',
+      status: 'completed',
+      rawInput: { paths: ['src/index.ts'] },
+    });
+
+    expect(toolEvents({ events })).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{\"paths\":[\"src/index.ts\"]}",
+          "providerExecuted": true,
+          "toolCallId": "call-cursor-lints",
+          "toolName": "readLints",
+          "type": "tool-call",
+        },
+        {
+          "result": {},
+          "toolCallId": "call-cursor-lints",
+          "toolName": "readLints",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('keeps equally specific title matches dynamic', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        { toolName: 'first', title: 'Operation' },
+        { toolName: 'second', title: 'Operation' },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-cursor-ambiguous',
+      title: 'Operation detail',
+      kind: 'other',
+      status: 'completed',
+      rawInput: {},
+    });
+
+    expect(toolEvents({ events })[0]).toMatchInlineSnapshot(`
+      {
+        "input": "{}",
+        "providerExecuted": true,
+        "toolCallId": "call-cursor-ambiguous",
+        "toolName": "acp_tool_call-cursor-ambiguous",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('uses literal schema properties to distinguish anonymous ACP tools', () => {
     const events: HarnessV1StreamPart[] = [];
     const translator = createACPStreamTranslator({
@@ -728,7 +809,7 @@ describe('createACPStreamTranslator', () => {
     `);
   });
 
-  it('keeps parallel and contiguous tool calls in one step until the next assistant phase', () => {
+  it('finishes parallel tool calls together and serial tool calls separately', () => {
     const events: HarnessV1StreamPart[] = [];
     const translator = createACPStreamTranslator({
       emit: event => events.push(event),
@@ -767,6 +848,11 @@ describe('createACPStreamTranslator', () => {
       status: 'failed',
       rawOutput: { value: 'b' },
     });
+
+    expect(events.filter(event => event.type === 'finish-step')).toHaveLength(
+      1,
+    );
+
     translator.update({
       sessionUpdate: 'tool_call',
       toolCallId: 'contiguous-c',
@@ -776,7 +862,7 @@ describe('createACPStreamTranslator', () => {
     });
 
     expect(events.filter(event => event.type === 'finish-step')).toHaveLength(
-      0,
+      2,
     );
 
     translator.update({
@@ -819,6 +905,13 @@ describe('createACPStreamTranslator', () => {
           "type": "tool-result",
         },
         {
+          "finishReason": {
+            "raw": "tool-calls",
+            "unified": "tool-calls",
+          },
+          "type": "finish-step",
+        },
+        {
           "type": "tool-call",
         },
         {
@@ -848,6 +941,148 @@ describe('createACPStreamTranslator', () => {
           "type": "finish-step",
         },
         {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('finishes host tool steps after all pending results', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+    });
+
+    translator.hostToolCall({
+      toolCallId: 'host-a',
+      toolName: 'first',
+      input: { value: 'a' },
+    });
+    translator.hostToolCall({
+      toolCallId: 'host-b',
+      toolName: 'second',
+      input: { value: 'b' },
+    });
+    translator.hostToolResult({
+      toolCallId: 'host-a',
+      toolName: 'first',
+      output: { value: 'a' },
+    });
+
+    expect(events.filter(event => event.type === 'finish-step')).toHaveLength(
+      0,
+    );
+
+    translator.hostToolResult({
+      toolCallId: 'host-b',
+      toolName: 'second',
+      output: { value: 'b' },
+      isError: true,
+    });
+
+    expect(
+      withoutRaw({ events }).map(event => ({
+        type: event.type,
+        ...(event.type === 'finish-step'
+          ? { finishReason: event.finishReason }
+          : {}),
+      })),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "tool-call",
+        },
+        {
+          "type": "tool-call",
+        },
+        {
+          "type": "tool-result",
+        },
+        {
+          "type": "tool-result",
+        },
+        {
+          "finishReason": {
+            "raw": "tool-calls",
+            "unified": "tool-calls",
+          },
+          "type": "finish-step",
+        },
+      ]
+    `);
+  });
+
+  it('does not duplicate a completed tool step when the prompt finishes', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'completed',
+      title: 'Done',
+      status: 'completed',
+    });
+    translator.finish({
+      stopReason: 'end_turn',
+      usage: null,
+    });
+
+    expect(
+      withoutRaw({ events }).filter(
+        event => event.type === 'finish-step' || event.type === 'finish',
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finishReason": {
+            "raw": "tool-calls",
+            "unified": "tool-calls",
+          },
+          "harnessMetadata": {
+            "acp": {
+              "inferredStep": true,
+            },
+          },
+          "type": "finish-step",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+          },
+        },
+        {
+          "finishReason": {
+            "raw": "end_turn",
+            "unified": "stop",
+          },
+          "harnessMetadata": {
+            "acp": {
+              "stopReason": "end_turn",
+            },
+          },
+          "totalUsage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+          },
           "type": "finish",
         },
       ]

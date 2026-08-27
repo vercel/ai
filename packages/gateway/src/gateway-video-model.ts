@@ -1,10 +1,12 @@
 import {
   APICallError,
+  getErrorMessage,
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File as VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  type Experimental_VideoModelV4OperationWebhook as VideoModelV4OperationWebhook,
   type Experimental_VideoModelV4VideoData as VideoModelV4VideoData,
   type JSONValue,
   type SharedV4ProviderMetadata,
@@ -145,7 +147,7 @@ export class GatewayVideoModel implements VideoModelV4 {
         },
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -170,15 +172,22 @@ export class GatewayVideoModel implements VideoModelV4 {
     }
   }
 
-  // `handleWebhookOption` is intentionally NOT implemented. The Gateway's
-  // async video jobs are polling-first: it does not expose a provider->SDK
-  // webhook completion channel. If this method were present, `generateVideo`
-  // would forward a webhook URL and await a notification that never arrives.
-  // `doStart` still forwards the spec's `webhookUrl` — as the Gateway's
-  // `callbackUrl` wire field (its completion-webhook contract; unknown body
-  // keys are stripped server-side). Enabling webhooks later requires adding
-  // `handleWebhookOption` here plus handling the Gateway's HMAC-signed
-  // delivery format; the wire field is already the right one.
+  // The Gateway notifies the caller's URL on completion (`doStart` maps it to
+  // `callbackUrl`), so the factory's URL and `received` pass straight through.
+  async handleWebhookOption({
+    webhook,
+  }: {
+    webhook: () => PromiseLike<{
+      url: string;
+      received: PromiseLike<VideoModelV4OperationWebhook>;
+    }>;
+  }): Promise<{
+    webhookUrl: string;
+    received: PromiseLike<VideoModelV4OperationWebhook>;
+  }> {
+    const { url, received } = await webhook();
+    return { webhookUrl: url, received };
+  }
 
   async doStart(
     options: VideoModelV4CallOptions & {
@@ -209,7 +218,7 @@ export class GatewayVideoModel implements VideoModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -261,7 +270,7 @@ export class GatewayVideoModel implements VideoModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

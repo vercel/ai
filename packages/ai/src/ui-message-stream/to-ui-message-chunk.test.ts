@@ -602,12 +602,14 @@ describe('toUIMessageChunk', () => {
           toolName: 'staticTool',
           input: { value: 'input' },
         },
+        reason: 'requires operator review',
         isAutomatic: true,
       }),
     ).toEqual({
       type: 'tool-approval-request',
       approvalId: 'approval-1',
       toolCallId: 'call-5',
+      reason: 'requires operator review',
       isAutomatic: true,
     });
 

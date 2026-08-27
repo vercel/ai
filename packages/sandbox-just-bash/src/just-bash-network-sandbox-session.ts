@@ -1,6 +1,7 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { randomUUID } from 'node:crypto';
@@ -14,7 +15,8 @@ const JUST_BASH_PROVIDER_ID = 'just-bash-sandbox';
  * {@link JustBashSandboxSession} with the infra surface. Exposes no ports —
  * there is no network namespace and no way to publish an HTTP endpoint
  * reachable from outside the host process. Bridge-backed harness adapters that
- * need `getPortUrl` will fail with `HarnessCapabilityUnsupportedError` at start.
+ * need `getPortEndpoint` will fail with `HarnessCapabilityUnsupportedError` at
+ * start.
  *
  * Network policy is not implementable locally either — `setNetworkPolicy` is
  * omitted.
@@ -45,16 +47,26 @@ export class JustBashNetworkSandboxSession
     return new JustBashSandboxSession(this.sandbox);
   }
 
-  getPortUrl = async (_options: {
+  getPortEndpoint = async (_options: {
     port: number;
     protocol?: 'http' | 'https' | 'ws';
-  }): Promise<string> => {
+  }): Promise<HarnessV1PortEndpoint> => {
     throw new HarnessCapabilityUnsupportedError({
       harnessId: JUST_BASH_PROVIDER_ID,
       message:
         'just-bash sandboxes run in-process and cannot expose a port URL. ' +
         'Use a hosted sandbox (e.g. @ai-sdk/sandbox-vercel) for bridge-backed harness adapters.',
     });
+  };
+
+  /**
+   * @deprecated Use `getPortEndpoint` instead.
+   */
+  getPortUrl = async (options: {
+    port: number;
+    protocol?: 'http' | 'https' | 'ws';
+  }): Promise<string> => {
+    return (await this.getPortEndpoint(options)).url;
   };
 
   stop = async (): Promise<void> => {

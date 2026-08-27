@@ -6,8 +6,9 @@ import type {
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  getErrorMessage,
   postJsonToApi,
   resolve,
   serializeModelOptions,
@@ -96,7 +97,7 @@ export class GatewayImageModel implements ImageModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

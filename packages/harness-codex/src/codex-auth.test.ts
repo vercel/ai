@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { resolveCodexEnv } from './codex-auth';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  createCodexRequestTransformations,
+  resolveCodexAuthenticationMode,
+  resolveCodexEnv,
+} from './codex-auth';
 
 describe('resolveCodexEnv', () => {
   it('uses openai-compatible auth when given', () => {
@@ -35,6 +39,7 @@ describe('resolveCodexEnv', () => {
       AI_GATEWAY_API_KEY: 'gw-key',
       CODEX_API_KEY: 'gw-key',
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+      OPENAI_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
     });
   });
 
@@ -47,6 +52,7 @@ describe('resolveCodexEnv', () => {
       AI_GATEWAY_API_KEY: 'oidc-env',
       CODEX_API_KEY: 'oidc-env',
       AI_GATEWAY_BASE_URL: 'https://gw.example/v1',
+      OPENAI_BASE_URL: 'https://gw.example/v1',
     });
   });
 
@@ -59,6 +65,7 @@ describe('resolveCodexEnv', () => {
       AI_GATEWAY_API_KEY: 'oidc-env',
       CODEX_API_KEY: 'oidc-env',
       AI_GATEWAY_BASE_URL: 'https://gw.example/v1',
+      OPENAI_BASE_URL: 'https://gw.example/v1',
     });
   });
 
@@ -68,6 +75,7 @@ describe('resolveCodexEnv', () => {
       AI_GATEWAY_API_KEY: 'gw-auto',
       CODEX_API_KEY: 'gw-auto',
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+      OPENAI_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
     });
   });
 
@@ -77,6 +85,7 @@ describe('resolveCodexEnv', () => {
       AI_GATEWAY_API_KEY: 'oidc-auto',
       CODEX_API_KEY: 'oidc-auto',
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+      OPENAI_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
     });
   });
 
@@ -99,5 +108,125 @@ describe('resolveCodexEnv', () => {
   it('returns an empty env when nothing is configured', () => {
     const env = resolveCodexEnv(undefined, {});
     expect(env).toEqual({});
+  });
+
+  it('supports string authentication modes', () => {
+    expect(resolveCodexEnv('direct', { OPENAI_API_KEY: 'sk-direct' })).toEqual({
+      CODEX_API_KEY: 'sk-direct',
+    });
+
+    expect(
+      resolveCodexEnv('ai-gateway', { AI_GATEWAY_API_KEY: 'gw-mode' }),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'gw-mode',
+      CODEX_API_KEY: 'gw-mode',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+      OPENAI_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+    });
+  });
+
+  it('warns when passing a legacy object shape', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    resolveCodexEnv({ openai: {} }, {});
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Passing an object to auth options is deprecated',
+      ),
+    );
+    spy.mockRestore();
+  });
+});
+
+describe('resolveCodexAuthenticationMode', () => {
+  it('preserves direct auth despite ambient Gateway credentials', () => {
+    expect(
+      resolveCodexAuthenticationMode('direct', {
+        AI_GATEWAY_API_KEY: 'gateway-key',
+      }),
+    ).toBe('direct');
+  });
+
+  it('resolves legacy OpenAI-compatible auth to direct auth', () => {
+    expect(
+      resolveCodexAuthenticationMode(
+        { openaiCompatible: {} },
+        { AI_GATEWAY_API_KEY: 'gateway-key' },
+      ),
+    ).toBe('direct');
+  });
+
+  it('resolves ambient Gateway credentials to Gateway auth', () => {
+    expect(
+      resolveCodexAuthenticationMode(undefined, {
+        VERCEL_OIDC_TOKEN: 'oidc-token',
+      }),
+    ).toBe('ai-gateway');
+  });
+});
+
+describe('createCodexRequestTransformations', () => {
+  it('uses the configured OpenAI-compatible route for direct auth', () => {
+    expect(
+      createCodexRequestTransformations({
+        env: {
+          CODEX_API_KEY: 'openai-secret',
+          OPENAI_BASE_URL: 'https://openai.example/v1',
+        },
+        sandboxEnv: { CODEX_API_KEY: 'sandbox-openai-secret' },
+        auth: 'direct',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'openai.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-openai-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer openai-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('falls back to the AI Gateway endpoint for Gateway auth', () => {
+    expect(
+      createCodexRequestTransformations({
+        env: { CODEX_API_KEY: 'gateway-secret' },
+        sandboxEnv: { CODEX_API_KEY: 'sandbox-gateway-secret' },
+        auth: 'ai-gateway',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-gateway-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer gateway-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('does not create a transformation without a credential', () => {
+    expect(
+      createCodexRequestTransformations({
+        env: {},
+        sandboxEnv: {},
+        auth: 'direct',
+      }),
+    ).toEqual([]);
   });
 });

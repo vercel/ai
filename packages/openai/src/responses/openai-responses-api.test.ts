@@ -1,8 +1,8 @@
-import type { InferSchema } from '@ai-sdk/provider-utils';
-import { describe, expectTypeOf, it } from 'vitest';
-import type {
+import { safeValidateTypes, type InferSchema } from '@ai-sdk/provider-utils';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import {
   openaiResponsesChunkSchema,
-  openaiResponsesResponseSchema,
+  type openaiResponsesResponseSchema,
 } from './openai-responses-api';
 
 /**
@@ -105,5 +105,150 @@ describe('openaiResponses schema alignment', () => {
     >['logprobs'];
 
     expectTypeOf<ChunkLogprobs>().toEqualTypeOf<ResponseLogprobs>();
+  });
+
+  it('aligns local_shell_call between added, done, and response schemas', () => {
+    type AddedLocalShellCall = Extract<
+      Extract<Chunk, { type: 'response.output_item.added' }>['item'],
+      { type: 'local_shell_call' }
+    >;
+
+    type DoneLocalShellCall = Extract<
+      Extract<Chunk, { type: 'response.output_item.done' }>['item'],
+      { type: 'local_shell_call' }
+    >;
+
+    type ResponseLocalShellCall = Extract<
+      NonNullable<Response['output']>[number],
+      { type: 'local_shell_call' }
+    >;
+
+    expectTypeOf<AddedLocalShellCall>().toEqualTypeOf<DoneLocalShellCall>();
+    expectTypeOf<DoneLocalShellCall>().toEqualTypeOf<ResponseLocalShellCall>();
+  });
+});
+
+describe('openaiResponsesChunkSchema', () => {
+  describe.each([
+    'response.output_item.added',
+    'response.output_item.done',
+  ] as const)('%s', type => {
+    it.each([
+      { name: 'missing item', itemProperty: {} },
+      { name: 'null item', itemProperty: { item: null } },
+      { name: 'non-object item', itemProperty: { item: 'invalid' } },
+      { name: 'type-less item', itemProperty: { item: { id: 'item_1' } } },
+    ])('rejects events with $name', async ({ itemProperty }) => {
+      const result = await safeValidateTypes({
+        value: {
+          type,
+          output_index: 0,
+          ...itemProperty,
+        },
+        schema: openaiResponsesChunkSchema,
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  it.each(['response.output_item.added', 'response.output_item.done'] as const)(
+    'keeps future item types forward compatible for %s',
+    async type => {
+      const result = await safeValidateTypes({
+        value: {
+          type,
+          output_index: 0,
+          item: { id: 'item_1', type: 'future_output_item' },
+        },
+        schema: openaiResponsesChunkSchema,
+      });
+
+      expect(result).toMatchObject({
+        success: true,
+        value: {
+          type: 'unknown_chunk',
+          message: type,
+        },
+      });
+    },
+  );
+
+  describe.each([
+    'response.output_item.added',
+    'response.output_item.done',
+  ] as const)('%s local_shell_call', type => {
+    const item = {
+      id: 'item_1',
+      type: 'local_shell_call',
+      call_id: 'call_1',
+      status:
+        type === 'response.output_item.added' ? 'in_progress' : 'completed',
+      action: {
+        type: 'exec',
+        command: ['ls'],
+        env: {},
+      },
+    };
+
+    it('accepts valid events', async () => {
+      const result = await safeValidateTypes({
+        value: {
+          type,
+          output_index: 0,
+          item,
+        },
+        schema: openaiResponsesChunkSchema,
+      });
+
+      expect(result).toMatchObject({
+        success: true,
+        value: {
+          type,
+          item: { type: 'local_shell_call' },
+        },
+      });
+    });
+
+    it('rejects events without output_index', async () => {
+      const result = await safeValidateTypes({
+        value: { type, item },
+        schema: openaiResponsesChunkSchema,
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  it('accepts valid function call arguments done events', async () => {
+    const event = {
+      type: 'response.function_call_arguments.done',
+      item_id: 'item_1',
+      output_index: 0,
+      arguments: '{"city":"Berlin"}',
+    };
+
+    const result = await safeValidateTypes({
+      value: event,
+      schema: openaiResponsesChunkSchema,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      value: event,
+    });
+  });
+
+  it('rejects malformed function call arguments done events', async () => {
+    const result = await safeValidateTypes({
+      value: {
+        type: 'response.function_call_arguments.done',
+        item_id: 'item_1',
+        arguments: '{"city":"Berlin"}',
+      },
+      schema: openaiResponsesChunkSchema,
+    });
+
+    expect(result.success).toBe(false);
   });
 });

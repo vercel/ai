@@ -311,7 +311,7 @@ export type StreamOptionsParam = {
  * Configuration options for reasoning behavior.
  */
 export type ReasoningParam = {
-  effort?: ReasoningEffortEnum;
+  effort?: string;
   summary?: ReasoningSummaryEnum;
 };
 

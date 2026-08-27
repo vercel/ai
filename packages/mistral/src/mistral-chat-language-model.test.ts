@@ -496,6 +496,23 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass promptCacheKey as prompt_cache_key', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        mistral: {
+          promptCacheKey: 'classification-workflow-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      prompt_cache_key: 'classification-workflow-123',
+    });
+  });
+
   it('should avoid duplication when trailing assistant message', async () => {
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'json-value',
@@ -900,11 +917,9 @@ describe('doStream', () => {
   });
 
   describe('tool call', () => {
-    beforeEach(() => {
-      prepareChunksFixtureResponse('mistral-tool-call');
-    });
-
     it('should stream tool call', async () => {
+      prepareChunksFixtureResponse('mistral-tool-call');
+
       const result = await model.doStream({
         prompt: TEST_PROMPT,
       });
@@ -912,6 +927,43 @@ describe('doStream', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
+    });
+
+    it('should accumulate incremental tool call arguments', async () => {
+      prepareChunksFixtureResponse('mistral-incremental-tool-call');
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.filter(
+          part => part.type === 'error' || part.type.startsWith('tool-'),
+        ),
+      ).toStrictEqual([
+        {
+          type: 'tool-input-start',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+          toolName: 'webSearchTool',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+          delta: '{"query": "current Berlin weather"}',
+        },
+        {
+          type: 'tool-input-end',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'chatcmpl-tool-9f149c74c42f265b',
+          toolName: 'webSearchTool',
+          input: '{"query": "current Berlin weather"}',
+        },
+      ]);
     });
   });
 
@@ -942,6 +994,24 @@ describe('doStream', () => {
       stream: true,
       model: 'mistral-small-latest',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+    });
+  });
+
+  it('should pass promptCacheKey as prompt_cache_key', async () => {
+    prepareChunksFixtureResponse('mistral-text');
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        mistral: {
+          promptCacheKey: 'classification-workflow-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      prompt_cache_key: 'classification-workflow-123',
+      stream: true,
     });
   });
 

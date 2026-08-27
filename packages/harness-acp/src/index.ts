@@ -20,10 +20,13 @@ export type {
   ACPToolKind,
 } from './acp-tool-call';
 export type {
+  ACPCredentialBrokering,
   ACPAuthentication,
+  ACPInstallCommandSource,
   ACPInstructionMapping,
   ACPNpmLockedSource,
   ACPNpmSimpleSource,
+  ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPProfileValue,

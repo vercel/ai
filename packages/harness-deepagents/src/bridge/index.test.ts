@@ -1,12 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type DeepAgentOptions = {
+  middleware?: Array<{
+    name?: string;
+    wrapModelCall?: (request: any, handler: any) => Promise<unknown>;
+  }>;
+  model?: unknown;
   systemPrompt?: string | { suffix?: string };
+};
+
+type ChatAnthropicOptions = {
+  model?: string;
+  thinking?: unknown;
+  outputConfig?: unknown;
 };
 
 const state = vi.hoisted(() => ({
   createDeepAgentOptions: [] as DeepAgentOptions[],
   originalArgv: [] as string[],
+  responseFormat: undefined as
+    | { type: 'json'; schema: Record<string, unknown> }
+    | undefined,
 }));
 
 vi.mock('deepagents', () => ({
@@ -30,7 +44,10 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
       {
         prompt: 'What is the capital of France?',
         instructions: 'Answer every question in German.',
+        thinking: { type: 'adaptive', display: 'summarized' },
+        effort: 'max',
         tools: [],
+        responseFormat: state.responseFormat,
       },
       {
         emit: () => {},
@@ -43,7 +60,17 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
 }));
 
 vi.mock('@langchain/anthropic', () => ({
-  ChatAnthropic: class {},
+  ChatAnthropic: class {
+    model?: string;
+    outputConfig?: unknown;
+    thinking?: unknown;
+
+    constructor(options: ChatAnthropicOptions) {
+      this.model = options.model;
+      this.outputConfig = options.outputConfig;
+      this.thinking = options.thinking;
+    }
+  },
 }));
 
 vi.mock('@langchain/core/messages', () => ({
@@ -64,9 +91,21 @@ vi.mock('@langchain/mcp-adapters', () => ({
   MultiServerMCPClient: class {},
 }));
 
+vi.mock('langchain', () => ({
+  createMiddleware: <Middleware>(middleware: Middleware) => middleware,
+  toolStrategy: (schema: Record<string, unknown>) => [
+    {
+      kind: 'tool-strategy',
+      name: 'StructuredOutput',
+      schema,
+    },
+  ],
+}));
+
 describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
     state.createDeepAgentOptions = [];
+    state.responseFormat = undefined;
     state.originalArgv = [...process.argv];
     process.argv.splice(
       0,
@@ -90,6 +129,62 @@ describe('Deep Agents bridge instructions', () => {
 
     expect(state.createDeepAgentOptions[0]?.systemPrompt).toEqual({
       suffix: 'Answer every question in German.',
+    });
+  });
+
+  it('configures reasoning on the default Deep Agents model', async () => {
+    await import('./index');
+
+    const { ChatAnthropic } = await import('@langchain/anthropic');
+    const resolvedModel = new ChatAnthropic({
+      model: 'upstream-selected-model',
+    });
+    const handler = vi.fn(async request => request.model);
+    const wrapModelCall = state.createDeepAgentOptions[0]?.middleware?.find(
+      middleware => middleware.name === 'harnessReasoning',
+    )?.wrapModelCall;
+
+    expect(state.createDeepAgentOptions[0]?.model).toBeUndefined();
+    expect(wrapModelCall).toBeDefined();
+    await wrapModelCall!(
+      {
+        model: {
+          _getModelInstance: async () => resolvedModel,
+        },
+      },
+      handler,
+    );
+    const configuredModel = handler.mock.calls[0]?.[0].model;
+    expect(configuredModel).not.toBe(resolvedModel);
+    expect(configuredModel).toMatchObject({
+      model: 'upstream-selected-model',
+      outputConfig: { effort: 'max' },
+      thinking: { type: 'adaptive', display: 'summarized' },
+    });
+    expect(handler).toHaveBeenCalledWith({ model: configuredModel });
+  });
+
+  it('applies the requested JSON schema for the active turn', async () => {
+    const schema = {
+      type: 'object',
+      properties: { answer: { type: 'string' } },
+      required: ['answer'],
+    };
+    state.responseFormat = { type: 'json', schema };
+
+    await import('./index');
+
+    const wrapModelCall = state.createDeepAgentOptions[0]?.middleware?.find(
+      middleware => middleware.name === 'HarnessResponseFormat',
+    )?.wrapModelCall;
+    const handler = vi.fn(async request => request);
+    await wrapModelCall?.({ model: 'model' }, handler);
+
+    expect(handler).toHaveBeenCalledWith({
+      model: 'model',
+      responseFormat: [
+        { kind: 'tool-strategy', name: 'StructuredOutput', schema },
+      ],
     });
   });
 });

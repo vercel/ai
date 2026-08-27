@@ -68,6 +68,12 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
+async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
+  try {
+    await promise;
+  } catch {}
+}
+
 /**
  * Callback that is set using the `onError` option.
  *
@@ -540,7 +546,10 @@ class DefaultStreamObjectResult<
         controller.enqueue(chunk);
 
         if (chunk.type === 'error') {
-          onError({ error: wrapGatewayError(chunk.error) });
+          void notify({
+            event: { error: wrapGatewayError(chunk.error) },
+            callbacks: onError,
+          });
         }
       },
     });
@@ -656,6 +665,7 @@ class DefaultStreamObjectResult<
       let providerMetadata: ProviderMetadata | undefined;
       let object: RESULT | undefined;
       let error: unknown | undefined;
+      let terminalError: { error: unknown } | undefined;
       let msToFirstChunk: number | undefined = undefined;
 
       let accumulatedText = '';
@@ -751,19 +761,35 @@ class DefaultStreamObjectResult<
                   break;
                 }
 
+                case 'error': {
+                  if (terminalError === undefined) {
+                    const wrappedError = wrapGatewayError(chunk.error);
+                    terminalError = { error: wrappedError };
+                    error = wrappedError;
+                    finishReason = 'error';
+                    self.rejectResultPromises(wrappedError);
+                  }
+
+                  controller.enqueue(chunk);
+                  break;
+                }
+
                 case 'finish': {
                   if (textDelta !== '') {
                     controller.enqueue({ type: 'text-delta', textDelta });
                   }
 
-                  finishReason = chunk.finishReason.unified;
+                  finishReason =
+                    terminalError === undefined
+                      ? chunk.finishReason.unified
+                      : 'error';
 
                   usage = asLanguageModelUsage(chunk.usage);
                   providerMetadata = chunk.providerMetadata;
 
                   controller.enqueue({
                     ...chunk,
-                    finishReason: chunk.finishReason.unified,
+                    finishReason,
                     usage,
                     response: fullResponse,
                   });
@@ -773,6 +799,10 @@ class DefaultStreamObjectResult<
                     provider: model.provider,
                     model: model.modelId,
                   });
+
+                  if (terminalError !== undefined) {
+                    break;
+                  }
 
                   self._usage.resolve(usage);
                   self._providerMetadata.resolve(providerMetadata);
@@ -867,9 +897,19 @@ class DefaultStreamObjectResult<
           }),
         );
 
-      stitchableStream.addStream(transformedStream);
+      stitchableStream.addStream(transformedStream, {
+        onError(error) {
+          const wrappedError = wrapGatewayError(error);
+          self.rejectResultPromises(wrappedError);
+          void notify({
+            event: { error: wrappedError },
+            callbacks: onError,
+          });
+        },
+      });
     })()
       .catch(async error => {
+        self.rejectResultPromises(error);
         await telemetryDispatcher.onError?.({ callId, error });
 
         stitchableStream.addStream(
@@ -886,6 +926,29 @@ class DefaultStreamObjectResult<
       });
 
     this.outputStrategy = outputStrategy;
+  }
+
+  private rejectResultPromises(error: unknown) {
+    this.rejectResultPromise({ delayedPromise: this._object, error });
+    this.rejectResultPromise({ delayedPromise: this._usage, error });
+    this.rejectResultPromise({ delayedPromise: this._providerMetadata, error });
+    this.rejectResultPromise({ delayedPromise: this._warnings, error });
+    this.rejectResultPromise({ delayedPromise: this._request, error });
+    this.rejectResultPromise({ delayedPromise: this._response, error });
+    this.rejectResultPromise({ delayedPromise: this._finishReason, error });
+  }
+
+  private rejectResultPromise<T>({
+    delayedPromise,
+    error,
+  }: {
+    delayedPromise: DelayedPromise<T>;
+    error: unknown;
+  }) {
+    if (delayedPromise.isPending()) {
+      delayedPromise.reject(error);
+      markPromiseAsHandled(delayedPromise.promise);
+    }
   }
 
   get object() {
