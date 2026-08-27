@@ -188,6 +188,43 @@ describe('ToolLoopAgent', () => {
       });
     });
 
+    it('should type experimental_toolApprovalSecret in settings and prepareCall', () => {
+      type PrepareCall = NonNullable<ToolLoopAgentSettings['prepareCall']>;
+
+      expectTypeOf<
+        Parameters<PrepareCall>[0]['experimental_toolApprovalSecret']
+      >().toEqualTypeOf<string | Uint8Array | undefined>();
+      expectTypeOf<
+        Awaited<ReturnType<PrepareCall>>['experimental_toolApprovalSecret']
+      >().toEqualTypeOf<string | Uint8Array | undefined>();
+
+      const stringSecret = {
+        model: new MockLanguageModelV4(),
+        experimental_toolApprovalSecret: 'secret',
+      } satisfies ToolLoopAgentSettings;
+
+      const byteSecret = {
+        model: new MockLanguageModelV4(),
+        experimental_toolApprovalSecret: new Uint8Array(32),
+      } satisfies ToolLoopAgentSettings;
+
+      new ToolLoopAgent({
+        ...stringSecret,
+        prepareCall: options => {
+          expectTypeOf(options.experimental_toolApprovalSecret).toEqualTypeOf<
+            string | Uint8Array | undefined
+          >();
+
+          return {
+            ...options,
+            experimental_toolApprovalSecret:
+              byteSecret.experimental_toolApprovalSecret,
+            prompt: 'Hello, world!',
+          };
+        },
+      });
+    });
+
     it('should support stable start callbacks', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),
