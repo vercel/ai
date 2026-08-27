@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 2.0.94
+
+### Patch Changes
+
+- c43ba7d: Surface prompt-level Google safety blocks without candidates as content-filter results with prompt feedback metadata.
+- 7a292cd: Omit unsupported frequency and presence penalties from Gemini 2.5 requests and return warnings instead.
+
 ## 2.0.93
 
 ### Patch Changes

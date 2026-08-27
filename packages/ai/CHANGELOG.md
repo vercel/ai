@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.249
+
+### Patch Changes
+
+- 989be6f: add operation-level outcomes to UI message stream end callbacks
+
 ## 5.0.248
 
 ### Patch Changes

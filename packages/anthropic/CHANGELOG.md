@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.99
+
+### Patch Changes
+
+- 78c7304: fix(anthropic): order client tool calls after provider-executed tool results
+
 ## 2.0.98
 
 ### Patch Changes
