@@ -1191,10 +1191,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'onError',
-      type: '(event: OnErrorResult) => void',
+      type: 'StreamTextOnErrorCallback | StreamTextOnErrorRetryCallback',
       isOptional: true,
       description:
-        'Callback that is called when an error occurs during streaming. Well-formed mid-stream provider error events are exposed as StreamProviderError instances. When streamRetries is explicitly configured, return `{ retry: true }` to retry the current model step. Other return values do not request a retry.',
+        'Callback that is called when an error occurs during streaming. StreamTextOnErrorCallback preserves the existing PromiseLike<void> | void observer contract. StreamTextOnErrorRetryCallback additionally types `{ retry: true }` results for retry-capable handlers. Well-formed mid-stream provider error events are exposed as StreamProviderError instances. When streamRetries is explicitly configured, return `{ retry: true }` to retry the current model step. Other return values do not request a retry.',
       properties: [
         {
           type: 'OnErrorResult',

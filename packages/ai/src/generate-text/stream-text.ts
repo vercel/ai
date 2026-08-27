@@ -270,14 +270,27 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
   stopStream: () => void;
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
 
+/** A result that requests recovery from a streamed provider error. */
+export type StreamTextOnErrorResult = { retry: true };
+
 /**
- * Callback that is set using the `onError` option.
+ * Existing observer callback that is set using the `onError` option.
  *
  * @param event - The event that is passed to the callback.
  */
-export type StreamTextOnErrorResult = { retry: true };
-
 export type StreamTextOnErrorCallback = Callback<{ error: unknown }>;
+
+/**
+ * Retry-capable callback that is set using the `onError` option.
+ *
+ * @param event - The event that is passed to the callback.
+ */
+export type StreamTextOnErrorRetryCallback = (event: {
+  error: unknown;
+}) =>
+  | PromiseLike<void | StreamTextOnErrorResult>
+  | void
+  | StreamTextOnErrorResult;
 
 type StreamTextOnErrorHandler = (event: { error: unknown }) => void;
 
@@ -599,7 +612,10 @@ export function streamText<
      * explicitly configured.
      * The stream processing will pause until the callback promise is resolved.
      */
-    onError?: StreamTextOnErrorCallback | StreamTextOnErrorHandler;
+    onError?:
+      | StreamTextOnErrorCallback
+      | StreamTextOnErrorRetryCallback
+      | StreamTextOnErrorHandler;
 
     /**
      * Maximum number of automatic retries for provider errors received after

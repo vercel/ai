@@ -8,7 +8,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
-import { Output, streamText } from '../generate-text';
+import {
+  Output,
+  streamText,
+  type StreamTextOnErrorCallback,
+  type StreamTextOnErrorRetryCallback,
+} from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { ProviderMetadata } from '../types';
@@ -22,7 +27,6 @@ import type { DeepPartial } from '../util/deep-partial';
 import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
-import type { StreamTextOnErrorCallback } from './stream-text';
 
 describe('streamText types', () => {
   describe('stream retries', () => {
@@ -75,15 +79,17 @@ describe('streamText types', () => {
     });
 
     it('should accept a conditional async retry result', () => {
+      const onError: StreamTextOnErrorRetryCallback = async ({ error }) => {
+        if (error instanceof Error) {
+          return { retry: true } as const;
+        }
+      };
+
       streamText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         streamRetries: 0,
-        onError: async ({ error }) => {
-          if (error instanceof Error) {
-            return { retry: true } as const;
-          }
-        },
+        onError,
       });
     });
   });
