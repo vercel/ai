@@ -1,5 +1,29 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.66
+
+### Patch Changes
+
+- Updated dependencies [e6a2992]
+  - @ai-sdk/openai@4.0.50
+
+## 5.0.65
+
+### Patch Changes
+
+- 9921a2f: Forward the Anthropic option for disabling parallel tool use through Amazon Bedrock without sending conflicting tool choice fields.
+- Updated dependencies [2523403]
+- Updated dependencies [3e125ba]
+  - @ai-sdk/openai@4.0.49
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/anthropic@4.0.44
+
+## 5.0.64
+
+### Patch Changes
+
+- fd49828: Preserve complete Amazon Bedrock Converse usage objects in raw usage metadata.
+
 ## 5.0.63
 
 ### Patch Changes

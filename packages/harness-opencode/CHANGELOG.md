@@ -1,5 +1,28 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.92
+
+### Patch Changes
+
+- eccb89e: fix(harness-opencode): authorize host tools and resolve permissions for task-linked subagents.
+  - @ai-sdk/harness@1.0.91
+
+## 1.0.91
+
+### Patch Changes
+
+- 0e590d2: feat(harness): harden credential brokering to only apply with correct ephemeral secret
+- Updated dependencies [3e125ba]
+- Updated dependencies [0e590d2]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.90
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
 ## 1.0.89
 
 ### Patch Changes

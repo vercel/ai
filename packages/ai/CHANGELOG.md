@@ -1,5 +1,38 @@
 # ai
 
+## 7.0.83
+
+### Patch Changes
+
+- 8dd86a9: Validate persisted typed tool calls against current input and output schemas.
+  Schema-incompatible empty or error inputs and terminal history from unavailable
+  tools remain loadable as dynamic tool parts instead of exposing unvalidated
+  values under current static tool types.
+- fda13b3: Allow chats to continue automatically after tool approval denials reach the `output-denied` state.
+- 957146c: add operation-level outcomes to UI message stream end callbacks
+- ce6849a: fix(ai): handle stitchable stream cancellation before an inner stream is registered
+
+## 7.0.82
+
+### Patch Changes
+
+- 3e125ba: Allow manual tool approval statuses to include a reason and preserve it across
+  core, model, and UI approval requests. OPA `requires-approval` decisions now
+  surface their reason to human approvers. UI request chunks serialize the
+  optional `reason`, while UI messages retain it as `approval.requestReason`
+  separately from an approver's response `reason`.
+- Updated dependencies [0e7994c]
+- Updated dependencies [3e125ba]
+  - @ai-sdk/gateway@4.0.67
+  - @ai-sdk/provider-utils@5.0.32
+
+## 7.0.81
+
+### Patch Changes
+
+- Updated dependencies [81bebaf]
+  - @ai-sdk/gateway@4.0.66
+
 ## 7.0.80
 
 ### Patch Changes

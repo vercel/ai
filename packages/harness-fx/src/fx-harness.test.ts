@@ -319,10 +319,22 @@ describe('createFx', () => {
           VERCEL_OIDC_TOKEN: 'oidc-secret',
           AI_GATEWAY_API_KEY: 'gateway-secret',
         },
+        sandboxEnv: {
+          VERCEL_OIDC_TOKEN: 'sandbox-oidc-secret',
+          AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
+        },
       }),
     ).toEqual([
       {
-        match: { host: 'ai-gateway.vercel.sh' },
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-oidc-secret' },
+            },
+          ],
+        },
         transform: {
           headers: {
             Authorization: 'Bearer oidc-secret',
@@ -335,10 +347,19 @@ describe('createFx', () => {
     expect(
       settings.credentialBrokering?.({
         env: { AI_GATEWAY_API_KEY: 'gateway-secret' },
+        sandboxEnv: { AI_GATEWAY_API_KEY: 'sandbox-gateway-secret' },
       }),
     ).toEqual([
       {
-        match: { host: 'ai-gateway.vercel.sh' },
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-gateway-secret' },
+            },
+          ],
+        },
         transform: {
           headers: {
             Authorization: 'Bearer gateway-secret',

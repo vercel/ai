@@ -83,19 +83,20 @@ export interface MoonshotAIToolMessage {
 // Schemas below are limited versions focused on what the implementation
 // needs. This limits breakages when the API changes and increases efficiency.
 
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
 const tokenUsageSchema = z
-  .object({
+  .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     cached_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
     prompt_tokens_details: z
-      .object({
+      .looseObject({
         cached_tokens: z.number().nullish(),
       })
       .nullish(),
     completion_tokens_details: z
-      .object({
+      .looseObject({
         reasoning_tokens: z.number().nullish(),
       })
       .nullish(),
@@ -108,6 +109,7 @@ export const moonshotAIErrorSchema = z.object({
   error: z.object({
     message: z.string(),
     type: z.string().nullish(),
+    code: z.string().nullish(),
   }),
 });
 

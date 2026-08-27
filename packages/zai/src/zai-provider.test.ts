@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ZaiChatLanguageModel } from './zai-chat-language-model';
 import { createZai } from './zai-provider';
+import { VERSION } from './version';
 
 const TEST_PROMPT = [
   {
@@ -60,7 +61,7 @@ describe('createZai', () => {
     );
     const headers = new Headers(fetch.mock.calls[0][1].headers);
     expect(headers.get('authorization')).toBe('Bearer test-key');
-    expect(headers.get('user-agent')).toContain('ai-sdk/zai/2.0.0');
+    expect(headers.get('user-agent')).toContain(`ai-sdk/zai/${VERSION}`);
   });
 
   it('reads the API key from ZAI_API_KEY by default', async () => {

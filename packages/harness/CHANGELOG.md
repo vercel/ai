@@ -1,5 +1,30 @@
 # @ai-sdk/harness
 
+## 1.0.91
+
+### Patch Changes
+
+- Updated dependencies [8dd86a9]
+- Updated dependencies [fda13b3]
+- Updated dependencies [957146c]
+- Updated dependencies [ce6849a]
+  - ai@7.0.83
+
+## 1.0.90
+
+### Patch Changes
+
+- 0e590d2: feat(harness): harden credential brokering to only apply with correct ephemeral secret
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+  - @ai-sdk/provider-utils@5.0.32
+
+## 1.0.89
+
+### Patch Changes
+
+- ai@7.0.81
+
 ## 1.0.88
 
 ### Patch Changes

@@ -167,18 +167,25 @@ describe('resolveCodexAuthenticationMode', () => {
 describe('createCodexRequestTransformations', () => {
   it('uses the configured OpenAI-compatible route for direct auth', () => {
     expect(
-      createCodexRequestTransformations(
-        {
+      createCodexRequestTransformations({
+        env: {
           CODEX_API_KEY: 'openai-secret',
           OPENAI_BASE_URL: 'https://openai.example/v1',
         },
-        'direct',
-      ),
+        sandboxEnv: { CODEX_API_KEY: 'sandbox-openai-secret' },
+        auth: 'direct',
+      }),
     ).toEqual([
       {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-openai-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
@@ -189,15 +196,22 @@ describe('createCodexRequestTransformations', () => {
 
   it('falls back to the AI Gateway endpoint for Gateway auth', () => {
     expect(
-      createCodexRequestTransformations(
-        { CODEX_API_KEY: 'gateway-secret' },
-        'ai-gateway',
-      ),
+      createCodexRequestTransformations({
+        env: { CODEX_API_KEY: 'gateway-secret' },
+        sandboxEnv: { CODEX_API_KEY: 'sandbox-gateway-secret' },
+        auth: 'ai-gateway',
+      }),
     ).toEqual([
       {
         match: {
           host: 'ai-gateway.vercel.sh',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-gateway-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer gateway-secret' },
@@ -207,6 +221,12 @@ describe('createCodexRequestTransformations', () => {
   });
 
   it('does not create a transformation without a credential', () => {
-    expect(createCodexRequestTransformations({}, 'direct')).toEqual([]);
+    expect(
+      createCodexRequestTransformations({
+        env: {},
+        sandboxEnv: {},
+        auth: 'direct',
+      }),
+    ).toEqual([]);
   });
 });

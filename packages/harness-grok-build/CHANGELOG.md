@@ -1,5 +1,31 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [20312d6]
+  - @ai-sdk/harness-acp@1.0.29
+  - @ai-sdk/harness@1.0.91
+
+## 1.0.27
+
+### Patch Changes
+
+- 0e590d2: feat(harness): harden credential brokering to only apply with correct ephemeral secret
+- Updated dependencies [3e125ba]
+- Updated dependencies [0e590d2]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/harness-acp@1.0.28
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.26
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+- @ai-sdk/harness-acp@1.0.27
+
 ## 1.0.25
 
 ### Patch Changes

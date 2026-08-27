@@ -1,5 +1,18 @@
 # @ai-sdk/open-responses
 
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 2.0.33
+
+### Patch Changes
+
+- a0d2e8c: Stream Open Responses reasoning summary text deltas as reasoning output.
+
 ## 2.0.32
 
 ### Patch Changes

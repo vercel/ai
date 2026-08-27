@@ -1,5 +1,19 @@
 # @ai-sdk/openai
 
+## 4.0.50
+
+### Patch Changes
+
+- e6a2992: Fix Responses history serialization for regular functions named `tool_search`.
+
+## 4.0.49
+
+### Patch Changes
+
+- 2523403: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
 ## 4.0.48
 
 ### Patch Changes

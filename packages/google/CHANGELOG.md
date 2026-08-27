@@ -1,5 +1,18 @@
 # @ai-sdk/google
 
+## 4.0.54
+
+### Patch Changes
+
+- 1f7835c: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, and custom vocabulary, plus streaming transcription (`gemini-3.5-transcribe-live`) over the Live API WebSocket with `mode: 'VERBATIM' | 'SMART'` transcription formatting
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
 ## 4.0.52
 
 ### Patch Changes
