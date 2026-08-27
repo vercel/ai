@@ -1,5 +1,11 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.93
+
+### Patch Changes
+
+- 928f018: fix(harness-opencode): prevent headless OpenCode sessions from hanging when a model tries to use the interactive question tool
+
 ## 1.0.92
 
 ### Patch Changes
