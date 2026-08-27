@@ -58,7 +58,13 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
 type GoogleGenerativeAIConfig = {
+=======
+const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+
+export type GoogleLanguageModelConfig = {
+>>>>>>> e9bc6182b5 (fix: Gemini 2.5 requests fail when frequency or presence penalties are configured (#18051)):packages/google/src/google-language-model.ts
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
@@ -230,6 +236,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+    const isGemini25DeveloperApiModel =
+      !isVertexProvider && gemini25ModelPattern.test(this.modelId);
+
+    if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+      });
+    }
+    if (isGemini25DeveloperApiModel && presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+      });
+    }
+
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
@@ -296,8 +318,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           temperature,
           topK,
           topP,
-          frequencyPenalty,
-          presencePenalty,
+          frequencyPenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : frequencyPenalty,
+          presencePenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : presencePenalty,
           stopSequences,
           seed,
 
