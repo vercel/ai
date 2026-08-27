@@ -669,6 +669,9 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 
 - **id** _string_ - The generation ID
 - **totalCost** _number_ - Total cost in USD
+- **marketCost** _number | undefined_ - Cost at undiscounted market rates in USD, excluding surcharges (omitted when not recorded for the generation)
+- **surchargeCost** _number_ - Total surcharges applied in USD
+- **gatewayCost** _number_ - Total amount debited in USD (same as totalCost)
 - **upstreamInferenceCost** _number_ - Upstream inference cost in USD (relevant for BYOK)
 - **usage** _number_ - Usage cost in USD (same as totalCost)
 - **createdAt** _string_ - ISO 8601 timestamp when the generation was created

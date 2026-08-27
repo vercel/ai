@@ -26,6 +26,9 @@ const mockGenerationResponse = {
   data: {
     id: 'gen_01ARZ3NDEKTSV4RRFFQ69G5FAV',
     total_cost: 0.00123,
+    market_cost: 0.0011,
+    surcharge_cost: 0.00013,
+    gateway_cost: 0.00123,
     upstream_inference_cost: 0.0011,
     usage: 0.00123,
     created_at: '2024-01-01T00:00:00.000Z',
@@ -79,6 +82,9 @@ describe('GatewayGenerationInfoFetcher', () => {
       expect(result).toEqual({
         id: 'gen_01ARZ3NDEKTSV4RRFFQ69G5FAV',
         totalCost: 0.00123,
+        marketCost: 0.0011,
+        surchargeCost: 0.00013,
+        gatewayCost: 0.00123,
         upstreamInferenceCost: 0.0011,
         usage: 0.00123,
         createdAt: '2024-01-01T00:00:00.000Z',
@@ -263,6 +269,27 @@ describe('GatewayGenerationInfoFetcher', () => {
       expect(result.isByok).toBe(true);
       expect(result.upstreamInferenceCost).toBe(0.0009);
       expect(result.providerName).toBe('anthropic');
+    });
+
+    it('should omit marketCost when market_cost is absent from the response', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          data: {
+            ...mockGenerationResponse.data,
+            market_cost: undefined,
+          },
+        },
+      };
+
+      const fetcher = createFetcher();
+      const result = await fetcher.getGenerationInfo({
+        id: 'gen_01ARZ3NDEKTSV4RRFFQ69G5FAV',
+      });
+
+      expect(result.marketCost).toBeUndefined();
+      expect(result.surchargeCost).toBe(0.00013);
+      expect(result.gatewayCost).toBe(0.00123);
     });
   });
 });
