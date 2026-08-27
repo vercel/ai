@@ -1486,7 +1486,7 @@ const tokenDetailsSchema = z
         modality: z.string(),
         tokenCount: z.number(),
       })
-      .loose(),
+      .catchall(z.json()),
   )
   .nullish();
 
@@ -1507,7 +1507,7 @@ const usageSchema = z
     candidatesTokensDetails: tokenDetailsSchema,
     toolUsePromptTokensDetails: tokenDetailsSchema,
   })
-  .loose();
+  .catchall(z.json());
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>

@@ -46,9 +46,6 @@ const SAFETY_RATINGS = [
   },
 ];
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.test.ts
-const provider = createGoogleGenerativeAI({
-=======
 const COMPLETE_USAGE_METADATA = {
   promptTokenCount: 12,
   cachedContentTokenCount: 4,
@@ -72,8 +69,7 @@ const COMPLETE_USAGE_METADATA = {
   topLevelSentinel: 'preserve-me',
 };
 
-const provider = createGoogle({
->>>>>>> 3ad9da96a3 (fix: preserve complete Google Generative Language raw usage metadata (#19827)):packages/google/src/google-language-model.test.ts
+const provider = createGoogleGenerativeAI({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
 });
