@@ -22,14 +22,16 @@ export class GatewayResponseError extends GatewayError {
     response,
     validationError,
     cause,
+    isRetryable,
   }: {
     message?: string;
     statusCode?: number;
     response?: unknown;
     validationError?: TypeValidationError;
     cause?: unknown;
+    isRetryable?: boolean;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, isRetryable });
     this.response = response;
     this.validationError = validationError;
   }
