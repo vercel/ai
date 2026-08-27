@@ -5,11 +5,7 @@ import { DEFAULT_MAX_DOWNLOAD_SIZE } from './read-response-with-size-limit';
 import {
   createJsonErrorResponseHandler,
   createBinaryResponseHandler,
-<<<<<<< HEAD
-=======
   createEventSourceResponseHandler,
-  createJsonLinesResponseHandler,
->>>>>>> 90192f19a1 (fix: mark response body network errors as retryable (#19890))
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
@@ -92,8 +88,6 @@ describe('createJsonResponseHandler', () => {
   });
 });
 
-<<<<<<< HEAD
-=======
 describe('createEventSourceResponseHandler', () => {
   it('should preserve context and mark response body socket errors as retryable', async () => {
     const socketError = Object.assign(new Error('other side closed'), {
@@ -153,103 +147,6 @@ describe('createEventSourceResponseHandler', () => {
     });
   });
 });
-
-describe('createJsonLinesResponseHandler', () => {
-  it('parses JSON lines across byte boundaries', async () => {
-    const bytes = new TextEncoder().encode(
-      '{"id":"first","text":"café"}\r\n\n{"id":"second","text":"done"}',
-    );
-    const response = new Response(
-      new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(bytes.slice(0, 24));
-          controller.enqueue(bytes.slice(24, 27));
-          controller.enqueue(bytes.slice(27));
-          controller.close();
-        },
-      }),
-      { headers: { 'x-test': 'value' } },
-    );
-    const handler = createJsonLinesResponseHandler(
-      z.object({ id: z.string(), text: z.string() }),
-    );
-
-    const result = await handler({
-      url: 'test-url',
-      requestBodyValues: {},
-      response,
-    });
-    const values = [];
-    for await (const value of result.value) {
-      values.push(value);
-    }
-
-    expect(values).toEqual([
-      { id: 'first', text: 'café' },
-      { id: 'second', text: 'done' },
-    ]);
-    expect(result.responseHeaders).toMatchObject({ 'x-test': 'value' });
-  });
-
-  it('errors when a line is invalid JSON', async () => {
-    const handler = createJsonLinesResponseHandler(
-      z.object({ id: z.string() }),
-    );
-    const result = await handler({
-      url: 'test-url',
-      requestBodyValues: {},
-      response: new Response('{"id":"first"}\n{invalid}\n'),
-    });
-    const iterator = result.value;
-
-    await expect(iterator.next()).resolves.toMatchObject({
-      value: { id: 'first' },
-      done: false,
-    });
-    await expect(iterator.next()).rejects.toThrow();
-  });
-
-  it('cancels the response body when iteration stops early', async () => {
-    let cancelled = false;
-    const handler = createJsonLinesResponseHandler(
-      z.object({ id: z.string() }),
-    );
-    const result = await handler({
-      url: 'test-url',
-      requestBodyValues: {},
-      response: new Response(
-        new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(new TextEncoder().encode('{"id":"first"}\n'));
-          },
-          cancel() {
-            cancelled = true;
-          },
-        }),
-      ),
-    });
-
-    for await (const _value of result.value) {
-      break;
-    }
-
-    expect(cancelled).toBe(true);
-  });
-
-  it('throws EmptyResponseBodyError when the response body is null', async () => {
-    const handler = createJsonLinesResponseHandler(z.object({}));
-
-    await expect(
-      handler({
-        url: 'test-url',
-        requestBodyValues: {},
-        response: new Response(null),
-      }),
-    ).rejects.toThrow('Empty response body');
-  });
-});
-
->>>>>>> 90192f19a1 (fix: mark response body network errors as retryable (#19890))
 describe('createJsonErrorResponseHandler', () => {
   it('should reject oversized responses before reading the body', async () => {
     const { response, cancelled } = createOversizedResponse({
