@@ -63,6 +63,7 @@ const compositionKeywords = ['allOf', 'anyOf', 'oneOf'] as const;
 
 type CompositionKeyword = (typeof compositionKeywords)[number];
 type CompositionKeywordBehavior = 'supported' | 'unsupported' | 'compatibility';
+type ConstKeywordBehavior = 'rewrite-to-enum' | 'unsupported';
 
 const googleOpenAPISchemaConstraintKeywords = new Set<ConstraintKeyword>([
   'maxItems',
@@ -112,6 +113,15 @@ const compositionKeywordBehaviorsByTarget: Readonly<
   functionParametersJsonSchema: googleSchemaCompositionKeywordBehaviors,
   realtimeFunctionParameters: googleSchemaCompositionKeywordBehaviors,
   responseSchema: googleSchemaCompositionKeywordBehaviors,
+};
+
+const constKeywordBehaviorsByTarget: Readonly<
+  Record<GoogleSchemaTarget, ConstKeywordBehavior>
+> = {
+  functionParameters: 'rewrite-to-enum',
+  functionParametersJsonSchema: 'unsupported',
+  realtimeFunctionParameters: 'rewrite-to-enum',
+  responseSchema: 'rewrite-to-enum',
 };
 
 const schemaTargetLabels: Record<GoogleSchemaTarget, string> = {
@@ -419,7 +429,11 @@ function convertJSONSchemaDefinition(
   }
 
   const values =
-    enumValues ?? (constValue !== undefined ? [constValue] : undefined);
+    enumValues ??
+    (constValue !== undefined &&
+    constKeywordBehaviorsByTarget[referenceContext.target] === 'rewrite-to-enum'
+      ? [constValue]
+      : undefined);
 
   if (values !== undefined) {
     addEnumToSchema({ values, type, result });
@@ -733,6 +747,23 @@ function reportLossySchemaConversion(
 
   const supportedConstraintKeywords =
     supportedConstraintKeywordsByTarget[target];
+
+  if (
+    constKeywordBehaviorsByTarget[target] === 'unsupported' &&
+    Object.prototype.hasOwnProperty.call(jsonSchema, 'const')
+  ) {
+    onWarning({
+      type: 'unsupported',
+      feature: 'JSON Schema constraint "const"',
+      details: getUnsupportedConstraintDetails({
+        schemaPath: appendJSONPointer(
+          getKeywordSourcePath(schemaPath, 'const', keywordSourcePaths),
+          'const',
+        ),
+        target,
+      }),
+    });
+  }
 
   for (const keyword of constraintKeywords) {
     if (supportedConstraintKeywords.has(keyword)) {
