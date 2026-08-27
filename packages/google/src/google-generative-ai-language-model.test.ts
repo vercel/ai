@@ -46,6 +46,29 @@ const SAFETY_RATINGS = [
   },
 ];
 
+const COMPLETE_USAGE_METADATA = {
+  promptTokenCount: 12,
+  cachedContentTokenCount: 4,
+  candidatesTokenCount: 71,
+  toolUsePromptTokenCount: 65,
+  thoughtsTokenCount: 89,
+  totalTokenCount: 237,
+  promptTokensDetails: [
+    { modality: 'TEXT', tokenCount: 12, nestedSentinel: 'prompt' },
+  ],
+  cacheTokensDetails: [
+    { modality: 'TEXT', tokenCount: 4, nestedSentinel: 'cache' },
+  ],
+  candidatesTokensDetails: [
+    { modality: 'TEXT', tokenCount: 71, nestedSentinel: 'candidate' },
+  ],
+  toolUsePromptTokensDetails: [
+    { modality: 'TEXT', tokenCount: 65, nestedSentinel: 'tool' },
+  ],
+  serviceTier: 'standard',
+  topLevelSentinel: 'preserve-me',
+};
+
 const provider = createGoogleGenerativeAI({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
@@ -868,6 +891,40 @@ describe('doGenerate', () => {
       expect(usage).toMatchSnapshot();
     });
 
+    it('should preserve complete raw usage metadata', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue.' }], role: 'model' },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: COMPLETE_USAGE_METADATA,
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toEqual({
+        inputTokens: {
+          total: 12,
+          noCache: 8,
+          cacheRead: 4,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 160,
+          text: 71,
+          reasoning: 89,
+        },
+        raw: COMPLETE_USAGE_METADATA,
+      });
+    });
+
     it('should send additional response information', async () => {
       const { response } = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -886,6 +943,39 @@ describe('doGenerate', () => {
       `);
     });
   });
+
+  it.each([
+    { toolUsePromptTokenCount: '65' },
+    {
+      cacheTokensDetails: [{ modality: 'TEXT', tokenCount: '4' }],
+    },
+    {
+      toolUsePromptTokensDetails: [{ modality: 1, tokenCount: 65 }],
+    },
+  ])('should reject invalid usage metadata values: %j', async invalidUsage => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Blue.' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 12,
+          ...invalidUsage,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toThrow();
+  });
+
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -5310,6 +5400,58 @@ describe('doStream', () => {
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.serviceTier,
     ).toBe('priority');
+  });
+
+  it('should preserve the final complete raw usage metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue' }], role: 'model' },
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: '.' }], role: 'model' },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: COMPLETE_USAGE_METADATA,
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const finishEvent = (await convertReadableStreamToArray(stream)).find(
+      event => event.type === 'finish',
+    );
+
+    expect(finishEvent?.usage).toEqual({
+      inputTokens: {
+        total: 12,
+        noCache: 8,
+        cacheRead: 4,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 160,
+        text: 71,
+        reasoning: 89,
+      },
+      raw: COMPLETE_USAGE_METADATA,
+    });
   });
 
   it('should expose null serviceTier in provider metadata on finish when not present', async () => {
