@@ -1,4 +1,5 @@
 import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
@@ -271,30 +272,45 @@ const unsupportedStructuredOutputModel = new BedrockChatLanguageModel(
   },
 );
 
-let mockOptions: { success: boolean; errorValue?: any } = { success: true };
+let mockOptions: {
+  success: boolean;
+  errorValue?: any;
+  validateSchema?: boolean;
+} = { success: true };
 
 describe('doStream', () => {
   beforeEach(() => {
-    mockOptions = { success: true, errorValue: undefined };
+    mockOptions = {
+      success: true,
+      errorValue: undefined,
+      validateSchema: false,
+    };
   });
 
   vi.mock('./bedrock-event-stream-response-handler', () => ({
     createBedrockEventStreamResponseHandler: (schema: any) => {
       return async ({ response }: { response: Response }) => {
-        let chunks: { success: boolean; value: any }[] = [];
+        let chunks: Array<{
+          success: boolean;
+          value?: any;
+          error?: unknown;
+          rawValue?: unknown;
+        }> = [];
         if (mockOptions.success) {
           const text = await response.text();
-          chunks = text
+          const values = text
             .split('\n')
             .filter(Boolean)
-            .map(chunk => {
-              const parsedChunk = JSON.parse(chunk);
-              return {
+            .map(chunk => JSON.parse(chunk));
+          chunks = mockOptions.validateSchema
+            ? await Promise.all(
+                values.map(value => safeValidateTypes({ value, schema })),
+              )
+            : values.map(value => ({
                 success: true,
-                value: parsedChunk,
-                rawValue: parsedChunk,
-              };
-            });
+                value,
+                rawValue: value,
+              }));
         }
         const headers = Object.fromEntries<string>([...response.headers]);
 
@@ -319,10 +335,50 @@ describe('doStream', () => {
   }));
 
   function setupMockEventStreamHandler(
-    options: { success?: boolean; errorValue?: any } = { success: true },
+    options: {
+      success?: boolean;
+      errorValue?: any;
+      validateSchema?: boolean;
+    } = { success: true },
   ) {
     mockOptions = { ...mockOptions, ...options };
   }
+
+  it('should accept citation deltas', async () => {
+    setupMockEventStreamHandler({ validateSchema: true });
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: {
+              citation: {
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    start: 1,
+                    end: 2,
+                  },
+                },
+                sourceContent: [{ text: 'Source content' }],
+                title: 'document',
+              },
+            },
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+  });
 
   it('should stream text deltas with metadata and usage', async () => {
     setupMockEventStreamHandler();
