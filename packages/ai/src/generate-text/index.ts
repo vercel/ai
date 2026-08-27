@@ -33,7 +33,13 @@ export {
 } from './stop-condition';
 export {
   streamText,
+<<<<<<< HEAD
+=======
+  type StreamTextEndEvent,
+  type StreamTextInclude,
+>>>>>>> 6669d691c7 (fix: include parsed structured output in streamText end callbacks (#17717))
   type StreamTextOnChunkCallback,
+  type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
   type StreamTextOnFinishCallback,
   type StreamTextOnStartCallback,
