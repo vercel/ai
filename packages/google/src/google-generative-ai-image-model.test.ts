@@ -559,6 +559,47 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
       expect(result.images).toStrictEqual(['base64-generated-image']);
     });
 
+    it('should preserve prompt feedback when a prompt block returns no candidates', async () => {
+      geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
+        type: 'json-value',
+        body: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+        },
+      };
+
+      const result = await geminiModel.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.providerMetadata?.google).toMatchObject({
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+        images: [],
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+          serviceTier: 'standard',
+        },
+        serviceTier: 'standard',
+      });
+    });
+
     it('should send correct request body with responseModalities', async () => {
       prepareGeminiJsonResponse();
 
