@@ -58,13 +58,9 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
-type GoogleGenerativeAIConfig = {
-=======
 const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
 
-export type GoogleLanguageModelConfig = {
->>>>>>> e9bc6182b5 (fix: Gemini 2.5 requests fail when frequency or presence penalties are configured (#18051)):packages/google/src/google-language-model.ts
+type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;

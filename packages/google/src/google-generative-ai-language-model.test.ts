@@ -510,6 +510,12 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_99_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
 
+  const TEST_URL_GEMINI_2_5_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
   const TEST_URL_GEMINI_2_5_FLASH_LITE =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
@@ -523,7 +529,9 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
     [TEST_URL_GEMINI_99_PRO]: {},
+    [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
+    [TEST_URL_GEMINI_2_5_FLASH]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
   });
 
@@ -1358,12 +1366,15 @@ describe('doGenerate', () => {
       url: TEST_URL_GEMINI_2_5_FLASH,
     });
 
-    const vertexModel = new GoogleLanguageModel('gemini-2.5-flash', {
-      provider: 'google.vertex.chat',
-      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-      headers: { 'x-goog-api-key': 'test-api-key' },
-      generateId: () => 'test-id',
-    });
+    const vertexModel = new GoogleGenerativeAILanguageModel(
+      'gemini-2.5-flash',
+      {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      },
+    );
 
     const result = await vertexModel.doGenerate({
       prompt: TEST_PROMPT,
