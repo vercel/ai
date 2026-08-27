@@ -156,8 +156,15 @@ export interface AzureOpenAIProviderSettings {
 }
 
 function isAzureOpenAIBaseURL(baseURL: string | undefined) {
+  if (baseURL == null) {
+    return true;
+  }
+
+  const hostname = new URL(baseURL).hostname;
   return (
-    baseURL == null || new URL(baseURL).hostname.endsWith('.openai.azure.com')
+    hostname.endsWith('.openai.azure.com') ||
+    hostname.endsWith('.services.ai.azure.com') ||
+    hostname.endsWith('.cognitiveservices.azure.com')
   );
 }
 
