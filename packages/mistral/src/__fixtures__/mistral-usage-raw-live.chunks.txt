@@ -1,3 +1,0 @@
-{"id":"sanitized-live-stream","object":"chat.completion.chunk","created":1787866435,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
-{"id":"sanitized-live-stream","object":"chat.completion.chunk","created":1787866435,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":"OK"},"finish_reason":null}],"p":"abcd"}
-{"id":"sanitized-live-stream","object":"chat.completion.chunk","created":1787866435,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":20,"total_tokens":22,"completion_tokens":2,"prompt_tokens_details":{"cached_tokens":0},"service_tier":"standard"},"p":"abcdefgh"}
