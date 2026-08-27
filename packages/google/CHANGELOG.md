@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.117
+
+### Patch Changes
+
+- b068651: Surface prompt-level Google safety blocks without candidates as content-filter results with prompt feedback metadata.
+
 ## 3.0.116
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.129
+
+### Patch Changes
+
+- 0331d34: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results
+
 ## 3.0.128
 
 ### Patch Changes

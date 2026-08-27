@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.271
+
+### Patch Changes
+
+- 9310140: Validate persisted typed tool calls against current input and output schemas.
+  Schema-incompatible empty or error inputs and terminal history from unavailable
+  tools remain loadable as dynamic tool parts instead of exposing unvalidated
+  values under current static tool types.
+- b503790: add operation-level outcomes to UI message stream end callbacks
+
 ## 6.0.270
 
 ### Patch Changes

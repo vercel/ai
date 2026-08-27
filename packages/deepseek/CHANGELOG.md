@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 2.0.61
+
+### Patch Changes
+
+- 32e32c4: fix(provider/deepseek): preserve complete raw chat usage objects
+
 ## 2.0.60
 
 ### Patch Changes
