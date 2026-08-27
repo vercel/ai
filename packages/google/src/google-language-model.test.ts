@@ -1400,6 +1400,33 @@ describe('doGenerate', () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it('should pass penalty settings for Vertex Gemini 2.5 models', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_5_FLASH,
+    });
+
+    const vertexModel = new GoogleLanguageModel('gemini-2.5-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const result = await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
   it('should only pass valid provider options', async () => {
     prepareJsonFixtureResponse('google-text');
 

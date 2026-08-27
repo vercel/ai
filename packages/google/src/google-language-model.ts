@@ -62,13 +62,9 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
-<<<<<<< HEAD
 const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
 
-type GoogleConfig = {
-=======
 export type GoogleLanguageModelConfig = {
->>>>>>> origin/main
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -264,15 +260,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const isGemini25Model = gemini25ModelPattern.test(this.modelId);
+    const isGemini25DeveloperApiModel =
+      !isVertexProvider && gemini25ModelPattern.test(this.modelId);
 
-    if (isGemini25Model && frequencyPenalty != null) {
+    if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'frequencyPenalty',
       });
     }
-    if (isGemini25Model && presencePenalty != null) {
+    if (isGemini25DeveloperApiModel && presencePenalty != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'presencePenalty',
@@ -352,8 +349,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           temperature,
           topK,
           topP,
-          frequencyPenalty: isGemini25Model ? undefined : frequencyPenalty,
-          presencePenalty: isGemini25Model ? undefined : presencePenalty,
+          frequencyPenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : frequencyPenalty,
+          presencePenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : presencePenalty,
           stopSequences,
           seed,
 
