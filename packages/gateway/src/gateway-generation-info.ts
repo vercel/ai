@@ -21,7 +21,7 @@ export interface GatewayGenerationInfo {
   id: string;
   /** Total cost in USD */
   totalCost: number;
-  /** Cost at undiscounted market rates in USD, excluding surcharges (0 when not recorded for the generation) */
+  /** Cost at undiscounted market rates in USD, excluding surcharges */
   marketCost: number;
   /** Total surcharges applied in USD */
   surchargeCost: number;
@@ -143,10 +143,6 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
             }) => ({
               ...rest,
               totalCost: total_cost,
-              // market_cost is omitted on rows predating the column; the REST
-              // endpoint's other always-present numeric fields (e.g.
-              // billable_web_search_calls) already normalize absence to 0, so
-              // we do the same rather than expose an optional field.
               marketCost: market_cost ?? 0,
               surchargeCost: surcharge_cost,
               gatewayCost: gateway_cost,
