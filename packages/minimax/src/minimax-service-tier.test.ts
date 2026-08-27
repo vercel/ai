@@ -48,4 +48,39 @@ describe('MiniMax service tier', () => {
       service_tier: 'priority',
     });
   });
+
+  it('warns and omits Anthropic-only serviceTier values on MiniMax', async () => {
+    server.urls['https://api.minimax.io/anthropic/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_minimax_service_tier_warn',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello!' }],
+        model: 'minimax-m3',
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 4, output_tokens: 10 },
+      },
+    };
+
+    const result = await provider('minimax-m3').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          serviceTier: 'auto',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+      'service_tier',
+    );
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'serviceTier',
+      details:
+        'serviceTier "auto" is not supported by MiniMax. Use "standard" or "priority".',
+    });
+  });
 });

@@ -286,7 +286,8 @@ export const anthropicLanguageModelOptions = z.object({
    * `"standard_only"` (https://platform.claude.com/docs/en/api/service-tiers).
    * Anthropic-compatible providers may accept different values — MiniMax
    * accepts `"standard"` and `"priority"` (priority admission at 1.5x the
-   * standard price).
+   * standard price). Values that do not match the target provider namespace
+   * are omitted with an unsupported-setting warning.
    */
   serviceTier: z
     .enum(['auto', 'standard_only', 'standard', 'priority'])

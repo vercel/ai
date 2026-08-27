@@ -312,6 +312,34 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       customProviderOptions ?? {},
     );
 
+    // The shared schema accepts Anthropic (`auto`/`standard_only`) and
+    // MiniMax (`standard`/`priority`) values. Warn and drop mismatches for
+    // those known namespaces; other Anthropic-compatible providers pass through.
+    if (anthropicOptions.serviceTier != null) {
+      const { serviceTier } = anthropicOptions;
+      const supportedServiceTiers =
+        providerOptionsName === 'anthropic'
+          ? (['auto', 'standard_only'] as const)
+          : providerOptionsName === 'minimax'
+            ? (['standard', 'priority'] as const)
+            : null;
+
+      if (
+        supportedServiceTiers != null &&
+        !(supportedServiceTiers as readonly string[]).includes(serviceTier)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'serviceTier',
+          details:
+            providerOptionsName === 'anthropic'
+              ? `serviceTier "${serviceTier}" is not supported by Anthropic. Use "auto" or "standard_only".`
+              : `serviceTier "${serviceTier}" is not supported by MiniMax. Use "standard" or "priority".`,
+        });
+        anthropicOptions.serviceTier = undefined;
+      }
+    }
+
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,

@@ -5839,7 +5839,7 @@ describe('AnthropicLanguageModel', () => {
         prompt: TEST_PROMPT,
         providerOptions: {
           anthropic: {
-            serviceTier: 'priority',
+            serviceTier: 'auto',
           } satisfies AnthropicLanguageModelOptions,
         },
       });
@@ -5859,10 +5859,93 @@ describe('AnthropicLanguageModel', () => {
             },
           ],
           "model": "claude-3-haiku-20240307",
-          "service_tier": "priority",
+          "service_tier": "auto",
         }
       `);
 
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should warn and omit MiniMax-only serviceTier values on Anthropic', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            serviceTier: 'priority',
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'service_tier',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'serviceTier',
+        details:
+          'serviceTier "priority" is not supported by Anthropic. Use "auto" or "standard_only".',
+      });
+    });
+
+    it('should warn and omit Anthropic-only serviceTier values on MiniMax', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const { AnthropicLanguageModel } =
+        await import('./anthropic-language-model');
+      const minimaxModel = new AnthropicLanguageModel('minimax-m3', {
+        provider: 'minimax.messages',
+        baseURL: 'https://api.anthropic.com/v1',
+        headers: { 'x-api-key': 'test-api-key' },
+      });
+
+      const result = await minimaxModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            serviceTier: 'auto',
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'service_tier',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'serviceTier',
+        details:
+          'serviceTier "auto" is not supported by MiniMax. Use "standard" or "priority".',
+      });
+    });
+
+    it('should pass through serviceTier for unknown Anthropic-compatible providers', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const { AnthropicLanguageModel } =
+        await import('./anthropic-language-model');
+      const customModel = new AnthropicLanguageModel(
+        'claude-3-haiku-20240307',
+        {
+          provider: 'my-proxy.messages',
+          baseURL: 'https://api.anthropic.com/v1',
+          headers: { 'x-api-key': 'test-api-key' },
+        },
+      );
+
+      const result = await customModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            serviceTier: 'priority',
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        service_tier: 'priority',
+      });
       expect(result.warnings).toStrictEqual([]);
     });
 
