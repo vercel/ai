@@ -145,6 +145,19 @@ Use deployment-based URLs for specific model types. Set to true to use legacy de
   useDeploymentBasedUrls?: boolean;
 }
 
+function isAzureOpenAIBaseURL(baseURL: string | undefined) {
+  if (baseURL == null) {
+    return true;
+  }
+
+  const hostname = new URL(baseURL).hostname;
+  return (
+    hostname.endsWith('.openai.azure.com') ||
+    hostname.endsWith('.services.ai.azure.com') ||
+    hostname.endsWith('.cognitiveservices.azure.com')
+  );
+}
+
 /**
 Create an Azure OpenAI provider instance.
  */

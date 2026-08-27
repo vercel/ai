@@ -116,6 +116,9 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
+  'https://test-resource.services.ai.azure.com/openai/v1/chat/completions': {},
+  'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions':
+    {},
   'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
     {},
 });
@@ -277,6 +280,76 @@ describe('chat', () => {
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1',
+      );
+    });
+
+    it('should use Foundry services.ai.azure.com baseURL with /v1', async () => {
+      server.urls[
+        'https://test-resource.services.ai.azure.com/openai/v1/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-foundry',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test-deployment',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const foundryProvider = createAzure({
+        baseURL: 'https://test-resource.services.ai.azure.com/openai',
+        apiKey: 'test-api-key',
+      });
+
+      await foundryProvider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.services.ai.azure.com/openai/v1/chat/completions?api-version=v1"`,
+      );
+    });
+
+    it('should use Cognitive Services baseURL with /v1', async () => {
+      server.urls[
+        'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-cognitive',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test-deployment',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const cognitiveProvider = createAzure({
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai',
+        apiKey: 'test-api-key',
+      });
+
+      await cognitiveProvider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions?api-version=v1"`,
       );
     });
   });
