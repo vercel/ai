@@ -5,6 +5,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  createPiModelRuntime,
   registerPiProviders,
   resolvePiEnv,
   type PiAuthenticationMode,
@@ -200,6 +201,93 @@ describe('resolvePiEnv', () => {
     ).toEqual({
       MISTRAL_API_KEY: 'mk',
       MISTRAL_BASE_URL: 'https://api.mistral.example',
+    });
+  });
+});
+
+describe('createPiModelRuntime', () => {
+  it('does not use ambient credentials for an empty authentication environment override', async () => {
+    clearAmbientProviderCredentials();
+    vi.stubEnv('OPENAI_API_KEY', 'ambient-openai-key');
+    vi.stubEnv('AWS_PROFILE', 'ambient-aws-profile');
+    const authPath = path.join(
+      tmpdir(),
+      `harness-pi-auth-${randomUUID()}.json`,
+    );
+    authPaths.push(authPath);
+
+    const modelRuntime = await createPiModelRuntime({
+      auth: {},
+      authPath,
+      modelsPath: `${authPath}.models`,
+    });
+
+    await expect(modelRuntime.getAuth('openai')).resolves.toBeUndefined();
+    await expect(
+      modelRuntime.getAuth('amazon-bedrock'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('uses credentials exclusively from an authentication environment override', async () => {
+    clearAmbientProviderCredentials();
+    vi.stubEnv('OPENAI_API_KEY', 'ambient-openai-key');
+    vi.stubEnv('AWS_PROFILE', 'ambient-aws-profile');
+    const authPath = path.join(
+      tmpdir(),
+      `harness-pi-auth-${randomUUID()}.json`,
+    );
+    authPaths.push(authPath);
+
+    const modelRuntime = await createPiModelRuntime({
+      auth: {
+        OPENAI_API_KEY: 'override-openai-key',
+        AWS_PROFILE: 'override-aws-profile',
+        CUSTOM_PROVIDER_SETTING: 'override-setting',
+      },
+      authPath,
+      modelsPath: `${authPath}.models`,
+    });
+
+    await expect(modelRuntime.getAuth('openai')).resolves.toMatchObject({
+      auth: { apiKey: 'override-openai-key' },
+      env: {
+        OPENAI_API_KEY: 'override-openai-key',
+        AWS_PROFILE: 'override-aws-profile',
+        CUSTOM_PROVIDER_SETTING: 'override-setting',
+      },
+      source: 'OPENAI_API_KEY',
+    });
+    await expect(modelRuntime.getAuth('amazon-bedrock')).resolves.toMatchObject(
+      {
+        auth: {},
+        env: {
+          OPENAI_API_KEY: 'override-openai-key',
+          AWS_PROFILE: 'override-aws-profile',
+          CUSTOM_PROVIDER_SETTING: 'override-setting',
+        },
+        source: 'AWS_PROFILE',
+      },
+    );
+  });
+
+  it('preserves ambient credential lookup for auto authentication', async () => {
+    clearAmbientProviderCredentials();
+    vi.stubEnv('OPENAI_API_KEY', 'ambient-openai-key');
+    const authPath = path.join(
+      tmpdir(),
+      `harness-pi-auth-${randomUUID()}.json`,
+    );
+    authPaths.push(authPath);
+
+    const modelRuntime = await createPiModelRuntime({
+      auth: 'auto',
+      authPath,
+      modelsPath: `${authPath}.models`,
+    });
+
+    await expect(modelRuntime.getAuth('openai')).resolves.toMatchObject({
+      auth: { apiKey: 'ambient-openai-key' },
+      source: 'OPENAI_API_KEY',
     });
   });
 });

@@ -3,7 +3,6 @@ import {
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
-  ModelRuntime,
   SessionManager,
   SettingsManager,
   type AgentSession,
@@ -37,6 +36,7 @@ import {
 } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
+  createPiModelRuntime,
   registerPiProviders,
   resolvePiEnv,
   type PiAuthenticationMode,
@@ -393,11 +393,16 @@ export async function createPiSession(
   // real host filesystem, never in the sandbox/workspace.
   // When `agentDir` is provided, use it instead so the harness can reuse
   // existing CLI logins and model/settings config.
+  /*
+   * A record-shaped authentication override makes createPiModelRuntime ignore
+   * auth.json and models.json because both files can supply credentials from
+   * outside that record. General Pi settings still use agentDir below.
+   */
   const agentDir = input.agentDir ?? hostAgentDir;
-  const modelRuntime = await ModelRuntime.create({
+  const modelRuntime = await createPiModelRuntime({
+    auth: input.settings.auth,
     authPath: path.join(agentDir, 'auth.json'),
     modelsPath: path.join(agentDir, 'models.json'),
-    allowModelNetwork: false,
   });
   const modelRegistry = new ModelRegistry(modelRuntime);
   const settingsManager =

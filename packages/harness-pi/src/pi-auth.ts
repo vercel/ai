@@ -1,15 +1,33 @@
-import type {
-  ModelRegistry,
+import {
   ModelRuntime,
+  type CreateModelRuntimeOptions,
+  type ModelRegistry,
 } from '@earendil-works/pi-coding-agent';
 import type { HarnessV1Authentication } from '@ai-sdk/harness';
 import {
   getAiGatewayAuthFromEnv,
   isHarnessAuthenticationEnvironment,
 } from '@ai-sdk/harness/utils';
+import { access } from 'node:fs/promises';
 import { VERSION } from './version';
 
 type ProviderConfigInput = Parameters<ModelRegistry['registerProvider']>[1];
+type PiCredentialStore = NonNullable<CreateModelRuntimeOptions['credentials']>;
+type PiCredential = Exclude<
+  Awaited<ReturnType<PiCredentialStore['read']>>,
+  undefined
+>;
+type PiModelRuntimeInternals = {
+  models: {
+    authContext: {
+      env(name: string): Promise<string | undefined>;
+      fileExists(path: string): Promise<boolean>;
+    };
+  };
+};
+type PiMutableProvider = {
+  auth: ReturnType<ModelRuntime['getProviders']>[number]['auth'];
+};
 
 /**
  * Pi auth options. Choose an explicit mode or rely on 'auto' (precedence:
@@ -23,6 +41,134 @@ const DEFAULT_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
 const HARNESS_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
+
+function createIsolatedPiCredentialStore(): {
+  credentials: PiCredentialStore;
+  finishInitialization(): void;
+} {
+  let initializing = true;
+  const bootstrapEnvironment = new Proxy<Record<string, string>>(
+    {},
+    {
+      get: (_target, property) =>
+        typeof property === 'string'
+          ? 'harness-pi-authentication-bootstrap'
+          : undefined,
+    },
+  );
+  const bootstrapCredential = {
+    type: 'api_key',
+    key: 'harness-pi-authentication-bootstrap',
+    env: bootstrapEnvironment,
+  } satisfies PiCredential;
+  const credentials: PiCredentialStore = {
+    async read() {
+      return initializing ? bootstrapCredential : undefined;
+    },
+    async list() {
+      return [];
+    },
+    async modify(..._input: Parameters<PiCredentialStore['modify']>) {
+      return undefined;
+    },
+    async delete() {},
+  };
+
+  return {
+    credentials,
+    finishInitialization() {
+      initializing = false;
+    },
+  };
+}
+
+function scopePiProviderEnvironment({
+  modelRuntime,
+  authenticationEnvironment,
+}: {
+  modelRuntime: ModelRuntime;
+  authenticationEnvironment: Record<string, string>;
+}): void {
+  for (const provider of modelRuntime.getProviders()) {
+    const apiKeyAuthentication = provider.auth.apiKey;
+    if (!apiKeyAuthentication) continue;
+
+    (provider as unknown as PiMutableProvider).auth = {
+      ...provider.auth,
+      apiKey: {
+        ...apiKeyAuthentication,
+        resolve: async input => {
+          const result = await apiKeyAuthentication.resolve(input);
+          return result
+            ? {
+                ...result,
+                env: {
+                  ...authenticationEnvironment,
+                  ...result.env,
+                },
+              }
+            : undefined;
+        },
+      },
+    };
+  }
+}
+
+export async function createPiModelRuntime({
+  auth,
+  authPath,
+  modelsPath,
+}: {
+  auth: PiAuthenticationMode | undefined;
+  authPath: string;
+  modelsPath: string;
+}): Promise<ModelRuntime> {
+  if (!isHarnessAuthenticationEnvironment(auth)) {
+    return ModelRuntime.create({
+      authPath,
+      modelsPath,
+      allowModelNetwork: false,
+    });
+  }
+
+  const isolatedCredentials = createIsolatedPiCredentialStore();
+  const modelRuntime = await ModelRuntime.create({
+    credentials: isolatedCredentials.credentials,
+    modelsPath: null,
+    allowModelNetwork: false,
+  });
+
+  /*
+   * ModelRuntime creates its internal model collection with a process-backed
+   * authentication context and does not expose an authentication-context
+   * option. The bootstrap credential prevents construction-time provider
+   * checks from consulting that context. Once constructed, authentication is
+   * scoped to the supplied record and availability is recomputed with an
+   * empty in-memory credential store.
+   */
+  (modelRuntime as unknown as PiModelRuntimeInternals).models.authContext = {
+    async env(name) {
+      return auth[name];
+    },
+    async fileExists(filePath) {
+      if (filePath !== auth.GOOGLE_APPLICATION_CREDENTIALS) return false;
+      try {
+        await access(filePath);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  };
+  scopePiProviderEnvironment({
+    modelRuntime,
+    authenticationEnvironment: auth,
+  });
+  isolatedCredentials.finishInitialization();
+  await modelRuntime.refresh({ allowNetwork: false });
+
+  return modelRuntime;
+}
 
 function createGatewayProviderConfig({
   apiKey,

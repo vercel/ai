@@ -3,6 +3,7 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
+import { isHarnessAuthenticationEnvironment } from '@ai-sdk/harness/utils';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { resolveClineEnv, type ClineAuthenticationMode } from './cline-auth';
@@ -41,6 +42,7 @@ export type ClineHarnessSettings = {
   /**
    * Provider API key. When omitted, the Cline gateway falls back to the
    * provider's environment variable (e.g. `ANTHROPIC_API_KEY`).
+   * A record-shaped authentication override disables that fallback.
    */
   readonly apiKey?: string;
   /** Custom provider endpoint. */
@@ -164,6 +166,8 @@ export function createCline(
         skills: startOpts.skills ?? [],
         settings: {
           authEnv,
+          isAuthenticationEnvironmentOverride:
+            isHarnessAuthenticationEnvironment(settings.auth),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
           ...(settings.providerId ? { providerId: settings.providerId } : {}),
           ...(settings.modelId ? { modelId: settings.modelId } : {}),
