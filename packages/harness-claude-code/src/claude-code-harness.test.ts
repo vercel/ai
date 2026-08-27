@@ -14,6 +14,7 @@ const wsMock = vi.hoisted(() => {
   type Handler = (...args: unknown[]) => void;
   const sockets: FakeWebSocket[] = [];
   const scripts: Array<(socket: FakeWebSocket) => void> = [];
+  const unhandledErrors: unknown[] = [];
 
   class FakeWebSocket {
     readonly url: string;
@@ -21,6 +22,7 @@ const wsMock = vi.hoisted(() => {
     readonly handlers = new Map<string, Set<Handler>>();
     closed = false;
     terminated = false;
+    emitErrorOnTerminate = false;
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       this.url = url;
@@ -42,7 +44,12 @@ const wsMock = vi.hoisted(() => {
     }
 
     emit(event: string, ...args: unknown[]): void {
-      for (const handler of this.handlers.get(event) ?? []) {
+      const handlers = this.handlers.get(event) ?? new Set<Handler>();
+      if (event === 'error' && handlers.size === 0) {
+        unhandledErrors.push(args[0]);
+        return;
+      }
+      for (const handler of handlers) {
         handler(...args);
       }
     }
@@ -54,6 +61,17 @@ const wsMock = vi.hoisted(() => {
 
     terminate(): void {
       this.terminated = true;
+      if (this.emitErrorOnTerminate) {
+        queueMicrotask(() => {
+          this.emit(
+            'error',
+            new Error(
+              'WebSocket was closed before the connection was established',
+            ),
+          );
+          this.close();
+        });
+      }
     }
   }
 
@@ -61,9 +79,11 @@ const wsMock = vi.hoisted(() => {
     FakeWebSocket,
     sockets,
     scripts,
+    unhandledErrors,
     reset: () => {
       sockets.length = 0;
       scripts.length = 0;
+      unhandledErrors.length = 0;
     },
   };
 });
@@ -1108,6 +1128,24 @@ describe('createClaudeCode adapter', () => {
         'WebSocket open timed out after',
       );
       expect(wsMock.sockets[0].terminated).toBe(true);
+    });
+
+    it('preserves the startup timeout when terminating a connecting socket', async () => {
+      wsMock.scripts.push(socket => {
+        socket.emitErrorOnTerminate = true;
+        queueMicrotask(() => {
+          now = 1_020;
+        });
+      });
+
+      await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
+        'WebSocket open timed out after',
+      );
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(wsMock.unhandledErrors).toEqual([]);
+      expect(wsMock.sockets[0].terminated).toBe(true);
+      expect(wsMock.sockets[0].closed).toBe(true);
     });
   });
 
