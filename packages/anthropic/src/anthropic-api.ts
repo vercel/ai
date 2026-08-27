@@ -691,6 +691,7 @@ export const anthropicResponseSchema = lazySchema(() =>
                     document_title: z.string().nullable(),
                     start_page_number: z.number(),
                     end_page_number: z.number(),
+                    file_id: z.string().nullish(),
                   }),
                   z.object({
                     type: z.literal('char_location'),
@@ -699,6 +700,7 @@ export const anthropicResponseSchema = lazySchema(() =>
                     document_title: z.string().nullable(),
                     start_char_index: z.number(),
                     end_char_index: z.number(),
+                    file_id: z.string().nullish(),
                   }),
                   z.object({
                     type: z.literal('content_block_location'),

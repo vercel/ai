@@ -40,7 +40,6 @@ import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
   AnthropicLanguageModel,
   createCitationSource,
-  hasWebTool20260209WithoutCodeExecution,
   type AnthropicLanguageModelConfig,
 } from './anthropic-language-model';
 import {
@@ -221,16 +220,6 @@ export class AnthropicMessagesBatchLanguageModel
             `Anthropic Message Batches cannot restore the custom provider-tool name ` +
             `"${aliasedProviderTool.name}" when results are retrieved independently of the start call ` +
             `(request "${request.id}"). Use the provider's canonical tool name.`,
-        });
-      }
-      if (hasWebTool20260209WithoutCodeExecution(prepared.args.tools)) {
-        throw new UnsupportedFunctionalityError({
-          functionality:
-            'implicit code execution for 20260209 web tools in batches',
-          message:
-            `Anthropic Message Batches cannot restore the dynamic code-execution context ` +
-            `for 20260209 web tools when results are retrieved independently of the start call ` +
-            `(request "${request.id}"). Include the code execution tool explicitly.`,
         });
       }
       const body = this.transformRequestBody(prepared.args, prepared.betas);
@@ -657,6 +646,8 @@ function convertAnthropicBatchResponse(
         const isCodeExecutionAlias =
           part.name === 'bash_code_execution' ||
           part.name === 'text_editor_code_execution';
+        const isCodeExecution =
+          isCodeExecutionAlias || part.name === 'code_execution';
         const toolName = isCodeExecutionAlias ? 'code_execution' : part.name;
         if (
           part.name === 'tool_search_tool_bm25' ||
@@ -679,6 +670,9 @@ function convertAnthropicBatchResponse(
                 : part.input,
           ),
           providerExecuted: true,
+          // Batch results are retrieved without the original request tools, so
+          // implicitly provisioned code execution must remain self-describing.
+          ...(isCodeExecution ? { dynamic: true } : {}),
           ...anthropicCallerMetadata(part.caller),
         });
         break;

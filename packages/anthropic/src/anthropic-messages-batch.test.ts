@@ -331,76 +331,93 @@ describe('Anthropic Messages batch language model', () => {
     expect(server.calls).toHaveLength(0);
   });
 
-  it('rejects implicit code execution that cannot be restored later', async () => {
+  it('allows web tools that implicitly provision code execution', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'in_progress' }),
+    };
     const model = createAnthropic({ apiKey: 'test-api-key' })(
       'claude-3-haiku-20240307',
     );
 
-    await expect(
-      model.experimental_doStartBatch({
-        requests: [
-          {
-            id: 'request-1',
-            ...request('Search', {
-              tools: [
-                {
-                  type: 'provider',
-                  id: 'anthropic.web_search_20260209',
-                  name: 'web_search',
-                  args: {},
-                },
-              ],
-            }),
-          },
-        ],
-      }),
-    ).rejects.toMatchObject({
-      name: 'AI_UnsupportedFunctionalityError',
-      functionality:
-        'implicit code execution for 20260209 web tools in batches',
+    await model.experimental_doStartBatch({
+      requests: [
+        {
+          id: 'request-1',
+          ...request('Search', {
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.web_search_20260209',
+                name: 'web_search',
+                args: {},
+              },
+            ],
+          }),
+        },
+      ],
     });
-    expect(server.calls).toHaveLength(0);
+
+    await expect(server.calls[0].requestBodyJson).resolves.toMatchObject({
+      requests: [
+        {
+          params: {
+            tools: [{ type: 'web_search_20260209', name: 'web_search' }],
+          },
+        },
+      ],
+    });
   });
 
   it('does not treat a custom code_execution function as the provider tool', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'in_progress' }),
+    };
     const model = createAnthropic({ apiKey: 'test-api-key' })(
       'claude-3-haiku-20240307',
     );
 
-    await expect(
-      model.experimental_doStartBatch({
-        requests: [
-          {
-            id: 'request-1',
-            ...request('Search', {
-              tools: [
-                {
-                  type: 'provider',
-                  id: 'anthropic.web_search_20260209',
-                  name: 'web_search',
-                  args: {},
+    await model.experimental_doStartBatch({
+      requests: [
+        {
+          id: 'request-1',
+          ...request('Search', {
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.web_search_20260209',
+                name: 'web_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'code_execution',
+                description: 'A custom client-side function',
+                inputSchema: {
+                  type: 'object',
+                  properties: {},
+                  additionalProperties: false,
                 },
-                {
-                  type: 'function',
-                  name: 'code_execution',
-                  description: 'A custom client-side function',
-                  inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    additionalProperties: false,
-                  },
-                },
-              ],
-            }),
-          },
-        ],
-      }),
-    ).rejects.toMatchObject({
-      name: 'AI_UnsupportedFunctionalityError',
-      functionality:
-        'implicit code execution for 20260209 web tools in batches',
+              },
+            ],
+          }),
+        },
+      ],
     });
-    expect(server.calls).toHaveLength(0);
+
+    await expect(server.calls[0].requestBodyJson).resolves.toMatchObject({
+      requests: [
+        {
+          params: {
+            tools: [
+              { type: 'web_search_20260209', name: 'web_search' },
+              { name: 'code_execution' },
+            ],
+          },
+        },
+      ],
+    });
   });
 
   it.each([
@@ -735,6 +752,12 @@ describe('Anthropic Messages batch language model', () => {
                   input: { query: 'weather Paris' },
                 },
                 {
+                  type: 'server_tool_use',
+                  id: 'code_123',
+                  name: 'code_execution',
+                  input: { code: 'print("Paris")' },
+                },
+                {
                   type: 'web_search_tool_result',
                   tool_use_id: 'srvtoolu_123',
                   content: [
@@ -807,6 +830,15 @@ describe('Anthropic Messages batch language model', () => {
               toolName: 'web_search',
               input: '{"query":"weather Paris"}',
               providerExecuted: true,
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'code_123',
+              toolName: 'code_execution',
+              input:
+                '{"type":"programmatic-tool-call","code":"print(\\"Paris\\")"}',
+              providerExecuted: true,
+              dynamic: true,
             },
             {
               type: 'tool-result',
@@ -908,6 +940,16 @@ describe('Anthropic Messages batch language model', () => {
                       document_title: 'Weather report',
                       start_page_number: 1,
                       end_page_number: 1,
+                      file_id: 'file_page',
+                    },
+                    {
+                      type: 'char_location',
+                      cited_text: 'Paris is sunny.',
+                      document_index: 0,
+                      document_title: 'Weather report',
+                      start_char_index: 0,
+                      end_char_index: 15,
+                      file_id: 'file_char',
                     },
                     {
                       type: 'web_search_result_location',
@@ -952,6 +994,16 @@ describe('Anthropic Messages batch language model', () => {
                       document_title: 'Weather report',
                       start_page_number: 1,
                       end_page_number: 1,
+                      file_id: 'file_page',
+                    },
+                    {
+                      type: 'char_location',
+                      cited_text: 'Paris is sunny.',
+                      document_index: 0,
+                      document_title: 'Weather report',
+                      start_char_index: 0,
+                      end_char_index: 15,
+                      file_id: 'file_char',
                     },
                     {
                       type: 'web_search_result_location',
