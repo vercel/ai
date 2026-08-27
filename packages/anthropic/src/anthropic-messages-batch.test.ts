@@ -362,6 +362,47 @@ describe('Anthropic Messages batch language model', () => {
     expect(server.calls).toHaveLength(0);
   });
 
+  it('does not treat a custom code_execution function as the provider tool', async () => {
+    const model = createAnthropic({ apiKey: 'test-api-key' })(
+      'claude-3-haiku-20240307',
+    );
+
+    await expect(
+      model.experimental_doStartBatch({
+        requests: [
+          {
+            id: 'request-1',
+            ...request('Search', {
+              tools: [
+                {
+                  type: 'provider',
+                  id: 'anthropic.web_search_20260209',
+                  name: 'web_search',
+                  args: {},
+                },
+                {
+                  type: 'function',
+                  name: 'code_execution',
+                  description: 'A custom client-side function',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    additionalProperties: false,
+                  },
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality:
+        'implicit code execution for 20260209 web tools in batches',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
   it.each([
     {
       feature: 'providerOptions.anthropic.speed',

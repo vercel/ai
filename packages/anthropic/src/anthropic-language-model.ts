@@ -2953,7 +2953,12 @@ export function hasWebTool20260209WithoutCodeExecution(
       hasWebTool20260209 = true;
       continue;
     }
-    if (tool.name === 'code_execution') {
+    if (
+      'type' in tool &&
+      (tool.type === 'code_execution_20250522' ||
+        tool.type === 'code_execution_20250825' ||
+        tool.type === 'code_execution_20260120')
+    ) {
       hasCodeExecutionTool = true;
       break;
     }
