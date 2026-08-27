@@ -124,7 +124,11 @@ function fakeSandboxSession({
   bridgePortEndpoint?: HarnessV1PortEndpoint;
 } = {}): HarnessV1NetworkSandboxSession {
   const session = {
-    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    run: async ({ command }: { command: string }) => ({
+      exitCode: 0,
+      stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
+      stderr: '',
+    }),
     readTextFile: async () => null,
     writeTextFile: async () => {},
     spawn: async ({
@@ -169,6 +173,7 @@ async function startTurn() {
     sandboxSession: fakeSandboxSession(),
   } as unknown as Parameters<typeof harness.doStart>[0]);
   const control = await session.doPromptTurn({
+    skills: [],
     prompt: 'hi',
     emit: () => {},
   } as unknown as Parameters<typeof session.doPromptTurn>[0]);
@@ -352,6 +357,8 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Use memory.',
       emit: () => {},
     });
@@ -376,6 +383,8 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Think carefully.',
       emit: () => {},
     });
@@ -384,8 +393,10 @@ describe('createDeepAgents', () => {
       {
         "effort": "max",
         "prompt": "Think carefully.",
+        "skillsChanged": false,
         "skillsPaths": [
           "/vercel/sandbox/deepagents-test-session/.agents/skills",
+          "/home/vercel-sandbox/.agents/skills",
         ],
         "thinking": {
           "display": "summarized",

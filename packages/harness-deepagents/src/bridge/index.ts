@@ -9,7 +9,7 @@ import {
 } from '@ai-sdk/harness/bridge';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { tool } from '@langchain/core/tools';
-import { Command, MemorySaver } from '@langchain/langgraph';
+import { Command, MemorySaver, Overwrite } from '@langchain/langgraph';
 import {
   MultiServerMCPClient,
   type ClientConfig,
@@ -132,6 +132,8 @@ let currentTurn: BridgeTurn | undefined;
 let mcpClient: MultiServerMCPClient | undefined;
 let mcpToolNames = new Set<string>();
 let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
+const checkpointer = new MemorySaver();
+let agentConfigurationSignature: string | undefined;
 
 type DeepAgentsJsonSchema = Record<string, unknown> & {
   type:
@@ -196,7 +198,30 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     start.permissionMode,
     start.builtinToolFiltering,
   );
-  if (!agent) {
+  const config = {
+    version: 'v2' as const,
+    configurable: { thread_id: 'bridge-session' },
+    ...(start.recursionLimit != null
+      ? { recursionLimit: start.recursionLimit }
+      : {}),
+    signal: turn.abortSignal,
+  };
+  const nextAgentConfigurationSignature = JSON.stringify({
+    instructions: start.instructions,
+    tools: start.tools,
+    skillsPaths: start.skillsPaths,
+  });
+  const rebuildAgent =
+    agent == null ||
+    agentConfigurationSignature !== nextAgentConfigurationSignature ||
+    start.skillsChanged === true;
+  if (rebuildAgent) {
+    if (agent != null && start.skillsChanged === true) {
+      await agent.updateState(config, {
+        skillsMetadata: new Overwrite([]),
+      } as never);
+    }
+    await closeMcpClient();
     const model = buildModel({
       rawModel: start.model,
       thinking: start.thinking,
@@ -248,8 +273,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),
       // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.
-      checkpointer: new MemorySaver(),
+      checkpointer,
     });
+    agentConfigurationSignature = nextAgentConfigurationSignature;
+  }
+  const activeAgent = agent;
+  if (activeAgent == null) {
+    throw new Error('Deep Agents runtime was not initialized');
   }
 
   const hostToolNames = new Set((start.tools ?? []).map(t => t.name));
@@ -265,19 +295,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     emit,
   });
 
-  const config = {
-    version: 'v2' as const,
-    configurable: { thread_id: 'bridge-session' },
-    ...(start.recursionLimit != null
-      ? { recursionLimit: start.recursionLimit }
-      : {}),
-    signal: turn.abortSignal,
-  };
-
   // After a stream segment ends, return the tool calls paused by HITL interrupts (empty when the turn is truly done).
   const readPendingApprovals = async () => {
     try {
-      const state = (await agent!.getState({
+      const state = (await activeAgent.getState({
         configurable: { thread_id: 'bridge-session' },
       })) as { tasks?: Array<{ interrupts?: Array<{ value?: unknown }> }> };
       return collectActionRequests(
@@ -294,7 +315,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let emittedStructuredOutput = false;
 
   while (true) {
-    const stream = await agent.streamEvents(resumeInput as never, config);
+    const stream = await activeAgent.streamEvents(resumeInput as never, config);
 
     for await (const event of stream) {
       emitStreamEvent(event as DeepAgentsStreamEvent);

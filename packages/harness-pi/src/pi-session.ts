@@ -226,7 +226,6 @@ export interface CreatePiSessionInput {
   readonly sessionId: string;
   readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   readonly sessionWorkDir: string;
-  readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: PiSessionSettings;
   readonly clientApp: string;
   readonly isResume: boolean;
@@ -331,23 +330,12 @@ export async function createPiSession(
     sessionId: input.sessionId,
   });
   const permissionMode = input.permissionMode ?? 'allow-all';
-  let sandboxSkillRootDir: string | undefined;
+  const sandboxSkillRootDir = path.posix.join(
+    sandboxHomeDir,
+    '.agents',
+    'skills',
+  );
   let harnessSkills: Skill[] = [];
-
-  // Materialise harness-provided skills into sandbox HOME, not the workspace.
-  if (input.skills.length > 0) {
-    sandboxSkillRootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
-    harnessSkills = createHarnessPiSkills({
-      skills: input.skills,
-      sandboxSkillRootDir,
-    });
-    await writePiSkills({
-      sandbox: toolSafeSandboxSession,
-      sandboxHomeDir,
-      skills: input.skills,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
-  }
 
   // On resume: pull the Pi session file out of the sandbox into the fresh
   // host mirror so SessionManager.open can read it.
@@ -384,9 +372,7 @@ export async function createPiSession(
   const paths = createPiPathMapper({
     hostWorkDir,
     sandboxWorkDir: sessionWorkDir,
-    readableRoots: sandboxSkillRootDir
-      ? [{ sandboxDir: sandboxSkillRootDir }]
-      : [],
+    readableRoots: [{ sandboxDir: sandboxSkillRootDir }],
   });
 
   // Pi auth + model registry are global to this Pi session. These live on the
@@ -797,6 +783,7 @@ export async function createPiSession(
           // rebuilding the Pi session from it.
           const control = await runTurn({
             text: '',
+            skills: continueOpts.skills,
             tools: continueOpts.tools ?? [],
             instructions: continueOpts.instructions,
             emit: continueOpts.emit,
@@ -1073,6 +1060,7 @@ export async function createPiSession(
    */
   async function runTurn(turnOpts: {
     text: string;
+    skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
     instructions?: string;
     emit: (part: HarnessV1StreamPart) => void;
@@ -1080,6 +1068,20 @@ export async function createPiSession(
   }): Promise<HarnessV1PromptControl> {
     if (stopped) {
       throw new Error('Pi session has been stopped.');
+    }
+
+    const skillWriteResult = await writePiSkills({
+      sandbox: toolSafeSandboxSession,
+      sandboxHomeDir,
+      skills: turnOpts.skills,
+      abortSignal: turnOpts.abortSignal,
+    });
+    harnessSkills = createHarnessPiSkills({
+      skills: turnOpts.skills,
+      sandboxSkillRootDir,
+    });
+    if (piSession != null && skillWriteResult.changed) {
+      await reloadResourcesOnly();
     }
 
     const userTools = turnOpts.tools;
@@ -1334,6 +1336,7 @@ export async function createPiSession(
       }
       return runTurn({
         text: extractUserText(promptOpts.prompt),
+        skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
         instructions: promptOpts.instructions,
         emit: promptOpts.emit,
@@ -1390,6 +1393,7 @@ export async function createPiSession(
        */
       return runTurn({
         text: '',
+        skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],
         instructions: continueOpts.instructions,
         emit: continueOpts.emit,

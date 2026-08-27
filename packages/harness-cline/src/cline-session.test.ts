@@ -136,6 +136,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'do the thing',
         instructions: 'Use turbo build.',
         emit: vi.fn(),
@@ -161,6 +163,8 @@ describe('createClineSession instructions', () => {
     try {
       for (const prompt of ['first turn', 'second turn']) {
         const control = await session.doPromptTurn({
+          skills: [],
+          tools: [],
           prompt,
           instructions: 'Use turbo build.',
           emit: vi.fn(),
@@ -171,6 +175,7 @@ describe('createClineSession instructions', () => {
       expect(clineMock.configs).toHaveLength(1);
 
       const rebuildControl = await session.doPromptTurn({
+        skills: [],
         prompt: 'third turn',
         instructions: 'Use turbo build.',
         tools: [
@@ -200,6 +205,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'resume the task',
         instructions: 'Use turbo build.',
         emit: vi.fn(),
@@ -220,6 +227,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doContinueTurn({
+        skills: [],
+        tools: [],
         instructions: 'Use turbo build.',
         emit: vi.fn(),
       });
@@ -240,6 +249,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'do the thing',
         emit: vi.fn(),
       });
@@ -262,6 +273,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'Weather in Paris?',
         emit: vi.fn(),
       });
@@ -291,6 +304,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'Weather in Paris?',
         emit: vi.fn(),
       });
@@ -544,6 +559,7 @@ describe('createClineSession tool results', () => {
 
       try {
         const control = await session.doPromptTurn({
+          skills: [],
           prompt: 'use the lookup tool',
           tools: [
             {
@@ -584,6 +600,7 @@ describe('createClineSession tool results', () => {
   it('marks a pending host tool result as an error when the session is destroyed', async () => {
     const session = await createSession();
     const control = await session.doPromptTurn({
+      skills: [],
       prompt: 'use the lookup tool',
       tools: [
         {
@@ -622,6 +639,7 @@ describe('createClineSession tool results', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
         prompt: 'use the lookup tool twice',
         tools: [
           {
@@ -677,6 +695,8 @@ describe('createClineSession tool results', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'read a file',
         emit: vi.fn(),
       });
@@ -718,12 +738,15 @@ describe('createClineSession tool execution', () => {
 
     try {
       const firstControl = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'first turn',
         emit: vi.fn(),
       });
       await firstControl.done;
 
       const secondControl = await session.doPromptTurn({
+        skills: [],
         prompt: 'second turn',
         tools: [
           {
@@ -751,6 +774,8 @@ describe('createClineSession tool execution', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'Answer.',
         responseFormat: {
           type: 'json',
@@ -821,6 +846,8 @@ describe('createClineSession tool execution', () => {
     try {
       await expect(
         session.doPromptTurn({
+          skills: [],
+          tools: [],
           prompt: 'Answer.',
           responseFormat: {
             type: 'json',
@@ -848,7 +875,6 @@ async function createSession(
     sessionId: 'session-1',
     sandboxSession: createSandboxSession(),
     sessionWorkDir: '/sandbox/work',
-    skills: [],
     settings: {
       authEnv: {},
       isAuthenticationEnvironmentOverride: false,

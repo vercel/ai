@@ -228,7 +228,16 @@ describe('createOpenCode adapter', () => {
     const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',
-      restricted: () => ({}) as never,
+      restricted: () =>
+        ({
+          run: async () => ({
+            exitCode: 0,
+            stdout: '/home/vercel-sandbox',
+            stderr: '',
+          }),
+          readTextFile: async () => null,
+          writeTextFile: async () => {},
+        }) as never,
       ports: [] as ReadonlyArray<number>,
       async getPortEndpoint() {
         return { url: '' };
@@ -500,6 +509,7 @@ describe('createOpenCode adapter', () => {
   });
 
   it('writes skills under sandbox HOME and starts OpenCode with that HOME', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const runCommands: string[] = [];
     const writes: Array<{ path: string; content: string }> = [];
     const spawns: Array<{
@@ -528,7 +538,7 @@ describe('createOpenCode adapter', () => {
         writes.push({ path, content });
       },
       async readTextFile() {
-        return '';
+        return null;
       },
       async spawn({
         command,
@@ -538,7 +548,10 @@ describe('createOpenCode adapter', () => {
         env: Record<string, string | undefined>;
       }) {
         spawns.push({ command, env });
-        return {} as never;
+        return {
+          async wait() {},
+          async kill() {},
+        } as never;
       },
     };
     const sandboxSession = {
@@ -555,48 +568,56 @@ describe('createOpenCode adapter', () => {
       async stop() {},
     } as unknown as HarnessV1NetworkSandboxSession;
 
-    await expect(
-      createOpenCode().doStart({
-        sessionId: 's1',
-        sandboxSession,
-        sessionWorkDir: '/workspace/project',
-        skills: [
-          {
-            name: 'demo',
-            description: 'Demo skill.',
-            content: 'Use reference.md.',
-            files: [{ path: 'reference.md', content: '# Reference' }],
-          },
-        ],
-      }),
-    ).rejects.toThrow('stop after spawn');
+    const session = await createOpenCode().doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+    await session.doPromptTurn({
+      skills: [
+        {
+          name: 'demo',
+          description: 'Demo skill.',
+          content: 'Use reference.md.',
+          files: [{ path: 'reference.md', content: '# Reference' }],
+        },
+      ],
+      tools: [],
+      prompt: 'Use demo.',
+      emit: () => {},
+    });
 
     expect(runCommands).toContain('printf "%s" "$HOME"');
     expect(runCommands).toContain(
       "mkdir -p '/home/vercel-sandbox/.agents/skills'",
     );
-    expect(writes).toEqual([
-      {
-        path: '/home/vercel-sandbox/.agents/skills/demo/SKILL.md',
-        content:
-          '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
-      },
-      {
-        path: '/home/vercel-sandbox/.agents/skills/demo/reference.md',
-        content: '# Reference',
-      },
-    ]);
+    const skillWrites = writes.filter(write => write.path.includes('/demo/'));
+    expect(skillWrites).toEqual(
+      expect.arrayContaining([
+        {
+          path: '/home/vercel-sandbox/.agents/skills/demo/SKILL.md',
+          content:
+            '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
+        },
+        {
+          path: '/home/vercel-sandbox/.agents/skills/demo/reference.md',
+          content: '# Reference',
+        },
+      ]),
+    );
+    expect(skillWrites).toHaveLength(2);
     expect(writes.some(write => write.path.includes('/.opencode/'))).toBe(
       false,
     );
     expect(
       writes.some(write => write.path.startsWith('/workspace/project/')),
     ).toBe(false);
-    expect(spawns.at(-1)?.env.HOME).toBe('/home/vercel-sandbox');
-    expect(spawns.at(-1)?.env.USERPROFILE).toBe('/home/vercel-sandbox');
-    expect(spawns.at(-1)?.env.XDG_CONFIG_HOME).toBe(
-      '/home/vercel-sandbox/.config',
-    );
+    expect(spawns.at(-1)?.env).not.toHaveProperty('HOME');
+    expect(spawns.at(-1)?.env).not.toHaveProperty('USERPROFILE');
+    expect(spawns.at(-1)?.env).not.toHaveProperty('XDG_CONFIG_HOME');
+    expect(spawns.at(-1)?.env).not.toHaveProperty('XDG_CACHE_HOME');
+    expect(spawns.at(-1)?.env).not.toHaveProperty('XDG_DATA_HOME');
+    expect(spawns.at(-1)?.env).not.toHaveProperty('XDG_STATE_HOME');
     expect(spawns.at(-1)?.env.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-opencode/0.0.0-test',
     );
@@ -610,6 +631,7 @@ describe('createOpenCode adapter', () => {
     expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",
     );
+    await session.doDestroy();
   });
 
   it('passes reasoningVariant, instructions, and MCP servers to every OpenCode prompt', async () => {
@@ -632,6 +654,10 @@ describe('createOpenCode adapter', () => {
         }
         return { exitCode: 0, stdout: '', stderr: '' };
       },
+      async readTextFile() {
+        return null;
+      },
+      async writeTextFile() {},
       async spawn() {
         return {
           stdout: emptyStream(),
@@ -670,6 +696,8 @@ describe('createOpenCode adapter', () => {
       sessionWorkDir: '/workspace/project',
     });
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'think',
       instructions: 'be concise',
       emit: () => {},
@@ -685,6 +713,8 @@ describe('createOpenCode adapter', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'think again',
       instructions: 'be concise',
       emit: () => {},
@@ -718,6 +748,10 @@ describe('createOpenCode adapter', () => {
           ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
           : { exitCode: 0, stdout: '', stderr: '' };
       },
+      async readTextFile() {
+        return null;
+      },
+      async writeTextFile() {},
       async spawn() {
         return {
           stdout: emptyStream(),
@@ -746,6 +780,8 @@ describe('createOpenCode adapter', () => {
       sessionWorkDir: '/workspace/project',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Weather in Paris?',
       emit: () => {},
     });

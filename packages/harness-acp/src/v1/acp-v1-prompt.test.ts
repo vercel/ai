@@ -5,7 +5,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   convertHarnessPromptToACPTextBlocks,
-  prependACPInitialGuidance,
+  prependACPInstructionGuidance,
 } from './acp-v1-prompt';
 
 describe('convertHarnessPromptToACPTextBlocks', () => {
@@ -107,9 +107,9 @@ describe('convertHarnessPromptToACPTextBlocks', () => {
   });
 });
 
-describe('prependACPInitialGuidance', () => {
+describe('prependACPInstructionGuidance', () => {
   it('prepends delimited instructions without skill guidance', () => {
-    const result = prependACPInitialGuidance({
+    const result = prependACPInstructionGuidance({
       prompt: [
         { type: 'text', text: 'First' },
         { type: 'text', text: 'Second' },
@@ -136,7 +136,7 @@ describe('prependACPInitialGuidance', () => {
 
   it('does not add an empty guidance block', () => {
     expect(
-      prependACPInitialGuidance({
+      prependACPInstructionGuidance({
         prompt: [{ type: 'text', text: 'Hello' }],
         instructions: '',
       }),

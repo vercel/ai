@@ -136,7 +136,12 @@ function fakeNetworkSandboxSessionForStartupSuccess({
       runs.push(command);
       return {
         exitCode: 0,
-        stdout: command === 'pwd' ? '/vercel/sandbox\n' : '',
+        stdout:
+          command === 'pwd'
+            ? '/vercel/sandbox\n'
+            : command === 'printf "%s" "$HOME"'
+              ? '/home/vercel-sandbox'
+              : '',
         stderr: '',
       };
     },
@@ -233,7 +238,16 @@ describe('createCodex adapter', () => {
     const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',
-      restricted: () => ({}) as never,
+      restricted: () =>
+        ({
+          run: async () => ({
+            exitCode: 0,
+            stdout: '/home/vercel-sandbox',
+            stderr: '',
+          }),
+          readTextFile: async () => null,
+          writeTextFile: async () => {},
+        }) as never,
       ports: [] as ReadonlyArray<number>,
       async getPortEndpoint() {
         return { url: '' };
@@ -533,6 +547,8 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Use Context7.',
       emit: () => {},
     });
@@ -564,6 +580,8 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Be concise.',
       emit: () => {},
     });

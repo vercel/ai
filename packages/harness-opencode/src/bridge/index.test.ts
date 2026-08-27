@@ -38,8 +38,6 @@ vi.mock('@opencode-ai/sdk/v2', () => ({
   createOpencodeClient: vi.fn(() => sdkMock.client),
 }));
 
-vi.mock('node:fs', () => ({ mkdirSync: vi.fn() }));
-
 vi.mock('./tool-relay', () => ({
   startAuthorizedToolRelay: vi.fn(async () => relayMock),
 }));

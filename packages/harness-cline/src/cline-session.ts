@@ -26,6 +26,7 @@ import {
   type AgentRunResult,
 } from '@cline/agents';
 import { Llms } from '@cline/core';
+import path from 'node:path';
 import { createClineMcpRuntime } from './cline-mcp';
 import { createClineRemoteOps } from './cline-remote-ops';
 import {
@@ -97,7 +98,6 @@ export interface CreateClineSessionInput {
   readonly sessionId: string;
   readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   readonly sessionWorkDir: string;
-  readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: ClineSessionSettings;
   readonly clientApp: string;
   readonly isResume: boolean;
@@ -271,32 +271,12 @@ export async function createClineSession(
     input.builtinToolFiltering,
   );
 
-  // Materialize harness-provided skills into sandbox HOME (not the workspace)
-  // and advertise them via a system prompt section.
-  let skillsSection: string | undefined;
-  let skillRootDir: string | undefined;
-  if (input.skills.length > 0) {
-    skillRootDir = await writeClineSkills({
-      sandbox: toolSafeSandboxSession,
-      sandboxHomeDir,
-      skills: input.skills,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
-    if (skillRootDir) {
-      skillsSection = renderSkillsPromptSection(input.skills, skillRootDir);
-    }
-  }
+  const skillRootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
 
   const ops = createClineRemoteOps({
     sandbox: toolSafeSandboxSession,
     workDir: input.sessionWorkDir,
-    ...(skillRootDir ? { readableRoots: [{ sandboxDir: skillRootDir }] } : {}),
-  });
-
-  const baseSystemPrompt = buildSystemPrompt({
-    sessionWorkDir: input.sessionWorkDir,
-    sandboxDescription: toolSafeSandboxSession.description,
-    ...(skillsSection ? { skillsSection } : {}),
+    readableRoots: [{ sandboxDir: skillRootDir }],
   });
 
   // On resume: pull the persisted conversation history from the sandbox so
@@ -404,6 +384,7 @@ export async function createClineSession(
 
   function rebuildAgent(rebuildInput: {
     userTools: ReadonlyArray<HarnessV1ToolSpec>;
+    skillsSection?: string;
     instructions?: string;
     responseFormat?: HarnessV1PromptTurnOptions['responseFormat'];
   }): void {
@@ -420,9 +401,18 @@ export async function createClineSession(
           }
         : {}),
       sessionId: input.sessionId,
-      systemPrompt: rebuildInput.instructions
-        ? `${baseSystemPrompt}\n\n${rebuildInput.instructions}`
-        : baseSystemPrompt,
+      systemPrompt: (() => {
+        const baseSystemPrompt = buildSystemPrompt({
+          sessionWorkDir: input.sessionWorkDir,
+          sandboxDescription: toolSafeSandboxSession.description,
+          ...(rebuildInput.skillsSection
+            ? { skillsSection: rebuildInput.skillsSection }
+            : {}),
+        });
+        return rebuildInput.instructions
+          ? `${baseSystemPrompt}\n\n${rebuildInput.instructions}`
+          : baseSystemPrompt;
+      })(),
       initialMessages: currentMessages,
       toolExecution: 'parallel',
       ...(input.settings.maxIterations !== undefined
@@ -572,19 +562,30 @@ export async function createClineSession(
    * Shared by `doPromptTurn` (a fresh user prompt) and `doContinueTurn`
    * (no prompt — the runtime continues its own thread after a rerun resume).
    */
-  function runTurn(turnOpts: {
+  async function runTurn(turnOpts: {
     text: string | undefined;
+    skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
     instructions?: string;
     emit: (part: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
     responseFormat?: HarnessV1PromptTurnOptions['responseFormat'];
-  }): HarnessV1PromptControl {
+  }): Promise<HarnessV1PromptControl> {
     if (stopped) {
       throw new Error('Cline session has been stopped.');
     }
 
     const userTools = turnOpts.tools;
+    const skillWrite = await writeClineSkills({
+      sandbox: toolSafeSandboxSession,
+      sandboxHomeDir,
+      skills: turnOpts.skills,
+      ...(turnOpts.abortSignal ? { abortSignal: turnOpts.abortSignal } : {}),
+    });
+    const skillsSection =
+      turnOpts.skills.length === 0
+        ? undefined
+        : renderSkillsPromptSection(turnOpts.skills, skillWrite.rootDir);
     if (
       turnOpts.responseFormat?.type === 'json' &&
       turnOpts.responseFormat.schema == null
@@ -607,13 +608,19 @@ export async function createClineSession(
     }
 
     const signature = JSON.stringify({
-      tools: userTools.map(t => t.name).sort(),
+      tools: userTools,
       responseFormat: turnOpts.responseFormat,
+      instructions: turnOpts.instructions,
     });
-    if (agent == null || signature !== lastToolsSignature) {
+    if (
+      agent == null ||
+      signature !== lastToolsSignature ||
+      skillWrite.result.changed
+    ) {
       currentMessages = agent?.snapshot().messages ?? currentMessages;
       rebuildAgent({
         userTools,
+        ...(skillsSection ? { skillsSection } : {}),
         responseFormat: turnOpts.responseFormat,
         ...(turnOpts.instructions
           ? { instructions: turnOpts.instructions }
@@ -809,6 +816,7 @@ export async function createClineSession(
     ): Promise<HarnessV1PromptControl> => {
       return runTurn({
         text: extractUserText(promptOpts.prompt),
+        skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
@@ -843,6 +851,7 @@ export async function createClineSession(
        */
       return runTurn({
         text: undefined,
+        skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],
         ...(continueOpts.instructions
           ? { instructions: continueOpts.instructions }

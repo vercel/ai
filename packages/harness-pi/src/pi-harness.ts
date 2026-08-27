@@ -149,7 +149,6 @@ export function createPi(
         sessionId: startOpts.sessionId,
         sandboxSession: startOpts.sandboxSession,
         sessionWorkDir: startOpts.sessionWorkDir,
-        skills: startOpts.skills ?? [],
         settings: {
           ...(settings.auth ? { auth: settings.auth } : {}),
           ...(settings.model ? { model: settings.model } : {}),
