@@ -53,6 +53,12 @@ export type LanguageModelV4StreamPart =
       type: 'tool-input-start';
       id: string;
       toolName: string;
+      /**
+       * Encoding used by subsequent tool input deltas.
+       *
+       * Defaults to `json` when omitted.
+       */
+      inputFormat?: 'json' | 'text';
       providerMetadata?: SharedV4ProviderMetadata;
       providerExecuted?: boolean;
       dynamic?: boolean;

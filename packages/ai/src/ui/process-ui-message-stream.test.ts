@@ -3560,6 +3560,64 @@ describe('processUIMessageStream', () => {
         input: 'true && echo ok',
       });
     });
+
+    it('should continue parsing JSON-encoded string input while streaming', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'write_text',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '"hello',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: ' world"',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'write_text',
+          input: 'hello world',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(writeCalls[2].message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'hello',
+      });
+      expect(writeCalls[3].message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'hello world',
+      });
+      expect(writeCalls[4].message.parts[1]).toMatchObject({
+        state: 'input-available',
+        input: 'hello world',
+      });
+    });
   });
 
   describe('start with message id', () => {

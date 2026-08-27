@@ -6,7 +6,6 @@ import {
 } from '@ai-sdk/provider';
 import {
   asArray,
-  asSchema,
   createIdGenerator,
   DelayedPromise,
   filterNullable,
@@ -2303,24 +2302,9 @@ class DefaultStreamTextResult<
                     case 'reasoning-file':
                     case 'tool-input-end':
                     case 'tool-input-delta':
+                    case 'tool-input-start':
                     case 'tool-approval-request': {
                       controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'tool-input-start': {
-                      const tool = getOwn(tools, chunk.toolName);
-                      const inputFormat =
-                        tool?.type === 'provider' &&
-                        (await asSchema(tool.inputSchema).jsonSchema).type ===
-                          'string'
-                          ? 'text'
-                          : undefined;
-
-                      controller.enqueue({
-                        ...chunk,
-                        ...(inputFormat != null ? { inputFormat } : {}),
-                      });
                       break;
                     }
 

@@ -3827,19 +3827,20 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should mark only provider-defined string tool inputs as text', async () => {
+    it('should preserve provider-declared tool input formats without inspecting provider tool schemas', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
             {
               type: 'tool-input-start',
-              id: 'provider-call',
-              toolName: 'providerTool',
+              id: 'text-call',
+              toolName: 'textTool',
+              inputFormat: 'text',
             },
             {
               type: 'tool-input-start',
-              id: 'function-call',
-              toolName: 'functionTool',
+              id: 'json-call',
+              toolName: 'jsonTool',
             },
             {
               type: 'finish',
@@ -3849,15 +3850,25 @@ describe('streamText', () => {
           ]),
         }),
         tools: {
-          providerTool: tool({
+          textTool: tool({
             type: 'provider',
-            id: 'test.provider-tool',
+            id: 'test.text-tool',
             args: {},
             isProviderExecuted: false,
-            inputSchema: z.string(),
+            inputSchema: {
+              '~standard': {
+                version: 1,
+                vendor: 'validation-only',
+                validate: (value: unknown) => ({ value: value as string }),
+              },
+            },
             execute: async input => input,
           }),
-          functionTool: tool({
+          jsonTool: tool({
+            type: 'provider',
+            id: 'test.json-tool',
+            args: {},
+            isProviderExecuted: false,
             inputSchema: z.string(),
             execute: async input => input,
           }),
@@ -3872,14 +3883,14 @@ describe('streamText', () => {
       ).toMatchObject([
         {
           type: 'tool-input-start',
-          id: 'provider-call',
-          toolName: 'providerTool',
+          id: 'text-call',
+          toolName: 'textTool',
           inputFormat: 'text',
         },
         {
           type: 'tool-input-start',
-          id: 'function-call',
-          toolName: 'functionTool',
+          id: 'json-call',
+          toolName: 'jsonTool',
         },
       ]);
     });
