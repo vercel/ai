@@ -7981,6 +7981,64 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  it('preserves approval descriptors through request and response states', async () => {
+    const descriptor = {
+      action: 'deleteAccount',
+      permissions: ['account:delete'],
+      risk: 'high',
+    };
+    const stream = createUIMessageStream([
+      {
+        input: { userId: 'user-123' },
+        toolCallId: 'call-1',
+        toolName: 'deleteAccount',
+        type: 'tool-input-available',
+      },
+      {
+        approvalDescriptor: descriptor,
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+        type: 'tool-approval-request',
+      },
+      {
+        approvalId: 'approval-1',
+        approved: true,
+        type: 'tool-approval-response',
+      },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      writeCalls
+        .map(call => call.message.parts.find(isToolUIPart)?.approval)
+        .filter(approval => approval != null),
+    ).toEqual([
+      {
+        id: 'approval-1',
+        descriptor,
+      },
+      {
+        id: 'approval-1',
+        approved: true,
+        descriptor,
+      },
+    ]);
+  });
+
   describe('tool approval request without signature', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
