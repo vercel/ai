@@ -2,7 +2,10 @@ import type {
   EmbeddingModelV4CallOptions,
   EmbeddingModelV4Middleware,
 } from '@ai-sdk/provider';
-import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
+import {
+  EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL,
+  EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+} from '@ai-sdk/provider-utils';
 import { wrapEmbeddingModel } from '../middleware/wrap-embedding-model';
 import { describe, it, expect, vi } from 'vitest';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
@@ -120,6 +123,51 @@ describe('wrapEmbeddingModel', () => {
       });
 
       expect(wrappedModel.maxEmbeddingsPerCall).toStrictEqual(3);
+    });
+
+    it('should pass through the dynamic limit capability by default', async () => {
+      const wrappedModel = wrapEmbeddingModel({
+        model: new MockEmbeddingModelV4({
+          dynamicMaxEmbeddingsPerCall: ({ providerOptions }) =>
+            providerOptions?.mock?.batch === true ? 3 : 1,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+        },
+      });
+
+      expect(
+        await Reflect.get(
+          wrappedModel,
+          EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL,
+        )({
+          providerOptions: {
+            mock: {
+              batch: true,
+            },
+          },
+        }),
+      ).toBe(3);
+    });
+
+    it('should disable the dynamic limit capability when overridden', () => {
+      const wrappedModel = wrapEmbeddingModel({
+        model: new MockEmbeddingModelV4({
+          dynamicMaxEmbeddingsPerCall: () => 3,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+          overrideMaxEmbeddingsPerCall: () => 2,
+        },
+      });
+
+      expect(
+        Reflect.get(
+          wrappedModel,
+          EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL,
+        ),
+      ).toBeUndefined();
+      expect(wrappedModel.maxEmbeddingsPerCall).toBe(2);
     });
   });
 

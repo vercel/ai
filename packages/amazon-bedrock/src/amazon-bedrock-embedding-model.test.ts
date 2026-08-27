@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL } from '@ai-sdk/provider-utils';
 import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
 import { injectFetchHeaders } from './inject-fetch-headers';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -26,6 +27,12 @@ const cohereV4EmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/
 
 const cohereV4UsProfileEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
   'us.cohere.embed-v4:0',
+)}/invoke`;
+
+const cohereApplicationProfileArn =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/opaque-id';
+const cohereApplicationProfileEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  cohereApplicationProfileArn,
 )}/invoke`;
 
 describe('doEmbed', () => {
@@ -87,6 +94,20 @@ describe('doEmbed', () => {
         body: Buffer.from(
           JSON.stringify({
             embeddings: { float: [mockEmbeddings[0]] },
+          }),
+        ),
+      },
+    },
+    [cohereApplicationProfileEmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+          'x-amzn-bedrock-input-token-count': '12',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: { float: mockEmbeddings },
           }),
         ),
       },
@@ -337,6 +358,69 @@ describe('doEmbed', () => {
       truncate: undefined,
       output_dimension: undefined,
     });
+  });
+
+  it('should support Cohere models behind application inference profile ARNs', async () => {
+    const cohereApplicationProfileModel = new AmazonBedrockEmbeddingModel(
+      cohereApplicationProfileArn,
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: fakeFetchWithAuth,
+      },
+    );
+    const providerOptions = {
+      amazonBedrock: {
+        embeddingFamily: 'cohere' as const,
+        inputType: 'search_document' as const,
+        outputDimension: 256 as const,
+      },
+    };
+
+    await expect(
+      cohereApplicationProfileModel[
+        EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL
+      ]({ providerOptions }),
+    ).resolves.toBe(96);
+
+    const { embeddings, usage } = await cohereApplicationProfileModel.doEmbed({
+      values: testValues,
+      providerOptions,
+    });
+
+    expect(embeddings).toStrictEqual(mockEmbeddings);
+    expect(usage?.tokens).toBe(12);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_document',
+      texts: testValues,
+      truncate: undefined,
+      output_dimension: 256,
+    });
+  });
+
+  it('should infer Cohere application inference profiles from Cohere options', async () => {
+    const cohereApplicationProfileModel = new AmazonBedrockEmbeddingModel(
+      cohereApplicationProfileArn,
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: fakeFetchWithAuth,
+      },
+    );
+
+    await expect(
+      cohereApplicationProfileModel[
+        EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL
+      ]({
+        providerOptions: {
+          bedrock: {
+            inputType: 'search_document',
+          },
+        },
+      }),
+    ).resolves.toBe(96);
   });
 
   it('should pass outputDimension for Cohere v4 embedding models', async () => {

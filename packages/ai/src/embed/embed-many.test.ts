@@ -223,6 +223,32 @@ describe('result.embedding', () => {
     assert.deepStrictEqual(result.embeddings, dummyEmbeddings);
   });
 
+  it('should resolve the embedding limit from provider options', async () => {
+    const model = new MockEmbeddingModelV4({
+      maxEmbeddingsPerCall: 1,
+      dynamicMaxEmbeddingsPerCall: ({ providerOptions }) =>
+        providerOptions?.mock?.batch === true ? 3 : 1,
+      doEmbed: async ({ values }) => ({
+        embeddings: values.map(value => [value.length]),
+        warnings: [],
+      }),
+    });
+
+    await embedMany({
+      model,
+      values: testValues,
+      providerOptions: {
+        mock: {
+          batch: true,
+        },
+      },
+    });
+
+    expect(model.doEmbedCalls.map(call => call.values)).toStrictEqual([
+      testValues,
+    ]);
+  });
+
   it('should split calls when the UTF-8 input byte budget is exceeded', async () => {
     const model = new MockEmbeddingModelV4({
       maxEmbeddingsPerCall: 5,
