@@ -1,5 +1,6 @@
 import type {
   EmbeddingModelV4,
+  Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -9,6 +10,7 @@ import type {
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
   Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -21,7 +23,7 @@ import {
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
-import { GoogleLanguageModel } from './google-language-model';
+import { GoogleBatchLanguageModel } from './google-batch';
 import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
 
@@ -42,15 +44,17 @@ import {
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 import { GoogleRealtimeModel } from './realtime/google-realtime-model';
+import { GoogleTranscriptionModel } from './transcription/google-transcription-model';
+import type { GoogleTranscriptionModelId } from './transcription/google-transcription-model-options';
 import { GoogleSpeechTranslationModel } from './speech-translation/google-speech-translation-model';
 import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
 
 export interface GoogleProvider extends ProviderV4 {
-  (modelId: GoogleModelId): LanguageModelV4;
+  (modelId: GoogleModelId): BatchLanguageModelV4;
 
-  languageModel(modelId: GoogleModelId): LanguageModelV4;
+  languageModel(modelId: GoogleModelId): BatchLanguageModelV4;
 
-  chat(modelId: GoogleModelId): LanguageModelV4;
+  chat(modelId: GoogleModelId): BatchLanguageModelV4;
 
   /**
    * Creates a model for image generation.
@@ -63,7 +67,7 @@ export interface GoogleProvider extends ProviderV4 {
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(modelId: GoogleModelId): LanguageModelV4;
+  generativeAI(modelId: GoogleModelId): BatchLanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
@@ -118,6 +122,19 @@ export interface GoogleProvider extends ProviderV4 {
    * Creates a model for speech generation (text-to-speech).
    */
   speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a model for transcription (speech-to-text). Unary models
+   * (e.g. `gemini-3.5-transcribe`) transcribe audio files; live models
+   * (e.g. `gemini-3.5-transcribe-live`) stream transcription over the
+   * Gemini Live API WebSocket via `experimental_streamTranscribe`.
+   */
+  transcription(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * Creates a model for transcription (speech-to-text).
+   */
+  transcriptionModel(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
 
   files(): FilesV4;
 
@@ -240,7 +257,7 @@ export function createGoogle(
     );
 
   const createChatModel = (modelId: GoogleModelId) =>
-    new GoogleLanguageModel(modelId, {
+    new GoogleBatchLanguageModel(modelId, {
       provider: providerName,
       baseURL,
       headers: getHeaders,
@@ -330,6 +347,15 @@ export function createGoogle(
       fetch: options.fetch,
     });
 
+  const createTranscriptionModel = (modelId: GoogleTranscriptionModelId) =>
+    new GoogleTranscriptionModel(modelId, {
+      provider: `${providerName}.transcription`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      webSocket: options.webSocket,
+    });
+
   const experimentalRealtimeFactory = Object.assign(
     (modelId: string) => createRealtimeModel(modelId),
     {
@@ -392,6 +418,8 @@ export function createGoogle(
   provider.files = createFiles;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
   provider.translation = createSpeechTranslationModel;
   provider.speechTranslationModel = createSpeechTranslationModel;
   provider.interactions = createInteractionsModel;

@@ -1,6 +1,15 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 
 /**
+ * Connection details for a sandbox-exposed port. Headers are scoped to the
+ * returned URL and must be included when opening the connection.
+ */
+export type HarnessV1PortEndpoint = {
+  readonly url: string;
+  readonly headers?: Readonly<Record<string, string>>;
+};
+
+/**
  * Network sandbox session returned by `HarnessV1SandboxProvider.createSession()`. The
  * harness keeps this for the lifetime of a session. It is itself a
  * {@link SandboxSession} (file I/O, exec, spawn) and adds the infra surface on
@@ -36,12 +45,22 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
    */
   readonly defaultWorkingDirectory: string;
 
-  /** Ports the sandbox exposes; resolvable to public URLs via `getPortUrl`. */
+  /** Ports the sandbox exposes; resolvable via `getPortEndpoint`. */
   readonly ports: ReadonlyArray<number>;
 
   /**
-   * Resolve a publicly-reachable URL for a sandbox-exposed port. Bridge-backed
+   * Resolve the connection details for a sandbox-exposed port. Bridge-backed
    * adapters call this to open their WebSocket to the in-sandbox bridge.
+   */
+  readonly getPortEndpoint: (options: {
+    port: number;
+    protocol?: 'http' | 'https' | 'ws';
+  }) => PromiseLike<HarnessV1PortEndpoint>;
+
+  /**
+   * Resolve a publicly-reachable URL for a sandbox-exposed port.
+   *
+   * @deprecated Use `getPortEndpoint` instead.
    */
   readonly getPortUrl: (options: {
     port: number;
@@ -52,11 +71,13 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
   readonly stop: () => PromiseLike<void>;
 
   /**
-   * Destroy/delete the sandbox resource when supported. Optional because some
-   * providers only have a stop/dispose concept. Implementations must handle
-   * both a still-running sandbox and a previously stopped sandbox.
+   * Stop the sandbox session, then perform any additional cleanup necessary
+   * to destroy it, such as deleting its backing resource or freeing resources.
+   * Implementations with no cleanup beyond stopping may delegate to `stop()`.
+   * Implementations must handle both a still-running sandbox and a previously
+   * stopped sandbox.
    */
-  readonly destroy?: () => PromiseLike<void>;
+  readonly destroy: () => PromiseLike<void>;
 
   /**
    * Update the sandbox's outbound network policy. Optional — implementations
@@ -183,4 +204,10 @@ export type HarnessV1RequestTransformation = {
   readonly transform: {
     readonly headers: Readonly<Record<string, string>>;
   };
+};
+
+export type HarnessV1RequestTransformationSources<AuthenticationMode> = {
+  env: Record<string, string>;
+  sandboxEnv: Record<string, string>;
+  auth: AuthenticationMode;
 };

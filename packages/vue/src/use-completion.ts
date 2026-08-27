@@ -69,7 +69,7 @@ export function useCompletion<BODY extends object = object>({
   const key = `${api}|${completionId}`;
   const { data, mutate: originalMutate } = useSWRV<string>(
     key,
-    () => store[key] || initialCompletion,
+    () => store[key] ?? initialCompletion,
   );
 
   const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
@@ -80,7 +80,7 @@ export function useCompletion<BODY extends object = object>({
   isLoading.value ??= false;
 
   // Force the `data` to be `initialCompletion` if it's `undefined`.
-  data.value ||= initialCompletion;
+  data.value ??= initialCompletion;
 
   const mutate = (data: string) => {
     store[key] = data;

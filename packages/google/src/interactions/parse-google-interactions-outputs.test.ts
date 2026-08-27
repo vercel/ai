@@ -154,6 +154,28 @@ describe('parseGoogleInteractionsOutputs', () => {
     });
   });
 
+  describe('built-in tool steps', () => {
+    it('generates an ID when a built-in tool call ID is empty', () => {
+      const { content } = parseGoogleInteractionsOutputs({
+        steps: [
+          {
+            type: 'google_search_call',
+            id: '',
+            arguments: { query: 'weather' },
+          },
+        ] as Array<GoogleInteractionsStep>,
+        generateId,
+      });
+
+      expect(content[0]).toMatchObject({
+        type: 'tool-call',
+        toolCallId: 'gen-id',
+        toolName: 'google_search',
+        providerExecuted: true,
+      });
+    });
+  });
+
   describe('image content in model_output steps', () => {
     it('emits a file content part with mediaType + base64 data when an image block carries inline data', () => {
       const steps = [

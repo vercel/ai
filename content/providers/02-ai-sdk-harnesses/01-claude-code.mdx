@@ -93,6 +93,14 @@ const harness = createClaudeCode({
 Settings:
 
 - `auth`: authentication mode: `auto`, `direct`, or `ai-gateway`.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `model`: Anthropic model id passed to the underlying Claude Code runtime.
 - `maxTurns`: maximum internal turns before yielding.
@@ -108,6 +116,12 @@ Settings:
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
   token.
+
+## Structured Output
+
+Claude Code supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
+The adapter passes the JSON Schema through the Agent SDK's native
+`outputFormat` option and returns its `structured_output` value as JSON text.
 
 ## Authentication
 

@@ -625,6 +625,66 @@ The following provider options are available:
   tools with client-side function tools in the same request.
 </Note>
 
+## Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+The xAI provider supports asynchronous text generation through the
+[Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api). Use the
+experimental text batch APIs to start a batch, poll its status, and stream its
+results:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+import { setTimeout } from 'node:timers/promises';
+
+const model = xai('grok-4.3');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    { id: 'capital-france', prompt: 'What is the capital of France?' },
+    { id: 'capital-germany', prompt: 'What is the capital of Germany?' },
+  ],
+});
+
+let status = batch.status;
+while (status === 'pending') {
+  await setTimeout(60_000);
+  ({ status } = await getBatchStatus({ model, batch }));
+}
+
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.error);
+  }
+}
+```
+
+`startTextBatch` returns a serializable batch reference. Persist this reference
+to check the batch status or retrieve its results from another process. Results
+can arrive in a different order from the input requests, so match each result by
+its `id`.
+
+Text batches are available through `xai(modelId)` and
+`xai.responses(modelId)`. The legacy `xai.chat(modelId)` models do not expose
+the batch APIs.
+
+<Note>
+  The xAI Batch API does not support per-batch webhooks. When you provide a
+  `webhookUrl`, the provider returns an unsupported warning and starts the batch
+  without a webhook.
+</Note>
+
 ## Model Capabilities
 
 | Model                         | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
@@ -745,6 +805,45 @@ const result = await generateSpeech({
 - **textNormalization** _boolean_
 
   Whether to normalize written-form input text before synthesizing speech.
+
+- **withTimestamps** _boolean_
+
+  Return character-level timing metadata alongside the audio. The timing data
+  and total duration are exposed via `providerMetadata.xai` (see below).
+
+- **replace** _Record&lt;string, string&gt;_
+
+  Map of phrases to spoken substitutions applied before synthesis. Values may
+  be respellings (`{ 'Acme Mobile': 'Acme Mobull' }`) or IPA phonetics
+  (`{ nginx: '/ˈɛndʒɪn ˈɛks/' }`).
+
+### Provider Metadata
+
+xAI speech results include provider-specific metadata under
+`providerMetadata.xai`:
+
+- **traceId** _string_ — the xAI trace ID for the request, useful for
+  debugging with xAI support.
+- **duration** _number_ — total audio duration in seconds (only with
+  `withTimestamps`).
+- **contentType** _string_ — MIME type of the decoded audio, e.g.
+  `'audio/mpeg'` (only with `withTimestamps`).
+- **audioTimestamps** `{ graphChars: string[]; graphTimes: [number, number][] }` —
+  per-character alignment data (only with `withTimestamps`). `graphChars[i]`
+  is the character spoken during the `[start, end]` interval
+  `graphTimes[i]`, in seconds.
+
+```ts
+const result = await generateSpeech({
+  model: xai.speech(),
+  text: 'Hello world.',
+  providerOptions: {
+    xai: { withTimestamps: true } satisfies XaiSpeechModelOptions,
+  },
+});
+
+const { traceId, duration, audioTimestamps } = result.providerMetadata.xai;
+```
 
 ### Model Capabilities
 

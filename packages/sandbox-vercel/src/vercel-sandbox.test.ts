@@ -134,12 +134,12 @@ describe('createVercelSandbox (wrap existing)', () => {
 
   it('destroy is a no-op (caller owns lifecycle)', async () => {
     const { sandbox, spies } = makeMockSandbox();
-    await (await createVercelSandbox({ sandbox }).createSession()).destroy?.();
+    await (await createVercelSandbox({ sandbox }).createSession()).destroy();
     expect(spies.stop).not.toHaveBeenCalled();
     expect(spies.delete).not.toHaveBeenCalled();
   });
 
-  describe('getPortUrl', () => {
+  describe('getPortEndpoint', () => {
     it('returns the value from sandbox.domain for https', async () => {
       const { sandbox, spies } = makeMockSandbox({
         routes: [{ port: 3000 }],
@@ -147,33 +147,49 @@ describe('createVercelSandbox (wrap existing)', () => {
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
 
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      const url = await handle.getPortUrl({ port: 3000 });
+      const endpoint = await handle.getPortEndpoint({ port: 3000 });
       expect(spies.domain).toHaveBeenCalledWith(3000);
-      expect(url).toBe('https://sub.vercel.run/');
+      expect(endpoint).toEqual({ url: 'https://sub.vercel.run/' });
     });
 
     it('upgrades ws to wss when domain is https', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('https://sub.vercel.run');
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
-      expect(url).toBe('wss://sub.vercel.run/');
+      const endpoint = await handle.getPortEndpoint({
+        port: 4000,
+        protocol: 'ws',
+      });
+      expect(endpoint).toEqual({ url: 'wss://sub.vercel.run/' });
     });
 
     it('keeps ws as ws when domain is http', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.domain.mockReturnValueOnce('http://sub.vercel.run');
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      const url = await handle.getPortUrl({ port: 4000, protocol: 'ws' });
-      expect(url).toBe('ws://sub.vercel.run/');
+      const endpoint = await handle.getPortEndpoint({
+        port: 4000,
+        protocol: 'ws',
+      });
+      expect(endpoint).toEqual({ url: 'ws://sub.vercel.run/' });
     });
 
     it('throws when the requested port is not in the sandbox routes', async () => {
       const { sandbox } = makeMockSandbox({ routes: [{ port: 4000 }] });
       const handle = await createVercelSandbox({ sandbox }).createSession();
-      await expect(handle.getPortUrl({ port: 9999 })).rejects.toThrow(
+      await expect(handle.getPortEndpoint({ port: 9999 })).rejects.toThrow(
         /Port 9999 is not exposed/,
       );
+    });
+
+    it('keeps getPortUrl as a compatibility wrapper', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      spies.domain.mockReturnValueOnce('https://sub.vercel.run');
+      const handle = await createVercelSandbox({ sandbox }).createSession();
+
+      await expect(
+        handle.getPortUrl({ port: 4000, protocol: 'ws' }),
+      ).resolves.toBe('wss://sub.vercel.run/');
     });
   });
 
@@ -404,23 +420,6 @@ describe('createVercelSandbox (wrap existing)', () => {
       );
     });
   });
-
-  describe('bridgePorts', () => {
-    it('is exposed on the provider when set on settings', () => {
-      const { sandbox } = makeMockSandbox();
-      const provider = createVercelSandbox({
-        sandbox,
-        bridgePorts: [5001, 5002],
-      });
-      expect(provider.bridgePorts).toEqual([5001, 5002]);
-    });
-
-    it('is undefined when not set', () => {
-      const { sandbox } = makeMockSandbox();
-      const provider = createVercelSandbox({ sandbox });
-      expect(provider.bridgePorts).toBeUndefined();
-    });
-  });
 });
 
 describe('createVercelSandbox (create from scratch)', () => {
@@ -512,7 +511,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     expect(error).toBe(cause);
   });
 
-  it('applies a 30 minute default timeout when none is provided', async () => {
+  it('preserves the Node 24 runtime and 30 minute timeout defaults', async () => {
     const { sandbox } = makeMockSandbox();
     createMock.mockResolvedValueOnce(sandbox);
 
@@ -520,8 +519,61 @@ describe('createVercelSandbox (create from scratch)', () => {
 
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(createMock.mock.calls[0][0]).toMatchObject({
+      runtime: 'node24',
       timeout: 30 * 60 * 1_000,
     });
+  });
+
+  it('does not add the legacy runtime when an image is provided', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({
+      image: 'vercel/sandbox/universal',
+    }).createSession();
+
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      image: 'vercel/sandbox/universal',
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
+  });
+
+  it('uses an image for a template without forwarding it to snapshot forks', async () => {
+    const { sandbox: template } = makeMockSandbox();
+    const { sandbox: fork } = makeMockSandbox();
+    Object.assign(template, { currentSnapshotId: 'snap_123' });
+    getOrCreateMock.mockResolvedValueOnce(template);
+    createMock.mockResolvedValueOnce(fork);
+
+    await createVercelSandbox({
+      image: 'vercel/sandbox/universal',
+    }).createSession({
+      identity: 'template-test',
+      onFirstCreate: async () => {},
+    });
+
+    expect(getOrCreateMock.mock.calls[0][0]).toMatchObject({
+      image: 'vercel/sandbox/universal',
+    });
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('image');
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
+  });
+
+  it('does not add the legacy runtime when restoring a snapshot', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    }).createSession();
+
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
   });
 
   it('respects an explicitly provided timeout', async () => {
@@ -533,13 +585,22 @@ describe('createVercelSandbox (create from scratch)', () => {
     expect(createMock.mock.calls[0][0]).toMatchObject({ timeout: 60_000 });
   });
 
-  it('destroy stops and deletes owned sandboxes', async () => {
-    const { sandbox, spies } = makeMockSandbox();
+  it('destroy stops before deleting owned sandboxes', async () => {
+    const calls: string[] = [];
+    const { sandbox, spies } = makeMockSandbox({
+      stop: vi.fn(async () => {
+        calls.push('stop');
+      }),
+      delete: vi.fn(async () => {
+        calls.push('delete');
+      }),
+    });
     createMock.mockResolvedValueOnce(sandbox);
 
     const handle = await createVercelSandbox({}).createSession();
-    await handle.destroy?.();
+    await handle.destroy();
 
+    expect(calls).toEqual(['stop', 'delete']);
     expect(spies.stop).toHaveBeenCalledTimes(1);
     expect(spies.delete).toHaveBeenCalledTimes(1);
   });
@@ -553,7 +614,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     createMock.mockResolvedValueOnce(sandbox);
 
     const handle = await createVercelSandbox({}).createSession();
-    await handle.destroy?.();
+    await handle.destroy();
 
     expect(spies.stop).toHaveBeenCalledTimes(1);
     expect(spies.delete).toHaveBeenCalledTimes(1);

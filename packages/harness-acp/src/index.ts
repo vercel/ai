@@ -22,9 +22,11 @@ export type {
 export type {
   ACPCredentialBrokering,
   ACPAuthentication,
+  ACPInstallCommandSource,
   ACPInstructionMapping,
   ACPNpmLockedSource,
   ACPNpmSimpleSource,
+  ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
   ACPProfileValue,

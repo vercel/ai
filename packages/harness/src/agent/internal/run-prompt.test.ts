@@ -431,6 +431,174 @@ describe('runPrompt step accounting', () => {
     expect(await hasToolCall('weather')({ steps })).toBe(true);
   });
 
+  test('surfaces a failed provider-executed tool result as a tool-error carrying the runtime message', async () => {
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          result: 'weather service unreachable',
+          isError: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'weather',
+        error: 'weather service unreachable',
+        providerExecuted: true,
+      }),
+    );
+    expect(parts).not.toContainEqual(
+      expect.objectContaining({ type: 'tool-result', toolCallId: 'c1' }),
+    );
+
+    const steps = await result.steps;
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-error',
+    ]);
+  });
+
+  /*
+   * A host tool's failure is echoed back on the same wire event as a
+   * provider-executed one; only the originating `tool-call` tells them apart.
+   */
+  const streamFailedHostTool = async (toolCall: {
+    providerExecuted?: boolean;
+  }): Promise<TextStreamPart<ToolSet>[]> => {
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async (): Promise<{ temperature: number }> => {
+        throw new Error('weather unavailable');
+      },
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          ...toolCall,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          result: { error: 'Error: weather unavailable' },
+          isError: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+    return parts;
+  };
+
+  const expectHostToolFailure = (parts: TextStreamPart<ToolSet>[]): void => {
+    // Marking this provider-executed would bypass the consumer's `onError`.
+    expect(parts).not.toContainEqual(
+      expect.objectContaining({ type: 'tool-error', toolCallId: 'c1' }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        output: { error: 'Error: weather unavailable' },
+      }),
+    );
+  };
+
+  test('does not mark a failed host tool result as provider-executed', async () => {
+    expectHostToolFailure(
+      await streamFailedHostTool({ providerExecuted: false }),
+    );
+  });
+
+  test('treats a failed host tool result as host-executed when providerExecuted is omitted', async () => {
+    expectHostToolFailure(await streamFailedHostTool({}));
+  });
+
+  test('falls back to provider-executed when the originating tool call is not in this slice', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'bash',
+          result: 'bash: command not found: pnpmm',
+          isError: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'c1',
+        error: 'bash: command not found: pnpmm',
+        providerExecuted: true,
+      }),
+    );
+  });
+
   test('does not expose provider-executed tool calls as pending client results', async () => {
     const pending: unknown[] = [];
     const weather = tool({
@@ -1028,6 +1196,65 @@ describe('runPrompt host tool generator results', () => {
     expect(stopBoundaryCalls).toBe(0);
   });
 
+  test('surfaces every approval request from a counted tool-call step', async () => {
+    const pending: unknown[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => ({ temperature: 72 }),
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+          stepToolCallCount: 2,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'c2',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'NYC' }),
+          stepToolCallCount: 2,
+        },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'user-approval' },
+      onPendingToolApproval: approval => pending.push(approval),
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(pending).toEqual([
+      expect.objectContaining({ toolCallId: 'c1' }),
+      expect.objectContaining({ toolCallId: 'c2' }),
+    ]);
+    expect(
+      parts
+        .filter(part => part.type === 'tool-approval-request')
+        .map(part => part.toolCall.toolCallId),
+    ).toEqual(['c1', 'c2']);
+    expect((await result.steps)[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-approval-request',
+      'tool-call',
+      'tool-approval-request',
+    ]);
+  });
+
   test('denies custom tools configured with denied approval status', async () => {
     const submitted: SubmittedResult[] = [];
     const weather = tool({
@@ -1207,6 +1434,105 @@ describe('runPrompt host tool generator results', () => {
     ]);
     expect(parts.map(part => part.type)).not.toContain('error');
     await expect(result.steps).resolves.toEqual([]);
+  });
+
+  test('emits the provider result after approved pending builtin tool execution', async () => {
+    const submittedApprovals: Array<{
+      approvalId: string;
+      approved: boolean;
+      reason?: string;
+    }> = [];
+    const session = fakeSession([
+      {
+        type: 'tool-call',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        input: JSON.stringify({ command: 'printf ok' }),
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCallId: 'c1',
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        result: 'ok',
+      },
+      ...finishEvents,
+    ]);
+    const doContinueTurn = session.doContinueTurn;
+    session.doContinueTurn = async options => {
+      const control = await doContinueTurn(options);
+      return {
+        ...control,
+        submitToolApproval: async input => {
+          submittedApprovals.push(input);
+        },
+      };
+    };
+
+    const { result, done } = runPrompt({
+      harness,
+      session,
+      mode: 'continue',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolApprovals: [
+        {
+          approvalId: 'approval-1',
+          toolCallId: 'c1',
+          toolName: 'bash',
+          input: JSON.stringify({ command: 'printf ok' }),
+          kind: 'builtin',
+          providerExecuted: true,
+        },
+      ],
+      toolApprovalContinuations: [
+        {
+          approvalResponse: {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: true,
+          },
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'bash',
+            input: { command: 'printf ok' },
+            providerExecuted: true,
+          },
+        },
+      ],
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(submittedApprovals).toEqual([
+      { approvalId: 'approval-1', approved: true, reason: undefined },
+    ]);
+    expect(
+      parts.filter(
+        part =>
+          part.type === 'tool-call' || part.type === 'tool-approval-request',
+      ),
+    ).toEqual([]);
+    expect(toolResultParts(parts)).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        toolName: 'bash',
+        output: 'ok',
+      }),
+    ]);
   });
 
   test('emits an error after approved pending custom tool execution fails', async () => {

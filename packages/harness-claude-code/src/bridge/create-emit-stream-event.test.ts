@@ -227,6 +227,54 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('does not expose the internal structured output tool', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'structured-output',
+            name: 'StructuredOutput',
+            input: { answer: 'yes' },
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'structured-output',
+            content: '{"answer":"yes"}',
+          },
+        ],
+      },
+    });
+
+    expect(
+      emitted.filter(
+        event =>
+          event.type === 'tool-call' ||
+          event.type === 'tool-result' ||
+          event.type === 'finish-step',
+      ),
+    ).toEqual([]);
+  });
+
   it('marks external MCP tools as dynamic and suppresses typed host tools', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];

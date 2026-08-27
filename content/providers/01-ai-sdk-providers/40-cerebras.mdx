@@ -85,7 +85,7 @@ const model = cerebras.chat('gpt-oss-120b');
 
 ### Reasoning Models
 
-Cerebras offers reasoning models including `gpt-oss-120b`, `zai-glm-4.7`, and `gemma-4-31b` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
+Cerebras offers reasoning models including `gpt-oss-120b` and `gemma-4-31b` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
 
 For `gpt-oss-120b`, you can control the reasoning depth using the `reasoningEffort` provider option:
 
@@ -118,9 +118,41 @@ See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on 
 
 The following optional provider options are available for Cerebras language models:
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **parallelToolCalls** _boolean_
 
-  Controls the depth of reasoning for GPT-OSS models. Defaults to `'medium'`.
+  Whether to enable parallel function calling during tool use. Defaults to `true`.
+
+- **logprobs** _boolean_
+
+  Whether to return log probabilities for generated tokens. Defaults to `false`.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return at each token position. Accepts values from `0` through `20`. Requires `logprobs` to be `true`.
+
+- **logitBias** _Record&lt;string, number&gt;_
+
+  Maps token IDs to bias values from `-100` through `100`.
+
+- **serviceTier** _'auto' | 'default' | 'flex' | 'priority'_
+
+  Controls request priority. Availability depends on your account and endpoint.
+
+- **reasoningEffort** _'none' | 'low' | 'medium' | 'high'_
+
+  Controls the amount of reasoning performed by supported models. Supported values and defaults depend on the model.
+
+- **reasoningFormat** _'none' | 'parsed' | 'text_parsed' | 'raw' | 'hidden'_
+
+  Controls how reasoning content appears in the response. Format support depends on the model.
+
+- **prediction** _&#123; type: 'content'; content: string | Array&lt;&#123; type: 'text'; text: string &#125;&gt; &#125;_
+
+  Supplies predicted output that can accelerate requests where most of the response is already known.
+
+- **promptCacheKey** _string_
+
+  Routes related requests to the same prompt cache. The value can contain up to 1024 characters and requires account-level enablement.
 
 - **user** _string_
 
@@ -130,10 +162,31 @@ The following optional provider options are available for Cerebras language mode
 
   Whether to use strict JSON schema validation. When `true`, the model uses constrained decoding to guarantee schema compliance. Defaults to `true`.
 
+For example:
+
+```ts
+import {
+  cerebras,
+  type CerebrasLanguageModelChatOptions,
+} from '@ai-sdk/cerebras';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: cerebras('gpt-oss-120b'),
+  prompt: 'Explain why the sky is blue.',
+  providerOptions: {
+    cerebras: {
+      reasoningEffort: 'low',
+      reasoningFormat: 'parsed',
+      promptCacheKey: 'conversation-123',
+    } satisfies CerebrasLanguageModelChatOptions,
+  },
+});
+```
+
 ## Model Capabilities
 
 | Model          | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
 | -------------- | ----------- | ----------------- | ---------- | -------------- | --------- |
 | `gpt-oss-120b` | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
-| `zai-glm-4.7`  | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `gemma-4-31b`  | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |

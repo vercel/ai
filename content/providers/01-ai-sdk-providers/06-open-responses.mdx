@@ -149,8 +149,9 @@ Use the top-level [`reasoning`](/docs/ai-sdk-core/reasoning) setting to control
 reasoning effort. The provider maps supported values to the Open Responses
 `reasoning.effort` field.
 
-The provider also supports `reasoningSummary` through `providerOptions`. The
-provider option key must match the `name` passed to `createOpenResponses`:
+The provider also supports `reasoningEffort` and `reasoningSummary` through
+`providerOptions`. The provider option key must match the `name` passed to
+`createOpenResponses`:
 
 ```ts
 import {
@@ -169,6 +170,7 @@ const { text, reasoningText } = await generateText({
   reasoning: 'high',
   providerOptions: {
     lmstudio: {
+      reasoningEffort: 'max',
       reasoningSummary: 'detailed',
     } satisfies OpenResponsesLanguageModelOptions,
   },
@@ -179,8 +181,16 @@ console.log(reasoningText);
 console.log(text);
 ```
 
-`reasoningSummary` accepts `'auto'`, `'concise'`, or `'detailed'`. Reasoning
-support and accepted values depend on the endpoint and model.
+`reasoningEffort` accepts any string and is passed through unchanged to the
+endpoint's `reasoning.effort` field. Use it for endpoint-native values that are
+not part of the top-level `reasoning` setting, such as `'max'`. When both are
+set, `providerOptions` `reasoningEffort` takes precedence over the top-level
+`reasoning` value.
+
+`reasoningSummary` accepts `'auto'`, `'concise'`, or `'detailed'` and can be
+combined with either reasoning effort setting. Reasoning support and accepted
+effort values depend on the endpoint and model; unsupported values may be
+rejected or ignored by the endpoint.
 
 ## File Inputs
 

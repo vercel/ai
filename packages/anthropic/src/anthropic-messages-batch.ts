@@ -1,6 +1,6 @@
 import {
-  EmptyResponseBodyError,
   InvalidArgumentError,
+  InvalidResponseDataError,
   UnsupportedFunctionalityError,
   type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
@@ -14,11 +14,12 @@ import {
 import {
   combineHeaders,
   convertAsyncIteratorToReadableStream,
+  createJsonLinesResponseHandler,
   createJsonResponseHandler,
   getFromApi,
   lazySchema,
+  normalizeBatchRequestCounts,
   normalizeHeaders,
-  parseJSON,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -27,7 +28,6 @@ import {
   WORKFLOW_SERIALIZE,
   zodSchema,
   type InferSchema,
-  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -145,6 +145,7 @@ export class AnthropicMessagesBatchLanguageModel
     providerOptions,
     headers,
     abortSignal,
+    webhookUrl,
   }: Parameters<
     BatchLanguageModelV4['experimental_doStartBatch']
   >[0]): Promise<BatchV4StartResult> {
@@ -161,7 +162,19 @@ export class AnthropicMessagesBatchLanguageModel
       custom_id: string;
       params: Record<string, unknown>;
     }> = [];
-    const batchWarnings: BatchV4StartResult['warnings'] = [];
+    const batchWarnings: BatchV4StartResult['warnings'] =
+      webhookUrl == null
+        ? []
+        : [
+            {
+              warning: {
+                type: 'unsupported',
+                feature: 'webhookUrl',
+                details:
+                  'The Anthropic Message Batches API does not support completion webhooks.',
+              },
+            },
+          ];
 
     for (const request of requests) {
       const requestBetas = await getAnthropicBatchProviderBetas({
@@ -243,26 +256,28 @@ export class AnthropicMessagesBatchLanguageModel
     }
 
     if (batch.results_url == null) {
-      throw new InvalidArgumentError({
-        argument: 'batchId',
-        message: `Anthropic batch "${options.batchId}" does not have a results URL.`,
+      throw new InvalidResponseDataError({
+        data: batch,
+        message: `Anthropic batch "${options.batchId}" completed without batch output.`,
       });
     }
 
-    const { value: stream } = await getFromApi({
+    const { value: lines } = await getFromApi({
       url: batch.results_url,
       validateUrl: true,
       credentialedOrigin: this.config.baseURL,
       trustedOrigin: this.config.baseURL,
       headers: await this.getBatchHeaders(options.headers),
       failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: rawStreamResponseHandler,
+      successfulResponseHandler: createJsonLinesResponseHandler(
+        anthropicBatchResultLineSchema,
+      ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
     return convertAsyncIteratorToReadableStream(
-      this.iterateBatchResults(stream),
+      this.iterateBatchResults(lines),
     );
   }
 
@@ -285,9 +300,9 @@ export class AnthropicMessagesBatchLanguageModel
   }
 
   private async *iterateBatchResults(
-    stream: ReadableStream<Uint8Array>,
+    lines: AsyncIterable<AnthropicBatchResultLine>,
   ): AsyncGenerator<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
-    for await (const line of parseJsonLines(stream)) {
+    for await (const line of lines) {
       yield await convertAnthropicBatchResult(line);
     }
   }
@@ -440,24 +455,17 @@ function mapAnthropicBatchStatus(rawStatus: string): BatchV4Status['status'] {
 function convertAnthropicRequestCounts(
   counts: AnthropicBatchResponse['request_counts'],
 ): BatchV4Status['requestCounts'] | undefined {
-  const values = [
-    counts.processing,
-    counts.succeeded,
-    counts.errored,
-    counts.canceled,
-    counts.expired,
-  ];
-
-  if (values.some(value => !Number.isFinite(value) || value < 0)) {
-    return undefined;
-  }
-
-  return {
-    total: values.reduce((total, value) => total + value, 0),
+  return normalizeBatchRequestCounts({
+    total:
+      counts.processing +
+      counts.succeeded +
+      counts.errored +
+      counts.canceled +
+      counts.expired,
     pending: counts.processing,
     completed: counts.succeeded,
     failed: counts.errored + counts.canceled + counts.expired,
-  };
+  });
 }
 
 async function convertAnthropicBatchResult(
@@ -517,7 +525,7 @@ async function convertAnthropicBatchResult(
             message:
               `Anthropic returned a "${unsupportedPart.type}" content block, ` +
               'but tool content is not supported in AI SDK text batches.',
-            code: 'unsupported_tool_content',
+            code: 'unsupported_content',
           },
         };
       }
@@ -692,65 +700,4 @@ function mapAnthropicStopDetails(
       ? { recommendedModel: stopDetails.recommended_model }
       : {}),
   };
-}
-
-const rawStreamResponseHandler: ResponseHandler<
-  ReadableStream<Uint8Array>
-> = async ({ response }) => {
-  if (response.body == null) {
-    throw new EmptyResponseBodyError();
-  }
-
-  return { value: response.body };
-};
-
-async function* parseJsonLines(
-  stream: ReadableStream<Uint8Array>,
-): AsyncGenerator<AnthropicBatchResultLine> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let finished = false;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
-        finished = true;
-        buffer += decoder.decode();
-        break;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-
-      let lineEnd = buffer.indexOf('\n');
-      while (lineEnd !== -1) {
-        const line = buffer.slice(0, lineEnd).replace(/\r$/, '');
-        buffer = buffer.slice(lineEnd + 1);
-
-        if (line.trim().length > 0) {
-          yield await parseJSON({
-            text: line,
-            schema: anthropicBatchResultLineSchema,
-          });
-        }
-
-        lineEnd = buffer.indexOf('\n');
-      }
-    }
-
-    const finalLine = buffer.replace(/\r$/, '');
-    if (finalLine.trim().length > 0) {
-      yield await parseJSON({
-        text: finalLine,
-        schema: anthropicBatchResultLineSchema,
-      });
-    }
-  } finally {
-    if (!finished) {
-      await reader.cancel().catch(() => {});
-    }
-    reader.releaseLock();
-  }
 }

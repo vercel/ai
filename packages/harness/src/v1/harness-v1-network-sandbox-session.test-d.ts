@@ -3,6 +3,7 @@ import { expectTypeOf, test } from 'vitest';
 import type {
   HarnessV1NetworkPolicy,
   HarnessV1NetworkSandboxSession,
+  HarnessV1PortEndpoint,
   HarnessV1RequestTransformation,
 } from './harness-v1-network-sandbox-session';
 
@@ -22,14 +23,21 @@ test('restricted() returns the bare sandbox session surface', () => {
   >().toEqualTypeOf<SandboxSession>();
 });
 
-test('network sandbox session exposes ports, getPortUrl, stop as required', () => {
+test('network sandbox session exposes port resolution and lifecycle as required', () => {
   expectTypeOf<HarnessV1NetworkSandboxSession['ports']>().toEqualTypeOf<
     ReadonlyArray<number>
   >();
   expectTypeOf<
+    HarnessV1NetworkSandboxSession['getPortEndpoint']
+  >().not.toBeUndefined();
+  expectTypeOf<
+    Awaited<ReturnType<HarnessV1NetworkSandboxSession['getPortEndpoint']>>
+  >().toEqualTypeOf<HarnessV1PortEndpoint>();
+  expectTypeOf<
     HarnessV1NetworkSandboxSession['getPortUrl']
   >().not.toBeUndefined();
   expectTypeOf<HarnessV1NetworkSandboxSession['stop']>().not.toBeUndefined();
+  expectTypeOf<HarnessV1NetworkSandboxSession['destroy']>().not.toBeUndefined();
 });
 
 test('setNetworkPolicy is optional on the network sandbox session', () => {
