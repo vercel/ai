@@ -14,16 +14,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   amazonBedrockEmbeddingModelOptionsSchema,
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
   type BedrockEmbeddingModelId,
+  type AmazonBedrockEmbeddingModelSettings,
 } from './bedrock-embedding-options';
 import { BedrockErrorSchema } from './bedrock-error';
-=======
-  type AmazonBedrockEmbeddingModelId,
-  type AmazonBedrockEmbeddingModelSettings,
-} from './amazon-bedrock-embedding-model-options';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
->>>>>>> 5d2229e7f0 (feat(amazon-bedrock): add model family setting for embeddings to support ARN (#19854)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
 import { z } from 'zod/v4';
 
 type BedrockEmbeddingConfig = {
@@ -88,46 +82,16 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     // adapt here based on the modelId.
     const modelFamily = this.modelFamily;
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-embedding-model.ts
-    const args = isNovaModel
-      ? {
-          taskType: 'SINGLE_EMBEDDING',
-          singleEmbeddingParams: {
-            embeddingPurpose:
-              bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
-            embeddingDimension: bedrockOptions.embeddingDimension ?? 1024,
-            text: {
-              truncationMode: bedrockOptions.truncate ?? 'END',
-              value: values[0],
-            },
-          },
-        }
-      : isCohereModel
-        ? {
-            // Cohere embedding models on Bedrock require `input_type`.
-            // Without it, the service attempts other schema branches and rejects the request.
-            input_type: bedrockOptions.inputType ?? 'search_query',
-            texts: values,
-            truncate: bedrockOptions.truncate,
-            output_dimension: bedrockOptions.outputDimension,
-          }
-        : {
-            inputText: values[0],
-            dimensions: bedrockOptions.dimensions,
-            normalize: bedrockOptions.normalize,
-          };
-=======
     const args =
       modelFamily === 'nova'
         ? {
             taskType: 'SINGLE_EMBEDDING',
             singleEmbeddingParams: {
               embeddingPurpose:
-                amazonBedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
-              embeddingDimension:
-                amazonBedrockOptions.embeddingDimension ?? 1024,
+                bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
+              embeddingDimension: bedrockOptions.embeddingDimension ?? 1024,
               text: {
-                truncationMode: amazonBedrockOptions.truncate ?? 'END',
+                truncationMode: bedrockOptions.truncate ?? 'END',
                 value: values[0],
               },
             },
@@ -136,17 +100,16 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
           ? {
               // Cohere embedding models on Bedrock require `input_type`.
               // Without it, the service attempts other schema branches and rejects the request.
-              input_type: amazonBedrockOptions.inputType ?? 'search_query',
+              input_type: bedrockOptions.inputType ?? 'search_query',
               texts: values,
-              truncate: amazonBedrockOptions.truncate,
-              output_dimension: amazonBedrockOptions.outputDimension,
+              truncate: bedrockOptions.truncate,
+              output_dimension: bedrockOptions.outputDimension,
             }
           : {
               inputText: values[0],
-              dimensions: amazonBedrockOptions.dimensions,
-              normalize: amazonBedrockOptions.normalize,
+              dimensions: bedrockOptions.dimensions,
+              normalize: bedrockOptions.normalize,
             };
->>>>>>> 5d2229e7f0 (feat(amazon-bedrock): add model family setting for embeddings to support ARN (#19854)):packages/amazon-bedrock/src/amazon-bedrock-embedding-model.ts
 
     const url = this.getUrl(this.modelId);
     const { value: response, responseHeaders } = await postJsonToApi({

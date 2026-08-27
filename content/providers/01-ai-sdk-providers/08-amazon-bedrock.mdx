@@ -950,7 +950,7 @@ the correct request format and batch size:
 
 ```ts
 import {
-  amazonBedrock,
+  bedrock,
   type AmazonBedrockEmbeddingModelSettings,
 } from '@ai-sdk/amazon-bedrock';
 import { embedMany } from 'ai';
@@ -959,7 +959,7 @@ const profileArn =
   'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
 
 const { embeddings } = await embedMany({
-  model: amazonBedrock.embedding(profileArn, {
+  model: bedrock.embedding(profileArn, {
     modelFamily: 'cohere',
   } satisfies AmazonBedrockEmbeddingModelSettings),
   values: ['hello', 'world'],

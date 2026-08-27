@@ -1,14 +1,9 @@
 export type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 
-<<<<<<< HEAD
-export type { AmazonBedrockEmbeddingModelOptions } from './bedrock-embedding-options';
-=======
 export type {
   AmazonBedrockEmbeddingModelOptions,
   AmazonBedrockEmbeddingModelSettings,
-} from './amazon-bedrock-embedding-model-options';
-export type { AmazonBedrockImageModelOptions } from './amazon-bedrock-image-model-options';
->>>>>>> 5d2229e7f0 (feat(amazon-bedrock): add model family setting for embeddings to support ARN (#19854))
+} from './bedrock-embedding-options';
 export type {
   AmazonBedrockLanguageModelOptions,
   /** @deprecated Use `AmazonBedrockLanguageModelOptions` instead. */

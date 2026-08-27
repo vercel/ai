@@ -476,7 +476,7 @@ describe('AmazonBedrockProvider', () => {
 
       provider.embedding(modelId, { modelFamily: 'cohere' });
 
-      const constructorCall = AmazonBedrockEmbeddingModelMock.mock.calls[0];
+      const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
       expect(constructorCall[1].modelFamily).toBe('cohere');
     });
 

@@ -352,7 +352,7 @@ describe('doEmbed', () => {
   });
 
   it('should support Cohere models behind application inference profile ARNs', async () => {
-    const cohereV4ApplicationProfileModel = new AmazonBedrockEmbeddingModel(
+    const cohereV4ApplicationProfileModel = new BedrockEmbeddingModel(
       cohereV4ApplicationProfileArn,
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
