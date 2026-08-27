@@ -149,6 +149,17 @@ describe('resolvePiEnv', () => {
     ).toEqual({ OPENAI_API_KEY: 'programmatic-openai-key' });
   });
 
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    expect(() =>
+      resolvePiEnv({
+        options: { gateway: { apiKey: 'legacy-key' } } as never,
+        env: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('supports string authentication modes', () => {
     expect(
       resolvePiEnv({

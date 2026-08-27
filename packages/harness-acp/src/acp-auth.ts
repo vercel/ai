@@ -105,6 +105,10 @@ export function resolveACPProviderAuthentication({
     AI_SDK_ACP_CLIENT_APP_NAME: auth.clientApp.name,
     AI_SDK_ACP_CLIENT_APP_VERSION: auth.clientApp.version,
   };
+  const resolvedEnv = resolveACPAuthenticationEnvironment({
+    auth: auth.mode,
+    env,
+  });
   const providerAuthentication = auth.providerAuthentication;
   if (providerAuthentication == null) {
     return { providerAuthentication: undefined, env: clientAppEnv };
@@ -125,10 +129,6 @@ export function resolveACPProviderAuthentication({
     };
   }
 
-  const resolvedEnv = resolveACPAuthenticationEnvironment({
-    auth: auth.mode,
-    env,
-  });
   const gateway =
     compatibility?.type === 'ai-gateway'
       ? {
@@ -177,6 +177,10 @@ export function resolveACPProviderAuthenticationCompatibility({
   providerAuthentication: ACPProviderAuthentication | undefined;
   env: Record<string, string | undefined>;
 }): ACPProviderAuthenticationCompatibility | undefined {
+  const resolvedEnv = resolveACPAuthenticationEnvironment({
+    auth,
+    env,
+  });
   if (providerAuthentication == null) return undefined;
 
   const mode = resolveACPProviderAuthenticationMode(auth);
@@ -184,10 +188,6 @@ export function resolveACPProviderAuthenticationCompatibility({
     return { type: 'direct', mode };
   }
 
-  const resolvedEnv = resolveACPAuthenticationEnvironment({
-    auth,
-    env,
-  });
   const credentialSource = resolveGatewayCredentialSource({ env: resolvedEnv });
   if (mode === 'auto' && credentialSource == null) {
     return { type: 'direct', mode };

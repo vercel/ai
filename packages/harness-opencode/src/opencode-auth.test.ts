@@ -83,6 +83,29 @@ describe('OpenCode auth', () => {
     ).toBe('openai');
   });
 
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    const auth = { openai: { apiKey: 'legacy-key' } } as never;
+
+    expect(() =>
+      resolveOpenCodeEnv({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+    expect(() =>
+      resolveOpenCodeAuthenticationMode({
+        auth,
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('normalizes OpenCode gateway base URLs to /v1', () => {
     expect(toOpenCodeGatewayBaseUrl('https://ai-gateway.vercel.sh')).toBe(
       'https://ai-gateway.vercel.sh/v1',

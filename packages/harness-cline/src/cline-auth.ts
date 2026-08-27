@@ -1,5 +1,8 @@
 import type { HarnessV1Authentication } from '@ai-sdk/harness';
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import {
+  getAiGatewayAuthFromEnv,
+  isHarnessAuthenticationEnvironment,
+} from '@ai-sdk/harness/utils';
 
 export type ClineAuthenticationMode = HarnessV1Authentication;
 
@@ -10,7 +13,7 @@ export function resolveClineEnv({
   auth?: ClineAuthenticationMode;
   env?: Record<string, string | undefined>;
 }): Record<string, string> {
-  if (typeof auth !== 'string') {
+  if (isHarnessAuthenticationEnvironment(auth)) {
     const gatewayAuth = getAiGatewayAuthFromEnv({ env: auth });
     return gatewayAuth.apiKey
       ? toGatewayClineEnv(gatewayAuth)

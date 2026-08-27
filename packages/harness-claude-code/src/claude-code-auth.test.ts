@@ -110,6 +110,27 @@ describe('resolveClaudeCodeEnv', () => {
     ).toBe('direct');
   });
 
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    const auth = { anthropic: { apiKey: 'legacy-key' } } as never;
+
+    expect(() =>
+      resolveClaudeCodeEnv(
+        auth,
+        { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+        { readApiKeyHelper: noHelper },
+      ),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+    expect(() =>
+      resolveClaudeCodeAuthenticationMode(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('forwards host ANTHROPIC_BASE_URL alongside the api key', () => {
     const env = resolveClaudeCodeEnv(
       undefined,

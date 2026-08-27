@@ -93,6 +93,27 @@ describe('resolveDeepAgentsEnv', () => {
     ).toBe('anthropic');
   });
 
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    const auth = { anthropic: { apiKey: 'legacy-key' } } as never;
+
+    expect(() =>
+      resolveDeepAgentsEnv({
+        auth,
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+    expect(() =>
+      resolveDeepAgentsAuthenticationMode({
+        auth,
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('supports string authentication modes', () => {
     expect(
       resolveDeepAgentsEnv({

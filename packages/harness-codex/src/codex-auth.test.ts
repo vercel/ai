@@ -91,6 +91,25 @@ describe('resolveCodexEnv', () => {
     ).toBe('direct');
   });
 
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    const auth = { openai: { apiKey: 'legacy-key' } } as never;
+
+    expect(() =>
+      resolveCodexEnv(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+    expect(() =>
+      resolveCodexAuthenticationMode(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('forwards host OPENAI_BASE_URL alongside the api key', () => {
     const env = resolveCodexEnv(undefined, {
       OPENAI_API_KEY: 'sk-auto',

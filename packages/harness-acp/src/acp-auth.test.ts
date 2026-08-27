@@ -39,6 +39,17 @@ function resolve({
 }
 
 describe('resolveACPProviderAuthentication', () => {
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    expect(() =>
+      resolve({
+        mode: { gateway: { apiKey: 'legacy-key' } } as never,
+        env: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('transports the client app without provider authentication configuration', () => {
     expect(
       resolveACPProviderAuthentication({
