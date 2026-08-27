@@ -1313,24 +1313,33 @@ function openWebSocketAndWaitForBridgeHello({
     let openTimer: ReturnType<typeof setTimeout> | undefined;
     let helloTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const cleanup = () => {
+    const cleanup = ({
+      keepTerminationListeners = false,
+    }: {
+      keepTerminationListeners?: boolean;
+    } = {}) => {
       if (openTimer) clearTimeout(openTimer);
       if (helloTimer) clearTimeout(helloTimer);
       ws.off('open', onOpen);
       ws.off('message', onMessage);
-      ws.off('close', onClose);
-      ws.off('error', onError);
+      if (!keepTerminationListeners) {
+        ws.off('close', onClose);
+        ws.off('error', onError);
+      }
     };
     const settle = (err?: unknown) => {
       if (settled) return;
       settled = true;
-      cleanup();
       if (err) {
+        cleanup({ keepTerminationListeners: true });
         try {
           ws.terminate();
-        } catch {}
+        } catch {
+          cleanup();
+        }
         reject(err);
       } else {
+        cleanup();
         resolve(ws);
       }
     };
@@ -1388,6 +1397,7 @@ function openWebSocketAndWaitForBridgeHello({
       settle(
         new Error('claude-code bridge closed before sending bridge-hello'),
       );
+      cleanup();
     };
     const onError = (err: Error) => settle(err);
     openTimer = setTimeout(

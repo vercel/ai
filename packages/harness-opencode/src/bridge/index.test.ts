@@ -10,6 +10,12 @@ const sdkMock = vi.hoisted(() => ({
 }));
 
 const permissionReplyMock = vi.hoisted(() => vi.fn());
+const createOpencodeServerMock = vi.hoisted(() =>
+  vi.fn(async () => ({
+    url: 'http://127.0.0.1:4096',
+    close: vi.fn(),
+  })),
+);
 
 const relayMock = vi.hoisted(() => ({
   authorizeToolCall: vi.fn(),
@@ -28,10 +34,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
 }));
 
 vi.mock('@opencode-ai/sdk/v2', () => ({
-  createOpencodeServer: vi.fn(async () => ({
-    url: 'http://127.0.0.1:4096',
-    close: vi.fn(),
-  })),
+  createOpencodeServer: createOpencodeServerMock,
   createOpencodeClient: vi.fn(() => sdkMock.client),
 }));
 
@@ -90,8 +93,69 @@ describe('OpenCode bridge turn settlement', () => {
     process.argv.length = 0;
     for (const arg of originalArgv) process.argv.push(arg);
     vi.resetModules();
+    createOpencodeServerMock.mockClear();
     relayMock.authorizeToolCall.mockReset();
     permissionReplyMock.mockReset();
+  });
+
+  it('disables the interactive question tool', async () => {
+    const userMessages = createUserMessages();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Start.',
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: userMessages,
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'model step failed',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(createOpencodeServerMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          permission: expect.objectContaining({ question: 'deny' }),
+        }),
+      }),
+    );
   });
 
   it('settles when OpenCode emits session.next.step.failed', async () => {
