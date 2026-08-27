@@ -163,6 +163,31 @@ const toolCallSchema = z.object({
   action: z.any().optional(),
 });
 
+export const webSearchWireSourceSchema = z.object({
+  type: z.literal('url'),
+  url: z.string(),
+});
+
+export const webSearchWireActionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('search'),
+    query: z.string().nullish(),
+    queries: z.array(z.string()).nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+  z.object({
+    type: z.literal('open_page'),
+    url: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+  z.object({
+    type: z.literal('find_in_page'),
+    url: z.string().nullish(),
+    pattern: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+]);
+
 const mcpCallSchema = z.object({
   name: z.string().optional(),
   arguments: z.string().optional(),
