@@ -1,4 +1,5 @@
 import type {
+  HarnessV1Authentication,
   HarnessV1CredentialForwarding,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
@@ -66,7 +67,7 @@ export type ACPAuthentication = {
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
 };
 
-export type ACPProviderAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+export type ACPAuthenticationMode = HarnessV1Authentication;
 
 export type ACPProviderAuthentication = {
   readonly gateway: {
@@ -123,7 +124,7 @@ export type ACPV1Settings = {
   readonly harnessId: string;
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: ACPAuthenticationMode;
   readonly source: ACPSource;
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;
@@ -151,7 +152,8 @@ export type ACPV1Settings = {
   readonly skillsDirectory?: string;
   /**
    * Routes HarnessAgent instructions to a runtime-native system or developer
-   * prompt. When omitted, instructions are prepended to the first user prompt.
+   * prompt. Changed instructions are prepended to the next user prompt when
+   * ACP does not expose a native per-turn instruction update.
    */
   readonly instructionMapping?: ACPInstructionMapping;
   /**

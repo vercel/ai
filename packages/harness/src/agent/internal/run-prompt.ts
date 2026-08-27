@@ -9,6 +9,7 @@ import {
   type HarnessV1PromptControl,
   type HarnessV1ResponseFormat,
   type HarnessV1Session,
+  type HarnessV1Skill,
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
 } from '../../v1';
@@ -80,6 +81,7 @@ export function runPrompt<
   mode?: 'prompt' | 'continue';
   /** Required for `mode: 'prompt'`; absent for `mode: 'continue'`. */
   prompt?: HarnessV1Prompt;
+  skills?: ReadonlyArray<HarnessV1Skill>;
   instructions: string | undefined;
   tools: TOOLS;
   activeTools?: ToolSet;
@@ -179,6 +181,7 @@ export function runPrompt<
           input.mode === 'continue'
             ? emit =>
                 input.session.doContinueTurn({
+                  skills: input.skills ?? [],
                   responseFormat: input.responseFormat,
                   tools: input.toolSpecs,
                   instructions: input.instructions,
@@ -193,6 +196,7 @@ export function runPrompt<
                 }
                 return input.session.doPromptTurn({
                   prompt: input.prompt,
+                  skills: input.skills ?? [],
                   responseFormat: input.responseFormat,
                   tools: input.toolSpecs,
                   instructions: input.instructions,

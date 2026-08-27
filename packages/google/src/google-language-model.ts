@@ -62,6 +62,8 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
+const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+
 export type GoogleLanguageModelConfig = {
   provider: string;
   baseURL: string;
@@ -258,6 +260,22 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+    const isGemini25DeveloperApiModel =
+      !isVertexProvider && gemini25ModelPattern.test(this.modelId);
+
+    if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+      });
+    }
+    if (isGemini25DeveloperApiModel && presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+      });
+    }
+
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
     const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
@@ -331,8 +349,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           temperature,
           topK,
           topP,
-          frequencyPenalty,
-          presencePenalty,
+          frequencyPenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : frequencyPenalty,
+          presencePenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : presencePenalty,
           stopSequences,
           seed,
 
@@ -1583,26 +1605,33 @@ const getSafetyRatingSchema = () =>
 
 const tokenDetailsSchema = z
   .array(
-    z.object({
-      modality: z.string(),
-      tokenCount: z.number(),
-    }),
+    z
+      .object({
+        modality: z.string(),
+        tokenCount: z.number(),
+      })
+      .loose(),
   )
   .nullish();
 
-const usageSchema = z.object({
-  cachedContentTokenCount: z.number().nullish(),
-  thoughtsTokenCount: z.number().nullish(),
-  promptTokenCount: z.number().nullish(),
-  candidatesTokenCount: z.number().nullish(),
-  totalTokenCount: z.number().nullish(),
-  // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
-  trafficType: z.string().nullish(),
-  serviceTier: z.string().nullish(),
-  // https://ai.google.dev/api/generate-content#Modality
-  promptTokensDetails: tokenDetailsSchema,
-  candidatesTokensDetails: tokenDetailsSchema,
-});
+const usageSchema = z
+  .object({
+    cachedContentTokenCount: z.number().nullish(),
+    thoughtsTokenCount: z.number().nullish(),
+    promptTokenCount: z.number().nullish(),
+    candidatesTokenCount: z.number().nullish(),
+    toolUsePromptTokenCount: z.number().nullish(),
+    totalTokenCount: z.number().nullish(),
+    // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+    trafficType: z.string().nullish(),
+    serviceTier: z.string().nullish(),
+    // https://ai.google.dev/api/generate-content#Modality
+    promptTokensDetails: tokenDetailsSchema,
+    cacheTokensDetails: tokenDetailsSchema,
+    candidatesTokensDetails: tokenDetailsSchema,
+    toolUsePromptTokensDetails: tokenDetailsSchema,
+  })
+  .loose();
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>

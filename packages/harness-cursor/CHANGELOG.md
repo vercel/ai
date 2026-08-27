@@ -1,5 +1,14 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.5
+
+### Patch Changes
+
+- e0d7cfb: feat(harness): allow harness sessions to optionally authenticate from an isolated environment supplied through the `auth` option, and remove support for the formerly deprecated legacy auth options types
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+  - @ai-sdk/harness-acp@1.0.30
+
 ## 1.0.4
 
 ### Patch Changes

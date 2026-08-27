@@ -66,8 +66,13 @@ function emptyStream(): ReadableStream<Uint8Array> {
 function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
   const port = 4319;
   const session = {
-    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    run: async ({ command }: { command: string }) => ({
+      exitCode: 0,
+      stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
+      stderr: '',
+    }),
     readTextFile: async () => null,
+    writeTextFile: async () => {},
     spawn: async () => ({
       stdout: readyStream(port),
       stderr: emptyStream(),
@@ -119,6 +124,8 @@ describe('claude-code adapter — instructions transport', () => {
     const session = await startSession();
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'first turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -127,6 +134,8 @@ describe('claude-code adapter — instructions transport', () => {
     expect(lastStart().instructions).toBe(INSTRUCTIONS);
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'second turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -146,6 +155,8 @@ describe('claude-code adapter — instructions transport', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'resumed turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -165,6 +176,8 @@ describe('claude-code adapter — instructions transport', () => {
     });
 
     await session.doContinueTurn({
+      skills: [],
+      tools: [],
       instructions: INSTRUCTIONS,
       emit: () => {},
     });
