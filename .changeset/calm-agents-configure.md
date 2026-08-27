@@ -2,4 +2,4 @@
 '@ai-sdk/harness-opencode': patch
 ---
 
-feat: pass native OpenCode configuration through the adapter
+feat(harness-opencode): pass native OpenCode configuration through the adapter
