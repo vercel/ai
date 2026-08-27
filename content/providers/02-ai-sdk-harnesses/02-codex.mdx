@@ -71,6 +71,29 @@ To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
 Vercel Sandbox, and one of the variables listed under [authentication](#authentication)
 for Codex.
 
+## Image Inputs
+
+Image prompts must reference files that already exist inside the sandbox. Pass
+an absolute path, or a relative path beginning with `./` or `../`; inline image
+data and remote URLs are not supported.
+
+```ts
+const result = await agent.generate({
+  session,
+  prompt: {
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Describe this screenshot.' },
+      {
+        type: 'image',
+        image: '/workspace/screenshots/dashboard.png',
+        mediaType: 'image/png',
+      },
+    ],
+  },
+});
+```
+
 ## Adapter Settings
 
 Use `createCodex()` to configure the runtime:
