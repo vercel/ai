@@ -19,6 +19,7 @@ declare const __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
 declare const __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
 
 const GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
+const DEFAULT_GROK_BUILD_MODEL = 'grok-4.6';
 const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON =
   __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__;
 const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
@@ -39,9 +40,22 @@ export type GrokBuildHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Grok model id selected through ACP. Unset preserves Grok Build's default.
+   * Grok model id selected through Grok Build configuration. Leaving this
+   * unset uses the default model.
    */
   readonly model?: string;
+  /**
+   * Reasoning effort for reasoning-capable models. Leaving this unset defers
+   * to Grok Build's default.
+   */
+  readonly reasoningEffort?:
+    | 'none'
+    | 'minimal'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'xhigh'
+    | 'max';
   /**
    * Overrides the sandbox port used by the ACP bridge.
    */
@@ -297,15 +311,28 @@ export function createGrokBuild(
 ): HarnessV1<typeof GROK_BUILD_BUILTIN_TOOLS> {
   const clientAppSegments = GROK_BUILD_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
+  const model = settings.model ?? DEFAULT_GROK_BUILD_MODEL;
 
   return createACP({
     auth: settings.auth,
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
+    modelId: model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
     mcpServers: settings.mcpServers,
+    env: {
+      GROK_CONFIG: JSON.stringify({
+        models: {
+          default: model,
+          ...(settings.reasoningEffort == null
+            ? {}
+            : {
+                default_reasoning_effort: settings.reasoningEffort,
+              }),
+        },
+      }),
+    },
     isMcpToolCall: toolCall => {
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';

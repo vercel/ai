@@ -80,7 +80,7 @@ Use `createGrokBuild()` to configure the runtime:
 ```ts
 const harness = createGrokBuild({
   auth: 'ai-gateway',
-  model: 'grok-code-fast-1',
+  reasoningEffort: 'high',
   port: 4001,
   startupTimeoutMs: 180_000,
 });
@@ -99,8 +99,11 @@ Settings:
   value forwarded into the sandbox process. It does not restrict which
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
-- `model`: Grok model id selected through ACP. When omitted, Grok Build chooses
-  its own default model.
+- `model`: Grok model id selected through Grok Build configuration. When
+  omitted, the adapter uses the default model.
+- `reasoningEffort`: reasoning effort for reasoning-capable models. Supported
+  values are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`.
+  When omitted, Grok Build uses its configured default.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
@@ -160,7 +163,7 @@ const sandbox = createVercelSandbox({
 ```
 
 The first session requires network egress so the ACP harness can install
-`@xai-official/grok@0.2.111` inside the sandbox.
+`@xai-official/grok@1.0.5` inside the sandbox.
 
 ## Built-in Tools
 
