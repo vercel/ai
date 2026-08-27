@@ -292,6 +292,7 @@ describe('getBatchResults', () => {
 
     expect(items).toMatchObject([
       {
+        content: [{ text: 'Paris', type: 'text' }],
         id: 'request-1',
         status: 'succeeded',
         text: 'Paris',
@@ -317,7 +318,7 @@ describe('getBatchResults', () => {
     ]);
   });
 
-  it('does not report an unrepresentable client tool call as empty text', async () => {
+  it('preserves client tool calls and usage in normalized batch results', async () => {
     const model = createMockBatchModel({
       doGetBatchResults: async () =>
         convertArrayToReadableStream([
@@ -353,14 +354,35 @@ describe('getBatchResults', () => {
 
     expect(items).toEqual([
       {
+        content: [
+          {
+            input: '{}',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            type: 'tool-call',
+          },
+        ],
+        finishReason: 'tool-calls',
         id: 'request-1',
-        status: 'failed',
-        error: {
-          code: 'unsupported_content',
-          message:
-            'Text batch results cannot represent client-executed tool calls.',
-        },
         providerMetadata: { mock: { result: true } },
+        rawFinishReason: 'tool_use',
+        status: 'succeeded',
+        text: '',
+        usage: {
+          inputTokenDetails: {
+            cacheReadTokens: 1,
+            cacheWriteTokens: undefined,
+            noCacheTokens: 2,
+          },
+          inputTokens: 3,
+          outputTokenDetails: {
+            reasoningTokens: 1,
+            textTokens: 4,
+          },
+          outputTokens: 5,
+          raw: undefined,
+          totalTokens: 8,
+        },
       },
     ]);
   });

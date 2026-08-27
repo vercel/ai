@@ -303,22 +303,6 @@ function convertBatchItemResult(
     return item;
   }
 
-  const clientToolCall = item.result.content.find(
-    part => part.type === 'tool-call' && part.providerExecuted !== true,
-  );
-  if (clientToolCall != null) {
-    return {
-      id: item.id,
-      status: 'failed',
-      error: {
-        code: 'unsupported_content',
-        message:
-          'Text batch results cannot represent client-executed tool calls.',
-      },
-      providerMetadata: item.result.providerMetadata,
-    };
-  }
-
   return {
     id: item.id,
     status: 'succeeded',
@@ -330,6 +314,7 @@ function convertGenerateResult(
   result: LanguageModelV4GenerateResult,
 ): TextBatchGenerationResult {
   return {
+    content: result.content,
     text: result.content
       .filter(
         (part): part is Extract<typeof part, { type: 'text' }> =>
