@@ -12,4 +12,4 @@
 '@ai-sdk/harness-pi': patch
 ---
 
-Allow harness sessions to authenticate from an isolated environment supplied through the `auth` option, without mutating or falling back to the host process environment.
+feat(harness): allow harness sessions to optionally authenticate from an isolated environment supplied through the `auth` option, and remove support for the formerly deprecated legacy auth options types
