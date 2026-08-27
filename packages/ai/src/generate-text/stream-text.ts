@@ -2308,7 +2308,6 @@ class DefaultStreamTextResult<
                       break;
                     }
 
-<<<<<<< HEAD
                     case 'tool-input-start': {
                       const tool = getOwn(tools, chunk.toolName);
                       const inputFormat =
@@ -2322,12 +2321,13 @@ class DefaultStreamTextResult<
                         ...chunk,
                         ...(inputFormat != null ? { inputFormat } : {}),
                       });
-=======
+                      break;
+                    }
+
                     case 'text-start': {
                       const id = reserveTextPartId(chunk.id);
                       textPartIds.set(chunk.id, id);
                       controller.enqueue({ ...chunk, id });
->>>>>>> origin/main
                       break;
                     }
 
