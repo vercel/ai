@@ -942,6 +942,30 @@ The following provider options are available for Cohere embedding models:
 
   Truncation behavior when input exceeds the model's context length. Accepts: `NONE`, `START`, `END`.
 
+### Application Inference Profiles
+
+Application inference profile ARNs do not identify their underlying model. Pass
+the model family when creating an embedding model so the provider can select
+the correct request format and batch size:
+
+```ts
+import {
+  amazonBedrock,
+  type AmazonBedrockEmbeddingModelSettings,
+} from '@ai-sdk/amazon-bedrock';
+import { embedMany } from 'ai';
+
+const profileArn =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+const { embeddings } = await embedMany({
+  model: amazonBedrock.embedding(profileArn, {
+    modelFamily: 'cohere',
+  } satisfies AmazonBedrockEmbeddingModelSettings),
+  values: ['hello', 'world'],
+});
+```
+
 ### Model Capabilities
 
 | Model                          | Default Dimensions | Custom Dimensions   |

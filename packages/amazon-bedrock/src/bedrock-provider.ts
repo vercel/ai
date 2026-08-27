@@ -14,12 +14,24 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import type { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import type { BedrockEmbeddingModelId } from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
 import type { BedrockImageModelId } from './bedrock-image-settings';
+=======
+import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
+import type { AmazonBedrockChatModelId } from './amazon-bedrock-chat-language-model-options';
+import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
+import type {
+  AmazonBedrockEmbeddingModelId,
+  AmazonBedrockEmbeddingModelSettings,
+} from './amazon-bedrock-embedding-model-options';
+import { AmazonBedrockImageModel } from './amazon-bedrock-image-model';
+import type { AmazonBedrockImageModelId } from './amazon-bedrock-image-settings';
+>>>>>>> 5d2229e7f0 (feat(amazon-bedrock): add model family setting for embeddings to support ARN (#19854)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
@@ -117,22 +129,50 @@ export interface AmazonBedrockProvider extends ProviderV3 {
   /**
    * Creates a model for text embeddings.
    */
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
   embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+=======
+  embedding(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
+>>>>>>> 5d2229e7f0 (feat(amazon-bedrock): add model family setting for embeddings to support ARN (#19854)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
 
   /**
    * Creates a model for text embeddings.
    */
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
   embeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+=======
+  embeddingModel(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
+>>>>>>> 5d2229e7f0 (feat(amazon-bedrock): add model family setting for embeddings to support ARN (#19854)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
 
   /**
    * @deprecated Use `embedding` instead.
    */
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
   textEmbedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+=======
+  textEmbedding(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
+>>>>>>> 5d2229e7f0 (feat(amazon-bedrock): add model family setting for embeddings to support ARN (#19854)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
   textEmbeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+=======
+  textEmbeddingModel(
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV4;
+>>>>>>> 5d2229e7f0 (feat(amazon-bedrock): add model family setting for embeddings to support ARN (#19854)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
 
   /**
    * Creates a model for image generation.
@@ -308,11 +348,21 @@ export function createAmazonBedrock(
     return createChatModel(modelId);
   };
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-provider.ts
   const createEmbeddingModel = (modelId: BedrockEmbeddingModelId) =>
     new BedrockEmbeddingModel(modelId, {
       baseUrl: getBedrockRuntimeBaseUrl,
+=======
+  const createEmbeddingModel = (
+    modelId: AmazonBedrockEmbeddingModelId,
+    settings: AmazonBedrockEmbeddingModelSettings = {},
+  ) =>
+    new AmazonBedrockEmbeddingModel(modelId, {
+      baseUrl: getAmazonBedrockRuntimeBaseUrl,
+>>>>>>> 5d2229e7f0 (feat(amazon-bedrock): add model family setting for embeddings to support ARN (#19854)):packages/amazon-bedrock/src/amazon-bedrock-provider.ts
       headers: getHeaders,
       fetch: fetchFunction,
+      modelFamily: settings.modelFamily,
     });
 
   const createImageModel = (modelId: BedrockImageModelId) =>
