@@ -26,7 +26,6 @@ import {
   type AgentRunResult,
 } from '@cline/agents';
 import { Llms } from '@cline/core';
-import path from 'node:path';
 import { createClineMcpRuntime } from './cline-mcp';
 import { createClineRemoteOps } from './cline-remote-ops';
 import {
@@ -36,7 +35,10 @@ import {
   resolveClinePrivateSessionDirectory,
   safeClineHistoryFileName,
 } from './cline-resume-state';
-import { renderSkillsPromptSection, writeClineSkills } from './cline-skills';
+import {
+  createClineSkillsRuntime,
+  type ClineSkillsRuntime,
+} from './cline-skills';
 import {
   buildBuiltinAgentTools,
   buildUserAgentTools,
@@ -154,17 +156,12 @@ function clineBuiltinToolRequiresApproval(input: {
 function buildSystemPrompt(input: {
   sessionWorkDir: string;
   sandboxDescription: string;
-  skillsSection?: string;
 }): string {
-  const sections = [
+  return [
     'You are Cline, an autonomous coding agent operating inside a sandboxed workspace.',
     `## Workspace\n\nThe workspace root is \`${input.sessionWorkDir}\`. All relative file paths and shell commands resolve against it. Use the provided tools (read, write, edit, bash, grep, glob, ls) to inspect and modify the workspace.`,
     `## Sandbox\n\n${input.sandboxDescription}`,
-  ];
-  if (input.skillsSection) {
-    sections.push(input.skillsSection);
-  }
-  return sections.join('\n\n');
+  ].join('\n\n');
 }
 
 function toClineBackendProviderBaseUrl(baseUrl: string): string {
@@ -271,12 +268,9 @@ export async function createClineSession(
     input.builtinToolFiltering,
   );
 
-  const skillRootDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
-
   const ops = createClineRemoteOps({
     sandbox: toolSafeSandboxSession,
     workDir: input.sessionWorkDir,
-    readableRoots: [{ sandboxDir: skillRootDir }],
   });
 
   // On resume: pull the persisted conversation history from the sandbox so
@@ -304,7 +298,7 @@ export async function createClineSession(
   // Per-session mutable state we hold across prompts.
   let agent: Agent | undefined;
   let unsubscribe: (() => void) | undefined;
-  let lastToolsSignature: string | undefined;
+  let lastAgentConfigurationSignature: string | undefined;
   let agentHasRun = false;
   let stopped = false;
   /*
@@ -384,7 +378,7 @@ export async function createClineSession(
 
   function rebuildAgent(rebuildInput: {
     userTools: ReadonlyArray<HarnessV1ToolSpec>;
-    skillsSection?: string;
+    skillsRuntime: ClineSkillsRuntime;
     instructions?: string;
     responseFormat?: HarnessV1PromptTurnOptions['responseFormat'];
   }): void {
@@ -405,9 +399,6 @@ export async function createClineSession(
         const baseSystemPrompt = buildSystemPrompt({
           sessionWorkDir: input.sessionWorkDir,
           sandboxDescription: toolSafeSandboxSession.description,
-          ...(rebuildInput.skillsSection
-            ? { skillsSection: rebuildInput.skillsSection }
-            : {}),
         });
         return rebuildInput.instructions
           ? `${baseSystemPrompt}\n\n${rebuildInput.instructions}`
@@ -420,6 +411,10 @@ export async function createClineSession(
         : {}),
       tools: [
         ...buildBuiltinAgentTools({ ops, activeNames: activeBuiltinNames }),
+        ...(rebuildInput.skillsRuntime.tool &&
+        activeBuiltinNames.includes('skills')
+          ? [rebuildInput.skillsRuntime.tool]
+          : []),
         ...mcpRuntime.tools,
         ...buildUserAgentTools({
           specs: rebuildInput.userTools,
@@ -576,16 +571,9 @@ export async function createClineSession(
     }
 
     const userTools = turnOpts.tools;
-    const skillWrite = await writeClineSkills({
-      sandbox: toolSafeSandboxSession,
-      sandboxHomeDir,
+    const skillsRuntime = createClineSkillsRuntime({
       skills: turnOpts.skills,
-      ...(turnOpts.abortSignal ? { abortSignal: turnOpts.abortSignal } : {}),
     });
-    const skillsSection =
-      turnOpts.skills.length === 0
-        ? undefined
-        : renderSkillsPromptSection(turnOpts.skills, skillWrite.rootDir);
     if (
       turnOpts.responseFormat?.type === 'json' &&
       turnOpts.responseFormat.schema == null
@@ -611,28 +599,28 @@ export async function createClineSession(
       tools: userTools,
       responseFormat: turnOpts.responseFormat,
       instructions: turnOpts.instructions,
+      skills: skillsRuntime.signature,
     });
-    if (
-      agent == null ||
-      signature !== lastToolsSignature ||
-      skillWrite.result.changed
-    ) {
+    if (agent == null || signature !== lastAgentConfigurationSignature) {
       currentMessages = agent?.snapshot().messages ?? currentMessages;
       rebuildAgent({
         userTools,
-        ...(skillsSection ? { skillsSection } : {}),
+        skillsRuntime,
         responseFormat: turnOpts.responseFormat,
         ...(turnOpts.instructions
           ? { instructions: turnOpts.instructions }
           : {}),
       });
-      lastToolsSignature = signature;
+      lastAgentConfigurationSignature = signature;
     }
 
     currentEmit = turnOpts.emit;
+    const userToolNames = new Set(userTools.map(tool => tool.name));
     translatorState = createClineTranslatorState({
-      builtinToolNames: activeBuiltinNames,
-      hostToolNames: userTools.map(tool => tool.name),
+      builtinToolNames: activeBuiltinNames.filter(
+        name => !userToolNames.has(name),
+      ),
+      hostToolNames: userToolNames,
       ignoredToolNames:
         turnOpts.responseFormat?.type === 'json' ? ['structured_output'] : [],
       mcpToolNames: mcpRuntime.toolNames,

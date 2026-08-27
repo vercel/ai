@@ -1,4 +1,7 @@
-import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
+import type {
+  HarnessV1BuiltinToolFiltering,
+  HarnessV1NetworkSandboxSession,
+} from '@ai-sdk/harness';
 import type {
   AgentMessage,
   AgentRunInput,
@@ -318,6 +321,145 @@ describe('createClineSession instructions', () => {
       await steering;
       await control.done;
       expect(clineMock.continueInputs).toEqual([]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+});
+
+describe('createClineSession skills', () => {
+  beforeEach(() => {
+    clineMock.configs = [];
+    clineMock.continueInputs = [];
+    clineMock.modelOptions = [];
+    clineMock.modelSelections = [];
+    clineMock.providerConfigs = [];
+    clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
+    clineMock.outputText = '';
+  });
+
+  it('exposes skills through the native tool instead of the system prompt', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'release-notes',
+            description: 'Use when drafting release notes.',
+            content: 'Follow the release process.',
+          },
+        ],
+        tools: [],
+        prompt: 'Draft release notes.',
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const config = clineMock.configs[0];
+      expect(config.systemPrompt).not.toContain('## Skills');
+      expect(config.systemPrompt).not.toContain('.agents/skills');
+      expect(findTool({ config, name: 'skills' }).description).toContain(
+        'Available skills: release-notes.',
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rebuilds only when behavior-relevant skill data changes', async () => {
+    const session = await createSession();
+    const firstSkills = [
+      {
+        name: 'release-notes',
+        description: 'Use when drafting release notes.',
+        content: 'Follow the release process.',
+        files: [
+          { path: 'z.md', content: 'Z' },
+          { path: 'a.md', content: 'A' },
+        ],
+      },
+    ];
+
+    try {
+      for (const skills of [
+        firstSkills,
+        [
+          {
+            ...firstSkills[0],
+            files: [...firstSkills[0].files].reverse(),
+          },
+        ],
+      ]) {
+        const control = await session.doPromptTurn({
+          skills,
+          tools: [],
+          prompt: 'Draft release notes.',
+          emit: vi.fn(),
+        });
+        await control.done;
+      }
+      expect(clineMock.configs).toHaveLength(1);
+
+      const changedControl = await session.doPromptTurn({
+        skills: [
+          {
+            ...firstSkills[0],
+            files: [
+              { path: 'a.md', content: 'Changed' },
+              { path: 'z.md', content: 'Z' },
+            ],
+          },
+        ],
+        tools: [],
+        prompt: 'Draft release notes again.',
+        emit: vi.fn(),
+      });
+      await changedControl.done;
+
+      const removedControl = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Continue without skills.',
+        emit: vi.fn(),
+      });
+      await removedControl.done;
+
+      expect(clineMock.configs).toHaveLength(3);
+      expect(
+        clineMock.configs[2].tools?.some(tool => tool.name === 'skills'),
+      ).toBe(false);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('respects builtin filtering for the skills tool', async () => {
+    const session = await createSession({
+      builtinToolFiltering: { mode: 'deny', toolNames: ['skills'] },
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'release-notes',
+            description: 'Use when drafting release notes.',
+            content: 'Follow the release process.',
+          },
+        ],
+        tools: [],
+        prompt: 'Draft release notes.',
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(
+        clineMock.configs[0].tools?.some(tool => tool.name === 'skills'),
+      ).toBe(false);
     } finally {
       await session.doDestroy();
     }
@@ -867,6 +1009,7 @@ describe('createClineSession tool execution', () => {
 
 async function createSession(
   input: {
+    builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
     isResume?: boolean;
     settings?: Partial<ClineSessionSettings>;
   } = {},
@@ -882,6 +1025,9 @@ async function createSession(
     },
     clientApp: 'ai-sdk/harness-cline/0.0.0-test',
     isResume: input.isResume ?? false,
+    ...(input.builtinToolFiltering
+      ? { builtinToolFiltering: input.builtinToolFiltering }
+      : {}),
   });
 }
 

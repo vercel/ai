@@ -24,6 +24,7 @@ export const CLINE_NATIVE_BUILTIN_NAMES = [
   'grep',
   'glob',
   'ls',
+  'skills',
 ] as const;
 
 export type ClineNativeBuiltinName =
@@ -39,6 +40,7 @@ export const CLINE_NATIVE_TOOL_KINDS: Readonly<
   grep: 'readonly',
   glob: 'readonly',
   ls: 'readonly',
+  skills: 'readonly',
 };
 
 export function isClineBuiltinToolName(
@@ -127,9 +129,9 @@ async function guarded<T>(run: () => Promise<T>): Promise<ClineToolResult> {
 }
 
 /**
- * Build the sandbox-backed built-in `AgentTool`s handed to the Cline runtime.
- * These schemas mirror the zod declarations in `CLINE_BUILTIN_TOOLS`
- * (cline-harness.ts) — keep the two in sync.
+ * Build the sandbox-backed coding tools handed to the Cline runtime. These
+ * schemas mirror their declarations in `CLINE_BUILTIN_TOOLS`
+ * (cline-harness.ts). The in-host skills tool is built separately.
  */
 export function buildBuiltinAgentTools({
   ops,
