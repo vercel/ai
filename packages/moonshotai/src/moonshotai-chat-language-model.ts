@@ -59,12 +59,13 @@ export type MoonshotAIChatConfig = {
 };
 
 function createMoonshotAIStreamError(
-  error: { message: string; type?: string | null },
+  error: { message: string; type?: string | null; code?: string | null },
   data: unknown,
 ) {
   return createProviderStreamError({
     message: error.message,
     type: error.type ?? undefined,
+    code: error.code ?? undefined,
     ...getMoonshotAIStreamErrorMetadata(error.type),
     data,
   });
@@ -176,13 +177,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         schema: moonshotaiLanguageModelOptions,
       })) ?? {};
 
-    const { messages, warnings: messageWarnings } =
-      await convertToMoonshotAIChatMessages({
-        prompt,
-        providerOptionsName: this.providerOptionsName,
-      });
-
-    const allWarnings: SharedV4Warning[] = [...messageWarnings];
+    const allWarnings: SharedV4Warning[] = [];
     if (topK != null) {
       allWarnings.push({ type: 'unsupported', feature: 'topK' });
     }
@@ -428,6 +423,15 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       }
     }
 
+    const { messages, warnings: messageWarnings } =
+      await convertToMoonshotAIChatMessages({
+        modelId: this.modelId,
+        prompt,
+        providerOptionsName: this.providerOptionsName,
+        responseFormat: response_format,
+      });
+    allWarnings.push(...messageWarnings);
+
     return {
       args: {
         model: this.modelId,
@@ -436,7 +440,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         ...(moonshotOptions.topLogprobs != null && {
           top_logprobs: moonshotOptions.topLogprobs,
         }),
-        max_tokens: maxOutputTokens,
+        max_completion_tokens: maxOutputTokens,
         temperature: supportsSamplingOptions ? temperature : undefined,
         top_p: supportsSamplingOptions ? topP : undefined,
         frequency_penalty: supportsSamplingOptions
@@ -448,6 +452,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         messages,
         tools: moonshotTools,
         tool_choice: moonshotToolChoice,
+        ...(moonshotOptions.prediction != null && {
+          prediction: moonshotOptions.prediction,
+        }),
         ...(thinking != null ? { thinking } : {}),
         ...(reasoningEffort != null && {
           reasoning_effort: reasoningEffort,
@@ -521,13 +528,23 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertMoonshotAIChatUsage(responseBody.usage),
-      ...(choice.logprobs != null && {
-        providerMetadata: {
-          [this.providerOptionsName]: {
-            logprobs: choice.logprobs,
-          },
+      providerMetadata: {
+        [this.providerOptionsName]: {
+          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
+          ...(responseBody.object != null && {
+            responseObject: responseBody.object,
+          }),
+          ...(choice.index != null && { choiceIndex: choice.index }),
+          ...(choice.message.role != null && {
+            messageRole: choice.message.role,
+          }),
+          ...(choice.message.tool_calls != null && {
+            toolCallTypes: choice.message.tool_calls
+              .map(toolCall => toolCall.type)
+              .filter(type => type != null),
+          }),
         },
-      }),
+      },
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -579,6 +596,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     let isFirstChunk = true;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let responseObject: 'chat.completion.chunk' | undefined;
+    let choiceIndex: number | undefined;
+    let messageRole: 'assistant' | undefined;
+    const toolCallTypes = new Map<number, 'function'>();
 
     return {
       stream: response.pipeThrough(
@@ -630,10 +651,18 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               topLevelUsage = value.usage;
             }
 
+            if (value.object != null) {
+              responseObject = value.object;
+            }
+
             const choice = value.choices[0];
 
             if (choice?.usage != null) {
               choiceUsage = choice.usage;
+            }
+
+            if (choice?.index != null) {
+              choiceIndex = choice.index;
             }
 
             if (choice?.finish_reason != null) {
@@ -652,6 +681,10 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
             }
 
             const delta = choice.delta;
+
+            if (delta.role != null) {
+              messageRole = delta.role;
+            }
 
             // enqueue reasoning before text deltas:
             const reasoningContent = delta.reasoning_content;
@@ -704,9 +737,13 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const [index, toolCallDelta] of delta.tool_calls.entries()) {
+                const toolCallIndex = toolCallDelta.index ?? index;
+                if (toolCallDelta.type != null) {
+                  toolCallTypes.set(toolCallIndex, toolCallDelta.type);
+                }
                 toolCallTracker.processDelta({
                   ...toolCallDelta,
-                  index: toolCallDelta.index ?? index,
+                  index: toolCallIndex,
                 });
               }
             }
@@ -727,15 +764,21 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
-              ...(contentLogprobs.length > 0 && {
-                providerMetadata: {
-                  [providerOptionsName]: {
-                    logprobs: {
-                      content: contentLogprobs,
-                    },
-                  },
+              providerMetadata: {
+                [providerOptionsName]: {
+                  ...(contentLogprobs.length > 0 && {
+                    logprobs: { content: contentLogprobs },
+                  }),
+                  ...(responseObject != null && { responseObject }),
+                  ...(choiceIndex != null && { choiceIndex }),
+                  ...(messageRole != null && { messageRole }),
+                  ...(toolCallTypes.size > 0 && {
+                    toolCallTypes: [...toolCallTypes.entries()]
+                      .sort(([left], [right]) => left - right)
+                      .map(([, type]) => type),
+                  }),
                 },
-              }),
+              },
             });
           },
         }),

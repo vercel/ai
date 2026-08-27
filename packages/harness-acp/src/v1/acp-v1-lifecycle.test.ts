@@ -41,6 +41,7 @@ describe('ACP skill materialization lifecycle', () => {
         isResume: false,
         lifecycleState: undefined,
         skillsFingerprint: 'current',
+        skillsDirectory: '/home/agent/.agents/skills',
       }),
     ).toBe(true);
   });
@@ -52,8 +53,10 @@ describe('ACP skill materialization lifecycle', () => {
         lifecycleState: {
           skillsMaterialized: true,
           skillsFingerprint: 'current',
+          skillsDirectory: '/home/agent/.agents/skills',
         },
         skillsFingerprint: 'current',
+        skillsDirectory: '/home/agent/.agents/skills',
       }),
     ).toBe(false);
   });
@@ -64,6 +67,22 @@ describe('ACP skill materialization lifecycle', () => {
         isResume: true,
         lifecycleState: {},
         skillsFingerprint: 'current',
+        skillsDirectory: '/home/agent/.agents/skills',
+      }),
+    ).toBe(true);
+  });
+
+  it('materializes skills when the resolved directory changes', () => {
+    expect(
+      shouldMaterializeACPSkills({
+        isResume: true,
+        lifecycleState: {
+          skillsMaterialized: true,
+          skillsFingerprint: 'current',
+          skillsDirectory: '/home/agent/.agents/skills',
+        },
+        skillsFingerprint: 'current',
+        skillsDirectory: '/home/agent/.claude/skills',
       }),
     ).toBe(true);
   });
@@ -77,6 +96,7 @@ describe('ACP skill materialization lifecycle', () => {
           skillsFingerprint: 'previous',
         },
         skillsFingerprint: 'current',
+        skillsDirectory: '/home/agent/.agents/skills',
       }),
     ).toThrow('different set of skills');
   });
@@ -90,6 +110,7 @@ describe('ACP skill materialization lifecycle', () => {
           skillsFingerprint: 'previous',
         },
         skillsFingerprint: 'current',
+        skillsDirectory: '/home/agent/.agents/skills',
       }),
     ).toThrow('different set of skills');
   });

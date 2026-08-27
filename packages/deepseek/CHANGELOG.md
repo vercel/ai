@@ -1,5 +1,28 @@
 # @ai-sdk/deepseek
 
+## 3.0.35
+
+### Patch Changes
+
+- 41f016e: fix(provider/deepseek): preserve complete raw chat usage objects
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 3.0.33
+
+### Patch Changes
+
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 3.0.32
 
 ### Patch Changes
