@@ -1,0 +1,151 @@
+[
+  {
+    "type": "assistant",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01CzerpW7U9o3KGCY6R51Ytd",
+          "name": "Read",
+          "input": {
+            "file_path": "/work/packages/harness-claude-code/src/bridge/__fixtures__/tool-use-result-input.txt"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_0117Edzdd3w14bFgA69WKiNL",
+          "name": "TaskCreate",
+          "input": {
+            "subject": "probe-task",
+            "description": "Probe task created as requested."
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "user",
+    "message": {
+      "content": [
+        {
+          "tool_use_id": "toolu_01CzerpW7U9o3KGCY6R51Ytd",
+          "type": "tool_result",
+          "content": "1\talpha\n2\tbeta\n3\tgamma\n4\t"
+        }
+      ]
+    },
+    "tool_use_result": {
+      "type": "text",
+      "file": {
+        "filePath": "/work/packages/harness-claude-code/src/bridge/__fixtures__/tool-use-result-input.txt",
+        "content": "alpha\nbeta\ngamma\n",
+        "numLines": 4,
+        "startLine": 1,
+        "totalLines": 4
+      }
+    }
+  },
+  {
+    "type": "user",
+    "message": {
+      "content": [
+        {
+          "tool_use_id": "toolu_0117Edzdd3w14bFgA69WKiNL",
+          "type": "tool_result",
+          "content": "Task #1 created successfully: probe-task"
+        }
+      ]
+    },
+    "tool_use_result": {
+      "task": {
+        "id": "1",
+        "subject": "probe-task"
+      }
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01PN3kPDaUbWD3xBH22YnrLM",
+          "name": "Bash",
+          "input": {
+            "command": "printf hello-stdout; printf hello-stderr >&2",
+            "description": "Print to stdout and stderr"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01AmgDXpXZyKM2EzUdnfbsYf",
+          "name": "Bash",
+          "input": {
+            "command": "ls /definitely-not-here-issue-19894",
+            "description": "List a nonexistent directory"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "user",
+    "message": {
+      "content": [
+        {
+          "type": "tool_result",
+          "content": "Exit code 2\nls: cannot access '/definitely-not-here-issue-19894': No such file or directory",
+          "is_error": true,
+          "tool_use_id": "toolu_01AmgDXpXZyKM2EzUdnfbsYf"
+        }
+      ]
+    },
+    "tool_use_result": "Error: Exit code 2\nls: cannot access '/definitely-not-here-issue-19894': No such file or directory"
+  },
+  {
+    "type": "user",
+    "message": {
+      "content": [
+        {
+          "tool_use_id": "toolu_01PN3kPDaUbWD3xBH22YnrLM",
+          "type": "tool_result",
+          "content": "hello-stdouthello-stderr",
+          "is_error": false
+        }
+      ]
+    },
+    "tool_use_result": {
+      "stdout": "hello-stdouthello-stderr",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    }
+  }
+]

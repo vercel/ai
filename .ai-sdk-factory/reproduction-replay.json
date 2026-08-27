@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 19894,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/claude-code-tool-use-result.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/claude-code-tool-use-result.ts",
+    "packages/harness-claude-code/src/bridge/__fixtures__/tool-use-result-stream.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19894_REPRODUCED: Claude Code bridge emitted model-facing tool_result text instead of the structured tool_use_result Output"
+  }
+}

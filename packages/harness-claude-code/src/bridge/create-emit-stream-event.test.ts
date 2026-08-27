@@ -6,7 +6,92 @@ import {
   createEmitStreamEvent,
 } from './create-emit-stream-event';
 
+type FrameWithToolUseResult = ClaudeMessage & { tool_use_result?: unknown };
+
+function containsEqual(value: unknown, expected: unknown): boolean {
+  if (JSON.stringify(value) === JSON.stringify(expected)) return true;
+  if (Array.isArray(value)) {
+    return value.some(item => containsEqual(item, expected));
+  }
+  if (value != null && typeof value === 'object') {
+    return Object.values(value).some(item => containsEqual(item, expected));
+  }
+  return false;
+}
+
 describe('createEmitStreamEvent', () => {
+  it('exposes native structured tool outputs from live Claude Agent SDK frames', () => {
+    const messages = JSON.parse(
+      readFileSync(
+        new URL('./__fixtures__/tool-use-result-stream.json', import.meta.url),
+        'utf8',
+      ),
+    ) as FrameWithToolUseResult[];
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name =>
+        name === 'Read' ? 'read' : name === 'Bash' ? 'bash' : name,
+    });
+
+    for (const message of messages) {
+      emitStreamEvent(message);
+    }
+
+    const toolResults = emitted.filter(event => event.type === 'tool-result');
+    expect(
+      containsEqual(toolResults, {
+        task: { id: '1', subject: 'probe-task' },
+      }),
+    ).toBe(true);
+    expect(
+      containsEqual(toolResults, {
+        type: 'text',
+        file: {
+          filePath:
+            '/work/packages/harness-claude-code/src/bridge/__fixtures__/tool-use-result-input.txt',
+          content: 'alpha\nbeta\ngamma\n',
+          numLines: 4,
+          startLine: 1,
+          totalLines: 4,
+        },
+      }),
+    ).toBe(true);
+    expect(
+      containsEqual(toolResults, {
+        stdout: 'hello-stdouthello-stderr',
+        stderr: '',
+        interrupted: false,
+        isImage: false,
+        noOutputExpected: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('records the Claude Agent SDK string output shape for Bash errors', () => {
+    const messages = JSON.parse(
+      readFileSync(
+        new URL('./__fixtures__/tool-use-result-stream.json', import.meta.url),
+        'utf8',
+      ),
+    ) as FrameWithToolUseResult[];
+
+    expect(
+      messages.find(
+        message =>
+          message.type === 'user' &&
+          typeof message.tool_use_result === 'string',
+      )?.tool_use_result,
+    ).toBe(
+      "Error: Exit code 2\nls: cannot access '/definitely-not-here-issue-19894': No such file or directory",
+    );
+  });
+
   it('emits the resolved model and a native tool step', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
