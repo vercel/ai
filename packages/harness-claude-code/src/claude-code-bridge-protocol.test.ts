@@ -19,6 +19,18 @@ describe('outboundMessageSchema', () => {
     { type: 'reasoning-delta', id: 'r', delta: 'thinking' },
     { type: 'reasoning-end', id: 'r' },
     {
+      type: 'tool-input-start',
+      id: 't1',
+      toolName: 'bash',
+      providerExecuted: true,
+    },
+    {
+      type: 'tool-input-delta',
+      id: 't1',
+      delta: '{"command":"ls"}',
+    },
+    { type: 'tool-input-end', id: 't1' },
+    {
       type: 'tool-call',
       toolCallId: 't1',
       toolName: 'bash',

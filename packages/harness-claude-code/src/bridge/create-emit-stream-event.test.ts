@@ -7,6 +7,80 @@ import {
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
+  it('streams native tool input before the complete tool call', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => (name === 'Write' ? 'write' : name),
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 1,
+        content_block: {
+          type: 'tool_use',
+          id: 'tool-1',
+          name: 'Write',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 1,
+        delta: {
+          type: 'input_json_delta',
+          partial_json: '{"file_path":"notes.md",',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 1,
+        delta: {
+          type: 'input_json_delta',
+          partial_json: '"content":"hello"}',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'content_block_stop', index: 1 },
+    });
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      {
+        type: 'tool-input-start',
+        id: 'tool-1',
+        toolName: 'write',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'tool-1',
+        delta: '{"file_path":"notes.md",',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'tool-1',
+        delta: '"content":"hello"}',
+      },
+      { type: 'tool-input-end', id: 'tool-1' },
+    ]);
+    expect(state.partialBlocks.size).toBe(0);
+  });
+
   it('emits the resolved model and a native tool step', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
