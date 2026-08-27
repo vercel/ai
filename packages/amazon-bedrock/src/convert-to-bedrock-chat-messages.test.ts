@@ -914,6 +914,41 @@ describe('assistant messages', () => {
     },
   );
 
+  it('should omit an assistant message that only contains a cache point after filtering unsigned reasoning', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'First question' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me consider the options',
+          },
+        ],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default' } },
+        },
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Follow-up question' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'First question' }, { text: 'Follow-up question' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should strip invalid characters from tool call names', async () => {
     const result = await convertToBedrockChatMessages([
       {

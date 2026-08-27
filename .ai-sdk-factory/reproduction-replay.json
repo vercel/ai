@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 19851,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-cache-point-only-assistant.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/amazon-bedrock-cache-point-only-assistant.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19851 REPRODUCED: Bedrock rejected a cachePoint-only assistant message"
+  }
+}
