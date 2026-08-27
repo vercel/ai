@@ -1481,26 +1481,33 @@ const getSafetyRatingSchema = () =>
 
 const tokenDetailsSchema = z
   .array(
-    z.object({
-      modality: z.string(),
-      tokenCount: z.number(),
-    }),
+    z
+      .object({
+        modality: z.string(),
+        tokenCount: z.number(),
+      })
+      .loose(),
   )
   .nullish();
 
-const usageSchema = z.object({
-  cachedContentTokenCount: z.number().nullish(),
-  thoughtsTokenCount: z.number().nullish(),
-  promptTokenCount: z.number().nullish(),
-  candidatesTokenCount: z.number().nullish(),
-  totalTokenCount: z.number().nullish(),
-  // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
-  trafficType: z.string().nullish(),
-  serviceTier: z.string().nullish(),
-  // https://ai.google.dev/api/generate-content#Modality
-  promptTokensDetails: tokenDetailsSchema,
-  candidatesTokensDetails: tokenDetailsSchema,
-});
+const usageSchema = z
+  .object({
+    cachedContentTokenCount: z.number().nullish(),
+    thoughtsTokenCount: z.number().nullish(),
+    promptTokenCount: z.number().nullish(),
+    candidatesTokenCount: z.number().nullish(),
+    toolUsePromptTokenCount: z.number().nullish(),
+    totalTokenCount: z.number().nullish(),
+    // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+    trafficType: z.string().nullish(),
+    serviceTier: z.string().nullish(),
+    // https://ai.google.dev/api/generate-content#Modality
+    promptTokensDetails: tokenDetailsSchema,
+    cacheTokensDetails: tokenDetailsSchema,
+    candidatesTokensDetails: tokenDetailsSchema,
+    toolUsePromptTokensDetails: tokenDetailsSchema,
+  })
+  .loose();
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
