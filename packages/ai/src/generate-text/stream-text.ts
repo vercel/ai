@@ -628,9 +628,10 @@ export function streamText<
      * and subsequent model steps.
      *
      * Set to `0` to disable automatic retries while allowing `onError` to
-     * request retries. Omit this option to disable all stream retry behavior
-     * and preserve incremental tool streaming for existing `onError`
-     * observers.
+     * request one retry. When automatic retries are configured, `onError` can
+     * request at most one additional retry after they are exhausted. Omit this
+     * option to disable all stream retry behavior and preserve incremental tool
+     * streaming for existing `onError` observers.
      *
      * @default 0 (stream retry behavior disabled when omitted)
      */
@@ -2405,6 +2406,7 @@ class DefaultStreamTextResult<
           let languageModelStreamReader =
             initialLanguageModelCall.stream.getReader();
           let automaticStreamRetryCount = 0;
+          let callbackStreamRetryCount = 0;
           let bufferedAttemptParts: LanguageModelStreamPart<TOOLS>[] = [];
           const outputChunksHandledBeforeBuffering = new WeakSet<object>();
           const openTextParts = new Set<string>();
@@ -2531,8 +2533,12 @@ class DefaultStreamTextResult<
                   onErrorResult.retry === true;
                 const automaticRetry =
                   automaticStreamRetryCount < streamRetries;
+                const callbackRetry =
+                  !automaticRetry &&
+                  callbackRequestedRetry &&
+                  callbackStreamRetryCount < 1;
 
-                if (!automaticRetry && !callbackRequestedRetry) {
+                if (!automaticRetry && !callbackRetry) {
                   flushBufferedAttemptParts();
                   errorsHandledForStreamRetry.add(value.error);
                   controller.enqueue(value);
@@ -2541,6 +2547,8 @@ class DefaultStreamTextResult<
 
                 if (automaticRetry) {
                   automaticStreamRetryCount++;
+                } else {
+                  callbackStreamRetryCount++;
                 }
 
                 await languageModelStreamReader.cancel(error);

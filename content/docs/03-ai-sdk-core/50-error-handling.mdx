@@ -140,7 +140,8 @@ step. `onLanguageModelCallStart` runs for each provider call attempt, while
 `onLanguageModelCallEnd` runs only for attempts that reach a model-call finish.
 
 You can also decide dynamically in `onError`. Set `streamRetries` explicitly to
-enable stream recovery; use `0` when retries should only be callback-directed:
+enable stream recovery; use `0` when a single retry should only be
+callback-directed:
 
 ```ts highlight="7-12"
 const result = streamText({
@@ -154,6 +155,11 @@ const result = streamText({
   },
 });
 ```
+
+Callback-directed recovery is limited to one retry per logical step. When
+automatic retries are configured, `onError` can request one additional retry
+after the automatic retry budget is exhausted. This bounds the total number of
+recovery calls for a step to `streamRetries + 1`.
 
 When `streamRetries` is omitted, all stream retry behavior is disabled and an
 existing logging-only `onError` callback retains incremental tool streaming.

@@ -2953,6 +2953,39 @@ describe('streamText', () => {
       expect(onError).toHaveBeenCalledTimes(1);
     });
 
+    it('should allow at most one callback-directed retry per logical step', async () => {
+      let callCount = 0;
+      const onError = vi.fn(() =>
+        callCount <= 2 ? ({ retry: true } as const) : undefined,
+      );
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'error',
+                error: new Error(`provider error ${++callCount}`),
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 0,
+        onError,
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(callCount).toBe(2);
+      expect(onError).toHaveBeenCalledTimes(2);
+      expect(parts).toContainEqual({
+        type: 'error',
+        error: new Error('provider error 2'),
+      });
+      expect(await result.finishReason).toBe('error');
+    });
+
     it('should use only recovered transformed content in the next step context', async () => {
       let callCount = 0;
       const nextStepPrompts: ModelMessage[][] = [];
