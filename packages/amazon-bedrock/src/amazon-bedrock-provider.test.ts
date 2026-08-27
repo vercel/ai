@@ -473,6 +473,17 @@ describe('AmazonBedrockProvider', () => {
       expect(model).toBeInstanceOf(AmazonBedrockEmbeddingModel);
     });
 
+    it('should pass embedding model settings to the model', () => {
+      const provider = createAmazonBedrock();
+      const modelId =
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+      provider.embedding(modelId, { modelFamily: 'cohere' });
+
+      const constructorCall = AmazonBedrockEmbeddingModelMock.mock.calls[0];
+      expect(constructorCall[1].modelFamily).toBe('cohere');
+    });
+
     it('should create an image model', () => {
       const provider = createAmazonBedrock();
       const modelId = 'amazon.titan-image-generator';
