@@ -752,7 +752,10 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        messages.push({
+          role: 'assistant',
+          content: moveToolUseBlocksToEnd(anthropicContent),
+        });
 
         break;
       }
@@ -837,4 +840,32 @@ function groupIntoBlocks(
   }
 
   return blocks;
+}
+
+function moveToolUseBlocksToEnd(
+  content: AnthropicAssistantMessage['content'],
+): AnthropicAssistantMessage['content'] {
+  const result: AnthropicAssistantMessage['content'] = [];
+  let segment: AnthropicAssistantMessage['content'] = [];
+
+  function flushSegment() {
+    result.push(
+      ...segment.filter(part => part.type !== 'tool_use'),
+      ...segment.filter(part => part.type === 'tool_use'),
+    );
+    segment = [];
+  }
+
+  for (const part of content) {
+    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+      flushSegment();
+      result.push(part);
+    } else {
+      segment.push(part);
+    }
+  }
+
+  flushSegment();
+
+  return result;
 }
