@@ -1,4 +1,8 @@
-import { AISDKError, type LanguageModelV3ToolChoice } from '@ai-sdk/provider';
+import {
+  AISDKError,
+  type LanguageModelV3Content,
+  type LanguageModelV3ToolChoice,
+} from '@ai-sdk/provider';
 import type { FinishReason } from '../types/language-model';
 
 const name = 'AI_ToolChoiceViolationError';
@@ -36,11 +40,20 @@ export class ToolChoiceViolationError extends AISDKError {
    */
   readonly modelId: string;
 
+  /**
+   * The normalized content returned by the model.
+   *
+   * This can be inspected to recover a tool call that the provider returned as
+   * text or reasoning instead of a structured tool call.
+   */
+  readonly content: Array<LanguageModelV3Content>;
+
   constructor({
     toolChoice,
     finishReason,
     provider,
     modelId,
+    content,
     message = toolChoice.type === 'required'
       ? 'Model response did not contain a tool call even though tool choice was required.'
       : `Model response did not contain a call to the required tool '${toolChoice.toolName}'.`,
@@ -49,6 +62,7 @@ export class ToolChoiceViolationError extends AISDKError {
     finishReason: FinishReason;
     provider: string;
     modelId: string;
+    content: Array<LanguageModelV3Content>;
     message?: string;
   }) {
     super({ name, message });
@@ -57,6 +71,7 @@ export class ToolChoiceViolationError extends AISDKError {
     this.finishReason = finishReason;
     this.provider = provider;
     this.modelId = modelId;
+    this.content = content;
   }
 
   static isInstance(error: unknown): error is ToolChoiceViolationError {

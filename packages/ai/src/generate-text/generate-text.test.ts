@@ -12,6 +12,7 @@ import {
   DelayedPromise,
   dynamicTool,
   jsonSchema,
+  safeParseJSON,
   tool,
   type ModelMessage,
   type ToolExecuteFunction,
@@ -789,6 +790,57 @@ describe('generateText', () => {
         finishReason: 'stop',
         provider: 'mock-provider',
         modelId: 'mock-model-id',
+        content: [
+          { type: 'reasoning', text: 'I will not call the tool.' },
+          { type: 'text', text: 'No tool call.' },
+        ],
+      });
+    });
+
+    it('should expose a tool call serialized as text for opt-in recovery', async () => {
+      const serializedToolCall =
+        '{"toolName":"tool1","input":{"value":"value"}}';
+
+      const result = generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: serializedToolCall }],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+      });
+
+      const error = await result.catch(error => error);
+
+      assert(ToolChoiceViolationError.isInstance(error));
+      expect(error.content).toEqual([
+        { type: 'text', text: serializedToolCall },
+      ]);
+
+      const text = error.content.find(part => part.type === 'text')?.text;
+      assert(text != null);
+
+      await expect(
+        safeParseJSON({
+          text,
+          schema: z.object({
+            toolName: z.literal('tool1'),
+            input: z.object({ value: z.string() }),
+          }),
+        }),
+      ).resolves.toMatchObject({
+        success: true,
+        value: {
+          toolName: 'tool1',
+          input: { value: 'value' },
+        },
       });
     });
 

@@ -981,6 +981,7 @@ export async function generateText<
                 finishReason: currentModelResponse.finishReason.unified,
                 provider: stepModel.provider,
                 modelId: stepModel.modelId,
+                content: currentModelResponse.content,
               });
             }
 
