@@ -16,7 +16,7 @@ import {
   type ProviderOptions,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { NoOutputGeneratedError } from '../error';
+import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -1078,6 +1078,30 @@ export async function generateText<
                     }),
                   ),
               );
+
+              const enforcedToolChoice =
+                stepToolChoice.type === 'required' ||
+                stepToolChoice.type === 'tool'
+                  ? stepToolChoice
+                  : undefined;
+
+              if (
+                enforcedToolChoice != null &&
+                !stepToolCalls.some(
+                  toolCall =>
+                    enforcedToolChoice.type === 'required' ||
+                    toolCall.toolName === enforcedToolChoice.toolName,
+                )
+              ) {
+                throw new ToolChoiceViolationError({
+                  toolChoice: enforcedToolChoice,
+                  finishReason: currentModelResponse.finishReason.unified,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  content: currentModelResponse.content,
+                });
+              }
+
               const toolApprovalRequests: Record<
                 string,
                 ToolApprovalRequestOutput<TOOLS>
