@@ -1,0 +1,115 @@
+{"messageStart":{"role":"assistant"}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":"Base"}}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":"d on the supplie"}}}
+{"contentBlockDelta":{"contentBlockIndex":0,"delta":{"text":"d document, "}}}
+{"contentBlockStop":{"contentBlockIndex":0}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"citation":{"location":{"documentPage":{"documentIndex":0,"end":2,"start":1}},"sourceContent":[{"text":"AI 1\r\nAI\r\nGenerative artificial intelligence refers to models that predict and generate\r\nvarious types of outputs (such as text, images, or audio) based on what’s\r\nstatistically likely, pulling from patterns they’ve learned from their training data.\r\n"}],"title":"document-1"}}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":"gener"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":"ative artificial"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" intelligence refers"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" to models"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" that predict"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" an"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":"d generate various"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" types of outputs"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" ("}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":"such"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" as text, images,"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" or"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" audio"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":") based on what"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":"'s"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" stat"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":"istically likely"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":","}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" pulling"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" from patterns"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" they"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":"'ve learned from their"}}}
+{"contentBlockDelta":{"contentBlockIndex":1,"delta":{"text":" training data"}}}
+{"contentBlockStop":{"contentBlockIndex":1}}
+{"contentBlockDelta":{"contentBlockIndex":2,"delta":{"text":".\n\nThe"}}}
+{"contentBlockDelta":{"contentBlockIndex":2,"delta":{"text":" document provides several"}}}
+{"contentBlockDelta":{"contentBlockIndex":2,"delta":{"text":" examples"}}}
+{"contentBlockDelta":{"contentBlockIndex":2,"delta":{"text":" of what"}}}
+{"contentBlockDelta":{"contentBlockIndex":2,"delta":{"text":" generative AI can"}}}
+{"contentBlockDelta":{"contentBlockIndex":2,"delta":{"text":" do:\n\n-"}}}
+{"contentBlockDelta":{"contentBlockIndex":2,"delta":{"text":" "}}}
+{"contentBlockStop":{"contentBlockIndex":2}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"citation":{"location":{"documentPage":{"documentIndex":0,"end":2,"start":1}},"sourceContent":[{"text":"For example:\r\nGiven a photo, a generative model can generate a caption.\r\n"}],"title":"document-1"}}}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"text":"Given"}}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"text":" a photo"}}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"text":","}}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"text":" a"}}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"text":" generative model"}}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"text":" can generate"}}}
+{"contentBlockDelta":{"contentBlockIndex":3,"delta":{"text":" a caption"}}}
+{"contentBlockStop":{"contentBlockIndex":3}}
+{"contentBlockDelta":{"contentBlockIndex":4,"delta":{"text":"\n- "}}}
+{"contentBlockStop":{"contentBlockIndex":4}}
+{"contentBlockDelta":{"contentBlockIndex":5,"delta":{"citation":{"location":{"documentPage":{"documentIndex":0,"end":2,"start":1}},"sourceContent":[{"text":"Given an audio file, a generative model can generate a transcription.\r\n"}],"title":"document-1"}}}}
+{"contentBlockDelta":{"contentBlockIndex":5,"delta":{"text":"Given an"}}}
+{"contentBlockDelta":{"contentBlockIndex":5,"delta":{"text":" audio file"}}}
+{"contentBlockDelta":{"contentBlockIndex":5,"delta":{"text":", a"}}}
+{"contentBlockDelta":{"contentBlockIndex":5,"delta":{"text":" generative model can generate"}}}
+{"contentBlockDelta":{"contentBlockIndex":5,"delta":{"text":" a transc"}}}
+{"contentBlockDelta":{"contentBlockIndex":5,"delta":{"text":"ription"}}}
+{"contentBlockStop":{"contentBlockIndex":5}}
+{"contentBlockDelta":{"contentBlockIndex":6,"delta":{"text":"\n- "}}}
+{"contentBlockStop":{"contentBlockIndex":6}}
+{"contentBlockDelta":{"contentBlockIndex":7,"delta":{"citation":{"location":{"documentPage":{"documentIndex":0,"end":2,"start":1}},"sourceContent":[{"text":"Given a text description, a generative model can generate an image.\r\n"}],"title":"document-1"}}}}
+{"contentBlockDelta":{"contentBlockIndex":7,"delta":{"text":"Given a text description,"}}}
+{"contentBlockDelta":{"contentBlockIndex":7,"delta":{"text":" a generative model can"}}}
+{"contentBlockDelta":{"contentBlockIndex":7,"delta":{"text":" generate an"}}}
+{"contentBlockDelta":{"contentBlockIndex":7,"delta":{"text":" image"}}}
+{"contentBlockStop":{"contentBlockIndex":7}}
+{"contentBlockDelta":{"contentBlockIndex":8,"delta":{"text":"\n\nThe"}}}
+{"contentBlockDelta":{"contentBlockIndex":8,"delta":{"text":" document also"}}}
+{"contentBlockDelta":{"contentBlockIndex":8,"delta":{"text":" explains"}}}
+{"contentBlockDelta":{"contentBlockIndex":8,"delta":{"text":" that "}}}
+{"contentBlockStop":{"contentBlockIndex":8}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"citation":{"location":{"documentPage":{"documentIndex":0,"end":2,"start":1}},"sourceContent":[{"text":"A large language model (LLM) is a subset of generative models focused\r\nprimarily on text. "}],"title":"document-1"}}}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"text":"a"}}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"text":" large"}}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"text":" language"}}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"text":" model (LLM"}}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"text":") is a subset"}}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"text":" of generative models"}}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"text":" focuse"}}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"text":"d primarily"}}}
+{"contentBlockDelta":{"contentBlockIndex":9,"delta":{"text":" on text"}}}
+{"contentBlockStop":{"contentBlockIndex":9}}
+{"contentBlockDelta":{"contentBlockIndex":10,"delta":{"text":". "}}}
+{"contentBlockStop":{"contentBlockIndex":10}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"citation":{"location":{"documentPage":{"documentIndex":0,"end":2,"start":1}},"sourceContent":[{"text":"An LLM takes a sequence of words as input and aims to\r\npredict the most likely sequence to follow. It assigns probabilities to potential\r\nnext sequences and then selects one. The model continues to generate\r\nsequences until it meets a specified stopping criterion.\r\n"}],"title":"document-1"}}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":"An"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" LLM takes"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" a"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" sequence"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" of words"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" as input and aims"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" to predict"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" the most"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" likely sequence"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" to"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" follow."}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" It assigns"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" prob"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":"abilities to potential"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" next sequences"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" and then"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" selects one"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":"."}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" The"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" model continues"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" to generate sequences"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" until it meets"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" a"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" specifie"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":"d stopping"}}}
+{"contentBlockDelta":{"contentBlockIndex":11,"delta":{"text":" criterion"}}}
+{"contentBlockStop":{"contentBlockIndex":11}}
+{"contentBlockDelta":{"contentBlockIndex":12,"delta":{"text":"."}}}
+{"contentBlockStop":{"contentBlockIndex":12}}
+{"messageStop":{"additionalModelResponseFields":{"delta":{"stop_sequence":null}},"stopReason":"end_turn"}}
+{"metadata":{"metrics":{"latencyMs":4507},"usage":{"inputTokens":2789,"outputTokens":297,"serverToolUsage":{},"totalTokens":3086}}}
