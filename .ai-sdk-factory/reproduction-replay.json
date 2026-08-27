@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 19870,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19870-mistral-raw-usage.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19870-mistral-raw-usage.ts",
+    "packages/mistral/src/__fixtures__/mistral-usage-raw-live.json",
+    "packages/mistral/src/__fixtures__/mistral-usage-raw-live.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #19870: Mistral finalStep.usage.raw dropped provider usage fields."
+  }
+}
