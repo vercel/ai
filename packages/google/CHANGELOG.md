@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.118
+
+### Patch Changes
+
+- 35430d7: Omit unsupported frequency and presence penalties from Gemini 2.5 requests and return warnings instead.
+
 ## 3.0.117
 
 ### Patch Changes
