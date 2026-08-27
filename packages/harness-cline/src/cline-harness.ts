@@ -140,6 +140,18 @@ const CLINE_BUILTIN_TOOLS = {
     nativeName: 'ls',
     toolUseKind: 'readonly',
   } as HarnessV1BuiltinTool,
+  skills: {
+    ...tool({
+      description: 'Execute a configured skill by name.',
+      inputSchema: z.object({
+        skill: z.string(),
+        args: z.string().optional(),
+      }),
+      outputSchema: z.string(),
+    }),
+    nativeName: 'skills',
+    toolUseKind: 'readonly',
+  } as HarnessV1BuiltinTool,
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 export function createCline(

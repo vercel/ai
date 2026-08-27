@@ -14,7 +14,7 @@ describe('createCline', () => {
     expect(harness.supportsBuiltinToolFiltering).toBe(true);
   });
 
-  it('declares the seven built-in tools', () => {
+  it('declares the eight built-in tools', () => {
     expect(Object.keys(createCline().builtinTools).sort()).toEqual(
       [...CLINE_NATIVE_BUILTIN_NAMES].sort(),
     );
@@ -49,6 +49,6 @@ describe('resolveActiveClineBuiltinNames', () => {
   it('applies deny filtering', () => {
     expect(
       resolveActiveClineBuiltinNames({ mode: 'deny', toolNames: ['bash'] }),
-    ).toEqual(['read', 'write', 'edit', 'grep', 'glob', 'ls']);
+    ).toEqual(['read', 'write', 'edit', 'grep', 'glob', 'ls', 'skills']);
   });
 });
