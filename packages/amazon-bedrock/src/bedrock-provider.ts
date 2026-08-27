@@ -17,7 +17,10 @@ import {
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import type { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
-import type { BedrockEmbeddingModelId } from './bedrock-embedding-options';
+import type {
+  BedrockEmbeddingModelId,
+  AmazonBedrockEmbeddingModelSettings,
+} from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
 import type { BedrockImageModelId } from './bedrock-image-settings';
 import {
@@ -117,22 +120,34 @@ export interface AmazonBedrockProvider extends ProviderV3 {
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  embedding(
+    modelId: BedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV3;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  embeddingModel(
+    modelId: BedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV3;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  textEmbedding(
+    modelId: BedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(
+    modelId: BedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV3;
 
   /**
    * Creates a model for image generation.
@@ -308,11 +323,15 @@ export function createAmazonBedrock(
     return createChatModel(modelId);
   };
 
-  const createEmbeddingModel = (modelId: BedrockEmbeddingModelId) =>
+  const createEmbeddingModel = (
+    modelId: BedrockEmbeddingModelId,
+    settings: AmazonBedrockEmbeddingModelSettings = {},
+  ) =>
     new BedrockEmbeddingModel(modelId, {
       baseUrl: getBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
+      modelFamily: settings.modelFamily,
     });
 
   const createImageModel = (modelId: BedrockImageModelId) =>

@@ -15,6 +15,7 @@ import {
 import {
   amazonBedrockEmbeddingModelOptionsSchema,
   type BedrockEmbeddingModelId,
+  type AmazonBedrockEmbeddingModelSettings,
 } from './bedrock-embedding-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { z } from 'zod/v4';
@@ -23,6 +24,7 @@ type BedrockEmbeddingConfig = {
   baseUrl: () => string;
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  modelFamily?: AmazonBedrockEmbeddingModelSettings['modelFamily'];
 };
 
 type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>;
@@ -33,7 +35,11 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
   readonly supportsParallelCalls = true;
 
   get maxEmbeddingsPerCall() {
-    return isCohereEmbeddingModel(this.modelId) ? 96 : 1;
+    return this.modelFamily === 'cohere' ? 96 : 1;
+  }
+
+  private get modelFamily() {
+    return this.config.modelFamily ?? detectEmbeddingModelFamily(this.modelId);
   }
 
   constructor(
@@ -74,36 +80,36 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     // Note: Different embedding model families expect different request/response
     // payloads (e.g. Titan vs Cohere vs Nova). We keep the public interface stable and
     // adapt here based on the modelId.
-    const isNovaModel = isNovaEmbeddingModel(this.modelId);
-    const isCohereModel = isCohereEmbeddingModel(this.modelId);
+    const modelFamily = this.modelFamily;
 
-    const args = isNovaModel
-      ? {
-          taskType: 'SINGLE_EMBEDDING',
-          singleEmbeddingParams: {
-            embeddingPurpose:
-              bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
-            embeddingDimension: bedrockOptions.embeddingDimension ?? 1024,
-            text: {
-              truncationMode: bedrockOptions.truncate ?? 'END',
-              value: values[0],
-            },
-          },
-        }
-      : isCohereModel
+    const args =
+      modelFamily === 'nova'
         ? {
-            // Cohere embedding models on Bedrock require `input_type`.
-            // Without it, the service attempts other schema branches and rejects the request.
-            input_type: bedrockOptions.inputType ?? 'search_query',
-            texts: values,
-            truncate: bedrockOptions.truncate,
-            output_dimension: bedrockOptions.outputDimension,
+            taskType: 'SINGLE_EMBEDDING',
+            singleEmbeddingParams: {
+              embeddingPurpose:
+                bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
+              embeddingDimension: bedrockOptions.embeddingDimension ?? 1024,
+              text: {
+                truncationMode: bedrockOptions.truncate ?? 'END',
+                value: values[0],
+              },
+            },
           }
-        : {
-            inputText: values[0],
-            dimensions: bedrockOptions.dimensions,
-            normalize: bedrockOptions.normalize,
-          };
+        : modelFamily === 'cohere'
+          ? {
+              // Cohere embedding models on Bedrock require `input_type`.
+              // Without it, the service attempts other schema branches and rejects the request.
+              input_type: bedrockOptions.inputType ?? 'search_query',
+              texts: values,
+              truncate: bedrockOptions.truncate,
+              output_dimension: bedrockOptions.outputDimension,
+            }
+          : {
+              inputText: values[0],
+              dimensions: bedrockOptions.dimensions,
+              normalize: bedrockOptions.normalize,
+            };
 
     const url = this.getUrl(this.modelId);
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -172,7 +178,17 @@ function isCohereEmbeddingModel(modelId: string) {
 }
 
 function isNovaEmbeddingModel(modelId: string) {
-  return modelId.startsWith('amazon.nova-') && modelId.includes('embed');
+  return modelId.includes('amazon.nova-') && modelId.includes('embed');
+}
+
+function detectEmbeddingModelFamily(
+  modelId: string,
+): NonNullable<AmazonBedrockEmbeddingModelSettings['modelFamily']> {
+  return isNovaEmbeddingModel(modelId)
+    ? 'nova'
+    : isCohereEmbeddingModel(modelId)
+      ? 'cohere'
+      : 'titan';
 }
 
 const BedrockEmbeddingResponseSchema = z.union([
