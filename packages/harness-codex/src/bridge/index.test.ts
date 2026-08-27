@@ -16,6 +16,8 @@ const state = vi.hoisted(() => ({
   codexOptions: [] as CodexOptions[],
   threadOptions: [] as ThreadOptions[],
   turnOptions: [] as TurnOptions[],
+  events: [{ type: 'turn.completed' }] as Record<string, unknown>[],
+  emitted: [] as Record<string, unknown>[],
   startModel: 'gpt-5.5',
   startResponseFormat: undefined as
     | { type: 'json'; schema: Record<string, unknown> }
@@ -43,7 +45,7 @@ vi.mock('@openai/codex-sdk', () => ({
           state.turnOptions.push(options);
           return {
             events: (async function* () {
-              yield { type: 'turn.completed' };
+              yield* state.events;
             })(),
           };
         },
@@ -81,7 +83,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         ],
       },
       {
-        emit: () => {},
+        emit: (event: Record<string, unknown>) => state.emitted.push(event),
         requestToolResult: async () => ({ output: {} }),
         abortSignal: new AbortController().signal,
         experimental_userMessages: {
@@ -99,6 +101,8 @@ describe('Codex bridge config', () => {
     state.codexOptions = [];
     state.threadOptions = [];
     state.turnOptions = [];
+    state.events = [{ type: 'turn.completed' }];
+    state.emitted = [];
     state.startModel = 'gpt-5.5';
     state.startResponseFormat = undefined;
     state.startInstructions = undefined;
@@ -287,5 +291,29 @@ describe('Codex bridge config', () => {
     expect(state.turnOptions[0]?.outputSchema).toEqual(
       state.startResponseFormat.schema,
     );
+  });
+
+  test('closes an inferred step before finish when the event stream ends without a terminal event', async () => {
+    state.events = [
+      {
+        type: 'item.completed',
+        item: {
+          type: 'agent_message',
+          id: 'message-1',
+          text: 'Done',
+        },
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.map(event => event.type)).toEqual([
+      'stream-start',
+      'text-start',
+      'text-delta',
+      'text-end',
+      'finish-step',
+      'finish',
+    ]);
   });
 });
