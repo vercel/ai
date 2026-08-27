@@ -1,5 +1,302 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.91
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.91
+
+## 1.0.90
+
+### Patch Changes
+
+- Updated dependencies [0e590d2]
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.89
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.88
+
+### Patch Changes
+
+- 309ba00: fix(workflow-harness): prevent time-slice deadlines from suspending harness turns that have already completed.
+- Updated dependencies [32349cc]
+  - @ai-sdk/harness@1.0.88
+
+## 1.0.87
+
+### Patch Changes
+
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+
+## 1.0.86
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+
+## 1.0.85
+
+### Patch Changes
+
+- Updated dependencies [fa6af57]
+  - @ai-sdk/harness@1.0.85
+
+## 1.0.84
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.84
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.83
+
+## 1.0.82
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.82
+
+## 1.0.81
+
+### Patch Changes
+
+- Updated dependencies [7f50d28]
+  - @ai-sdk/harness@1.0.81
+
+## 1.0.80
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.80
+
+## 1.0.79
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.79
+
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness@1.0.78
+
+## 1.0.77
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.77
+
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
+## 1.0.75
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+
+## 1.0.74
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+
+## 1.0.73
+
+### Patch Changes
+
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness@1.0.73
+
+## 1.0.72
+
+### Patch Changes
+
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness@1.0.72
+
+## 1.0.71
+
+### Patch Changes
+
+- f9d847d: Avoid replaying a pending tool input when its output arrives in a later time slice.
+- Updated dependencies [8d717b3]
+  - @ai-sdk/harness@1.0.71
+
+## 1.0.70
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.70
+
+## 1.0.69
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.69
+
+## 1.0.68
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.68
+
+## 1.0.67
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.67
+
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [9ee30bf]
+  - @ai-sdk/harness@1.0.66
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/harness@1.0.65
+
+## 1.0.64
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.64
+
+## 1.0.63
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.63
+
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+  - @ai-sdk/harness@1.0.62
+
+## 1.0.61
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.61
+
+## 1.0.60
+
+### Patch Changes
+
+- 9ee38cd: fix(workflow-harness): preserve flat token usage from completed harness agent runs
+  - @ai-sdk/harness@1.0.60
+
+## 1.0.59
+
+### Patch Changes
+
+- Updated dependencies [81bcf2e]
+  - @ai-sdk/harness@1.0.59
+
+## 1.0.58
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.58
+
+## 1.0.57
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.57
+
+## 1.0.56
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.56
+
+## 1.0.55
+
+### Patch Changes
+
+- Updated dependencies [2c0a8aa]
+- Updated dependencies [861d423]
+- Updated dependencies [8f10600]
+  - @ai-sdk/harness@1.0.55
+
+## 1.0.54
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.54
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [bdde5d9]
+  - @ai-sdk/harness@1.0.53
+
+## 1.0.52
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.52
+
+## 1.0.51
+
+### Patch Changes
+
+- Updated dependencies [226a679]
+  - @ai-sdk/harness@1.0.51
+
+## 1.0.50
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.50
+
+## 1.0.49
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.49
+
+## 1.0.48
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.48
+
+## 1.0.47
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.47
+
 ## 1.0.46
 
 ### Patch Changes

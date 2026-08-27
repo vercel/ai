@@ -19,10 +19,12 @@ export async function prepareTools({
   tools,
   toolChoice,
   modelId,
+  disableParallelToolUse,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
   modelId: string;
+  disableParallelToolUse?: boolean;
 }): Promise<{
   toolConfig: AmazonBedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
@@ -85,6 +87,7 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: ProviderTools,
       toolChoice,
+      disableParallelToolUse,
       supportsStructuredOutput: false,
       supportsStrictTools: false,
     });
@@ -137,6 +140,14 @@ export async function prepareTools({
   const supportsStrictOnTools = supportsStrictTools(modelId);
 
   for (const tool of filteredFunctionTools) {
+    if (!supportsStrictOnTools && tool.strict != null) {
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: 'strict',
+        details: `Tool '${tool.name}' has strict: ${tool.strict}, but strict mode is not supported by this model on Amazon Bedrock. The strict property will be ignored.`,
+      });
+    }
+
     amazonBedrockTools.push({
       toolSpec: {
         name: tool.name,
@@ -153,10 +164,36 @@ export async function prepareTools({
     });
   }
 
+  if (
+    isAnthropicModel &&
+    !usingAnthropicTools &&
+    disableParallelToolUse &&
+    amazonBedrockTools.length > 0 &&
+    toolChoice?.type !== 'none'
+  ) {
+    additionalTools = {
+      tool_choice:
+        toolChoice?.type === 'required'
+          ? { type: 'any', disable_parallel_tool_use: true }
+          : toolChoice?.type === 'tool'
+            ? {
+                type: 'tool',
+                name: toolChoice.toolName,
+                disable_parallel_tool_use: true,
+              }
+            : { type: 'auto', disable_parallel_tool_use: true },
+    };
+  }
+
   // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic provider-defined tools
   let amazonBedrockToolChoice: AmazonBedrockToolConfiguration['toolChoice'] =
     undefined;
-  if (!usingAnthropicTools && amazonBedrockTools.length > 0 && toolChoice) {
+  if (
+    !usingAnthropicTools &&
+    additionalTools?.tool_choice == null &&
+    amazonBedrockTools.length > 0 &&
+    toolChoice
+  ) {
     const type = toolChoice.type;
     switch (type) {
       case 'auto':

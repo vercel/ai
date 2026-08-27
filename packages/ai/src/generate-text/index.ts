@@ -34,6 +34,7 @@ export type {
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
 export * as Output from './output';
+export type { Output as OutputInterface } from './output';
 export type {
   InferCompleteOutput as InferGenerateOutput,
   InferPartialOutput as InferStreamOutput,
@@ -80,6 +81,7 @@ export type {
   ToolApprovalConfiguration,
   ToolApprovalStatus,
 } from './tool-approval-configuration';
+export type { Experimental_ToolCallers } from './tool-caller-configuration';
 export { detectToolDrift, fingerprintTools } from './tool-fingerprint';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type { ToolApprovalResponseOutput } from './tool-approval-response-output';

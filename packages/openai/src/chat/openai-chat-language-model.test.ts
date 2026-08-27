@@ -2231,6 +2231,81 @@ describe('doGenerate', () => {
     expect(requestBody.service_tier).toBe('priority');
     expect(result.warnings).toEqual([]);
   });
+
+  it('should send serviceTier fast processing setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-4o-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'fast',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-4o-mini",
+        "service_tier": "fast",
+      }
+    `);
+  });
+
+  it('should show warning when using fast processing with unsupported model', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-3.5-turbo');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'fast',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBeUndefined();
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should allow fast processing with gpt-4o model without warnings', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-4o');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'fast',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBe('fast');
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe('doStream', () => {
@@ -3272,9 +3347,16 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "code": null,
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "stream failed after output",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
             "message": "stream failed after output",
-            "param": null,
+            "statusCode": 500,
             "type": "server_error",
           },
           "type": "error",

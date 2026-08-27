@@ -1,5 +1,39 @@
 # @ai-sdk/devtools
 
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+  - @ai-sdk/provider@4.0.7
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+
+## 1.0.9
+
+### Patch Changes
+
+- d09a5fd: Add safe image, audio, and video previews for media parts in DevTools prompts and tool inputs and outputs.
+
 ## 1.0.8
 
 ### Patch Changes

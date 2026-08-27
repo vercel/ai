@@ -152,6 +152,102 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert messages with video parts', async () => {
+    const videoData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe the video' },
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(videoData).toString('base64'),
+            },
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { text: 'Describe the video' },
+          {
+            video: {
+              format: 'mp4',
+              source: { bytes: 'AAECAw==' },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert video parts with S3 URLs', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe the video' },
+          {
+            type: 'file',
+            data: {
+              type: 'url' as const,
+              url: new URL('s3://my-test-bucket/path/to/video.mp4'),
+            },
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { text: 'Describe the video' },
+          {
+            video: {
+              format: 'mp4',
+              source: {
+                s3Location: {
+                  uri: 's3://my-test-bucket/path/to/video.mp4',
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw for unsupported video mime types', async () => {
+    await expect(
+      convertToAmazonBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: 'base64data',
+              },
+              mediaType: 'video/unsupported',
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_UnsupportedFunctionalityError: Unsupported video mime type: video/unsupported, expected one of: video/x-matroska, video/quicktime, video/mp4, video/webm, video/x-flv, video/mpeg, video/mpg, video/wmv, video/x-ms-wmv, video/3gpp]`,
+    );
+  });
+
   it('should convert messages with document parts', async () => {
     const fileData = new Uint8Array([0, 1, 2, 3]);
 
@@ -454,6 +550,268 @@ describe('user messages', () => {
       ],
       system: [],
     });
+  });
+
+  it('should convert text part to guardContent when guardContent provider option is true', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Grounding text',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: true,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            guardContent: {
+              text: {
+                text: 'Grounding text',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert text part to guardContent with qualifiers', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Grounding text',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: true,
+                guardContentQualifiers: ['grounding_source'],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            guardContent: {
+              text: {
+                text: 'Grounding text',
+                qualifiers: ['grounding_source'],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert text part to guardContent with multiple qualifiers', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Query text',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: true,
+                guardContentQualifiers: ['grounding_source', 'query'],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            guardContent: {
+              text: {
+                text: 'Query text',
+                qualifiers: ['grounding_source', 'query'],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert text part as normal text when guardContent is false', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Normal text',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: false,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [{ text: 'Normal text' }],
+      },
+    ]);
+  });
+
+  it('should convert text part as normal text when no provider options', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Normal text' }],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [{ text: 'Normal text' }],
+      },
+    ]);
+  });
+
+  it('should convert image part to guardContent when guardContent provider option is true', async () => {
+    const imageData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(imageData).toString('base64'),
+            },
+            mediaType: 'image/png',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: true,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            guardContent: {
+              image: {
+                format: 'png',
+                source: { bytes: 'AAECAw==' },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert image part as normal image when guardContent is false', async () => {
+    const imageData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(imageData).toString('base64'),
+            },
+            mediaType: 'image/png',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: false,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            image: {
+              format: 'png',
+              source: { bytes: 'AAECAw==' },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert image part as normal image when no provider options', async () => {
+    const imageData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(imageData).toString('base64'),
+            },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            image: {
+              format: 'png',
+              source: { bytes: 'AAECAw==' },
+            },
+          },
+        ],
+      },
+    ]);
   });
 
   it('should throw for file parts with provider references', async () => {
@@ -818,6 +1176,46 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should replay reasoning redacted as `redactedContent`', async () => {
+    const redactedContent = 'encrypted-reasoning-payload';
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: { bedrock: { redactedContent } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedContent,
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should omit assistant message reasoning parts signed by a foreign provider', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
@@ -993,6 +1391,42 @@ describe('assistant messages', () => {
         "system": [],
       }
     `);
+  });
+
+  it('should omit an assistant message when unsigned reasoning is its only content', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me consider the options',
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello?' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Think hard then answer' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Hello?' }],
+        },
+      ],
+      system: [],
+    });
   });
 
   it('should omit multiple reasoning parts without signatures', async () => {
@@ -1620,6 +2054,101 @@ describe('tool messages', () => {
     });
   });
 
+  it('should convert tool result with content array containing video', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'video-analyzer',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
+                  mediaType: 'video/mp4',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'call-123',
+            content: [
+              {
+                video: {
+                  format: 'mp4',
+                  source: { bytes: 'base64data' },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should convert tool result videos with S3 URLs', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'video-analyzer',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('s3://my-test-bucket/path/to/video.mp4'),
+                  },
+                  mediaType: 'video/mp4',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'call-123',
+            content: [
+              {
+                video: {
+                  format: 'mp4',
+                  source: {
+                    s3Location: {
+                      uri: 's3://my-test-bucket/path/to/video.mp4',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
   it('should convert tool result with content array containing PDF', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
@@ -2159,6 +2688,9 @@ describe('top-level-only mediaType resolution', () => {
   const PDF_BYTES = new Uint8Array([
     0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34,
   ]);
+  const MP4_BYTES = new Uint8Array([
+    0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
+  ]);
 
   it('should pass through a full image mediaType unchanged', async () => {
     const { messages } = await convertToAmazonBedrockChatMessages([
@@ -2216,6 +2748,36 @@ describe('top-level-only mediaType resolution', () => {
           image: {
             format: 'png',
             source: { bytes: 'iVBORw0KGgo=' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should detect subtype from inline bytes when mediaType is top-level-only (video)', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(MP4_BYTES).toString('base64'),
+            },
+            mediaType: 'video',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          video: {
+            format: 'mp4',
+            source: { bytes: 'AAAAGGZ0eXA=' },
           },
         },
       ],

@@ -1,5 +1,43 @@
 # @ai-sdk/provider
 
+## 4.0.8
+
+### Patch Changes
+
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+
+## 4.0.7
+
+### Patch Changes
+
+- ad6a650: feat(video): allow `aspectRatio: 'adaptive'` on `generateVideo`
+
+  Some video models derive the output ratio from the input and reject explicit
+  `{width}:{height}` values — BytePlus Seedance 2.5 does this for first-frame,
+  first-and-last-frame, editing, and extension tasks. `aspectRatio` on
+  `VideoModelV3CallOptions`, `VideoModelV4CallOptions`, and
+  `experimental_generateVideo` is now `` `${number}:${number}` | 'adaptive' ``, so
+  those calls no longer need a type assertion. Support is provider-specific.
+
+## 4.0.6
+
+### Patch Changes
+
+- 3469d0c: feat: add batch APIs
+
+## 4.0.5
+
+### Patch Changes
+
+- 79e133c: async APIs for generateVideo (poll, webhook)
+
+  Adds an asynchronous start/status flow to the experimental video model
+  interface (`VideoModelV4`): models may now implement `doStart`, `doStatus`,
+  and `handleWebhookOption` instead of (or in addition to) `doGenerate`, and
+  `experimental_generateVideo` accepts `poll` and `webhook` options to
+  orchestrate completion via polling or webhooks. Polling configuration can use
+  a custom delay implementation for durable workflow compatibility.
+
 ## 4.0.4
 
 ### Patch Changes

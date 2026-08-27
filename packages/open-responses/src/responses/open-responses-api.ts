@@ -143,7 +143,7 @@ export type ReasoningItemParam = {
   id?: string;
   type: 'reasoning';
   summary: ReasoningSummaryContentParam[];
-  content?: unknown;
+  content?: ReasoningTextContent[];
   encrypted_content?: string;
 };
 
@@ -311,7 +311,7 @@ export type StreamOptionsParam = {
  * Configuration options for reasoning behavior.
  */
 export type ReasoningParam = {
-  effort?: ReasoningEffortEnum;
+  effort?: string;
   summary?: ReasoningSummaryEnum;
 };
 

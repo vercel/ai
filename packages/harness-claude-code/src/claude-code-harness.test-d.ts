@@ -2,6 +2,7 @@ import type {
   HarnessAgentAdapter,
   HarnessAgentSettings,
 } from '@ai-sdk/harness/agent';
+import type { InferToolInput } from '@ai-sdk/provider-utils';
 import { assertType, describe, expectTypeOf, test } from 'vitest';
 import { claudeCode, createClaudeCode } from './index';
 
@@ -31,5 +32,45 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ): THarness => harness;
 
     assertType<typeof claudeCode>(acceptsHarness(claudeCode));
+  });
+
+  test('new built-in tool inputs retain their schema types', () => {
+    assertType<InferToolInput<typeof claudeCode.builtinTools.CronCreate>>({
+      cron: '0 9 * * *',
+      prompt: 'Prepare the daily summary.',
+      recurring: true,
+    });
+    assertType<InferToolInput<typeof claudeCode.builtinTools.SendMessage>>({
+      to: 'reviewer',
+      message: {
+        type: 'plan_approval_response',
+        request_id: 'request-1',
+        approve: false,
+        feedback: 'Add a regression test.',
+      },
+    });
+  });
+
+  test('canonical and legacy MCP names remain available', () => {
+    assertType(claudeCode.builtinTools.ListMcpResources);
+    assertType(claudeCode.builtinTools.ListMcpResourcesTool);
+    assertType(claudeCode.builtinTools.ReadMcpResource);
+    assertType(claudeCode.builtinTools.ReadMcpResourceTool);
+  });
+
+  test('createClaudeCode accepts environment configuration', () => {
+    expectTypeOf(
+      createClaudeCode({
+        env: { DEPLOYMENT_ENV: 'staging' },
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode accepts asynchronous credential forwarding', () => {
+    expectTypeOf(
+      createClaudeCode({
+        credentialForwarding: async ({ credential }) => credential,
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
   });
 });

@@ -2,11 +2,18 @@
 import './global';
 
 // re-exports:
-export { createGateway, gateway, type GatewayModelId } from '@ai-sdk/gateway';
+export {
+  createGateway,
+  gateway,
+  type GatewayAsyncJobMetadata,
+  type GatewayModelId,
+  type GatewayProviderMetadata,
+} from '@ai-sdk/gateway';
 export {
   asSchema,
   createIdGenerator,
   dynamicTool,
+  experimental_toolCaller,
   generateId,
   jsonSchema,
   parseJsonEventStream,
@@ -19,6 +26,7 @@ export {
   type InferToolOutput,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
+  type Experimental_ToolCallerTool,
   type Schema,
   type Tool,
   type ToolApprovalRequest,
@@ -30,6 +38,7 @@ export {
 
 // directory exports
 export * from './agent';
+export * from './batch';
 export * from './embed';
 export * from './error';
 export * from './generate-image';

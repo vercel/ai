@@ -133,6 +133,7 @@ export class SandboxChannel<
   private readonly onCloseHandlers = new Set<
     (code: number, reason: string) => void
   >();
+  private readonly onReconnectHandlers = new Set<() => void>();
 
   private readonly connectThunk: () => Promise<WebSocket>;
   private readonly outboundSchema: FlexibleSchema<TOut>;
@@ -247,6 +248,13 @@ export class SandboxChannel<
     this.onCloseHandlers.add(handler);
   }
 
+  onReconnect(handler: () => void): () => void {
+    this.onReconnectHandlers.add(handler);
+    return () => {
+      this.onReconnectHandlers.delete(handler);
+    };
+  }
+
   send(message: TIn): void {
     if (this.terminal) {
       throw new Error(
@@ -259,8 +267,8 @@ export class SandboxChannel<
   /**
    * Mark that the host is tearing the session down. The next socket close is
    * then treated as terminal rather than triggering a reconnect. Call before
-   * sending a `shutdown` / `detach` message whose ack the bridge follows with a
-   * socket close.
+   * sending a `stop` / `destroy` message whose completion closes the bridge
+   * socket.
    */
   beginClose(): void {
     this.closing = true;
@@ -386,6 +394,7 @@ export class SandboxChannel<
           }),
         );
         this.flushPending();
+        for (const handler of this.onReconnectHandlers) handler();
         this.onDebug?.({
           event: 'reconnected',
           attempt,

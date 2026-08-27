@@ -49,6 +49,10 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   finishReason?: FinishReason;
 };
 
+export type UIMessageStreamWriteOptions = {
+  updateStatus?: boolean;
+};
+
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage,
   messageId,
@@ -86,7 +90,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
-  messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
+  messageMetadataSchema?: FlexibleSchema<UI_MESSAGE['metadata']>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
@@ -95,7 +99,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   runUpdateMessageJob: (
     job: (options: {
       state: StreamingUIMessageState<UI_MESSAGE>;
-      write: () => void;
+      write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => Promise<void>;
   onError: ErrorHandler;
@@ -484,6 +488,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'reasoning-start': {
               const reasoningPart: ReasoningUIPart = {
                 type: 'reasoning',
+                id: chunk.id,
                 text: '',
                 providerMetadata: chunk.providerMetadata,
                 state: 'streaming',
@@ -743,6 +748,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolInvocation.state = 'approval-requested';
               toolInvocation.approval = {
                 id: chunk.approvalId,
+                ...(chunk.reason != null
+                  ? { requestReason: chunk.reason }
+                  : {}),
                 ...(chunk.isAutomatic === true ? { isAutomatic: true } : {}),
                 ...(chunk.signature != null
                   ? { signature: chunk.signature }
@@ -765,6 +773,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolInvocation.approval = {
                 id: chunk.approvalId,
                 approved: chunk.approved,
+                ...(approval.requestReason != null
+                  ? { requestReason: approval.requestReason }
+                  : {}),
                 ...(chunk.reason != null ? { reason: chunk.reason } : {}),
                 ...(approval.isAutomatic === true ? { isAutomatic: true } : {}),
                 ...(approval.signature != null
@@ -876,9 +887,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'finish-step': {
-              // reset the current text and reasoning parts
+              // Active parts are closed by their explicit end chunks. A merged
+              // stream's step can finish while another stream's part is active.
+              break;
+            }
+
+            case 'reset-step': {
+              const currentStepParts = getCurrentStepParts();
+
               state.activeTextParts = createIdMap();
               state.activeReasoningParts = createIdMap();
+              state.partialToolCalls = createIdMap();
+
+              if (currentStepParts.length > 0) {
+                state.message.parts.splice(
+                  state.message.parts.length - currentStepParts.length,
+                  currentStepParts.length,
+                );
+                write();
+              }
               break;
             }
 
@@ -890,7 +917,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               await updateMessageMetadata(chunk.messageMetadata);
 
               if (chunk.messageId != null || chunk.messageMetadata != null) {
-                write();
+                write({ updateStatus: false });
               }
               break;
             }

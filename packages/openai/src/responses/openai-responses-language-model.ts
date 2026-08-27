@@ -6,6 +6,7 @@ import {
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
   type LanguageModelV4FinishReason,
+  type LanguageModelV4FunctionTool,
   type LanguageModelV4GenerateResult,
   type LanguageModelV4ProviderTool,
   type LanguageModelV4StreamPart,
@@ -32,7 +33,10 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
 import type {
   codeInterpreterInputSchema,
@@ -58,6 +62,10 @@ import {
   type OpenAIResponsesUsage,
 } from './convert-openai-responses-usage';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
+import {
+  expandParallelToolCall,
+  isUndeclaredParallelToolCall,
+} from './expand-parallel-tool-call';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
   openaiResponsesChunkSchema,
@@ -226,7 +234,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
-  private async getArgs({
+  protected async getArgs({
     maxOutputTokens,
     temperature,
     stopSequences,
@@ -322,6 +330,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     });
 
     const customProviderToolNames = new Set<string>();
+    // OpenAI requires function_call_output.output to contain valid JSON when the
+    // function declares output_schema. Preserve the affected SDK tool names so
+    // prompt conversion can apply that encoding only to their results.
+    const outputSchemaToolNames = new Set<string>();
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
@@ -332,6 +344,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       allowedTools: openaiOptions?.allowedTools ?? undefined,
       toolNameMapping,
       customProviderToolNames,
+      outputSchemaToolNames,
     });
 
     const { input, warnings: inputWarnings } =
@@ -354,13 +367,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
         hasComputerTool: hasOpenAITool('openai.computer'),
+        toolSearchToolName: getOpenAIToolName('openai.tool_search'),
         customProviderToolNames:
           customProviderToolNames.size > 0
             ? customProviderToolNames
             : undefined,
+        outputSchemaToolNames:
+          outputSchemaToolNames.size > 0 ? outputSchemaToolNames : undefined,
       });
 
     warnings.push(...inputWarnings);
+
+    // A compaction trigger is a request control, not conversation history.
+    // OpenAI requires it to be the final input item, so append it only after
+    // the complete prompt has been converted.
+    if (openaiOptions?.compactionTrigger) {
+      input.push({ type: 'compaction_trigger' });
+    }
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
 
@@ -374,10 +397,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    function getOpenAIToolName(id: string) {
+      return tools?.find(tool => tool.type === 'provider' && tool.id === id)
+        ?.name;
+    }
+
     function hasOpenAITool(id: string) {
-      return (
-        tools?.find(tool => tool.type === 'provider' && tool.id === id) != null
-      );
+      return getOpenAIToolName(id) != null;
     }
 
     // when logprobs are requested, automatically include them:
@@ -574,7 +600,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     // Validate priority processing support
     if (
-      openaiOptions?.serviceTier === 'priority' &&
+      (openaiOptions?.serviceTier === 'priority' ||
+        openaiOptions?.serviceTier === 'fast') &&
       !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
@@ -676,6 +703,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const content: Array<LanguageModelV4Content> = [];
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
+    const functionTools =
+      options.tools?.filter(
+        (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
+      ) ?? [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -935,6 +966,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
         case 'function_call': {
           hasFunctionCall = true;
+
+          const expandedToolCalls = await expandParallelToolCall({
+            toolCall: {
+              toolCallId: part.call_id,
+              toolName: part.name,
+              input: part.arguments,
+            },
+            tools: functionTools,
+            providerOptionsName,
+            itemId: part.id,
+          });
+
+          if (expandedToolCalls != null) {
+            content.push(...expandedToolCalls);
+            break;
+          }
 
           content.push({
             type: 'tool-call',
@@ -1316,6 +1363,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           ? chunk
           : undefined,
       isOutputChunk: isResponseOutputChunk,
+      isAcceptedChunk: isResponseInProgressChunk,
       url,
       requestBodyValues: body,
       responseHeaders,
@@ -1325,6 +1373,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
       extractApprovalRequestIdToToolCallIdMapping(options.prompt);
+
+    const functionTools =
+      options.tools?.filter(
+        (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
+      ) ?? [];
 
     const approvalRequestIdToDummyToolCallIdFromStream = new Map<
       string,
@@ -1352,6 +1405,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             endEmitted: boolean;
           };
           toolSearchExecution?: 'server' | 'client';
+          suppressInputStreaming?: boolean;
+          bufferedInputDeltas?: string[];
         }
       | undefined
     > = {};
@@ -1378,6 +1433,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         summaryParts: Record<string, 'active' | 'can-conclude' | 'concluded'>;
       }
     > = {};
+
+    // OpenAI-compatible providers can rotate opaque item ids between events.
+    // output_index remains stable for the lifetime of an output item.
+    const activeOutputItemIds: Record<number, string | undefined> = {};
+    const resolveOutputItemId = ({
+      itemId,
+      outputIndex,
+    }: {
+      itemId: string;
+      outputIndex?: number | null;
+    }) =>
+      outputIndex == null
+        ? itemId
+        : (activeOutputItemIds[outputIndex] ?? itemId);
 
     let serviceTier: string | undefined;
     let reasoningContext: ResponsesProviderMetadata['reasoningContext'];
@@ -1411,6 +1480,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   })
                 : chunk.error;
 
+              encounteredStreamError = true;
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error });
               return;
@@ -1420,16 +1490,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
             if (isResponseOutputItemAddedChunk(value)) {
               if (value.item.type === 'function_call') {
+                const suppressInputStreaming = isUndeclaredParallelToolCall({
+                  toolName: value.item.name,
+                  tools: functionTools,
+                });
+
                 ongoingToolCalls[value.output_index] = {
                   toolName: value.item.name,
                   toolCallId: value.item.call_id,
+                  suppressInputStreaming,
+                  bufferedInputDeltas: suppressInputStreaming ? [] : undefined,
                 };
 
-                controller.enqueue({
-                  type: 'tool-input-start',
-                  id: value.item.call_id,
-                  toolName: value.item.name,
-                });
+                if (!suppressInputStreaming) {
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: value.item.call_id,
+                    toolName: value.item.name,
+                  });
+                }
               } else if (value.item.type === 'custom_tool_call') {
                 const toolName = toolNameMapping.toCustomToolName(
                   value.item.name,
@@ -1607,6 +1686,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               } else if (value.item.type === 'shell_call_output') {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
+                activeOutputItemIds[value.output_index] = value.item.id;
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
@@ -1625,6 +1705,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 isResponseOutputItemAddedChunk(value) &&
                 value.item.type === 'reasoning'
               ) {
+                activeOutputItemIds[value.output_index] = value.item.id;
                 activeReasoning[value.item.id] = {
                   encryptedContent: value.item.encrypted_content,
                   summaryParts: { 0: 'active' },
@@ -1644,14 +1725,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'message') {
+                const itemId = resolveOutputItemId({
+                  itemId: value.item.id,
+                  outputIndex: value.output_index,
+                });
                 const phase = value.item.phase ?? activeMessagePhase;
                 activeMessagePhase = undefined;
                 controller.enqueue({
                   type: 'text-end',
-                  id: value.item.id,
+                  id: itemId,
                   providerMetadata: {
                     [providerOptionsName]: {
-                      itemId: value.item.id,
+                      itemId,
                       ...(phase != null && { phase }),
                       ...(ongoingAnnotations.length > 0 && {
                         annotations: ongoingAnnotations,
@@ -1659,44 +1744,122 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                     } satisfies ResponsesTextProviderMetadata,
                   },
                 });
+                activeOutputItemIds[value.output_index] = undefined;
               } else if (value.item.type === 'function_call') {
+                const item = value.item;
+                const ongoingToolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.call_id,
-                  ...(value.item.namespace != null && {
+                const suppressInputStreaming =
+                  ongoingToolCall?.suppressInputStreaming ??
+                  isUndeclaredParallelToolCall({
+                    toolName: item.name,
+                    tools: functionTools,
+                  });
+
+                const enqueueUnexpandedToolCall = () => {
+                  if (suppressInputStreaming) {
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: item.call_id,
+                      toolName: item.name,
+                    });
+
+                    const bufferedInputDeltas =
+                      ongoingToolCall?.bufferedInputDeltas ?? [];
+
+                    if (bufferedInputDeltas.length > 0) {
+                      for (const delta of bufferedInputDeltas) {
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: item.call_id,
+                          delta,
+                        });
+                      }
+                    } else if (item.arguments.length > 0) {
+                      controller.enqueue({
+                        type: 'tool-input-delta',
+                        id: item.call_id,
+                        delta: item.arguments,
+                      });
+                    }
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: item.call_id,
+                    ...(item.namespace != null && {
+                      providerMetadata: {
+                        [providerOptionsName]: {
+                          namespace: item.namespace,
+                        },
+                      },
+                    }),
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: item.call_id,
+                    toolName: item.name,
+                    input: item.arguments,
                     providerMetadata: {
                       [providerOptionsName]: {
-                        namespace: value.item.namespace,
+                        itemId: item.id,
+                        ...(item.namespace != null && {
+                          namespace: item.namespace,
+                        }),
+                        ...(item.caller != null && {
+                          caller:
+                            item.caller.type === 'program'
+                              ? {
+                                  type: 'program',
+                                  callerId: item.caller.caller_id,
+                                }
+                              : item.caller,
+                        }),
                       },
                     },
-                  }),
-                });
+                  });
+                };
 
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.call_id,
-                  toolName: value.item.name,
-                  input: value.item.arguments,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item.id,
-                      ...(value.item.namespace != null && {
-                        namespace: value.item.namespace,
-                      }),
-                      ...(value.item.caller != null && {
-                        caller:
-                          value.item.caller.type === 'program'
-                            ? {
-                                type: 'program',
-                                callerId: value.item.caller.caller_id,
-                              }
-                            : value.item.caller,
-                      }),
-                    },
+                if (!suppressInputStreaming) {
+                  enqueueUnexpandedToolCall();
+                  return;
+                }
+
+                return expandParallelToolCall({
+                  toolCall: {
+                    toolCallId: item.call_id,
+                    toolName: item.name,
+                    input: item.arguments,
                   },
+                  tools: functionTools,
+                  providerOptionsName,
+                  itemId: item.id,
+                }).then(expandedToolCalls => {
+                  if (expandedToolCalls == null) {
+                    enqueueUnexpandedToolCall();
+                    return;
+                  }
+
+                  for (const toolCall of expandedToolCalls) {
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                    });
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCall.toolCallId,
+                      delta: toolCall.input,
+                    });
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCall.toolCallId,
+                    });
+                    controller.enqueue(toolCall);
+                  }
                 });
               } else if (value.item.type === 'program') {
                 controller.enqueue({
@@ -2127,34 +2290,41 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   } satisfies InferSchema<typeof shellOutputSchema>,
                 });
               } else if (value.item.type === 'reasoning') {
-                const activeReasoningPart = activeReasoning[value.item.id];
+                const itemId = resolveOutputItemId({
+                  itemId: value.item.id,
+                  outputIndex: value.output_index,
+                });
+                const activeReasoningPart = activeReasoning[itemId];
 
-                // get all active or can-conclude summary parts' ids
-                // to conclude ongoing reasoning parts:
-                const summaryPartIndices = Object.entries(
-                  activeReasoningPart.summaryParts,
-                )
-                  .filter(
-                    ([_, status]) =>
-                      status === 'active' || status === 'can-conclude',
+                if (activeReasoningPart != null) {
+                  // get all active or can-conclude summary parts' ids
+                  // to conclude ongoing reasoning parts:
+                  const summaryPartIndices = Object.entries(
+                    activeReasoningPart.summaryParts,
                   )
-                  .map(([summaryIndex]) => summaryIndex);
+                    .filter(
+                      ([_, status]) =>
+                        status === 'active' || status === 'can-conclude',
+                    )
+                    .map(([summaryIndex]) => summaryIndex);
 
-                for (const summaryIndex of summaryPartIndices) {
-                  controller.enqueue({
-                    type: 'reasoning-end',
-                    id: `${value.item.id}:${summaryIndex}`,
-                    providerMetadata: {
-                      [providerOptionsName]: {
-                        itemId: value.item.id,
-                        reasoningEncryptedContent:
-                          value.item.encrypted_content ?? null,
-                      } satisfies ResponsesReasoningProviderMetadata,
-                    },
-                  });
+                  for (const summaryIndex of summaryPartIndices) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: `${itemId}:${summaryIndex}`,
+                      providerMetadata: {
+                        [providerOptionsName]: {
+                          itemId,
+                          reasoningEncryptedContent:
+                            value.item.encrypted_content ?? null,
+                        } satisfies ResponsesReasoningProviderMetadata,
+                      },
+                    });
+                  }
+
+                  delete activeReasoning[itemId];
                 }
-
-                delete activeReasoning[value.item.id];
+                activeOutputItemIds[value.output_index] = undefined;
               } else if (value.item.type === 'compaction') {
                 controller.enqueue({
                   type: 'custom',
@@ -2172,11 +2342,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               const toolCall = ongoingToolCalls[value.output_index];
 
               if (toolCall != null) {
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.toolCallId,
-                  delta: value.delta,
-                });
+                if (toolCall.suppressInputStreaming) {
+                  toolCall.bufferedInputDeltas?.push(value.delta);
+                } else {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.toolCallId,
+                    delta: value.delta,
+                  });
+                }
               }
             } else if (isResponseCustomToolCallInputDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
@@ -2284,9 +2458,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 modelId: value.response.model,
               });
             } else if (isTextDeltaChunk(value)) {
+              const itemId = resolveOutputItemId({
+                itemId: value.item_id,
+                outputIndex: value.output_index,
+              });
               controller.enqueue({
                 type: 'text-delta',
-                id: value.item_id,
+                id: itemId,
                 delta: value.delta,
               });
 
@@ -2297,92 +2475,109 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 logprobs.push(value.logprobs);
               }
             } else if (value.type === 'response.reasoning_summary_part.added') {
+              const itemId = resolveOutputItemId({
+                itemId: value.item_id,
+                outputIndex: value.output_index,
+              });
               // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
-                const activeReasoningPart = activeReasoning[value.item_id]!;
+                const activeReasoningPart = activeReasoning[itemId];
 
-                activeReasoningPart.summaryParts[value.summary_index] =
-                  'active';
+                if (activeReasoningPart != null) {
+                  activeReasoningPart.summaryParts[value.summary_index] =
+                    'active';
 
-                // since there is a new active summary part, we can conclude all can-conclude summary parts
-                for (const summaryIndex of Object.keys(
-                  activeReasoningPart.summaryParts,
-                )) {
-                  if (
-                    activeReasoningPart.summaryParts[summaryIndex] ===
-                    'can-conclude'
-                  ) {
-                    controller.enqueue({
-                      type: 'reasoning-end',
-                      id: `${value.item_id}:${summaryIndex}`,
-                      providerMetadata: {
-                        [providerOptionsName]: {
-                          itemId: value.item_id,
-                        } satisfies ResponsesReasoningProviderMetadata,
-                      },
-                    });
-                    activeReasoningPart.summaryParts[summaryIndex] =
-                      'concluded';
+                  // since there is a new active summary part, we can conclude all can-conclude summary parts
+                  for (const summaryIndex of Object.keys(
+                    activeReasoningPart.summaryParts,
+                  )) {
+                    if (
+                      activeReasoningPart.summaryParts[summaryIndex] ===
+                      'can-conclude'
+                    ) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: `${itemId}:${summaryIndex}`,
+                        providerMetadata: {
+                          [providerOptionsName]: {
+                            itemId,
+                          } satisfies ResponsesReasoningProviderMetadata,
+                        },
+                      });
+                      activeReasoningPart.summaryParts[summaryIndex] =
+                        'concluded';
+                    }
                   }
-                }
 
-                controller.enqueue({
-                  type: 'reasoning-start',
-                  id: `${value.item_id}:${value.summary_index}`,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item_id,
-                      reasoningEncryptedContent:
-                        activeReasoning[value.item_id]?.encryptedContent ??
-                        null,
-                    } satisfies ResponsesReasoningProviderMetadata,
-                  },
-                });
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: `${itemId}:${value.summary_index}`,
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        itemId,
+                        reasoningEncryptedContent:
+                          activeReasoningPart.encryptedContent ?? null,
+                      } satisfies ResponsesReasoningProviderMetadata,
+                    },
+                  });
+                }
               }
             } else if (value.type === 'response.reasoning_summary_text.delta') {
+              const itemId = resolveOutputItemId({
+                itemId: value.item_id,
+                outputIndex: value.output_index,
+              });
               controller.enqueue({
                 type: 'reasoning-delta',
-                id: `${value.item_id}:${value.summary_index}`,
+                id: `${itemId}:${value.summary_index}`,
                 delta: value.delta,
                 providerMetadata: {
                   [providerOptionsName]: {
-                    itemId: value.item_id,
+                    itemId,
                   } satisfies ResponsesReasoningProviderMetadata,
                 },
               });
             } else if (value.type === 'response.reasoning_summary_part.done') {
-              // when OpenAI stores the message data, we can immediately conclude the reasoning part
-              // since we do not need to send the encrypted content.
-              if (store) {
-                controller.enqueue({
-                  type: 'reasoning-end',
-                  id: `${value.item_id}:${value.summary_index}`,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item_id,
-                    } satisfies ResponsesReasoningProviderMetadata,
-                  },
-                });
+              const itemId = resolveOutputItemId({
+                itemId: value.item_id,
+                outputIndex: value.output_index,
+              });
+              const activeReasoningPart = activeReasoning[itemId];
 
-                // mark the summary part as concluded
-                activeReasoning[value.item_id]!.summaryParts[
-                  value.summary_index
-                ] = 'concluded';
-              } else {
-                // mark the summary part as can-conclude only
-                // because we need to have a final summary part with the encrypted content
-                activeReasoning[value.item_id]!.summaryParts[
-                  value.summary_index
-                ] = 'can-conclude';
+              if (activeReasoningPart != null) {
+                // when OpenAI stores the message data, we can immediately conclude the reasoning part
+                // since we do not need to send the encrypted content.
+                if (store) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: `${itemId}:${value.summary_index}`,
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        itemId,
+                      } satisfies ResponsesReasoningProviderMetadata,
+                    },
+                  });
+
+                  // mark the summary part as concluded
+                  activeReasoningPart.summaryParts[value.summary_index] =
+                    'concluded';
+                } else {
+                  // mark the summary part as can-conclude only
+                  // because we need to have a final summary part with the encrypted content
+                  activeReasoningPart.summaryParts[value.summary_index] =
+                    'can-conclude';
+                }
               }
             } else if (isResponseFinishedChunk(value)) {
-              finishReason = {
-                unified: mapOpenAIResponseFinishReason({
-                  finishReason: value.response.incomplete_details?.reason,
-                  hasFunctionCall,
-                }),
-                raw: value.response.incomplete_details?.reason ?? undefined,
-              };
+              if (!encounteredStreamError) {
+                finishReason = {
+                  unified: mapOpenAIResponseFinishReason({
+                    finishReason: value.response.incomplete_details?.reason,
+                    hasFunctionCall,
+                  }),
+                  raw: value.response.incomplete_details?.reason ?? undefined,
+                };
+              }
               usage = value.response.usage;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
@@ -2409,17 +2604,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
               if (!encounteredStreamError && value.response.error != null) {
                 encounteredStreamError = true;
+                const error = {
+                  type: 'response.failed',
+                  sequence_number: value.sequence_number,
+                  response: {
+                    error: value.response.error,
+                    incomplete_details: value.response.incomplete_details,
+                    service_tier: value.response.service_tier,
+                  },
+                };
                 controller.enqueue({
                   type: 'error',
-                  error: {
-                    type: 'response.failed',
-                    sequence_number: value.sequence_number,
-                    response: {
-                      error: value.response.error,
-                      incomplete_details: value.response.incomplete_details,
-                      service_tier: value.response.service_tier,
-                    },
-                  },
+                  error: createOpenAIProviderStreamError(error) ?? error,
                 });
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
@@ -2493,11 +2689,34 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             } else if (isErrorChunk(value)) {
               encounteredStreamError = true;
               finishReason = { unified: 'error', raw: 'error' };
-              controller.enqueue({ type: 'error', error: value });
+              controller.enqueue({
+                type: 'error',
+                error: createOpenAIProviderStreamError(value) ?? value,
+              });
             }
           },
 
           flush(controller) {
+            for (const toolCall of Object.values(ongoingToolCalls)) {
+              if (!toolCall?.suppressInputStreaming) {
+                continue;
+              }
+
+              controller.enqueue({
+                type: 'tool-input-start',
+                id: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+              });
+
+              for (const delta of toolCall.bufferedInputDeltas ?? []) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta,
+                });
+              }
+            }
+
             const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {
                 responseId: responseId,
@@ -2674,9 +2893,16 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
+function isResponseInProgressChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.in_progress' } {
+  return chunk.type === 'response.in_progress';
+}
+
 function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   return !(
     chunk.type === 'response.created' ||
+    chunk.type === 'response.in_progress' ||
     chunk.type === 'response.failed' ||
     chunk.type === 'error' ||
     chunk.type === 'unknown_chunk'

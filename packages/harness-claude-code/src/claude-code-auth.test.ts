@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveClaudeCodeEnv } from './claude-code-auth';
+import {
+  createClaudeCodeRequestTransformations,
+  resolveClaudeCodeAuthenticationMode,
+  resolveClaudeCodeEnv,
+} from './claude-code-auth';
 
 const noHelper = () => undefined;
 
@@ -143,5 +147,136 @@ describe('resolveClaudeCodeEnv', () => {
       },
     );
     expect(env).toEqual({});
+  });
+
+  it('supports string authentication modes', () => {
+    expect(
+      resolveClaudeCodeEnv(
+        'direct',
+        { ANTHROPIC_API_KEY: 'sk-direct' },
+        { readApiKeyHelper: noHelper },
+      ),
+    ).toEqual({ ANTHROPIC_API_KEY: 'sk-direct' });
+
+    expect(
+      resolveClaudeCodeEnv(
+        'ai-gateway',
+        { AI_GATEWAY_API_KEY: 'gw-mode' },
+        { readApiKeyHelper: noHelper },
+      ),
+    ).toEqual({
+      AI_GATEWAY_API_KEY: 'gw-mode',
+      ANTHROPIC_API_KEY: 'gw-mode',
+      AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+      ANTHROPIC_BASE_URL: 'https://ai-gateway.vercel.sh',
+    });
+  });
+
+  it('warns when passing a legacy object shape', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    resolveClaudeCodeEnv({ anthropic: {} }, {}, { readApiKeyHelper: noHelper });
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Passing an object to auth options is deprecated',
+      ),
+    );
+    spy.mockRestore();
+  });
+});
+
+describe('resolveClaudeCodeAuthenticationMode', () => {
+  it('preserves explicit Anthropic auth despite ambient Gateway credentials', () => {
+    expect(
+      resolveClaudeCodeAuthenticationMode(
+        { anthropic: {} },
+        { AI_GATEWAY_API_KEY: 'gateway-key' },
+      ),
+    ).toBe('direct');
+  });
+
+  it('resolves ambient Gateway credentials to Gateway auth', () => {
+    expect(
+      resolveClaudeCodeAuthenticationMode(undefined, {
+        VERCEL_OIDC_TOKEN: 'oidc-token',
+      }),
+    ).toBe('ai-gateway');
+  });
+});
+
+describe('createClaudeCodeRequestTransformations', () => {
+  it('injects Anthropic API key and auth token headers at the configured endpoint', () => {
+    expect(
+      createClaudeCodeRequestTransformations({
+        env: {
+          ANTHROPIC_API_KEY: 'api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'token-secret',
+          ANTHROPIC_BASE_URL: 'https://anthropic.example/v1',
+        },
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
+        },
+        auth: 'direct',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'anthropic.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-api-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { 'x-api-key': 'api-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'anthropic.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-token-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer token-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('uses the resolved Gateway route', () => {
+    expect(
+      createClaudeCodeRequestTransformations({
+        env: {
+          ANTHROPIC_API_KEY: 'gateway-secret',
+          ANTHROPIC_BASE_URL: 'https://gateway.example',
+        },
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-gateway-secret',
+        },
+        auth: 'ai-gateway',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'gateway.example',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-gateway-secret' },
+            },
+          ],
+        },
+        transform: { headers: { 'x-api-key': 'gateway-secret' } },
+      },
+    ]);
   });
 });
