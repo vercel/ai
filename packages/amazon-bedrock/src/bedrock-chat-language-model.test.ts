@@ -1,4 +1,10 @@
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
 import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
+=======
+import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
+>>>>>>> b2eb608541 (fix: accept valid citation deltas in Amazon Bedrock streams (#18250)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
@@ -271,30 +277,45 @@ const unsupportedStructuredOutputModel = new BedrockChatLanguageModel(
   },
 );
 
-let mockOptions: { success: boolean; errorValue?: any } = { success: true };
+let mockOptions: {
+  success: boolean;
+  errorValue?: any;
+  validateSchema?: boolean;
+} = { success: true };
 
 describe('doStream', () => {
   beforeEach(() => {
-    mockOptions = { success: true, errorValue: undefined };
+    mockOptions = {
+      success: true,
+      errorValue: undefined,
+      validateSchema: false,
+    };
   });
 
   vi.mock('./bedrock-event-stream-response-handler', () => ({
     createBedrockEventStreamResponseHandler: (schema: any) => {
       return async ({ response }: { response: Response }) => {
-        let chunks: { success: boolean; value: any }[] = [];
+        let chunks: Array<{
+          success: boolean;
+          value?: any;
+          error?: unknown;
+          rawValue?: unknown;
+        }> = [];
         if (mockOptions.success) {
           const text = await response.text();
-          chunks = text
+          const values = text
             .split('\n')
             .filter(Boolean)
-            .map(chunk => {
-              const parsedChunk = JSON.parse(chunk);
-              return {
+            .map(chunk => JSON.parse(chunk));
+          chunks = mockOptions.validateSchema
+            ? await Promise.all(
+                values.map(value => safeValidateTypes({ value, schema })),
+              )
+            : values.map(value => ({
                 success: true,
-                value: parsedChunk,
-                rawValue: parsedChunk,
-              };
-            });
+                value,
+                rawValue: value,
+              }));
         }
         const headers = Object.fromEntries<string>([...response.headers]);
 
@@ -319,11 +340,137 @@ describe('doStream', () => {
   }));
 
   function setupMockEventStreamHandler(
-    options: { success?: boolean; errorValue?: any } = { success: true },
+    options: {
+      success?: boolean;
+      errorValue?: any;
+      validateSchema?: boolean;
+    } = { success: true },
   ) {
     mockOptions = { ...mockOptions, ...options };
   }
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.test.ts
+=======
+  describe('text', () => {
+    beforeEach(() => {
+      setupMockEventStreamHandler();
+      prepareChunksFixtureResponse('amazon-bedrock-text');
+    });
+
+    it('should stream text deltas', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+
+    it('should expose the raw response headers', async () => {
+      prepareChunksFixtureResponse('amazon-bedrock-text', {
+        headers: { 'test-header': 'test-value' },
+      });
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(result.response?.headers).toMatchInlineSnapshot(`
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "test-header": "test-value",
+        }
+      `);
+    });
+
+    it('should return the request body', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(result.request?.body).toMatchInlineSnapshot(`
+        {
+          "additionalModelRequestFields": undefined,
+          "additionalModelResponseFieldPaths": [
+            "/delta/stop_sequence",
+          ],
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": [
+            {
+              "text": "System Prompt",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  it('should accept citation deltas', async () => {
+    setupMockEventStreamHandler({ validateSchema: true });
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: {
+              citation: {
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    start: 1,
+                    end: 2,
+                  },
+                },
+                sourceContent: [{ text: 'Source content' }],
+                title: 'document',
+              },
+            },
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+  });
+
+  describe('reasoning', () => {
+    beforeEach(() => {
+      setupMockEventStreamHandler();
+      prepareChunksFixtureResponse('amazon-bedrock-reasoning');
+    });
+
+    it('should stream reasoning and text parts', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+>>>>>>> b2eb608541 (fix: accept valid citation deltas in Amazon Bedrock streams (#18250)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.test.ts
   it('should stream text deltas with metadata and usage', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
