@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19874,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19874-tool-loop-agent-approval-secret.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19874-tool-loop-agent-approval-secret.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19874 REPRODUCED: ToolLoopAgent approval-secret types are missing."
+  }
+}
