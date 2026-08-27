@@ -276,11 +276,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const candidate = response.candidates[0];
+    const candidate = response.candidates?.[0];
+    const promptBlockReason = response.promptFeedback?.blockReason;
+    const isPromptBlocked =
+      candidate?.finishReason == null && promptBlockReason != null;
     const content: Array<LanguageModelV2Content> = [];
 
     // map ordered parts to content:
-    const parts = candidate.content?.parts ?? [];
+    const parts = candidate?.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
 
@@ -352,7 +355,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     const sources =
       extractSources({
-        groundingMetadata: candidate.groundingMetadata,
+        groundingMetadata: candidate?.groundingMetadata,
         generateId: this.config.generateId,
       }) ?? [];
     for (const source of sources) {
@@ -361,10 +364,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     return {
       content,
-      finishReason: mapGoogleGenerativeAIFinishReason({
-        finishReason: candidate.finishReason,
-        hasToolCalls: content.some(part => part.type === 'tool-call'),
-      }),
+      finishReason: isPromptBlocked
+        ? 'content-filter'
+        : mapGoogleGenerativeAIFinishReason({
+            finishReason: candidate?.finishReason,
+            hasToolCalls: content.some(part => part.type === 'tool-call'),
+          }),
       usage: {
         inputTokens: usageMetadata?.promptTokenCount ?? undefined,
         outputTokens: usageMetadata?.candidatesTokenCount ?? undefined,
@@ -376,9 +381,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       providerMetadata: {
         google: {
           promptFeedback: response.promptFeedback ?? null,
-          groundingMetadata: candidate.groundingMetadata ?? null,
-          urlContextMetadata: candidate.urlContextMetadata ?? null,
-          safetyRatings: candidate.safetyRatings ?? null,
+          groundingMetadata: candidate?.groundingMetadata ?? null,
+          urlContextMetadata: candidate?.urlContextMetadata ?? null,
+          safetyRatings: candidate?.safetyRatings ?? null,
           serviceTier: response.serviceTier ?? null,
           usageMetadata: usageMetadata ?? null,
         },
@@ -482,6 +487,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
             // sometimes the API returns an empty candidates array
             if (candidate == null) {
+              const promptBlockReason = value.promptFeedback?.blockReason;
+              if (promptBlockReason != null) {
+                finishReason = 'content-filter';
+                providerMetadata = {
+                  google: {
+                    promptFeedback: value.promptFeedback ?? null,
+                    groundingMetadata: lastGroundingMetadata,
+                    urlContextMetadata: lastUrlContextMetadata,
+                    safetyRatings: null,
+                    serviceTier,
+                  },
+                };
+                if (usageMetadata != null) {
+                  providerMetadata.google.usageMetadata = usageMetadata;
+                }
+              }
               return;
             }
 
@@ -671,11 +692,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               }
             }
 
-            if (candidate.finishReason != null) {
-              finishReason = mapGoogleGenerativeAIFinishReason({
-                finishReason: candidate.finishReason,
-                hasToolCalls,
-              });
+            const promptBlockReason = value.promptFeedback?.blockReason;
+            const isPromptBlocked =
+              candidate.finishReason == null && promptBlockReason != null;
+            const rawFinishReason =
+              candidate.finishReason ?? promptBlockReason ?? undefined;
+
+            if (rawFinishReason != null) {
+              finishReason = isPromptBlocked
+                ? 'content-filter'
+                : mapGoogleGenerativeAIFinishReason({
+                    finishReason: rawFinishReason,
+                    hasToolCalls,
+                  });
 
               providerMetadata = {
                 google: {
@@ -1017,15 +1046,17 @@ export const getUrlContextMetadataSchema = () =>
 const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      candidates: z.array(
-        z.object({
-          content: getContentSchema().nullish().or(z.object({}).strict()),
-          finishReason: z.string().nullish(),
-          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
-          groundingMetadata: getGroundingMetadataSchema().nullish(),
-          urlContextMetadata: getUrlContextMetadataSchema().nullish(),
-        }),
-      ),
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish().or(z.object({}).strict()),
+            finishReason: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
       usageMetadata: usageSchema.nullish(),
       promptFeedback: z
         .object({
@@ -1038,13 +1069,13 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-type ContentSchema = NonNullable<
-  InferValidator<typeof responseSchema>['candidates'][number]['content']
->;
+type CandidateSchema = NonNullable<
+  InferValidator<typeof responseSchema>['candidates']
+>[number];
+
+type ContentSchema = NonNullable<CandidateSchema['content']>;
 export type GroundingMetadataSchema = NonNullable<
-  InferValidator<
-    typeof responseSchema
-  >['candidates'][number]['groundingMetadata']
+  CandidateSchema['groundingMetadata']
 >;
 
 type GroundingChunkSchema = NonNullable<
@@ -1052,13 +1083,11 @@ type GroundingChunkSchema = NonNullable<
 >[number];
 
 export type UrlContextMetadataSchema = NonNullable<
-  InferValidator<
-    typeof responseSchema
-  >['candidates'][number]['urlContextMetadata']
+  CandidateSchema['urlContextMetadata']
 >;
 
 export type SafetyRatingSchema = NonNullable<
-  InferValidator<typeof responseSchema>['candidates'][number]['safetyRatings']
+  CandidateSchema['safetyRatings']
 >[number];
 
 // limited version of the schema, focussed on what is needed for the implementation
