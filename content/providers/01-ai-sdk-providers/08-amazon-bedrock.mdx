@@ -983,6 +983,13 @@ const { embedding } = await embed({
 
 The following provider options are available for Cohere embedding models:
 
+- **embeddingFamily** _'titan' | 'cohere' | 'nova'_
+
+  Explicitly identifies the embedding model family. Set this to `cohere` when
+  using an application inference profile ARN, because its opaque identifier
+  does not contain the underlying model name. This option also preserves
+  Cohere's multi-value request batching.
+
 - **inputType** _string_
 
   Input type for Cohere embedding models. Accepts: `search_document`, `search_query` (default), `classification`, `clustering`.
@@ -990,6 +997,30 @@ The following provider options are available for Cohere embedding models:
 - **truncate** _string_
 
   Truncation behavior when input exceeds the model's context length. Accepts: `NONE`, `START`, `END`.
+
+For example, configure the family explicitly when using a Cohere application
+inference profile:
+
+```ts
+import {
+  amazonBedrock,
+  type AmazonBedrockEmbeddingModelOptions,
+} from '@ai-sdk/amazon-bedrock';
+import { embedMany } from 'ai';
+
+const { embeddings } = await embedMany({
+  model: amazonBedrock.embedding(
+    'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/opaque-id',
+  ),
+  values: ['sunny day at the beach', 'rainy day in the city'],
+  providerOptions: {
+    amazonBedrock: {
+      embeddingFamily: 'cohere',
+      inputType: 'search_document',
+    } satisfies AmazonBedrockEmbeddingModelOptions,
+  },
+});
+```
 
 ### Model Capabilities
 

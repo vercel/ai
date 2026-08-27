@@ -6,6 +6,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -17,6 +18,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   amazonBedrockEmbeddingModelOptionsSchema,
+  type AmazonBedrockEmbeddingModelOptions,
   type AmazonBedrockEmbeddingModelId,
 } from './amazon-bedrock-embedding-model-options';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
@@ -37,6 +39,17 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
 
   get maxEmbeddingsPerCall() {
     return isCohereEmbeddingModel(this.modelId) ? 96 : 1;
+  }
+
+  async [EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL]({
+    providerOptions,
+  }: Pick<Parameters<EmbeddingModelV4['doEmbed']>[0], 'providerOptions'>) {
+    const amazonBedrockOptions =
+      await parseAmazonBedrockEmbeddingModelOptions(providerOptions);
+
+    return getEmbeddingFamily(this.modelId, amazonBedrockOptions) === 'cohere'
+      ? 96
+      : 1;
   }
 
   static [WORKFLOW_SERIALIZE](model: AmazonBedrockEmbeddingModel) {
@@ -69,65 +82,57 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
     abortSignal,
     providerOptions,
   }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<DoEmbedResponse> {
-    if (values.length > this.maxEmbeddingsPerCall) {
+    const amazonBedrockOptions =
+      await parseAmazonBedrockEmbeddingModelOptions(providerOptions);
+    const embeddingFamily = getEmbeddingFamily(
+      this.modelId,
+      amazonBedrockOptions,
+    );
+    const maxEmbeddingsPerCall = embeddingFamily === 'cohere' ? 96 : 1;
+
+    if (values.length > maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
         modelId: this.modelId,
-        maxEmbeddingsPerCall: this.maxEmbeddingsPerCall,
+        maxEmbeddingsPerCall,
         values,
       });
     }
-
-    // Parse provider options. Prefer `amazonBedrock`; fall back to legacy
-    // `bedrock` key for backward compatibility.
-    const amazonBedrockOptions =
-      (await parseProviderOptions({
-        provider: 'amazonBedrock',
-        providerOptions,
-        schema: amazonBedrockEmbeddingModelOptionsSchema,
-      })) ??
-      (await parseProviderOptions({
-        provider: 'bedrock',
-        providerOptions,
-        schema: amazonBedrockEmbeddingModelOptionsSchema,
-      })) ??
-      {};
 
     // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
     //
     // Note: Different embedding model families expect different request/response
     // payloads (e.g. Titan vs Cohere vs Nova). We keep the public interface stable and
     // adapt here based on the modelId.
-    const isNovaModel = isNovaEmbeddingModel(this.modelId);
-    const isCohereModel = isCohereEmbeddingModel(this.modelId);
-
-    const args = isNovaModel
-      ? {
-          taskType: 'SINGLE_EMBEDDING',
-          singleEmbeddingParams: {
-            embeddingPurpose:
-              amazonBedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
-            embeddingDimension: amazonBedrockOptions.embeddingDimension ?? 1024,
-            text: {
-              truncationMode: amazonBedrockOptions.truncate ?? 'END',
-              value: values[0],
-            },
-          },
-        }
-      : isCohereModel
+    const args =
+      embeddingFamily === 'nova'
         ? {
-            // Cohere embedding models on Bedrock require `input_type`.
-            // Without it, the service attempts other schema branches and rejects the request.
-            input_type: amazonBedrockOptions.inputType ?? 'search_query',
-            texts: values,
-            truncate: amazonBedrockOptions.truncate,
-            output_dimension: amazonBedrockOptions.outputDimension,
+            taskType: 'SINGLE_EMBEDDING',
+            singleEmbeddingParams: {
+              embeddingPurpose:
+                amazonBedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
+              embeddingDimension:
+                amazonBedrockOptions.embeddingDimension ?? 1024,
+              text: {
+                truncationMode: amazonBedrockOptions.truncate ?? 'END',
+                value: values[0],
+              },
+            },
           }
-        : {
-            inputText: values[0],
-            dimensions: amazonBedrockOptions.dimensions,
-            normalize: amazonBedrockOptions.normalize,
-          };
+        : embeddingFamily === 'cohere'
+          ? {
+              // Cohere embedding models on Bedrock require `input_type`.
+              // Without it, the service attempts other schema branches and rejects the request.
+              input_type: amazonBedrockOptions.inputType ?? 'search_query',
+              texts: values,
+              truncate: amazonBedrockOptions.truncate,
+              output_dimension: amazonBedrockOptions.outputDimension,
+            }
+          : {
+              inputText: values[0],
+              dimensions: amazonBedrockOptions.dimensions,
+              normalize: amazonBedrockOptions.normalize,
+            };
 
     const url = this.getUrl(this.modelId);
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -200,6 +205,64 @@ function isCohereEmbeddingModel(modelId: string) {
 
 function isNovaEmbeddingModel(modelId: string) {
   return modelId.startsWith('amazon.nova-') && modelId.includes('embed');
+}
+
+async function parseAmazonBedrockEmbeddingModelOptions(
+  providerOptions: Parameters<
+    EmbeddingModelV4['doEmbed']
+  >[0]['providerOptions'],
+): Promise<AmazonBedrockEmbeddingModelOptions> {
+  // Prefer `amazonBedrock`; fall back to legacy `bedrock` key for backward
+  // compatibility.
+  return (
+    (await parseProviderOptions({
+      provider: 'amazonBedrock',
+      providerOptions,
+      schema: amazonBedrockEmbeddingModelOptionsSchema,
+    })) ??
+    (await parseProviderOptions({
+      provider: 'bedrock',
+      providerOptions,
+      schema: amazonBedrockEmbeddingModelOptionsSchema,
+    })) ??
+    {}
+  );
+}
+
+function getEmbeddingFamily(
+  modelId: string,
+  options: AmazonBedrockEmbeddingModelOptions,
+): 'titan' | 'cohere' | 'nova' {
+  if (options.embeddingFamily != null) {
+    return options.embeddingFamily;
+  }
+
+  if (isNovaEmbeddingModel(modelId)) {
+    return 'nova';
+  }
+
+  if (isCohereEmbeddingModel(modelId)) {
+    return 'cohere';
+  }
+
+  if (isApplicationInferenceProfile(modelId)) {
+    if (options.inputType != null || options.outputDimension != null) {
+      return 'cohere';
+    }
+
+    if (
+      options.embeddingDimension != null ||
+      options.embeddingPurpose != null
+    ) {
+      return 'nova';
+    }
+  }
+
+  return 'titan';
+}
+
+function isApplicationInferenceProfile(modelId: string) {
+  return modelId.includes(':application-inference-profile/');
 }
 
 const AmazonBedrockEmbeddingResponseSchema = z.union([

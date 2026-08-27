@@ -6,9 +6,14 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asArray,
+  EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL,
   EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
 } from '@ai-sdk/provider-utils';
 import { asEmbeddingModelV4 } from '../model/as-embedding-model-v4';
+import {
+  getEmbeddingModelDynamicMaxEmbeddingsPerCall,
+  type EmbeddingModelWithDynamicMaxEmbeddingsPerCall,
+} from '../model/get-embedding-model-max-embeddings-per-call';
 import {
   getEmbeddingModelMaxInputBytesPerCall,
   type EmbeddingModelWithMaxInputBytesPerCall,
@@ -63,7 +68,8 @@ const doWrap = ({
   middleware: EmbeddingModelMiddleware;
   modelId?: string;
   providerId?: string;
-}): EmbeddingModelWithMaxInputBytesPerCall => {
+}): EmbeddingModelWithMaxInputBytesPerCall &
+  EmbeddingModelWithDynamicMaxEmbeddingsPerCall => {
   async function doTransform({
     params,
   }: {
@@ -78,6 +84,10 @@ const doWrap = ({
     modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,
     maxEmbeddingsPerCall:
       overrideMaxEmbeddingsPerCall?.({ model }) ?? model.maxEmbeddingsPerCall,
+    [EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL]:
+      overrideMaxEmbeddingsPerCall == null
+        ? getEmbeddingModelDynamicMaxEmbeddingsPerCall(model)?.bind(model)
+        : undefined,
     [EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL]:
       getEmbeddingModelMaxInputBytesPerCall(model),
     supportsParallelCalls:

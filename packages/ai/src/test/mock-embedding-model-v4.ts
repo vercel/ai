@@ -1,5 +1,8 @@
 import type { EmbeddingModelV4 } from '@ai-sdk/provider';
-import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
+import {
+  EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL,
+  EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+} from '@ai-sdk/provider-utils';
 import { notImplemented } from './not-implemented';
 
 export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
@@ -8,6 +11,11 @@ export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
   readonly provider: EmbeddingModelV4['provider'];
   readonly modelId: EmbeddingModelV4['modelId'];
   readonly maxEmbeddingsPerCall: EmbeddingModelV4['maxEmbeddingsPerCall'];
+  readonly [EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL]?: (options: {
+    providerOptions?: Parameters<
+      EmbeddingModelV4['doEmbed']
+    >[0]['providerOptions'];
+  }) => PromiseLike<number | undefined> | number | undefined;
   readonly [EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL]:
     | PromiseLike<number | undefined>
     | number
@@ -22,6 +30,7 @@ export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
     provider = 'mock-provider',
     modelId = 'mock-model-id',
     maxEmbeddingsPerCall = 1,
+    dynamicMaxEmbeddingsPerCall,
     maxInputBytesPerCall,
     supportsParallelCalls = false,
     doEmbed = notImplemented,
@@ -29,6 +38,11 @@ export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
     provider?: EmbeddingModelV4['provider'];
     modelId?: EmbeddingModelV4['modelId'];
     maxEmbeddingsPerCall?: EmbeddingModelV4['maxEmbeddingsPerCall'] | null;
+    dynamicMaxEmbeddingsPerCall?: (options: {
+      providerOptions?: Parameters<
+        EmbeddingModelV4['doEmbed']
+      >[0]['providerOptions'];
+    }) => PromiseLike<number | undefined> | number | undefined;
     maxInputBytesPerCall?: PromiseLike<number | undefined> | number | undefined;
     supportsParallelCalls?: EmbeddingModelV4['supportsParallelCalls'];
     doEmbed?:
@@ -39,6 +53,8 @@ export class MockEmbeddingModelV4 implements EmbeddingModelV4 {
     this.provider = provider;
     this.modelId = modelId;
     this.maxEmbeddingsPerCall = maxEmbeddingsPerCall ?? undefined;
+    this[EXPERIMENTAL_EMBEDDING_MODEL_DYNAMIC_MAX_EMBEDDINGS_PER_CALL] =
+      dynamicMaxEmbeddingsPerCall;
     this[EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL] =
       maxInputBytesPerCall;
     this.supportsParallelCalls = supportsParallelCalls;

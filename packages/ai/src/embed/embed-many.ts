@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
+import { resolveEmbeddingModelMaxEmbeddingsPerCall } from '../model/get-embedding-model-max-embeddings-per-call';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
@@ -204,7 +205,10 @@ export async function embedMany({
           maxInputBytesPerCall,
           supportsParallelCalls,
         ] = await Promise.all([
-          model.maxEmbeddingsPerCall,
+          resolveEmbeddingModelMaxEmbeddingsPerCall({
+            model,
+            providerOptions,
+          }),
           getEmbeddingModelMaxInputBytesPerCall(model),
           model.supportsParallelCalls,
         ]);

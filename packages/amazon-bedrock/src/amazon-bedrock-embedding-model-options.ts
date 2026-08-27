@@ -9,6 +9,12 @@ export type AmazonBedrockEmbeddingModelId =
 
 export const amazonBedrockEmbeddingModelOptionsSchema = z.object({
   /**
+   * The embedding model family behind an opaque application inference profile
+   * ARN. This overrides model family detection from the model ID.
+   */
+  embeddingFamily: z.enum(['titan', 'cohere', 'nova']).optional(),
+
+  /**
    * The number of dimensions the resulting output embeddings should have (defaults to 1024).
    * Only supported in amazon.titan-embed-text-v2:0.
    */
