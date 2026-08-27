@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   createDeepAgentsRequestTransformations,
   resolveDeepAgentsAuthenticationMode,
@@ -6,12 +6,14 @@ import {
 } from './deepagents-auth';
 
 describe('resolveDeepAgentsEnv', () => {
-  it('pins explicit anthropic auth', () => {
+  it('pins anthropic auth when selected', () => {
     const env = resolveDeepAgentsEnv({
-      auth: {
-        anthropic: { apiKey: 'sk-ant', baseUrl: 'https://example.test' },
+      auth: 'anthropic',
+      processEnv: {
+        ANTHROPIC_API_KEY: 'sk-ant',
+        ANTHROPIC_BASE_URL: 'https://example.test',
+        AI_GATEWAY_API_KEY: 'ambient-gw',
       },
-      processEnv: {},
     });
     expect(env).toEqual({
       ANTHROPIC_API_KEY: 'sk-ant',
@@ -21,16 +23,16 @@ describe('resolveDeepAgentsEnv', () => {
 
   it('passes through an anthropic auth token', () => {
     const env = resolveDeepAgentsEnv({
-      auth: { anthropic: { authToken: 'tok' } },
-      processEnv: {},
+      auth: 'anthropic',
+      processEnv: { ANTHROPIC_AUTH_TOKEN: 'tok' },
     });
     expect(env).toEqual({ ANTHROPIC_AUTH_TOKEN: 'tok' });
   });
 
   it('routes through the gateway anthropic endpoint (no /v1 suffix)', () => {
     const env = resolveDeepAgentsEnv({
-      auth: { gateway: { apiKey: 'gw-key' } },
-      processEnv: {},
+      auth: 'ai-gateway',
+      processEnv: { AI_GATEWAY_API_KEY: 'gw-key' },
     });
     expect(env.AI_GATEWAY_API_KEY).toBe('gw-key');
     expect(env.ANTHROPIC_API_KEY).toBe('gw-key');
@@ -39,18 +41,13 @@ describe('resolveDeepAgentsEnv', () => {
 
   it('trims a trailing slash from a custom gateway base url', () => {
     const env = resolveDeepAgentsEnv({
-      auth: { gateway: { apiKey: 'gw-key', baseUrl: 'https://gw.test/' } },
-      processEnv: {},
+      auth: 'ai-gateway',
+      processEnv: {
+        AI_GATEWAY_API_KEY: 'gw-key',
+        AI_GATEWAY_BASE_URL: 'https://gw.test/',
+      },
     });
     expect(env.ANTHROPIC_BASE_URL).toBe('https://gw.test');
-  });
-
-  it('prefers explicit anthropic auth over ambient gateway creds', () => {
-    const env = resolveDeepAgentsEnv({
-      auth: { anthropic: { apiKey: 'sk-ant' } },
-      processEnv: { AI_GATEWAY_API_KEY: 'ambient-gw' },
-    });
-    expect(env).toEqual({ ANTHROPIC_API_KEY: 'sk-ant' });
   });
 
   it('falls back to ambient gateway env before ambient anthropic creds', () => {
@@ -79,6 +76,44 @@ describe('resolveDeepAgentsEnv', () => {
     expect(env).toEqual({ ANTHROPIC_API_KEY: 'ambient-ant' });
   });
 
+  it('uses a supplied authentication environment instead of ambient credentials', () => {
+    const auth = { ANTHROPIC_API_KEY: 'programmatic-anthropic-key' };
+
+    expect(
+      resolveDeepAgentsEnv({
+        auth,
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toEqual({ ANTHROPIC_API_KEY: 'programmatic-anthropic-key' });
+    expect(
+      resolveDeepAgentsAuthenticationMode({
+        auth,
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toBe('anthropic');
+  });
+
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    const auth = { anthropic: { apiKey: 'legacy-key' } } as never;
+
+    expect(() =>
+      resolveDeepAgentsEnv({
+        auth,
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+    expect(() =>
+      resolveDeepAgentsAuthenticationMode({
+        auth,
+        processEnv: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('supports string authentication modes', () => {
     expect(
       resolveDeepAgentsEnv({
@@ -98,27 +133,13 @@ describe('resolveDeepAgentsEnv', () => {
       ANTHROPIC_BASE_URL: 'https://ai-gateway.vercel.sh',
     });
   });
-
-  it('warns when passing a legacy object shape', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    resolveDeepAgentsEnv({
-      auth: { anthropic: {} },
-      processEnv: {},
-    });
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Passing an object to auth options is deprecated',
-      ),
-    );
-    spy.mockRestore();
-  });
 });
 
 describe('resolveDeepAgentsAuthenticationMode', () => {
-  it('preserves explicit Anthropic auth despite ambient Gateway credentials', () => {
+  it('preserves Anthropic auth despite ambient Gateway credentials', () => {
     expect(
       resolveDeepAgentsAuthenticationMode({
-        auth: { anthropic: {} },
+        auth: 'anthropic',
         processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
       }),
     ).toBe('anthropic');

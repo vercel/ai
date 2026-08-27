@@ -65,8 +65,10 @@ export {
 } from './stream-language-model-call';
 export {
   streamText,
+  type StreamTextEndEvent,
   type StreamTextInclude,
   type StreamTextOnChunkCallback,
+  type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
   type StreamTextOnErrorRetryCallback,
   type StreamTextOnErrorResult,

@@ -103,8 +103,7 @@ const acpResumeStateSchema = z.object({
     })
     .optional(),
   initialGuidanceApplied: z.boolean().optional(),
-  skillsMaterialized: z.boolean().optional(),
-  skillsFingerprint: z.string().optional(),
+  instructionsFingerprint: z.string().optional(),
   skillsDirectory: z.string().optional(),
 });
 

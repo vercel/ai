@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 4.0.33
+
+### Patch Changes
+
+- 0599400: fix(provider/cohere): preserve complete raw usage objects
+
 ## 4.0.32
 
 ### Patch Changes

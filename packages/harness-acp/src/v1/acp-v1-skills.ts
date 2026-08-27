@@ -1,38 +1,11 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import type { HarnessV1Skill } from '@ai-sdk/harness';
-import { writeSkills } from '@ai-sdk/harness/utils';
+import { writeSkills, type WriteSkillsResult } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 
 const ACP_SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const DEFAULT_ACP_SKILLS_DIRECTORY = '.agents/skills';
-
-export function createACPSkillsFingerprint({
-  skills,
-}: {
-  skills: ReadonlyArray<HarnessV1Skill>;
-}): string {
-  const canonicalSkills = skills
-    .map(skill => ({
-      name: skill.name,
-      description: skill.description,
-      content: skill.content,
-      files: [...(skill.files ?? [])]
-        .map(file => ({
-          path: path.posix.normalize(file.path),
-          content: file.content,
-        }))
-        .sort((left, right) =>
-          compareCanonicalStrings({ left: left.path, right: right.path }),
-        ),
-    }))
-    .sort((left, right) =>
-      compareCanonicalStrings({ left: left.name, right: right.name }),
-    );
-  return createHash('sha256')
-    .update(JSON.stringify(canonicalSkills))
-    .digest('hex');
-}
 
 export function resolveACPPrivateSessionDirectory({
   sandboxHomeDir,
@@ -62,34 +35,30 @@ export async function materializeACPSkills({
   rootDir,
   sessionWorkDir,
   skills,
-  shouldMaterialize,
   abortSignal,
 }: {
   sandbox: Experimental_SandboxSession;
   rootDir: string;
   sessionWorkDir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
-  shouldMaterialize: boolean;
   abortSignal?: AbortSignal;
-}): Promise<void> {
+}): Promise<WriteSkillsResult> {
   validateACPSkills({ skills });
   assertOutsideSessionWorkDir({ rootDir, sessionWorkDir });
 
-  if (shouldMaterialize) {
-    await writeSkills({
-      sandbox,
-      rootDir,
-      skills,
-      abortSignal,
-      skillNamePattern: ACP_SKILL_NAME_PATTERN,
-      invalidSkillNameMessage: ({ name }) =>
-        `Invalid ACP skill name ${JSON.stringify(name)}: expected a kebab-case slug.`,
-      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-        `Invalid ACP skill file path ${JSON.stringify(filePath)} for skill ${JSON.stringify(
-          skillName,
-        )}: expected a relative POSIX path without traversal.`,
-    });
-  }
+  return writeSkills({
+    sandbox,
+    rootDir,
+    skills,
+    abortSignal,
+    skillNamePattern: ACP_SKILL_NAME_PATTERN,
+    invalidSkillNameMessage: ({ name }) =>
+      `Invalid ACP skill name ${JSON.stringify(name)}: expected a kebab-case slug.`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid ACP skill file path ${JSON.stringify(filePath)} for skill ${JSON.stringify(
+        skillName,
+      )}: expected a relative POSIX path without traversal.`,
+  });
 }
 
 export function resolveACPSkillsDirectory({
@@ -224,14 +193,4 @@ function assertOutsideSessionWorkDir({
       )}.`,
     );
   }
-}
-
-function compareCanonicalStrings({
-  left,
-  right,
-}: {
-  left: string;
-  right: string;
-}): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

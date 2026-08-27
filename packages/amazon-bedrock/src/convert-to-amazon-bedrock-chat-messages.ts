@@ -624,7 +624,7 @@ export async function convertToAmazonBedrockChatMessages(
           pushCachePoint(amazonBedrockContent, message.providerOptions);
         }
 
-        if (amazonBedrockContent.length > 0) {
+        if (amazonBedrockContent.some(block => !('cachePoint' in block))) {
           messages.push({ role: 'assistant', content: amazonBedrockContent });
         }
 

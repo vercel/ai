@@ -81,8 +81,8 @@ const harness = createPi({
 
 Settings:
 
-- `auth`: authentication mode: `auto`, `openai`, `anthropic`, `custom`, or
-  `ai-gateway`.
+- `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
+  `ai-gateway`) or an isolated authentication environment.
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
 - `mcpServers`: MCP server definitions keyed by server name.
@@ -132,6 +132,21 @@ The `auth` setting selects which credentials Pi reads from the host environment:
 ```ts
 const harness = createPi({ auth: 'ai-gateway' });
 ```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createPi({
+  auth: {
+    MISTRAL_API_KEY: await resolveMistralToken(),
+    MISTRAL_BASE_URL: 'https://api.mistral.ai',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Pi parses provider API keys and base URLs from that record.
 
 With `custom`, standard providers use environment variables such as
 `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, and

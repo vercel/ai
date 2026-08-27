@@ -1,5 +1,25 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.96
+
+### Patch Changes
+
+- e0d7cfb: feat(harness): allow harness sessions to optionally authenticate from an isolated environment supplied through the `auth` option, and remove support for the formerly deprecated legacy auth options types
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.95
+
+### Patch Changes
+
+- ab46c30: fix(harness-claude-code): prevent WebSocket cleanup errors from escaping when bridge startup times out while the socket is still connecting
+
+## 1.0.94
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.91
+
 ## 1.0.93
 
 ### Patch Changes

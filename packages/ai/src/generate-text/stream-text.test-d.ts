@@ -11,6 +11,8 @@ import { z } from 'zod/v4';
 import {
   Output,
   streamText,
+  type StreamTextEndEvent,
+  type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
   type StreamTextOnErrorRetryCallback,
 } from '../generate-text';
@@ -178,6 +180,31 @@ describe('streamText types', () => {
         },
       });
     });
+
+    it('should infer structured output for reusable callbacks', () => {
+      const output = Output.object({
+        schema: z.object({ value: z.string() }),
+      });
+      const onEnd: StreamTextOnEndCallback<
+        {},
+        Context,
+        typeof output
+      > = event => {
+        expectTypeOf(event).toEqualTypeOf<
+          StreamTextEndEvent<{}, Context, typeof output>
+        >();
+        expectTypeOf(event.output).toEqualTypeOf<
+          { value: string } | undefined
+        >();
+      };
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output,
+        onEnd,
+      });
+    });
   });
 
   describe('onFinish compatibility', () => {
@@ -202,6 +229,21 @@ describe('streamText types', () => {
           >();
           expectTypeOf(event.providerMetadata).toEqualTypeOf<
             StepResult<any>['providerMetadata']
+          >();
+        },
+      });
+    });
+
+    it('should infer structured output', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+        onFinish: event => {
+          expectTypeOf(event.output).toEqualTypeOf<
+            { value: string } | undefined
           >();
         },
       });

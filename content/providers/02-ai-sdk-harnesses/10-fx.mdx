@@ -84,10 +84,11 @@ const harness = createFx({
 
 Settings:
 
-- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication. fx always
-  sends model requests through Vercel AI Gateway, so `direct` and `ai-gateway`
-  differ only in how the harness passes the Gateway credential into the
-  sandbox.
+- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication, or accepts
+  an authentication environment for programmatically resolved credentials. fx
+  always sends model requests through Vercel AI Gateway, so
+  `direct` and `ai-gateway` differ only in how the harness passes the Gateway
+  credential into the sandbox.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -121,8 +122,25 @@ Set one of these environment variables:
 - `AI_GATEWAY_API_KEY`
 
 fx prefers `VERCEL_OIDC_TOKEN` when both are available. The adapter brokers the
-selected credential only to `ai-gateway.vercel.sh` when the sandbox supports
-request transformations. Other sandboxes retain direct credential forwarding.
+selected credential only to the configured Gateway origin when the sandbox
+supports request transformations. Other sandboxes retain direct credential
+forwarding.
+
+Pass an authentication environment when the host resolves credentials at
+runtime instead of exposing them through `process.env`:
+
+```ts
+const gatewayHarness = createFx({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. The adapter does not add its credentials to `process.env` or include
+their values in persisted ACP lifecycle identity.
 
 Both authentication configurations reach AI Gateway:
 
