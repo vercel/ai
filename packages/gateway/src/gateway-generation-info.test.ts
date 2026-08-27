@@ -271,7 +271,7 @@ describe('GatewayGenerationInfoFetcher', () => {
       expect(result.providerName).toBe('anthropic');
     });
 
-    it('should omit marketCost when market_cost is absent from the response', async () => {
+    it('should default marketCost to 0 when market_cost is absent from the response', async () => {
       server.urls['https://api.example.com/*'].response = {
         type: 'json-value',
         body: {
@@ -287,7 +287,7 @@ describe('GatewayGenerationInfoFetcher', () => {
         id: 'gen_01ARZ3NDEKTSV4RRFFQ69G5FAV',
       });
 
-      expect(result.marketCost).toBeUndefined();
+      expect(result.marketCost).toBe(0);
       expect(result.surchargeCost).toBe(0.00013);
       expect(result.gatewayCost).toBe(0.00123);
     });
