@@ -841,7 +841,7 @@ describe('Anthropic Messages batch language model', () => {
     ]);
   });
 
-  it('preserves web search citations without attaching document citations to text metadata', async () => {
+  it('preserves raw batch citations without misattributing document indices', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
       body: batchResponse(),
@@ -904,6 +904,14 @@ describe('Anthropic Messages batch language model', () => {
               providerMetadata: {
                 anthropic: {
                   citations: [
+                    {
+                      type: 'page_location',
+                      cited_text: 'Paris is sunny.',
+                      document_index: 0,
+                      document_title: 'Weather report',
+                      start_page_number: 1,
+                      end_page_number: 1,
+                    },
                     {
                       type: 'web_search_result_location',
                       cited_text: 'Paris is sunny.',
@@ -1057,18 +1065,18 @@ describe('Anthropic Messages batch language model', () => {
             {
               type: 'text',
               text: 'Document excerpt',
-            },
-            {
-              type: 'source',
-              sourceType: 'document',
-              id: 'nullable-source',
-              mediaType: 'text/plain',
-              title: 'https://example.com/document',
               providerMetadata: {
                 anthropic: {
-                  citedText: 'document text',
-                  startCharIndex: 0,
-                  endCharIndex: 13,
+                  citations: [
+                    {
+                      type: 'char_location',
+                      cited_text: 'document text',
+                      document_index: 0,
+                      document_title: null,
+                      start_char_index: 0,
+                      end_char_index: 13,
+                    },
+                  ],
                 },
               },
             },

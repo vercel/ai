@@ -316,4 +316,52 @@ describe('getBatchResults', () => {
       },
     ]);
   });
+
+  it('does not report an unrepresentable client tool call as empty text', async () => {
+    const model = createMockBatchModel({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            id: 'request-1',
+            status: 'succeeded',
+            result: {
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{}',
+                },
+              ],
+              finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+              usage: testUsage,
+              warnings: [],
+              providerMetadata: { mock: { result: true } },
+            },
+          },
+        ]),
+    });
+
+    const items = [];
+    for await (const item of getBatchResults({
+      model,
+      batch: batchReference,
+      maxRetries: 0,
+    })) {
+      items.push(item);
+    }
+
+    expect(items).toEqual([
+      {
+        id: 'request-1',
+        status: 'failed',
+        error: {
+          code: 'unsupported_content',
+          message:
+            'Text batch results cannot represent client-executed tool calls.',
+        },
+        providerMetadata: { mock: { result: true } },
+      },
+    ]);
+  });
 });

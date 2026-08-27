@@ -581,32 +581,28 @@ function convertAnthropicBatchResponse(
       { type: 'tool-call' }
     >
   > = {};
-  const citationDocuments: Array<{ mediaType: string; title: string }> = [];
   const serverToolCalls: Record<string, string> = {};
 
   for (const part of response.content) {
     switch (part.type) {
       case 'text':
-        const webSearchCitations = part.citations?.filter(
-          citation => citation.type === 'web_search_result_location',
-        );
+        const citations = part.citations;
 
         content.push({
           type: 'text',
           text: part.text,
-          ...(webSearchCitations != null &&
-            webSearchCitations.length > 0 && {
+          ...(citations != null &&
+            citations.length > 0 && {
               providerMetadata: {
-                anthropic: { citations: webSearchCitations },
+                anthropic: { citations },
               },
             }),
         });
         for (const citation of part.citations ?? []) {
-          const source = createCitationSource(
-            citation,
-            citationDocuments,
-            generateId,
-          );
+          // Batch result retrieval does not include the original prompt's
+          // document ordering, so indexed document citations cannot be
+          // normalized safely. Preserve them above as provider metadata.
+          const source = createCitationSource(citation, [], generateId);
           if (source != null) {
             content.push(source);
           }
@@ -722,12 +718,6 @@ function convertAnthropicBatchResponse(
         break;
       }
       case 'web_fetch_tool_result':
-        if (part.content.type === 'web_fetch_result') {
-          citationDocuments.push({
-            title: part.content.content.title ?? part.content.url,
-            mediaType: part.content.content.source.media_type,
-          });
-        }
         content.push({
           type: 'tool-result',
           toolCallId: part.tool_use_id,
