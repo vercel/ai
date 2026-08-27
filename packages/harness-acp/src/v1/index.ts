@@ -12,7 +12,6 @@ export type {
   ACPPermissionModeTarget,
   ACPProfileValue,
   ACPProviderAuthentication,
-  ACPProviderAuthenticationMode,
   ACPSerializablePrimitive,
   ACPSerializableValue,
   ACPSource,

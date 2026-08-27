@@ -69,8 +69,6 @@ export type ACPAuthentication = {
 
 export type ACPAuthenticationMode = HarnessV1Authentication;
 
-export type ACPProviderAuthenticationMode = ACPAuthenticationMode;
-
 export type ACPProviderAuthentication = {
   readonly gateway: {
     readonly env: Readonly<Record<string, ACPProfileValue>>;

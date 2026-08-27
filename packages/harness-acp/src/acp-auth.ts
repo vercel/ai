@@ -7,7 +7,6 @@ import type {
   ACPAuthentication,
   ACPAuthenticationMode as ACPV1AuthenticationMode,
   ACPProviderAuthentication,
-  ACPProviderAuthenticationMode,
 } from './v1';
 import type { ACPResolvedProviderAuthentication } from './v1/bridge/acp-v1-bridge-environment';
 
@@ -205,7 +204,7 @@ export function resolveACPProviderAuthenticationCompatibility({
 
 function resolveACPProviderAuthenticationMode(
   auth: ACPAuthenticationMode | undefined,
-): Extract<ACPProviderAuthenticationMode, string> {
+): Extract<ACPAuthenticationMode, string> {
   return typeof auth === 'string' || auth == null ? (auth ?? 'auto') : 'auto';
 }
 

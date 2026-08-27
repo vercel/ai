@@ -5,10 +5,7 @@ import {
   type HarnessV1CredentialForwarding,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
-import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -21,7 +18,7 @@ export type CursorHarnessSettings = {
    * isolated environment for Cursor CLI authentication. The adapter cannot
    * change provider routing and warns for explicit routing modes.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: ACPAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -435,7 +432,7 @@ export function createCursor(
 function warnCursorAuthenticationConfiguration({
   auth,
 }: {
-  auth: Exclude<ACPProviderAuthenticationMode, 'auto'>;
+  auth: Exclude<ACPAuthenticationMode, 'auto'>;
 }): void {
   const detail =
     auth === 'ai-gateway'
