@@ -135,19 +135,28 @@ export function smoothStream<TOOLS extends ToolSet>({
           return;
         }
 
-        // Flush buffer when type or id changes
-        if ((chunk.type !== type || chunk.id !== id) && buffer.length > 0) {
+        if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+          flushBuffer(controller);
+          controller.enqueue(chunk);
+          return;
+        }
+
+        // Flush at metadata boundaries because one output part cannot preserve
+        // metadata from multiple input deltas.
+        if (
+          buffer.length > 0 &&
+          (chunk.type !== type ||
+            chunk.id !== id ||
+            providerMetadata != null ||
+            chunk.providerMetadata != null)
+        ) {
           flushBuffer(controller);
         }
 
         buffer += chunk.text;
         id = chunk.id;
         type = chunk.type;
-
-        // Preserve providerMetadata (e.g., Anthropic thinking signatures)
-        if (chunk.providerMetadata != null) {
-          providerMetadata = chunk.providerMetadata;
-        }
+        providerMetadata = chunk.providerMetadata;
 
         let match;
 

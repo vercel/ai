@@ -1510,6 +1510,26 @@ describe('smoothStream', () => {
   });
 
   describe('providerMetadata preservation', () => {
+    const providerMetadataA = {
+      anthropic: { signature: 'sig-a' },
+    };
+    const providerMetadataB = {
+      anthropic: { signature: 'sig-b' },
+    };
+
+    async function smoothParts(parts: TextStreamPart<ToolSet>[]) {
+      const stream = convertArrayToReadableStream(parts).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      return events.filter(event => typeof event !== 'string');
+    }
+
     it.each([
       {
         chunking: 'word' as const,
@@ -1607,6 +1627,84 @@ describe('smoothStream', () => {
       expect(lastReasoningDelta.providerMetadata).toEqual({
         anthropic: { signature: 'sig_abc123' },
       });
+    });
+
+    it('should preserve an empty metadata delta after an exact boundary', async () => {
+      const output = await smoothParts([
+        { text: 'Done ', type: 'reasoning-delta', id: '1' },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]);
+
+      expect(output).toEqual([
+        { text: 'Done ', type: 'reasoning-delta', id: '1' },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]);
+    });
+
+    it('should not carry metadata to a metadata-free delta with the same id', async () => {
+      const output = await smoothParts([
+        {
+          text: 'Signed',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: ' plain ', type: 'reasoning-delta', id: '1' },
+      ]);
+
+      expect(output).toEqual([
+        {
+          text: 'Signed',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: ' plain ', type: 'reasoning-delta', id: '1' },
+      ]);
+    });
+
+    it('should keep different metadata values with their source deltas', async () => {
+      const output = await smoothParts([
+        {
+          text: 'First',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        {
+          text: ' second ',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataB,
+        },
+      ]);
+
+      expect(output).toEqual([
+        {
+          text: 'First',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        {
+          text: ' second ',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataB,
+        },
+      ]);
     });
 
     it('should not carry word-chunk metadata to a subsequent delta type', async () => {
