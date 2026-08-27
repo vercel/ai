@@ -56,7 +56,7 @@ import {
   createClaudeCodeRequestTransformations,
   resolveClaudeCodeAuthenticationMode,
   resolveClaudeCodeEnv,
-  type ClaudeCodeAuthOptions,
+  type ClaudeCodeAuthenticationMode,
 } from './claude-code-auth';
 import {
   outboundMessageSchema,
@@ -75,7 +75,7 @@ type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
 const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
 
 export type ClaudeCodeHarnessSettings = {
-  readonly auth?: ClaudeCodeAuthOptions;
+  readonly auth?: ClaudeCodeAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can

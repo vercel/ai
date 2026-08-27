@@ -39,7 +39,7 @@ import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/prov
 import {
   registerPiProviders,
   resolvePiEnv,
-  type PiAuthOptions,
+  type PiAuthenticationMode,
 } from './pi-auth';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
@@ -215,7 +215,7 @@ export type PiThinkingLevel =
   | 'xhigh';
 
 export interface PiSessionSettings {
-  readonly auth?: PiAuthOptions;
+  readonly auth?: PiAuthenticationMode;
   readonly model?: string;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   createOpenCodeRequestTransformations,
   resolveOpenCodeAuthenticationMode,
@@ -50,39 +50,18 @@ describe('OpenCode auth', () => {
     });
   });
 
-  it('prefers selected direct provider auth before ambient gateway fallback', () => {
+  it('prefers the selected direct provider before ambient gateway fallback', () => {
     expect(
       resolveOpenCodeEnv({
-        auth: { openai: { apiKey: 'openai-key' } },
+        auth: 'openai',
         provider: 'openai',
         processEnv: {
+          OPENAI_API_KEY: 'openai-key',
           AI_GATEWAY_API_KEY: 'gateway-key',
           AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
         },
       }),
     ).toEqual({ OPENAI_API_KEY: 'openai-key' });
-  });
-
-  it('uses explicit OpenAI-compatible auth regardless of selected provider', () => {
-    expect(
-      resolveOpenCodeEnv({
-        auth: {
-          openaiCompatible: {
-            apiKey: 'compatible-key',
-            baseUrl: 'https://compatible.example/v1',
-            name: 'compatible',
-            queryParams: { apiVersion: '2026-01-01' },
-          },
-        },
-        provider: 'anthropic',
-        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
-      }),
-    ).toEqual({
-      OPENAI_API_KEY: 'compatible-key',
-      OPENAI_BASE_URL: 'https://compatible.example/v1',
-      OPENAI_NAME: 'compatible',
-      OPENAI_QUERY_PARAMS_JSON: '{"apiVersion":"2026-01-01"}',
-    });
   });
 
   it('uses a supplied authentication environment instead of ambient credentials', () => {
@@ -138,38 +117,15 @@ describe('OpenCode auth', () => {
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
     });
   });
-
-  it('warns when passing a legacy object shape', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    resolveOpenCodeEnv({
-      auth: { anthropic: {} },
-      processEnv: {},
-    });
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Passing an object to auth options is deprecated',
-      ),
-    );
-    spy.mockRestore();
-  });
 });
 
 describe('resolveOpenCodeAuthenticationMode', () => {
-  it('preserves explicit selected-provider auth despite ambient Gateway credentials', () => {
+  it('preserves selected-provider auth despite ambient Gateway credentials', () => {
     expect(
       resolveOpenCodeAuthenticationMode({
-        auth: { openai: {} },
+        auth: 'openai',
         provider: 'openai',
         processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
-      }),
-    ).toBe('openai');
-  });
-
-  it('resolves legacy OpenAI-compatible auth to OpenAI auth', () => {
-    expect(
-      resolveOpenCodeAuthenticationMode({
-        auth: { openaiCompatible: {} },
-        processEnv: {},
       }),
     ).toBe('openai');
   });

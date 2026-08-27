@@ -7,7 +7,7 @@ export const grokBuild = createGrokBuild();
 
 export { createGrokBuild } from './grok-build-harness';
 export type {
-  GrokBuildAuthOptions,
+  GrokBuildAuthenticationMode,
   GrokBuildHarnessSettings,
 } from './grok-build-harness';
 export { VERSION } from './version';

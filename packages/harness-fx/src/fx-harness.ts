@@ -9,7 +9,7 @@ import {
   createCredentialRequestTransformation,
   isHarnessAuthenticationEnvironment,
 } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthOptions } from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -17,7 +17,7 @@ import { VERSION } from './version';
 const FX_CLIENT_APP = `ai-sdk/harness-fx/${VERSION}`;
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 
-export type FxAuthOptions = ACPAuthOptions;
+export type FxAuthenticationMode = ACPAuthenticationMode;
 
 function sanitizeFxMcpToolNameSegment(value: string): string {
   if (value.length === 0) return 'server';
@@ -43,7 +43,7 @@ export type FxHarnessSettings = {
    * authentication environment to supply credentials programmatically, or
    * omit it for automatic host-environment selection.
    */
-  readonly auth?: FxAuthOptions;
+  readonly auth?: FxAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can

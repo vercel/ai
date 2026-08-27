@@ -67,9 +67,9 @@ export type ACPAuthentication = {
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
 };
 
-export type ACPProviderAuthenticationMode = HarnessV1Authentication;
+export type ACPAuthenticationMode = HarnessV1Authentication;
 
-export type ACPAuthOptions = ACPProviderAuthenticationMode;
+export type ACPProviderAuthenticationMode = ACPAuthenticationMode;
 
 export type ACPProviderAuthentication = {
   readonly gateway: {
@@ -126,7 +126,7 @@ export type ACPV1Settings = {
   readonly harnessId: string;
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
-  readonly auth?: ACPAuthOptions;
+  readonly auth?: ACPAuthenticationMode;
   readonly source: ACPSource;
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;

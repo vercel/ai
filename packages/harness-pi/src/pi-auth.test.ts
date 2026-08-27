@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   registerPiProviders,
   resolvePiEnv,
-  type PiAuthOptions,
+  type PiAuthenticationMode,
 } from './pi-auth';
 
 const authPaths: string[] = [];
@@ -50,7 +50,7 @@ async function registerProviders({
   options,
   resolvedEnv,
 }: {
-  options: PiAuthOptions | undefined;
+  options: PiAuthenticationMode | undefined;
   resolvedEnv: Record<string, string>;
 }) {
   const registries = await makeRegistries();
@@ -63,11 +63,12 @@ async function registerProviders({
 }
 
 describe('resolvePiEnv', () => {
-  it('uses explicit gateway settings when configured', () => {
+  it('uses a supplied gateway authentication environment', () => {
     expect(
       resolvePiEnv({
         options: {
-          gateway: { apiKey: 'gw-key', baseUrl: 'https://gw.example' },
+          AI_GATEWAY_API_KEY: 'gw-key',
+          AI_GATEWAY_BASE_URL: 'https://gw.example',
         },
         env: {},
       }),
@@ -77,11 +78,14 @@ describe('resolvePiEnv', () => {
     });
   });
 
-  it('uses env gateway auth when explicit gateway only sets base URL', () => {
+  it('resolves OIDC gateway auth from a supplied authentication environment', () => {
     expect(
       resolvePiEnv({
-        options: { gateway: { baseUrl: 'https://gw.example' } },
-        env: { VERCEL_OIDC_TOKEN: 'oidc-env' },
+        options: {
+          AI_GATEWAY_BASE_URL: 'https://gw.example',
+          VERCEL_OIDC_TOKEN: 'oidc-env',
+        },
+        env: {},
       }),
     ).toEqual({
       AI_GATEWAY_API_KEY: 'oidc-env',
@@ -89,15 +93,13 @@ describe('resolvePiEnv', () => {
     });
   });
 
-  it('returns only gateway values from customEnv', () => {
+  it('returns only gateway values when auto-selecting from an authentication environment', () => {
     expect(
       resolvePiEnv({
         options: {
-          customEnv: {
-            AI_GATEWAY_API_KEY: 'gw',
-            OPENAI_API_KEY: 'oai',
-            ANTHROPIC_API_KEY: 'ant',
-          },
+          AI_GATEWAY_API_KEY: 'gw',
+          OPENAI_API_KEY: 'oai',
+          ANTHROPIC_API_KEY: 'ant',
         },
         env: {},
       }),
@@ -189,17 +191,6 @@ describe('resolvePiEnv', () => {
       MISTRAL_BASE_URL: 'https://api.mistral.example',
     });
   });
-
-  it('warns when passing a legacy object shape', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    resolvePiEnv({ options: { gateway: {} }, env: {} });
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Passing an object to auth options is deprecated',
-      ),
-    );
-    spy.mockRestore();
-  });
 });
 
 describe('registerPiProviders', () => {
@@ -208,7 +199,7 @@ describe('registerPiProviders', () => {
     vi.stubEnv('AI_GATEWAY_API_KEY', 'ambient-gateway-key');
     const options = {
       OPENAI_API_KEY: 'programmatic-openai-key',
-    } satisfies PiAuthOptions;
+    } satisfies PiAuthenticationMode;
     const resolvedEnv = resolvePiEnv({ options, env: process.env });
     const registries = await registerProviders({ options, resolvedEnv });
 
@@ -221,8 +212,9 @@ describe('registerPiProviders', () => {
 
   it('registers resolved gateway auth', async () => {
     const options = {
-      gateway: { apiKey: 'gw-key', baseUrl: 'https://gw.example' },
-    } satisfies PiAuthOptions;
+      AI_GATEWAY_API_KEY: 'gw-key',
+      AI_GATEWAY_BASE_URL: 'https://gw.example',
+    } satisfies PiAuthenticationMode;
     const resolvedEnv = resolvePiEnv({ options, env: {} });
     const registries = await registerProviders({ options, resolvedEnv });
 
@@ -245,15 +237,16 @@ describe('registerPiProviders', () => {
   });
 
   it('registers all known custom providers', async () => {
-    const options = {
-      customEnv: {
+    const options = 'custom' satisfies PiAuthenticationMode;
+    const resolvedEnv = resolvePiEnv({
+      options,
+      env: {
         AI_GATEWAY_API_KEY: 'gw',
         OPENAI_API_KEY: 'oai',
         ANTHROPIC_API_KEY: 'ant',
         ANTHROPIC_AUTH_TOKEN: 'tok',
       },
-    } satisfies PiAuthOptions;
-    const resolvedEnv = resolvePiEnv({ options, env: {} });
+    });
     const registries = await registerProviders({ options, resolvedEnv });
     const registeredProviders = registries.registerProvider.mock.calls
       .map(call => call[0])
@@ -280,13 +273,14 @@ describe('registerPiProviders', () => {
   });
 
   it('registers arbitrary custom providers with API key and base URL', async () => {
-    const options = {
-      customEnv: {
+    const options = 'custom' satisfies PiAuthenticationMode;
+    const resolvedEnv = resolvePiEnv({
+      options,
+      env: {
         MISTRAL_API_KEY: 'mk',
         MISTRAL_BASE_URL: 'https://api.mistral.example',
       },
-    } satisfies PiAuthOptions;
-    const resolvedEnv = resolvePiEnv({ options, env: {} });
+    });
     const registries = await registerProviders({ options, resolvedEnv });
 
     expect(registries.setRuntimeApiKey).toHaveBeenCalledWith('mistral', 'mk');

@@ -53,7 +53,7 @@ import {
   DEFAULT_OPENAI_BASE_URL,
   resolveCodexAuthenticationMode,
   resolveCodexEnv,
-  type CodexAuthOptions,
+  type CodexAuthenticationMode,
 } from './codex-auth';
 import {
   outboundMessageSchema,
@@ -89,7 +89,7 @@ const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
-  readonly auth?: CodexAuthOptions;
+  readonly auth?: CodexAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can

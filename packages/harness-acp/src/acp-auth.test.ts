@@ -5,7 +5,7 @@ import {
   resolveACPProviderAuthentication,
   resolveACPProviderAuthenticationCompatibility,
 } from './acp-auth';
-import type { ACPAuthOptions, ACPProviderAuthentication } from './v1';
+import type { ACPAuthenticationMode, ACPProviderAuthentication } from './v1';
 
 const clientApp = {
   name: 'ai-sdk/harness-acp',
@@ -21,7 +21,7 @@ function resolve({
   mode,
   env,
 }: {
-  mode?: ACPAuthOptions;
+  mode?: ACPAuthenticationMode;
   env: Record<string, string | undefined>;
 }) {
   return resolveACPProviderAuthentication({

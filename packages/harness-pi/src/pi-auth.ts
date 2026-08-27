@@ -19,29 +19,6 @@ export type PiAuthenticationMode = HarnessV1Authentication<
   'openai' | 'anthropic' | 'custom'
 >;
 
-/**
- * @deprecated Passing an object to auth options is deprecated. Use a `PiAuthenticationMode` string value ("auto" | "openai" | "anthropic" | "custom" | "ai-gateway") instead, and pass credentials via environment variables.
- */
-export type LegacyPiAuthOptions = {
-  readonly gateway?: {
-    readonly apiKey?: string;
-    readonly baseUrl?: string;
-  };
-  /**
-   * Resolved environment-variable pairs of the form `<PREFIX>_API_KEY` and
-   * (optionally) `<PREFIX>_BASE_URL`. Special-cased prefixes:
-   *  - `AI_GATEWAY` → registers `vercel-ai-gateway`
-   *  - `OPENAI`     → registers `openai`
-   *  - `ANTHROPIC`  → registers `anthropic` (`ANTHROPIC_AUTH_TOKEN` adds a
-   *                   bearer auth header)
-   * Any other `<PREFIX>_API_KEY` with a matching `<PREFIX>_BASE_URL` is
-   * registered as the lowercased, dash-separated prefix.
-   */
-  readonly customEnv?: Record<string, string>;
-};
-
-export type PiAuthOptions = PiAuthenticationMode | LegacyPiAuthOptions;
-
 const DEFAULT_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
@@ -87,44 +64,18 @@ async function register({
   await registries.modelRuntime.setRuntimeApiKey(provider, apiKey);
 }
 
-function hasConfiguredValue(value: unknown): boolean {
-  if (value == null) return false;
-  if (typeof value === 'string') return value.length > 0;
-  if (typeof value !== 'object') return true;
-  return Object.values(value).some(hasConfiguredValue);
-}
-
 export function resolvePiEnv({
   options,
   env,
 }: {
-  options: PiAuthOptions | undefined;
+  options: PiAuthenticationMode | undefined;
   env: NodeJS.ProcessEnv;
 }): Record<string, string> {
   const suppliedEnvironment = isHarnessAuthenticationEnvironment(options);
   const authenticationEnvironment = suppliedEnvironment ? options : env;
-  const normalizedOptions = suppliedEnvironment
-    ? undefined
-    : normalizePiAuthToLegacyAuth(options);
-  const customEnvConfigured = hasConfiguredValue(normalizedOptions?.customEnv);
-  if (customEnvConfigured) {
-    return resolveCustomEnv({ customEnv: normalizedOptions!.customEnv ?? {} });
-  }
-
-  const gatewayConfigured = hasConfiguredValue(normalizedOptions?.gateway);
   const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
     env: authenticationEnvironment,
   });
-  if (gatewayConfigured) {
-    const apiKey =
-      normalizedOptions!.gateway?.apiKey ?? gatewayAuthFromEnv.apiKey;
-    const baseUrl =
-      normalizedOptions!.gateway?.baseUrl ?? gatewayAuthFromEnv.baseUrl;
-    if (apiKey) {
-      return { AI_GATEWAY_API_KEY: apiKey, AI_GATEWAY_BASE_URL: baseUrl };
-    }
-    return {};
-  }
 
   // Handle explicit string modes with process env
   if (typeof options === 'string') {
@@ -215,34 +166,14 @@ export async function registerPiProviders({
   registries,
   clientApp = HARNESS_CLIENT_APP,
 }: {
-  options: PiAuthOptions | undefined;
+  options: PiAuthenticationMode | undefined;
   resolvedEnv: Record<string, string>;
   registries: PiRegistries;
   clientApp?: string;
 }): Promise<void> {
   const suppliedEnvironment = isHarnessAuthenticationEnvironment(options);
   const authenticationEnvironment = suppliedEnvironment ? options : process.env;
-  const normalizedOptions = suppliedEnvironment
-    ? undefined
-    : normalizePiAuthToLegacyAuth(options);
-  if (hasConfiguredValue(normalizedOptions?.customEnv)) {
-    await registerCustomProviders({
-      customEnv: normalizedOptions!.customEnv ?? {},
-      registries,
-      clientApp,
-    });
-    return;
-  }
-
-  // Legacy customEnv was handled above. Everything else reduces to a mode:
-  // string modes pass through, `undefined` is 'auto', and legacy gateway
-  // objects fall through to the trailing gateway-registration block.
-  const mode =
-    typeof options === 'string'
-      ? options
-      : options == null || suppliedEnvironment
-        ? 'auto'
-        : 'legacy';
+  const mode = typeof options === 'string' ? options : 'auto';
 
   switch (mode) {
     case 'openai': {
@@ -294,8 +225,6 @@ export async function registerPiProviders({
       });
       return;
     }
-    case 'legacy':
-      break; // handled below
     case 'auto':
     default: {
       // 'auto' (the default): prefer the AI Gateway; only when no gateway
@@ -329,18 +258,6 @@ export async function registerPiProviders({
       return;
     }
   }
-
-  // Legacy explicit gateway object options.
-  const apiKey = resolvedEnv.AI_GATEWAY_API_KEY;
-  const baseUrl = resolvedEnv.AI_GATEWAY_BASE_URL;
-  if (!apiKey || !baseUrl) return;
-
-  await register({
-    registries,
-    provider: 'vercel-ai-gateway',
-    apiKey,
-    config: createGatewayProviderConfig({ apiKey, baseUrl, clientApp }),
-  });
 }
 
 function pickOpenAIEnv(
@@ -386,46 +303,6 @@ function pickProviderEnv(
     }
   }
   return result;
-}
-
-function normalizePiAuthToLegacyAuth(
-  options: PiAuthOptions | undefined,
-): LegacyPiAuthOptions | undefined {
-  if (options == null || options === 'auto') {
-    return undefined;
-  }
-  if (typeof options === 'string') {
-    switch (options) {
-      case 'ai-gateway':
-        return { gateway: {} };
-      case 'custom':
-      case 'openai':
-      case 'anthropic':
-        return { customEnv: {} };
-      default:
-        return undefined;
-    }
-  }
-
-  console.warn(
-    '[pi] Passing an object to auth options is deprecated. Use a string mode ("auto" | "openai" | "anthropic" | "custom" | "ai-gateway") instead, and pass credentials via environment variables.',
-  );
-  return options;
-}
-
-function resolveCustomEnv({
-  customEnv,
-}: {
-  customEnv: Record<string, string>;
-}): Record<string, string> {
-  const apiKey = customEnv.AI_GATEWAY_API_KEY;
-  if (!apiKey) return {};
-
-  return {
-    AI_GATEWAY_API_KEY: apiKey,
-    AI_GATEWAY_BASE_URL:
-      customEnv.AI_GATEWAY_BASE_URL ?? DEFAULT_GATEWAY_BASE_URL,
-  };
 }
 
 async function registerCustomProviders({

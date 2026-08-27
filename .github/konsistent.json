@@ -354,7 +354,7 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
-            "exportTypes": ["${harnessId.toPascalCase()}AuthOptions"],
+            "exportTypes": ["${harnessId.toPascalCase()}AuthenticationMode"],
             "exportFunctions": [
               {
                 "name": "resolve${harnessId.toPascalCase()}Env",
@@ -362,7 +362,7 @@
               }
             ],
             "useDeclarationOrder": [
-              "${harnessId.toPascalCase()}AuthOptions",
+              "${harnessId.toPascalCase()}AuthenticationMode",
               "resolve${harnessId.toPascalCase()}Env"
             ]
           }

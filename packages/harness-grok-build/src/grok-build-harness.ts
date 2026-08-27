@@ -6,7 +6,7 @@ import {
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthOptions } from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -23,14 +23,14 @@ const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
 const GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE =
   __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
 
-export type GrokBuildAuthOptions = ACPAuthOptions;
+export type GrokBuildAuthenticationMode = ACPAuthenticationMode;
 
 export type GrokBuildHarnessSettings = {
   /**
    * Selects direct xAI or AI Gateway authentication. Defaults to automatic
    * environment-based selection.
    */
-  readonly auth?: GrokBuildAuthOptions;
+  readonly auth?: GrokBuildAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can

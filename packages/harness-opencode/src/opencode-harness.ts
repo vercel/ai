@@ -57,7 +57,7 @@ import {
   resolveOpenCodeAuthenticationMode,
   resolveOpenCodeEnv,
   splitOpenCodeModel,
-  type OpenCodeAuthOptions,
+  type OpenCodeAuthenticationMode,
 } from './opencode-auth';
 import {
   outboundMessageSchema,
@@ -79,7 +79,7 @@ type WriteSkillsResult = {
 const OPENCODE_CLIENT_APP = `ai-sdk/harness-opencode/${VERSION}`;
 
 export type OpenCodeHarnessSettings = {
-  readonly auth?: OpenCodeAuthOptions;
+  readonly auth?: OpenCodeAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can

@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { resolveClineEnv, type ClineAuthOptions } from './cline-auth';
+import { resolveClineEnv, type ClineAuthenticationMode } from './cline-auth';
 import { clineResumeStateSchema } from './cline-resume-state';
 import { createClineSession, type ClineReasoningEffort } from './cline-session';
 import { VERSION } from './version';
@@ -22,7 +22,7 @@ const CLINE_CLIENT_APP = `ai-sdk/harness-cline/${VERSION}`;
  */
 export type ClineHarnessSettings = {
   /** Where Cline sources direct or AI Gateway credentials from. */
-  readonly auth?: ClineAuthOptions;
+  readonly auth?: ClineAuthenticationMode;
   /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.

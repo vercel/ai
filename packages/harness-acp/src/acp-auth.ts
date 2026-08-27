@@ -4,8 +4,8 @@ import {
   isHarnessAuthenticationEnvironment,
 } from '@ai-sdk/harness/utils';
 import type {
-  ACPAuthOptions as ACPV1AuthOptions,
   ACPAuthentication,
+  ACPAuthenticationMode as ACPV1AuthenticationMode,
   ACPProviderAuthentication,
   ACPProviderAuthenticationMode,
 } from './v1';
@@ -13,7 +13,7 @@ import type { ACPResolvedProviderAuthentication } from './v1/bridge/acp-v1-bridg
 
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 
-export type ACPAuthOptions = ACPV1AuthOptions;
+export type ACPAuthenticationMode = ACPV1AuthenticationMode;
 
 export type ACPClientApp = {
   readonly name: string;
@@ -21,7 +21,7 @@ export type ACPClientApp = {
 };
 
 type ACPAuthResolutionOptions = {
-  readonly mode?: ACPAuthOptions;
+  readonly mode?: ACPAuthenticationMode;
   readonly providerAuthentication: ACPProviderAuthentication | undefined;
   readonly clientApp: ACPClientApp;
 };
@@ -174,7 +174,7 @@ export function resolveACPProviderAuthenticationCompatibility({
   providerAuthentication,
   env,
 }: {
-  auth?: ACPAuthOptions;
+  auth?: ACPAuthenticationMode;
   providerAuthentication: ACPProviderAuthentication | undefined;
   env: Record<string, string | undefined>;
 }): ACPProviderAuthenticationCompatibility | undefined {
@@ -204,7 +204,7 @@ export function resolveACPProviderAuthenticationCompatibility({
 }
 
 function resolveACPProviderAuthenticationMode(
-  auth: ACPAuthOptions | undefined,
+  auth: ACPAuthenticationMode | undefined,
 ): Extract<ACPProviderAuthenticationMode, string> {
   return typeof auth === 'string' || auth == null ? (auth ?? 'auto') : 'auto';
 }
@@ -213,7 +213,7 @@ export function resolveACPAuthenticationEnvironment({
   auth,
   env,
 }: {
-  auth: ACPAuthOptions | undefined;
+  auth: ACPAuthenticationMode | undefined;
   env: Record<string, string | undefined>;
 }): Record<string, string | undefined> {
   return isHarnessAuthenticationEnvironment(auth) ? auth : env;
