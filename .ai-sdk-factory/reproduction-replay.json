@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 19829,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-application-inference-profile-embedding.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-application-inference-profile-embedding.ts",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-cohere-v4-application-inference-profile.json",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-cohere-v4-application-inference-profile-error.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19829_REPRODUCED: opaque Cohere application inference profile returned no embeddings because AI SDK sent two Titan requests"
+  }
+}

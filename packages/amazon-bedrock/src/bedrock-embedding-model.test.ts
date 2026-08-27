@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import { injectFetchHeaders } from './inject-fetch-headers';
@@ -27,6 +28,29 @@ const cohereV4EmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/
 const cohereV4UsProfileEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
   'us.cohere.embed-v4:0',
 )}/invoke`;
+
+type RecordedFixture = {
+  request: Record<string, unknown>;
+  response: {
+    status: number;
+    headers: Record<string, string>;
+    body: unknown;
+  };
+};
+
+const applicationProfileSuccessFixture = JSON.parse(
+  fs.readFileSync(
+    'src/__fixtures__/amazon-bedrock-cohere-v4-application-inference-profile.json',
+    'utf8',
+  ),
+) as RecordedFixture;
+
+const applicationProfileErrorFixture = JSON.parse(
+  fs.readFileSync(
+    'src/__fixtures__/amazon-bedrock-cohere-v4-application-inference-profile-error.json',
+    'utf8',
+  ),
+) as RecordedFixture;
 
 describe('doEmbed', () => {
   const mockConfigHeaders = {
@@ -328,6 +352,51 @@ describe('doEmbed', () => {
       truncate: undefined,
       output_dimension: undefined,
     });
+  });
+
+  it('should support Cohere models behind application inference profile ARNs', async () => {
+    const requests: Record<string, unknown>[] = [];
+    const applicationProfileModel = new BedrockEmbeddingModel(
+      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy',
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: async (_input, init) => {
+          const body = JSON.parse(init?.body as string) as Record<
+            string,
+            unknown
+          >;
+          requests.push(body);
+
+          const fixture =
+            JSON.stringify(body) ===
+            JSON.stringify(applicationProfileSuccessFixture.request)
+              ? applicationProfileSuccessFixture
+              : applicationProfileErrorFixture;
+
+          return new Response(JSON.stringify(fixture.response.body), {
+            status: fixture.response.status,
+            headers: fixture.response.headers,
+          });
+        },
+      },
+    );
+
+    const { embeddings, usage } = await applicationProfileModel.doEmbed({
+      values: ['hello', 'world'],
+      providerOptions: {
+        bedrock: {
+          embeddingFamily: 'cohere',
+          inputType: 'search_document',
+          outputDimension: 256,
+        },
+      },
+    });
+
+    expect(requests).toEqual([applicationProfileSuccessFixture.request]);
+    expect(embeddings).toHaveLength(2);
+    expect(embeddings.map(embedding => embedding.length)).toEqual([256, 256]);
+    expect(usage?.tokens).toBe(2);
   });
 
   it('should pass outputDimension for Cohere v4 embedding models', async () => {

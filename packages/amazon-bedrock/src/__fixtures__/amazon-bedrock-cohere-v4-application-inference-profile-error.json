@@ -1,0 +1,14 @@
+{
+  "request": {
+    "inputText": "hello"
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": "Malformed request. Please check your parameter/values and try again."
+    }
+  }
+}
