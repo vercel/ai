@@ -45,7 +45,7 @@ import {
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { Output, type LanguageModelCallEndEvent, type Telemetry } from '..';
-import { StreamProviderError } from '../error';
+import { NoOutputGeneratedError, StreamProviderError } from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
 import type { Instructions, LanguageModelCallOptions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -2755,6 +2755,105 @@ describe('streamText', () => {
       expect(await result.responseMessages).toEqual(
         finalStep.response.messages,
       );
+    });
+
+    it('should reset failed-attempt state when the recovered stream ends without output', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'text-start', id: 'failed-text' },
+                    {
+                      type: 'text-delta',
+                      id: 'failed-text',
+                      delta: 'partial',
+                    },
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        onError,
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const terminalError = parts.find(part => part.type === 'error');
+
+      expect(callCount).toBe(2);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          id: 'failed-text',
+          text: 'partial',
+        }),
+      );
+      expect(terminalError?.type).toBe('error');
+      if (terminalError?.type !== 'error') {
+        expect.fail('Expected a terminal error part');
+      }
+      expect(NoOutputGeneratedError.isInstance(terminalError.error)).toBe(true);
+      await expect(result.text).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      expect(onError).toHaveBeenNthCalledWith(1, {
+        error: new Error('provider error'),
+      });
+      expect(onError).toHaveBeenNthCalledWith(2, {
+        error: expect.objectContaining({
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        }),
+      });
+    });
+
+    it('should recover when the first recovered provider part is frozen', async () => {
+      let callCount = 0;
+      const recoveredTextStart = Object.freeze({
+        type: 'text-start' as const,
+        id: 'recovered-text',
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    { type: 'error', error: new Error('provider error') },
+                  ])
+                : convertArrayToReadableStream([
+                    recoveredTextStart,
+                    {
+                      type: 'text-delta',
+                      id: 'recovered-text',
+                      delta: 'recovered',
+                    },
+                    { type: 'text-end', id: 'recovered-text' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(2);
+      expect(await result.text).toBe('recovered');
+      expect(await result.finishReason).toBe('stop');
     });
 
     it('should use request and response metadata from the recovered attempt', async () => {

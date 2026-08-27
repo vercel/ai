@@ -131,6 +131,11 @@ import {
   streamLanguageModelCall,
   type LanguageModelStreamPart,
 } from './stream-language-model-call';
+import {
+  createStreamRetryAttemptBoundaryPart,
+  isStreamRetryAttemptBoundaryPart,
+  type StreamRetryAttemptBoundaryPart,
+} from './stream-retry-attempt-boundary';
 import type {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -196,9 +201,14 @@ const isOutputChunkType = {
   'model-call-end': false,
   error: false,
   raw: false,
-} as const satisfies Record<ExecuteToolsStreamPart['type'], boolean>;
+} as const satisfies Record<
+  Exclude<ExecuteToolsStreamPart, StreamRetryAttemptBoundaryPart>['type'],
+  boolean
+>;
 
-function isOutputChunk(chunk: ExecuteToolsStreamPart): boolean {
+function isOutputChunk(
+  chunk: Exclude<ExecuteToolsStreamPart, StreamRetryAttemptBoundaryPart>,
+): boolean {
   if (!isOutputChunkType[chunk.type]) {
     return false;
   }
@@ -881,14 +891,9 @@ type StreamRetryBoundaryMetadata = {
 };
 
 const streamRetryBoundarySymbol = Symbol('streamRetryBoundary');
-const streamRetryAttemptBoundarySymbol = Symbol('streamRetryAttemptBoundary');
 
 type StreamRetryBoundaryPart = {
   [streamRetryBoundarySymbol]: StreamRetryBoundaryMetadata;
-};
-
-type StreamRetryAttemptBoundaryPart = {
-  [streamRetryAttemptBoundarySymbol]?: true;
 };
 
 type InternalTextStreamPart<TOOLS extends ToolSet> =
@@ -2388,14 +2393,12 @@ class DefaultStreamTextResult<
           const outputChunksHandledBeforeBuffering = new WeakSet<object>();
           const openTextParts = new Set<string>();
           const openReasoningParts = new Set<string>();
-          let pendingStreamRetryStateReset = false;
-          let hasPreparedStreamRetryStateReset = false;
-          let markNextPartAsStreamRetryBoundary = false;
+          let enqueueStreamRetryAttemptBoundary = false;
           const shouldBufferToolParts =
             streamRetries > 0 || canRetryStreamViaOnError;
 
           const languageModelStream = new ReadableStream<
-            LanguageModelStreamPart<TOOLS>
+            LanguageModelStreamPart<TOOLS> | StreamRetryAttemptBoundaryPart
           >({
             async pull(controller) {
               const enqueueAttemptPart = (
@@ -2441,23 +2444,22 @@ class DefaultStreamTextResult<
               while (true) {
                 const { done, value } = await languageModelStreamReader.read();
 
+                if (enqueueStreamRetryAttemptBoundary) {
+                  controller.enqueue(
+                    createStreamRetryAttemptBoundaryPart({
+                      warnings:
+                        !done && value.type === 'model-call-start'
+                          ? value.warnings
+                          : [],
+                    }),
+                  );
+                  enqueueStreamRetryAttemptBoundary = false;
+                }
+
                 if (done) {
                   flushBufferedAttemptParts();
                   controller.close();
                   return;
-                }
-
-                if (markNextPartAsStreamRetryBoundary) {
-                  Object.defineProperty(
-                    value,
-                    streamRetryAttemptBoundarySymbol,
-                    {
-                      value: true,
-                      configurable: true,
-                      enumerable: true,
-                    },
-                  );
-                  markNextPartAsStreamRetryBoundary = false;
                 }
 
                 const isToolPart =
@@ -2546,7 +2548,7 @@ class DefaultStreamTextResult<
                 response = retryLanguageModelCall.response;
                 languageModelStreamReader =
                   retryLanguageModelCall.stream.getReader();
-                markNextPartAsStreamRetryBoundary = true;
+                enqueueStreamRetryAttemptBoundary = true;
               }
             },
             cancel(reason) {
@@ -2639,10 +2641,10 @@ class DefaultStreamTextResult<
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
-          let modelCallPerformance: Omit<
+          const createModelCallPerformance = (): Omit<
             StepResultPerformance,
             'stepTimeMs' | 'toolExecutionMs'
-          > = {
+          > => ({
             responseTimeMs: 0,
             effectiveOutputTokensPerSecond: 0,
             outputTokensPerSecond: undefined,
@@ -2650,7 +2652,8 @@ class DefaultStreamTextResult<
             effectiveTotalTokensPerSecond: 0,
             timeToFirstOutputMs: undefined,
             timeBetweenOutputChunksMs: undefined,
-          };
+          });
+          let modelCallPerformance = createModelCallPerformance();
           const toolExecutionMs: Record<string, number> = {};
           const createStepResponse = () => ({
             id: generateId(),
@@ -2674,17 +2677,6 @@ class DefaultStreamTextResult<
             >,
             part: TextStreamPart<TOOLS>,
           ) => {
-            if (pendingStreamRetryStateReset) {
-              controller.enqueue({
-                [streamRetryBoundarySymbol]: {
-                  request: getStepRequest(),
-                  warnings: warnings ?? [],
-                } satisfies StreamRetryBoundaryMetadata,
-              });
-              pendingStreamRetryStateReset = false;
-              hasPreparedStreamRetryStateReset = false;
-            }
-
             controller.enqueue(part);
           };
 
@@ -2695,29 +2687,31 @@ class DefaultStreamTextResult<
                 InternalTextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
-                  if (
-                    (chunk as StreamRetryAttemptBoundaryPart)[
-                      streamRetryAttemptBoundarySymbol
-                    ]
-                  ) {
-                    delete (chunk as StreamRetryAttemptBoundaryPart)[
-                      streamRetryAttemptBoundarySymbol
-                    ];
-                    pendingStreamRetryStateReset = true;
-                    hasPreparedStreamRetryStateReset = false;
+                  if (isStreamRetryAttemptBoundaryPart(chunk)) {
+                    warnings = chunk.warnings;
+                    stepFinishReason = 'other';
+                    stepRawFinishReason = undefined;
+                    hasReceivedTerminalChunk = false;
+                    hasReceivedOutputChunk = false;
+                    stepUsage = createNullLanguageModelUsage();
+                    stepProviderMetadata = undefined;
+                    modelCallPerformance = createModelCallPerformance();
+                    stepResponse = createStepResponse();
+                    textPartIds.clear();
+                    reasoningPartIds.clear();
+
+                    controller.enqueue({
+                      [streamRetryBoundarySymbol]: {
+                        request: getStepRequest(),
+                        warnings,
+                      } satisfies StreamRetryBoundaryMetadata,
+                    });
+                    return;
                   }
 
                   if (chunk.type === 'model-call-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
-                  }
-
-                  if (
-                    pendingStreamRetryStateReset &&
-                    !hasPreparedStreamRetryStateReset
-                  ) {
-                    stepResponse = createStepResponse();
-                    hasPreparedStreamRetryStateReset = true;
                   }
 
                   if (stepFirstChunk) {
