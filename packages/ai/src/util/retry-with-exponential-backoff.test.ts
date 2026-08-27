@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { GatewayResponseError } from '@ai-sdk/gateway';
 import { APICallError } from '@ai-sdk/provider';
 import { retryWithExponentialBackoffRespectingRetryHeaders } from './retry-with-exponential-backoff';
 
@@ -442,5 +443,27 @@ describe('retryWithExponentialBackoffRespectingRetryHeaders', () => {
       const result = await promise;
       expect(result).toBe('success');
     });
+  });
+
+  it('should retry retryable Gateway response errors with successful status codes', async () => {
+    const fn = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new GatewayResponseError({
+          message: 'Failed to process successful response',
+          statusCode: 200,
+          isRetryable: true,
+        }),
+      )
+      .mockResolvedValue('success');
+
+    const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+      initialDelayInMs: 100,
+    })(fn);
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await expect(promise).resolves.toBe('success');
+    expect(fn).toHaveBeenCalledTimes(2);
   });
 });

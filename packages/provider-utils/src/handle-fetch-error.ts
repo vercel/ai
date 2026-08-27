@@ -3,8 +3,6 @@ import { isAbortError } from './is-abort-error';
 
 const FETCH_FAILED_ERROR_MESSAGES = ['fetch failed', 'failed to fetch'];
 
-<<<<<<< HEAD
-=======
 const RETRYABLE_NETWORK_ERROR_CODES = new Set([
   'ConnectionRefused',
   'ConnectionClosed',
@@ -42,7 +40,6 @@ function findNetworkError(
   return undefined;
 }
 
->>>>>>> cc23556703 (Backport: fix: mark response body network errors as retryable (#19896))
 export function handleFetchError({
   error,
   url,
@@ -75,8 +72,6 @@ export function handleFetchError({
     }
   }
 
-<<<<<<< HEAD
-=======
   const networkError = findNetworkError(error);
 
   if (networkError != null) {
@@ -105,6 +100,5 @@ export function handleFetchError({
     });
   }
 
->>>>>>> cc23556703 (Backport: fix: mark response body network errors as retryable (#19896))
   return error;
 }

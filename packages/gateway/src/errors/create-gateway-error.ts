@@ -48,11 +48,7 @@ export async function createGatewayErrorFromResponse({
       response,
       validationError: parseResult.error,
       cause,
-<<<<<<< HEAD
-=======
-      generationId: rawGenerationId,
       isRetryable,
->>>>>>> cc23556703 (Backport: fix: mark response body network errors as retryable (#19896))
     });
   }
 
