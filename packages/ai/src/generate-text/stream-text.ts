@@ -1102,28 +1102,33 @@ function applyStreamTextTransforms<TOOLS extends ToolSet>({
     | undefined;
 
   const createTransformedSegmentReader = () => {
-    let segment = new ReadableStream<TextStreamPart<TOOLS>>({
-      async pull(controller) {
-        const { done, value } = await sourceReader.read();
+    let segment = new ReadableStream<TextStreamPart<TOOLS>>(
+      {
+        async pull(controller) {
+          const { done, value } = await sourceReader.read();
 
-        if (done) {
-          sourceDone = true;
-          controller.close();
-          return;
-        }
+          if (done) {
+            sourceDone = true;
+            controller.close();
+            return;
+          }
 
-        if (isStreamRetryBoundaryPart(value)) {
-          pendingBoundary = value;
-          controller.close();
-          return;
-        }
+          if (isStreamRetryBoundaryPart(value)) {
+            pendingBoundary = value;
+            controller.close();
+            return;
+          }
 
-        controller.enqueue(value);
+          controller.enqueue(value);
+        },
+        cancel(reason) {
+          return sourceReader.cancel(reason);
+        },
       },
-      cancel(reason) {
-        return sourceReader.cancel(reason);
-      },
-    });
+      // Do not prefetch the next source chunk. `stopStream` is invoked from a
+      // user transform and must close the gate before another chunk enters it.
+      { highWaterMark: 0 },
+    );
 
     for (const transform of transforms) {
       segment = segment.pipeThrough(
