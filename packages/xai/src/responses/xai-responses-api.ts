@@ -136,8 +136,6 @@ const toolCallSchema = z.object({
   action: z.any().optional(),
 });
 
-<<<<<<< HEAD
-=======
 export const webSearchWireSourceSchema = z.object({
   type: z.literal('url'),
   url: z.string(),
@@ -163,17 +161,6 @@ export const webSearchWireActionSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-const mcpCallSchema = z.object({
-  name: z.string().optional(),
-  arguments: z.string().optional(),
-  output: z.string().optional(),
-  error: z.string().optional(),
-  id: z.string(),
-  status: z.string(),
-  server_label: z.string().optional(),
-});
-
->>>>>>> 0331d34605 (Backport: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results (#19832))
 const outputItemSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('web_search_call'),

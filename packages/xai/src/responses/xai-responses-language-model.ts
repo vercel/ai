@@ -8,26 +8,16 @@ import type {
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
+  type InferValidator,
   type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-<<<<<<< HEAD
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
-=======
-  type FetchFunction,
-  type InferSchema,
-  type ParseResult,
-} from '@ai-sdk/provider-utils';
-import type { z } from 'zod/v4';
-import { getResponseMetadata } from '../get-response-metadata';
 import type { webSearchOutputSchema } from '../tool/web-search';
-import { xaiFailedResponseHandler } from '../xai-error';
-import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
->>>>>>> 0331d34605 (Backport: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results (#19832))
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { getResponseMetadata } from '../get-response-metadata';
 import {
@@ -806,8 +796,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                   });
                 }
 
-<<<<<<< HEAD
-=======
                 if (event.type === 'response.output_item.done') {
                   controller.enqueue({
                     type: 'tool-result',
@@ -820,7 +808,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                   });
                 }
 
->>>>>>> 0331d34605 (Backport: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results (#19832))
                 return;
               }
 
@@ -917,7 +904,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
 function mapWebSearchAction(
   action: unknown,
-): InferSchema<typeof webSearchOutputSchema> {
+): InferValidator<typeof webSearchOutputSchema> {
   const parsed = webSearchWireActionSchema.safeParse(action);
   if (!parsed.success) return {};
 

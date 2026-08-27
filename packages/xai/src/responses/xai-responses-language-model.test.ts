@@ -927,7 +927,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},
@@ -2132,8 +2132,6 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
-<<<<<<< HEAD
-=======
       it('should emit a tool result when provider-executed tool calls finish', async () => {
         prepareStreamChunks([
           JSON.stringify({
@@ -2186,7 +2184,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},
@@ -2266,7 +2264,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},
@@ -2343,7 +2341,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},
@@ -2375,7 +2373,6 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
->>>>>>> 0331d34605 (Backport: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results (#19832))
       it('should stream function tool call arguments', async () => {
         prepareStreamChunks([
           JSON.stringify({
