@@ -1,5 +1,5 @@
 import type {
-  HarnessAuthenticationEnvironment,
+  HarnessV1Authentication,
   HarnessV1RequestTransformation,
   HarnessV1RequestTransformationSources,
 } from '@ai-sdk/harness';
@@ -110,9 +110,9 @@ export type OpenCodeResolvedAuthenticationMode =
   | 'openai'
   | 'ai-gateway';
 
-export type OpenCodeAuthenticationMode =
-  | OpenCodeResolvedAuthenticationMode
-  | 'auto';
+export type OpenCodeAuthenticationMode = HarnessV1Authentication<
+  'anthropic' | 'openai'
+>;
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use an `OpenCodeAuthenticationMode` string value ("auto" | "anthropic" | "openai" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -143,7 +143,6 @@ export type LegacyOpenCodeAuthOptions = {
 
 export type OpenCodeAuthOptions =
   | OpenCodeAuthenticationMode
-  | HarnessAuthenticationEnvironment
   | LegacyOpenCodeAuthOptions;
 
 export function resolveOpenCodeProvider({

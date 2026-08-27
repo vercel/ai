@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type {
-  HarnessAuthenticationEnvironment,
+  HarnessV1Authentication,
   HarnessV1RequestTransformation,
   HarnessV1RequestTransformationSources,
 } from '@ai-sdk/harness';
@@ -69,9 +69,7 @@ export function createClaudeCodeRequestTransformations({
 
 export type ClaudeCodeResolvedAuthenticationMode = 'direct' | 'ai-gateway';
 
-export type ClaudeCodeAuthenticationMode =
-  | ClaudeCodeResolvedAuthenticationMode
-  | 'auto';
+export type ClaudeCodeAuthenticationMode = HarnessV1Authentication;
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use a `ClaudeCodeAuthenticationMode` string value ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -90,7 +88,6 @@ export type LegacyClaudeCodeAuthOptions = {
 
 export type ClaudeCodeAuthOptions =
   | ClaudeCodeAuthenticationMode
-  | HarnessAuthenticationEnvironment
   | LegacyClaudeCodeAuthOptions;
 
 /**

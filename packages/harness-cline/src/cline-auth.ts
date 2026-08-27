@@ -1,11 +1,9 @@
-import type { HarnessAuthenticationEnvironment } from '@ai-sdk/harness';
+import type { HarnessV1Authentication } from '@ai-sdk/harness';
 import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
 
-export type ClineAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+export type ClineAuthenticationMode = HarnessV1Authentication;
 
-export type ClineAuthOptions =
-  | ClineAuthenticationMode
-  | HarnessAuthenticationEnvironment;
+export type ClineAuthOptions = ClineAuthenticationMode;
 
 export function resolveClineEnv({
   auth = 'auto',

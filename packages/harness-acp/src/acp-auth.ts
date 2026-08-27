@@ -205,7 +205,7 @@ export function resolveACPProviderAuthenticationCompatibility({
 
 function resolveACPProviderAuthenticationMode(
   auth: ACPAuthOptions | undefined,
-): ACPProviderAuthenticationMode {
+): Extract<ACPProviderAuthenticationMode, string> {
   return typeof auth === 'string' || auth == null ? (auth ?? 'auto') : 'auto';
 }
 

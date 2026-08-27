@@ -1,5 +1,5 @@
 import type {
-  HarnessAuthenticationEnvironment,
+  HarnessV1Authentication,
   HarnessV1CredentialForwarding,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
@@ -67,11 +67,9 @@ export type ACPAuthentication = {
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
 };
 
-export type ACPProviderAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+export type ACPProviderAuthenticationMode = HarnessV1Authentication;
 
-export type ACPAuthOptions =
-  | ACPProviderAuthenticationMode
-  | HarnessAuthenticationEnvironment;
+export type ACPAuthOptions = ACPProviderAuthenticationMode;
 
 export type ACPProviderAuthentication = {
   readonly gateway: {

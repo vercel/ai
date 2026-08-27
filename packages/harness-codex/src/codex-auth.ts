@@ -1,5 +1,5 @@
 import type {
-  HarnessAuthenticationEnvironment,
+  HarnessV1Authentication,
   HarnessV1RequestTransformation,
   HarnessV1RequestTransformationSources,
 } from '@ai-sdk/harness';
@@ -44,7 +44,7 @@ export function createCodexRequestTransformations({
 
 export type CodexResolvedAuthenticationMode = 'direct' | 'ai-gateway';
 
-export type CodexAuthenticationMode = CodexResolvedAuthenticationMode | 'auto';
+export type CodexAuthenticationMode = HarnessV1Authentication;
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use a `CodexAuthenticationMode` string value ("auto" | "direct" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -68,10 +68,7 @@ export type LegacyCodexAuthOptions = {
   };
 };
 
-export type CodexAuthOptions =
-  | CodexAuthenticationMode
-  | HarnessAuthenticationEnvironment
-  | LegacyCodexAuthOptions;
+export type CodexAuthOptions = CodexAuthenticationMode | LegacyCodexAuthOptions;
 
 /**
  * Resolve the environment-variable blob the codex bridge needs. Precedence:

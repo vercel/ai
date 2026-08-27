@@ -1,5 +1,5 @@
 import type {
-  HarnessAuthenticationEnvironment,
+  HarnessV1Authentication,
   HarnessV1RequestTransformation,
   HarnessV1RequestTransformationSources,
 } from '@ai-sdk/harness';
@@ -65,9 +65,7 @@ export function createDeepAgentsRequestTransformations({
 
 export type DeepAgentsResolvedAuthenticationMode = 'anthropic' | 'ai-gateway';
 
-export type DeepAgentsAuthenticationMode =
-  | DeepAgentsResolvedAuthenticationMode
-  | 'auto';
+export type DeepAgentsAuthenticationMode = HarnessV1Authentication<'anthropic'>;
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use a `DeepAgentsAuthenticationMode` string value ("auto" | "anthropic" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -86,7 +84,6 @@ export type LegacyDeepAgentsAuthOptions = {
 
 export type DeepAgentsAuthOptions =
   | DeepAgentsAuthenticationMode
-  | HarnessAuthenticationEnvironment
   | LegacyDeepAgentsAuthOptions;
 
 // DeepAgents always drives the Anthropic client. Non-Anthropic models reach it

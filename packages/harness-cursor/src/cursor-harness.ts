@@ -1,6 +1,5 @@
 import {
   commonTool,
-  type HarnessAuthenticationEnvironment,
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
@@ -22,9 +21,7 @@ export type CursorHarnessSettings = {
    * isolated environment for Cursor CLI authentication. The adapter cannot
    * change provider routing and warns for explicit routing modes.
    */
-  readonly auth?:
-    | ACPProviderAuthenticationMode
-    | HarnessAuthenticationEnvironment;
+  readonly auth?: ACPProviderAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can

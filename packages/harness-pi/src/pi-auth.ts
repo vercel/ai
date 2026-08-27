@@ -2,7 +2,7 @@ import type {
   ModelRegistry,
   ModelRuntime,
 } from '@earendil-works/pi-coding-agent';
-import type { HarnessAuthenticationEnvironment } from '@ai-sdk/harness';
+import type { HarnessV1Authentication } from '@ai-sdk/harness';
 import {
   getAiGatewayAuthFromEnv,
   isHarnessAuthenticationEnvironment,
@@ -15,12 +15,9 @@ type ProviderConfigInput = Parameters<ModelRegistry['registerProvider']>[1];
  * Pi auth options. Choose an explicit mode or rely on 'auto' (precedence:
  * explicit gateway, then OpenAI / Anthropic / custom environment variables).
  */
-export type PiAuthenticationMode =
-  | 'auto'
-  | 'openai'
-  | 'anthropic'
-  | 'custom'
-  | 'ai-gateway';
+export type PiAuthenticationMode = HarnessV1Authentication<
+  'openai' | 'anthropic' | 'custom'
+>;
 
 /**
  * @deprecated Passing an object to auth options is deprecated. Use a `PiAuthenticationMode` string value ("auto" | "openai" | "anthropic" | "custom" | "ai-gateway") instead, and pass credentials via environment variables.
@@ -43,10 +40,7 @@ export type LegacyPiAuthOptions = {
   readonly customEnv?: Record<string, string>;
 };
 
-export type PiAuthOptions =
-  | PiAuthenticationMode
-  | HarnessAuthenticationEnvironment
-  | LegacyPiAuthOptions;
+export type PiAuthOptions = PiAuthenticationMode | LegacyPiAuthOptions;
 
 const DEFAULT_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';

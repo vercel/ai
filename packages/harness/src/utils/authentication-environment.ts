@@ -1,8 +1,8 @@
-import type { HarnessAuthenticationEnvironment } from '../harness-authentication-environment';
+import type { HarnessV1AuthenticationEnvironment } from '../v1/harness-authentication';
 
 export function isHarnessAuthenticationEnvironment(
   value: unknown,
-): value is HarnessAuthenticationEnvironment {
+): value is HarnessV1AuthenticationEnvironment {
   return (
     value != null &&
     typeof value === 'object' &&
