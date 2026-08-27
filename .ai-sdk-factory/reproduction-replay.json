@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 9101,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9101-bedrock-stream-citations.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-9101-bedrock-stream-citations.ts",
+    "examples/ai-functions/data/ai.pdf",
+    "packages/amazon-bedrock/src/__fixtures__/issue-9101-bedrock-document-citations.chunks.txt",
+    "packages/amazon-bedrock/src/bedrock-chat-language-model-citations.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_9101_REPRODUCED: valid Bedrock citation delta failed AI SDK validation"
+  }
+}
