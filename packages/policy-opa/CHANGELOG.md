@@ -1,5 +1,45 @@
 # @ai-sdk/policy
 
+## 1.0.83
+
+### Patch Changes
+
+- Updated dependencies [8dd86a9]
+- Updated dependencies [fda13b3]
+- Updated dependencies [957146c]
+- Updated dependencies [ce6849a]
+  - ai@7.0.83
+
+## 1.0.82
+
+### Patch Changes
+
+- 3e125ba: Allow manual tool approval statuses to include a reason and preserve it across
+  core, model, and UI approval requests. OPA `requires-approval` decisions now
+  surface their reason to human approvers. UI request chunks serialize the
+  optional `reason`, while UI messages retain it as `approval.requestReason`
+  separately from an approver's response `reason`.
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+  - @ai-sdk/provider-utils@5.0.32
+
+## 1.0.81
+
+### Patch Changes
+
+- ai@7.0.81
+
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+- Updated dependencies [eed7950]
+  - @ai-sdk/provider-utils@5.0.31
+  - ai@7.0.80
+
 ## 1.0.79
 
 ### Patch Changes

@@ -232,6 +232,7 @@ function buildOpenCodeConfig({
       webfetch: 'ask',
       doom_loop: 'ask',
       task: 'ask',
+      question: 'deny',
     },
   };
   if (start.model) config.model = start.model;
@@ -878,6 +879,22 @@ async function consumeEvents({
   const stream = await subscribeLegacyEvents({ client, signal });
   onSubscribed?.();
   if (!stream) return;
+  const taskSessionIds = new Set([sessionId]);
+  const registerSubagentSession = (sourceSessionId: string) =>
+    function register({
+      parentSessionId,
+      sessionId: subagentSessionId,
+    }: {
+      parentSessionId: string;
+      sessionId: string;
+    }) {
+      if (
+        parentSessionId === sourceSessionId &&
+        taskSessionIds.has(sourceSessionId)
+      ) {
+        taskSessionIds.add(subagentSessionId);
+      }
+    };
   const emitStreamEvent = createEmitStreamEvent({
     state,
     emit,
@@ -887,20 +904,59 @@ async function consumeEvents({
     nativeNameField,
     getHostToolName,
     authorizeHostToolCall: input => authorizeHostToolCall({ ...input, state }),
+    onSubagentSession: registerSubagentSession(sessionId),
     isMcpToolName: toolName =>
       [...runtime.mcpToolPrefixes].some(prefix => toolName.startsWith(prefix)),
     stripWorkDir,
     formatError,
   });
+  const descendantEventProcessors = new Map<
+    string,
+    (event: OpenCodeEvent) => void
+  >();
+  const processDescendantEvent = (
+    descendantSessionId: string,
+    event: OpenCodeEvent,
+  ) => {
+    let processEvent = descendantEventProcessors.get(descendantSessionId);
+    if (!processEvent) {
+      const descendantState = createTranslationState();
+      processEvent = createEmitStreamEvent({
+        state: descendantState,
+        emit: () => undefined,
+        emitWarning: () => undefined,
+        emitError: () => undefined,
+        toWireToolName,
+        nativeNameField,
+        getHostToolName,
+        authorizeHostToolCall: input =>
+          authorizeHostToolCall({ ...input, state: descendantState }),
+        onSubagentSession: registerSubagentSession(descendantSessionId),
+        isMcpToolName: () => false,
+        stripWorkDir,
+        formatError,
+      });
+      descendantEventProcessors.set(descendantSessionId, processEvent);
+    }
+    processEvent(event);
+  };
   for await (const rawEvent of stream) {
     if (signal.aborted || turn.abortSignal.aborted) break;
     const event = unwrapOpenCodeEvent(rawEvent);
     const eventSessionId = event ? getOpenCodeEventSessionId(event) : undefined;
-    if (!event || (eventSessionId && eventSessionId !== sessionId)) continue;
+    if (!event) continue;
+    const scopedSessionId =
+      !eventSessionId || eventSessionId === sessionId
+        ? sessionId
+        : taskSessionIds.has(eventSessionId)
+          ? eventSessionId
+          : undefined;
+    if (!scopedSessionId) continue;
+    const isDescendant = scopedSessionId !== sessionId;
     if (event.type === 'permission.v2.asked') {
       await handlePermissionV2({
         client,
-        sessionId,
+        sessionId: scopedSessionId,
         permissionMode,
         builtinToolFiltering,
         turn,
@@ -910,16 +966,19 @@ async function consumeEvents({
     } else if (event.type === 'permission.asked') {
       await handlePermission({
         client,
-        sessionId,
+        sessionId: scopedSessionId,
         permissionMode,
         builtinToolFiltering,
         turn,
         emit,
         event,
       });
+    } else if (isDescendant) {
+      processDescendantEvent(scopedSessionId, event);
     } else {
       emitStreamEvent(event);
     }
+    if (isDescendant) continue;
     if (onEvent?.(event)) break;
   }
 }

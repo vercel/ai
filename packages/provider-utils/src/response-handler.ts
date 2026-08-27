@@ -149,6 +149,73 @@ export const createJsonResponseHandler =
     };
   };
 
+export const createJsonLinesResponseHandler =
+  <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<AsyncGenerator<T>> =>
+  async ({ response }) => {
+    const responseHeaders = extractResponseHeaders(response);
+
+    if (response.body == null) {
+      throw new EmptyResponseBodyError({});
+    }
+
+    return {
+      responseHeaders,
+      value: parseJsonLines({
+        stream: response.body,
+        schema: responseSchema,
+      }),
+    };
+  };
+
+async function* parseJsonLines<T>({
+  stream,
+  schema,
+}: {
+  stream: ReadableStream<Uint8Array>;
+  schema: FlexibleSchema<T>;
+}): AsyncGenerator<T> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let finished = false;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        finished = true;
+        buffer += decoder.decode();
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+
+      let lineEnd = buffer.indexOf('\n');
+      while (lineEnd !== -1) {
+        const line = buffer.slice(0, lineEnd).replace(/\r$/, '');
+        buffer = buffer.slice(lineEnd + 1);
+
+        if (line.trim().length > 0) {
+          yield await parseJSON({ text: line, schema });
+        }
+
+        lineEnd = buffer.indexOf('\n');
+      }
+    }
+
+    const finalLine = buffer.replace(/\r$/, '');
+    if (finalLine.trim().length > 0) {
+      yield await parseJSON({ text: finalLine, schema });
+    }
+  } finally {
+    if (!finished) {
+      await reader.cancel().catch(() => {});
+    }
+    reader.releaseLock();
+  }
+}
+
 export const createBinaryResponseHandler =
   (): ResponseHandler<Uint8Array> =>
   async ({ response, url, requestBodyValues }) => {

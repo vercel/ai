@@ -1,5 +1,32 @@
 # @ai-sdk/google
 
+## 4.0.54
+
+### Patch Changes
+
+- 1f7835c: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, and custom vocabulary, plus streaming transcription (`gemini-3.5-transcribe-live`) over the Live API WebSocket with `mode: 'VERBATIM' | 'SMART'` transcription formatting
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.52
+
+### Patch Changes
+
+- 7de3612: Encode provider-returned identifiers before using them in credentialed follow-up request paths.
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 92e08e6: Preserve recursive tool input schemas without aborting Google model calls.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- 0246209: Fix Google file uploads failing to type-check with TypeScript 5.9 DOM types.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
 ## 4.0.51
 
 ### Patch Changes

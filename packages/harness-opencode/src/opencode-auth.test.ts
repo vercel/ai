@@ -187,20 +187,27 @@ describe('resolveOpenCodeAuthenticationMode', () => {
 describe('createOpenCodeRequestTransformations', () => {
   it('uses the resolved OpenAI route', () => {
     expect(
-      createOpenCodeRequestTransformations(
-        {
+      createOpenCodeRequestTransformations({
+        env: {
           OPENAI_API_KEY: 'openai-secret',
           OPENAI_BASE_URL: 'https://openai.example/v1',
           AI_GATEWAY_API_KEY: 'unselected-gateway-secret',
           AI_GATEWAY_BASE_URL: 'https://unselected-gateway.example/v1',
         },
-        'openai',
-      ),
+        sandboxEnv: { OPENAI_API_KEY: 'sandbox-openai-secret' },
+        auth: 'openai',
+      }),
     ).toEqual([
       {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-openai-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
@@ -209,22 +216,46 @@ describe('createOpenCodeRequestTransformations', () => {
     ]);
   });
 
-  it('uses the resolved Gateway route', () => {
+  it('matches both supported Gateway credential headers', () => {
     expect(
-      createOpenCodeRequestTransformations(
-        {
+      createOpenCodeRequestTransformations({
+        env: {
           OPENAI_API_KEY: 'unselected-openai-secret',
           OPENAI_BASE_URL: 'https://unselected-openai.example/v1',
           AI_GATEWAY_API_KEY: 'gateway-secret',
           AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
         },
-        'ai-gateway',
-      ),
+        sandboxEnv: {
+          AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
+        },
+        auth: 'ai-gateway',
+      }),
     ).toEqual([
       {
         match: {
           host: 'gateway.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-gateway-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer gateway-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'gateway.example',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-gateway-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer gateway-secret' },
@@ -235,21 +266,44 @@ describe('createOpenCodeRequestTransformations', () => {
 
   it('injects both supported Anthropic credential headers', () => {
     expect(
-      createOpenCodeRequestTransformations(
-        {
+      createOpenCodeRequestTransformations({
+        env: {
           ANTHROPIC_API_KEY: 'api-secret',
           ANTHROPIC_AUTH_TOKEN: 'token-secret',
         },
-        'anthropic',
-      ),
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-api-secret',
+          ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
+        },
+        auth: 'anthropic',
+      }),
     ).toEqual([
       {
-        match: { host: 'api.anthropic.com' },
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-api-secret' },
+            },
+          ],
+        },
         transform: {
-          headers: {
-            'x-api-key': 'api-secret',
-            Authorization: 'Bearer token-secret',
-          },
+          headers: { 'x-api-key': 'api-secret' },
+        },
+      },
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-token-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer token-secret' },
         },
       },
     ]);

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type {
   HarnessAuthenticationEnvironment,
   HarnessV1RequestTransformation,
+  HarnessV1RequestTransformationSources,
 } from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
@@ -18,28 +19,52 @@ export const CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
   'ANTHROPIC_AUTH_TOKEN',
 ] as const;
 
-export function createClaudeCodeRequestTransformations(
-  env: Record<string, string>,
-  auth: ClaudeCodeResolvedAuthenticationMode,
-): HarnessV1RequestTransformation[] {
-  const headers: Record<string, string> = {};
-  if (env.ANTHROPIC_API_KEY) {
-    headers['x-api-key'] = env.ANTHROPIC_API_KEY;
+export function createClaudeCodeRequestTransformations({
+  env: environment,
+  sandboxEnv: sandboxEnvironment,
+  auth: authenticationMode,
+}: HarnessV1RequestTransformationSources<ClaudeCodeResolvedAuthenticationMode>): HarnessV1RequestTransformation[] {
+  const matchUrl =
+    authenticationMode === 'ai-gateway'
+      ? environment.ANTHROPIC_BASE_URL
+      : (environment.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com');
+  const transformations: HarnessV1RequestTransformation[] = [];
+
+  if (
+    environment.ANTHROPIC_API_KEY != null &&
+    sandboxEnvironment.ANTHROPIC_API_KEY != null
+  ) {
+    transformations.push(
+      createCredentialRequestTransformation({
+        matchUrl,
+        matchHeaders: {
+          'x-api-key': sandboxEnvironment.ANTHROPIC_API_KEY,
+        },
+        transformHeaders: {
+          'x-api-key': environment.ANTHROPIC_API_KEY,
+        },
+      }),
+    );
   }
-  if (env.ANTHROPIC_AUTH_TOKEN) {
-    headers.Authorization = `Bearer ${env.ANTHROPIC_AUTH_TOKEN}`;
+
+  if (
+    environment.ANTHROPIC_AUTH_TOKEN != null &&
+    sandboxEnvironment.ANTHROPIC_AUTH_TOKEN != null
+  ) {
+    transformations.push(
+      createCredentialRequestTransformation({
+        matchUrl,
+        matchHeaders: {
+          Authorization: `Bearer ${sandboxEnvironment.ANTHROPIC_AUTH_TOKEN}`,
+        },
+        transformHeaders: {
+          Authorization: `Bearer ${environment.ANTHROPIC_AUTH_TOKEN}`,
+        },
+      }),
+    );
   }
-  return Object.keys(headers).length === 0
-    ? []
-    : [
-        createCredentialRequestTransformation({
-          baseUrl:
-            auth === 'ai-gateway'
-              ? env.ANTHROPIC_BASE_URL
-              : (env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com'),
-          headers,
-        }),
-      ];
+
+  return transformations;
 }
 
 export type ClaudeCodeResolvedAuthenticationMode = 'direct' | 'ai-gateway';

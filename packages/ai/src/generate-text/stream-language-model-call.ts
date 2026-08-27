@@ -20,6 +20,7 @@ import { getOwn } from '../util/get-own';
 import type { Instructions, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { normalizeStreamProviderError } from '../prompt/normalize-stream-provider-error';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -447,6 +448,13 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
       }
 
       switch (chunk.type) {
+        case 'error':
+          controller.enqueue({
+            type: 'error',
+            error: normalizeStreamProviderError(chunk.error),
+          });
+          break;
+
         case 'text-start':
           upsertTextContentPart({
             content: modelCallContent,

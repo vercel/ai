@@ -588,15 +588,24 @@ export function createFx(
     executable: 'fx',
     args: ['acp'],
     credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
-    credentialBrokering: ({ env }) => {
-      const credential = suppliedAuthenticationEnvironment
-        ? (env.AI_GATEWAY_API_KEY ?? env.VERCEL_OIDC_TOKEN)
-        : (env.VERCEL_OIDC_TOKEN ?? env.AI_GATEWAY_API_KEY);
-      if (!credential) return [];
+    credentialBrokering: ({ env, sandboxEnv }) => {
+      const environmentVariableName = suppliedAuthenticationEnvironment
+        ? env.AI_GATEWAY_API_KEY
+          ? 'AI_GATEWAY_API_KEY'
+          : 'VERCEL_OIDC_TOKEN'
+        : env.VERCEL_OIDC_TOKEN
+          ? 'VERCEL_OIDC_TOKEN'
+          : 'AI_GATEWAY_API_KEY';
+      const credential = env[environmentVariableName];
+      const sandboxCredential = sandboxEnv?.[environmentVariableName];
+      if (!credential || !sandboxCredential) return [];
       return [
         createCredentialRequestTransformation({
-          baseUrl: env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
-          headers: {
+          matchUrl: env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxCredential}`,
+          },
+          transformHeaders: {
             Authorization: `Bearer ${credential}`,
             'x-client-app': FX_CLIENT_APP,
           },

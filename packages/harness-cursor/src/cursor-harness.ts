@@ -407,14 +407,22 @@ export function createCursor(
     executable: 'agent',
     args: ['--disable-auto-update', 'acp'],
     credentialEnv: ['CURSOR_API_KEY'],
-    credentialBrokering: ({ env }) => {
-      if (!env.CURSOR_API_KEY) return [];
+    credentialBrokering: ({ env, sandboxEnv }) => {
+      if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
       return [
         {
           match: {
             host: 'api2.cursor.sh',
             path: { exact: '/auth/exchange_user_api_key' },
             method: ['POST'],
+            headers: [
+              {
+                key: { exact: 'Authorization' },
+                value: {
+                  exact: `Bearer ${sandboxEnv.CURSOR_API_KEY}`,
+                },
+              },
+            ],
           },
           transform: {
             headers: {

@@ -921,6 +921,68 @@ describe('streamObject', () => {
         }
       });
 
+      it('should not emit background errors when cancelled before the provider stream is registered', async () => {
+        const backgroundErrors: unknown[] = [];
+        const onUnhandledRejection = (error: unknown) => {
+          backgroundErrors.push(error);
+        };
+        const onUncaughtException = (error: unknown) => {
+          backgroundErrors.push(error);
+        };
+        let releaseProvider!: () => void;
+        const providerGate = new Promise<void>(resolve => {
+          releaseProvider = resolve;
+        });
+        let providerStreamCreated!: () => void;
+        const providerStreamCreation = new Promise<void>(resolve => {
+          providerStreamCreated = resolve;
+        });
+        let providerStreamCancelled = false;
+
+        process.on('unhandledRejection', onUnhandledRejection);
+        process.on('uncaughtException', onUncaughtException);
+
+        try {
+          const result = streamObject({
+            model: new MockLanguageModelV4({
+              doStream: async () => {
+                await providerGate;
+
+                return {
+                  stream: new ReadableStream({
+                    start() {
+                      providerStreamCreated();
+                    },
+                    cancel() {
+                      providerStreamCancelled = true;
+                    },
+                  }),
+                };
+              },
+            }),
+            schema: z.object({ content: z.string() }),
+            prompt: 'prompt',
+            onError: () => {},
+          });
+
+          const reader = result.partialObjectStream.getReader();
+          const pendingRead = reader.read().catch(() => undefined);
+
+          await reader.cancel();
+          releaseProvider();
+
+          await pendingRead;
+          await providerStreamCreation;
+          await new Promise(resolve => setTimeout(resolve, 0));
+
+          expect(providerStreamCancelled).toBe(true);
+          expect(backgroundErrors).toStrictEqual([]);
+        } finally {
+          process.off('unhandledRejection', onUnhandledRejection);
+          process.off('uncaughtException', onUncaughtException);
+        }
+      });
+
       it('should reject pending result promises and report failure for an error stream part', async () => {
         const error = new Error('test error');
         const onError = vitest.fn();

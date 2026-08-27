@@ -153,16 +153,25 @@ describe('resolveDeepAgentsAuthenticationMode', () => {
 describe('createDeepAgentsRequestTransformations', () => {
   it('injects the Anthropic API key at the configured endpoint', () => {
     expect(
-      createDeepAgentsRequestTransformations(
-        {
+      createDeepAgentsRequestTransformations({
+        env: {
           ANTHROPIC_API_KEY: 'api-secret',
           ANTHROPIC_BASE_URL: 'https://anthropic.example',
         },
-        'anthropic',
-      ),
+        sandboxEnv: { ANTHROPIC_API_KEY: 'sandbox-api-secret' },
+        auth: 'anthropic',
+      }),
     ).toEqual([
       {
-        match: { host: 'anthropic.example' },
+        match: {
+          host: 'anthropic.example',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-api-secret' },
+            },
+          ],
+        },
         transform: { headers: { 'x-api-key': 'api-secret' } },
       },
     ]);
@@ -170,15 +179,26 @@ describe('createDeepAgentsRequestTransformations', () => {
 
   it('injects the Anthropic auth token as a bearer credential', () => {
     expect(
-      createDeepAgentsRequestTransformations(
-        {
+      createDeepAgentsRequestTransformations({
+        env: {
           ANTHROPIC_AUTH_TOKEN: 'token-secret',
         },
-        'anthropic',
-      ),
+        sandboxEnv: {
+          ANTHROPIC_AUTH_TOKEN: 'sandbox-token-secret',
+        },
+        auth: 'anthropic',
+      }),
     ).toEqual([
       {
-        match: { host: 'api.anthropic.com' },
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-token-secret' },
+            },
+          ],
+        },
         transform: {
           headers: { Authorization: 'Bearer token-secret' },
         },
@@ -188,16 +208,27 @@ describe('createDeepAgentsRequestTransformations', () => {
 
   it('uses the resolved Gateway route', () => {
     expect(
-      createDeepAgentsRequestTransformations(
-        {
+      createDeepAgentsRequestTransformations({
+        env: {
           ANTHROPIC_API_KEY: 'gateway-secret',
           ANTHROPIC_BASE_URL: 'https://gateway.example',
         },
-        'ai-gateway',
-      ),
+        sandboxEnv: {
+          ANTHROPIC_API_KEY: 'sandbox-gateway-secret',
+        },
+        auth: 'ai-gateway',
+      }),
     ).toEqual([
       {
-        match: { host: 'gateway.example' },
+        match: {
+          host: 'gateway.example',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'sandbox-gateway-secret' },
+            },
+          ],
+        },
         transform: { headers: { 'x-api-key': 'gateway-secret' } },
       },
     ]);
