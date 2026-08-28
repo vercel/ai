@@ -1,5 +1,8 @@
 import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV3Prompt,
+  LanguageModelV3ToolResultOutput,
+} from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
@@ -3050,6 +3053,97 @@ describe('convertToOpenAIResponsesInput', () => {
         },
       ]);
       expect(result.warnings).toEqual([]);
+    });
+
+    it('should forward prompt cache breakpoints on scalar function call outputs', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const scalarOutputs: Array<{
+        output: Exclude<LanguageModelV3ToolResultOutput, { type: 'content' }>;
+        serializedValue: string;
+      }> = [
+        {
+          output: { type: 'text', value: 'stable tool output' },
+          serializedValue: 'stable tool output',
+        },
+        {
+          output: { type: 'json', value: { result: 'stable tool output' } },
+          serializedValue: '{"result":"stable tool output"}',
+        },
+        {
+          output: { type: 'error-text', value: 'stable tool error' },
+          serializedValue: 'stable tool error',
+        },
+        {
+          output: {
+            type: 'error-json',
+            value: { error: 'stable tool error' },
+          },
+          serializedValue: '{"error":"stable tool error"}',
+        },
+        {
+          output: {
+            type: 'execution-denied',
+            reason: 'stable denial reason',
+          },
+          serializedValue: 'stable denial reason',
+        },
+      ];
+
+      for (const { output, serializedValue } of scalarOutputs) {
+        for (const placement of ['output', 'tool-result'] as const) {
+          const outputWithOptions =
+            placement === 'output'
+              ? {
+                  ...output,
+                  providerOptions: {
+                    openai: { promptCacheBreakpoint },
+                  },
+                }
+              : output;
+
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: `call_${output.type}_${placement}`,
+                    toolName: 'lookup',
+                    output: outputWithOptions,
+                    ...(placement === 'tool-result' && {
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    }),
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: true,
+          });
+
+          expect
+            .soft(result.input, `${output.type} with options on ${placement}`)
+            .toEqual([
+              {
+                type: 'function_call_output',
+                call_id: `call_${output.type}_${placement}`,
+                output: [
+                  {
+                    type: 'input_text',
+                    text: serializedValue,
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  },
+                ],
+              },
+            ]);
+          expect.soft(result.warnings).toEqual([]);
+        }
+      }
     });
 
     it('should convert multiple tool result parts in a single message', async () => {

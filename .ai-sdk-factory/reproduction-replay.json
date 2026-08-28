@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19921,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19921-openai-responses-scalar-tool-cache-breakpoint.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19921-openai-responses-scalar-tool-cache-breakpoint.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19921_REPRODUCED: 10/10 scalar tool results dropped promptCacheBreakpoint"
+  }
+}
