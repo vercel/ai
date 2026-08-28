@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "version": 2,
   "issueId": 19894,
   "expectationRevision": 1,
@@ -10,5 +11,16 @@
   "expectedFailure": {
     "exitCode": 1,
     "signal": "ISSUE_19894_REPRODUCED: Claude Code bridge emitted model-facing tool_result text instead of the structured tool_use_result Output"
+=======
+  "version": 1,
+  "issueId": 11418,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11418-stream-text-onfinish-object.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-11418-stream-text-onfinish-object.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG: streamText onFinish did not expose the complete structured output"
+>>>>>>> origin/main
   }
 }
