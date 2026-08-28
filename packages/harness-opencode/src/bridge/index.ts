@@ -144,6 +144,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       await client.instance.dispose({ directory: workdir });
     }
     const sessionId = await ensureSession({ client, start, emit });
+    await switchSessionModel({ client, sessionId, start });
 
     if (start.operation === 'compact') {
       await runCompaction({ client, sessionId, start, turn, emit });
@@ -160,6 +161,27 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       totalUsage: totalUsage ?? defaultUsage(),
     });
   }
+}
+
+async function switchSessionModel({
+  client,
+  sessionId,
+  start,
+}: {
+  client: OpenCodeClient;
+  sessionId: string;
+  start: StartMessage;
+}): Promise<void> {
+  const model = modelRefFromStart(start);
+  if (model == null) return;
+  const response = await client.v2.session.switchModel({
+    sessionID: sessionId,
+    model: {
+      id: model.modelID,
+      providerID: model.providerID,
+    },
+  });
+  if (response.error != null) throw response.error;
 }
 
 async function ensureRuntime({

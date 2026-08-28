@@ -48,11 +48,12 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly credentialForwarding?: ACPV1Settings['credentialForwarding'];
   readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
+  readonly clientCapabilities?: ACPV1Settings['clientCapabilities'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
   /**
-   * Maps a HarnessAgent model identifier to implementation launch settings.
+   * Maps the HarnessAgent model identifier to an ACP session operation.
    */
-  readonly resolveModel: ACPV1Settings['resolveModel'];
+  readonly modelMapping: ACPV1Settings['modelMapping'];
   /**
    * @deprecated Use `model` on `HarnessAgent` instead.
    */

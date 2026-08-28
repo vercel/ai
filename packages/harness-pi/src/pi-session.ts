@@ -415,9 +415,7 @@ export async function createPiSession(
     modelRegistry,
     env: resolverEnv,
   });
-  // Resolve once: deterministic given the configured model. This is the Pi
-  // `Model` object handed to `createAgentSession`.
-  const resolvedModel = resolveModel(input.settings.model);
+  let activeResolvedModel = resolveModel(input.settings.model);
   const mcpServers = resolvePiMcpServers({
     mcpServers: input.settings.mcpServers,
   });
@@ -784,6 +782,7 @@ export async function createPiSession(
           // rebuilding the Pi session from it.
           const control = await runTurn({
             text: '',
+            ...(continueOpts.model ? { model: continueOpts.model } : {}),
             skills: continueOpts.skills,
             tools: continueOpts.tools ?? [],
             instructions: continueOpts.instructions,
@@ -1015,7 +1014,7 @@ export async function createPiSession(
       ...(input.settings.thinkingLevel
         ? { thinkingLevel: input.settings.thinkingLevel }
         : {}),
-      ...(resolvedModel ? { model: resolvedModel } : {}),
+      ...(activeResolvedModel ? { model: activeResolvedModel } : {}),
     });
     piSession = session;
     if (hasMcpServers) {
@@ -1061,6 +1060,7 @@ export async function createPiSession(
    */
   async function runTurn(turnOpts: {
     text: string;
+    model?: string;
     skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
     instructions?: string;
@@ -1111,6 +1111,10 @@ export async function createPiSession(
         const didAppendDeliveredHostToolResults =
           appendDeliveredHostToolResults();
 
+        const nextModel =
+          turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
+        if (nextModel != null) activeResolvedModel = nextModel;
+
         const signature = JSON.stringify(userTools.map(t => t.name).sort());
         const needsRebuild =
           piSession == null || signature !== lastToolsSignature;
@@ -1122,6 +1126,14 @@ export async function createPiSession(
           );
           turnAbortController.signal.throwIfAborted();
           lastToolsSignature = signature;
+        } else if (
+          nextModel != null &&
+          piSession != null &&
+          (piSession.model?.provider !== nextModel.provider ||
+            piSession.model.id !== nextModel.id)
+        ) {
+          await piSession.setModel(nextModel);
+          turnAbortController.signal.throwIfAborted();
         }
 
         if (!resourcesReloaded) {
@@ -1143,7 +1155,10 @@ export async function createPiSession(
           nativeToCommon: NATIVE_TO_COMMON,
         });
 
-        currentEmit?.({ type: 'stream-start' });
+        currentEmit?.({
+          type: 'stream-start',
+          ...(piSession?.model?.id ? { modelId: piSession.model.id } : {}),
+        });
 
         /*
          * A live continuation reports the completed tool execution before the
@@ -1318,10 +1333,6 @@ export async function createPiSession(
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     isResume: input.isResume,
-    // The model Pi actually resolves to (the configured id, or its default when
-    // unset) — `gen_ai.request.model`.
-    ...(resolvedModel?.id ? { modelId: resolvedModel.id } : {}),
-
     // Pi has no bridge to attach to and no on-disk event log to replay; its
     // only resume path is restoring the session file on a fresh/snapshotted
     // sandbox, i.e. `rerun`.
@@ -1337,6 +1348,7 @@ export async function createPiSession(
       }
       return runTurn({
         text: extractUserText(promptOpts.prompt),
+        ...(promptOpts.model ? { model: promptOpts.model } : {}),
         skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
         instructions: promptOpts.instructions,
@@ -1394,6 +1406,7 @@ export async function createPiSession(
        */
       return runTurn({
         text: '',
+        ...(continueOpts.model ? { model: continueOpts.model } : {}),
         skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],
         instructions: continueOpts.instructions,

@@ -6,7 +6,10 @@ import { createACP, type ACPHarnessSettings } from './acp-harness';
 import type { ACPToolCall } from './acp-tool-call';
 import type { ACPV1Settings } from './v1';
 
-const resolveModel: ACPV1Settings['resolveModel'] = () => ({});
+const modelMapping: ACPV1Settings['modelMapping'] = {
+  type: 'session-config-option',
+  path: 'model',
+};
 
 describe('createACP built-in tool inference', () => {
   test('keeps the local ACP tool-call type aligned with the protocol SDK', () => {
@@ -37,10 +40,10 @@ describe('createACP built-in tool inference', () => {
     >().toEqualTypeOf<ACPV1Settings>();
   });
 
-  test('requires a model resolver', () => {
-    // @ts-expect-error resolveModel is required for every ACP implementation
+  test('requires a model mapping', () => {
+    // @ts-expect-error modelMapping is required for every ACP implementation
     createACP({
-      harnessId: 'missing-model-resolver',
+      harnessId: 'missing-model-mapping',
       source: {
         type: 'npm-simple',
         packageName: '@example/acp-agent',
@@ -62,7 +65,7 @@ describe('createACP built-in tool inference', () => {
         packageVersion: '1.1.4',
       },
       executable: 'codex-acp',
-      resolveModel,
+      modelMapping,
       builtinTools: { bash },
       clientApp: { name: 'example-app', version: '1.2.3' },
     });
@@ -79,7 +82,7 @@ describe('createACP built-in tool inference', () => {
         packageVersion: '1.2.3',
       },
       executable: 'acp-agent',
-      resolveModel,
+      modelMapping,
     });
     createACP({
       harnessId: 'unpinned-acp',
@@ -88,7 +91,7 @@ describe('createACP built-in tool inference', () => {
         packageName: '@example/acp-agent',
       },
       executable: 'acp-agent',
-      resolveModel,
+      modelMapping,
     });
     createACP({
       harnessId: 'locked-acp',
@@ -98,7 +101,7 @@ describe('createACP built-in tool inference', () => {
         pnpmLockYaml: "lockfileVersion: '9.0'\n",
       },
       executable: 'acp-agent',
-      resolveModel,
+      modelMapping,
     });
     createACP({
       harnessId: 'install-command-acp',
@@ -107,7 +110,7 @@ describe('createACP built-in tool inference', () => {
         command: 'curl https://example.com/install -fsS | bash',
       },
       executable: 'acp-agent',
-      resolveModel,
+      modelMapping,
     });
   });
 
@@ -119,7 +122,7 @@ describe('createACP built-in tool inference', () => {
         packageName: '@agentclientprotocol/claude-agent-acp',
       },
       executable: 'claude-agent-acp',
-      resolveModel,
+      modelMapping,
       skillsDirectory: '.claude/skills',
       instructionMapping: {
         type: 'session-meta',
@@ -133,7 +136,7 @@ describe('createACP built-in tool inference', () => {
         packageName: '@agentclientprotocol/codex-acp',
       },
       executable: 'codex-acp',
-      resolveModel,
+      modelMapping,
       instructionMapping: {
         type: 'launch-env-json',
         variable: 'CODEX_CONFIG',
@@ -150,7 +153,7 @@ describe('createACP built-in tool inference', () => {
         packageName: '@example/acp-agent',
       },
       executable: 'acp-agent',
-      resolveModel,
+      modelMapping,
       credentialForwarding: async ({ credential, environmentVariableName }) =>
         `${environmentVariableName}:${credential}`,
     });

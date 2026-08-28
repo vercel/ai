@@ -222,7 +222,6 @@ export function createDeepAgents(
     lifecycleStateSchema: deepAgentsResumeStateSchema,
     getBootstrap: getDeepAgentsBootstrap,
     doStart: async startOpts => {
-      const model = startOpts.model ?? settings.model;
       const permissionMode = startOpts.permissionMode;
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
@@ -355,7 +354,7 @@ export function createDeepAgents(
             sessionId: startOpts.sessionId,
             channel: attachChannel,
             proc: undefined,
-            model,
+            model: settings.model,
             thinking: settings.thinking,
             effort: settings.effort,
             bridgePort: coords.port,
@@ -470,7 +469,7 @@ export function createDeepAgents(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model,
+        model: settings.model,
         thinking: settings.thinking,
         effort: settings.effort,
         bridgePort: boundPort,
@@ -785,7 +784,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -822,7 +820,9 @@ function createSession({
         ...(promptOpts.responseFormat == null
           ? {}
           : { responseFormat: promptOpts.responseFormat }),
-        ...(model ? { model } : {}),
+        ...((promptOpts.model ?? model)
+          ? { model: promptOpts.model ?? model }
+          : {}),
         ...(thinking ? { thinking } : {}),
         ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),

@@ -696,7 +696,6 @@ describe('createOpenCode adapter', () => {
       mcpServers,
     });
     const session = await harness.doStart({
-      model: 'anthropic/agent-model',
       sessionId: 's1',
       sandboxSession,
       sessionWorkDir: '/workspace/project',
@@ -719,6 +718,7 @@ describe('createOpenCode adapter', () => {
     await compaction;
 
     const firstTurn = await session.doPromptTurn({
+      model: 'anthropic/agent-model',
       skills: [],
       tools: [],
       prompt: 'think',
@@ -737,7 +737,6 @@ describe('createOpenCode adapter', () => {
       mcpServers,
       resumeSessionId: 'opencode-session',
     });
-    expect(session.modelId).toBe('anthropic/agent-model');
     channel.emit('finish', { type: 'finish' });
     await firstTurn.done;
 
