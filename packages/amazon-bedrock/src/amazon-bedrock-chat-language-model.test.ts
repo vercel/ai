@@ -275,7 +275,16 @@ const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
   },
 );
 
-<<<<<<< HEAD
+const opus5AnthropicModel = new AmazonBedrockChatLanguageModel(
+  opus5AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
 describe('application inference profile reasoning', () => {
   it('returns reasoning for an Anthropic application inference profile ARN when budgetTokens is configured', async () => {
     const applicationProfileArn =
@@ -369,24 +378,11 @@ describe('application inference profile reasoning', () => {
   });
 });
 
-let mockOptions: { success: boolean; errorValue?: any } = { success: true };
-=======
-const opus5AnthropicModel = new AmazonBedrockChatLanguageModel(
-  opus5AnthropicModelId,
-  {
-    baseUrl: () => baseUrl,
-    headers: {},
-    fetch: fakeFetchWithAuth,
-    generateId: () => 'test-id',
-  },
-);
-
 let mockOptions: {
   success: boolean;
   errorValue?: any;
   validateSchema?: boolean;
 } = { success: true };
->>>>>>> origin/main
 
 describe('doGenerate request metadata', () => {
   it('should return the request body', async () => {
