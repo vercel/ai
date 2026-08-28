@@ -218,6 +218,30 @@ const paymentTool = tool({
 
 In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
 
+### Securing Approval Requests
+
+When your application rebuilds a conversation from client-provided messages, a
+client could forge an approval response. For tools that perform sensitive
+operations, set `experimental_toolApprovalSecret` to cryptographically bind
+each approval to the server that issued it:
+
+```ts highlight="7"
+import { ToolLoopAgent } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: { runCommand },
+  experimental_toolApprovalSecret: process.env.TOOL_APPROVAL_SECRET,
+});
+
+const result = await agent.generate({ messages });
+```
+
+The server HMAC-signs each approval request and verifies the signature when an
+approval is replayed. A forged or tampered approval is rejected before the tool
+executes. Keep the secret on the server and use the same value on every
+instance that can handle a later approval response.
+
 ### Tool Execution Approval with useChat
 
 When using `useChat`, the approval flow is handled through UI state. See [Chatbot Tool Usage](/docs/ai-sdk-ui/chatbot-tool-usage#tool-execution-approval) for details on handling approvals in your UI with `addToolApprovalResponse`.
