@@ -2842,6 +2842,220 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should add prompt cache breakpoints to scalar tool result outputs', async () => {
+      const providerOptions = {
+        openai: { promptCacheBreakpoint: { mode: 'explicit' as const } },
+      };
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_text',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'result',
+                  providerOptions,
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_json',
+                toolName: 'search',
+                output: {
+                  type: 'json',
+                  value: { result: true },
+                  providerOptions,
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_error_text',
+                toolName: 'search',
+                output: {
+                  type: 'error-text',
+                  value: 'error',
+                  providerOptions,
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_error_json',
+                toolName: 'search',
+                output: {
+                  type: 'error-json',
+                  value: { error: true },
+                  providerOptions,
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_denied',
+                toolName: 'search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'denied',
+                  providerOptions,
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      const output = (text: string) => [
+        {
+          type: 'input_text',
+          text,
+          prompt_cache_breakpoint: { mode: 'explicit' },
+        },
+      ];
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_text',
+          output: output('result'),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_json',
+          output: output('{"result":true}'),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_error_text',
+          output: output('error'),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_error_json',
+          output: output('{"error":true}'),
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_denied',
+          output: output('denied'),
+        },
+      ]);
+    });
+
+    it('should use tool result part prompt cache breakpoints as a fallback', async () => {
+      const providerOptions = {
+        openai: { promptCacheBreakpoint: { mode: 'explicit' as const } },
+      };
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_json',
+                toolName: 'search',
+                output: { type: 'json', value: { result: true } },
+                providerOptions,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_content',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'first' },
+                    { type: 'text', text: 'last' },
+                  ],
+                },
+                providerOptions,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_json',
+          output: [
+            {
+              type: 'input_text',
+              text: '{"result":true}',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_content',
+          output: [
+            { type: 'input_text', text: 'first' },
+            {
+              type: 'input_text',
+              text: 'last',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should preserve output schema encoding with a prompt cache breakpoint', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_text',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'result',
+                  providerOptions: {
+                    openai: {
+                      promptCacheBreakpoint: { mode: 'explicit' },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        outputSchemaToolNames: new Set(['search']),
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_text',
+          output: [
+            {
+              type: 'input_text',
+              text: '"result"',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should JSON-encode text outputs only for tools with an output schema', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,

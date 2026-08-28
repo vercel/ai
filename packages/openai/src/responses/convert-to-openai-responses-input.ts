@@ -69,12 +69,14 @@ function mapToolCaller(
 
 async function convertFunctionToolResultOutput({
   output,
+  toolResultProviderOptions,
   toolName,
   outputSchemaToolNames,
   providerOptionsName,
   warnings,
 }: {
   output: LanguageModelV4ToolResultOutput;
+  toolResultProviderOptions: SharedV4ProviderOptions | undefined;
   toolName: string;
   outputSchemaToolNames: Set<string> | undefined;
   providerOptionsName: string;
@@ -84,20 +86,47 @@ async function convertFunctionToolResultOutput({
   // parses the contents of that string as JSON. Text-like results therefore
   // need JSON.stringify to become valid JSON string literals.
   const hasOutputSchema = outputSchemaToolNames?.has(toolName);
+  const wrapScalarOutput = (
+    value: string,
+    outputProviderOptions: SharedV4ProviderOptions | undefined,
+  ) => {
+    const promptCacheBreakpoint =
+      getPromptCacheBreakpoint(outputProviderOptions, providerOptionsName) ??
+      getPromptCacheBreakpoint(toolResultProviderOptions, providerOptionsName);
+
+    return promptCacheBreakpoint == null
+      ? value
+      : [
+          {
+            type: 'input_text' as const,
+            text: value,
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+        ];
+  };
 
   switch (output.type) {
     case 'text':
     case 'error-text':
-      return hasOutputSchema ? JSON.stringify(output.value) : output.value;
+      return wrapScalarOutput(
+        hasOutputSchema ? JSON.stringify(output.value) : output.value,
+        output.providerOptions,
+      );
     case 'execution-denied': {
       const reason = output.reason ?? 'Tool call execution denied.';
-      return hasOutputSchema ? JSON.stringify(reason) : reason;
+      return wrapScalarOutput(
+        hasOutputSchema ? JSON.stringify(reason) : reason,
+        output.providerOptions,
+      );
     }
     case 'json':
     case 'error-json':
-      return JSON.stringify(output.value);
-    case 'content':
-      return output.value
+      return wrapScalarOutput(
+        JSON.stringify(output.value),
+        output.providerOptions,
+      );
+    case 'content': {
+      const content = output.value
         .map(item => {
           const promptCacheBreakpoint = getPromptCacheBreakpoint(
             item.providerOptions,
@@ -178,6 +207,25 @@ async function convertFunctionToolResultOutput({
           }
         })
         .filter(isNonNullable);
+
+      if (
+        content.length > 0 &&
+        content.every(item => item.prompt_cache_breakpoint == null)
+      ) {
+        const promptCacheBreakpoint = getPromptCacheBreakpoint(
+          toolResultProviderOptions,
+          providerOptionsName,
+        );
+        if (promptCacheBreakpoint != null) {
+          content[content.length - 1] = {
+            ...content[content.length - 1]!,
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          };
+        }
+      }
+
+      return content;
+    }
   }
 }
 
@@ -1221,6 +1269,7 @@ export async function convertToOpenAIResponsesInput({
                 parallelToolResultGroup.results.map(async result =>
                   convertFunctionToolResultOutput({
                     output: result.output,
+                    toolResultProviderOptions: result.providerOptions,
                     toolName: result.toolName,
                     outputSchemaToolNames,
                     providerOptionsName,
@@ -1482,6 +1531,7 @@ export async function convertToOpenAIResponsesInput({
 
           const contentValue = await convertFunctionToolResultOutput({
             output,
+            toolResultProviderOptions: part.providerOptions,
             toolName: part.toolName,
             outputSchemaToolNames,
             providerOptionsName,
