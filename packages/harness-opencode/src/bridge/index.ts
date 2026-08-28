@@ -219,6 +219,7 @@ function buildOpenCodeConfig({
   relayPort: number | undefined;
 }): Record<string, unknown> {
   const config: Record<string, unknown> = {
+    ...withoutAgentPolicyOverrides(start.openCodeConfig),
     share: 'disabled',
     autoupdate: false,
     permission: {
@@ -270,6 +271,27 @@ function buildOpenCodeConfig({
     };
   }
   if (Object.keys(mcp).length > 0) config.mcp = mcp;
+  return config;
+}
+
+function withoutAgentPolicyOverrides(
+  input: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const config = { ...input };
+  for (const key of ['agent', 'mode'] as const) {
+    const agents = asOpenCodeObject(config[key]);
+    if (!agents) continue;
+    config[key] = Object.fromEntries(
+      Object.entries(agents).map(([name, value]) => {
+        const agent = asOpenCodeObject(value);
+        if (!agent) return [name, value];
+        const safeAgent = { ...agent };
+        delete safeAgent.permission;
+        delete safeAgent.tools;
+        return [name, safeAgent];
+      }),
+    );
+  }
   return config;
 }
 

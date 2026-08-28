@@ -43,6 +43,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: cursor,
+  model: 'gpt-5.6-luna',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -72,7 +73,6 @@ Use `createCursor()` to configure the runtime:
 ```ts
 const harness = createCursor({
   auth: 'ai-gateway',
-  model: 'cursor-model-id',
   port: 4001,
   startupTimeoutMs: 180_000,
 });
@@ -93,8 +93,6 @@ Settings:
   value forwarded into the sandbox process. It does not restrict which
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
-- `model`: Cursor model id selected through ACP. When omitted, Cursor chooses
-  its own default model.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.

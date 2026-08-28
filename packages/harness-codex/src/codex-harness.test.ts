@@ -384,6 +384,24 @@ describe('createCodex adapter', () => {
     await session.doDestroy();
   });
 
+  it('prefers the HarnessAgent model over the deprecated adapter model', async () => {
+    const harness = createCodex({ model: 'legacy-model' });
+    const session = await harness.doStart({
+      model: 'agent-model',
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(session.modelId).toBe('agent-model');
+    await session.doDestroy();
+  });
+
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{

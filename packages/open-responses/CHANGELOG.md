@@ -1,5 +1,13 @@
 # @ai-sdk/open-responses
 
+## 2.0.35
+
+### Patch Changes
+
+- 9a68261: add experimental codecs for Open Responses extension tools, items, and events, including lossless history replay
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 2.0.34
 
 ### Patch Changes

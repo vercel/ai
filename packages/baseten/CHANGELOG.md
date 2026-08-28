@@ -1,5 +1,13 @@
 # @ai-sdk/baseten
 
+## 2.1.18
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/openai-compatible@3.0.40
+
 ## 2.1.17
 
 ### Patch Changes

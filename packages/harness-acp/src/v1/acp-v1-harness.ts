@@ -158,11 +158,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(settings.harnessId)}.`,
     );
   }
-  const implementation = createACPV1Implementation({ settings });
-  validateACPV1Implementation(implementation);
+  const baseImplementation = createACPV1Implementation({ settings });
+  validateACPV1Implementation(baseImplementation);
   const bootstrap = createACPBootstrap({
     harnessId: settings.harnessId,
-    implementation,
+    implementation: baseImplementation,
   });
   const permissionModeMapping = isCompletePermissionModeMapping({
     value: settings.permissionModeMapping,
@@ -186,6 +186,24 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             'ACP built-in tool filtering is not available in this initial ACP v1 implementation.',
         });
       }
+      const modelId = startOptions.model ?? settings.modelId;
+      const modelConfiguration =
+        modelId == null ? undefined : settings.resolveModel({ model: modelId });
+      const implementation = {
+        ...baseImplementation,
+        ...(modelConfiguration?.args == null
+          ? {}
+          : { args: modelConfiguration.args }),
+        ...(modelConfiguration?.env == null
+          ? {}
+          : {
+              env: {
+                ...baseImplementation.env,
+                ...modelConfiguration.env,
+              },
+            }),
+      };
+      validateACPV1Implementation(implementation);
       const permissionMode = startOptions.permissionMode ?? 'allow-all';
       const env = { ...process.env };
       const authenticationEnvironment = resolveACPAuthenticationEnvironment({
@@ -434,7 +452,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               harnessId: settings.harnessId,
               channel: attachChannel,
               proc: undefined,
-              modelId: settings.modelId,
+              modelId,
               sessionMeta: settings.session?.meta,
               instructionMapping: settings.instructionMapping,
               outputSchemaMapping: settings.outputSchemaMapping,
@@ -526,7 +544,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           }
           const turnStartConfig = validateACPColdSessionConfiguration({
             coldSession,
-            modelId: settings.modelId,
+            modelId,
             permissionMode,
             authenticationProfile,
             sessionMeta: settings.session?.meta,
@@ -590,6 +608,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             providerEnvironment:
               sandboxProviderEnvironment == null ? undefined : {},
             sessionMeta: settings.session?.meta,
+            implementationArgs: modelConfiguration?.args,
+            implementationEnv: modelConfiguration?.env,
           }),
           ...sandboxProviderAuthenticationEnvironment,
           BRIDGE_CHANNEL_TOKEN: token,
@@ -702,7 +722,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         harnessId: settings.harnessId,
         channel,
         proc,
-        modelId: settings.modelId,
+        modelId,
         sessionMeta: settings.session?.meta,
         instructionMapping: settings.instructionMapping,
         outputSchemaMapping: settings.outputSchemaMapping,
