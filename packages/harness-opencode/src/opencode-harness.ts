@@ -88,6 +88,9 @@ export type OpenCodeHarnessSettings = {
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
+  /**
+   * @deprecated Use `model` on `HarnessAgent` instead.
+   */
   readonly model?: string;
   readonly provider?: string;
   /**
@@ -247,6 +250,7 @@ export function createOpenCode(
     lifecycleStateSchema: openCodeResumeStateSchema,
     getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
+      const configuredModel = startOpts.model ?? settings.model;
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -287,12 +291,12 @@ export function createOpenCode(
       const coords = resumeData?.bridge;
       const authenticationMode = resolveOpenCodeAuthenticationMode({
         auth: settings.auth,
-        model: settings.model,
+        model: configuredModel,
         provider: settings.provider,
       });
       const resolvedAuthEnvironment = resolveOpenCodeEnv({
         auth: settings.auth,
-        model: settings.model,
+        model: configuredModel,
         provider: settings.provider,
       });
       let sandboxAuthEnvironment = resolvedAuthEnvironment;
@@ -341,7 +345,10 @@ export function createOpenCode(
       const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
-      const model = splitOpenCodeModel(settings.model, settings.provider).model;
+      const model = splitOpenCodeModel(
+        configuredModel,
+        settings.provider,
+      ).model;
 
       const report = startOpts.observability?.report;
       const onDiagnostic = report

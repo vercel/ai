@@ -235,8 +235,9 @@ describe('createDeepAgents', () => {
   it('passes the harness client app to the bridge environment', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const spawns: string[] = [];
-    const harness = createDeepAgents();
+    const harness = createDeepAgents({ model: 'legacy-model' });
     const session = await harness.doStart({
+      model: 'agent-model',
       sessionId: 'test-session',
       sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
       sandboxSession: fakeSandboxSession({ spawnEnvs, spawns }),
@@ -252,6 +253,7 @@ describe('createDeepAgents', () => {
     expect(spawns.at(0)).toContain(
       "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
     );
+    expect(session.modelId).toBe('agent-model');
 
     await session.doDestroy();
   });

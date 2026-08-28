@@ -31,6 +31,10 @@ describe('ACP bridge environment', () => {
       sessionMeta: {
         opaqueCredential: 'session-secret',
       },
+      implementationArgs: ['--model', 'test-model'],
+      implementationEnv: {
+        MODEL_CONFIG: '{"model":"test-model"}',
+      },
     } as const;
 
     const env = createACPBridgeEnvironment(configuration);

@@ -27,6 +27,8 @@ export type PiHarnessSettings = {
    * Pi model id (or name). Leaving this unset falls back to the AI Gateway
    * default when `AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN` is set, and to
    * Pi's own resolution otherwise.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -140,6 +142,7 @@ export function createPi(
     supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
+      const model = startOpts.model ?? settings.model;
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const resumeData = lifecycleState?.data as
         | { sessionFileName?: string }
@@ -151,7 +154,7 @@ export function createPi(
         sessionWorkDir: startOpts.sessionWorkDir,
         settings: {
           ...(settings.auth ? { auth: settings.auth } : {}),
-          ...(settings.model ? { model: settings.model } : {}),
+          ...(model == null ? {} : { model }),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),

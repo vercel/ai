@@ -90,6 +90,8 @@ export type ClaudeCodeHarnessSettings = {
   /**
    * Anthropic model id the underlying `claude` CLI should use. Leaving this
    * unset defers to the CLI's default.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -829,6 +831,7 @@ export function createClaudeCode(
     lifecycleStateSchema: claudeCodeResumeStateSchema,
     getBootstrap: getClaudeCodeBootstrap,
     doStart: async startOpts => {
+      const model = startOpts.model ?? settings.model;
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -995,7 +998,7 @@ export function createClaudeCode(
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
-            model: settings.model,
+            model,
             maxTurns: settings.maxTurns,
             env: sandboxClaudeEnvironment,
             thinking,
@@ -1146,7 +1149,7 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model: settings.model,
+        model,
         maxTurns: settings.maxTurns,
         env: sandboxClaudeEnvironment,
         thinking,

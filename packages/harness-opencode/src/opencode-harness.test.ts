@@ -688,9 +688,11 @@ describe('createOpenCode adapter', () => {
       },
     };
     const session = await createOpenCode({
+      model: 'legacy-model',
       reasoningVariant: 'high',
       mcpServers,
     }).doStart({
+      model: 'anthropic/agent-model',
       sessionId: 's1',
       sandboxSession,
       sessionWorkDir: '/workspace/project',
@@ -708,9 +710,11 @@ describe('createOpenCode adapter', () => {
       operation: 'prompt',
       prompt: 'think',
       instructions: 'be concise',
+      model: 'anthropic/agent-model',
       variant: 'high',
       mcpServers,
     });
+    expect(session.modelId).toBe('anthropic/agent-model');
 
     await session.doPromptTurn({
       skills: [],

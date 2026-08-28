@@ -112,6 +112,9 @@ describe('createCursor', () => {
       },
     ]);
     expect(settings.credentialBrokering?.({ env: {} })).toEqual([]);
+    expect(settings.resolveModel({ model: 'cursor-model' })).toEqual({
+      args: ['--disable-auto-update', '--model', 'cursor-model', 'acp'],
+    });
   });
 
   it('forwards user-configurable settings', () => {
