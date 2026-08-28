@@ -678,6 +678,185 @@ describe('generateImage', () => {
         images: [{ revisedPrompt: 'test-revised-prompt' }, null],
       },
     });
+    expect(result.images.map(image => image.providerMetadata)).toStrictEqual([
+      { testProvider: { revisedPrompt: 'test-revised-prompt' } },
+      undefined,
+    ]);
+  });
+
+  it('should preserve underlying calls and attach per-image provider metadata', async () => {
+    let callCount = 0;
+    const call1Timestamp = new Date('2024-01-01T00:00:00.000Z');
+    const call2Timestamp = new Date('2024-01-02T00:00:00.000Z');
+
+    const result = await generateImage({
+      model: new MockImageModelV4({
+        maxImagesPerCall: 1,
+        doGenerate: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                images: [pngBase64],
+                warnings: [{ type: 'other' as const, message: 'warning-1' }],
+                providerMetadata: {
+                  gateway: {
+                    cost: '0.01',
+                    generationId: 'generation-1',
+                    images: [],
+                  },
+                  openai: {
+                    images: [{ revisedPrompt: 'prompt-1' }],
+                  },
+                },
+                response: {
+                  timestamp: call1Timestamp,
+                  modelId: 'test-model',
+                  headers: { 'x-call': '1' },
+                },
+                usage: {
+                  inputTokens: 10,
+                  outputTokens: 1,
+                  totalTokens: 11,
+                },
+              };
+            case 1:
+              return {
+                images: [jpegBase64],
+                warnings: [{ type: 'other' as const, message: 'warning-2' }],
+                providerMetadata: {
+                  gateway: {
+                    cost: '0.02',
+                    generationId: 'generation-2',
+                    images: [],
+                  },
+                  openai: {
+                    images: [{ revisedPrompt: 'prompt-2' }],
+                  },
+                },
+                response: {
+                  timestamp: call2Timestamp,
+                  modelId: 'test-model',
+                  headers: { 'x-call': '2' },
+                },
+                usage: {
+                  inputTokens: 20,
+                  outputTokens: 2,
+                  totalTokens: 22,
+                },
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      prompt,
+      n: 2,
+    });
+
+    expect(result.images.map(image => image.providerMetadata))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "openai": {
+              "revisedPrompt": "prompt-1",
+            },
+          },
+          {
+            "openai": {
+              "revisedPrompt": "prompt-2",
+            },
+          },
+        ]
+      `);
+    expect(
+      result.calls.map(call => ({
+        images: call.images.map(image => image.mediaType),
+        providerMetadata: call.providerMetadata,
+        response: {
+          ...call.response,
+          timestamp: call.response.timestamp.toISOString(),
+        },
+        warnings: call.warnings,
+        usage: call.usage,
+      })),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "images": [
+            "image/png",
+          ],
+          "providerMetadata": {
+            "gateway": {
+              "cost": "0.01",
+              "generationId": "generation-1",
+              "images": [],
+            },
+            "openai": {
+              "images": [
+                {
+                  "revisedPrompt": "prompt-1",
+                },
+              ],
+            },
+          },
+          "response": {
+            "headers": {
+              "x-call": "1",
+            },
+            "modelId": "test-model",
+            "timestamp": "2024-01-01T00:00:00.000Z",
+          },
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 1,
+            "totalTokens": 11,
+          },
+          "warnings": [
+            {
+              "message": "warning-1",
+              "type": "other",
+            },
+          ],
+        },
+        {
+          "images": [
+            "image/jpeg",
+          ],
+          "providerMetadata": {
+            "gateway": {
+              "cost": "0.02",
+              "generationId": "generation-2",
+              "images": [],
+            },
+            "openai": {
+              "images": [
+                {
+                  "revisedPrompt": "prompt-2",
+                },
+              ],
+            },
+          },
+          "response": {
+            "headers": {
+              "x-call": "2",
+            },
+            "modelId": "test-model",
+            "timestamp": "2024-01-02T00:00:00.000Z",
+          },
+          "usage": {
+            "inputTokens": 20,
+            "outputTokens": 2,
+            "totalTokens": 22,
+          },
+          "warnings": [
+            {
+              "message": "warning-2",
+              "type": "other",
+            },
+          ],
+        },
+      ]
+    `);
   });
 
   it('should expose empty usage when provider does not report usage', async () => {

@@ -1287,6 +1287,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "Hello World",
                 "mediaType": "text/plain",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -1311,6 +1312,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "QkFVRw==",
                 "mediaType": "image/jpeg",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -1400,6 +1402,7 @@ describe('streamText', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -1414,6 +1417,7 @@ describe('streamText', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": "QkFVRw==",
               "mediaType": "image/jpeg",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -1448,6 +1452,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "reasoning-file-data-1",
                 "mediaType": "image/png",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -1472,6 +1477,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "reasoning-file-data-2",
                 "mediaType": "image/jpeg",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -6846,6 +6852,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "Hello World",
                   "mediaType": "text/plain",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -6860,6 +6867,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "QkFVRw==",
                   "mediaType": "image/jpeg",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -6964,6 +6972,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "reasoning-file-data-1",
                   "mediaType": "image/png",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -6978,6 +6987,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "reasoning-file-data-2",
                   "mediaType": "image/jpeg",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -11282,6 +11292,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "Hello World",
                 "mediaType": "text/plain",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -11296,6 +11307,7 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "QkFVRw==",
                 "mediaType": "image/jpeg",
+                "providerMetadata": undefined,
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -11308,12 +11320,14 @@ describe('streamText', () => {
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
             DefaultGeneratedFileWithType {
               "base64Data": "QkFVRw==",
               "mediaType": "image/jpeg",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -11325,6 +11339,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "Hello World",
                   "mediaType": "text/plain",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -11339,6 +11354,7 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "QkFVRw==",
                   "mediaType": "image/jpeg",
+                  "providerMetadata": undefined,
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },
@@ -11504,6 +11520,7 @@ describe('streamText', () => {
                   "file": DefaultGeneratedFileWithType {
                     "base64Data": "Hello World",
                     "mediaType": "text/plain",
+                    "providerMetadata": undefined,
                     "type": "file",
                     "uint8ArrayData": undefined,
                   },
@@ -11518,6 +11535,7 @@ describe('streamText', () => {
                   "file": DefaultGeneratedFileWithType {
                     "base64Data": "QkFVRw==",
                     "mediaType": "image/jpeg",
+                    "providerMetadata": undefined,
                     "type": "file",
                     "uint8ArrayData": undefined,
                   },

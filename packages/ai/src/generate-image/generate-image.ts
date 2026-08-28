@@ -1,8 +1,10 @@
-import type {
-  ImageModelV4,
-  ImageModelV4CallOptions,
-  ImageModelV4File,
-  ImageModelV4ProviderMetadata,
+import {
+  isJSONObject,
+  type ImageModelV4,
+  type ImageModelV4CallOptions,
+  type ImageModelV4File,
+  type ImageModelV4ProviderMetadata,
+  type JSONObject,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -24,7 +26,10 @@ import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import type { GenerateImageResult } from './generate-image-result';
+import type {
+  GenerateImageCall,
+  GenerateImageResult,
+} from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
 
@@ -201,7 +206,8 @@ export async function generateImage({
   );
 
   // collect result images, warnings, and response metadata
-  const images: Array<DefaultGeneratedFile> = [];
+  const images: Array<GeneratedFile> = [];
+  const calls: Array<GenerateImageCall> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
   const providerMetadata: ImageModelV4ProviderMetadata = {};
@@ -211,19 +217,29 @@ export async function generateImage({
     totalTokens: undefined,
   };
   for (const result of results) {
-    images.push(
-      ...result.images.map(
-        image =>
-          new DefaultGeneratedFile({
-            data: image,
-            mediaType:
-              detectMediaType({
-                data: image,
-                topLevelType: 'image',
-              }) ?? 'image/png',
-          }),
-      ),
+    const callImages = result.images.map(
+      (image, index) =>
+        new DefaultGeneratedFile({
+          data: image,
+          mediaType:
+            detectMediaType({
+              data: image,
+              topLevelType: 'image',
+            }) ?? 'image/png',
+          providerMetadata: getImageProviderMetadata(
+            result.providerMetadata,
+            index,
+          ),
+        }),
     );
+    images.push(...callImages);
+    calls.push({
+      images: callImages,
+      providerMetadata: result.providerMetadata,
+      response: result.response,
+      warnings: result.warnings,
+      usage: result.usage,
+    });
     warnings.push(...result.warnings);
 
     if (result.usage != null) {
@@ -231,9 +247,9 @@ export async function generateImage({
     }
 
     if (result.providerMetadata) {
-      for (const [providerName, metadata] of Object.entries<{
-        images: unknown;
-      }>(result.providerMetadata)) {
+      for (const [providerName, metadata] of Object.entries(
+        result.providerMetadata,
+      )) {
         if (providerName === 'gateway') {
           const currentEntry = providerMetadata[providerName];
           if (currentEntry != null && typeof currentEntry === 'object') {
@@ -242,7 +258,7 @@ export async function generateImage({
 
             providerMetadata[providerName] = {
               ...(currentEntry as object),
-              ...metadata,
+              ...(metadata as object),
               ...Object.fromEntries(
                 gatewayCostMetadataKeys.flatMap(key => {
                   const total = addDecimalStrings(
@@ -255,8 +271,9 @@ export async function generateImage({
               ),
             } as ImageModelV4ProviderMetadata[string];
           } else {
-            providerMetadata[providerName] =
-              metadata as ImageModelV4ProviderMetadata[string];
+            providerMetadata[providerName] = {
+              ...(metadata as object),
+            } as ImageModelV4ProviderMetadata[string];
           }
           const imagesValue = (
             providerMetadata[providerName] as { images?: unknown }
@@ -267,9 +284,7 @@ export async function generateImage({
           }
         } else {
           providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
-            ...result.providerMetadata[providerName].images,
-          );
+          providerMetadata[providerName].images.push(...metadata.images);
         }
       }
     }
@@ -285,6 +300,7 @@ export async function generateImage({
 
   return new DefaultGenerateImageResult({
     images,
+    calls,
     warnings,
     responses,
     providerMetadata,
@@ -294,6 +310,7 @@ export async function generateImage({
 
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
+  readonly calls: Array<GenerateImageCall>;
   readonly warnings: Array<Warning>;
   readonly responses: Array<ImageModelResponseMetadata>;
   readonly providerMetadata: ImageModelV4ProviderMetadata;
@@ -301,12 +318,14 @@ class DefaultGenerateImageResult implements GenerateImageResult {
 
   constructor(options: {
     images: Array<GeneratedFile>;
+    calls: Array<GenerateImageCall>;
     warnings: Array<Warning>;
     responses: Array<ImageModelResponseMetadata>;
     providerMetadata: ImageModelV4ProviderMetadata;
     usage: ImageModelUsage;
   }) {
     this.images = options.images;
+    this.calls = options.calls;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata;
@@ -316,6 +335,30 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   get image() {
     return this.images[0];
   }
+}
+
+/**
+ * Extracts per-image metadata from the legacy `providerMetadata.<provider>.images` result shape.
+ */
+function getImageProviderMetadata(
+  providerMetadata: ImageModelV4ProviderMetadata | undefined,
+  imageIndex: number,
+): Record<string, JSONObject> | undefined {
+  if (providerMetadata == null) {
+    return undefined;
+  }
+
+  let imageMetadata: Record<string, JSONObject> | undefined;
+
+  for (const [providerName, metadata] of Object.entries(providerMetadata)) {
+    const value = metadata.images?.[imageIndex];
+
+    if (isJSONObject(value) && !Array.isArray(value)) {
+      (imageMetadata ??= {})[providerName] = value;
+    }
+  }
+
+  return imageMetadata;
 }
 
 async function invokeModelMaxImagesPerCall(model: ImageModelV4) {
