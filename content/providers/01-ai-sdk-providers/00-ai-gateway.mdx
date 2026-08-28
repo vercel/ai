@@ -221,6 +221,8 @@ the failure without inspecting the Gateway's serialized error payload.
 
 AI Gateway supports durable text batches through `experimental_startTextBatch`, `experimental_getBatchStatus`, and `experimental_getBatchResults`. See the [AI Gateway batch processing guide](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing) for supported models, limits, and the complete lifecycle.
 
+Successful items from `experimental_getBatchResults` include ordered, Core-normalized `content` parts for text, reasoning, files, sources, tools, custom content, and part-level provider metadata. The `text` property remains a convenience concatenation of text parts and is an empty string for non-text-only results. Retrieval parses tool inputs when possible, but it does not execute tools, submit tool results, or fetch remote files. Reasoning, tool payloads, and provider metadata can contain sensitive or untrusted data, so avoid logging `content` indiscriminately.
+
 Pass a publicly reachable HTTPS `webhookUrl` when starting a batch to receive a terminal notification instead of polling. AI Gateway sends `batch.completed`, `batch.failed`, or `batch.cancelled`. The event contains terminal status information but not batch results. Completion webhooks are an AI Gateway capability; direct Anthropic and OpenAI batch providers return an unsupported warning when this option is provided.
 
 ```ts filename="start-batch.ts"

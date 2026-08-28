@@ -294,6 +294,7 @@ describe('getBatchResults', () => {
       {
         id: 'request-1',
         status: 'succeeded',
+        content: [{ type: 'text', text: 'Paris' }],
         text: 'Paris',
         finishReason: 'stop',
         rawFinishReason: 'stop',
@@ -315,5 +316,241 @@ describe('getBatchResults', () => {
         error: { message: 'request failed', code: 'bad_request' },
       },
     ]);
+  });
+
+  it('preserves ordered Core-normalized content', async () => {
+    const generateResult: LanguageModelV4GenerateResult = {
+      content: [
+        {
+          type: 'text',
+          text: 'The answer is ',
+          providerMetadata: { mock: { part: 'text' } },
+        },
+        {
+          type: 'reasoning',
+          text: 'I should use the weather tool.',
+          providerMetadata: { mock: { part: 'reasoning' } },
+        },
+        {
+          type: 'reasoning-file',
+          mediaType: 'text/plain',
+          data: { type: 'data', data: 'cmVhc29uaW5n' },
+          providerMetadata: { mock: { part: 'reasoning-file' } },
+        },
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+          providerMetadata: { mock: { part: 'file' } },
+        },
+        {
+          type: 'source',
+          sourceType: 'url',
+          id: 'source-1',
+          url: 'https://example.com/weather',
+          title: 'Weather',
+          providerMetadata: { mock: { part: 'source' } },
+        },
+        {
+          type: 'custom',
+          kind: 'mock.trace',
+          providerMetadata: { mock: { part: 'custom' } },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'tool-1',
+          toolName: 'weather',
+          input: '{"city":"Paris"}',
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: { mock: { part: 'tool-call' } },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'tool-1',
+          toolName: 'weather',
+          result: { temperature: 20 },
+          dynamic: true,
+          preliminary: true,
+          providerMetadata: { mock: { part: 'tool-result' } },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'tool-2',
+          toolName: 'broken',
+          input: '{not json',
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'tool-2',
+          toolName: 'broken',
+          result: 'tool failed',
+          isError: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'tool-1',
+          providerMetadata: { mock: { part: 'approval' } },
+        },
+        { type: 'text', text: '20°C.' },
+      ],
+      finishReason: { unified: 'stop', raw: 'stop' },
+      usage: testUsage,
+      warnings: [],
+    };
+    const model = createMockBatchModel({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          { id: 'request-1', status: 'succeeded', result: generateResult },
+        ]),
+    });
+
+    const [item] = await Array.fromAsync(
+      getBatchResults({ model, batch: batchReference, maxRetries: 0 }),
+    );
+
+    expect(item).toMatchObject({
+      id: 'request-1',
+      status: 'succeeded',
+      text: 'The answer is 20°C.',
+    });
+    if (item.status !== 'succeeded') {
+      throw new Error(`expected succeeded item, got ${item.status}`);
+    }
+
+    expect(item.content).toHaveLength(generateResult.content.length);
+    expect(item.content[0]).toEqual(generateResult.content[0]);
+    expect(item.content[1]).toEqual(generateResult.content[1]);
+    expect(item.content[2]).toMatchObject({
+      type: 'reasoning-file',
+      file: {
+        mediaType: 'text/plain',
+        base64: 'cmVhc29uaW5n',
+      },
+      providerMetadata: { mock: { part: 'reasoning-file' } },
+    });
+    expect(item.content[3]).toMatchObject({
+      type: 'file',
+      file: {
+        mediaType: 'application/octet-stream',
+        base64: 'AQID',
+      },
+      providerMetadata: { mock: { part: 'file' } },
+    });
+    expect(item.content.slice(4, 8)).toEqual([
+      generateResult.content[4],
+      generateResult.content[5],
+      {
+        type: 'tool-call',
+        toolCallId: 'tool-1',
+        toolName: 'weather',
+        input: { city: 'Paris' },
+        providerExecuted: true,
+        dynamic: true,
+        providerMetadata: { mock: { part: 'tool-call' } },
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'tool-1',
+        toolName: 'weather',
+        input: { city: 'Paris' },
+        output: { temperature: 20 },
+        providerExecuted: true,
+        dynamic: true,
+        preliminary: true,
+        providerMetadata: { mock: { part: 'tool-result' } },
+      },
+    ]);
+    expect(item.content[8]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'tool-2',
+      toolName: 'broken',
+      input: '{not json',
+      providerExecuted: true,
+      dynamic: true,
+      invalid: true,
+      error: expect.anything(),
+    });
+    expect(item.content[9]).toEqual({
+      type: 'tool-error',
+      toolCallId: 'tool-2',
+      toolName: 'broken',
+      input: '{not json',
+      error: 'tool failed',
+      providerExecuted: true,
+      dynamic: true,
+      preliminary: undefined,
+    });
+    expect(item.content[10]).toEqual({
+      type: 'tool-approval-request',
+      approvalId: 'approval-1',
+      toolCall: item.content[6],
+      providerMetadata: { mock: { part: 'approval' } },
+    });
+    expect(item.content[11]).toEqual({ type: 'text', text: '20°C.' });
+  });
+
+  it('returns non-text content with an empty text projection', async () => {
+    const model = createMockBatchModel({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            id: 'request-1',
+            status: 'succeeded',
+            result: {
+              content: [{ type: 'reasoning', text: 'Reasoning only.' }],
+              finishReason: { unified: 'stop', raw: undefined },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+        ]),
+    });
+
+    const [item] = await Array.fromAsync(
+      getBatchResults({ model, batch: batchReference, maxRetries: 0 }),
+    );
+
+    expect(item).toMatchObject({
+      id: 'request-1',
+      status: 'succeeded',
+      content: [{ type: 'reasoning', text: 'Reasoning only.' }],
+      text: '',
+    });
+  });
+
+  it('leaves failed, cancelled, and expired items unchanged', async () => {
+    const terminalItems = [
+      {
+        id: 'failed',
+        status: 'failed' as const,
+        error: { message: 'request failed', code: 'bad_request' },
+        providerMetadata: { mock: { terminal: true } },
+      },
+      {
+        id: 'cancelled',
+        status: 'cancelled' as const,
+        error: { message: 'request cancelled' },
+      },
+      {
+        id: 'expired',
+        status: 'expired' as const,
+        providerMetadata: { mock: { expired: true } },
+      },
+    ];
+    const model = createMockBatchModel({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream(terminalItems),
+    });
+
+    const items = await Array.fromAsync(
+      getBatchResults({ model, batch: batchReference, maxRetries: 0 }),
+    );
+
+    expect(items).toEqual(terminalItems);
   });
 });

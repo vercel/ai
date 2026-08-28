@@ -7,9 +7,15 @@ import type {
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
+import type { GeneratedFile } from '../generate-text/generated-file';
+import type {
+  ReasoningFileOutput,
+  ReasoningOutput,
+} from '../generate-text/reasoning-output';
 import type {
   FinishReason,
   GlobalProviderModelId,
+  Source,
 } from '../types/language-model';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import type { LanguageModelUsage } from '../types/usage';
@@ -103,10 +109,83 @@ export type BatchOperationOptions = {
   maxRetries?: number;
 } & BatchRequestOptions;
 
+type BatchToolCall = {
+  type: 'tool-call';
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  providerExecuted?: boolean;
+  dynamic?: boolean;
+  providerMetadata?: ProviderMetadata;
+  invalid?: boolean;
+  error?: unknown;
+};
+
+type BatchToolResult = {
+  type: 'tool-result';
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  output: unknown;
+  providerExecuted: true;
+  dynamic?: boolean;
+  preliminary?: boolean;
+  providerMetadata?: ProviderMetadata;
+};
+
+type BatchToolError = {
+  type: 'tool-error';
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  error: unknown;
+  providerExecuted: true;
+  dynamic?: boolean;
+  preliminary?: boolean;
+  providerMetadata?: ProviderMetadata;
+};
+
+/**
+ * A Core-normalized content part returned for a successful text batch item.
+ *
+ * Tool inputs are parsed when possible. Since batch retrieval does not have
+ * access to the original tool set, tool inputs and outputs are typed as
+ * `unknown` and no tools are executed.
+ */
+export type BatchContentPart =
+  | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'custom';
+      kind: `${string}.${string}`;
+      providerMetadata?: ProviderMetadata;
+    }
+  | ReasoningOutput
+  | ReasoningFileOutput
+  | Source
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
+  | BatchToolCall
+  | BatchToolResult
+  | BatchToolError
+  | {
+      type: 'tool-approval-request';
+      approvalId: string;
+      toolCall: BatchToolCall;
+      providerMetadata?: ProviderMetadata;
+    };
+
 /**
  * A normalized result for a successful text batch item.
  */
 export type TextBatchGenerationResult = {
+  /**
+   * Ordered, Core-normalized content returned by the model.
+   */
+  readonly content: Array<BatchContentPart>;
+
+  /**
+   * The concatenation of all text parts. It is an empty string when the result
+   * contains no text parts.
+   */
   readonly text: string;
   readonly finishReason: FinishReason;
   readonly rawFinishReason?: string;

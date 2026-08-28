@@ -29,6 +29,7 @@ import type {
   TextBatchItemResult,
   TextBatchRequest,
 } from './batch-types';
+import { convertToBatchContent } from './convert-to-batch-content';
 
 /**
  * Starts a durable text-generation batch.
@@ -175,8 +176,8 @@ export function getBatchResults({
     BatchV4ItemResult<LanguageModelV4GenerateResult>,
     TextBatchItemResult
   > & { cancel?: (reason?: unknown) => void } = {
-    transform(item, controller) {
-      controller.enqueue(convertBatchItemResult(item));
+    async transform(item, controller) {
+      controller.enqueue(await convertBatchItemResult(item));
     },
 
     cancel(reason) {
@@ -296,9 +297,9 @@ function validateBatchReference({
   }
 }
 
-function convertBatchItemResult(
+async function convertBatchItemResult(
   item: BatchV4ItemResult<LanguageModelV4GenerateResult>,
-): TextBatchItemResult {
+): Promise<TextBatchItemResult> {
   if (item.status !== 'succeeded') {
     return item;
   }
@@ -306,14 +307,15 @@ function convertBatchItemResult(
   return {
     id: item.id,
     status: 'succeeded',
-    ...convertGenerateResult(item.result),
+    ...(await convertGenerateResult(item.result)),
   };
 }
 
-function convertGenerateResult(
+async function convertGenerateResult(
   result: LanguageModelV4GenerateResult,
-): TextBatchGenerationResult {
+): Promise<TextBatchGenerationResult> {
   return {
+    content: await convertToBatchContent(result.content),
     text: result.content
       .filter(
         (part): part is Extract<typeof part, { type: 'text' }> =>

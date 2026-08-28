@@ -663,12 +663,14 @@ while (status === 'pending') {
 
 for await (const item of getBatchResults({ model, batch })) {
   if (item.status === 'succeeded') {
-    console.log(item.id, item.text);
+    console.log(item.id, item.text, item.content);
   } else {
     console.error(item.id, item.error);
   }
 }
 ```
+
+Successful items include ordered, Core-normalized `content` parts while `text` remains the concatenation of text parts. Non-text-only results therefore have `text: ''` but retain their reasoning, files, sources, tools, custom content, and part-level provider metadata in `content`. Retrieval parses tool inputs when possible but does not execute tools or fetch remote files. Avoid logging `content` indiscriminately because it can contain sensitive or untrusted provider output.
 
 `startTextBatch` returns a serializable batch reference. Persist this reference
 to check the batch status or retrieve its results from another process. Results

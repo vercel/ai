@@ -14,6 +14,7 @@ import {
   experimental_getBatchStatus as getBatchStatus,
   experimental_startTextBatch as startTextBatch,
   type GatewayProviderMetadata,
+  type Experimental_BatchContentPart as BatchContentPart,
   type Experimental_BatchError as BatchError,
   type Experimental_BatchLanguageModel as BatchLanguageModel,
   type Experimental_BatchOperationOptions as BatchOperationOptions,
@@ -94,6 +95,31 @@ it('uses serializable response timestamps', () => {
   expectTypeOf<
     NonNullable<TextBatchGenerationResult['response']>['timestamp']
   >().toEqualTypeOf<string | undefined>();
+});
+
+it('exposes Core-normalized content on successful batch generations', () => {
+  expectTypeOf<TextBatchGenerationResult['content']>().toEqualTypeOf<
+    Array<BatchContentPart>
+  >();
+
+  type ToolCall = Extract<BatchContentPart, { type: 'tool-call' }>;
+  type ToolResult = Extract<BatchContentPart, { type: 'tool-result' }>;
+  type ToolError = Extract<BatchContentPart, { type: 'tool-error' }>;
+  type FilePart = Extract<BatchContentPart, { type: 'file' }>;
+
+  expectTypeOf<ToolCall['input']>().toEqualTypeOf<unknown>();
+  expectTypeOf<ToolResult['input']>().toEqualTypeOf<unknown>();
+  expectTypeOf<ToolResult['output']>().toEqualTypeOf<unknown>();
+  expectTypeOf<ToolError['error']>().toEqualTypeOf<unknown>();
+  expectTypeOf<'result'>().not.toMatchTypeOf<keyof ToolResult>();
+  expectTypeOf<'isError'>().not.toMatchTypeOf<keyof ToolResult>();
+  expectTypeOf<FilePart['file']['base64']>().toEqualTypeOf<string>();
+});
+
+it('does not add content to unsuccessful batch items', () => {
+  type UnsuccessfulItem = Exclude<TextBatchItemResult, { status: 'succeeded' }>;
+
+  expectTypeOf<'content'>().not.toMatchTypeOf<keyof UnsuccessfulItem>();
 });
 
 it('flattens successful Core items while reusing provider status and errors', () => {

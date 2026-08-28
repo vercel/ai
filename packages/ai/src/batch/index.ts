@@ -4,6 +4,7 @@ export {
   getBatchStatus as experimental_getBatchStatus,
 } from './batch';
 export type {
+  BatchContentPart as Experimental_BatchContentPart,
   BatchError as Experimental_BatchError,
   BatchLanguageModel as Experimental_BatchLanguageModel,
   BatchOperationOptions as Experimental_BatchOperationOptions,
