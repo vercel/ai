@@ -2,12 +2,40 @@ import type { LanguageModelV4Content } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import {
   createOpenResponses,
+  type Experimental_OpenResponsesBareExtension,
   type Experimental_OpenResponsesExtension,
   type Experimental_OpenResponsesNamespacedType,
   type OpenResponsesProviderSettings,
 } from './index';
 
 describe('OpenResponsesExtension', () => {
+  it('should remain extendable and implementable', () => {
+    interface CustomExtension extends Experimental_OpenResponsesExtension {
+      label: string;
+    }
+
+    class ExtensionCodec implements Experimental_OpenResponsesExtension {
+      readonly id = 'acme.search';
+      readonly toolType = 'acme:search';
+
+      encodeTool() {
+        return {};
+      }
+    }
+
+    const extension: CustomExtension = {
+      id: 'acme.search',
+      itemTypes: ['acme:search_call'],
+      label: 'Search',
+      decodeItem: () => undefined,
+    };
+
+    expectTypeOf(extension).toExtend<Experimental_OpenResponsesExtension>();
+    expectTypeOf(
+      new ExtensionCodec(),
+    ).toExtend<Experimental_OpenResponsesExtension>();
+  });
+
   it('should preserve namespaced callback discriminator types', () => {
     const extension: Experimental_OpenResponsesExtension = {
       id: 'acme.search',
@@ -83,11 +111,11 @@ describe('OpenResponsesExtension', () => {
         expectTypeOf(event.type).toBeString();
         return undefined;
       },
-    } satisfies Experimental_OpenResponsesExtension;
+    } satisfies Experimental_OpenResponsesBareExtension;
 
     expectTypeOf(
       extension,
-    ).toMatchTypeOf<Experimental_OpenResponsesExtension>();
+    ).toMatchTypeOf<Experimental_OpenResponsesBareExtension>();
 
     const invalidExtension = {
       id: 'acme.web_search',

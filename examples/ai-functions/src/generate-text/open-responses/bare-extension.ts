@@ -1,12 +1,12 @@
 import {
   createOpenResponses,
-  type Experimental_OpenResponsesExtension,
+  type Experimental_OpenResponsesBareExtension,
 } from '@ai-sdk/open-responses';
 import { generateText, tool, type ModelMessage } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
-const webSearchExtension: Experimental_OpenResponsesExtension = {
+const webSearchExtension: Experimental_OpenResponsesBareExtension = {
   id: 'acme.web_search',
   allowBareTypes: true,
   bareToolType: 'web_search',

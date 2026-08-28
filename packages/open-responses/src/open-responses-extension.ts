@@ -132,16 +132,28 @@ type OpenResponsesExtensionEventCodec<Type extends string> = {
   }): MaybePromiseLike<OpenResponsesExtensionStreamPart[] | undefined>;
 };
 
-type OpenResponsesNamespacedExtension = OpenResponsesExtensionBase &
-  OpenResponsesExtensionItemCodec<OpenResponsesNamespacedType> &
-  OpenResponsesExtensionEventCodec<OpenResponsesNamespacedType> & {
-    allowBareTypes?: false;
-    bareToolType?: undefined;
-    bareItemTypes?: undefined;
-    bareEventTypes?: undefined;
-  };
+/**
+ * Defines a portable Open Responses extension using namespaced wire types.
+ *
+ * This remains an interface so existing consumers can extend it from their own
+ * interfaces and implement it in classes.
+ */
+export interface OpenResponsesExtension
+  extends
+    OpenResponsesExtensionBase,
+    OpenResponsesExtensionItemCodec<OpenResponsesNamespacedType>,
+    OpenResponsesExtensionEventCodec<OpenResponsesNamespacedType> {
+  allowBareTypes?: false;
+  bareToolType?: undefined;
+  bareItemTypes?: undefined;
+  bareEventTypes?: undefined;
+}
 
-type OpenResponsesBareExtension = OpenResponsesExtensionBase &
+/**
+ * Defines a non-portable Open Responses extension that explicitly registers
+ * exact bare wire types.
+ */
+export type OpenResponsesBareExtension = OpenResponsesExtensionBase &
   OpenResponsesExtensionItemCodec<string> &
   OpenResponsesExtensionEventCodec<string> & {
     /**
@@ -174,13 +186,16 @@ type OpenResponsesBareExtension = OpenResponsesExtensionBase &
     | { bareEventTypes: readonly string[] }
   );
 
-export type OpenResponsesExtension =
-  | OpenResponsesNamespacedExtension
+export type OpenResponsesExtensionRegistration =
+  | OpenResponsesExtension
   | OpenResponsesBareExtension;
 
 export type OpenResponsesExtensionRegistry = {
   byEventType: Map<string, OpenResponsesEventExtension>;
-  byExtensionId: Map<LanguageModelV4ProviderTool['id'], OpenResponsesExtension>;
+  byExtensionId: Map<
+    LanguageModelV4ProviderTool['id'],
+    OpenResponsesExtensionRegistration
+  >;
   byItemType: Map<string, OpenResponsesItemExtension>;
   byProviderToolId: Map<
     LanguageModelV4ProviderTool['id'],
@@ -189,8 +204,8 @@ export type OpenResponsesExtensionRegistry = {
   byToolType: Map<string, OpenResponsesToolExtension>;
 };
 
-type OpenResponsesToolExtension = OpenResponsesExtension & {
-  encodeTool: NonNullable<OpenResponsesExtension['encodeTool']>;
+type OpenResponsesToolExtension = OpenResponsesExtensionRegistration & {
+  encodeTool: NonNullable<OpenResponsesExtensionRegistration['encodeTool']>;
   encodeInputItem?: (options: {
     part: OpenResponsesExtensionInputPart;
     tool: LanguageModelV4ProviderTool;
@@ -201,14 +216,14 @@ type OpenResponsesToolExtension = OpenResponsesExtension & {
   >;
 };
 
-type OpenResponsesItemExtension = OpenResponsesExtension & {
+type OpenResponsesItemExtension = OpenResponsesExtensionRegistration & {
   decodeItem(options: {
     item: OpenResponsesExtensionItem<string>;
     mode: 'generate' | 'stream';
   }): MaybePromiseLike<OpenResponsesExtensionContentPart[] | undefined>;
 };
 
-type OpenResponsesEventExtension = OpenResponsesExtension & {
+type OpenResponsesEventExtension = OpenResponsesExtensionRegistration & {
   decodeEvent(options: {
     event: OpenResponsesExtensionEvent<string>;
     state: Map<string, unknown>;
@@ -248,7 +263,7 @@ const coreEventTypes = new Set([
 ]);
 
 export function createOpenResponsesExtensionRegistry(
-  extensions?: readonly OpenResponsesExtension[],
+  extensions?: readonly OpenResponsesExtensionRegistration[],
 ): OpenResponsesExtensionRegistry {
   const registry: OpenResponsesExtensionRegistry = {
     byEventType: new Map(),
@@ -498,13 +513,13 @@ function assertBareType({
 }
 
 export function getOpenResponsesExtensionItemTypes(
-  extension: OpenResponsesExtension,
+  extension: OpenResponsesExtensionRegistration,
 ): readonly string[] {
   return [...(extension.itemTypes ?? []), ...(extension.bareItemTypes ?? [])];
 }
 
 export function getOpenResponsesExtensionToolType(
-  extension: OpenResponsesExtension,
+  extension: OpenResponsesExtensionRegistration,
 ): string | undefined {
   return extension.toolType ?? extension.bareToolType;
 }
@@ -519,7 +534,10 @@ export function asOpenResponsesExtensionRecord(
   return value as OpenResponsesExtensionRecord;
 }
 
-function registerUnique<K, Extension extends OpenResponsesExtension>({
+function registerUnique<
+  K,
+  Extension extends OpenResponsesExtensionRegistration,
+>({
   map,
   key,
   extension,

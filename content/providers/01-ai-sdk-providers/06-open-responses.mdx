@@ -321,7 +321,9 @@ discriminators, such as `web_search`, `web_search_call`, or
 types. Register each exact value through the dedicated bare fields to opt in:
 
 ```ts
-const webSearchExtension: Experimental_OpenResponsesExtension = {
+import type { Experimental_OpenResponsesBareExtension } from '@ai-sdk/open-responses';
+
+const webSearchExtension: Experimental_OpenResponsesBareExtension = {
   id: 'acme.web_search',
   allowBareTypes: true,
   bareToolType: 'web_search',
@@ -360,6 +362,9 @@ enable unknown JSON passthrough: a bare discriminator is handled only when it
 exactly matches a registered value. Core Open Responses discriminators and
 duplicate registrations are rejected.
 Use the normal namespaced fields whenever the implementation supports them.
+`Experimental_OpenResponsesExtension` remains the namespaced interface;
+use `Experimental_OpenResponsesBareExtension` only for this compatibility
+mode.
 
 Set `providerExecuted` on each decoded `tool-call` or `tool-input-start` part.
 It can vary by item or event.

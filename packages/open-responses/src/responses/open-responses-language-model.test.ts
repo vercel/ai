@@ -14,8 +14,10 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  type OpenResponsesBareExtension,
   createOpenResponsesExtensionRegistry,
   type OpenResponsesExtension,
+  type OpenResponsesExtensionRegistration,
 } from '../open-responses-extension';
 import type { OpenResponsesLanguageModelOptions } from './open-responses-language-model-options';
 import { OpenResponsesLanguageModel } from './open-responses-language-model';
@@ -37,7 +39,7 @@ describe('OpenResponsesLanguageModel', () => {
 
   function createModel(
     modelId: string = 'gemma-7b-it',
-    extensions?: readonly OpenResponsesExtension[],
+    extensions?: readonly OpenResponsesExtensionRegistration[],
   ) {
     return new OpenResponsesLanguageModel(modelId, {
       provider: 'lmstudio',
@@ -160,7 +162,7 @@ describe('OpenResponsesLanguageModel', () => {
     };
   }
 
-  function createBareDocumentSearchExtension(): OpenResponsesExtension {
+  function createBareDocumentSearchExtension(): OpenResponsesBareExtension {
     return {
       ...createDocumentSearchExtension({ providerExecuted: true }),
       toolType: undefined,

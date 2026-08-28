@@ -1,17 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   createOpenResponsesExtensionRegistry,
+  type OpenResponsesBareExtension,
   type OpenResponsesExtension,
+  type OpenResponsesExtensionRegistration,
 } from './open-responses-extension';
 
-type NamespacedOpenResponsesExtension = Exclude<
-  OpenResponsesExtension,
-  { allowBareTypes: true }
->;
-
 function createExtension(
-  overrides: Partial<NamespacedOpenResponsesExtension> = {},
-): NamespacedOpenResponsesExtension {
+  overrides: Partial<OpenResponsesExtension> = {},
+): OpenResponsesExtension {
   return {
     id: 'acme.search',
     toolType: 'acme:search',
@@ -38,7 +35,7 @@ describe('createOpenResponsesExtensionRegistry', () => {
   });
 
   it('should index explicitly registered bare extension semantics', () => {
-    const extension: OpenResponsesExtension = {
+    const extension: OpenResponsesBareExtension = {
       id: 'acme.search',
       allowBareTypes: true,
       bareToolType: 'web_search',
@@ -138,7 +135,7 @@ describe('createOpenResponsesExtensionRegistry', () => {
           id: 'acme.search',
           bareToolType: 'web_search',
           encodeTool: () => ({}),
-        } as unknown as OpenResponsesExtension,
+        } as unknown as OpenResponsesExtensionRegistration,
       ]),
     ).toThrow(
       'must set allowBareTypes to true exactly when registering bare types',
@@ -151,7 +148,7 @@ describe('createOpenResponsesExtensionRegistry', () => {
           allowBareTypes: true,
           toolType: 'acme:search',
           encodeTool: () => ({}),
-        } as unknown as OpenResponsesExtension,
+        } as unknown as OpenResponsesExtensionRegistration,
       ]),
     ).toThrow(
       'must set allowBareTypes to true exactly when registering bare types',
@@ -202,7 +199,7 @@ describe('createOpenResponsesExtensionRegistry', () => {
           ...createExtension(),
           allowBareTypes: true,
           bareToolType: 'web_search',
-        } as unknown as OpenResponsesExtension,
+        } as unknown as OpenResponsesExtensionRegistration,
       ]),
     ).toThrow('cannot provide toolType and bareToolType together');
   });

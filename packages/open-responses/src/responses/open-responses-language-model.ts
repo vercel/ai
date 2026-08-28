@@ -36,10 +36,10 @@ import {
   isOpenResponsesExtensionEvent,
   isOpenResponsesExtensionItem,
   isOpenResponsesJSONObject,
-  type OpenResponsesExtension,
   type OpenResponsesExtensionContentPart,
   type OpenResponsesExtensionItem,
   type OpenResponsesExtensionRecord,
+  type OpenResponsesExtensionRegistration,
   type OpenResponsesExtensionRegistry,
 } from '../open-responses-extension';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
@@ -157,7 +157,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       string,
       {
         toolType: OpenResponsesExtensionRecord<string>['type'];
-        encodeToolChoice: OpenResponsesExtension['encodeToolChoice'];
+        encodeToolChoice: OpenResponsesExtensionRegistration['encodeToolChoice'];
         tool: Extract<
           NonNullable<LanguageModelV4CallOptions['tools']>[number],
           { type: 'provider' }
@@ -941,7 +941,7 @@ function createExtensionReplayCarrier({
   item,
   providerOptionsName,
 }: {
-  extension: OpenResponsesExtension;
+  extension: OpenResponsesExtensionRegistration;
   item: OpenResponsesExtensionItem<string>;
   providerOptionsName: string;
 }): OpenResponsesExtensionContentPart {
@@ -965,7 +965,7 @@ function addExtensionItemReferenceMetadata({
   part,
   providerOptionsName,
 }: {
-  extension: OpenResponsesExtension;
+  extension: OpenResponsesExtensionRegistration;
   item: OpenResponsesExtensionItem<string>;
   part: OpenResponsesExtensionContentPart;
   providerOptionsName: string;
