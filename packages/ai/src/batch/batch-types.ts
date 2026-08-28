@@ -3,9 +3,9 @@ import type {
   Experimental_BatchV4StartResult as BatchV4StartResult,
   Experimental_BatchV4Status as BatchV4Status,
   Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
-  LanguageModelV4GenerateResult,
 } from '@ai-sdk/provider';
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
+import type { ProviderOptions, ToolSet } from '@ai-sdk/provider-utils';
+import type { ContentPart } from '../generate-text/content-part';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
 import type {
@@ -109,7 +109,7 @@ export type BatchOperationOptions = {
  */
 export type TextBatchGenerationResult = {
   /** Ordered normalized content, including citations, sources, and tool data. */
-  readonly content: LanguageModelV4GenerateResult['content'];
+  readonly content: Array<ContentPart<ToolSet>>;
   readonly text: string;
   readonly finishReason: FinishReason;
   readonly rawFinishReason?: string;

@@ -318,7 +318,7 @@ describe('getBatchResults', () => {
     ]);
   });
 
-  it('preserves client tool calls and usage in normalized batch results', async () => {
+  it('normalizes provider-executed tool content and preserves usage', async () => {
     const model = createMockBatchModel({
       doGetBatchResults: async () =>
         convertArrayToReadableStream([
@@ -331,7 +331,17 @@ describe('getBatchResults', () => {
                   type: 'tool-call',
                   toolCallId: 'call-1',
                   toolName: 'weather',
-                  input: '{}',
+                  input: '{"city":"Paris"}',
+                  providerExecuted: true,
+                  dynamic: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  result: { temperature: 20 },
+                  providerExecuted: true,
+                  dynamic: true,
                 },
               ],
               finishReason: { unified: 'tool-calls', raw: 'tool_use' },
@@ -356,10 +366,21 @@ describe('getBatchResults', () => {
       {
         content: [
           {
-            input: '{}',
+            dynamic: true,
+            input: { city: 'Paris' },
+            providerExecuted: true,
             toolCallId: 'call-1',
             toolName: 'weather',
             type: 'tool-call',
+          },
+          {
+            dynamic: true,
+            input: { city: 'Paris' },
+            output: { temperature: 20 },
+            providerExecuted: true,
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            type: 'tool-result',
           },
         ],
         finishReason: 'tool-calls',
