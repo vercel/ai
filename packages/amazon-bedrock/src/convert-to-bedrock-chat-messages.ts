@@ -460,7 +460,7 @@ export async function convertToBedrockChatMessages(
           pushCachePoint(bedrockContent, message.providerOptions);
         }
 
-        if (bedrockContent.length > 0) {
+        if (bedrockContent.some(block => !('cachePoint' in block))) {
           messages.push({ role: 'assistant', content: bedrockContent });
         }
 
