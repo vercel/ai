@@ -94,6 +94,7 @@ type PreparedHarnessAgentTurnSettings<
   THarness extends HarnessAgentAdapter<any>,
   TUserTools extends ToolSet,
 > = {
+  model: string | undefined;
   skills: ReadonlyArray<HarnessAgentSkill>;
   instructions: string | undefined;
   tools: HarnessAllTools<THarness, TUserTools>;
@@ -499,7 +500,6 @@ export class HarnessAgent<
 
     try {
       const baseStartOptions = {
-        model: this.settings.model,
         sessionId,
         resumeFrom: validatedResumeFrom,
         continueFrom: effectiveContinueFrom,
@@ -746,6 +746,7 @@ export class HarnessAgent<
     responseFormat: HarnessV1ResponseFormat | undefined;
   }) {
     return {
+      model: input.turnSettings.model,
       skills: input.turnSettings.skills,
       instructions: input.turnSettings.instructions,
       tools: input.turnSettings.tools,
@@ -864,6 +865,7 @@ export class HarnessAgent<
     } = callOptions;
 
     const baseCallArgs = {
+      model: this.settings.model,
       skills: this.settings.skills,
       instructions: this.settings.instructions,
       tools: this.settings.tools,
@@ -892,6 +894,7 @@ export class HarnessAgent<
     return {
       prompt: this._resolvePromptTurnInput(preparedCallArgs),
       ...this._prepareTurnSettings({
+        model: preparedCallArgs.model,
         skills: preparedCallArgs.skills,
         instructions: preparedCallArgs.instructions,
         tools: preparedCallArgs.tools,
@@ -905,6 +908,7 @@ export class HarnessAgent<
   }): PreparedHarnessAgentContinueTurnInput<THarness, TUserTools> {
     return {
       ...this._prepareTurnSettings({
+        model: this.settings.model,
         skills: this.settings.skills,
         instructions: this.settings.instructions,
         tools: this.settings.tools,
@@ -915,6 +919,7 @@ export class HarnessAgent<
   }
 
   private _prepareTurnSettings(options: {
+    model?: string;
     skills?: ReadonlyArray<HarnessAgentSkill>;
     instructions?: string;
     tools?: TUserTools;
@@ -932,6 +937,7 @@ export class HarnessAgent<
       inactiveTools: this.settings.inactiveTools,
     });
     return {
+      model: options.model,
       skills: options.skills ?? [],
       instructions: options.instructions,
       tools,

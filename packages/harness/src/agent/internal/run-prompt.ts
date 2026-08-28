@@ -81,6 +81,7 @@ export function runPrompt<
   mode?: 'prompt' | 'continue';
   /** Required for `mode: 'prompt'`; absent for `mode: 'continue'`. */
   prompt?: HarnessV1Prompt;
+  model?: string;
   skills?: ReadonlyArray<HarnessV1Skill>;
   instructions: string | undefined;
   tools: TOOLS;
@@ -141,7 +142,7 @@ export function runPrompt<
   const telemetry = createTurnTelemetry({
     telemetry: input.telemetry,
     harnessId: input.harness.harnessId,
-    modelId: input.session.modelId,
+    modelId: input.model,
     instructions: input.instructions,
     promptText: input.prompt != null ? promptToText(input.prompt) : '',
     runtimeContext: input.runtimeContext,
@@ -181,6 +182,7 @@ export function runPrompt<
           input.mode === 'continue'
             ? emit =>
                 input.session.doContinueTurn({
+                  model: input.model,
                   skills: input.skills ?? [],
                   responseFormat: input.responseFormat,
                   tools: input.toolSpecs,
@@ -196,6 +198,7 @@ export function runPrompt<
                 }
                 return input.session.doPromptTurn({
                   prompt: input.prompt,
+                  model: input.model,
                   skills: input.skills ?? [],
                   responseFormat: input.responseFormat,
                   tools: input.toolSpecs,
@@ -534,7 +537,7 @@ export function runPrompt<
           input: approval.input,
         } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
 
-      await telemetry.start(input.session.modelId);
+      await telemetry.start(input.model);
       await telemetry.toolStart({
         toolCallId: rawToolCall.toolCallId,
         toolName: rawToolCall.toolName,
@@ -649,9 +652,9 @@ export function runPrompt<
         }
 
         // Begin the operation span on stream-start, using the runtime-resolved
-        // model the adapter reports (falling back to the session's model).
+        // model the adapter reports (falling back to the requested turn model).
         if (value.type === 'stream-start') {
-          await telemetry.start(value.modelId ?? input.session.modelId);
+          await telemetry.start(value.modelId ?? input.model);
         }
 
         // Open a step span lazily before the first content of each step.
