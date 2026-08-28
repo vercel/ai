@@ -1,12 +1,13 @@
 {
-  "version": 1,
-  "issueId": 11418,
-  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11418-stream-text-onfinish-object.ts",
+  "version": 2,
+  "issueId": 19909,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-pi-max-thinking-level.ts",
   "artifactPaths": [
-    "examples/ai-functions/src/reproduction/issue-11418-stream-text-onfinish-object.ts"
+    "examples/ai-functions/src/reproduction/harness-pi-max-thinking-level.ts"
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "BUG: streamText onFinish did not expose the complete structured output"
+    "signal": "BUG REPRODUCED: @ai-sdk/harness-pi rejects thinkingLevel: 'max'."
   }
 }
