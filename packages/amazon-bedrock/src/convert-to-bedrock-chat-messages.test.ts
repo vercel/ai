@@ -989,11 +989,19 @@ describe('assistant messages', () => {
     `);
   });
 
+<<<<<<< HEAD
   it('should omit a cache-point-only assistant message after unsigned reasoning is filtered', async () => {
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Give one short greeting.' }],
+=======
+  it('should omit an assistant message when only a cache point remains after filtering unsigned reasoning', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+>>>>>>> origin/release-v6.0
       },
       {
         role: 'assistant',
@@ -1009,7 +1017,11 @@ describe('assistant messages', () => {
       },
       {
         role: 'user',
+<<<<<<< HEAD
         content: [{ type: 'text', text: 'Use five words or fewer.' }],
+=======
+        content: [{ type: 'text', text: 'Hello?' }],
+>>>>>>> origin/release-v6.0
       },
     ]);
 
@@ -1017,10 +1029,14 @@ describe('assistant messages', () => {
       messages: [
         {
           role: 'user',
+<<<<<<< HEAD
           content: [
             { text: 'Give one short greeting.' },
             { text: 'Use five words or fewer.' },
           ],
+=======
+          content: [{ text: 'Think hard then answer' }, { text: 'Hello?' }],
+>>>>>>> origin/release-v6.0
         },
       ],
       system: [],
