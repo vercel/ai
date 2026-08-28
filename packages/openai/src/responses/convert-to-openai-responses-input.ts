@@ -46,38 +46,15 @@ function serializeToolCallArguments(input: unknown): string {
 
 async function convertFunctionToolResultOutput({
   output,
-<<<<<<< HEAD
-  providerOptionsName,
-  warnings,
-}: {
-  output: LanguageModelV3ToolResultOutput;
-=======
-  toolName,
-  outputSchemaToolNames,
   promptCacheBreakpoint,
   providerOptionsName,
   warnings,
 }: {
-  output: LanguageModelV4ToolResultOutput;
-  toolName: string;
-  outputSchemaToolNames: Set<string> | undefined;
+  output: LanguageModelV3ToolResultOutput;
   promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
->>>>>>> 1c6854096f (fix: preserve prompt cache breakpoints on scalar OpenAI Responses tool results (#19927))
   providerOptionsName: string;
   warnings: Array<SharedV3Warning>;
 }): Promise<OpenAIResponsesFunctionCallOutput['output']> {
-<<<<<<< HEAD
-  switch (output.type) {
-    case 'text':
-    case 'error-text':
-      return output.value;
-    case 'execution-denied':
-      return output.reason ?? 'Tool call execution denied.';
-=======
-  // `output` is always a string, but for functions with output_schema OpenAI
-  // parses the contents of that string as JSON. Text-like results therefore
-  // need JSON.stringify to become valid JSON string literals.
-  const hasOutputSchema = outputSchemaToolNames?.has(toolName);
   const convertScalarOutput = (
     value: string,
   ): OpenAIResponsesFunctionCallOutput['output'] =>
@@ -94,16 +71,12 @@ async function convertFunctionToolResultOutput({
   switch (output.type) {
     case 'text':
     case 'error-text':
-      return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(output.value) : output.value,
-      );
+      return convertScalarOutput(output.value);
     case 'execution-denied': {
-      const reason = output.reason ?? 'Tool call execution denied.';
       return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(reason) : reason,
+        output.reason ?? 'Tool call execution denied.',
       );
     }
->>>>>>> 1c6854096f (fix: preserve prompt cache breakpoints on scalar OpenAI Responses tool results (#19927))
     case 'json':
     case 'error-json':
       return convertScalarOutput(JSON.stringify(output.value));
@@ -296,8 +269,8 @@ function getScalarToolResultPromptCacheBreakpoint({
   toolResultProviderOptions,
   providerOptionsName,
 }: {
-  output: LanguageModelV4ToolResultOutput;
-  toolResultProviderOptions: SharedV4ProviderOptions | undefined;
+  output: LanguageModelV3ToolResultOutput;
+  toolResultProviderOptions: SharedV3ProviderOptions | undefined;
   providerOptionsName: string;
 }): OpenAIPromptCacheBreakpoint | undefined {
   return output.type === 'content'
@@ -1052,15 +1025,6 @@ export async function convertToOpenAIResponsesInput({
               );
 
               const toolOutputs = await Promise.all(
-<<<<<<< HEAD
-                parallelToolResultGroup.results.map(async result =>
-                  convertFunctionToolResultOutput({
-                    output: result.output,
-                    providerOptionsName,
-                    warnings,
-                  }),
-                ),
-=======
                 parallelToolResultGroup.results.map(async result => {
                   const promptCacheBreakpoint =
                     getScalarToolResultPromptCacheBreakpoint({
@@ -1072,8 +1036,6 @@ export async function convertToOpenAIResponsesInput({
                   return {
                     output: await convertFunctionToolResultOutput({
                       output: result.output,
-                      toolName: result.toolName,
-                      outputSchemaToolNames,
                       providerOptionsName,
                       warnings,
                     }),
@@ -1086,7 +1048,6 @@ export async function convertToOpenAIResponsesInput({
               );
               const hasPromptCacheBreakpoint = toolOutputs.some(
                 ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
->>>>>>> 1c6854096f (fix: preserve prompt cache breakpoints on scalar OpenAI Responses tool results (#19927))
               );
 
               input.push({
@@ -1319,16 +1280,11 @@ export async function convertToOpenAIResponsesInput({
 
           const contentValue = await convertFunctionToolResultOutput({
             output,
-<<<<<<< HEAD
-=======
-            toolName: part.toolName,
-            outputSchemaToolNames,
             promptCacheBreakpoint: getScalarToolResultPromptCacheBreakpoint({
               output,
               toolResultProviderOptions: part.providerOptions,
               providerOptionsName,
             }),
->>>>>>> 1c6854096f (fix: preserve prompt cache breakpoints on scalar OpenAI Responses tool results (#19927))
             providerOptionsName,
             warnings,
           });

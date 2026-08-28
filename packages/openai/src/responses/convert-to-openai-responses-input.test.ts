@@ -1,13 +1,9 @@
 import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-<<<<<<< HEAD
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
-=======
 import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolResultOutput,
-  LanguageModelV4ToolResultPart,
+  LanguageModelV3Prompt,
+  LanguageModelV3ToolResultOutput,
+  LanguageModelV3ToolResultPart,
 } from '@ai-sdk/provider';
->>>>>>> 1c6854096f (fix: preserve prompt cache breakpoints on scalar OpenAI Responses tool results (#19927))
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
@@ -27,16 +23,12 @@ const convertToOpenAIResponsesInput = (
 const parallelToolCallInput =
   '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
 
-<<<<<<< HEAD
-function createExpandedParallelToolCallPrompt(): LanguageModelV3Prompt {
-=======
 function createExpandedParallelToolCallPrompt({
   withPromptCacheBreakpoints = false,
 }: {
   withPromptCacheBreakpoints?: boolean;
-} = {}): LanguageModelV4Prompt {
+} = {}): LanguageModelV3Prompt {
   const promptCacheBreakpoint = { mode: 'explicit' } as const;
->>>>>>> 1c6854096f (fix: preserve prompt cache breakpoints on scalar OpenAI Responses tool results (#19927))
   const providerOptions = (index: number) => ({
     openai: {
       parallelToolCall: {
@@ -2461,7 +2453,7 @@ describe('convertToOpenAIResponsesInput', () => {
         openai: { promptCacheBreakpoint },
       };
       const scalarOutputs: Array<{
-        output: LanguageModelV4ToolResultOutput;
+        output: LanguageModelV3ToolResultOutput;
         expectedText: string;
       }> = [
         {
@@ -2489,7 +2481,7 @@ describe('convertToOpenAIResponsesInput', () => {
         },
       ];
       const toolResults = scalarOutputs.flatMap(
-        ({ output }, outputIndex): LanguageModelV4ToolResultPart[] =>
+        ({ output }, outputIndex): LanguageModelV3ToolResultPart[] =>
           (['output', 'tool-result'] as const).map(placement => ({
             type: 'tool-result',
             toolCallId: `call_${outputIndex}_${placement}`,
@@ -2499,7 +2491,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 ? ({
                     ...output,
                     providerOptions,
-                  } as LanguageModelV4ToolResultOutput)
+                  } as LanguageModelV3ToolResultOutput)
                 : output,
             ...(placement === 'tool-result' && { providerOptions }),
           })),
@@ -2601,109 +2593,6 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
-<<<<<<< HEAD
-=======
-    it('should JSON-encode text outputs only for tools with an output schema', async () => {
-      const promptCacheBreakpoint = { mode: 'explicit' } as const;
-      const result = await convertToOpenAIResponsesInput({
-        toolNameMapping: testToolNameMapping,
-        prompt: [
-          {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-result',
-                toolCallId: 'call_text',
-                toolName: 'search',
-                output: {
-                  type: 'text',
-                  value: 'The weather is sunny',
-                },
-              },
-              {
-                type: 'tool-result',
-                toolCallId: 'call_error',
-                toolName: 'search',
-                output: {
-                  type: 'error-text',
-                  value: 'Error: boom',
-                },
-              },
-              {
-                type: 'tool-result',
-                toolCallId: 'call_denied',
-                toolName: 'search',
-                output: {
-                  type: 'execution-denied',
-                  reason: 'User denied the tool execution',
-                },
-              },
-              {
-                type: 'tool-result',
-                toolCallId: 'call_without_schema',
-                toolName: 'lookup',
-                output: {
-                  type: 'error-text',
-                  value: 'Error: unchanged',
-                },
-              },
-              {
-                type: 'tool-result',
-                toolCallId: 'call_schema_breakpoint',
-                toolName: 'search',
-                output: {
-                  type: 'text',
-                  value: 'Structured output',
-                  providerOptions: {
-                    openai: { promptCacheBreakpoint },
-                  },
-                },
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-        providerOptionsName: 'openai',
-        store: true,
-        outputSchemaToolNames: new Set(['search']),
-      });
-
-      expect(result.input).toEqual([
-        {
-          type: 'function_call_output',
-          call_id: 'call_text',
-          output: '"The weather is sunny"',
-        },
-        {
-          type: 'function_call_output',
-          call_id: 'call_error',
-          output: '"Error: boom"',
-        },
-        {
-          type: 'function_call_output',
-          call_id: 'call_denied',
-          output: '"User denied the tool execution"',
-        },
-        {
-          type: 'function_call_output',
-          call_id: 'call_without_schema',
-          output: 'Error: unchanged',
-        },
-        {
-          type: 'function_call_output',
-          call_id: 'call_schema_breakpoint',
-          output: [
-            {
-              type: 'input_text',
-              text: '"Structured output"',
-              prompt_cache_breakpoint: promptCacheBreakpoint,
-            },
-          ],
-        },
-      ]);
-    });
-
->>>>>>> 1c6854096f (fix: preserve prompt cache breakpoints on scalar OpenAI Responses tool results (#19927))
     it('should convert execution-denied tool result to function_call_output', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -5334,7 +5223,7 @@ describe('convertToOpenAIResponsesInput', () => {
         openai: { promptCacheBreakpoint },
       };
       const scalarOutputs: Array<{
-        output: LanguageModelV4ToolResultOutput;
+        output: LanguageModelV3ToolResultOutput;
         expectedText: string;
       }> = [
         {
@@ -5362,7 +5251,7 @@ describe('convertToOpenAIResponsesInput', () => {
         },
       ];
       const toolResults = scalarOutputs.flatMap(
-        ({ output }, outputIndex): LanguageModelV4ToolResultPart[] =>
+        ({ output }, outputIndex): LanguageModelV3ToolResultPart[] =>
           (['output', 'tool-result'] as const).map(placement => ({
             type: 'tool-result',
             toolCallId: `call_custom_${outputIndex}_${placement}`,
@@ -5372,7 +5261,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 ? ({
                     ...output,
                     providerOptions,
-                  } as LanguageModelV4ToolResultOutput)
+                  } as LanguageModelV3ToolResultOutput)
                 : output,
             ...(placement === 'tool-result' && { providerOptions }),
           })),
