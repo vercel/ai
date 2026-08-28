@@ -24,6 +24,8 @@ export type {
   ACPAuthentication,
   ACPInstallCommandSource,
   ACPInstructionMapping,
+  ACPModelResolution,
+  ACPModelResolver,
   ACPNpmLockedSource,
   ACPNpmSimpleSource,
   ACPOutputSchemaMapping,

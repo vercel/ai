@@ -40,6 +40,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: openCode,
+  model: 'anthropic/claude-sonnet-4-6',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -79,8 +80,14 @@ Use `createOpenCode()` to configure the runtime:
 
 ```ts
 const harness = createOpenCode({
-  model: 'anthropic/claude-sonnet-4-6',
   reasoningVariant: 'high',
+  openCodeConfig: {
+    agent: {
+      general: {
+        model: 'openai/gpt-5.4-mini',
+      },
+    },
+  },
 });
 ```
 
@@ -97,9 +104,11 @@ Settings:
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
-- `model`: OpenCode model id. Provider-prefixed values such as
-  `anthropic/claude-sonnet-4-6` are passed through to OpenCode.
-- `provider`: provider id to use with an unprefixed `model`.
+- `openCodeConfig`: additional native OpenCode configuration. Adapter-managed
+  settings take precedence. Agent-local `permission` and deprecated `tools`
+  settings are ignored so they cannot bypass harness permissions or built-in
+  tool filtering.
+- `provider`: provider id to use when `model` on `HarnessAgent` is unprefixed.
 - `reasoningVariant`: OpenCode reasoning/thinking variant for supported models,
   such as `low`, `medium`, or `high`.
 - `port`: bridge port override.

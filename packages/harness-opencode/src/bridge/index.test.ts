@@ -11,7 +11,7 @@ const sdkMock = vi.hoisted(() => ({
 
 const permissionReplyMock = vi.hoisted(() => vi.fn());
 const createOpencodeServerMock = vi.hoisted(() =>
-  vi.fn(async () => ({
+  vi.fn(async (_options: Record<string, unknown>) => ({
     url: 'http://127.0.0.1:4096',
     close: vi.fn(),
   })),
@@ -160,10 +160,29 @@ describe('OpenCode bridge turn settlement', () => {
     const emitted: Array<Record<string, unknown>> = [];
     const emitError = vi.fn();
     const userMessages = createUserMessages();
+    const openCodeConfig = {
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
+      share: 'manual',
+    };
     bridgeMock.start = {
       type: 'start',
       operation: 'prompt',
       prompt: 'Start.',
+      model: 'openai/gpt-5.6-sol',
+      openCodeConfig,
     };
     bridgeMock.turn = {
       emit: (event: Record<string, unknown>) => emitted.push(event),
@@ -209,6 +228,37 @@ describe('OpenCode bridge turn settlement', () => {
 
     await import('./index');
 
+    const serverConfig = createOpencodeServerMock.mock.calls[0]?.[0]
+      .config as Record<string, unknown>;
+    expect(serverConfig).toMatchObject({
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      mode: { plan: { model: 'openai/gpt-5.4-mini' } },
+      model: 'openai/gpt-5.6-sol',
+      share: 'disabled',
+    });
+    expect(serverConfig.agent).toEqual({
+      general: { model: 'openai/gpt-5.4-mini' },
+    });
+    expect(serverConfig.mode).toEqual({
+      plan: { model: 'openai/gpt-5.4-mini' },
+    });
+    expect(openCodeConfig).toEqual({
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
+      share: 'manual',
+    });
     expect(userMessages.close).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'model step failed' }),
     );

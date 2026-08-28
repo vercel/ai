@@ -369,6 +369,37 @@ describe('HarnessAgent', () => {
     expect(agent.tools).toEqual({});
   });
 
+  test('passes the configured model when starting a session', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({
+      harness,
+      model: 'harness-specific-model',
+      sandbox: makeSandboxProvider(),
+    });
+
+    const session = await agent.createSession();
+
+    expect(doStart).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'harness-specific-model' }),
+    );
+    await session.destroy();
+  });
+
+  test('passes an undefined model when no model is configured', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+
+    const session = await agent.createSession();
+
+    expect(doStart).toHaveBeenCalledWith(
+      expect.objectContaining({ model: undefined }),
+    );
+    await session.destroy();
+  });
+
   test('prepares skills, instructions, tools, and the prompt for each fresh turn', async () => {
     const promptOptions: HarnessV1PromptTurnOptions[] = [];
     const { harness, doStart } = mockHarness({
@@ -2073,6 +2104,64 @@ describe('HarnessAgent', () => {
     >;
     const markerWrite = writeCalls.at(-1)?.[0];
     expect(markerWrite?.path).toMatch(
+      /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+    );
+
+    await session.destroy();
+  });
+
+  test('ensures the harness bootstrap recipe on resumed sessions', async () => {
+    const base = mockHarness({ script: () => [] });
+    const recipe: HarnessV1Bootstrap = {
+      harnessId: 'mock',
+      bootstrapDir: '.harness-bootstrap/mock',
+      files: [],
+      commands: [],
+    };
+    const harness: HarnessV1 = {
+      ...base.harness,
+      getBootstrap: vi.fn(async () => recipe),
+    };
+    // No marker: the sandbox was bootstrapped by an older recipe, or never.
+    const readTextFile = vi.fn(async (_options: { path: string }) => null);
+    const writeTextFile = vi.fn(async () => {});
+    const run = vi.fn(async (args: { command: string }) => ({
+      exitCode: 0,
+      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stderr: '',
+    }));
+    const restrictedSession = { run, readTextFile, writeTextFile };
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(sandboxSession),
+      sandboxConfig: { workDir: 'ai-sdk' },
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    expect(readTextFile.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        path: expect.stringMatching(
+          /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+        ),
+      }),
+    );
+    const writeCalls = writeTextFile.mock.calls as unknown as Array<
+      [{ path: string }]
+    >;
+    expect(writeCalls.at(-1)?.[0]?.path).toMatch(
       /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
     );
 

@@ -52,6 +52,8 @@ export type FxHarnessSettings = {
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * Model id selected through ACP. Unset preserves fx's default.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -587,6 +589,9 @@ export function createFx(
     },
     executable: 'fx',
     args: ['acp'],
+    resolveModel: ({ model }) => ({
+      args: ['acp', '--model', model],
+    }),
     credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv }) => {
       const environmentVariableName = suppliedAuthenticationEnvironment

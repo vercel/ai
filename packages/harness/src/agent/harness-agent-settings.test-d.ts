@@ -62,6 +62,15 @@ describe('HarnessAgentSettings tool filtering types', () => {
     expectTypeOf(settings).toMatchTypeOf<Settings>();
   });
 
+  test('model accepts any string', () => {
+    const settings: Settings = {
+      harness,
+      model: 'harness-specific-model',
+    };
+
+    expectTypeOf(settings.model).toEqualTypeOf<string | undefined>();
+  });
+
   test('activeTools accepts builtin and user tool names', () => {
     const settings: Settings = {
       harness,

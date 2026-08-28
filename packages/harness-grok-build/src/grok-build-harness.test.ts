@@ -203,7 +203,7 @@ describe('createGrokBuild', () => {
       auth: settings.auth,
       credentialForwarding: settings.credentialForwarding,
       modelId: settings.modelId,
-      env: settings.env,
+      modelConfiguration: settings.resolveModel({ model: 'grok-4.6' }),
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
@@ -213,13 +213,15 @@ describe('createGrokBuild', () => {
       auth: 'direct',
       credentialForwarding,
       modelId: 'grok-code-fast-1',
-      env: {
-        GROK_CONFIG: JSON.stringify({
-          models: {
-            default: 'grok-code-fast-1',
-            default_reasoning_effort: 'high',
-          },
-        }),
+      modelConfiguration: {
+        args: [
+          'agent',
+          '--model',
+          'grok-4.6',
+          '--reasoning-effort',
+          'high',
+          'stdio',
+        ],
       },
       port: 4319,
       portEndpoint,
@@ -235,13 +237,15 @@ describe('createGrokBuild', () => {
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
     expect(settings.modelId).toBe('grok-4.6');
-    expect(settings.env).toEqual({
-      GROK_CONFIG: JSON.stringify({
-        models: {
-          default: 'grok-4.6',
-          default_reasoning_effort: 'high',
-        },
-      }),
+    expect(settings.resolveModel({ model: 'grok-4.6' })).toEqual({
+      args: [
+        'agent',
+        '--model',
+        'grok-4.6',
+        '--reasoning-effort',
+        'high',
+        'stdio',
+      ],
     });
   });
 
@@ -251,10 +255,8 @@ describe('createGrokBuild', () => {
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
     expect(settings.modelId).toBe('grok-4.6');
-    expect(settings.env).toEqual({
-      GROK_CONFIG: JSON.stringify({
-        models: { default: 'grok-4.6' },
-      }),
+    expect(settings.resolveModel({ model: 'grok-4.6' })).toEqual({
+      args: ['agent', '--model', 'grok-4.6', 'stdio'],
     });
   });
 
@@ -264,10 +266,8 @@ describe('createGrokBuild', () => {
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
     expect(settings.modelId).toBe('grok-4.5-build');
-    expect(settings.env).toEqual({
-      GROK_CONFIG: JSON.stringify({
-        models: { default: 'grok-4.5-build' },
-      }),
+    expect(settings.resolveModel({ model: 'grok-4.5-build' })).toEqual({
+      args: ['agent', '--model', 'grok-4.5-build', 'stdio'],
     });
   });
 

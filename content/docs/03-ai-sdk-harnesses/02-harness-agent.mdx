@@ -28,6 +28,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 export const agent = new HarnessAgent({
   harness: claudeCode,
+  model: 'claude-sonnet-4-6',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -39,6 +40,9 @@ export const agent = new HarnessAgent({
 
 Construct the agent at module scope. It holds configuration, not a live session.
 Live state belongs to `HarnessAgentSession`.
+
+Set `model` to select the model that the harness runtime uses. Model identifiers
+are specific to each harness. When omitted, the harness uses its default model.
 
 To use this agent, ensure environment variables with sandbox and harness credentials
 are set.
@@ -485,6 +489,8 @@ console.log(preparation.identity);
 `HarnessAgent` accepts these main settings:
 
 - `harness`: the adapter instance.
+- `model`: optional harness-specific model identifier. When omitted, the
+  harness uses its default model.
 - `sandbox`: a `HarnessV1SandboxProvider`.
 - `id`: optional stable agent identifier.
 - `instructions`: instructions appended to the runtime's system or developer

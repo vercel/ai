@@ -1,5 +1,21 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.30
+
+### Patch Changes
+
+- 39e8870: feat(harness-grok-build): update underlying SDK and add support for `reasoningEffort` control
+- 7608210: feat(harness): add `model` parameter to `HarnessAgent` instead of having each harness adapter support it on their own constructor functions
+- Updated dependencies [cc9f6ce]
+- Updated dependencies [7608210]
+- Updated dependencies [6f8a2d7]
+- Updated dependencies [f7bd978]
+- Updated dependencies [14d4fc0]
+- Updated dependencies [90192f1]
+  - @ai-sdk/harness@1.0.93
+  - @ai-sdk/harness-acp@1.0.31
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 1.0.29
 
 ### Patch Changes
