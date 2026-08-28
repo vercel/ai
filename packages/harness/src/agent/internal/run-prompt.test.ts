@@ -140,7 +140,12 @@ describe('runPrompt workDir stripping', () => {
         {
           type: 'tool-input-delta',
           id: 'c1',
-          delta: JSON.stringify({ path: `${WORK_DIR}/src/foo.ts` }),
+          delta: '{"path":"/vercel/sandbox/claude',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'c1',
+          delta: '-code-abc123/src/foo.ts"}',
         },
         { type: 'tool-input-end', id: 'c1' },
         {
@@ -181,7 +186,12 @@ describe('runPrompt workDir stripping', () => {
       {
         type: 'tool-input-delta',
         id: 'c1',
-        delta: JSON.stringify({ path: 'src/foo.ts' }),
+        delta: '{"path":"',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'c1',
+        delta: 'src/foo.ts"}',
       },
       { type: 'tool-input-end', id: 'c1' },
     ]);

@@ -306,6 +306,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             takeHostToolUseId({
               state: streamEventState,
               toolName: tool.name,
+              input,
             }) ?? randomUUID();
           emit({
             type: 'tool-call',

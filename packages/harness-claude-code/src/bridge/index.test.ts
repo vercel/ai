@@ -72,13 +72,22 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
         return;
       }
       for (const message of state.messages) {
-        if (message.type === 'invoke-host-tool') {
-          const toolName = String(message.toolName);
-          const handler = state.toolHandlers.get(toolName);
-          if (handler == null) {
-            throw new Error(`Missing host tool handler for '${toolName}'.`);
-          }
-          await handler(message.input as Record<string, unknown>);
+        if (message.type === 'invoke-host-tools') {
+          const calls = message.calls as Array<{
+            toolName: string;
+            input: Record<string, unknown>;
+          }>;
+          await Promise.all(
+            calls.map(call => {
+              const handler = state.toolHandlers.get(call.toolName);
+              if (handler == null) {
+                throw new Error(
+                  `Missing host tool handler for '${call.toolName}'.`,
+                );
+              }
+              return handler(call.input);
+            }),
+          );
           continue;
         }
         yield message;
@@ -329,7 +338,7 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
-  test('uses the streamed tool-use id for a host tool call', async () => {
+  test('correlates parallel same-name host tool calls when callbacks arrive out of order', async () => {
     state.start = {
       ...state.start,
       tools: [
@@ -373,6 +382,33 @@ describe('Claude Code bridge configuration', () => {
         event: { type: 'content_block_stop', index: 0 },
       },
       {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_start',
+          index: 1,
+          content_block: {
+            type: 'tool_use',
+            id: 'host-tool-2',
+            name: 'mcp__harness-tools__weather',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_delta',
+          index: 1,
+          delta: {
+            type: 'input_json_delta',
+            partial_json: '{"city":"Boston"}',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_stop', index: 1 },
+      },
+      {
         type: 'assistant',
         message: {
           content: [
@@ -382,13 +418,21 @@ describe('Claude Code bridge configuration', () => {
               name: 'mcp__harness-tools__weather',
               input: { city: 'Chicago' },
             },
+            {
+              type: 'tool_use',
+              id: 'host-tool-2',
+              name: 'mcp__harness-tools__weather',
+              input: { city: 'Boston' },
+            },
           ],
         },
       },
       {
-        type: 'invoke-host-tool',
-        toolName: 'weather',
-        input: { city: 'Chicago' },
+        type: 'invoke-host-tools',
+        calls: [
+          { toolName: 'weather', input: { city: 'Boston' } },
+          { toolName: 'weather', input: { city: 'Chicago' } },
+        ],
       },
       {
         type: 'user',
@@ -397,6 +441,11 @@ describe('Claude Code bridge configuration', () => {
             {
               type: 'tool_result',
               tool_use_id: 'host-tool-1',
+              content: '{}',
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'host-tool-2',
               content: '{}',
             },
           ],
@@ -411,42 +460,20 @@ describe('Claude Code bridge configuration', () => {
 
     await import('./index');
 
-    expect(
-      state.emitted.filter(event =>
-        [
-          'tool-input-start',
-          'tool-input-delta',
-          'tool-input-end',
-          'tool-call',
-          'tool-result',
-        ].includes(String(event.type)),
-      ),
-    ).toEqual([
+    expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
       {
-        type: 'tool-input-start',
-        id: 'host-tool-1',
+        type: 'tool-call',
+        toolCallId: 'host-tool-2',
         toolName: 'weather',
+        input: '{"city":"Boston"}',
         providerExecuted: false,
       },
-      {
-        type: 'tool-input-delta',
-        id: 'host-tool-1',
-        delta: '{"city":"Chicago"}',
-      },
-      { type: 'tool-input-end', id: 'host-tool-1' },
       {
         type: 'tool-call',
         toolCallId: 'host-tool-1',
         toolName: 'weather',
         input: '{"city":"Chicago"}',
         providerExecuted: false,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'host-tool-1',
-        toolName: 'weather',
-        result: {},
-        isError: false,
       },
     ]);
   });
