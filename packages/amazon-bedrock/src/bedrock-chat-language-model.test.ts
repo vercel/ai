@@ -3453,6 +3453,60 @@ describe('doStream', () => {
 });
 
 describe('doGenerate', () => {
+  it('enables Anthropic reasoning for an application inference profile ARN', async () => {
+    let requestBody: any;
+    const applicationProfileModel = new BedrockChatLanguageModel(
+      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/opaque-profile-id',
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
+          const thinkingWasRequested =
+            requestBody.additionalModelRequestFields?.thinking != null;
+          const fixtureName = thinkingWasRequested
+            ? 'amazon-bedrock-issue-11035-with-thinking'
+            : 'amazon-bedrock-issue-11035-without-thinking';
+
+          return new Response(
+            fs.readFileSync(`src/__fixtures__/${fixtureName}.json`, 'utf8'),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+      },
+    );
+
+    const result = await applicationProfileModel.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 256,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 1024,
+          },
+        },
+      },
+    });
+
+    expect(result.content.some(part => part.type === 'reasoning')).toBe(true);
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'budgetTokens',
+      }),
+    );
+    expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+      type: 'enabled',
+      budget_tokens: 1024,
+    });
+    expect(requestBody.inferenceConfig?.maxTokens).toBe(1280);
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('bedrock-text');

@@ -1,0 +1,26 @@
+{
+  "metrics": {
+    "latencyMs": 1249
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "Let me think through this step by step.\n\nThe word \"cat\" consists of:\n- c\n- a  \n- t\n\nCounting each letter: 1, 2, 3\n\nThere are 3 letters in the word \"cat\"."
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 21,
+    "outputTokens": 58,
+    "serverToolUsage": {},
+    "totalTokens": 79
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "metrics": {
+    "latencyMs": 1249
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "reasoningContent": {
+            "reasoningText": {
+              "signature": "EtACCkgIERABGAIqQOatMI93wgK3p0/tfVTUNjKT/SM1i5be70wd3KqpuRMdTyTvuptzQvgDIU9AyNMtX8jk+5KO+mA1Dgyr7TW170kSDCm//+T9aGHnXz/lzRoM6W8bnRH3ZibwzRWgIjAzU3U5lE9bApBQPDWbO7keNlbLwOv06dteXBSbq62fZsbwDeTpsw/4QTq6JncbRW4qtQEJMB/ujETP9tYtpsArH/EiPlJ3Rq4L/Auf4+iCa3td8KWM7eQzanGitQqmFFAQLKDFn9iLdYDopTjO6Ky+lTTK5scZhAJE8cDjAsK8vEybeMkXrhwAgfU2I22OQKtDWBs0N6PG8wlo4xreyFxXIy9chPhYEv9VW8YQneJbWoHj54zLBnxgHMVJjllTtX5elpZfQZFdVDeP2KJU+j4g0rG3rsu+3tlcj6mQPOBLih+21nv662fdGAE=",
+              "text": "I need to count the letters in the word \"cat\".\n\nThe word \"cat\" is spelled: c-a-t\n\nLet me count each letter:\n1. c\n2. a\n3. t\n\nSo there are 3 letters in the word \"cat\"."
+            }
+          }
+        },
+        {
+          "text": "Let me count the letters in the word \"cat\":\n\nc - a - t\n\nThe word \"cat\" has 3 letters."
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 50,
+    "outputTokens": 99,
+    "serverToolUsage": {},
+    "totalTokens": 149
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 11035,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11035-bedrock-arn-budget-tokens.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-11035-bedrock-arn-budget-tokens.ts",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-issue-11035-with-thinking.json",
+    "packages/amazon-bedrock/src/__fixtures__/amazon-bedrock-issue-11035-without-thinking.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_11035: Expected reasoning output from Anthropic application inference profile ARN, but none was returned."
+  }
+}
