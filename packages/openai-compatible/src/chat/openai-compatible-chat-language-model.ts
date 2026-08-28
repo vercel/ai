@@ -1,15 +1,16 @@
-import type {
-  APICallError,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  LanguageModelV4Usage,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type APICallError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4Usage,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -308,13 +309,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
         reasoning_effort:
           compatibleOptions.reasoningEffort ??
-          (isCustomReasoning(reasoning) && reasoning !== 'none'
-            ? reasoning
-            : undefined),
+          (isCustomReasoning(reasoning) ? reasoning : undefined),
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(prompt, {
+          providerOptionsKey: metadataKey,
+        }),
 
         // tools:
         tools: openaiTools,
@@ -377,7 +378,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           toolCall.extra_content?.google?.thought_signature;
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
           ...(thoughtSignature
@@ -523,10 +524,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       }
     };
 
-    let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV4FinishReason | undefined;
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
@@ -582,7 +580,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
-                error: chunk.value.error.message,
+                error: chunk.value.error,
               });
               return;
             }
@@ -698,6 +696,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
             toolCallTracker.flush();
 
+            if (finishReason == null) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error: new InvalidResponseDataError({
+                  data: undefined,
+                  message: 'Response stream ended without a finish reason.',
+                }),
+              });
+            }
+
             const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
@@ -732,18 +741,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   }
 }
 
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
 const openaiCompatibleTokenUsageSchema = z
   .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
     prompt_tokens_details: z
-      .object({
+      .looseObject({
         cached_tokens: z.number().nullish(),
       })
       .nullish(),
     completion_tokens_details: z
-      .object({
+      .looseObject({
         reasoning_tokens: z.number().nullish(),
         accepted_prediction_tokens: z.number().nullish(),
         rejected_prediction_tokens: z.number().nullish(),

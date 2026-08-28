@@ -1,6 +1,8 @@
 import {
   UnsupportedFunctionalityError,
   type JSONObject,
+  type LanguageModelV4FilePart,
+  type JSONValue,
   type LanguageModelV4Message,
   type LanguageModelV4Prompt,
   type SharedV4ProviderMetadata,
@@ -16,17 +18,26 @@ import {
 import {
   BEDROCK_DOCUMENT_MIME_TYPES,
   BEDROCK_IMAGE_MIME_TYPES,
+  BEDROCK_VIDEO_MIME_TYPES,
   type AmazonBedrockAssistantMessage,
   type AmazonBedrockCachePoint,
   type AmazonBedrockDocumentFormat,
   type AmazonBedrockDocumentMimeType,
+  type AmazonBedrockImageBlock,
   type AmazonBedrockImageFormat,
   type AmazonBedrockImageMimeType,
   type AmazonBedrockMessages,
   type AmazonBedrockSystemMessages,
   type AmazonBedrockUserMessage,
+  type AmazonBedrockVideoBlock,
+  type AmazonBedrockVideoFormat,
+  type AmazonBedrockVideoMimeType,
 } from './amazon-bedrock-api-types';
-import { amazonBedrockFilePartProviderOptions } from './amazon-bedrock-chat-language-model-options';
+import {
+  amazonBedrockFilePartProviderOptions,
+  amazonBedrockImagePartProviderOptions,
+  amazonBedrockTextPartProviderOptions,
+} from './amazon-bedrock-chat-language-model-options';
 import { amazonBedrockReasoningMetadataSchema } from './amazon-bedrock-reasoning-metadata';
 import { normalizeToolCallId } from './normalize-tool-call-id';
 
@@ -57,6 +68,34 @@ function pushCachePoint(
   }
 }
 
+function sanitizeToolName(toolName: string): string {
+  return toolName.replace(/[^a-zA-Z0-9_-]/g, '') || '_';
+}
+
+function getAmazonBedrockMediaSource({
+  data,
+  functionality,
+}: {
+  data: Extract<LanguageModelV4FilePart['data'], { type: 'data' | 'url' }>;
+  functionality: string;
+}):
+  | AmazonBedrockImageBlock['image']['source']
+  | AmazonBedrockVideoBlock['video']['source'] {
+  switch (data.type) {
+    case 'data':
+      return { bytes: convertToBase64(data.data) };
+    case 'url':
+      if (data.url.protocol !== 's3:') {
+        throw new UnsupportedFunctionalityError({ functionality });
+      }
+      return {
+        s3Location: {
+          uri: data.url.toString(),
+        },
+      };
+  }
+}
+
 async function shouldEnableCitations(
   providerMetadata: SharedV4ProviderMetadata | undefined,
 ): Promise<boolean> {
@@ -73,6 +112,40 @@ async function shouldEnableCitations(
     }));
 
   return amazonBedrockOptions?.citations?.enabled ?? false;
+}
+
+async function getTextPartGuardContentOptions(
+  providerMetadata: SharedV4ProviderMetadata | undefined,
+) {
+  return (
+    (await parseProviderOptions({
+      provider: 'amazonBedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockTextPartProviderOptions,
+    })) ??
+    (await parseProviderOptions({
+      provider: 'bedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockTextPartProviderOptions,
+    }))
+  );
+}
+
+async function getImagePartGuardContentOptions(
+  providerMetadata: SharedV4ProviderMetadata | undefined,
+) {
+  return (
+    (await parseProviderOptions({
+      provider: 'amazonBedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockImagePartProviderOptions,
+    })) ??
+    (await parseProviderOptions({
+      provider: 'bedrock',
+      providerOptions: providerMetadata,
+      schema: amazonBedrockImagePartProviderOptions,
+    }))
+  );
 }
 
 export async function convertToAmazonBedrockChatMessages(
@@ -127,9 +200,24 @@ export async function convertToAmazonBedrockChatMessages(
 
                 switch (part.type) {
                   case 'text': {
-                    amazonBedrockContent.push({
-                      text: part.text,
-                    });
+                    const textOptions = await getTextPartGuardContentOptions(
+                      part.providerOptions,
+                    );
+
+                    if (textOptions?.guardContent) {
+                      amazonBedrockContent.push({
+                        guardContent: {
+                          text: {
+                            text: part.text,
+                            qualifiers: textOptions.guardContentQualifiers,
+                          },
+                        },
+                      });
+                    } else {
+                      amazonBedrockContent.push({
+                        text: part.text,
+                      });
+                    }
                     break;
                   }
 
@@ -141,9 +229,48 @@ export async function convertToAmazonBedrockChatMessages(
                         });
                       }
                       case 'url': {
-                        throw new UnsupportedFunctionalityError({
-                          functionality: 'File URL data',
-                        });
+                        if (part.data.url.protocol !== 's3:') {
+                          throw new UnsupportedFunctionalityError({
+                            functionality: 'File URL data',
+                          });
+                        }
+
+                        const fullMediaType = resolveFullMediaType({ part });
+
+                        switch (getTopLevelMediaType(fullMediaType)) {
+                          case 'image': {
+                            amazonBedrockContent.push({
+                              image: {
+                                format:
+                                  getAmazonBedrockImageFormat(fullMediaType),
+                                source: getAmazonBedrockMediaSource({
+                                  data: part.data,
+                                  functionality: 'File URL data',
+                                }),
+                              },
+                            });
+                            break;
+                          }
+                          case 'video': {
+                            amazonBedrockContent.push({
+                              video: {
+                                format:
+                                  getAmazonBedrockVideoFormat(fullMediaType),
+                                source: getAmazonBedrockMediaSource({
+                                  data: part.data,
+                                  functionality: 'File URL data',
+                                }),
+                              },
+                            });
+                            break;
+                          }
+                          default: {
+                            throw new UnsupportedFunctionalityError({
+                              functionality: 'File URL data',
+                            });
+                          }
+                        }
+                        break;
                       }
                       case 'text': {
                         const textMediaType = isFullMediaType(part.mediaType)
@@ -175,36 +302,66 @@ export async function convertToAmazonBedrockChatMessages(
                       case 'data': {
                         const fullMediaType = resolveFullMediaType({ part });
 
-                        if (getTopLevelMediaType(fullMediaType) === 'image') {
-                          amazonBedrockContent.push({
-                            image: {
-                              format:
-                                getAmazonBedrockImageFormat(fullMediaType),
-                              source: {
-                                bytes: convertToBase64(part.data.data),
+                        switch (getTopLevelMediaType(fullMediaType)) {
+                          case 'image': {
+                            const imageOptions =
+                              await getImagePartGuardContentOptions(
+                                part.providerOptions,
+                              );
+                            const imageBlock: AmazonBedrockImageBlock = {
+                              image: {
+                                format:
+                                  getAmazonBedrockImageFormat(fullMediaType),
+                                source: getAmazonBedrockMediaSource({
+                                  data: part.data,
+                                  functionality: 'File URL data',
+                                }),
                               },
-                            },
-                          });
-                        } else {
-                          const enableCitations = await shouldEnableCitations(
-                            part.providerOptions,
-                          );
+                            };
 
-                          amazonBedrockContent.push({
-                            document: {
-                              format:
-                                getAmazonBedrockDocumentFormat(fullMediaType),
-                              name: part.filename
-                                ? stripFileExtension(part.filename)
-                                : generateDocumentName(),
-                              source: {
-                                bytes: convertToBase64(part.data.data),
+                            if (imageOptions?.guardContent) {
+                              amazonBedrockContent.push({
+                                guardContent: imageBlock,
+                              });
+                            } else {
+                              amazonBedrockContent.push(imageBlock);
+                            }
+                            break;
+                          }
+                          case 'video': {
+                            amazonBedrockContent.push({
+                              video: {
+                                format:
+                                  getAmazonBedrockVideoFormat(fullMediaType),
+                                source: getAmazonBedrockMediaSource({
+                                  data: part.data,
+                                  functionality: 'File URL data',
+                                }),
                               },
-                              ...(enableCitations && {
-                                citations: { enabled: true },
-                              }),
-                            },
-                          });
+                            });
+                            break;
+                          }
+                          default: {
+                            const enableCitations = await shouldEnableCitations(
+                              part.providerOptions,
+                            );
+
+                            amazonBedrockContent.push({
+                              document: {
+                                format:
+                                  getAmazonBedrockDocumentFormat(fullMediaType),
+                                name: part.filename
+                                  ? stripFileExtension(part.filename)
+                                  : generateDocumentName(),
+                                source: {
+                                  bytes: convertToBase64(part.data.data),
+                                },
+                                ...(enableCitations && {
+                                  citations: { enabled: true },
+                                }),
+                              },
+                            });
+                          }
                         }
                         break;
                       }
@@ -235,7 +392,11 @@ export async function convertToAmazonBedrockChatMessages(
                           case 'text':
                             return { text: contentPart.text };
                           case 'file': {
-                            if (contentPart.data.type !== 'data') {
+                            if (
+                              contentPart.data.type !== 'data' &&
+                              (contentPart.data.type !== 'url' ||
+                                contentPart.data.url.protocol !== 's3:')
+                            ) {
                               throw new UnsupportedFunctionalityError({
                                 functionality: `tool result file data of type "${contentPart.data.type}"`,
                               });
@@ -245,44 +406,68 @@ export async function convertToAmazonBedrockChatMessages(
                               part: contentPart,
                             });
 
-                            if (
-                              getTopLevelMediaType(fullMediaType) !== 'image'
-                            ) {
-                              const enableCitations =
-                                await shouldEnableCitations(
-                                  contentPart.providerOptions,
-                                );
-
-                              return {
-                                document: {
-                                  format:
-                                    getAmazonBedrockDocumentFormat(
-                                      fullMediaType,
-                                    ),
-                                  name: contentPart.filename
-                                    ? stripFileExtension(contentPart.filename)
-                                    : generateDocumentName(),
-                                  source: {
-                                    bytes: convertToBase64(
-                                      contentPart.data.data,
-                                    ),
+                            switch (getTopLevelMediaType(fullMediaType)) {
+                              case 'image': {
+                                return {
+                                  image: {
+                                    format:
+                                      getAmazonBedrockImageFormat(
+                                        fullMediaType,
+                                      ),
+                                    source: getAmazonBedrockMediaSource({
+                                      data: contentPart.data,
+                                      functionality: `tool result file data of type "${contentPart.data.type}"`,
+                                    }),
                                   },
-                                  ...(enableCitations && {
-                                    citations: { enabled: true },
-                                  }),
-                                },
-                              };
-                            }
+                                };
+                              }
+                              case 'video': {
+                                return {
+                                  video: {
+                                    format:
+                                      getAmazonBedrockVideoFormat(
+                                        fullMediaType,
+                                      ),
+                                    source: getAmazonBedrockMediaSource({
+                                      data: contentPart.data,
+                                      functionality: `tool result file data of type "${contentPart.data.type}"`,
+                                    }),
+                                  },
+                                };
+                              }
+                              default: {
+                                if (contentPart.data.type !== 'data') {
+                                  throw new UnsupportedFunctionalityError({
+                                    functionality: `tool result file data of type "${contentPart.data.type}"`,
+                                  });
+                                }
 
-                            return {
-                              image: {
-                                format:
-                                  getAmazonBedrockImageFormat(fullMediaType),
-                                source: {
-                                  bytes: convertToBase64(contentPart.data.data),
-                                },
-                              },
-                            };
+                                const enableCitations =
+                                  await shouldEnableCitations(
+                                    contentPart.providerOptions,
+                                  );
+
+                                return {
+                                  document: {
+                                    format:
+                                      getAmazonBedrockDocumentFormat(
+                                        fullMediaType,
+                                      ),
+                                    name: contentPart.filename
+                                      ? stripFileExtension(contentPart.filename)
+                                      : generateDocumentName(),
+                                    source: {
+                                      bytes: convertToBase64(
+                                        contentPart.data.data,
+                                      ),
+                                    },
+                                    ...(enableCitations && {
+                                      citations: { enabled: true },
+                                    }),
+                                  },
+                                };
+                              }
+                            }
                           }
                           default: {
                             throw new UnsupportedFunctionalityError({
@@ -400,6 +585,12 @@ export async function convertToAmazonBedrockChatMessages(
                       },
                     },
                   });
+                } else if (reasoningMetadata?.redactedContent != null) {
+                  amazonBedrockContent.push({
+                    reasoningContent: {
+                      redactedContent: reasoningMetadata.redactedContent,
+                    },
+                  });
                 } else if (reasoningMetadata?.redactedData != null) {
                   amazonBedrockContent.push({
                     reasoningContent: {
@@ -420,8 +611,8 @@ export async function convertToAmazonBedrockChatMessages(
                 amazonBedrockContent.push({
                   toolUse: {
                     toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
-                    name: part.toolName,
-                    input: part.input as JSONObject,
+                    name: sanitizeToolName(part.toolName),
+                    input: toBedrockToolInput(part.input),
                   },
                 });
                 break;
@@ -433,7 +624,9 @@ export async function convertToAmazonBedrockChatMessages(
           pushCachePoint(amazonBedrockContent, message.providerOptions);
         }
 
-        messages.push({ role: 'assistant', content: amazonBedrockContent });
+        if (amazonBedrockContent.some(block => !('cachePoint' in block))) {
+          messages.push({ role: 'assistant', content: amazonBedrockContent });
+        }
 
         break;
       }
@@ -446,6 +639,13 @@ export async function convertToAmazonBedrockChatMessages(
   }
 
   return { system, messages };
+}
+
+// wrap invalid tool call input because Bedrock requires it to be an object
+function toBedrockToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }
 
 function getAmazonBedrockImageFormat(
@@ -474,6 +674,21 @@ function getAmazonBedrockDocumentFormat(
       message: `Unsupported file mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_DOCUMENT_MIME_TYPES).join(', ')}`,
     });
   }
+  return format;
+}
+
+function getAmazonBedrockVideoFormat(
+  mimeType: string,
+): AmazonBedrockVideoFormat {
+  const format =
+    BEDROCK_VIDEO_MIME_TYPES[mimeType as AmazonBedrockVideoMimeType];
+  if (!format) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `video mime type: ${mimeType}`,
+      message: `Unsupported video mime type: ${mimeType}, expected one of: ${Object.keys(BEDROCK_VIDEO_MIME_TYPES).join(', ')}`,
+    });
+  }
+
   return format;
 }
 

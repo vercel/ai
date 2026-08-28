@@ -16,9 +16,11 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { getOwn } from '../util/get-own';
 import type { Instructions, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { normalizeStreamProviderError } from '../prompt/normalize-stream-provider-error';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -421,6 +423,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
   let responseId = generateId();
+  let responseModelId = modelId;
   let timeToFirstOutputMs: number | undefined;
   let previousOutputChunkTimestampMs: number | undefined;
   const timeBetweenOutputChunksMs: number[] = [];
@@ -445,6 +448,13 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
       }
 
       switch (chunk.type) {
+        case 'error':
+          controller.enqueue({
+            type: 'error',
+            error: normalizeStreamProviderError(chunk.error),
+          });
+          break;
+
         case 'text-start':
           upsertTextContentPart({
             content: modelCallContent,
@@ -589,11 +599,14 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             event: {
               callId,
               provider,
-              modelId,
+              modelId: responseModelId,
               finishReason: chunk.finishReason.unified,
               usage,
               content: modelCallContent,
               responseId,
+              ...(chunk.providerMetadata != null
+                ? { providerMetadata: chunk.providerMetadata }
+                : {}),
               performance,
             },
             callbacks: onLanguageModelCallEnd,
@@ -626,18 +639,20 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             modelCallContent.push(toolCall);
 
             if (toolCall.invalid) {
-              controller.enqueue({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-                title: toolCall.title,
-                ...(toolCall.toolMetadata != null
-                  ? { toolMetadata: toolCall.toolMetadata }
-                  : {}),
-              });
+              if (!toolCall.providerExecuted) {
+                controller.enqueue({
+                  type: 'tool-error',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: getErrorMessage(toolCall.error!),
+                  dynamic: true,
+                  title: toolCall.title,
+                  ...(toolCall.toolMetadata != null
+                    ? { toolMetadata: toolCall.toolMetadata }
+                    : {}),
+                });
+              }
               break;
             }
           } catch (error) {
@@ -715,7 +730,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'tool-input-start': {
-          const tool = tools?.[chunk.toolName];
+          const tool = getOwn(tools, chunk.toolName);
 
           controller.enqueue({
             ...chunk,
@@ -736,6 +751,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'response-metadata': {
           responseId = chunk.id ?? responseId;
+          responseModelId = chunk.modelId ?? responseModelId;
 
           controller.enqueue({
             type: 'model-call-response-metadata',

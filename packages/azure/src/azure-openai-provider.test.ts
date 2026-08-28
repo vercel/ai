@@ -4,6 +4,7 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -477,6 +478,56 @@ describe('deepseek', () => {
     `);
   });
 
+  it('should send a json_schema response format for structured output', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+
+    await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { sentiment: { type: 'string' } },
+          required: ['sentiment'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "high",
+        "response_format": {
+          "json_schema": {
+            "name": "response",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "sentiment": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "sentiment",
+              ],
+              "type": "object",
+            },
+            "strict": true,
+          },
+          "type": "json_schema",
+        },
+      }
+    `);
+  });
+
   it('should stream reasoning content', async () => {
     prepareChunksFixtureResponse(
       'azure-deepseek-reasoning.1',
@@ -567,8 +618,11 @@ describe('deepseek', () => {
         },
         "providerMetadata": {
           "azure": {
+            "choiceIndex": 0,
+            "messageRole": "assistant",
             "promptCacheHitTokens": undefined,
             "promptCacheMissTokens": undefined,
+            "responseObject": "chat.completion.chunk",
           },
         },
         "type": "finish",
@@ -587,6 +641,8 @@ describe('deepseek', () => {
           "raw": {
             "completion_tokens": 1720,
             "prompt_tokens": 19,
+            "prompt_tokens_details": null,
+            "reasoning_tokens": 0,
             "total_tokens": 1739,
           },
         },
@@ -762,6 +818,15 @@ describe('embedding', () => {
     [0.6, 0.7, 0.8, 0.9, 1.0],
   ];
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
+
+  it('should expose the aggregate token limit', () => {
+    expect(
+      Reflect.get(
+        provider.embedding('my-embedding'),
+        EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+      ),
+    ).toBe(300_000);
+  });
 
   describe('doEmbed', () => {
     const model = provider.embedding('my-embedding');

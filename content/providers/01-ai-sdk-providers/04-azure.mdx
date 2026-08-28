@@ -11,21 +11,7 @@ The [Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai
 
 The Azure OpenAI provider is available in the `@ai-sdk/azure` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/azure" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/azure" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/azure" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/azure" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/azure" />
 
 ## Provider Instance
 
@@ -430,6 +416,7 @@ const result = await generateText({
       },
       filters: {
         allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+        blockedDomains: ['example.com'],
       },
     }),
   },
@@ -456,7 +443,10 @@ The web search tool supports the following configuration options:
 - **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
 - **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
 - **filters** - Optional filter configuration to restrict search results.
-  - **allowedDomains** _string[]_ - Array of allowed domains for the search. Subdomains of the provided domains are automatically included.
+  - **allowedDomains** _string[]_ - Up to 100 allowed domains for the search.
+  - **blockedDomains** _string[]_ - Up to 100 blocked domains for the search.
+
+Omit the HTTP or HTTPS prefix from domain filters. Subdomains of configured domains are automatically included or excluded.
 
 For detailed information on configuration options see the [Azure OpenAI Web Search Tool documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/web-search).
 
@@ -1099,11 +1089,11 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription       | Duration            | Segments            | Language            |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                    | Transcription | Duration  | Segments  | Language  |
+| ------------------------ | ------------- | --------- | --------- | --------- |
+| `whisper-1`              | <Check />     | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> |
 
 ## Speech Models
 
@@ -1163,8 +1153,8 @@ The following provider options are available:
 
 Azure OpenAI supports TTS models through deployments. The capabilities depend on which model version your deployment is using:
 
-| Model Version     | Instructions        |
-| ----------------- | ------------------- |
-| `tts-1`           | <Cross size={18} /> |
-| `tts-1-hd`        | <Cross size={18} /> |
-| `gpt-4o-mini-tts` | <Check size={18} /> |
+| Model Version     | Instructions |
+| ----------------- | ------------ |
+| `tts-1`           | <Cross />    |
+| `tts-1-hd`        | <Cross />    |
+| `gpt-4o-mini-tts` | <Check />    |

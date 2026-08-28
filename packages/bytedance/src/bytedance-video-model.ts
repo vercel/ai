@@ -1,7 +1,10 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File as VideoModelV4File,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -9,33 +12,19 @@ import {
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  delay,
   getFromApi,
-  lazySchema,
+  getTopLevelMediaType,
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { ByteDanceConfig } from './bytedance-config';
+import {
+  byteDanceVideoModelOptionsSchema,
+  type ByteDanceVideoModelOptions,
+} from './bytedance-video-model-options';
 import type { ByteDanceVideoModelId } from './bytedance-video-settings';
-
-export type ByteDanceVideoProviderOptions = {
-  watermark?: boolean | null;
-  generateAudio?: boolean | null;
-  cameraFixed?: boolean | null;
-  returnLastFrame?: boolean | null;
-  serviceTier?: 'default' | 'flex' | null;
-  draft?: boolean | null;
-  lastFrameImage?: string | null;
-  referenceImages?: string[] | null;
-  referenceVideos?: string[] | null;
-  referenceAudio?: string[] | null;
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-  [key: string]: unknown;
-};
 
 const HANDLED_PROVIDER_OPTIONS = new Set([
   'watermark',
@@ -51,25 +40,6 @@ const HANDLED_PROVIDER_OPTIONS = new Set([
   'pollIntervalMs',
   'pollTimeoutMs',
 ]);
-
-export const byteDanceVideoProviderOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.looseObject({
-      watermark: z.boolean().nullish(),
-      generateAudio: z.boolean().nullish(),
-      cameraFixed: z.boolean().nullish(),
-      returnLastFrame: z.boolean().nullish(),
-      serviceTier: z.enum(['default', 'flex']).nullish(),
-      draft: z.boolean().nullish(),
-      lastFrameImage: z.string().nullish(),
-      referenceImages: z.array(z.string()).nullish(),
-      referenceVideos: z.array(z.string()).nullish(),
-      referenceAudio: z.array(z.string()).nullish(),
-      pollIntervalMs: z.number().positive().nullish(),
-      pollTimeoutMs: z.number().positive().nullish(),
-    }),
-  ),
-);
 
 const RESOLUTION_MAP: Record<string, string> = {
   '864x496': '480p',
@@ -121,22 +91,26 @@ interface ByteDanceVideoModelConfig extends ByteDanceConfig {
 }
 
 function getFirstFrameImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
 
 function resolveStartImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
   return getFirstFrameImage(options) ?? options.image;
 }
 
-function resolveReferenceImages(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
-): string[] {
+const isVideoFile = (f: VideoModelV4File) =>
+  f.mediaType != null && getTopLevelMediaType(f.mediaType) === 'video';
+
+function resolveReferenceContent(
+  options: VideoModelV4CallOptions,
+  byteDanceOptions: ByteDanceVideoModelOptions | undefined,
+  warnings: SharedV4Warning[],
+): Array<Record<string, unknown>> {
   if (options.frameImages != null && options.frameImages.length > 0) {
     return [];
   }
@@ -144,15 +118,49 @@ function resolveReferenceImages(
   const inputReferences = options.inputReferences;
 
   if (inputReferences != null && inputReferences.length > 0) {
-    return inputReferences.map(image => convertImageModelFileToDataUri(image));
+    return inputReferences.map(reference => {
+      if (reference.type === 'url' && reference.mediaType == null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'inputReferences',
+          details:
+            'ByteDance requires an explicit mediaType to route URL references as ' +
+            'video or image. Pass { data: url, mediaType: "video/mp4" } for video ' +
+            'references. The reference was treated as an image.',
+        });
+      }
+
+      const url = convertImageModelFileToDataUri(reference);
+      return isVideoFile(reference)
+        ? { type: 'video_url', video_url: { url }, role: 'reference_video' }
+        : { type: 'image_url', image_url: { url }, role: 'reference_image' };
+    });
   }
 
-  return byteDanceOptions?.referenceImages ?? [];
+  const content: Array<Record<string, unknown>> = [];
+
+  for (const imageUrl of byteDanceOptions?.referenceImages ?? []) {
+    content.push({
+      type: 'image_url',
+      image_url: { url: imageUrl },
+      role: 'reference_image',
+    });
+  }
+
+  for (const videoUrl of byteDanceOptions?.referenceVideos ?? []) {
+    content.push({
+      type: 'video_url',
+      video_url: { url: videoUrl },
+      role: 'reference_video',
+    });
+  }
+
+  return content;
 }
 
 function resolveLastFrameImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  byteDanceOptions: ByteDanceVideoProviderOptions | undefined,
+  options: VideoModelV4CallOptions,
+  byteDanceOptions: ByteDanceVideoModelOptions | undefined,
 ): string | undefined {
   const lastFrame = options.frameImages?.find(
     frame => frame.frameType === 'last_frame',
@@ -165,7 +173,7 @@ function resolveLastFrameImage(
   return byteDanceOptions?.lastFrameImage ?? undefined;
 }
 
-export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
+export class ByteDanceVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -178,17 +186,31 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
     private readonly config: ByteDanceVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildRequestBody(options: VideoModelV4CallOptions): Promise<{
+    body: Record<string, unknown>;
+    warnings: SharedV4Warning[];
+  }> {
     const warnings: SharedV4Warning[] = [];
 
     const byteDanceOptions = (await parseProviderOptions({
       provider: 'bytedance',
       providerOptions: options.providerOptions,
-      schema: byteDanceVideoProviderOptionsSchema,
-    })) as ByteDanceVideoProviderOptions | undefined;
+      schema: byteDanceVideoModelOptionsSchema,
+    })) as ByteDanceVideoModelOptions | undefined;
+
+    // Polling is orchestrated by the AI SDK core via doStart/doStatus, so the
+    // legacy provider-level poll options no longer have any effect.
+    for (const setting of ['pollIntervalMs', 'pollTimeoutMs'] as const) {
+      if (byteDanceOptions?.[setting] != null) {
+        warnings.push({
+          type: 'deprecated',
+          setting,
+          message:
+            `\`${setting}\` is ignored. Polling is orchestrated by the AI SDK: ` +
+            'pass `poll: { intervalMs, timeoutMs }` to `generateVideo` instead.',
+        });
+      }
+    }
 
     // Warn about unsupported standard options
     if (options.fps) {
@@ -221,9 +243,10 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
 
     const startImage = resolveStartImage(options);
     const lastFrameImageUrl = resolveLastFrameImage(options, byteDanceOptions);
-    const referenceImageUrls = resolveReferenceImages(
+    const referenceContent = resolveReferenceContent(
       options,
       byteDanceOptions,
+      warnings,
     );
 
     if (startImage != null) {
@@ -243,27 +266,8 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    // Add reference images if provided
-    for (const imageUrl of referenceImageUrls) {
-      content.push({
-        type: 'image_url',
-        image_url: { url: imageUrl },
-        role: 'reference_image',
-      });
-    }
-
-    // Add reference videos if provided
-    if (
-      byteDanceOptions?.referenceVideos != null &&
-      byteDanceOptions.referenceVideos.length > 0
-    ) {
-      for (const videoUrl of byteDanceOptions.referenceVideos) {
-        content.push({
-          type: 'video_url',
-          video_url: { url: videoUrl },
-          role: 'reference_video',
-        });
-      }
+    for (const entry of referenceContent) {
+      content.push(entry);
     }
 
     // Add reference audio if provided
@@ -336,10 +340,17 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
-    const createUrl = `${this.config.baseURL}/contents/generations/tasks`;
+    return { body, warnings };
+  }
 
-    const { value: createResponse } = await postJsonToApi({
-      url: createUrl,
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { body, warnings } = await this.buildRequestBody(options);
+
+    const { value: createResponse, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}/contents/generations/tasks`,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
@@ -362,81 +373,102 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    const pollIntervalMs = byteDanceOptions?.pollIntervalMs ?? 3000;
-    const pollTimeoutMs = byteDanceOptions?.pollTimeoutMs ?? 300000;
-
-    const startTime = Date.now();
-    let response: ByteDanceResponse;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (true) {
-      const statusUrl = `${this.config.baseURL}/contents/generations/tasks/${taskId}`;
-
-      const { value: statusResponse, responseHeaders: statusHeaders } =
-        await getFromApi({
-          url: statusUrl,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          failedResponseHandler: byteDanceFailedResponseHandler,
-          successfulResponseHandler: createJsonResponseHandler(
-            byteDanceStatusResponseSchema,
-          ),
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      if (statusResponse.status === 'succeeded') {
-        response = statusResponse;
-        responseHeaders = statusHeaders;
-        break;
-      }
-
-      if (statusResponse.status === 'failed') {
-        throw new AISDKError({
-          name: 'BYTEDANCE_VIDEO_GENERATION_FAILED',
-          message: `Video generation failed: ${JSON.stringify(statusResponse)}`,
-        });
-      }
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'BYTEDANCE_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
-    }
-
-    const videoUrl = response.content?.video_url;
-    if (!videoUrl) {
-      throw new AISDKError({
-        name: 'BYTEDANCE_VIDEO_GENERATION_ERROR',
-        message: 'No video URL in response',
-      });
-    }
-
     return {
-      videos: [
-        {
-          type: 'url',
-          url: videoUrl,
-          mediaType: 'video/mp4',
-        },
-      ],
+      operation: { taskId },
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        bytedance: {
-          taskId,
-          usage: response.usage,
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { taskId } = options.operation as { taskId: string };
+
+    const { value: statusResponse, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}/contents/generations/tasks/${taskId}`,
+      validateUrl: false,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      failedResponseHandler: byteDanceFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        byteDanceStatusResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (statusResponse.status === 'succeeded') {
+      const videoUrl = statusResponse.content?.video_url;
+
+      if (!videoUrl) {
+        throw new AISDKError({
+          name: 'BYTEDANCE_VIDEO_GENERATION_ERROR',
+          message: `No video URL in response. Task ID: ${taskId}`,
+        });
+      }
+
+      return {
+        status: 'completed',
+        videos: [
+          {
+            type: 'url',
+            url: videoUrl,
+            mediaType: 'video/mp4',
+          },
+        ],
+        warnings: [],
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
         },
+        providerMetadata: {
+          bytedance: {
+            taskId,
+            usage: statusResponse.usage,
+          },
+        },
+      };
+    }
+
+    // ModelArk documents `cancelled`; `canceled` is handled defensively.
+    if (
+      statusResponse.status === 'failed' ||
+      statusResponse.status === 'cancelled' ||
+      statusResponse.status === 'canceled'
+    ) {
+      // Fall back to the raw body when the task carries no structured reason,
+      // so a failure is never reported without any diagnostic detail.
+      const failureDetails =
+        statusResponse.error?.message ??
+        statusResponse.error?.code ??
+        JSON.stringify(statusResponse);
+
+      return {
+        status: 'error',
+        error: `Video generation ${statusResponse.status}. Task ID: ${taskId}. ${failureDetails}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
       },
     };
   }
@@ -445,8 +477,6 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
 const byteDanceTaskResponseSchema = z.object({
   id: z.string().nullish(),
 });
-
-type ByteDanceResponse = z.infer<typeof byteDanceStatusResponseSchema>;
 
 const byteDanceStatusResponseSchema = z.object({
   id: z.string().nullish(),
@@ -460,6 +490,13 @@ const byteDanceStatusResponseSchema = z.object({
   usage: z
     .object({
       completion_tokens: z.number().nullish(),
+    })
+    .nullish(),
+  // Present on failed tasks (the HTTP response itself is still 200).
+  error: z
+    .object({
+      code: z.string().nullish(),
+      message: z.string().nullish(),
     })
     .nullish(),
 });

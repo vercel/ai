@@ -1,7 +1,11 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File as VideoModelV4File,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -10,7 +14,6 @@ import {
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  delay,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -76,8 +79,12 @@ const alibabaVideoTaskStatusSchema = z.object({
     .object({
       duration: z.number().nullish(),
       output_video_duration: z.number().nullish(),
+      // wan3 splits the total: input video counts toward its 30s ceiling.
+      input_video_duration: z.number().nullish(),
+      fps: z.number().nullish(),
       SR: z.number().nullish(),
       size: z.string().nullish(),
+      ratio: z.string().nullish(),
     })
     .nullish(),
   request_id: z.string().nullish(),
@@ -87,17 +94,29 @@ type AlibabaVideoTaskStatusResponse = z.infer<
   typeof alibabaVideoTaskStatusSchema
 >;
 
+// Only meaningful for ids that name their mode (wan2.6/wan2.7). wan3 ships a
+// single all-in-one id, so its mode comes from the media the request carries.
 function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
   if (modelId.includes('-i2v')) return 'i2v';
   if (modelId.includes('-r2v')) return 'r2v';
   return 't2v';
 }
 
-// wan2.7 models use a different protocol than earlier wan models:
-// resolution tiers + ratio instead of size, input.media instead of
-// input.reference_urls (R2V), and no shot_type or audio parameters.
-function isWan27Model(modelId: string): boolean {
-  return modelId.startsWith('wan2.7');
+/**
+ * Request protocol, selected by model id:
+ * - `legacy` (wan2.6 and earlier): `parameters.size`, `input.img_url`, and
+ *   `input.reference_urls`.
+ * - `wan27`: resolution tiers and `ratio` instead of `size`, `input.media`
+ *   instead of `input.reference_urls`, no `shot_type`, audio always on.
+ * - `wan3`: like `wan27`, plus a real `last_frame` slot, an `audio` toggle,
+ *   a 480P tier, and one id covering every mode.
+ */
+type AlibabaVideoProtocol = 'legacy' | 'wan27' | 'wan3';
+
+function detectProtocol(modelId: string): AlibabaVideoProtocol {
+  if (modelId.startsWith('wan3')) return 'wan3';
+  if (modelId.startsWith('wan2.7')) return 'wan27';
+  return 'legacy';
 }
 
 // Maps SDK "WIDTHxHEIGHT" resolutions to Alibaba resolution tiers.
@@ -140,7 +159,7 @@ function deriveRatioFromResolution(
   return supportedRatios.has(ratio) ? ratio : undefined;
 }
 
-function fileToImageString(file: Experimental_VideoModelV4File): string {
+function fileToImageString(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -150,15 +169,22 @@ function fileToImageString(file: Experimental_VideoModelV4File): string {
 }
 
 function getFirstFrameImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
 
+function getLastFrameImage(
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
+  return options.frameImages?.find(frame => frame.frameType === 'last_frame')
+    ?.image;
+}
+
 function resolveStartImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
   return getFirstFrameImage(options) ?? options.image;
 }
 
@@ -166,11 +192,13 @@ function isVideoUrl(url: string): boolean {
   return /\.(mp4|mov)([?#]|$)/i.test(url);
 }
 
-// Builds the wan2.7 input.media array from inputReferences and frameImages.
+// Builds the input.media array (wan2.7 and wan3) from inputReferences plus the
+// frame images the caller resolved for this protocol.
 function resolveMedia(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  options: VideoModelV4CallOptions,
   alibabaOptions: AlibabaVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
+  frames: { first?: VideoModelV4File; last?: VideoModelV4File },
 ): Array<Record<string, unknown>> | undefined {
   if (alibabaOptions?.media != null && alibabaOptions.media.length > 0) {
     return alibabaOptions.media.map(item => ({
@@ -206,11 +234,17 @@ function resolveMedia(
     }
   }
 
-  const firstFrame = getFirstFrameImage(options);
-  if (firstFrame != null) {
+  if (frames.first != null) {
     media.push({
       type: 'first_frame',
-      url: convertImageModelFileToDataUri(firstFrame),
+      url: convertImageModelFileToDataUri(frames.first),
+    });
+  }
+
+  if (frames.last != null) {
+    media.push({
+      type: 'last_frame',
+      url: convertImageModelFileToDataUri(frames.last),
     });
   }
 
@@ -218,7 +252,7 @@ function resolveMedia(
 }
 
 function resolveReferenceUrls(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  options: VideoModelV4CallOptions,
   alibabaOptions: AlibabaVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
 ): string[] | undefined {
@@ -249,7 +283,7 @@ function resolveReferenceUrls(
   return alibabaOptions?.referenceUrls ?? undefined;
 }
 
-export class AlibabaVideoModel implements Experimental_VideoModelV4 {
+export class AlibabaVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -262,10 +296,14 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
     private readonly config: AlibabaVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildRequest(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<{
+    input: Record<string, unknown>;
+    parameters: Record<string, unknown>;
+    warnings: SharedV4Warning[];
+    alibabaOptions: AlibabaVideoModelOptions | undefined;
+  }> {
     const warnings: SharedV4Warning[] = [];
     const mode = detectMode(this.modelId);
 
@@ -291,20 +329,37 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
     }
 
     const startImage = resolveStartImage(options);
-    const wan27 = isWan27Model(this.modelId);
-    // wan2.7 T2V and R2V take an explicit aspect ratio (I2V follows the input image)
-    const supportsRatio = wan27 && mode !== 'i2v';
+    const protocol = detectProtocol(this.modelId);
+    const wan27 = protocol === 'wan27';
+    const wan3 = protocol === 'wan3';
+    // Resolution tiers and input.media replaced size/img_url from wan2.7 on.
+    const tieredProtocol = wan27 || wan3;
+    // wan2.7 T2V and R2V take an explicit aspect ratio (I2V follows the input
+    // image); wan3 serves every mode from one id, so it always takes one.
+    const supportsRatio = wan3 || (wan27 && mode !== 'i2v');
 
-    // Handle image input for I2V mode
-    if (mode === 'i2v' && startImage != null) {
+    // Handle image input for I2V mode (wan3 carries frames in input.media)
+    if (!wan3 && mode === 'i2v' && startImage != null) {
       input.img_url = fileToImageString(startImage);
     }
 
-    // Handle references for R2V mode
-    if (mode === 'r2v') {
+    if (wan3) {
+      // The media the request carries decides whether this is text-, image-,
+      // or reference-to-video, so there is no mode to read off the id. A bare
+      // prompt stays text-to-video.
+      const media = resolveMedia(options, alibabaOptions, warnings, {
+        first: startImage,
+        last: getLastFrameImage(options),
+      });
+      if (media != null) {
+        input.media = media;
+      }
+    } else if (mode === 'r2v') {
       if (wan27) {
         // wan2.7: input.media
-        const media = resolveMedia(options, alibabaOptions, warnings);
+        const media = resolveMedia(options, alibabaOptions, warnings, {
+          first: getFirstFrameImage(options),
+        });
         if (media != null) {
           input.media = media;
         }
@@ -321,11 +376,10 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
-    const lastFrame = options.frameImages?.find(
-      frame => frame.frameType === 'last_frame',
-    )?.image;
+    const lastFrame = getLastFrameImage(options);
 
-    if (lastFrame != null) {
+    // wan3 has a real closing-frame slot, filled in input.media above.
+    if (lastFrame != null && !wan3) {
       warnings.push({
         type: 'unsupported',
         feature: 'frameImages',
@@ -338,7 +392,8 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
     if (
       options.inputReferences != null &&
       options.inputReferences.length > 0 &&
-      mode !== 'r2v'
+      mode !== 'r2v' &&
+      !wan3
     ) {
       warnings.push({
         type: 'unsupported',
@@ -362,17 +417,22 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
 
     // Resolution / Size mapping
     if (options.resolution != null) {
-      if (mode === 'i2v' || wan27) {
-        // I2V and wan2.7 models use "720P" / "1080P" format
+      if (mode === 'i2v' || tieredProtocol) {
+        // I2V, wan2.7, and wan3 use the "720P" / "1080P" tier format
         const resolutionTier =
           resolutionTierMap[options.resolution] || options.resolution;
-        if (wan27 && resolutionTier !== '720P' && resolutionTier !== '1080P') {
+        // wan3 adds a 480P tier to wan2.7's two.
+        const supportedTiers = wan3
+          ? ['480P', '720P', '1080P']
+          : ['720P', '1080P'];
+        if (tieredProtocol && !supportedTiers.includes(resolutionTier)) {
           warnings.push({
             type: 'unsupported',
             feature: 'resolution',
             details:
-              'wan2.7 models only support 720P and 1080P ' +
-              `resolutions. The resolution "${options.resolution}" was ignored.`,
+              `${wan3 ? 'wan3' : 'wan2.7'} models only support the ` +
+              `${supportedTiers.join(', ')} resolution tiers. ` +
+              `The resolution "${options.resolution}" was ignored.`,
           });
         } else {
           parameters.resolution = resolutionTier;
@@ -402,14 +462,14 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
       parameters.prompt_extend = alibabaOptions.promptExtend;
     }
     if (alibabaOptions?.shotType != null) {
-      if (wan27) {
+      if (tieredProtocol) {
         // wan2.7 removed shot_type; shot structure is described in the prompt
         warnings.push({
           type: 'unsupported',
           feature: 'shotType',
           details:
-            'wan2.7 models do not support the shotType option. ' +
-            'Describe the shot structure in the prompt instead.',
+            `${wan3 ? 'wan3' : 'wan2.7'} models do not support the shotType ` +
+            'option. Describe the shot structure in the prompt instead.',
         });
       } else {
         parameters.shot_type = alibabaOptions.shotType;
@@ -459,8 +519,94 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    // Step 1: Create task
-    const { value: createResponse } = await postJsonToApi({
+    return { input, parameters, warnings, alibabaOptions };
+  }
+
+  private buildCompletedResult(
+    statusResponse: AlibabaVideoTaskStatusResponse,
+    responseHeaders: Record<string, string> | undefined,
+    warnings: SharedV4Warning[],
+    currentDate: Date,
+  ): {
+    status: 'completed';
+    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
+    warnings: SharedV4Warning[];
+    providerMetadata: SharedV4ProviderMetadata;
+    response: {
+      timestamp: Date;
+      modelId: string;
+      headers: Record<string, string> | undefined;
+    };
+  } {
+    const taskId = statusResponse.output?.task_id;
+    const videoUrl = statusResponse.output?.video_url;
+
+    if (!videoUrl) {
+      throw new AISDKError({
+        name: 'ALIBABA_VIDEO_GENERATION_ERROR',
+        message: `No video URL in response. Task ID: ${taskId}`,
+      });
+    }
+
+    return {
+      status: 'completed',
+      videos: [
+        {
+          type: 'url',
+          url: videoUrl,
+          mediaType: 'video/mp4',
+        },
+      ],
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+      providerMetadata: {
+        alibaba: {
+          taskId,
+          videoUrl,
+          ...(statusResponse.output?.actual_prompt
+            ? { actualPrompt: statusResponse.output.actual_prompt }
+            : {}),
+          ...(statusResponse.usage
+            ? {
+                usage: {
+                  duration: statusResponse.usage.duration,
+                  outputVideoDuration:
+                    statusResponse.usage.output_video_duration,
+                  resolution: statusResponse.usage.SR,
+                  size: statusResponse.usage.size,
+                  // wan3-only. Spread rather than set to undefined so the
+                  // metadata shape for older wan models is unchanged.
+                  ...(statusResponse.usage.input_video_duration != null
+                    ? {
+                        inputVideoDuration:
+                          statusResponse.usage.input_video_duration,
+                      }
+                    : {}),
+                  ...(statusResponse.usage.fps != null
+                    ? { fps: statusResponse.usage.fps }
+                    : {}),
+                  ...(statusResponse.usage.ratio != null
+                    ? { ratio: statusResponse.usage.ratio }
+                    : {}),
+                },
+              }
+            : {}),
+        },
+      },
+    };
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { input, parameters, warnings } = await this.buildRequest(options);
+
+    const { value: createResponse, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/api/v1/services/aigc/video-generation/video-synthesis`,
       headers: combineHeaders(
         await resolve(this.config.headers),
@@ -490,97 +636,68 @@ export class AlibabaVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    // Step 2: Poll for task completion
-    const pollIntervalMs = alibabaOptions?.pollIntervalMs ?? 5000;
-    const pollTimeoutMs = alibabaOptions?.pollTimeoutMs ?? 600000;
-    const startTime = Date.now();
-    let finalResponse: AlibabaVideoTaskStatusResponse | undefined;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (true) {
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'ALIBABA_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      const { value: statusResponse, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          successfulResponseHandler: createJsonResponseHandler(
-            alibabaVideoTaskStatusSchema,
-          ),
-          failedResponseHandler: alibabaVideoFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      responseHeaders = pollHeaders;
-      const taskStatus = statusResponse.output?.task_status;
-
-      if (taskStatus === 'SUCCEEDED') {
-        finalResponse = statusResponse;
-        break;
-      }
-
-      if (taskStatus === 'FAILED' || taskStatus === 'CANCELED') {
-        throw new AISDKError({
-          name: 'ALIBABA_VIDEO_GENERATION_FAILED',
-          message: `Video generation ${taskStatus.toLowerCase()}. Task ID: ${taskId}. ${statusResponse.output?.message ?? ''}`,
-        });
-      }
-
-      // Continue polling for PENDING, RUNNING, UNKNOWN statuses
-    }
-
-    const videoUrl = finalResponse?.output?.video_url;
-    if (!videoUrl) {
-      throw new AISDKError({
-        name: 'ALIBABA_VIDEO_GENERATION_ERROR',
-        message: `No video URL in response. Task ID: ${taskId}`,
-      });
-    }
-
     return {
-      videos: [
-        {
-          type: 'url',
-          url: videoUrl,
-          mediaType: 'video/mp4',
-        },
-      ],
+      operation: { taskId },
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        alibaba: {
-          taskId,
-          videoUrl,
-          ...(finalResponse?.output?.actual_prompt
-            ? { actualPrompt: finalResponse.output.actual_prompt }
-            : {}),
-          ...(finalResponse?.usage
-            ? {
-                usage: {
-                  duration: finalResponse.usage.duration,
-                  outputVideoDuration:
-                    finalResponse.usage.output_video_duration,
-                  resolution: finalResponse.usage.SR,
-                  size: finalResponse.usage.size,
-                },
-              }
-            : {}),
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { taskId } = options.operation as { taskId: string };
+
+    const { value: statusResponse, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
+      validateUrl: false,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        alibabaVideoTaskStatusSchema,
+      ),
+      failedResponseHandler: alibabaVideoFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const taskStatus = statusResponse.output?.task_status;
+
+    if (taskStatus === 'SUCCEEDED') {
+      return this.buildCompletedResult(
+        statusResponse,
+        responseHeaders,
+        [],
+        currentDate,
+      );
+    }
+
+    if (taskStatus === 'FAILED' || taskStatus === 'CANCELED') {
+      return {
+        status: 'error' as const,
+        error:
+          `Video generation ${taskStatus.toLowerCase()}. Task ID: ${taskId}. ${statusResponse.output?.message ?? ''}`.trim(),
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
         },
+      };
+    }
+
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
       },
     };
   }

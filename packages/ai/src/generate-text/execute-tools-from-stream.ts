@@ -9,7 +9,9 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry, TelemetryDispatcher } from '../telemetry/telemetry';
+import { getOwn } from '../util/get-own';
 import { executeToolCall } from './execute-tool-call';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
 import { maybeSignApproval } from './tool-approval-signature';
@@ -95,7 +97,7 @@ export function executeToolsFromStream<
               return;
             }
 
-            const tool = tools?.[chunk.toolName];
+            const tool = getOwn(tools, chunk.toolName);
 
             if (tool == null) {
               // ignore tool calls for tools that are not available,
@@ -139,6 +141,9 @@ export function executeToolsFromStream<
                   type: 'tool-approval-request',
                   approvalId,
                   toolCall: chunk,
+                  ...(toolApprovalStatus.reason != null
+                    ? { reason: toolApprovalStatus.reason }
+                    : {}),
                   ...(signature != null ? { signature } : {}),
                 });
 
@@ -196,6 +201,10 @@ export function executeToolsFromStream<
           }
 
           case 'model-call-end': {
+            if (!isToolExecutionAllowedFinishReason(chunk.finishReason)) {
+              return;
+            }
+
             await Promise.all(
               toolCallsToExecute.map(async toolCall => {
                 try {

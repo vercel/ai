@@ -13,6 +13,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   parseProviderOptions,
   postJsonToApi,
@@ -405,6 +406,19 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
 
             const value = chunk.value;
 
+            const streamError = createHuggingFaceResponsesStreamError(value);
+            if (streamError != null) {
+              finishReason = {
+                unified: 'error',
+                raw:
+                  streamError.code != null
+                    ? String(streamError.code)
+                    : streamError.type,
+              };
+              controller.enqueue({ type: 'error', error: streamError });
+              return;
+            }
+
             if (isResponseCreatedChunk(value)) {
               responseId = value.response.id;
               controller.enqueue({
@@ -543,6 +557,42 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function createHuggingFaceResponsesStreamError(
+  event: unknown,
+): ReturnType<typeof createProviderStreamError> | undefined {
+  const outer = asRecord(event);
+  if (outer?.type !== 'error' && outer?.type !== 'response.failed') {
+    return undefined;
+  }
+
+  const details =
+    outer.type === 'response.failed'
+      ? asRecord(asRecord(outer.response)?.error)
+      : (asRecord(outer.error) ?? outer);
+
+  if (details == null || typeof details.message !== 'string') {
+    return undefined;
+  }
+
+  const code =
+    typeof details.code === 'string' || typeof details.code === 'number'
+      ? details.code
+      : undefined;
+
+  return createProviderStreamError({
+    message: details.message,
+    type: outer.type,
+    code,
+    data: event,
+  });
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value != null
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type', [

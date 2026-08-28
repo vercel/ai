@@ -1,11 +1,15 @@
+export type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+export type { GatewayImageModelId } from './gateway-image-model-settings';
 export type { GatewayModelId } from './gateway-language-model-settings';
 export {
   GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
   GATEWAY_REALTIME_SUBPROTOCOL,
   GATEWAY_TEAM_SUBPROTOCOL_PREFIX,
+  GATEWAY_TRANSCRIPTION_SUBPROTOCOL,
   getGatewayRealtimeAuthToken,
   getGatewayRealtimeProtocols,
   getGatewayRealtimeTeamIdOrSlug,
+  getGatewayTranscriptionProtocols,
 } from './gateway-realtime-auth';
 export type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
 export type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
@@ -38,6 +42,10 @@ export type {
   GatewayProviderSettings,
 } from './gateway-provider';
 export type {
+  GatewayAsyncJobMetadata,
+  GatewayProviderMetadata,
+} from './gateway-provider-metadata';
+export type {
   GatewayProviderOptions,
   /** @deprecated Use `GatewayProviderOptions` instead. */
   GatewayProviderOptions as GatewayLanguageModelOptions,
@@ -50,6 +58,7 @@ export {
   GatewayInvalidRequestError,
   GatewayRateLimitError,
   GatewayModelNotFoundError,
+  GatewayNotFoundError,
   GatewayInternalServerError,
   GatewayResponseError,
 } from './errors';

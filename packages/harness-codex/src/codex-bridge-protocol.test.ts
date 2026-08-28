@@ -68,10 +68,16 @@ describe('inboundMessageSchema', () => {
       inboundMessageSchema.parse({
         type: 'start',
         prompt: 'hi',
+        instructions: 'Be concise.',
+        restartThread: true,
         tools: [{ name: 'deploy' }],
         model: 'gpt-5.1',
         reasoningEffort: 'high',
         webSearch: true,
+        codexConfig: {
+          model_verbosity: 'low',
+          features: { multi_agent: false },
+        },
       }),
     ).not.toThrow();
   });
@@ -97,11 +103,12 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
-  it('accepts user-message, abort, shutdown', () => {
+  it('accepts user-message, abort, stop, and destroy', () => {
     for (const sample of [
-      { type: 'user-message', text: 'hi' },
+      { type: 'user-message', messageId: 'message-1', text: 'hi' },
       { type: 'abort' },
-      { type: 'shutdown' },
+      { type: 'stop' },
+      { type: 'destroy' },
     ]) {
       expect(() => inboundMessageSchema.parse(sample)).not.toThrow();
     }

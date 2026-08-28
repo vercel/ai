@@ -1,7 +1,7 @@
 // In-sandbox turn driver on `@ai-sdk/harness/bridge`; third-party imports stay external (tsup) and install in-sandbox from src/bridge/package.json — keep import/externals/deps in sync.
 
 import { randomUUID } from 'node:crypto';
-import { argv } from 'node:process';
+import { argv, env as procEnv } from 'node:process';
 import {
   runBridge,
   type BridgeEvent,
@@ -9,25 +9,29 @@ import {
 } from '@ai-sdk/harness/bridge';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { tool } from '@langchain/core/tools';
-import { Command, MemorySaver } from '@langchain/langgraph';
+import { Command, MemorySaver, Overwrite } from '@langchain/langgraph';
+import {
+  MultiServerMCPClient,
+  type ClientConfig,
+} from '@langchain/mcp-adapters';
 import { createDeepAgent } from 'deepagents';
+import { createMiddleware, toolStrategy } from 'langchain';
 import type { StartMessage } from '../deepagents-bridge-protocol';
 import { buildInterruptOn, collectActionRequests } from './approvals';
+import {
+  createDeepAgentsStreamEventState,
+  createEmitStreamEvent,
+  endReasoningBlock,
+  endTextBlock,
+  flushStep,
+  toCommonName,
+  type DeepAgentsStreamEvent,
+} from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { createLocalShellBackend } from './local-shell-backend';
 import { createBuiltinToolFilteringMiddleware } from './tool-filtering';
 
-// Native Deep Agents tool name -> harness-v1 common name (renames only; grep/glob/ls/task/write_todos forward unchanged).
-const NATIVE_TO_COMMON: Readonly<Record<string, string>> = {
-  read_file: 'read',
-  write_file: 'write',
-  edit_file: 'edit',
-  execute: 'bash',
-};
-
-function toCommonName(nativeName: string): string {
-  return NATIVE_TO_COMMON[nativeName] ?? nativeName;
-}
+const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
 function parseArgs(rawArgs: string[]): Record<string, string> {
   const out: Record<string, string> = {};
@@ -46,32 +50,71 @@ function parseArgs(rawArgs: string[]): Record<string, string> {
 
 // Always drive the Anthropic client. Through the gateway, models keep their
 // `creator/model` slug (gateway translates); direct Anthropic wants the bare id.
-function buildModel(rawModel: string | undefined) {
+function buildModel({
+  rawModel,
+  thinking,
+  effort,
+}: {
+  rawModel: string | undefined;
+  thinking: StartMessage['thinking'];
+  effort: StartMessage['effort'];
+}) {
   if (!rawModel) return undefined;
-  const baseUrl = process.env.ANTHROPIC_BASE_URL;
+  const baseUrl = procEnv.ANTHROPIC_BASE_URL;
   const model = baseUrl ? rawModel : rawModel.replace(/^anthropic[/:]/, '');
   return new ChatAnthropic({
     model,
-    ...(process.env.ANTHROPIC_API_KEY
-      ? { apiKey: process.env.ANTHROPIC_API_KEY }
-      : {}),
+    ...(thinking ? { thinking } : {}),
+    ...(effort ? { outputConfig: { effort } } : {}),
+    ...(procEnv.ANTHROPIC_API_KEY ? { apiKey: procEnv.ANTHROPIC_API_KEY } : {}),
     ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}),
+    ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
+      ? {
+          clientOptions: {
+            defaultHeaders: {
+              'User-Agent': HARNESS_CLIENT_APP,
+              'x-client-app': HARNESS_CLIENT_APP,
+            },
+          },
+        }
+      : {}),
   });
 }
 
-// LangChain reports some built-in tool args wrapped as `{ input: "<json>" }`; unwrap to the inner JSON so AI SDK validates the real shape.
-function toToolCallInput(raw: unknown): string {
-  if (
-    raw &&
-    typeof raw === 'object' &&
-    !Array.isArray(raw) &&
-    Object.keys(raw).length === 1 &&
-    typeof (raw as { input?: unknown }).input === 'string'
-  ) {
-    const inner = (raw as { input: string }).input;
-    if (/^\s*[[{]/.test(inner)) return inner;
-  }
-  return JSON.stringify(raw ?? {});
+function createReasoningMiddleware({
+  thinking,
+  effort,
+}: {
+  thinking: StartMessage['thinking'];
+  effort: StartMessage['effort'];
+}) {
+  if (!thinking && !effort) return undefined;
+
+  return createMiddleware({
+    name: 'harnessReasoning',
+    wrapModelCall: async (request, handler) => {
+      let model = request.model;
+      if (
+        '_getModelInstance' in model &&
+        typeof model._getModelInstance === 'function'
+      ) {
+        model = await model._getModelInstance();
+      }
+
+      if (!(model instanceof ChatAnthropic)) {
+        throw new Error('Deep Agents reasoning requires ChatAnthropic');
+      }
+
+      const configuredModel = buildModel({
+        rawModel: model.model,
+        thinking,
+        effort,
+      });
+      if (!configuredModel) throw new Error('Deep Agents model is missing');
+
+      return handler({ ...request, model: configuredModel });
+    },
+  });
 }
 
 const args = parseArgs(argv.slice(2));
@@ -86,6 +129,34 @@ if (!workdir || !bridgeStateDir) {
 // One agent per bridge process, reused across turns; host tools read the live turn via `currentTurn`.
 let agent: ReturnType<typeof createDeepAgent> | undefined;
 let currentTurn: BridgeTurn | undefined;
+let mcpClient: MultiServerMCPClient | undefined;
+let mcpToolNames = new Set<string>();
+let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
+const checkpointer = new MemorySaver();
+let agentConfigurationSignature: string | undefined;
+
+type DeepAgentsJsonSchema = Record<string, unknown> & {
+  type:
+    | 'null'
+    | 'boolean'
+    | 'object'
+    | 'array'
+    | 'number'
+    | 'string'
+    | 'integer';
+};
+
+const responseFormatMiddleware = createMiddleware({
+  name: 'HarnessResponseFormat',
+  wrapModelCall(request, handler) {
+    return handler({
+      ...request,
+      ...(currentResponseFormat == null
+        ? {}
+        : { responseFormat: currentResponseFormat }),
+    });
+  },
+});
 
 // Host tools become LangChain tools that emit a `tool-call` and block on the host's `tool-result`.
 function buildHostTools(toolSchemas: StartMessage['tools']) {
@@ -116,6 +187,10 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   currentTurn = turn;
+  currentResponseFormat =
+    start.responseFormat?.type === 'json' && start.responseFormat.schema != null
+      ? toolStrategy(start.responseFormat.schema as DeepAgentsJsonSchema)
+      : undefined;
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
@@ -123,8 +198,41 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     start.permissionMode,
     start.builtinToolFiltering,
   );
-  if (!agent) {
-    const model = buildModel(start.model);
+  const config = {
+    version: 'v2' as const,
+    configurable: { thread_id: 'bridge-session' },
+    ...(start.recursionLimit != null
+      ? { recursionLimit: start.recursionLimit }
+      : {}),
+    signal: turn.abortSignal,
+  };
+  const nextAgentConfigurationSignature = JSON.stringify({
+    instructions: start.instructions,
+    tools: start.tools,
+    skillsPaths: start.skillsPaths,
+  });
+  const rebuildAgent =
+    agent == null ||
+    agentConfigurationSignature !== nextAgentConfigurationSignature ||
+    start.skillsChanged === true;
+  if (rebuildAgent) {
+    if (agent != null && start.skillsChanged === true) {
+      await agent.updateState(config, {
+        skillsMetadata: new Overwrite([]),
+      } as never);
+    }
+    await closeMcpClient();
+    const model = buildModel({
+      rawModel: start.model,
+      thinking: start.thinking,
+      effort: start.effort,
+    });
+    const reasoningMiddleware = model
+      ? undefined
+      : createReasoningMiddleware({
+          thinking: start.thinking,
+          effort: start.effort,
+        });
     const builtinToolFilteringMiddleware = createBuiltinToolFilteringMiddleware(
       {
         builtinToolFiltering: start.builtinToolFiltering,
@@ -135,100 +243,62 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         },
       },
     );
+    const middleware = [
+      responseFormatMiddleware,
+      ...(reasoningMiddleware ? [reasoningMiddleware] : []),
+      ...(builtinToolFilteringMiddleware
+        ? [builtinToolFilteringMiddleware]
+        : []),
+    ];
+    const hostTools = buildHostTools(start.tools);
+    const hostToolNames = new Set(hostTools.map(hostTool => hostTool.name));
+    const externalTools = await loadMcpTools({
+      mcpServers: start.mcpServers,
+    });
+    const mcpTools = externalTools.filter(
+      externalTool => !hostToolNames.has(externalTool.name),
+    );
+    mcpToolNames = new Set(mcpTools.map(mcpTool => mcpTool.name));
     agent = createDeepAgent({
       // Defer to Deep Agents's own default when the host configured no model.
       ...(model ? { model } : {}),
-      tools: buildHostTools(start.tools),
+      tools: [...mcpTools, ...hostTools],
       backend: createLocalShellBackend({ rootDir: workdir }),
-      systemPrompt: start.instructions || undefined,
+      systemPrompt: start.instructions
+        ? { suffix: start.instructions }
+        : undefined,
       // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
       ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
-      ...(builtinToolFilteringMiddleware
-        ? { middleware: [builtinToolFilteringMiddleware] }
-        : {}),
+      ...(middleware.length > 0 ? { middleware } : {}),
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),
       // Real instance (LangGraph rejects `true` for root graphs); gives multi-turn memory.
-      checkpointer: new MemorySaver(),
+      checkpointer,
     });
+    agentConfigurationSignature = nextAgentConfigurationSignature;
+  }
+  const activeAgent = agent;
+  if (activeAgent == null) {
+    throw new Error('Deep Agents runtime was not initialized');
   }
 
-  emit({
-    type: 'stream-start',
-    ...(start.model ? { modelId: start.model } : {}),
-  });
-
   const hostToolNames = new Set((start.tools ?? []).map(t => t.name));
-  let textBlockId: string | undefined;
-  let reasoningBlockId: string | undefined;
-  let inputTokens = 0;
-  let outputTokens = 0;
-  // Per-call streamed-usage fallback (max over chunks), used only when model-end carries no usage.
-  let streamedStepInput = 0;
-  let streamedStepOutput = 0;
-  // Top-level step usage is buffered at model-end and flushed as finish-step only after the step's tools run.
-  let pendingStep: { input: number; output: number } | undefined;
-  // Approval-gated tools are announced before execution; these tie the later run back to the approval id and dedup the call.
-  const approvedToolQueue = new Map<string, string[]>();
-  const approvedRunIds = new Map<string, string>();
-
-  const ensureTextBlock = (): string => {
-    if (!textBlockId) {
-      textBlockId = `text-${randomUUID()}`;
-      emit({ type: 'text-start', id: textBlockId });
-    }
-    return textBlockId;
-  };
-  const endTextBlock = () => {
-    if (textBlockId) {
-      emit({ type: 'text-end', id: textBlockId });
-      textBlockId = undefined;
-    }
-  };
-  const endReasoningBlock = () => {
-    if (reasoningBlockId) {
-      emit({ type: 'reasoning-end', id: reasoningBlockId });
-      reasoningBlockId = undefined;
-    }
-  };
-  // Text and reasoning are mutually exclusive open blocks: starting one closes the other.
-  const emitText = (delta: string) => {
-    endReasoningBlock();
-    emit({ type: 'text-delta', id: ensureTextBlock(), delta });
-  };
-  const emitReasoning = (delta: string) => {
-    endTextBlock();
-    if (!reasoningBlockId) {
-      reasoningBlockId = `reasoning-${randomUUID()}`;
-      emit({ type: 'reasoning-start', id: reasoningBlockId });
-    }
-    emit({ type: 'reasoning-delta', id: reasoningBlockId, delta });
-  };
-  // Close the buffered top-level step; called when the next step starts and at turn end so finish-step lands after the step's tools.
-  const flushStep = () => {
-    if (!pendingStep) return;
-    emit({
-      type: 'finish-step',
-      finishReason: { unified: 'stop' },
-      usage: {
-        inputTokens: { total: pendingStep.input },
-        outputTokens: { total: pendingStep.output },
-      },
-    });
-    pendingStep = undefined;
-  };
-
-  const config = {
-    version: 'v2' as const,
-    configurable: { thread_id: 'bridge-session' },
-    recursionLimit: start.recursionLimit ?? 100,
-    signal: turn.abortSignal,
-  };
+  const streamEventState = createDeepAgentsStreamEventState();
+  const emitStreamEvent = createEmitStreamEvent({
+    state: streamEventState,
+    configuredModel: start.model,
+    hostToolNames,
+    mcpToolNames,
+    structuredOutputToolNames: new Set(
+      currentResponseFormat?.map(format => format.name) ?? [],
+    ),
+    emit,
+  });
 
   // After a stream segment ends, return the tool calls paused by HITL interrupts (empty when the turn is truly done).
   const readPendingApprovals = async () => {
     try {
-      const state = (await agent!.getState({
+      const state = (await activeAgent.getState({
         configurable: { thread_id: 'bridge-session' },
       })) as { tasks?: Array<{ interrupts?: Array<{ value?: unknown }> }> };
       return collectActionRequests(
@@ -242,126 +312,32 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   let resumeInput: unknown = {
     messages: [{ role: 'user', content: start.prompt }],
   };
+  let emittedStructuredOutput = false;
 
   while (true) {
-    const stream = await agent.streamEvents(resumeInput as never, config);
+    const stream = await activeAgent.streamEvents(resumeInput as never, config);
 
     for await (const event of stream) {
-      const kind = event.event;
-      const data = (event.data ?? {}) as Record<string, unknown>;
-      // Subagent (e.g. `task`) events carry a `|`-delimited checkpoint namespace; keep their internals out of the top-level stream.
-      const ns =
-        (event as { metadata?: { langgraph_checkpoint_ns?: string } }).metadata
-          ?.langgraph_checkpoint_ns ?? '';
-      const nested = ns.includes('|');
-
-      if (kind === 'on_chat_model_start') {
-        // A new top-level model call means the previous step's tools have run; close it now.
-        if (!nested) flushStep();
-      } else if (kind === 'on_chat_model_stream') {
-        if (nested) continue;
-        const chunk = data.chunk as
-          | {
-              content?: unknown;
-              usage_metadata?: {
-                input_tokens?: number;
-                output_tokens?: number;
-              };
-            }
-          | undefined;
-        if (!chunk) continue;
-        const content = chunk.content;
-        if (typeof content === 'string' && content) {
-          emitText(content);
-        } else if (Array.isArray(content)) {
-          for (const block of content) {
-            if (block && typeof block === 'object') {
-              const b = block as {
-                type?: string;
-                text?: string;
-                thinking?: string;
-              };
-              if (b.type === 'text' && b.text) emitText(b.text);
-              else if (b.type === 'thinking' && b.thinking)
-                emitReasoning(b.thinking);
-            }
-          }
-        }
-        const usage = chunk.usage_metadata;
-        if (usage) {
-          streamedStepInput = Math.max(
-            streamedStepInput,
-            usage.input_tokens ?? 0,
-          );
-          streamedStepOutput = Math.max(
-            streamedStepOutput,
-            usage.output_tokens ?? 0,
-          );
-        }
-      } else if (kind === 'on_chat_model_end') {
-        // Final usage lands on model-end, not the chunks; each model call is one step.
-        const output = data.output as
-          | {
-              usage_metadata?: {
-                input_tokens?: number;
-                output_tokens?: number;
-              };
-            }
-          | undefined;
-        const usage = output?.usage_metadata;
-        // One model call = one step; count its usage exactly once (model-end usage, else the streamed max).
-        const stepInput = usage?.input_tokens ?? streamedStepInput;
-        const stepOutput = usage?.output_tokens ?? streamedStepOutput;
-        inputTokens += stepInput;
-        outputTokens += stepOutput;
-        streamedStepInput = 0;
-        streamedStepOutput = 0;
-        // Nested (subagent) calls still count toward total usage, but only top-level calls bound a visible step.
-        if (!nested) {
-          endTextBlock();
-          endReasoningBlock();
-          // Buffer the step; flushStep emits finish-step after this step's tools run (next start / turn end).
-          pendingStep = { input: stepInput, output: stepOutput };
-        }
-      } else if (kind === 'on_tool_start') {
-        const toolName = (event.name as string) ?? 'unknown';
-        const runId = (event.run_id as string) ?? '';
-        // Host tools emit their own tool-call; surface only top-level builtin (providerExecuted) tools.
-        if (!nested && !hostToolNames.has(toolName)) {
-          const queued = approvedToolQueue.get(toolName);
-          if (queued && queued.length > 0) {
-            // Already announced at approval time; tie this run to that id and don't re-emit the call.
-            const approvalId = queued.shift()!;
-            if (runId) approvedRunIds.set(runId, approvalId);
-          } else {
-            endTextBlock();
-            endReasoningBlock();
-            emit({
-              type: 'tool-call',
-              toolCallId: runId,
-              toolName: toCommonName(toolName),
-              input: toToolCallInput(data.input),
-              providerExecuted: true,
-              nativeName: toolName,
-            });
-          }
-        }
-      } else if (kind === 'on_tool_end') {
-        const toolName = (event.name as string) ?? 'unknown';
-        const runId = (event.run_id as string) ?? '';
-        if (!nested && !hostToolNames.has(toolName)) {
-          let output: unknown = data.output ?? '';
-          if (output && typeof output === 'object' && 'content' in output) {
-            output = (output as { content: unknown }).content;
-          }
-          emit({
-            type: 'tool-result',
-            toolCallId: approvedRunIds.get(runId) ?? runId,
-            toolName: toCommonName(toolName),
-            result: output ?? null,
-          });
-          approvedRunIds.delete(runId);
-        }
+      emitStreamEvent(event as DeepAgentsStreamEvent);
+      const streamEvent = event as DeepAgentsStreamEvent;
+      const namespace = streamEvent.metadata?.langgraph_checkpoint_ns ?? '';
+      const output = (streamEvent.data as { output?: unknown } | undefined)
+        ?.output as { structuredResponse?: unknown } | undefined;
+      if (
+        !emittedStructuredOutput &&
+        streamEvent.event === 'on_chain_end' &&
+        !namespace.includes('|') &&
+        output?.structuredResponse !== undefined
+      ) {
+        const id = `structured-output-${randomUUID()}`;
+        emit({ type: 'text-start', id });
+        emit({
+          type: 'text-delta',
+          id,
+          delta: JSON.stringify(output.structuredResponse),
+        });
+        emit({ type: 'text-end', id });
+        emittedStructuredOutput = true;
       }
     }
 
@@ -374,8 +350,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     > = [];
     for (const action of actionRequests) {
       const approvalId = `approval-${randomUUID()}`;
-      endTextBlock();
-      endReasoningBlock();
+      endTextBlock({ state: streamEventState, emit });
+      endReasoningBlock({ state: streamEventState, emit });
       emit({
         type: 'tool-call',
         toolCallId: approvalId,
@@ -389,11 +365,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         approvalId,
         toolCallId: approvalId,
       });
+      flushStep({ state: streamEventState, emit });
       const decision = await turn.requestToolApproval(approvalId);
       if (decision.approved) {
-        const queue = approvedToolQueue.get(action.name) ?? [];
+        const queue = streamEventState.approvedToolQueue.get(action.name) ?? [];
         queue.push(approvalId);
-        approvedToolQueue.set(action.name, queue);
+        streamEventState.approvedToolQueue.set(action.name, queue);
         decisions.push({ type: 'approve' });
       } else {
         // Rejected tools never execute, so surface the outcome as the result now.
@@ -413,15 +390,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     resumeInput = new Command({ resume: { decisions } });
   }
 
-  endTextBlock();
-  endReasoningBlock();
-  flushStep();
+  endTextBlock({ state: streamEventState, emit });
+  endReasoningBlock({ state: streamEventState, emit });
+  flushStep({ state: streamEventState, emit });
   emit({
     type: 'finish',
     finishReason: { unified: 'stop' },
     totalUsage: {
-      inputTokens: { total: inputTokens },
-      outputTokens: { total: outputTokens },
+      inputTokens: { total: streamEventState.inputTokens },
+      outputTokens: { total: streamEventState.outputTokens },
     },
   });
 }
@@ -430,4 +407,37 @@ await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
   onStart: runTurn,
+  onStop: async () => {
+    await closeMcpClient();
+    return {};
+  },
+  onDestroy: closeMcpClient,
 });
+
+async function loadMcpTools({
+  mcpServers,
+}: {
+  mcpServers: Record<string, unknown> | undefined;
+}) {
+  if (mcpServers == null || Object.keys(mcpServers).length === 0) return [];
+  for (const [name, value] of Object.entries(mcpServers)) {
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(
+        `DeepAgents MCP server ${JSON.stringify(name)} must be configured with an object value.`,
+      );
+    }
+  }
+  mcpClient = new MultiServerMCPClient({
+    mcpServers: mcpServers as ClientConfig['mcpServers'],
+    prefixToolNameWithServerName: true,
+    additionalToolNamePrefix: 'mcp',
+  });
+  return mcpClient.getTools();
+}
+
+async function closeMcpClient(): Promise<void> {
+  const client = mcpClient;
+  mcpClient = undefined;
+  mcpToolNames = new Set();
+  await client?.close();
+}

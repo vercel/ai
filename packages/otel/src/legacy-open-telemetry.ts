@@ -612,6 +612,11 @@ export class LegacyOpenTelemetry implements Telemetry {
         operationId: 'ai.toolCall',
         telemetry,
       }),
+      ...Object.fromEntries(
+        Object.entries(state.baseTelemetryAttributes).filter(([key]) =>
+          key.startsWith('ai.settings.context.'),
+        ),
+      ),
       'ai.toolCall.name': toolCall.toolName,
       'ai.toolCall.id': toolCall.toolCallId,
       'ai.toolCall.args': {

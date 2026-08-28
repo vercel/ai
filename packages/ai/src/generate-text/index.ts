@@ -23,7 +23,7 @@ export type {
 export type { GenerateTextResult } from './generate-text-result';
 export {
   DefaultGeneratedFile,
-  type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v7
+  type Experimental_GeneratedImage,
   type GeneratedFile,
 } from './generated-file';
 export type {
@@ -34,6 +34,7 @@ export type {
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
 export * as Output from './output';
+export type { Output as OutputInterface } from './output';
 export type {
   InferCompleteOutput as InferGenerateOutput,
   InferPartialOutput as InferStreamOutput,
@@ -64,8 +65,10 @@ export {
 } from './stream-language-model-call';
 export {
   streamText,
+  type StreamTextEndEvent,
   type StreamTextInclude,
   type StreamTextOnChunkCallback,
+  type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
   type StreamTextTransform,
 } from './stream-text';
@@ -80,6 +83,8 @@ export type {
   ToolApprovalConfiguration,
   ToolApprovalStatus,
 } from './tool-approval-configuration';
+export type { Experimental_ToolCallers } from './tool-caller-configuration';
+export { detectToolDrift, fingerprintTools } from './tool-fingerprint';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 export type {

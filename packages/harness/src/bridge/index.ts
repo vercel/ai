@@ -1,15 +1,19 @@
 // Shared in-sandbox bridge runtime. Adapter `bridge.mjs` bundles re-bundle
 // this module (tsup inlines it; `ws` stays external and resolves from the
 // sandbox-installed node_modules). It owns everything generic to the bridge
-// transport — the WebSocket server, token auth, single-flight connection
-// replacement, the in-memory event log + monotonic `seq`, resume replay, and
-// the lifecycle/meta files. The adapter supplies only `onStart` (drive its
-// CLI/SDK and translate to wire events) and `onDetach` (its resume payload).
+// transport — the WebSocket server, token auth, the in-memory event log +
+// monotonic `seq`, resume replay, and the lifecycle/meta files. Any number of
+// hosts may be connected; exactly one of them owns the event stream, and
+// `start`/`resume` transfer that ownership. The adapter supplies only `onStart`
+// (drive its CLI/SDK and translate to wire events) and lifecycle cleanup hooks.
 
 import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { env as procEnv, pid, stdout } from 'node:process';
 import { WebSocketServer, type WebSocket } from 'ws';
+
+export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
 
 export type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
 
@@ -17,6 +21,29 @@ export type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
 export type BridgeEvent = Record<string, unknown> & { type: string };
 
 export type BridgeDebugLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace';
+
+export interface Experimental_BridgeUserMessage {
+  readonly messageId: string;
+  readonly text: string;
+  accept(): void;
+  reject(error: unknown): void;
+}
+
+export interface Experimental_BridgeUserMessageQueue extends AsyncIterable<Experimental_BridgeUserMessage> {
+  readonly pendingCount: number;
+  close(error?: unknown): void;
+}
+
+type InternalBridgeUserMessageQueue = Experimental_BridgeUserMessageQueue & {
+  enqueue(input: { messageId: string; text: string }): void;
+};
+
+type BridgeUserMessageResponse = {
+  type: 'user-message-response';
+  messageId: string;
+  accepted: boolean;
+  error?: { message: string };
+};
 
 /**
  * Per-session diagnostics config. The host resolves it from settings +
@@ -57,7 +84,134 @@ function formatBridgeError(err: unknown): {
   if (err instanceof Error) {
     return { name: err.name, message: err.message, stack: err.stack };
   }
+  if (typeof err === 'string') {
+    return { message: err };
+  }
+  if (err !== null && typeof err === 'object') {
+    try {
+      return { message: JSON.stringify(err) };
+    } catch {}
+  }
   return { message: String(err) };
+}
+
+function createBridgeUserMessageQueue(options: {
+  respond(response: BridgeUserMessageResponse): void;
+}): InternalBridgeUserMessageQueue {
+  const messages: Experimental_BridgeUserMessage[] = [];
+  const waiters: Array<
+    (result: IteratorResult<Experimental_BridgeUserMessage>) => void
+  > = [];
+  const entries = new Map<
+    string,
+    {
+      response?: BridgeUserMessageResponse;
+      reject(error: unknown): void;
+    }
+  >();
+  let closed = false;
+  let pendingCount = 0;
+
+  const enqueue = (input: { messageId: string; text: string }): void => {
+    const existing = entries.get(input.messageId);
+    if (existing != null) {
+      if (existing.response != null) {
+        options.respond(existing.response);
+      }
+      return;
+    }
+
+    let settled = false;
+    const settle = (response: BridgeUserMessageResponse): void => {
+      if (settled) return;
+      settled = true;
+      pendingCount--;
+      const entry = entries.get(input.messageId);
+      if (entry != null) entry.response = response;
+      options.respond(response);
+    };
+    const message: Experimental_BridgeUserMessage = {
+      messageId: input.messageId,
+      text: input.text,
+      accept: () => {
+        settle({
+          type: 'user-message-response',
+          messageId: input.messageId,
+          accepted: true,
+        });
+      },
+      reject: error => {
+        settle({
+          type: 'user-message-response',
+          messageId: input.messageId,
+          accepted: false,
+          error: { message: formatBridgeError(error).message },
+        });
+      },
+    };
+    entries.set(input.messageId, {
+      reject: message.reject,
+    });
+    pendingCount++;
+
+    if (closed) {
+      message.reject(
+        new Error('The bridge turn is no longer accepting user messages.'),
+      );
+      return;
+    }
+
+    const waiter = waiters.shift();
+    if (waiter != null) {
+      waiter({ done: false, value: message });
+    } else {
+      messages.push(message);
+    }
+  };
+
+  const close = (error?: unknown): void => {
+    if (closed) return;
+    closed = true;
+    const reason =
+      error ??
+      new Error('The bridge turn ended before accepting the user message.');
+    for (const entry of entries.values()) {
+      if (entry.response == null) entry.reject(reason);
+    }
+    messages.length = 0;
+    while (waiters.length > 0) {
+      waiters.shift()!({ done: true, value: undefined });
+    }
+  };
+
+  return {
+    get pendingCount() {
+      return pendingCount;
+    },
+    enqueue,
+    close,
+    [Symbol.asyncIterator]() {
+      return {
+        next: () => {
+          const message = messages.shift();
+          if (message != null) {
+            return Promise.resolve({ done: false as const, value: message });
+          }
+          if (closed) {
+            return Promise.resolve({
+              done: true as const,
+              value: undefined,
+            });
+          }
+          return new Promise<IteratorResult<Experimental_BridgeUserMessage>>(
+            resolve => {
+              waiters.push(resolve);
+            },
+          );
+        },
+      };
+    },
+  };
 }
 
 function parseEnvList(value: string | undefined): string[] | undefined {
@@ -102,12 +256,7 @@ export interface BridgeTurn {
     approvalId: string,
   ): Promise<{ approved: boolean; reason?: string }>;
 
-  /**
-   * Live queue of mid-turn user messages. The runtime pushes inbound
-   * `user-message` text here; the adapter drains it as its runtime accepts
-   * interactive input.
-   */
-  readonly pendingUserMessages: string[];
+  readonly experimental_userMessages: Experimental_BridgeUserMessageQueue;
 
   /** Aborts when the host sends `abort`. */
   readonly abortSignal: AbortSignal;
@@ -128,6 +277,15 @@ export interface BridgeTurn {
     attrs?: Record<string, unknown>;
     error?: unknown;
   }): void;
+
+  /**
+   * Emit a non-fatal bridge warning to stderr using the runtime's harness
+   * prefix. This is diagnostic-only: it does not emit a stream event, does not
+   * consume a `seq`, and does not fail the turn.
+   */
+  emitWarning(input: { message: string }): void;
+
+  emitError(input: { error: unknown; message?: string }): void;
 }
 
 export interface RunBridgeOptions<TStart extends { type: 'start' }> {
@@ -135,10 +293,36 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   bridgeType: string;
   /** Directory for `bridge-meta.json` / `start-config.json`. Created if absent. */
   bridgeStateDir: string;
-  /** Drive one prompt turn. Rejections surface to the host as an `error` event. */
+  /**
+   * Drive one prompt turn. Rejections surface to the host as an `error`
+   * event.
+   *
+   * Contract: once `turn.abortSignal` fires, wind down promptly — turns are
+   * serialized, and a replacement `start` waits up to
+   * {@link turnTeardownGraceMs} for this promise to settle before it
+   * proceeds anyway.
+   */
   onStart(start: TStart, turn: BridgeTurn): Promise<void>;
-  /** Produce the adapter-defined resume payload for a `detach`. Defaults to `{}`. */
-  onDetach?(): unknown | Promise<unknown>;
+  /**
+   * How long a replacement `start` waits for the previous turn's teardown
+   * after aborting it, in milliseconds. Turns are serialized so an aborted
+   * turn cannot emit into its replacement's event log or overlap its runtime
+   * process — but only within this bound: an adapter that does not settle
+   * `onStart` after its abort signal fires forfeits the protection for that
+   * boundary, and the new turn proceeds anyway rather than blocking forever.
+   * The default of ten seconds exceeds the Claude bridge's five-second
+   * hard-abort fallback.
+   */
+  turnTeardownGraceMs?: number;
+  /**
+   * Produce the adapter-defined runtime resume data for `stop`. Defaults to
+   * `{}`.
+   */
+  onStop?(): unknown | Promise<unknown>;
+  /**
+   * Perform adapter-defined destruction before the bridge exits.
+   */
+  onDestroy?(): void | Promise<void>;
   /** WS port. Defaults to `BRIDGE_WS_PORT` env (0 = OS-assigned). */
   port?: number;
   /** Auth token. Defaults to `BRIDGE_CHANNEL_TOKEN` env. */
@@ -146,7 +330,7 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   /** Called with the bound port once the server is listening. */
   onListening?(port: number): void;
   /**
-   * Tear the process down after a `shutdown` / `detach`. Defaults to closing
+   * Tear the process down after `stop` / `destroy`. Defaults to closing
    * the server and calling `process.exit(0)`. Overridable for tests.
    */
   onExit?(): void;
@@ -165,10 +349,10 @@ type InboundControl =
       approved: boolean;
       reason?: string;
     }
-  | { type: 'user-message'; text: string }
+  | { type: 'user-message'; messageId?: string; text: string }
   | { type: 'abort' }
-  | { type: 'shutdown' }
-  | { type: 'detach' }
+  | { type: 'stop' }
+  | { type: 'destroy' }
   | { type: 'resume'; lastSeenEventId: number };
 
 const WS_OPEN = 1;
@@ -177,7 +361,7 @@ const WS_OPEN = 1;
  * Boot the bridge: bind the WebSocket server, announce `bridge-ready`, and
  * service host connections for the lifetime of the process. Resolves once the
  * server is listening; the process then stays alive on the server until a
- * `shutdown` / `detach` exits it.
+ * `stop` / `destroy` exits it.
  */
 export interface BridgeHandle {
   /** The port the WebSocket server bound to. */
@@ -189,7 +373,8 @@ export interface BridgeHandle {
 export async function runBridge<TStart extends { type: 'start' }>(
   options: RunBridgeOptions<TStart>,
 ): Promise<BridgeHandle> {
-  const { bridgeType, bridgeStateDir, onStart, onDetach } = options;
+  const { bridgeType, bridgeStateDir, onStart, onStop, onDestroy } = options;
+  const teardownGraceMs = options.turnTeardownGraceMs ?? 10_000;
   const expectedToken = options.token ?? procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
   const bridgeWsPort =
     options.port ?? parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
@@ -208,10 +393,23 @@ export async function runBridge<TStart extends { type: 'start' }>(
   // ─── mutable runtime state ──────────────────────────────────────────
   let currentBoundPort = 0;
   let currentTurnState: BridgeState = 'init';
+  /*
+   * The one connection turn events stream to. A socket claims it by asking for
+   * work — `start` (a turn) or `resume` (a catch-up) — never by connecting:
+   * every event goes here alone, so claiming on connect would silence a turn
+   * already streaming to someone else. Any number of sockets may be connected;
+   * the others still exchange control frames, they just get no events.
+   */
   let activeSocket: WebSocket | undefined;
   let isFirstTurn = true;
   let turnAbort: AbortController | undefined;
-  let currentUserMessages: string[] | undefined;
+  let currentUserMessages: InternalBridgeUserMessageQueue | undefined;
+  /**
+   * Settles when the in-flight turn has fully wound down — `onStart`
+   * returned or threw AND its completion state was recorded. `undefined`
+   * between turns. A new `start` fences on this so turns never overlap.
+   */
+  let activeTurn: Promise<void> | undefined;
 
   // Diagnostics. Resolved per turn from `start.debug` with a sandbox-side
   // env fallback; gates console capture + structured `debug-event`s.
@@ -232,7 +430,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
    * Disk mirror of the in-memory replay log. The in-memory log is lost when the
    * bridge process dies; the on-disk `event-log.ndjson` survives in the sandbox
    * filesystem so a respawned bridge (started with `BRIDGE_REPLAY_FROM_DISK=1`)
-   * can reload the just-interrupted turn and serve a host's resume cursor —
+   * can reload the in-flight turn and serve a host's resume cursor —
    * `replay` recovery. Writes are batched on `setImmediate` (single-flight via
    * `flushPromise`) to keep `emit` off the disk hot path.
    */
@@ -347,16 +545,6 @@ export async function runBridge<TStart extends { type: 'start' }>(
   };
 
   // ─── wire send + replay ─────────────────────────────────────────────
-  const sendControl = (msg: Record<string, unknown>): void => {
-    if (activeSocket?.readyState === WS_OPEN) {
-      try {
-        activeSocket.send(JSON.stringify(msg));
-      } catch {
-        // best-effort
-      }
-    }
-  };
-
   const emit = (event: BridgeEvent): void => {
     const seq = ++seqCounter;
     const line = JSON.stringify({ ...event, seq });
@@ -402,6 +590,40 @@ export async function runBridge<TStart extends { type: 'start' }>(
    */
   const rawStdoutWrite = process.stdout.write.bind(process.stdout);
   const rawStderrWrite = process.stderr.write.bind(process.stderr);
+
+  const writeErrorToStderr = (input: {
+    message: string;
+    error: unknown;
+  }): void => {
+    try {
+      const formatted = formatBridgeError(input.error);
+      rawStderrWrite(
+        `[harness:${bridgeType}:error] ${input.message}: ${formatted.message}\n`,
+      );
+      if (formatted.stack) {
+        rawStderrWrite(`${formatted.stack}\n`);
+      }
+    } catch {}
+  };
+
+  const emitWarning = (input: { message: string }): void => {
+    try {
+      for (const line of input.message.split('\n')) {
+        if (line.trim().length > 0) {
+          rawStderrWrite(`[harness:${bridgeType}:warn] ${line}\n`);
+        }
+      }
+    } catch {}
+  };
+
+  const emitError = (input: { error: unknown; message?: string }): void => {
+    writeErrorToStderr({
+      message: input.message ?? 'bridge error',
+      error: input.error,
+    });
+    emit({ type: 'error', error: serialiseError(input.error) });
+  };
+
   const installConsoleCapture = (): void => {
     if (consoleCaptureInstalled) return;
     consoleCaptureInstalled = true;
@@ -462,6 +684,44 @@ export async function runBridge<TStart extends { type: 'start' }>(
   ): Promise<void> => {
     switch (msg.type) {
       case 'start': {
+        /*
+         * A new turn replaces the active one — but only after the active one
+         * has fully wound down. Inbound frames are dispatched concurrently,
+         * and the host settles a caller abort immediately, so a retry's
+         * `start` can arrive while the aborted turn is still tearing down
+         * (e.g. a graceful interrupt). Without this fence the old turn would
+         * keep emitting into the new turn's cleared event log, two runtime
+         * processes would run side by side, and the old turn's completion
+         * would mark the bridge `waiting` underneath the new turn. Abort the
+         * old turn to hasten its teardown; adapters are expected to bound
+         * that teardown themselves (e.g. a hard-abort fallback), but the
+         * runtime does not rely on it: the wait is capped by the teardown
+         * grace period, after which the new turn proceeds anyway — the
+         * pre-fence overlapping behavior — rather than hanging behind a
+         * teardown that never settles.
+         */
+        for (;;) {
+          const pendingTurn = activeTurn;
+          if (pendingTurn == null) break;
+          turnAbort?.abort();
+          currentUserMessages?.close(
+            new Error('A new bridge turn replaced the active turn.'),
+          );
+          let graceTimer: ReturnType<typeof setTimeout> | undefined;
+          const settled = await Promise.race([
+            pendingTurn.then(() => true as const),
+            new Promise<false>(resolve => {
+              graceTimer = setTimeout(() => resolve(false), teardownGraceMs);
+              graceTimer.unref?.();
+            }),
+          ]);
+          clearTimeout(graceTimer);
+          if (!settled) break;
+        }
+        let turnFinished!: () => void;
+        const thisTurn = new Promise<void>(resolve => (turnFinished = resolve));
+        activeTurn = thisTurn;
+        activeSocket = ws; // asking for a turn claims the event stream
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
@@ -486,6 +746,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         if (debugConfig.enabled) {
           installConsoleCapture();
         }
+        const userMessages = createBridgeUserMessageQueue({ respond: emit });
         const turn: BridgeTurn = {
           emit,
           requestToolResult: toolCallId =>
@@ -496,7 +757,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
             new Promise(resolve => {
               pendingToolApprovals.set(approvalId, resolve);
             }),
-          pendingUserMessages: [],
+          experimental_userMessages: userMessages,
           abortSignal: turnAbort.signal,
           firstTurn,
           bridgeLog: input => {
@@ -513,15 +774,28 @@ export async function runBridge<TStart extends { type: 'start' }>(
                 : {}),
             });
           },
+          emitWarning,
+          emitError,
         };
-        currentUserMessages = turn.pendingUserMessages;
+        currentUserMessages = userMessages;
         try {
           await onStart(msg as TStart, turn);
         } catch (err) {
-          emit({ type: 'error', error: serialiseError(err) });
+          emitError({ error: err, message: 'bridge turn failed' });
         } finally {
-          currentTurnState = 'waiting';
-          void writeBridgeMeta('waiting');
+          userMessages.close();
+          if (currentUserMessages === userMessages) {
+            currentUserMessages = undefined;
+          }
+          // Only the still-active turn records completion: after a fence
+          // timeout a replacement turn is already running, and this stale
+          // completion must not mark the bridge waiting underneath it.
+          if (activeTurn === thisTurn) {
+            activeTurn = undefined;
+            currentTurnState = 'waiting';
+            void writeBridgeMeta('waiting');
+          }
+          turnFinished();
         }
         return;
       }
@@ -541,26 +815,54 @@ export async function runBridge<TStart extends { type: 'start' }>(
         }
         return;
       }
-      case 'user-message':
-        currentUserMessages?.push(msg.text);
+      case 'user-message': {
+        const messageId = msg.messageId ?? randomUUID();
+        if (currentUserMessages == null) {
+          sendControl(ws, {
+            type: 'user-message-response',
+            messageId,
+            accepted: false,
+            error: { message: 'The bridge has no active turn to steer.' },
+          });
+          return;
+        }
+        if (ws !== activeSocket) {
+          sendControl(ws, {
+            type: 'user-message-response',
+            messageId,
+            accepted: false,
+            error: {
+              message: 'The connection does not own the active bridge turn.',
+            },
+          });
+          return;
+        }
+        currentUserMessages.enqueue({
+          messageId,
+          text: msg.text,
+        });
         return;
+      }
       case 'abort':
         turnAbort?.abort();
         return;
       case 'resume':
+        activeSocket = ws; // asking for a catch-up claims it too
+        // Synchronous, so no event can slip out live ahead of the replayed tail.
         replay(ws, msg.lastSeenEventId);
         return;
-      case 'shutdown':
+      case 'destroy':
         currentTurnState = 'done';
         void writeBridgeMeta('done');
-        drainThenExit(ws, 1000, 'shutdown');
+        await onDestroy?.();
+        drainThenExit(ws, 1000, 'destroy');
         return;
-      case 'detach': {
+      case 'stop': {
         currentTurnState = 'done';
         void writeBridgeMeta('done');
-        const data = (await onDetach?.()) ?? {};
-        sendControl({ type: 'bridge-detach', data });
-        drainThenExit(ws, 1000, 'detach');
+        const data = (await onStop?.()) ?? {};
+        sendControl(ws, { type: 'bridge-stop', data });
+        drainThenExit(ws, 1000, 'stop');
         return;
       }
     }
@@ -585,7 +887,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
     const tick = (): void => {
       const drained = ws.bufferedAmount === 0 || ws.readyState !== WS_OPEN;
       if (drained || Date.now() - start >= 5_000) {
-        // Flush the on-disk log so a clean shutdown/detach leaves a complete
+        // Flush the on-disk log so a clean stop/destroy leaves a complete
         // event-log.ndjson for any later replay recovery.
         void flushPendingEventsToDisk().finally(() => {
           try {
@@ -622,18 +924,14 @@ export async function runBridge<TStart extends { type: 'start' }>(
       return;
     }
 
-    // Single-flight: a fresh authorized connection *replaces* the active one
-    // (the host reconnecting after a drop). The previous socket's close is a
-    // no-op below because it is no longer `activeSocket`.
-    activeSocket = ws;
-
     // Announce liveness the instant we accept. Some sandbox runtimes complete
     // the host-side WS handshake before the connection is forwarded here; the
     // host waits for this frame before sending `start`/`resume`.
-    sendControl({
+    sendControl(ws, {
       type: 'bridge-hello',
       state: currentTurnState,
       lastSeq: seqCounter,
+      capabilities: { experimental_userMessageResponses: true },
     });
 
     ws.on('message', (raw: ArrayBufferLike | string) => {
@@ -643,7 +941,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
           typeof raw === 'string' ? raw : Buffer.from(raw).toString('utf8');
         parsed = JSON.parse(text) as TStart | InboundControl;
       } catch (err) {
-        sendControl({
+        sendControl(ws, {
           type: 'error',
           error: `protocol parse error: ${(err as Error).message}`,
         });
@@ -653,10 +951,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
     });
 
     ws.on('close', () => {
-      // Only the *current* socket's close matters. A stale socket (already
-      // replaced by a reconnect) closing is a no-op. Crucially we do NOT abort
-      // the in-flight turn — it keeps running and its events accumulate in the
-      // log for replay when the host reconnects.
+      // Only the stream owner's close matters; a socket that never claimed it,
+      // or that a later `start`/`resume` displaced, closes as a no-op.
+      // Crucially we do NOT abort the in-flight turn: it keeps running and its
+      // events accumulate in the log for replay on reconnect.
       if (activeSocket === ws) {
         activeSocket = undefined;
       }
@@ -669,10 +967,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
 
   // Surface bridge-internal crashes to the host instead of dying silently.
   process.on('uncaughtException', err => {
-    emit({ type: 'error', error: serialiseError(err) });
+    emitError({ error: err, message: 'uncaught exception' });
   });
   process.on('unhandledRejection', err => {
-    emit({ type: 'error', error: serialiseError(err) });
+    emitError({ error: err, message: 'unhandled rejection' });
   });
 
   await new Promise<void>((resolve, reject) => {
@@ -692,6 +990,24 @@ export async function runBridge<TStart extends { type: 'start' }>(
         wss.close(() => resolve());
       }),
   };
+}
+
+/*
+ * Control frames answer the socket that sent the frame they reply to, so the
+ * target is always explicit. Event streaming is the separate, stateful path
+ * (`emit` → `activeSocket`); this one carries no state at all.
+ */
+function sendControl(
+  socket: WebSocket | undefined,
+  message: Record<string, unknown>,
+): void {
+  if (socket?.readyState === WS_OPEN) {
+    try {
+      socket.send(JSON.stringify(message));
+    } catch {
+      // best-effort
+    }
+  }
 }
 
 function serialiseError(err: unknown): unknown {

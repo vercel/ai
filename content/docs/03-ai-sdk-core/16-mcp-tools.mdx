@@ -25,6 +25,12 @@ Create an MCP client using one of the following transport options:
 - SSE (Server-Sent Events): An alternative HTTP-based transport
 - `stdio`: For local development only. Uses standard input/output streams for local MCP servers
 
+The AI SDK MCP client supports both legacy initialization-based protocol
+versions and stateless MCP `2026-07-28`. The built-in stdio transport probes
+with `server/discover` and automatically falls back to the legacy
+`initialize` handshake for older servers. Custom transports can opt into this
+negotiation with `supportsProtocolVersionDiscovery: true`.
+
 ### HTTP Transport (Recommended)
 
 For production deployments, we recommend using the HTTP transport. You can configure it directly on the client:
@@ -49,8 +55,9 @@ const mcpClient = await createMCPClient({
 });
 ```
 
-If the MCP server uses Streamable HTTP sessions, you can reattach to a saved
-session by restoring both the previous session id and initialize result:
+If a legacy MCP server uses Streamable HTTP sessions, you can reattach to a
+saved session by restoring both the previous session id and initialize result.
+MCP `2026-07-28` is stateless and does not use these options:
 
 ```typescript
 import { createMCPClient } from '@ai-sdk/mcp';
@@ -202,6 +209,32 @@ const myOAuthClientProvider = {
 This hook is called before the SDK fetches authorization server metadata, so a
 rejected URL is not requested. It is optional and does not change existing OAuth
 flows unless you implement it.
+
+### OAuth Callback Issuer Validation
+
+When completing an OAuth authorization callback, pass the callback's `iss`
+parameter to `auth` as `callbackIssuer`:
+
+```typescript
+import { auth } from '@ai-sdk/mcp';
+
+const callbackUrl = new URL(request.url);
+
+await auth(myOAuthClientProvider, {
+  serverUrl: 'https://mcp.example.com',
+  authorizationCode: callbackUrl.searchParams.get('code')!,
+  callbackState: callbackUrl.searchParams.get('state') ?? undefined,
+  callbackIssuer: callbackUrl.searchParams.get('iss') ?? undefined,
+});
+```
+
+When `iss` is present, it must exactly match the discovered authorization
+server issuer. The authorization code is not exchanged when it does not match.
+
+Dynamic client registration requests include an OAuth `application_type`. The
+client infers `native` for loopback, localhost, and custom-scheme redirects,
+and `web` for remote HTTP(S) redirects. You can override this by setting
+`application_type` in the provider's `clientMetadata`.
 
 ### Retrying Transient Tool Failures
 
@@ -517,6 +550,50 @@ Your handler must return an object with an `action` field that can be one of:
 - `'accept'`: User provided the requested information. Must include `content` with the data.
 - `'decline'`: User chose not to provide the information.
 - `'cancel'`: User cancelled the operation entirely.
+
+## Detecting tool-definition drift ("rug pull")
+
+An MCP server sends tool definitions (name, description, input schema) when your
+app first connects, and you typically review and approve them at that point.
+Nothing in the protocol prevents the server from later serving a _different_
+definition for the same tool name — for example a description carrying injected
+instructions, or an input schema widened with an extra field. Because the SDK
+uses whatever tools you pass on each call, a mutated definition returned by a
+later `mcpClient.tools()` fetch would be used without any comparison to what was
+approved. This is the MCP ["rug pull"](https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks)
+class of attack.
+
+The AI SDK provides two functions to pin the approved definitions and detect
+changes. `fingerprintTools` digests the server-controlled, security-relevant
+fields of each tool (string `description`, resolved input schema, and `title`)
+into a stable map of tool name to digest. `detectToolDrift` diffs two such maps.
+Your app owns baseline storage and the response to drift (block, force
+re-approval, or alert):
+
+```typescript
+import { fingerprintTools, detectToolDrift } from 'ai';
+
+// Trust time (first connect, human-reviewed): capture and persist the baseline.
+const baseline = await fingerprintTools(await mcpClient.tools());
+
+// Every later fetch, before handing tools to generateText:
+const tools = await mcpClient.tools();
+const drift = detectToolDrift(await fingerprintTools(tools), baseline);
+
+if (drift.changed.length || drift.added.length) {
+  // A pinned definition changed, or a new tool appeared. Block, re-approve,
+  // or alert per your policy — do not silently pass `tools` to the model.
+}
+```
+
+<Note>
+  This detects mutation of a tool's description, input schema, or title — the
+  prompt-injection and schema-widening vectors. It cannot detect a
+  behavior/endpoint swap where the name, description, and schema are all
+  unchanged, because the tool runs remotely on the MCP server and that change is
+  invisible to the client. Core stays unopinionated: it does not persist
+  baselines or block calls — those are your app's responsibility.
+</Note>
 
 ## Examples
 
