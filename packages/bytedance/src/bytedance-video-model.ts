@@ -464,6 +464,51 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
           taskId,
           usage: response.usage,
         },
+<<<<<<< HEAD
+=======
+        providerMetadata: {
+          bytedance: {
+            taskId,
+            usage: statusResponse.usage,
+            ...(statusResponse.content?.last_frame_url != null
+              ? { lastFrameUrl: statusResponse.content.last_frame_url }
+              : {}),
+          },
+        },
+      };
+    }
+
+    // ModelArk documents `cancelled`; `canceled` is handled defensively.
+    if (
+      statusResponse.status === 'failed' ||
+      statusResponse.status === 'cancelled' ||
+      statusResponse.status === 'canceled'
+    ) {
+      // Fall back to the raw body when the task carries no structured reason,
+      // so a failure is never reported without any diagnostic detail.
+      const failureDetails =
+        statusResponse.error?.message ??
+        statusResponse.error?.code ??
+        JSON.stringify(statusResponse);
+
+      return {
+        status: 'error',
+        error: `Video generation ${statusResponse.status}. Task ID: ${taskId}. ${failureDetails}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+>>>>>>> 99d4211716 (fix: surface ByteDance video generation last-frame URLs (#19920))
       },
     };
   }
@@ -482,6 +527,7 @@ const byteDanceStatusResponseSchema = z.object({
   content: z
     .object({
       video_url: z.string().nullish(),
+      last_frame_url: z.string().nullish(),
     })
     .nullish(),
   usage: z
