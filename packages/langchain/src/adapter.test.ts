@@ -3,9 +3,11 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import {
+  baseMessagesToUIMessages,
   toUIMessageStream,
   toBaseMessages,
   convertModelMessages,
+  stateSnapshotToUIMessages,
 } from './adapter';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readUIMessageStream, type ModelMessage, type UIMessage } from 'ai';
@@ -16,6 +18,7 @@ import {
   SystemMessage,
   ToolMessage,
 } from '@langchain/core/messages';
+import type { StateSnapshot } from '@langchain/langgraph';
 import {
   LANGGRAPH_RESPONSE_1,
   LANGGRAPH_RESPONSE_2,
@@ -2343,6 +2346,198 @@ describe('toBaseMessages', () => {
         mimeType: 'image/png',
       },
     ]);
+  });
+});
+
+describe('baseMessagesToUIMessages', () => {
+  it('should convert LangChain text messages to UIMessages', () => {
+    const result = baseMessagesToUIMessages([
+      new SystemMessage({ id: 'system-1', content: 'Be helpful.' }),
+      new HumanMessage({ id: 'human-1', content: 'Hello!' }),
+      new AIMessage({ id: 'ai-1', content: 'Hi there!' }),
+    ]);
+
+    expect(result).toEqual([
+      {
+        id: 'system-1',
+        role: 'system',
+        parts: [{ type: 'text', text: 'Be helpful.' }],
+      },
+      {
+        id: 'human-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Hello!' }],
+      },
+      {
+        id: 'ai-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Hi there!' }],
+      },
+    ]);
+  });
+
+  it('should attach ToolMessage outputs to matching assistant tool calls', () => {
+    const result = baseMessagesToUIMessages([
+      new HumanMessage({ id: 'human-1', content: 'What is the weather?' }),
+      new AIMessage({
+        id: 'ai-1',
+        content: '',
+        tool_calls: [
+          {
+            id: 'call-1',
+            name: 'get_weather',
+            args: { location: 'NYC' },
+          },
+        ],
+      }),
+      new ToolMessage({
+        id: 'tool-1',
+        tool_call_id: 'call-1',
+        content: 'Sunny',
+      }),
+    ]);
+
+    expect(result).toEqual([
+      {
+        id: 'human-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'What is the weather?' }],
+      },
+      {
+        id: 'ai-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'dynamic-tool',
+            toolCallId: 'call-1',
+            toolName: 'get_weather',
+            state: 'output-available',
+            input: { location: 'NYC' },
+            output: 'Sunny',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert user multimodal content blocks to file parts', () => {
+    const result = baseMessagesToUIMessages([
+      new HumanMessage({
+        id: 'human-1',
+        content: [
+          { type: 'text', text: 'Describe this image.' },
+          { type: 'image', data: 'abc123', mimeType: 'image/png' },
+        ],
+      }),
+    ]);
+
+    expect(result).toEqual([
+      {
+        id: 'human-1',
+        role: 'user',
+        parts: [
+          { type: 'text', text: 'Describe this image.' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            url: 'data:image/png;base64,abc123',
+          },
+        ],
+      },
+    ]);
+  });
+});
+
+describe('stateSnapshotToUIMessages', () => {
+  it('should convert a LangGraph StateSnapshot messages channel to UIMessages', () => {
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new HumanMessage({ id: 'human-1', content: 'Hello!' }),
+          new AIMessage({ id: 'ai-1', content: 'Hi there!' }),
+        ],
+      },
+    } as unknown as StateSnapshot);
+
+    expect(result).toEqual([
+      {
+        id: 'human-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Hello!' }],
+      },
+      {
+        id: 'ai-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Hi there!' }],
+      },
+    ]);
+  });
+
+  it('should mark matching snapshot interrupts as pending approvals', () => {
+    const result = stateSnapshotToUIMessages({
+      values: {
+        messages: [
+          new HumanMessage({ id: 'human-1', content: 'Delete report.pdf' }),
+          new AIMessage({
+            id: 'ai-1',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-1',
+                name: 'delete_file',
+                args: { filename: 'report.pdf' },
+              },
+            ],
+          }),
+        ],
+      },
+      tasks: [
+        {
+          interrupts: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    } as unknown as StateSnapshot);
+
+    expect(result).toEqual([
+      {
+        id: 'human-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Delete report.pdf' }],
+      },
+      {
+        id: 'ai-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'dynamic-tool',
+            toolCallId: 'call-1',
+            toolName: 'delete_file',
+            state: 'approval-requested',
+            input: { filename: 'report.pdf' },
+            approval: {
+              id: 'call-1',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should return an empty array when the snapshot has no messages channel', () => {
+    expect(
+      stateSnapshotToUIMessages({ values: {} } as unknown as StateSnapshot),
+    ).toEqual([]);
   });
 });
 

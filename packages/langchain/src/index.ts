@@ -1,7 +1,9 @@
 export {
+  baseMessagesToUIMessages,
   toBaseMessages,
   toUIMessageStream,
   convertModelMessages,
+  stateSnapshotToUIMessages,
   type ToUIMessageStreamOptions,
 } from './adapter';
 
