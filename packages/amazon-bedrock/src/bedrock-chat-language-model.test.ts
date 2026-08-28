@@ -313,7 +313,7 @@ describe('application inference profile reasoning', () => {
           };
         }
       | undefined;
-    const applicationProfileModel = new AmazonBedrockChatLanguageModel(
+    const applicationProfileModel = new BedrockChatLanguageModel(
       applicationProfileArn,
       {
         baseUrl: () => baseUrl,
@@ -376,7 +376,7 @@ describe('application inference profile reasoning', () => {
         type: 'reasoning',
         text: 'The response should be OK.',
         providerMetadata: expect.objectContaining({
-          amazonBedrock: {
+          bedrock: {
             signature: 'test-signature',
           },
         }),

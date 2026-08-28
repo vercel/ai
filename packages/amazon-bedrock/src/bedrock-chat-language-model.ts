@@ -165,7 +165,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const isAnthropicModel =
       this.modelId.includes('anthropic') ||
       (this.modelId.includes(':application-inference-profile/') &&
-        amazonBedrockOptions.reasoningConfig?.budgetTokens != null);
+        bedrockOptions.reasoningConfig?.budgetTokens != null);
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
