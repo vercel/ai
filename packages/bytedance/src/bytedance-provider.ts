@@ -2,17 +2,37 @@ import {
   NoSuchModelError,
   type Experimental_VideoModelV4,
   type ImageModelV4,
+  type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { ByteDanceChatLanguageModel } from './bytedance-chat-language-model';
+import type { ByteDanceChatModelId } from './bytedance-chat-options';
 import { ByteDanceImageModel } from './bytedance-image-model';
 import type { ByteDanceImageModelId } from './bytedance-image-settings';
 import { ByteDanceVideoModel } from './bytedance-video-model';
 import type { ByteDanceVideoModelId } from './bytedance-video-settings';
+import { VERSION } from './version';
+
+function transformByteDanceRequestBody(
+  args: Record<string, any>,
+): Record<string, any> {
+  const { parallelToolCalls, topLogprobs, logitBias, ...restArgs } = args;
+
+  return {
+    ...restArgs,
+    ...(parallelToolCalls !== undefined && {
+      parallel_tool_calls: parallelToolCalls,
+    }),
+    ...(topLogprobs !== undefined && { top_logprobs: topLogprobs }),
+    ...(logitBias !== undefined && { logit_bias: logitBias }),
+  };
+}
 
 export interface ByteDanceProviderSettings {
   /**
@@ -40,6 +60,21 @@ export interface ByteDanceProviderSettings {
 }
 
 export interface ByteDanceProvider extends ProviderV4 {
+  /**
+   * Creates a ByteDance model for text generation.
+   */
+  (modelId: ByteDanceChatModelId): LanguageModelV4;
+
+  /**
+   * Creates a ByteDance chat model for text generation.
+   */
+  chat(modelId: ByteDanceChatModelId): LanguageModelV4;
+
+  /**
+   * Creates a ByteDance chat model for text generation.
+   */
+  languageModel(modelId: ByteDanceChatModelId): LanguageModelV4;
+
   /**
    * Creates a model for video generation.
    */
@@ -71,15 +106,29 @@ export function createByteDance(
 ): ByteDanceProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'ARK_API_KEY',
-      description: 'ByteDance ModelArk',
-    })}`,
-    'Content-Type': 'application/json',
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'ARK_API_KEY',
+          description: 'ByteDance ModelArk',
+        })}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      `ai-sdk/bytedance/${VERSION}`,
+    );
+
+  const createChatModel = (modelId: ByteDanceChatModelId) =>
+    new ByteDanceChatLanguageModel(modelId, {
+      provider: 'bytedance.chat',
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      supportsStructuredOutputs: true,
+      transformRequestBody: transformByteDanceRequestBody,
+    });
 
   const createVideoModel = (modelId: ByteDanceVideoModelId) =>
     new ByteDanceVideoModel(modelId, {
@@ -97,19 +146,20 @@ export function createByteDance(
       fetch: options.fetch,
     });
 
-  return {
-    specificationVersion: 'v4' as const,
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-    },
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
-    },
-    image: createImageModel,
-    imageModel: createImageModel,
-    video: createVideoModel,
-    videoModel: createVideoModel,
+  const provider = (modelId: ByteDanceChatModelId) => createChatModel(modelId);
+
+  provider.specificationVersion = 'v4' as const;
+  provider.languageModel = createChatModel;
+  provider.chat = createChatModel;
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
+  provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
+
+  return provider;
 }
 
 /**
