@@ -307,6 +307,24 @@ function getPromptCacheBreakpoint(
     | undefined;
 }
 
+function getScalarToolResultPromptCacheBreakpoint({
+  output,
+  toolResultProviderOptions,
+  providerOptionsName,
+}: {
+  output: LanguageModelV4ToolResultOutput;
+  toolResultProviderOptions: SharedV4ProviderOptions | undefined;
+  providerOptionsName: string;
+}): OpenAIPromptCacheBreakpoint | undefined {
+  return output.type === 'content'
+    ? undefined
+    : (getPromptCacheBreakpoint(output.providerOptions, providerOptionsName) ??
+        getPromptCacheBreakpoint(
+          toolResultProviderOptions,
+          providerOptionsName,
+        ));
+}
+
 /**
  * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
  * with the `fileIdPrefixes` option.
@@ -1236,15 +1254,31 @@ export async function convertToOpenAIResponsesInput({
               );
 
               const toolOutputs = await Promise.all(
-                parallelToolResultGroup.results.map(async result =>
-                  convertFunctionToolResultOutput({
-                    output: result.output,
-                    toolName: result.toolName,
-                    outputSchemaToolNames,
-                    providerOptionsName,
-                    warnings,
-                  }),
-                ),
+                parallelToolResultGroup.results.map(async result => {
+                  const promptCacheBreakpoint =
+                    getScalarToolResultPromptCacheBreakpoint({
+                      output: result.output,
+                      toolResultProviderOptions: result.providerOptions,
+                      providerOptionsName,
+                    });
+
+                  return {
+                    output: await convertFunctionToolResultOutput({
+                      output: result.output,
+                      toolName: result.toolName,
+                      outputSchemaToolNames,
+                      providerOptionsName,
+                      warnings,
+                    }),
+                    promptCacheBreakpoint,
+                  };
+                }),
+              );
+              const serializedToolOutputs = toolOutputs.map(({ output }) =>
+                typeof output === 'string' ? output : JSON.stringify(output),
+              );
+              const hasPromptCacheBreakpoint = toolOutputs.some(
+                ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
               );
 
               input.push({
@@ -1252,13 +1286,16 @@ export async function convertToOpenAIResponsesInput({
                 call_id: parallelToolResultGroup.metadata.toolCallId,
                 // The internal wrapper returns one output containing the child
                 // results in the same order as the original tool_uses array.
-                output: toolOutputs
-                  .map(output =>
-                    typeof output === 'string'
-                      ? output
-                      : JSON.stringify(output),
-                  )
-                  .join('\n'),
+                output: hasPromptCacheBreakpoint
+                  ? serializedToolOutputs.map((text, index) => ({
+                      type: 'input_text',
+                      text: index === 0 ? text : `\n${text}`,
+                      ...(toolOutputs[index].promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint:
+                          toolOutputs[index].promptCacheBreakpoint,
+                      }),
+                    }))
+                  : serializedToolOutputs.join('\n'),
               });
             }
             continue;
@@ -1392,18 +1429,38 @@ export async function convertToOpenAIResponsesInput({
           }
 
           if (customProviderToolNames?.has(resolvedToolName)) {
+            const promptCacheBreakpoint =
+              getScalarToolResultPromptCacheBreakpoint({
+                output,
+                toolResultProviderOptions: part.providerOptions,
+                providerOptionsName,
+              });
+            const convertScalarOutput = (
+              value: string,
+            ): OpenAIResponsesCustomToolCallOutput['output'] =>
+              promptCacheBreakpoint == null
+                ? value
+                : [
+                    {
+                      type: 'input_text',
+                      text: value,
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    },
+                  ];
             let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
             switch (output.type) {
               case 'text':
               case 'error-text':
-                outputValue = output.value;
+                outputValue = convertScalarOutput(output.value);
                 break;
               case 'execution-denied':
-                outputValue = output.reason ?? 'Tool call execution denied.';
+                outputValue = convertScalarOutput(
+                  output.reason ?? 'Tool call execution denied.',
+                );
                 break;
               case 'json':
               case 'error-json':
-                outputValue = JSON.stringify(output.value);
+                outputValue = convertScalarOutput(JSON.stringify(output.value));
                 break;
               case 'content':
                 outputValue = output.value
@@ -1502,17 +1559,11 @@ export async function convertToOpenAIResponsesInput({
             output,
             toolName: part.toolName,
             outputSchemaToolNames,
-            promptCacheBreakpoint:
-              output.type === 'content'
-                ? undefined
-                : (getPromptCacheBreakpoint(
-                    output.providerOptions,
-                    providerOptionsName,
-                  ) ??
-                  getPromptCacheBreakpoint(
-                    part.providerOptions,
-                    providerOptionsName,
-                  )),
+            promptCacheBreakpoint: getScalarToolResultPromptCacheBreakpoint({
+              output,
+              toolResultProviderOptions: part.providerOptions,
+              providerOptionsName,
+            }),
             providerOptionsName,
             warnings,
           });
