@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 19945,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-interactions-video-response-format.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-interactions-video-response-format.ts",
+    "packages/google/src/interactions/__fixtures__/video-response-format.json",
+    "packages/google/src/interactions/__fixtures__/video-response-format.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19945 REPRODUCED: video responseFormat prevented MP4 output in 4/4 AI SDK paths"
+  }
+}

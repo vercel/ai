@@ -1349,6 +1349,56 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
+  describe('video response format', () => {
+    it('serializes documented video controls and returns the generated MP4', async () => {
+      prepareJsonFixtureResponse('video-response-format');
+      const videoModel = provider.interactions('gemini-omni-1.1-flash');
+
+      const result = await videoModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            responseModalities: ['video'],
+            responseFormat: [
+              {
+                type: 'video',
+                aspectRatio: '16:9',
+                resolution: '360p',
+                duration: '4s',
+                delivery: 'uri',
+                gcsUri: 'gs://example-bucket/generated-video.mp4',
+              },
+            ],
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        response_modalities: ['video'],
+        response_format: [
+          {
+            type: 'video',
+            aspect_ratio: '16:9',
+            resolution: '360p',
+            duration: '4s',
+            delivery: 'uri',
+            gcs_uri: 'gs://example-bucket/generated-video.mp4',
+          },
+        ],
+      });
+
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'file',
+            mediaType: 'video/mp4',
+            data: expect.any(String),
+          }),
+        ]),
+      );
+    });
+  });
+
   describe('agent factory branch', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('basic');
@@ -3010,6 +3060,64 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         (finishPart as { finishReason?: { unified?: string } }).finishReason
           ?.unified,
       ).toBe('stop');
+    });
+  });
+
+  describe('video response format', () => {
+    it('emits the complete generated MP4 as one file part', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          fs.readFileSync(
+            'src/interactions/__fixtures__/video-response-format.chunks.txt',
+            'utf8',
+          ),
+        ],
+      };
+      const videoModel = provider.interactions('gemini-omni-1.1-flash');
+
+      const { stream } = await videoModel.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            responseModalities: ['video'],
+            responseFormat: [
+              {
+                type: 'video',
+                aspectRatio: '16:9',
+                resolution: '360p',
+                duration: '4s',
+                delivery: 'inline',
+              },
+            ],
+          },
+        },
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        response_modalities: ['video'],
+        response_format: [
+          {
+            type: 'video',
+            aspect_ratio: '16:9',
+            resolution: '360p',
+            duration: '4s',
+            delivery: 'inline',
+          },
+        ],
+        stream: true,
+      });
+      expect(parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'file',
+            mediaType: 'video/mp4',
+            data: expect.any(String),
+          }),
+        ]),
+      );
     });
   });
 });
