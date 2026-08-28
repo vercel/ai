@@ -17,9 +17,29 @@ and response primitives.
       href: '/providers/ai-sdk-harnesses/claude-code',
     },
     {
+      title: 'Cline',
+      description: 'Use the Cline SDK through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/cline',
+    },
+    {
       title: 'Codex',
       description: 'Use Codex through the AI SDK harness abstraction.',
       href: '/providers/ai-sdk-harnesses/codex',
+    },
+    {
+      title: 'Cursor',
+      description: 'Use Cursor through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/cursor',
+    },
+    {
+      title: 'fx',
+      description: 'Use fx through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/fx',
+    },
+    {
+      title: 'Grok Build',
+      description: 'Use Grok Build through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/grok-build',
     },
     {
       title: 'OpenCode',
@@ -30,6 +50,12 @@ and response primitives.
       title: 'Pi',
       description: 'Use Pi through the AI SDK harness abstraction.',
       href: '/providers/ai-sdk-harnesses/pi',
+    },
+    {
+      title: 'Agent Client Protocol',
+      description:
+        'Use any ACP compatible harness through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/acp',
     },
   ]}
 />
@@ -45,6 +71,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: codex,
+  model: 'gpt-5.6-luna',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],

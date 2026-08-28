@@ -59,6 +59,9 @@
       "path": "../../packages/azure"
     },
     {
+      "path": "../../packages/code-mode"
+    },
+    {
       "path": "../../packages/cohere"
     },
     {

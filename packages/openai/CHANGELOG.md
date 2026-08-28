@@ -1,5 +1,270 @@
 # @ai-sdk/openai
 
+## 4.0.50
+
+### Patch Changes
+
+- e6a2992: Fix Responses history serialization for regular functions named `tool_search`.
+
+## 4.0.49
+
+### Patch Changes
+
+- 2523403: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.48
+
+### Patch Changes
+
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- eee6200: Signal schema-invalid known Responses stream events and preserve the error finish reason.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.47
+
+### Patch Changes
+
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- 2214258: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.46
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.45
+
+### Patch Changes
+
+- 6be0f51: fix(openai): expand internal parallel tool call wrappers from the Responses API while preserving stateful continuation and streaming fallbacks
+
+## 4.0.44
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.43
+
+### Patch Changes
+
+- a062795: fix(openai): support built-in and provider-defined tools in the Responses `allowedTools` option
+
+  `allowedTools` emitted every allow-list entry as `{ type: 'function', name }`, but OpenAI identifies
+  built-in tools by type. Allow-listing a declared provider-defined tool (web search, image generation,
+  MCP, custom, ...) therefore failed with `Tool choice '<name>' not found in 'tools' parameter`. Entries
+  are now derived from the declared tool, including the MCP server label and custom tool name.
+
+  Tools that OpenAI cannot allow-list (the tool search tool, deferred tools, and namespaced tools) are
+  dropped from the allow-list with a warning, and an error is thrown if that would leave the allow-list
+  empty rather than silently sending an unrestricted request.
+
+  Ambiguous names are now reported instead of resolved silently. A name that matches both a declared tool
+  and another tool's provider tool name resolves to the declared tool and warns; a provider tool name
+  shared by several tools in the same request (two MCP servers, for example) is dropped with a warning.
+  A name that matches no declared tool keeps its existing behavior and is now warned about.
+
+## 4.0.42
+
+### Patch Changes
+
+- b6fff2e: feat(provider/openai): support explicit Responses compaction triggers
+
+## 4.0.41
+
+### Patch Changes
+
+- 59d6def: Reconstruct provider-executed shell calls when continuing OpenAI Responses with storage disabled.
+
+## 4.0.40
+
+### Patch Changes
+
+- e19a4a6: Avoid duplicate MCP approval request references when continuing stored OpenAI Responses.
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.38
+
+### Patch Changes
+
+- d302134: Keep client-executed function calls paired with their outputs when chaining OpenAI Responses with a previous response ID.
+
+## 4.0.37
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.36
+
+### Patch Changes
+
+- 6157098: fix(openai): serialize tool text outputs when an output schema is configured
+- 4cd4548: Accept `serviceTier: 'fast'` on OpenAI chat and responses models. OpenAI renamed priority processing to Fast mode and accepts `service_tier: 'fast'` and `'priority'` interchangeably, so `'fast'` is now passed through verbatim and gated on the same model capability as `'priority'`.
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.34
+
+### Patch Changes
+
+- 73d48d0: fix(provider/openai): correlate rotating Responses API item IDs by output index
+- bbd9b31: chore: rename `*TranslationModel` and its related types to `*SpeechTranslationModel` for consistency
+
+## 4.0.33
+
+### Patch Changes
+
+- e6a93c4: feat(openai): support batch APIs with experimental_startTextBatch
+
+## 4.0.32
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.31
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.30
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.29
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.27
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.26
+
+### Patch Changes
+
+- f7c4a38: Serialize file upload expiry settings in the multipart field shape accepted by OpenAI.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.25
+
+### Patch Changes
+
+- beaecb3: fix(provider/openai): resolve responses doStream at response.in_progress instead of first output token
+
+  The early-stream-error peek treated `response.in_progress` as an unknown chunk, so `doStream` did not resolve until the first output item arrived — delaying stream availability (and downstream TTFB for proxies/gateways) by the model's full time-to-first-token. `response.in_progress` is now modeled in the chunk schema and marks the request as accepted: the peek keeps watching for error frames for a short grace window (50ms) so quota/rate-limit errors flushed alongside `response.in_progress` still throw as retryable `APICallError`s, while healthy streams become available right after upstream acknowledges the request.
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.24
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.23
+
+### Patch Changes
+
+- 96a237d: Add blocked domain filters to the OpenAI and Azure Responses API web search tools.
+
+## 4.0.22
+
+### Patch Changes
+
+- c49380c: feat: add experimental streaming speech translation models (`openai.translation('gpt-realtime-translate')` over the OpenAI Realtime translations WebSocket and `google.translation('gemini-3.5-live-translate-preview')` over the Gemini Live API). `connectToWebSocket` in `@ai-sdk/provider-utils` now passes close code and reason to `onClose` (additive, optional parameter).
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.21
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.20
+
+### Patch Changes
+
+- 1f6dd3a: Add OpenAI Responses Programmatic Tool Calling with hosted program tools, function caller controls, structured output schemas, and multi-step continuation support.
+
+## 4.0.19
+
+### Patch Changes
+
+- 34c53c0: Apply reasoning, service tier, and image defaults to recognizable future OpenAI model family versions.
+
+## 4.0.18
+
+### Patch Changes
+
+- bc43dc2: Preserve stored tool search output item IDs from provider metadata.
+
 ## 4.0.17
 
 ### Patch Changes

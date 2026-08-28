@@ -5,7 +5,8 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: deepgram.speech('aura-2-helena-en'),
+    model: deepgram.speech('aura-2'),
+    voice: 'helena',
     text: 'Hello, welcome to Deepgram! This is a test of the text-to-speech API.',
   });
 

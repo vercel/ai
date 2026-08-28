@@ -1,5 +1,190 @@
 # @ai-sdk/deepseek
 
+## 3.0.35
+
+### Patch Changes
+
+- 41f016e: fix(provider/deepseek): preserve complete raw chat usage objects
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 3.0.33
+
+### Patch Changes
+
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 3.0.32
+
+### Patch Changes
+
+- 0e36ab5: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- 068be49: feat(provider/deepseek): add the `userId` chat option and serialize it as `user_id`
+- 56d47f5: feat(provider/deepseek): add DeepSeek V4 Flash and Pro model IDs
+- 49ba214: Validate DeepSeek file upload formats, sizes, and filename lengths before sending requests.
+- 1ca2519: Add provider-specific names for DeepSeek system, user, and assistant messages.
+- f2a2598: Validate DeepSeek strict tool calls against beta endpoint requirements.
+- f8e24b6: Preserve documented DeepSeek chat response metadata for generate and stream.
+- 320b700: Add DeepSeek chat completion log probability request and response support.
+- f70bd8a: Add support for DeepSeek beta assistant prefix completion through message provider options.
+- 2214258: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- f1cadd0: Preserve the file object discriminator in DeepSeek upload provider metadata.
+- 01fa8de: Validate DeepSeek file response discriminators and numeric metadata while preserving compatibility with omitted optional metadata.
+- 348dacb: Expose DeepSeek response system fingerprints in provider metadata for generated and streamed text.
+- 560fc39: Align DeepSeek thinking and reasoning effort options with the documented API values while mapping legacy options with compatibility warnings.
+- 2814b2d: Add DeepSeek image detail and inline file-data content part support.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 3.0.30
+
+### Patch Changes
+
+- 9a4337d: feat: add DeepSeek V4 Flash Vision Exp image input and Files API support
+
+## 3.0.29
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 3.0.22
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 3.0.19
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 3.0.13
 
 ### Patch Changes

@@ -28,6 +28,49 @@ const sandbox = undefined as never as HarnessV1SandboxProvider;
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
 
 describe('HarnessAgentSettings tool filtering types', () => {
+  test('call options are typed by the appended generic', () => {
+    type CallOptions = { tenant: string };
+    type CallSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      Record<string, never>,
+      never,
+      CallOptions
+    >;
+    const settings: CallSettings = {
+      harness,
+      tools: userTools,
+      callOptionsSchema: z.object({ tenant: z.string() }),
+      prepareCall: ({ options, ...rest }) => {
+        expectTypeOf(options).toEqualTypeOf<CallOptions>();
+        return {
+          ...rest,
+          instructions: `Serve ${options.tenant}`,
+        };
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<CallSettings>();
+  });
+
+  test('sandbox provider is optional', () => {
+    const settings: Settings = {
+      harness,
+      tools: userTools,
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
+  test('model accepts any string', () => {
+    const settings: Settings = {
+      harness,
+      model: 'harness-specific-model',
+    };
+
+    expectTypeOf(settings.model).toEqualTypeOf<string | undefined>();
+  });
+
   test('activeTools accepts builtin and user tool names', () => {
     const settings: Settings = {
       harness,
@@ -73,5 +116,37 @@ describe('HarnessAgentSettings tool filtering types', () => {
     };
 
     expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
+  test('stopWhen accepts one or multiple predicates with merged tools', () => {
+    type RuntimeContext = { tenantId: string };
+    type RuntimeSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext
+    >;
+    const predicate: NonNullable<RuntimeSettings['stopWhen']> = ({ steps }) => {
+      expectTypeOf(steps[0]!.runtimeContext).toEqualTypeOf<RuntimeContext>();
+      expectTypeOf(steps[0]!.staticToolCalls[0]!.toolName).toMatchTypeOf<
+        'bash' | 'echo'
+      >();
+      return false;
+    };
+
+    const single: RuntimeSettings = {
+      harness,
+      tools: userTools,
+      sandbox,
+      stopWhen: predicate,
+    };
+    const multiple: RuntimeSettings = {
+      harness,
+      tools: userTools,
+      sandbox,
+      stopWhen: [predicate],
+    };
+
+    expectTypeOf(single).toMatchTypeOf<RuntimeSettings>();
+    expectTypeOf(multiple).toMatchTypeOf<RuntimeSettings>();
   });
 });
