@@ -71,12 +71,14 @@ async function convertFunctionToolResultOutput({
   output,
   toolName,
   outputSchemaToolNames,
+  promptCacheBreakpoint,
   providerOptionsName,
   warnings,
 }: {
   output: LanguageModelV4ToolResultOutput;
   toolName: string;
   outputSchemaToolNames: Set<string> | undefined;
+  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
   providerOptionsName: string;
   warnings: Array<SharedV4Warning>;
 }): Promise<OpenAIResponsesFunctionCallOutput['output']> {
@@ -84,18 +86,34 @@ async function convertFunctionToolResultOutput({
   // parses the contents of that string as JSON. Text-like results therefore
   // need JSON.stringify to become valid JSON string literals.
   const hasOutputSchema = outputSchemaToolNames?.has(toolName);
+  const convertScalarOutput = (
+    value: string,
+  ): OpenAIResponsesFunctionCallOutput['output'] =>
+    promptCacheBreakpoint == null
+      ? value
+      : [
+          {
+            type: 'input_text',
+            text: value,
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+        ];
 
   switch (output.type) {
     case 'text':
     case 'error-text':
-      return hasOutputSchema ? JSON.stringify(output.value) : output.value;
+      return convertScalarOutput(
+        hasOutputSchema ? JSON.stringify(output.value) : output.value,
+      );
     case 'execution-denied': {
       const reason = output.reason ?? 'Tool call execution denied.';
-      return hasOutputSchema ? JSON.stringify(reason) : reason;
+      return convertScalarOutput(
+        hasOutputSchema ? JSON.stringify(reason) : reason,
+      );
     }
     case 'json':
     case 'error-json':
-      return JSON.stringify(output.value);
+      return convertScalarOutput(JSON.stringify(output.value));
     case 'content':
       return output.value
         .map(item => {
@@ -1484,6 +1502,17 @@ export async function convertToOpenAIResponsesInput({
             output,
             toolName: part.toolName,
             outputSchemaToolNames,
+            promptCacheBreakpoint:
+              output.type === 'content'
+                ? undefined
+                : (getPromptCacheBreakpoint(
+                    output.providerOptions,
+                    providerOptionsName,
+                  ) ??
+                  getPromptCacheBreakpoint(
+                    part.providerOptions,
+                    providerOptionsName,
+                  )),
             providerOptionsName,
             warnings,
           });
