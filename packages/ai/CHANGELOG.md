@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.84
+
+### Patch Changes
+
+- 6669d69: Expose parsed structured output in `streamText` end callbacks.
+- a6463ca: fix(ai): allow tool approval secrets in ToolLoopAgent settings and prepareCall
+- e604532: fix(ai): handle stateful and empty-match regular expressions in smoothStream
+- Updated dependencies [805bbfc]
+- Updated dependencies [90192f1]
+  - @ai-sdk/gateway@4.0.68
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 7.0.83
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 4.0.57
+
+### Patch Changes
+
+- 949ef93: fix(google): recognize Google Files URLs when using a baseUrl
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 4.0.56
 
 ### Patch Changes
