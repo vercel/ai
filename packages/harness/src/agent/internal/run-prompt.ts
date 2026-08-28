@@ -44,7 +44,7 @@ import type { HarnessAgentToolResultContinuation } from '../harness-agent-tool-r
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { translateStreamPart } from './translate-stream-part';
-import { stripWorkDir } from './strip-work-dir';
+import { createToolInputWorkDirStripper, stripWorkDir } from './strip-work-dir';
 import {
   createTurnTelemetry,
   type TurnContentPart,
@@ -223,6 +223,9 @@ export function runPrompt<
     const { stream, control } = bridge;
     input.onPromptControlAvailable?.(control);
     const reader = stream.getReader();
+    const stripToolInputWorkDir = createToolInputWorkDirStripper({
+      sessionWorkDir: input.sessionWorkDir,
+    });
     const toolCallsByToolCallId = new Map<string, ToolCallTextStreamPart>();
     const rawToolCallsByToolCallId = new Map<
       string,
@@ -665,6 +668,28 @@ export function runPrompt<
           value.type !== 'error'
         ) {
           await telemetry.ensureStepOpen();
+        }
+
+        if (
+          value.type === 'tool-input-start' ||
+          value.type === 'tool-input-delta' ||
+          value.type === 'tool-input-end'
+        ) {
+          if (
+            settledHostToolCallIds.has(value.id) ||
+            settledBuiltinApprovalToolCallIds.has(value.id)
+          ) {
+            continue;
+          }
+          for (const displayValue of stripToolInputWorkDir(value)) {
+            for (const part of translateStreamPart<TOOLS>(
+              displayValue,
+              translateOptions,
+            )) {
+              result.enqueue(part);
+            }
+          }
+          continue;
         }
 
         /*
