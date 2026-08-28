@@ -672,7 +672,12 @@ export function runPrompt<
           value.type === 'tool-input-delta' ||
           value.type === 'tool-input-end'
         ) {
-          if (settledHostToolCallIds.has(value.id)) continue;
+          if (
+            settledHostToolCallIds.has(value.id) ||
+            settledBuiltinApprovalToolCallIds.has(value.id)
+          ) {
+            continue;
+          }
           for (const displayValue of stripToolInputWorkDir(value)) {
             for (const part of translateStreamPart<TOOLS>(
               displayValue,
