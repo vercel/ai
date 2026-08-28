@@ -93,7 +93,8 @@ const harness = createOpenCode({
 
 Settings:
 
-- `auth`: authentication mode: `auto`, `anthropic`, `openai`, or `ai-gateway`.
+- `auth`: authentication mode (`auto`, `anthropic`, `openai`, or `ai-gateway`)
+  or an isolated authentication environment.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -161,6 +162,19 @@ const anthropicHarness = createOpenCode({ auth: 'anthropic' });
 const openAIHarness = createOpenCode({ auth: 'openai' });
 const gatewayHarness = createOpenCode({ auth: 'ai-gateway' });
 ```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createOpenCode({
+  auth: { OPENAI_API_KEY: await resolveOpenAIToken() },
+  provider: 'openai',
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Only recognized authentication variables are forwarded.
 
 For OpenAI-compatible endpoints, select `openai` and set `OPENAI_BASE_URL`.
 

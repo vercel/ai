@@ -1,4 +1,8 @@
 export type { HarnessV1 } from './harness-v1';
+export type {
+  HarnessV1Authentication,
+  HarnessV1AuthenticationEnvironment,
+} from './harness-authentication';
 export type { HarnessV1CredentialForwarding } from './harness-v1-credential-forwarding';
 export type {
   HarnessV1Bootstrap,
@@ -40,6 +44,7 @@ export type {
   HarnessV1PendingToolApproval,
   HarnessV1PendingToolResult,
   HarnessV1ResumeSessionState,
+  HarnessV1TurnSettings,
 } from './harness-v1-lifecycle-state';
 export type {
   HarnessV1NetworkPolicy,

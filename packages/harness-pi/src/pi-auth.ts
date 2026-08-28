@@ -1,50 +1,174 @@
-import type {
-  ModelRegistry,
+import {
   ModelRuntime,
+  type CreateModelRuntimeOptions,
+  type ModelRegistry,
 } from '@earendil-works/pi-coding-agent';
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import type { HarnessV1Authentication } from '@ai-sdk/harness';
+import {
+  getAiGatewayAuthFromEnv,
+  isHarnessAuthenticationEnvironment,
+} from '@ai-sdk/harness/utils';
+import { access } from 'node:fs/promises';
 import { VERSION } from './version';
 
 type ProviderConfigInput = Parameters<ModelRegistry['registerProvider']>[1];
+type PiCredentialStore = NonNullable<CreateModelRuntimeOptions['credentials']>;
+type PiCredential = Exclude<
+  Awaited<ReturnType<PiCredentialStore['read']>>,
+  undefined
+>;
+type PiModelRuntimeInternals = {
+  models: {
+    authContext: {
+      env(name: string): Promise<string | undefined>;
+      fileExists(path: string): Promise<boolean>;
+    };
+  };
+};
+type PiMutableProvider = {
+  auth: ReturnType<ModelRuntime['getProviders']>[number]['auth'];
+};
 
 /**
  * Pi auth options. Choose an explicit mode or rely on 'auto' (precedence:
  * explicit gateway, then OpenAI / Anthropic / custom environment variables).
  */
-export type PiAuthenticationMode =
-  | 'auto'
-  | 'openai'
-  | 'anthropic'
-  | 'custom'
-  | 'ai-gateway';
-
-/**
- * @deprecated Passing an object to auth options is deprecated. Use a `PiAuthenticationMode` string value ("auto" | "openai" | "anthropic" | "custom" | "ai-gateway") instead, and pass credentials via environment variables.
- */
-export type LegacyPiAuthOptions = {
-  readonly gateway?: {
-    readonly apiKey?: string;
-    readonly baseUrl?: string;
-  };
-  /**
-   * Resolved environment-variable pairs of the form `<PREFIX>_API_KEY` and
-   * (optionally) `<PREFIX>_BASE_URL`. Special-cased prefixes:
-   *  - `AI_GATEWAY` → registers `vercel-ai-gateway`
-   *  - `OPENAI`     → registers `openai`
-   *  - `ANTHROPIC`  → registers `anthropic` (`ANTHROPIC_AUTH_TOKEN` adds a
-   *                   bearer auth header)
-   * Any other `<PREFIX>_API_KEY` with a matching `<PREFIX>_BASE_URL` is
-   * registered as the lowercased, dash-separated prefix.
-   */
-  readonly customEnv?: Record<string, string>;
-};
-
-export type PiAuthOptions = PiAuthenticationMode | LegacyPiAuthOptions;
+export type PiAuthenticationMode = HarnessV1Authentication<
+  'openai' | 'anthropic' | 'custom'
+>;
 
 const DEFAULT_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
 const HARNESS_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
+
+function createIsolatedPiCredentialStore(): {
+  credentials: PiCredentialStore;
+  finishInitialization(): void;
+} {
+  let initializing = true;
+  const bootstrapEnvironment = new Proxy<Record<string, string>>(
+    {},
+    {
+      get: (_target, property) =>
+        typeof property === 'string'
+          ? 'harness-pi-authentication-bootstrap'
+          : undefined,
+    },
+  );
+  const bootstrapCredential = {
+    type: 'api_key',
+    key: 'harness-pi-authentication-bootstrap',
+    env: bootstrapEnvironment,
+  } satisfies PiCredential;
+  const credentials: PiCredentialStore = {
+    async read() {
+      return initializing ? bootstrapCredential : undefined;
+    },
+    async list() {
+      return [];
+    },
+    async modify(..._input: Parameters<PiCredentialStore['modify']>) {
+      return undefined;
+    },
+    async delete() {},
+  };
+
+  return {
+    credentials,
+    finishInitialization() {
+      initializing = false;
+    },
+  };
+}
+
+function scopePiProviderEnvironment({
+  modelRuntime,
+  authenticationEnvironment,
+}: {
+  modelRuntime: ModelRuntime;
+  authenticationEnvironment: Record<string, string>;
+}): void {
+  for (const provider of modelRuntime.getProviders()) {
+    const apiKeyAuthentication = provider.auth.apiKey;
+    if (!apiKeyAuthentication) continue;
+
+    (provider as unknown as PiMutableProvider).auth = {
+      ...provider.auth,
+      apiKey: {
+        ...apiKeyAuthentication,
+        resolve: async input => {
+          const result = await apiKeyAuthentication.resolve(input);
+          return result
+            ? {
+                ...result,
+                env: {
+                  ...authenticationEnvironment,
+                  ...result.env,
+                },
+              }
+            : undefined;
+        },
+      },
+    };
+  }
+}
+
+export async function createPiModelRuntime({
+  auth,
+  authPath,
+  modelsPath,
+}: {
+  auth: PiAuthenticationMode | undefined;
+  authPath: string;
+  modelsPath: string;
+}): Promise<ModelRuntime> {
+  if (!isHarnessAuthenticationEnvironment(auth)) {
+    return ModelRuntime.create({
+      authPath,
+      modelsPath,
+      allowModelNetwork: false,
+    });
+  }
+
+  const isolatedCredentials = createIsolatedPiCredentialStore();
+  const modelRuntime = await ModelRuntime.create({
+    credentials: isolatedCredentials.credentials,
+    modelsPath: null,
+    allowModelNetwork: false,
+  });
+
+  /*
+   * ModelRuntime creates its internal model collection with a process-backed
+   * authentication context and does not expose an authentication-context
+   * option. The bootstrap credential prevents construction-time provider
+   * checks from consulting that context. Once constructed, authentication is
+   * scoped to the supplied record and availability is recomputed with an
+   * empty in-memory credential store.
+   */
+  (modelRuntime as unknown as PiModelRuntimeInternals).models.authContext = {
+    async env(name) {
+      return auth[name];
+    },
+    async fileExists(filePath) {
+      if (filePath !== auth.GOOGLE_APPLICATION_CREDENTIALS) return false;
+      try {
+        await access(filePath);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  };
+  scopePiProviderEnvironment({
+    modelRuntime,
+    authenticationEnvironment: auth,
+  });
+  isolatedCredentials.finishInitialization();
+  await modelRuntime.refresh({ allowNetwork: false });
+
+  return modelRuntime;
+}
 
 function createGatewayProviderConfig({
   apiKey,
@@ -86,68 +210,54 @@ async function register({
   await registries.modelRuntime.setRuntimeApiKey(provider, apiKey);
 }
 
-function hasConfiguredValue(value: unknown): boolean {
-  if (value == null) return false;
-  if (typeof value === 'string') return value.length > 0;
-  if (typeof value !== 'object') return true;
-  return Object.values(value).some(hasConfiguredValue);
-}
-
 export function resolvePiEnv({
   options,
   env,
 }: {
-  options: PiAuthOptions | undefined;
+  options: PiAuthenticationMode | undefined;
   env: NodeJS.ProcessEnv;
 }): Record<string, string> {
-  const normalizedOptions = normalizePiAuthToLegacyAuth(options);
-  const customEnvConfigured = hasConfiguredValue(normalizedOptions?.customEnv);
-  if (customEnvConfigured) {
-    return resolveCustomEnv({ customEnv: normalizedOptions!.customEnv ?? {} });
-  }
-
-  const gatewayConfigured = hasConfiguredValue(normalizedOptions?.gateway);
-  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({ env });
-  if (gatewayConfigured) {
-    const apiKey =
-      normalizedOptions!.gateway?.apiKey ?? gatewayAuthFromEnv.apiKey;
-    const baseUrl =
-      normalizedOptions!.gateway?.baseUrl ?? gatewayAuthFromEnv.baseUrl;
-    if (apiKey) {
-      return { AI_GATEWAY_API_KEY: apiKey, AI_GATEWAY_BASE_URL: baseUrl };
-    }
-    return {};
-  }
+  const suppliedEnvironment = isHarnessAuthenticationEnvironment(options);
+  const authenticationEnvironment = suppliedEnvironment ? options : env;
+  const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
+    env: authenticationEnvironment,
+  });
 
   // Handle explicit string modes with process env
   if (typeof options === 'string') {
     switch (options) {
       case 'openai':
-        if (env.OPENAI_API_KEY) {
+        if (authenticationEnvironment.OPENAI_API_KEY) {
           return {
-            OPENAI_API_KEY: env.OPENAI_API_KEY,
-            ...(env.OPENAI_BASE_URL
-              ? { OPENAI_BASE_URL: env.OPENAI_BASE_URL }
+            OPENAI_API_KEY: authenticationEnvironment.OPENAI_API_KEY,
+            ...(authenticationEnvironment.OPENAI_BASE_URL
+              ? { OPENAI_BASE_URL: authenticationEnvironment.OPENAI_BASE_URL }
               : {}),
           };
         }
         return {};
       case 'anthropic':
-        if (env.ANTHROPIC_API_KEY) {
+        if (authenticationEnvironment.ANTHROPIC_API_KEY) {
           return {
-            ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY,
-            ...(env.ANTHROPIC_BASE_URL
-              ? { ANTHROPIC_BASE_URL: env.ANTHROPIC_BASE_URL }
+            ANTHROPIC_API_KEY: authenticationEnvironment.ANTHROPIC_API_KEY,
+            ...(authenticationEnvironment.ANTHROPIC_BASE_URL
+              ? {
+                  ANTHROPIC_BASE_URL:
+                    authenticationEnvironment.ANTHROPIC_BASE_URL,
+                }
               : {}),
-            ...(env.ANTHROPIC_AUTH_TOKEN
-              ? { ANTHROPIC_AUTH_TOKEN: env.ANTHROPIC_AUTH_TOKEN }
+            ...(authenticationEnvironment.ANTHROPIC_AUTH_TOKEN
+              ? {
+                  ANTHROPIC_AUTH_TOKEN:
+                    authenticationEnvironment.ANTHROPIC_AUTH_TOKEN,
+                }
               : {}),
           };
         }
         return {};
       case 'custom': {
         const result: Record<string, string> = {};
-        for (const [key, value] of Object.entries(env)) {
+        for (const [key, value] of Object.entries(authenticationEnvironment)) {
           if (
             value &&
             (key.endsWith('_API_KEY') ||
@@ -183,7 +293,7 @@ export function resolvePiEnv({
 
   // 'auto' fallback: pick up any other provider credentials from the env.
   const ambient: Record<string, string> = {};
-  for (const [key, value] of Object.entries(env)) {
+  for (const [key, value] of Object.entries(authenticationEnvironment)) {
     if (
       value &&
       (key.endsWith('_API_KEY') ||
@@ -202,32 +312,20 @@ export async function registerPiProviders({
   registries,
   clientApp = HARNESS_CLIENT_APP,
 }: {
-  options: PiAuthOptions | undefined;
+  options: PiAuthenticationMode | undefined;
   resolvedEnv: Record<string, string>;
   registries: PiRegistries;
   clientApp?: string;
 }): Promise<void> {
-  const normalizedOptions = normalizePiAuthToLegacyAuth(options);
-  if (hasConfiguredValue(normalizedOptions?.customEnv)) {
-    await registerCustomProviders({
-      customEnv: normalizedOptions!.customEnv ?? {},
-      registries,
-      clientApp,
-    });
-    return;
-  }
-
-  // Legacy customEnv was handled above. Everything else reduces to a mode:
-  // string modes pass through, `undefined` is 'auto', and legacy gateway
-  // objects fall through to the trailing gateway-registration block.
-  const mode =
-    typeof options === 'string' ? options : options == null ? 'auto' : 'legacy';
+  const suppliedEnvironment = isHarnessAuthenticationEnvironment(options);
+  const authenticationEnvironment = suppliedEnvironment ? options : process.env;
+  const mode = typeof options === 'string' ? options : 'auto';
 
   switch (mode) {
     case 'openai': {
       const env = pickOpenAIEnv(resolvedEnv);
       await registerCustomProviders({
-        customEnv: { ...pickOpenAIEnv(process.env), ...env },
+        customEnv: { ...pickOpenAIEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
       });
@@ -236,7 +334,7 @@ export async function registerPiProviders({
     case 'anthropic': {
       const env = pickAnthropicEnv(resolvedEnv);
       await registerCustomProviders({
-        customEnv: { ...pickAnthropicEnv(process.env), ...env },
+        customEnv: { ...pickAnthropicEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
       });
@@ -246,14 +344,16 @@ export async function registerPiProviders({
       // 'custom' registers every provider with credentials in the env.
       const env = pickProviderEnv(resolvedEnv);
       await registerCustomProviders({
-        customEnv: { ...pickProviderEnv(process.env), ...env },
+        customEnv: { ...pickProviderEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
       });
       return;
     }
     case 'ai-gateway': {
-      const gatewayAuth = getAiGatewayAuthFromEnv({ env: process.env });
+      const gatewayAuth = getAiGatewayAuthFromEnv({
+        env: authenticationEnvironment,
+      });
       const gatewayApiKey =
         resolvedEnv.AI_GATEWAY_API_KEY ?? gatewayAuth.apiKey;
       const gatewayBaseUrl =
@@ -271,13 +371,13 @@ export async function registerPiProviders({
       });
       return;
     }
-    case 'legacy':
-      break; // handled below
     case 'auto':
     default: {
       // 'auto' (the default): prefer the AI Gateway; only when no gateway
       // credentials exist, fall back to other providers found in the env.
-      const gatewayAuth = getAiGatewayAuthFromEnv({ env: process.env });
+      const gatewayAuth = getAiGatewayAuthFromEnv({
+        env: authenticationEnvironment,
+      });
       const gatewayApiKey =
         resolvedEnv.AI_GATEWAY_API_KEY ?? gatewayAuth.apiKey;
       const gatewayBaseUrl =
@@ -297,25 +397,13 @@ export async function registerPiProviders({
       }
       const env = pickProviderEnv(resolvedEnv);
       await registerCustomProviders({
-        customEnv: { ...pickProviderEnv(process.env), ...env },
+        customEnv: { ...pickProviderEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
       });
       return;
     }
   }
-
-  // Legacy explicit gateway object options.
-  const apiKey = resolvedEnv.AI_GATEWAY_API_KEY;
-  const baseUrl = resolvedEnv.AI_GATEWAY_BASE_URL;
-  if (!apiKey || !baseUrl) return;
-
-  await register({
-    registries,
-    provider: 'vercel-ai-gateway',
-    apiKey,
-    config: createGatewayProviderConfig({ apiKey, baseUrl, clientApp }),
-  });
 }
 
 function pickOpenAIEnv(
@@ -361,46 +449,6 @@ function pickProviderEnv(
     }
   }
   return result;
-}
-
-function normalizePiAuthToLegacyAuth(
-  options: PiAuthOptions | undefined,
-): LegacyPiAuthOptions | undefined {
-  if (options == null || options === 'auto') {
-    return undefined;
-  }
-  if (typeof options === 'string') {
-    switch (options) {
-      case 'ai-gateway':
-        return { gateway: {} };
-      case 'custom':
-      case 'openai':
-      case 'anthropic':
-        return { customEnv: {} };
-      default:
-        return undefined;
-    }
-  }
-
-  console.warn(
-    '[pi] Passing an object to auth options is deprecated. Use a string mode ("auto" | "openai" | "anthropic" | "custom" | "ai-gateway") instead, and pass credentials via environment variables.',
-  );
-  return options;
-}
-
-function resolveCustomEnv({
-  customEnv,
-}: {
-  customEnv: Record<string, string>;
-}): Record<string, string> {
-  const apiKey = customEnv.AI_GATEWAY_API_KEY;
-  if (!apiKey) return {};
-
-  return {
-    AI_GATEWAY_API_KEY: apiKey,
-    AI_GATEWAY_BASE_URL:
-      customEnv.AI_GATEWAY_BASE_URL ?? DEFAULT_GATEWAY_BASE_URL,
-  };
 }
 
 async function registerCustomProviders({

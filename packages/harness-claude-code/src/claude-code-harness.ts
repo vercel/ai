@@ -56,7 +56,7 @@ import {
   createClaudeCodeRequestTransformations,
   resolveClaudeCodeAuthenticationMode,
   resolveClaudeCodeEnv,
-  type ClaudeCodeAuthOptions,
+  type ClaudeCodeAuthenticationMode,
 } from './claude-code-auth';
 import {
   outboundMessageSchema,
@@ -75,7 +75,7 @@ type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
 const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
 
 export type ClaudeCodeHarnessSettings = {
-  readonly auth?: ClaudeCodeAuthOptions;
+  readonly auth?: ClaudeCodeAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -920,6 +920,10 @@ export function createClaudeCode(
       );
 
       const workDir = startOpts.sessionWorkDir;
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
       const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
@@ -1006,7 +1010,8 @@ export function createClaudeCode(
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
-            skills: startOpts.skills ?? [],
+            sandbox: toolSafeSandboxSession,
+            sandboxHomeDir,
             mcpServers: settings.mcpServers,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
@@ -1039,13 +1044,6 @@ export function createClaudeCode(
         }
       }
 
-      const sandboxHomeDir =
-        startOpts.skills && startOpts.skills.length > 0
-          ? await resolveSandboxHomeDir({
-              sandbox: toolSafeSandboxSession,
-              abortSignal: startOpts.abortSignal,
-            })
-          : undefined;
       const port = resolveBridgePort({
         sandboxSession,
         override: settings.port,
@@ -1057,35 +1055,21 @@ export function createClaudeCode(
       const env = {
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
-        ...(sandboxHomeDir ? { HOME: sandboxHomeDir } : {}),
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
           : {}),
       };
 
       /*
-       * On a fresh start the workdir, skill files, and bridge-state directory
-       * must be created. On any resume they already exist in the
-       * sandbox snapshot, so skip the rewrite. The env is sent fresh on every
-       * spawn — `BRIDGE_CHANNEL_TOKEN` rotates per start.
+       * On a fresh start the workdir and bridge-state directory must be
+       * created. The env is sent fresh on every spawn —
+       * `BRIDGE_CHANNEL_TOKEN` rotates per start.
        */
       if (respawnStrategy === undefined) {
         await toolSafeSandboxSession.run({
           command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
-
-        if (startOpts.skills && startOpts.skills.length > 0) {
-          if (!sandboxHomeDir) {
-            throw new Error('Unable to resolve sandbox HOME directory.');
-          }
-          await writeClaudeCodeSkills({
-            sandbox: toolSafeSandboxSession,
-            homeDir: sandboxHomeDir,
-            skills: startOpts.skills,
-            abortSignal: startOpts.abortSignal,
-          });
-        }
       }
 
       await markBridgeStarting({
@@ -1177,7 +1161,8 @@ export function createClaudeCode(
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
-        skills: startOpts.skills ?? [],
+        sandbox: toolSafeSandboxSession,
+        sandboxHomeDir,
         mcpServers: settings.mcpServers,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
@@ -1506,7 +1491,8 @@ function createSession({
   debug,
   permissionMode,
   builtinToolFiltering,
-  skills,
+  sandbox,
+  sandboxHomeDir,
   mcpServers,
   supportsUserMessageResponses,
 }: {
@@ -1529,7 +1515,8 @@ function createSession({
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
-  skills: ReadonlyArray<HarnessV1Skill>;
+  sandbox: SandboxSession;
+  sandboxHomeDir: string;
   mcpServers: Record<string, unknown> | undefined;
   supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
@@ -1705,10 +1692,26 @@ function createSession({
           harnessId: 'claude-code',
         });
       }
+      await writeClaudeCodeSkills({
+        sandbox,
+        homeDir: sandboxHomeDir,
+        skills: promptOpts.skills,
+        abortSignal: promptOpts.abortSignal,
+      });
       const control = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
+
+      /*
+       * A signal that was already aborted has settled the turn inside
+       * `wireTurn`. Sending `start` anyway would run a full unattended turn
+       * in the bridge — consuming tokens and possibly acting on the
+       * workspace — after the caller has already observed the abort.
+       */
+      if (promptOpts.abortSignal?.aborted) {
+        return control;
+      }
 
       const startMessage = {
         type: 'start' as const,
@@ -1729,8 +1732,8 @@ function createSession({
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
-        ...(skills.length > 0
-          ? { skills: skills.map(skill => skill.name) }
+        ...(promptOpts.skills.length > 0
+          ? { skills: promptOpts.skills.map(skill => skill.name) }
           : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
@@ -1754,6 +1757,12 @@ function createSession({
           harnessId: 'claude-code',
         });
       }
+      await writeClaudeCodeSkills({
+        sandbox,
+        homeDir: sandboxHomeDir,
+        skills: continueOpts.skills,
+        abortSignal: continueOpts.abortSignal,
+      });
       const control = wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
@@ -1772,7 +1781,9 @@ function createSession({
        * recomputed. This is the rare bridge-died fallback; the common slice path
        * is `attach`.
        */
-      if (rerunContinue) {
+      // Same as `doPromptTurn`: an already-aborted signal settled the turn in
+      // `wireTurn`, so don't re-drive the thread nobody is waiting on.
+      if (rerunContinue && !continueOpts.abortSignal?.aborted) {
         pendingResumeFlag = false;
         channel.send({
           type: 'start' as const,
@@ -1800,8 +1811,8 @@ function createSession({
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),
-          ...(skills.length > 0
-            ? { skills: skills.map(skill => skill.name) }
+          ...(continueOpts.skills.length > 0
+            ? { skills: continueOpts.skills.map(skill => skill.name) }
             : {}),
           ...(mcpServers == null ? {} : { mcpServers }),
           ...(permissionMode ? { permissionMode } : {}),
