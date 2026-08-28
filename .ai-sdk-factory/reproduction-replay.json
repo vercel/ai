@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19952,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-vertex-embedding-batch-limit.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-vertex-embedding-batch-limit.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19952_REPRODUCED: embedMany sent 251 input texts in one Vertex :predict request; the documented limit is 250."
+  }
+}
