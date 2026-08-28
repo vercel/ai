@@ -142,7 +142,6 @@ export function createPi(
     supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
-      const model = startOpts.model ?? settings.model;
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const resumeData = lifecycleState?.data as
         | { sessionFileName?: string }
@@ -154,7 +153,7 @@ export function createPi(
         sessionWorkDir: startOpts.sessionWorkDir,
         settings: {
           ...(settings.auth ? { auth: settings.auth } : {}),
-          ...(model == null ? {} : { model }),
+          ...(settings.model == null ? {} : { model: settings.model }),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),

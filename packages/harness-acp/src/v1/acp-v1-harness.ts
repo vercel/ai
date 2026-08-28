@@ -80,6 +80,7 @@ import {
 } from './acp-v1-prompt';
 import type {
   ACPInstructionMapping,
+  ACPModelMapping,
   ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
@@ -158,11 +159,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(settings.harnessId)}.`,
     );
   }
-  const baseImplementation = createACPV1Implementation({ settings });
-  validateACPV1Implementation(baseImplementation);
+  const implementation = createACPV1Implementation({ settings });
+  validateACPV1Implementation(implementation);
   const bootstrap = createACPBootstrap({
     harnessId: settings.harnessId,
-    implementation: baseImplementation,
+    implementation,
   });
   const permissionModeMapping = isCompletePermissionModeMapping({
     value: settings.permissionModeMapping,
@@ -186,24 +187,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             'ACP built-in tool filtering is not available in this initial ACP v1 implementation.',
         });
       }
-      const modelId = startOptions.model ?? settings.modelId;
-      const modelConfiguration =
-        modelId == null ? undefined : settings.resolveModel({ model: modelId });
-      const implementation = {
-        ...baseImplementation,
-        ...(modelConfiguration?.args == null
-          ? {}
-          : { args: modelConfiguration.args }),
-        ...(modelConfiguration?.env == null
-          ? {}
-          : {
-              env: {
-                ...baseImplementation.env,
-                ...modelConfiguration.env,
-              },
-            }),
-      };
-      validateACPV1Implementation(implementation);
       const permissionMode = startOptions.permissionMode ?? 'allow-all';
       const env = { ...process.env };
       const authenticationEnvironment = resolveACPAuthenticationEnvironment({
@@ -221,6 +204,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         acpVersion: 'v1',
         implementation,
         clientApp,
+        clientCapabilities: settings.clientCapabilities,
+        modelMapping: settings.modelMapping,
         providerAuthentication: providerAuthenticationCompatibility,
         permissionModeMapping: settings.permissionModeMapping,
       });
@@ -452,7 +437,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               harnessId: settings.harnessId,
               channel: attachChannel,
               proc: undefined,
-              modelId,
+              modelMapping: settings.modelMapping,
+              defaultModelId: settings.modelId,
               sessionMeta: settings.session?.meta,
               instructionMapping: settings.instructionMapping,
               outputSchemaMapping: settings.outputSchemaMapping,
@@ -518,6 +504,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
                   sessionMeta: settings.session?.meta,
                   instructionMapping: settings.instructionMapping,
                   outputSchemaMapping: settings.outputSchemaMapping,
+                  modelMapping: settings.modelMapping,
                   builtinTools: builtinToolCatalog,
                   permissionModeMapping,
                   mcpServers: settings.mcpServers,
@@ -544,12 +531,12 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           }
           const turnStartConfig = validateACPColdSessionConfiguration({
             coldSession,
-            modelId,
             permissionMode,
             authenticationProfile,
             sessionMeta: settings.session?.meta,
             instructionMapping: settings.instructionMapping,
             outputSchemaMapping: settings.outputSchemaMapping,
+            modelMapping: settings.modelMapping,
             builtinTools: builtinToolCatalog,
             permissionModeMapping,
             mcpServers: settings.mcpServers,
@@ -608,8 +595,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             providerEnvironment:
               sandboxProviderEnvironment == null ? undefined : {},
             sessionMeta: settings.session?.meta,
-            implementationArgs: modelConfiguration?.args,
-            implementationEnv: modelConfiguration?.env,
+            clientCapabilities: settings.clientCapabilities,
           }),
           ...sandboxProviderAuthenticationEnvironment,
           BRIDGE_CHANNEL_TOKEN: token,
@@ -722,7 +708,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         harnessId: settings.harnessId,
         channel,
         proc,
-        modelId,
+        modelMapping: settings.modelMapping,
+        defaultModelId: settings.modelId,
         sessionMeta: settings.session?.meta,
         instructionMapping: settings.instructionMapping,
         outputSchemaMapping: settings.outputSchemaMapping,
@@ -1046,7 +1033,8 @@ function createSession({
   harnessId,
   channel,
   proc,
-  modelId,
+  modelMapping,
+  defaultModelId,
   sessionMeta,
   instructionMapping,
   outputSchemaMapping,
@@ -1081,7 +1069,8 @@ function createSession({
   harnessId: string;
   channel: ACPChannel;
   proc: Experimental_SandboxProcess | undefined;
-  modelId: string | undefined;
+  modelMapping: ACPModelMapping;
+  defaultModelId: string | undefined;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
   outputSchemaMapping: ACPOutputSchemaMapping | undefined;
@@ -1375,7 +1364,6 @@ function createSession({
       : {
           coldSession: createACPColdSessionState({
             turnStartConfig: latestTurnStartConfig,
-            modelId,
           }),
         }),
     ...(!includeTurnStartConfig || latestTurnStartConfig == null
@@ -1407,7 +1395,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    ...(modelId == null ? {} : { modelId }),
     doPromptTurn: async options => {
       await synchronizeSkills({
         skills: options.skills,
@@ -1442,6 +1429,7 @@ function createSession({
         prompt: options.prompt,
         harnessId,
       });
+      const model = options.model ?? defaultModelId;
       const turnStartConfig = createACPTurnStartConfig({
         prompt,
         tools: options.tools ?? [],
@@ -1455,6 +1443,8 @@ function createSession({
         instructionMapping,
         responseFormat: options.responseFormat,
         outputSchemaMapping,
+        model,
+        modelMapping,
       });
       const nextInstructionsFingerprint = fingerprintValue({
         value: options.instructions ?? null,
@@ -1491,6 +1481,7 @@ function createSession({
             builtinTools,
             permissionMode,
             permissionModeMapping,
+            ...(model == null ? {} : { model, modelMapping }),
             ...(options.responseFormat == null
               ? {}
               : { responseFormat: options.responseFormat }),
@@ -1554,6 +1545,12 @@ function createSession({
             builtinTools: turnStartConfig.builtinTools,
             permissionMode: turnStartConfig.permissionMode,
             permissionModeMapping: turnStartConfig.permissionModeMapping,
+            ...(turnStartConfig.model == null
+              ? {}
+              : {
+                  model: turnStartConfig.model,
+                  modelMapping: turnStartConfig.modelMapping,
+                }),
             ...(turnStartConfig.responseFormat == null
               ? {}
               : { responseFormat: turnStartConfig.responseFormat }),
@@ -1751,6 +1748,7 @@ function validateACPTurnStartConfig({
   sessionMeta,
   instructionMapping,
   outputSchemaMapping,
+  modelMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
@@ -1760,6 +1758,7 @@ function validateACPTurnStartConfig({
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
   outputSchemaMapping: ACPOutputSchemaMapping | undefined;
+  modelMapping: ACPModelMapping;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1777,6 +1776,8 @@ function validateACPTurnStartConfig({
     instructionMapping,
     responseFormat: turnStartConfig.responseFormat,
     outputSchemaMapping,
+    model: turnStartConfig.model,
+    modelMapping,
   });
   if (
     current.configurationFingerprint !==
@@ -1790,24 +1791,24 @@ function validateACPTurnStartConfig({
 
 function validateACPColdSessionConfiguration({
   coldSession,
-  modelId,
   permissionMode,
   authenticationProfile,
   sessionMeta,
   instructionMapping,
   outputSchemaMapping,
+  modelMapping,
   builtinTools,
   permissionModeMapping,
   mcpServers,
   debug,
 }: {
   coldSession: ACPColdSessionState;
-  modelId: string | undefined;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
   instructionMapping: ACPInstructionMapping | undefined;
   outputSchemaMapping: ACPOutputSchemaMapping | undefined;
+  modelMapping: ACPModelMapping;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -1826,11 +1827,12 @@ function validateACPColdSessionConfiguration({
     instructionMapping,
     responseFormat: coldSession.responseFormat,
     outputSchemaMapping,
+    model: undefined,
+    modelMapping,
   });
   if (
     current.configurationFingerprint !== coldSession.configurationFingerprint ||
-    coldSession.permissionMode !== permissionMode ||
-    coldSession.modelId !== modelId
+    coldSession.permissionMode !== permissionMode
   ) {
     throw new Error(
       'ACP cold-session state is incompatible with the current non-secret session configuration.',

@@ -28,6 +28,20 @@ import type { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
 
+const gatewayCostMetadataKeys = [
+  'cost',
+  'gatewayCost',
+  'inferenceCost',
+  'inputInferenceCost',
+  'marketCost',
+  'outputInferenceCost',
+  'surchargeCost',
+] as const;
+
+type GatewayCostMetadata = {
+  [key in (typeof gatewayCostMetadataKeys)[number]]?: unknown;
+};
+
 export type GenerateImagePrompt =
   | string
   | {
@@ -223,9 +237,22 @@ export async function generateImage({
         if (providerName === 'gateway') {
           const currentEntry = providerMetadata[providerName];
           if (currentEntry != null && typeof currentEntry === 'object') {
+            const currentGatewayMetadata = currentEntry as GatewayCostMetadata;
+            const newGatewayMetadata = metadata as GatewayCostMetadata;
+
             providerMetadata[providerName] = {
               ...(currentEntry as object),
               ...metadata,
+              ...Object.fromEntries(
+                gatewayCostMetadataKeys.flatMap(key => {
+                  const total = addDecimalStrings(
+                    currentGatewayMetadata[key],
+                    newGatewayMetadata[key],
+                  );
+
+                  return total == null ? [] : [[key, total]];
+                }),
+              ),
             } as ImageModelV4ProviderMetadata[string];
           } else {
             providerMetadata[providerName] =
@@ -301,6 +328,34 @@ async function invokeModelMaxImagesPerCall(model: ImageModelV4) {
   return model.maxImagesPerCall({
     modelId: model.modelId,
   });
+}
+
+function addDecimalStrings(
+  value1: unknown,
+  value2: unknown,
+): string | undefined {
+  if (
+    typeof value1 !== 'string' ||
+    typeof value2 !== 'string' ||
+    !/^\d+(?:\.\d+)?$/.test(value1) ||
+    !/^\d+(?:\.\d+)?$/.test(value2)
+  ) {
+    return undefined;
+  }
+
+  const [integer1, fraction1 = ''] = value1.split('.');
+  const [integer2, fraction2 = ''] = value2.split('.');
+  const precision = Math.max(fraction1.length, fraction2.length);
+  const sum =
+    BigInt(integer1 + fraction1.padEnd(precision, '0')) +
+    BigInt(integer2 + fraction2.padEnd(precision, '0'));
+  const sumString = sum.toString().padStart(precision + 1, '0');
+
+  return precision === 0
+    ? sumString
+    : `${sumString.slice(0, -precision)}.${sumString.slice(
+        -precision,
+      )}`.replace(/\.?0+$/, '');
 }
 
 function normalizePrompt(

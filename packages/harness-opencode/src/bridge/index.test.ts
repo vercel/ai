@@ -140,6 +140,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
         },
       },
     };
@@ -221,6 +222,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
         },
       },
     };
@@ -228,6 +230,16 @@ describe('OpenCode bridge turn settlement', () => {
 
     await import('./index');
 
+    const client = sdkMock.client as {
+      v2: { session: { switchModel: ReturnType<typeof vi.fn> } };
+    };
+    expect(client.v2.session.switchModel).toHaveBeenCalledWith({
+      sessionID: 'session-1',
+      model: {
+        providerID: 'openai',
+        id: 'gpt-5.6-sol',
+      },
+    });
     const serverConfig = createOpencodeServerMock.mock.calls[0]?.[0]
       .config as Record<string, unknown>;
     expect(serverConfig).toMatchObject({
@@ -329,6 +341,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
         },
       },
     };
@@ -478,6 +491,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
           permission: { reply: permissionReplyMock },
         },
       },

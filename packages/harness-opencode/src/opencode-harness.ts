@@ -256,7 +256,7 @@ export function createOpenCode(
     lifecycleStateSchema: openCodeResumeStateSchema,
     getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
-      const configuredModel = startOpts.model ?? settings.model;
+      const configuredModel = settings.model;
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -829,6 +829,7 @@ function createSession({
   let pendingResumeSessionId = seedResumeSessionOnFirstPrompt
     ? openCodeSessionId
     : undefined;
+  let selectedModel = model;
   let activeTurn = false;
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
 
@@ -979,8 +980,8 @@ function createSession({
     };
   };
 
-  const startBase = () => ({
-    model,
+  const startBase = (turnModel: string | undefined) => ({
+    model: turnModel,
     provider,
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
     ...(openCodeConfig == null ? {} : { openCodeConfig }),
@@ -998,7 +999,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -1020,6 +1020,8 @@ function createSession({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
+      const turnModel = promptOpts.model ?? selectedModel;
+      if (turnModel) selectedModel = turnModel;
       channel.send({
         type: 'start',
         operation: 'prompt',
@@ -1036,7 +1038,7 @@ function createSession({
           ? { instructions: promptOpts.instructions }
           : {}),
         skillsChanged: skillWriteResult.changed,
-        ...startBase(),
+        ...startBase(turnModel),
       });
       pendingResumeSessionId = undefined;
       return control;
@@ -1063,6 +1065,8 @@ function createSession({
         abortSignal: continueOpts.abortSignal,
       });
       if (rerunContinue) {
+        const turnModel = continueOpts.model ?? selectedModel;
+        if (turnModel) selectedModel = turnModel;
         channel.send({
           type: 'start',
           operation: 'prompt',
@@ -1079,7 +1083,7 @@ function createSession({
             ? { instructions: continueOpts.instructions }
             : {}),
           skillsChanged: skillWriteResult.changed,
-          ...startBase(),
+          ...startBase(turnModel),
         });
         pendingResumeSessionId = undefined;
       }
@@ -1102,7 +1106,7 @@ function createSession({
       }
       await runCompactOperation({
         channel,
-        model,
+        model: selectedModel,
         provider,
         permissionMode,
         debug,

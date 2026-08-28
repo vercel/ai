@@ -59,8 +59,7 @@ export type ACPBridgeConfiguration = {
   readonly providerAuthentication?: ACPResolvedProviderAuthentication;
   readonly providerEnvironment?: Readonly<Record<string, string>>;
   readonly sessionMeta?: Readonly<Record<string, ACPSerializableValue>>;
-  readonly implementationArgs?: ReadonlyArray<string>;
-  readonly implementationEnv?: Readonly<Record<string, string>>;
+  readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
 };
 
 const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
@@ -68,8 +67,7 @@ const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
   providerAuthentication: providerAuthenticationSchema.optional(),
   providerEnvironment: z.record(z.string(), z.string()).optional(),
   sessionMeta: serializableRecordSchema.optional(),
-  implementationArgs: z.array(z.string()).optional(),
-  implementationEnv: z.record(z.string(), z.string()).optional(),
+  clientCapabilities: serializableRecordSchema.optional(),
 });
 
 export function createACPBridgeEnvironment({
@@ -77,8 +75,7 @@ export function createACPBridgeEnvironment({
   providerAuthentication,
   providerEnvironment,
   sessionMeta,
-  implementationArgs,
-  implementationEnv,
+  clientCapabilities,
 }: ACPBridgeConfiguration): Record<string, string> {
   return {
     [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
@@ -86,8 +83,7 @@ export function createACPBridgeEnvironment({
       ...(providerAuthentication == null ? {} : { providerAuthentication }),
       ...(providerEnvironment == null ? {} : { providerEnvironment }),
       ...(sessionMeta == null ? {} : { sessionMeta }),
-      ...(implementationArgs == null ? {} : { implementationArgs }),
-      ...(implementationEnv == null ? {} : { implementationEnv }),
+      ...(clientCapabilities == null ? {} : { clientCapabilities }),
     }),
   };
 }
