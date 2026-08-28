@@ -39,6 +39,7 @@ import {
   createRestrictedTelemetryDispatcher,
   collectToolApprovals,
   convertToLanguageModelPrompt,
+  mergeAbortSignals,
   mergeCallbacks,
   standardizePrompt,
   validateApprovedToolApprovals,
@@ -1474,6 +1475,12 @@ export class WorkflowAgent<
     } as Prompt);
     const download = effectiveDownloadFromPrepare;
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
+    const effectiveAbortSignal = mergeAbortSignals(
+      options.abortSignal ?? effectiveGenerationSettings.abortSignal,
+      options.timeout,
+    );
+    const timeoutAt =
+      options.timeout == null ? undefined : Date.now() + options.timeout;
 
     // Process tool approval responses before starting the agent loop.
     // This mirrors how stream-text.ts handles tool-approval-response parts:
@@ -1635,6 +1642,7 @@ export class WorkflowAgent<
               execute(approval.input, {
                 toolCallId: approval.toolCallId,
                 messages: [],
+                abortSignal: effectiveAbortSignal,
                 context: resolvedContext,
                 experimental_sandbox: sandbox,
               });
@@ -1800,11 +1808,6 @@ export class WorkflowAgent<
       supportedUrls: {},
       download,
     });
-
-    const effectiveAbortSignal =
-      options.abortSignal ?? effectiveGenerationSettings.abortSignal;
-    const timeoutAt =
-      options.timeout == null ? undefined : Date.now() + options.timeout;
 
     // Merge generation settings: constructor defaults < prepareCall < stream options
     const mergedGenerationSettings: GenerationSettings = {
@@ -1998,6 +2001,7 @@ export class WorkflowAgent<
             tools,
             messages,
             resolvedContext,
+            effectiveAbortSignal,
             download,
             stepSandbox,
           );
@@ -2942,6 +2946,7 @@ async function executeTool(
   tools: ToolSet,
   messages: LanguageModelV4Prompt,
   context?: unknown,
+  abortSignal?: AbortSignal,
   download?: DownloadFunction,
   sandbox?: SandboxSession,
 ): Promise<WorkflowToolExecutionResult> {
@@ -2968,6 +2973,8 @@ async function executeTool(
       toolCallId: toolCall.toolCallId,
       // Pass the conversation messages to the tool so it has context about the conversation
       messages,
+      // Pass the effective agent signal so in-flight tool work can cooperatively cancel
+      abortSignal,
       // Pass per-tool context to the tool (resolved from `toolsContext`)
       context,
       experimental_sandbox: sandbox,
