@@ -22,6 +22,7 @@ import {
   loadApiKey,
   loadSetting,
   normalizeHeaders,
+  withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { azureOpenaiTools } from './azure-openai-tools';
@@ -105,7 +106,9 @@ The resource name is used in the assembled URL: `https://{resourceName}.openai.a
 Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
 When a baseURL is provided, the resourceName is ignored.
 
-With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
+With an unversioned Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+Azure OpenAI base URLs that already end in `/openai/v1` are used as-is.
+With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`.
    */
   baseURL?: string;
 
@@ -133,7 +136,8 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 
   /**
-Custom api version to use. Defaults to `preview`.
+Custom api version to use. Defaults to `v1`.
+Complete v1 base URLs are used as-is.
     */
   apiVersion?: string;
 
@@ -145,17 +149,30 @@ Use deployment-based URLs for specific model types. Set to true to use legacy de
   useDeploymentBasedUrls?: boolean;
 }
 
-function isAzureOpenAIBaseURL(baseURL: string | undefined) {
+function getAzureOpenAIBaseURLInfo(baseURL: string | undefined) {
   if (baseURL == null) {
-    return true;
+    return {
+      isAzureOpenAI: true,
+      isFoundryProject: false,
+      isVersioned: false,
+    };
   }
 
-  const hostname = new URL(baseURL).hostname;
-  return (
+  const url = new URL(baseURL);
+  const hostname = url.hostname;
+  const isAzureOpenAI =
     hostname.endsWith('.openai.azure.com') ||
     hostname.endsWith('.services.ai.azure.com') ||
-    hostname.endsWith('.cognitiveservices.azure.com')
-  );
+    hostname.endsWith('.cognitiveservices.azure.com');
+  const pathname = url.pathname.replace(/\/+$/, '');
+
+  return {
+    isAzureOpenAI,
+    isFoundryProject:
+      hostname.endsWith('.services.ai.azure.com') &&
+      pathname.startsWith('/api/projects/'),
+    isVersioned: isAzureOpenAI && pathname.toLowerCase().endsWith('/openai/v1'),
+  };
 }
 
 /**
@@ -218,21 +235,36 @@ export function createAzure(
     });
 
   const apiVersion = options.apiVersion ?? 'v1';
+  const {
+    isAzureOpenAI,
+    isFoundryProject,
+    isVersioned: isAzureOpenAIVersioned,
+  } = getAzureOpenAIBaseURLInfo(options.baseURL);
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
-    const baseUrlPrefix =
-      options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`;
+    const baseUrlPrefix = withoutTrailingSlash(
+      options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`,
+    );
 
     let fullUrl: URL;
     if (options.useDeploymentBasedUrls) {
       // Use deployment-based format for compatibility with certain Azure OpenAI models
       fullUrl = new URL(`${baseUrlPrefix}/deployments/${modelId}${path}`);
+    } else if (!isAzureOpenAI || isAzureOpenAIVersioned) {
+      // Custom gateways can own Azure routing and versioning themselves.
+      // Complete Azure OpenAI v1 URLs also own their versioning.
+      fullUrl = new URL(`${baseUrlPrefix}${path}`);
     } else {
       // Use v1 API format - no deployment ID in URL
       fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
     }
 
-    fullUrl.searchParams.set('api-version', apiVersion);
+    if (
+      options.useDeploymentBasedUrls ||
+      (isAzureOpenAI && !isAzureOpenAIVersioned && !isFoundryProject)
+    ) {
+      fullUrl.searchParams.set('api-version', apiVersion);
+    }
     return fullUrl.toString();
   };
 
