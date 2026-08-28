@@ -413,7 +413,7 @@ export function createDeepAgents(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}${isResume ? ' --resume true' : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -915,7 +915,6 @@ function createSession({
       }
       stopped = true;
       await teardown({ channel, proc, operation: 'stop' });
-      // In-memory conversation is lost on teardown; the sandbox snapshot preserves the workspace files, not the conversation.
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'deepagents',
