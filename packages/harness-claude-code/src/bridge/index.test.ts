@@ -16,6 +16,10 @@ const state = vi.hoisted(() => ({
   messages: [] as Record<string, unknown>[],
   queryArgs: [] as QueryArgs[],
   start: {} as Record<string, unknown>,
+  additionalTurns: [] as Array<{
+    start: Record<string, unknown>;
+    firstTurn: boolean;
+  }>,
   onStop: undefined as (() => unknown) | undefined,
   firstTurn: true,
   originalArgv: [] as string[],
@@ -84,28 +88,35 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     onStop?: () => unknown;
   }) => {
     state.onStop = onStop;
-    await onStart(state.start, {
-      abortSignal: (state.turnAbortController ?? new AbortController()).signal,
-      experimental_userMessages: {
-        pendingCount: state.steering ? 1 : 0,
-        close: () => {},
-        [Symbol.asyncIterator]: async function* () {
-          if (!state.steering) return;
-          yield {
-            messageId: 'steering-message-1',
-            text: 'Actually, Paris, Texas.',
-            accept: () => state.acceptedUserMessages.push('steering-message-1'),
-            reject: () => {},
-          };
+    for (const turn of [
+      { start: state.start, firstTurn: state.firstTurn },
+      ...state.additionalTurns,
+    ]) {
+      await onStart(turn.start, {
+        abortSignal: (state.turnAbortController ?? new AbortController())
+          .signal,
+        experimental_userMessages: {
+          pendingCount: state.steering ? 1 : 0,
+          close: () => {},
+          [Symbol.asyncIterator]: async function* () {
+            if (!state.steering) return;
+            yield {
+              messageId: 'steering-message-1',
+              text: 'Actually, Paris, Texas.',
+              accept: () =>
+                state.acceptedUserMessages.push('steering-message-1'),
+              reject: () => {},
+            };
+          },
         },
-      },
-      firstTurn: state.firstTurn,
-      emit: (event: Record<string, unknown>) => state.emitted.push(event),
-      emitWarning: () => {},
-      emitError: (input: unknown) => state.emitError?.(input),
-      requestToolResult: async () => ({ output: {} }),
-      requestToolApproval: async () => ({ approved: true }),
-    });
+        firstTurn: turn.firstTurn,
+        emit: (event: Record<string, unknown>) => state.emitted.push(event),
+        emitWarning: () => {},
+        emitError: (input: unknown) => state.emitError?.(input),
+        requestToolResult: async () => ({ output: {} }),
+        requestToolApproval: async () => ({ approved: true }),
+      });
+    }
   },
 }));
 
@@ -125,6 +136,7 @@ describe('Claude Code bridge configuration', () => {
     state.emitError = undefined;
     state.onStop = undefined;
     state.firstTurn = true;
+    state.additionalTurns = [];
     state.start = {
       prompt: 'Inspect the project.',
       thinking: { type: 'disabled' },
@@ -201,6 +213,7 @@ describe('Claude Code bridge configuration', () => {
 
   test('resumes the exact conversation when the start names one', async () => {
     state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
+    state.firstTurn = false;
 
     await import('./index');
 
@@ -208,6 +221,36 @@ describe('Claude Code bridge configuration', () => {
     expect(options).toMatchObject({ resume: 'claude-session-1' });
     // `resume` and `continue` are mutually exclusive in the SDK.
     expect(options).not.toHaveProperty('continue');
+  });
+
+  test('resumes the observed conversation on every subsequent query', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-1',
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+        session_id: 'claude-session-1',
+      },
+    ];
+    state.additionalTurns = [
+      {
+        start: { ...state.start, prompt: 'Continue the work.' },
+        firstTurn: false,
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.queryArgs).toHaveLength(2);
+    expect(state.queryArgs[1]?.options).toMatchObject({
+      resume: 'claude-session-1',
+    });
+    expect(state.queryArgs[1]?.options).not.toHaveProperty('continue');
   });
 
   test('falls back to continue when no exact conversation is named', async () => {

@@ -1530,9 +1530,9 @@ function createSession({
   isResume: boolean;
   continueOnFirstPrompt: boolean;
   /**
-   * Exact conversation to rehydrate on the first prompt, when the host knows
-   * which one it means. Takes precedence over the `continue` flag, which can
-   * only mean "most recent in this workdir".
+   * Exact conversation to rehydrate whenever a fresh SDK query starts. Takes
+   * precedence over the `continue` flag, which can only mean "most recent in
+   * this workdir".
    */
   resumeSessionId?: string;
   rerunContinue: boolean;
@@ -1552,9 +1552,10 @@ function createSession({
   let stopPromise: Promise<void> | undefined;
   /*
    * Force the Claude SDK's `continue: true` on the first prompt only when the
-   * bridge was respawned (rerun/replay): a fresh bridge process treats its
-   * first turn as new, so it must be told to rehydrate the workdir thread. An
-   * `attach`ed bridge is already past its first turn and continues on its own.
+   * bridge was respawned without an exact conversation id (rerun/replay): a
+   * fresh bridge process treats its first turn as new, so it must be told to
+   * rehydrate the workdir thread. Exact ids are sent independently of this
+   * fallback on every fresh query.
    */
   let pendingResumeFlag = continueOnFirstPrompt;
 
@@ -1783,7 +1784,7 @@ function createSession({
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
-        ...(pendingResumeFlag && lastClaudeSessionId
+        ...(lastClaudeSessionId
           ? { resumeSessionId: lastClaudeSessionId }
           : pendingResumeFlag
             ? { continue: true }

@@ -407,13 +407,16 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // `resumeSessionId` names the exact conversation and is what a
       // cross-process resume should use: `continue` means "most recent thread
       // in this workdir", which silently picks the wrong one once anything
-      // else has run there. The two are mutually exclusive in the SDK.
+      // else has run there. The bridge also retains the id observed during its
+      // previous query, so every later query stays pinned to that conversation
+      // even when the host detached and reattached between turns. `resume` and
+      // `continue` are mutually exclusive in the SDK.
       //
       // Otherwise the host can force-continue by setting `start.continue`,
-      // and every turn after the first in this bridge process continues by
-      // construction.
-      ...(turn.firstTurn && start.resumeSessionId
-        ? { resume: start.resumeSessionId }
+      // and turns after the first fall back to the legacy cwd-based behavior
+      // when no exact id was observed.
+      ...((start.resumeSessionId ?? lastClaudeSessionId)
+        ? { resume: start.resumeSessionId ?? lastClaudeSessionId }
         : start.continue === true || !turn.firstTurn
           ? { continue: true }
           : {}),
