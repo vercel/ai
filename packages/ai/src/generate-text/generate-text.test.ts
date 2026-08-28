@@ -1526,6 +1526,84 @@ describe('generateText', () => {
       });
     });
 
+    it('should report the completed model call before rejecting a tool choice violation', async () => {
+      const onLanguageModelCallStart = vi.fn();
+      const onLanguageModelCallEnd = vi.fn();
+      const telemetryOnLanguageModelCallStart = vi.fn();
+      const telemetryOnLanguageModelCallEnd = vi.fn();
+
+      const result = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'No tool call.' }],
+            providerMetadata: {
+              testProvider: { requestId: 'request-1' },
+            },
+            response: {
+              id: 'response-1',
+              timestamp: new Date(0),
+              modelId: 'response-model-id',
+            },
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+          },
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+        onLanguageModelCallStart,
+        onLanguageModelCallEnd,
+        telemetry: {
+          integrations: {
+            onLanguageModelCallStart: telemetryOnLanguageModelCallStart,
+            onLanguageModelCallEnd: telemetryOnLanguageModelCallEnd,
+          },
+        },
+        _internal: {
+          generateCallId: () => 'test-call-id',
+          now: mockValues(1000, 1500),
+        },
+      });
+
+      const error = await result.catch(error => error);
+
+      expect(ToolChoiceViolationError.isInstance(error)).toBe(true);
+      expect(onLanguageModelCallStart).toHaveBeenCalledOnce();
+      expect(telemetryOnLanguageModelCallStart).toHaveBeenCalledOnce();
+      expect(onLanguageModelCallEnd).toHaveBeenCalledOnce();
+      expect(telemetryOnLanguageModelCallEnd).toHaveBeenCalledOnce();
+
+      const expectedEndEvent = {
+        callId: 'test-call-id',
+        provider: 'mock-provider',
+        modelId: 'response-model-id',
+        finishReason: 'stop',
+        content: [{ type: 'text', text: 'No tool call.' }],
+        responseId: 'response-1',
+        providerMetadata: {
+          testProvider: { requestId: 'request-1' },
+        },
+        performance: expect.objectContaining({
+          responseTimeMs: 500,
+        }),
+        usage: expect.objectContaining({
+          inputTokens: 3,
+          outputTokens: 10,
+          totalTokens: 13,
+        }),
+      };
+
+      expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+        expect.objectContaining(expectedEndEvent),
+      );
+      expect(telemetryOnLanguageModelCallEnd).toHaveBeenCalledWith(
+        expect.objectContaining(expectedEndEvent),
+      );
+    });
+
     it('should expose a tool call serialized as text for opt-in recovery', async () => {
       const serializedToolCall =
         '{"toolName":"tool1","input":{"value":"value"}}';

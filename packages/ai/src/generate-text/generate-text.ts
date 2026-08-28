@@ -1079,29 +1079,6 @@ export async function generateText<
                   ),
               );
 
-              const enforcedToolChoice =
-                stepToolChoice.type === 'required' ||
-                stepToolChoice.type === 'tool'
-                  ? stepToolChoice
-                  : undefined;
-
-              if (
-                enforcedToolChoice != null &&
-                !stepToolCalls.some(
-                  toolCall =>
-                    enforcedToolChoice.type === 'required' ||
-                    toolCall.toolName === enforcedToolChoice.toolName,
-                )
-              ) {
-                throw new ToolChoiceViolationError({
-                  toolChoice: enforcedToolChoice,
-                  finishReason: currentModelResponse.finishReason.unified,
-                  provider: stepModel.provider,
-                  modelId: stepModel.modelId,
-                  content: currentModelResponse.content,
-                });
-              }
-
               const toolApprovalRequests: Record<
                 string,
                 ToolApprovalRequestOutput<TOOLS>
@@ -1160,6 +1137,29 @@ export async function generateText<
                     | OnLanguageModelCallEndCallback<TOOLS>,
                 ],
               });
+
+              const enforcedToolChoice =
+                stepToolChoice.type === 'required' ||
+                stepToolChoice.type === 'tool'
+                  ? stepToolChoice
+                  : undefined;
+
+              if (
+                enforcedToolChoice != null &&
+                !stepToolCalls.some(
+                  toolCall =>
+                    enforcedToolChoice.type === 'required' ||
+                    toolCall.toolName === enforcedToolChoice.toolName,
+                )
+              ) {
+                throw new ToolChoiceViolationError({
+                  toolChoice: enforcedToolChoice,
+                  finishReason: currentModelResponse.finishReason.unified,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  content: currentModelResponse.content,
+                });
+              }
 
               // notify the tools that the tool calls are available:
               for (const toolCall of stepToolCalls) {
