@@ -44,7 +44,6 @@ import {
   emitFinishStep,
   finishApprovalStep,
   mapUsage,
-  takeHostToolUseId,
   type ClaudeMessage,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodShape } from './json-schema-to-zod';
@@ -301,13 +300,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         tool.name,
         tool.description ?? '',
         shape,
-        async (input: Record<string, unknown>) => {
+        async (
+          ...handlerArgs: [
+            Record<string, unknown>,
+            { requestId: string | number; _meta?: Record<string, unknown> },
+          ]
+        ) => {
+          const [input, extra] = handlerArgs;
+          const metadataToolCallId = extra._meta?.['claudecode/toolUseId'];
           const toolCallId =
-            takeHostToolUseId({
-              state: streamEventState,
-              toolName: tool.name,
-              input,
-            }) ?? randomUUID();
+            typeof metadataToolCallId === 'string'
+              ? metadataToolCallId
+              : randomUUID();
           emit({
             type: 'tool-call',
             toolCallId,

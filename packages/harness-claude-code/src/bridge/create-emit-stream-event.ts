@@ -77,17 +77,14 @@ export type ClaudeStreamEventState = {
    * reports for the underlying native id must be suppressed.
    */
   mcpToolUseIds: Set<string>;
-  hostToolUses: Map<string, HostToolUse>;
   externalMcpToolUseIds: Set<string>;
   structuredOutputToolUseIds: Set<string>;
   observedTerminalError: string | undefined;
 };
 
-type HostToolUse = { toolName: string; input: string };
-
 type PartialBlock =
   | { id: string; kind: 'text' | 'thinking' }
-  | { id: string; kind: 'tool-input'; hostToolUse?: HostToolUse };
+  | { id: string; kind: 'tool-input' };
 
 export function createClaudeStreamEventState(): ClaudeStreamEventState {
   return {
@@ -99,7 +96,6 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     pendingStepUsage: undefined,
     stepOpen: false,
     mcpToolUseIds: new Set(),
-    hostToolUses: new Map(),
     externalMcpToolUseIds: new Set(),
     structuredOutputToolUseIds: new Set(),
     observedTerminalError: undefined,
@@ -237,10 +233,6 @@ export function createEmitStreamEvent({
           }
           const mcpPrefix = 'mcp__harness-tools__';
           if (block.name.startsWith(mcpPrefix)) {
-            const hostToolUse = state.hostToolUses.get(block.id);
-            if (hostToolUse) {
-              hostToolUse.input = JSON.stringify(block.input ?? {});
-            }
             state.pendingStepToolUseIds.add(block.id);
             state.mcpToolUseIds.add(block.id);
             opensStep = true;
@@ -398,28 +390,6 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
 
 const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
 
-export function takeHostToolUseId({
-  state,
-  toolName,
-  input,
-}: {
-  state: ClaudeStreamEventState;
-  toolName: string;
-  input: Record<string, unknown>;
-}): string | undefined {
-  const serializedInput = JSON.stringify(input);
-  for (const [id, hostToolUse] of state.hostToolUses) {
-    if (
-      hostToolUse.toolName === toolName &&
-      hostToolUse.input === serializedInput
-    ) {
-      state.hostToolUses.delete(id);
-      return id;
-    }
-  }
-  return undefined;
-}
-
 function handleStreamEvent({
   event,
   state,
@@ -458,14 +428,9 @@ function handleStreamEvent({
       const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)
         ? nativeName.slice(HOST_TOOL_PREFIX.length)
         : undefined;
-      const hostToolUse =
-        hostToolName === undefined
-          ? undefined
-          : { toolName: hostToolName, input: '' };
-      if (hostToolUse) state.hostToolUses.set(id, hostToolUse);
       const dynamic =
         hostToolName === undefined && nativeName.startsWith('mcp__');
-      partialBlocks.set(index, { id, kind: 'tool-input', hostToolUse });
+      partialBlocks.set(index, { id, kind: 'tool-input' });
       send({
         type: 'tool-input-start',
         id,
@@ -501,9 +466,6 @@ function handleStreamEvent({
       event.delta?.type === 'input_json_delta' &&
       typeof event.delta.partial_json === 'string'
     ) {
-      if (block.hostToolUse) {
-        block.hostToolUse.input += event.delta.partial_json;
-      }
       send({
         type: 'tool-input-delta',
         id: block.id,

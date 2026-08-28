@@ -5,7 +5,15 @@ type QueryArgs = {
   options: Record<string, unknown>;
 };
 
-type ToolHandler = (input: Record<string, unknown>) => Promise<unknown>;
+type ToolHandler = (
+  ...args: [
+    input: Record<string, unknown>,
+    extra: {
+      requestId: string | number;
+      _meta?: Record<string, unknown>;
+    },
+  ]
+) => Promise<unknown>;
 
 const TEST_ENV_KEYS = [
   'CLAUDE_CODE_BRIDGE_INHERITED_TEST',
@@ -75,6 +83,7 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
         if (message.type === 'invoke-host-tools') {
           const calls = message.calls as Array<{
             toolName: string;
+            toolCallId: string;
             input: Record<string, unknown>;
           }>;
           await Promise.all(
@@ -85,7 +94,16 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
                   `Missing host tool handler for '${call.toolName}'.`,
                 );
               }
-              return handler(call.input);
+              const handlerArgs: Parameters<ToolHandler> = [
+                call.input,
+                {
+                  requestId: call.toolCallId,
+                  _meta: {
+                    'claudecode/toolUseId': call.toolCallId,
+                  },
+                },
+              ];
+              return handler(...handlerArgs);
             }),
           );
           continue;
@@ -338,7 +356,7 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
-  test('correlates parallel same-name host tool calls when callbacks arrive out of order', async () => {
+  test('uses callback metadata to correlate identical parallel host tool calls', async () => {
     state.start = {
       ...state.start,
       tools: [
@@ -347,8 +365,11 @@ describe('Claude Code bridge configuration', () => {
           description: 'Get the weather',
           inputSchema: {
             type: 'object',
-            properties: { city: { type: 'string' } },
-            required: ['city'],
+            properties: {
+              city: { type: 'string' },
+              unit: { type: 'string' },
+            },
+            required: ['city', 'unit'],
           },
         },
       ],
@@ -373,7 +394,7 @@ describe('Claude Code bridge configuration', () => {
           index: 0,
           delta: {
             type: 'input_json_delta',
-            partial_json: '{"city":"Chicago"}',
+            partial_json: '{"unit":"C","city":"Chicago"}',
           },
         },
       },
@@ -400,7 +421,7 @@ describe('Claude Code bridge configuration', () => {
           index: 1,
           delta: {
             type: 'input_json_delta',
-            partial_json: '{"city":"Boston"}',
+            partial_json: '{"unit":"C","city":"Chicago"}',
           },
         },
       },
@@ -416,13 +437,13 @@ describe('Claude Code bridge configuration', () => {
               type: 'tool_use',
               id: 'host-tool-1',
               name: 'mcp__harness-tools__weather',
-              input: { city: 'Chicago' },
+              input: { city: 'Chicago', unit: 'C' },
             },
             {
               type: 'tool_use',
               id: 'host-tool-2',
               name: 'mcp__harness-tools__weather',
-              input: { city: 'Boston' },
+              input: { city: 'Chicago', unit: 'C' },
             },
           ],
         },
@@ -430,8 +451,16 @@ describe('Claude Code bridge configuration', () => {
       {
         type: 'invoke-host-tools',
         calls: [
-          { toolName: 'weather', input: { city: 'Boston' } },
-          { toolName: 'weather', input: { city: 'Chicago' } },
+          {
+            toolName: 'weather',
+            toolCallId: 'host-tool-2',
+            input: { city: 'Chicago', unit: 'C' },
+          },
+          {
+            toolName: 'weather',
+            toolCallId: 'host-tool-1',
+            input: { city: 'Chicago', unit: 'C' },
+          },
         ],
       },
       {
@@ -465,14 +494,14 @@ describe('Claude Code bridge configuration', () => {
         type: 'tool-call',
         toolCallId: 'host-tool-2',
         toolName: 'weather',
-        input: '{"city":"Boston"}',
+        input: '{"city":"Chicago","unit":"C"}',
         providerExecuted: false,
       },
       {
         type: 'tool-call',
         toolCallId: 'host-tool-1',
         toolName: 'weather',
-        input: '{"city":"Chicago"}',
+        input: '{"city":"Chicago","unit":"C"}',
         providerExecuted: false,
       },
     ]);

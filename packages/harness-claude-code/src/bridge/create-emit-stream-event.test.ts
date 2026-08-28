@@ -4,7 +4,6 @@ import {
   type ClaudeMessage,
   createClaudeStreamEventState,
   createEmitStreamEvent,
-  takeHostToolUseId,
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
@@ -137,14 +136,6 @@ describe('createEmitStreamEvent', () => {
       },
       { type: 'tool-input-end', id: 'host-tool-1' },
     ]);
-    expect(
-      takeHostToolUseId({
-        state,
-        toolName: 'weather',
-        input: { city: 'Chicago' },
-      }),
-    ).toBe('host-tool-1');
-    expect(state.hostToolUses.size).toBe(0);
   });
 
   it('emits the resolved model and a native tool step', () => {
