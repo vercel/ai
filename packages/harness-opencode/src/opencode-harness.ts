@@ -84,6 +84,12 @@ export type OpenCodeHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
+   * Additional configuration passed through to OpenCode as-is. OpenCode
+   * config keys must use their native names. Values managed by this adapter
+   * take precedence over conflicting entries.
+   */
+  readonly openCodeConfig?: Record<string, unknown>;
+  /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
    */
@@ -392,6 +398,7 @@ export function createOpenCode(
             model,
             provider: settings.provider,
             reasoningVariant: settings.reasoningVariant,
+            openCodeConfig: settings.openCodeConfig,
             mcpServers: settings.mcpServers,
             openCodeSessionId: resumeSessionId,
             isResume: true,
@@ -540,6 +547,7 @@ export function createOpenCode(
         model,
         provider: settings.provider,
         reasoningVariant: settings.reasoningVariant,
+        openCodeConfig: settings.openCodeConfig,
         mcpServers: settings.mcpServers,
         openCodeSessionId: resumeSessionId,
         isResume: respawnStrategy !== undefined,
@@ -768,6 +776,7 @@ function createSession({
   model,
   provider,
   reasoningVariant,
+  openCodeConfig,
   mcpServers,
   openCodeSessionId,
   isResume,
@@ -790,6 +799,7 @@ function createSession({
   model: string | undefined;
   provider: string | undefined;
   reasoningVariant: string | undefined;
+  openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   openCodeSessionId: string | undefined;
   isResume: boolean;
@@ -966,6 +976,7 @@ function createSession({
     model,
     provider,
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
+    ...(openCodeConfig == null ? {} : { openCodeConfig }),
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
@@ -1088,6 +1099,7 @@ function createSession({
         provider,
         permissionMode,
         debug,
+        openCodeConfig,
         mcpServers,
         resumeSessionId: latestOpenCodeSessionId,
         onCompaction: part => pendingCompactionParts.push(part),
@@ -1260,6 +1272,7 @@ async function runCompactOperation({
   provider,
   permissionMode,
   debug,
+  openCodeConfig,
   mcpServers,
   resumeSessionId,
   onCompaction,
@@ -1269,6 +1282,7 @@ async function runCompactOperation({
   provider: string | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   debug: HarnessV1DebugConfig | undefined;
+  openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   resumeSessionId: string | undefined;
   onCompaction: (part: HarnessV1StreamPart) => void;
@@ -1297,6 +1311,7 @@ async function runCompactOperation({
     tools: [],
     model,
     provider,
+    ...(openCodeConfig == null ? {} : { openCodeConfig }),
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(resumeSessionId ? { resumeSessionId } : {}),
