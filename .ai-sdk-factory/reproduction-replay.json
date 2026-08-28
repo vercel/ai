@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19966,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/workflow-agent-tool-abort-signal.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/workflow-agent-tool-abort-signal.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19966 REPRODUCED: WorkflowAgent tools cannot cooperatively cancel because abortSignal is missing."
+  }
+}
