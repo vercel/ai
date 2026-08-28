@@ -43,4 +43,35 @@ describe('OpenResponsesExtension', () => {
       LanguageModelV4Content[] | undefined
     >();
   });
+
+  it('should require dedicated fields for bare extension types', () => {
+    const extension = {
+      id: 'acme.web_search',
+      bareToolType: 'web_search',
+      bareItemTypes: ['web_search_call'],
+      bareEventTypes: ['response.web_search_call.completed'],
+      encodeTool: () => ({}),
+      decodeItem: ({ item }) => {
+        expectTypeOf(item.type).toBeString();
+        return undefined;
+      },
+      decodeEvent: ({ event }) => {
+        expectTypeOf(event.type).toBeString();
+        return undefined;
+      },
+    } satisfies Experimental_OpenResponsesExtension;
+
+    expectTypeOf(
+      extension,
+    ).toMatchTypeOf<Experimental_OpenResponsesExtension>();
+
+    const invalidExtension = {
+      id: 'acme.web_search',
+      // @ts-expect-error - bare types require the explicit bareToolType field
+      toolType: 'web_search',
+      encodeTool: () => ({}),
+    } satisfies Experimental_OpenResponsesExtension;
+
+    expectTypeOf(invalidExtension.id).toBeString();
+  });
 });

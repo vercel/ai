@@ -32,6 +32,26 @@ describe('createOpenResponsesExtensionRegistry', () => {
     expect(registry.byEventType.get('acme:search_delta')).toBe(extension);
   });
 
+  it('should index explicitly registered bare extension semantics', () => {
+    const extension: OpenResponsesExtension = {
+      id: 'acme.search',
+      bareToolType: 'web_search',
+      bareItemTypes: ['web_search_call'],
+      bareEventTypes: ['response.web_search_call.completed'],
+      encodeTool: () => ({}),
+      decodeItem: () => undefined,
+      decodeEvent: () => undefined,
+    };
+    const registry = createOpenResponsesExtensionRegistry([extension]);
+
+    expect(registry.byProviderToolId.get('acme.search')).toBe(extension);
+    expect(registry.byToolType.get('web_search')).toBe(extension);
+    expect(registry.byItemType.get('web_search_call')).toBe(extension);
+    expect(registry.byEventType.get('response.web_search_call.completed')).toBe(
+      extension,
+    );
+  });
+
   it('should register tool, item, and event capabilities independently', () => {
     const toolExtension = createExtension({
       itemTypes: undefined,
@@ -80,6 +100,72 @@ describe('createOpenResponsesExtensionRegistry', () => {
     ).toThrow('Extension wire types must use the acme: namespace.');
   });
 
+  it('should reject bare wire types in namespaced fields', () => {
+    expect(() =>
+      createOpenResponsesExtensionRegistry([
+        createExtension({
+          toolType: 'web_search' as `${string}:${string}`,
+        }),
+      ]),
+    ).toThrow('Extension wire types must use the acme: namespace.');
+  });
+
+  it('should reject namespaced wire types in bare fields', () => {
+    expect(() =>
+      createOpenResponsesExtensionRegistry([
+        {
+          id: 'acme.search',
+          bareToolType: 'acme:web_search',
+          encodeTool: () => ({}),
+        },
+      ]),
+    ).toThrow(
+      'Bare extension wire types must be non-empty and must not contain a colon.',
+    );
+  });
+
+  it('should reject core wire types in bare fields', () => {
+    expect(() =>
+      createOpenResponsesExtensionRegistry([
+        {
+          id: 'acme.search',
+          bareToolType: 'function',
+          encodeTool: () => ({}),
+        },
+      ]),
+    ).toThrow('cannot register core bareToolType value function');
+
+    expect(() =>
+      createOpenResponsesExtensionRegistry([
+        {
+          id: 'acme.search',
+          bareItemTypes: ['function_call'],
+          decodeItem: () => undefined,
+        },
+      ]),
+    ).toThrow('cannot register core bareItemTypes value function_call');
+
+    expect(() =>
+      createOpenResponsesExtensionRegistry([
+        {
+          id: 'acme.search',
+          bareEventTypes: ['response.output_text.delta'],
+          decodeEvent: () => undefined,
+        },
+      ]),
+    ).toThrow(
+      'cannot register core bareEventTypes value response.output_text.delta',
+    );
+  });
+
+  it('should reject ambiguous tool type registration', () => {
+    expect(() =>
+      createOpenResponsesExtensionRegistry([
+        createExtension({ bareToolType: 'web_search' }),
+      ]),
+    ).toThrow('cannot provide toolType and bareToolType together');
+  });
+
   it('should reject duplicate item registrations', () => {
     expect(() =>
       createOpenResponsesExtensionRegistry([
@@ -91,6 +177,25 @@ describe('createOpenResponsesExtensionRegistry', () => {
       ]),
     ).toThrow(
       'item type acme:search_call because it is already registered by acme.search',
+    );
+  });
+
+  it('should reject duplicate bare registrations', () => {
+    expect(() =>
+      createOpenResponsesExtensionRegistry([
+        {
+          id: 'acme.search',
+          bareItemTypes: ['web_search_call'],
+          decodeItem: () => undefined,
+        },
+        {
+          id: 'other.search',
+          bareItemTypes: ['web_search_call'],
+          decodeItem: () => undefined,
+        },
+      ]),
+    ).toThrow(
+      'item type web_search_call because it is already registered by acme.search',
     );
   });
 });
