@@ -842,7 +842,7 @@ const openAICompatibleContentSchema = z
 
 function convertOpenAICompatibleContent(
   content: z.infer<typeof openAICompatibleContentSchema>,
-): Array<Extract<LanguageModelV4Content, { type: 'text' | 'reasoning' }>> {
+): Array<Extract<LanguageModelV3Content, { type: 'text' | 'reasoning' }>> {
   if (content == null) {
     return [];
   }
@@ -852,7 +852,7 @@ function convertOpenAICompatibleContent(
   }
 
   const result: Array<
-    Extract<LanguageModelV4Content, { type: 'text' | 'reasoning' }>
+    Extract<LanguageModelV3Content, { type: 'text' | 'reasoning' }>
   > = [];
 
   for (const part of content) {

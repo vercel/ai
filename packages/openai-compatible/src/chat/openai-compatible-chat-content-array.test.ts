@@ -1,4 +1,4 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { expect, it } from 'vitest';
@@ -10,7 +10,7 @@ const model = createOpenAICompatible({
   baseURL: 'https://my.api.com/v1',
   name: 'test-provider',
 })('test-model');
-const prompt: LanguageModelV4Prompt = [
+const prompt: LanguageModelV3Prompt = [
   {
     role: 'user',
     content: [{ type: 'text', text: 'What is 17 * 23?' }],
@@ -34,7 +34,7 @@ it('should stream text and thinking content parts', async () => {
                 { type: 'text', text: 'The answer is 391.' },
               ],
             },
-            finish_reason: null,
+            finish_reason: 'stop',
           },
         ],
       })}\n\n`,
@@ -78,7 +78,7 @@ it('should ignore unknown streamed content parts', async () => {
                 { type: 'text', text: 'The answer is 391.' },
               ],
             },
-            finish_reason: null,
+            finish_reason: 'stop',
           },
         ],
       })}\n\n`,
