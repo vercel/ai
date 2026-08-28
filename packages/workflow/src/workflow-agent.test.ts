@@ -215,6 +215,107 @@ describe('WorkflowAgent', () => {
   });
 
   describe('tool execution error handling', () => {
+    it('should pass the effective abort signal to locally executed tools', async () => {
+      const abortController = new AbortController();
+      const executeFn = vi.fn(
+        async (
+          _input: unknown,
+          { abortSignal }: { abortSignal?: AbortSignal },
+        ) => {
+          expect(abortSignal).toBe(abortController.signal);
+          return 'result';
+        },
+      );
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({}),
+            execute: executeFn,
+          }),
+        },
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const messages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'test-call-id',
+                  toolName: 'testTool',
+                  input: {},
+                },
+              ],
+              messages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: messages }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        abortSignal: abortController.signal,
+      });
+
+      expect(executeFn).toHaveBeenCalledOnce();
+    });
+
+    it('should pass an aborting timeout signal to locally executed tools', async () => {
+      let receivedSignal: AbortSignal | undefined;
+      let cooperativelyCancelled = false;
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({}),
+            execute: async (_input, { abortSignal }) => {
+              receivedSignal = abortSignal;
+              await new Promise(resolve => setTimeout(resolve, 25));
+              cooperativelyCancelled = abortSignal?.aborted === true;
+              return 'result';
+            },
+          }),
+        },
+      });
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const messages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+      vi.mocked(streamTextIterator).mockReturnValue({
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'test-call-id',
+                  toolName: 'testTool',
+                  input: {},
+                },
+              ],
+              messages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: messages }),
+      } as unknown as MockIterator);
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        timeout: 10,
+      });
+
+      expect(receivedSignal).toBeDefined();
+      expect(receivedSignal?.aborted).toBe(true);
+      expect(cooperativelyCancelled).toBe(true);
+    });
+
     it('should convert FatalError to tool error result', async () => {
       const errorMessage = 'This is a fatal error';
       const tools: ToolSet = {
@@ -3674,6 +3775,7 @@ describe('WorkflowAgent', () => {
     it('should execute approved tools and continue with results', async () => {
       const toolResult = { city: 'London', temperature: 72 };
       const executeFn = vi.fn().mockResolvedValue(toolResult);
+      const abortController = new AbortController();
       const tools: ToolSet = {
         getWeather: {
           description: 'Get weather',
@@ -3735,6 +3837,7 @@ describe('WorkflowAgent', () => {
           },
         ] as any,
         writable: mockWritable,
+        abortSignal: abortController.signal,
       });
 
       // The tool should have been executed
@@ -3743,6 +3846,7 @@ describe('WorkflowAgent', () => {
         { city: 'London' },
         expect.objectContaining({
           toolCallId: 'call-1',
+          abortSignal: abortController.signal,
         }),
       );
 
