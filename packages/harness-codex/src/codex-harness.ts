@@ -114,7 +114,7 @@ export type CodexHarnessSettings = {
    * Reasoning effort for reasoning-capable models. Leaving this unset
    * defers to the CLI's default.
    */
-  readonly reasoningEffort?: 'low' | 'medium' | 'high';
+  readonly reasoningEffort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   /**
    * When `true`, allow the underlying runtime to use live web search.
    */
@@ -709,7 +709,7 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
-  reasoningEffort: 'low' | 'medium' | 'high' | undefined;
+  reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   webSearch: boolean | undefined;
   codexConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;

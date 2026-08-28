@@ -29,6 +29,11 @@ import {
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { createLocalShellBackend } from './local-shell-backend';
+import {
+  loadMemorySaver,
+  removeMemorySaverSnapshot,
+  saveMemorySaver,
+} from './persistent-memory-saver';
 import { createBuiltinToolFilteringMiddleware } from './tool-filtering';
 
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
@@ -131,6 +136,7 @@ if (!workdir || !bridgeStateDir) {
   console.error('deepagents bridge: missing --workdir / --bridge-state-dir');
   process.exit(1);
 }
+const conversationCheckpointPath = `${bridgeStateDir}/conversation.checkpoint`;
 
 // One agent per bridge process, reused across turns; host tools read the live turn via `currentTurn`.
 let agent: ReturnType<typeof createDeepAgent> | undefined;
@@ -139,6 +145,14 @@ let mcpClient: MultiServerMCPClient | undefined;
 let mcpToolNames = new Set<string>();
 let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
 const checkpointer = new MemorySaver();
+if (args.resume === 'true') {
+  await loadMemorySaver({
+    path: conversationCheckpointPath,
+    saver: checkpointer,
+  });
+} else {
+  await removeMemorySaverSnapshot(conversationCheckpointPath);
+}
 let agentConfigurationSignature: string | undefined;
 let activeModel: string | undefined;
 let activeThinking: StartMessage['thinking'];
@@ -409,9 +423,16 @@ await runBridge<StartMessage>({
   onStart: runTurn,
   onStop: async () => {
     await closeMcpClient();
+    await saveMemorySaver({
+      path: conversationCheckpointPath,
+      saver: checkpointer,
+    });
     return {};
   },
-  onDestroy: closeMcpClient,
+  onDestroy: async () => {
+    await closeMcpClient();
+    await removeMemorySaverSnapshot(conversationCheckpointPath);
+  },
 });
 
 async function loadMcpTools({
