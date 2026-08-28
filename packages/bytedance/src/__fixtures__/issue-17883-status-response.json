@@ -1,0 +1,25 @@
+{
+  "id": "cgt-live-sanitized-issue-17883",
+  "model": "seedance-1-0-pro-250528",
+  "status": "succeeded",
+  "content": {
+    "video_url": "https://example.com/generated.mp4",
+    "last_frame_url": "https://example.com/generated-last-frame.png"
+  },
+  "usage": {
+    "completion_tokens": 19845,
+    "total_tokens": 19845
+  },
+  "created_at": 1787936007,
+  "updated_at": 1787936024,
+  "seed": 25739,
+  "resolution": "480p",
+  "ratio": "16:9",
+  "duration": 2,
+  "framespersecond": 24,
+  "service_tier": "default",
+  "execution_expires_after": 172800,
+  "draft": false,
+  "priority": 0,
+  "output_format": "mp4"
+}
