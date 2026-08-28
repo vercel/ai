@@ -132,6 +132,18 @@ describe('runPrompt workDir stripping', () => {
       harness,
       session: fakeSession([
         {
+          type: 'tool-input-start',
+          id: 'c1',
+          toolName: 'readFile',
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'c1',
+          delta: JSON.stringify({ path: `${WORK_DIR}/src/foo.ts` }),
+        },
+        { type: 'tool-input-end', id: 'c1' },
+        {
           type: 'tool-call',
           toolCallId: 'c1',
           toolName: 'readFile',
@@ -158,6 +170,21 @@ describe('runPrompt workDir stripping', () => {
     const parts: TextStreamPart<ToolSet>[] = [];
     for await (const part of result.fullStream) parts.push(part);
     await done;
+
+    expect(parts.filter(part => part.type.startsWith('tool-input-'))).toEqual([
+      {
+        type: 'tool-input-start',
+        id: 'c1',
+        toolName: 'readFile',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'c1',
+        delta: JSON.stringify({ path: 'src/foo.ts' }),
+      },
+      { type: 'tool-input-end', id: 'c1' },
+    ]);
 
     // Host tool executes with the original absolute path so it resolves
     // against the sandbox root.

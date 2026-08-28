@@ -4,6 +4,7 @@ import {
   type ClaudeMessage,
   createClaudeStreamEventState,
   createEmitStreamEvent,
+  takeHostToolUseId,
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
@@ -79,6 +80,67 @@ describe('createEmitStreamEvent', () => {
       { type: 'tool-input-end', id: 'tool-1' },
     ]);
     expect(state.partialBlocks.size).toBe(0);
+  });
+
+  it('streams host tool input with its user-facing identity', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 1,
+        content_block: {
+          type: 'tool_use',
+          id: 'host-tool-1',
+          name: 'mcp__harness-tools__weather',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 1,
+        delta: {
+          type: 'input_json_delta',
+          partial_json: '{"city":"Chicago"}',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'content_block_stop', index: 1 },
+    });
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      {
+        type: 'tool-input-start',
+        id: 'host-tool-1',
+        toolName: 'weather',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'host-tool-1',
+        delta: '{"city":"Chicago"}',
+      },
+      { type: 'tool-input-end', id: 'host-tool-1' },
+    ]);
+    expect(takeHostToolUseId({ state, toolName: 'weather' })).toBe(
+      'host-tool-1',
+    );
+    expect(state.hostToolUseIdsByName.size).toBe(0);
   });
 
   it('emits the resolved model and a native tool step', () => {

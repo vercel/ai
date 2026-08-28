@@ -23,6 +23,8 @@ export function stripWorkDir(
   if (sessionWorkDir.length === 0) return part;
 
   switch (part.type) {
+    case 'tool-input-delta':
+      return { ...part, delta: stripString(part.delta, sessionWorkDir) };
     case 'tool-call':
       return { ...part, input: stripString(part.input, sessionWorkDir) };
     case 'tool-result':

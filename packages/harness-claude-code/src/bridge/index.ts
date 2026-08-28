@@ -44,6 +44,7 @@ import {
   emitFinishStep,
   finishApprovalStep,
   mapUsage,
+  takeHostToolUseId,
   type ClaudeMessage,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodShape } from './json-schema-to-zod';
@@ -276,7 +277,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         tool.description ?? '',
         shape,
         async (input: Record<string, unknown>) => {
-          const toolCallId = randomUUID();
+          const toolCallId =
+            takeHostToolUseId({
+              state: streamEventState,
+              toolName: tool.name,
+            }) ?? randomUUID();
           emit({
             type: 'tool-call',
             toolCallId,

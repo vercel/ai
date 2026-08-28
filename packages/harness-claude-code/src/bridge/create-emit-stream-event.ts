@@ -73,11 +73,11 @@ export type ClaudeStreamEventState = {
   /*
    * Tool-use ids that originated from the MCP server hosting user-supplied
    * tools. The MCP handler emits its own `tool-call`/`tool-result` pair with
-   * the user-facing tool name and a synthetic id, so the duplicate
-   * `tool_result` block Claude reports for the underlying native id must be
-   * suppressed.
+   * the user-facing tool name, so the duplicate `tool_result` block Claude
+   * reports for the underlying native id must be suppressed.
    */
   mcpToolUseIds: Set<string>;
+  hostToolUseIdsByName: Map<string, string[]>;
   externalMcpToolUseIds: Set<string>;
   structuredOutputToolUseIds: Set<string>;
   observedTerminalError: string | undefined;
@@ -97,6 +97,7 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     pendingStepUsage: undefined,
     stepOpen: false,
     mcpToolUseIds: new Set(),
+    hostToolUseIdsByName: new Map(),
     externalMcpToolUseIds: new Set(),
     structuredOutputToolUseIds: new Set(),
     observedTerminalError: undefined,
@@ -208,7 +209,12 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'stream_event') {
-      handleStreamEvent(msg.event, state.partialBlocks, emit, toCommonName);
+      handleStreamEvent({
+        event: msg.event,
+        state,
+        send: emit,
+        toCommonName,
+      });
       return;
     }
 
@@ -384,14 +390,37 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
     : 'Claude Code API retry';
 }
 
-function handleStreamEvent(
-  event: ClaudeMessage['event'] | undefined,
-  partialBlocks: Map<number, PartialBlock>,
-  send: Emit,
-  toCommonName: (nativeName: string) => string,
-): void {
+const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
+
+export function takeHostToolUseId({
+  state,
+  toolName,
+}: {
+  state: ClaudeStreamEventState;
+  toolName: string;
+}): string | undefined {
+  const ids = state.hostToolUseIdsByName.get(toolName);
+  const id = ids?.shift();
+  if (ids?.length === 0) {
+    state.hostToolUseIdsByName.delete(toolName);
+  }
+  return id;
+}
+
+function handleStreamEvent({
+  event,
+  state,
+  send,
+  toCommonName,
+}: {
+  event: ClaudeMessage['event'] | undefined;
+  state: ClaudeStreamEventState;
+  send: Emit;
+  toCommonName: (nativeName: string) => string;
+}): void {
   if (!event || typeof event.index !== 'number') return;
   const index = event.index;
+  const partialBlocks = state.partialBlocks;
 
   if (event.type === 'content_block_start') {
     const blockType = event.content_block?.type;
@@ -410,19 +439,25 @@ function handleStreamEvent(
     ) {
       const id = event.content_block.id;
       const nativeName = event.content_block.name;
-      if (
-        nativeName === 'StructuredOutput' ||
-        nativeName.startsWith('mcp__harness-tools__')
-      ) {
+      if (nativeName === 'StructuredOutput') {
         return;
       }
-      const dynamic = nativeName.startsWith('mcp__');
+      const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)
+        ? nativeName.slice(HOST_TOOL_PREFIX.length)
+        : undefined;
+      if (hostToolName !== undefined) {
+        const ids = state.hostToolUseIdsByName.get(hostToolName) ?? [];
+        ids.push(id);
+        state.hostToolUseIdsByName.set(hostToolName, ids);
+      }
+      const dynamic =
+        hostToolName === undefined && nativeName.startsWith('mcp__');
       partialBlocks.set(index, { id, kind: 'tool-input' });
       send({
         type: 'tool-input-start',
         id,
-        toolName: toCommonName(nativeName),
-        providerExecuted: true,
+        toolName: hostToolName ?? toCommonName(nativeName),
+        providerExecuted: hostToolName === undefined,
         ...(dynamic ? { dynamic: true } : {}),
       });
     }
