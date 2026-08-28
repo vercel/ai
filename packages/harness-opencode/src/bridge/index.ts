@@ -4,7 +4,6 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import type { StartMessage } from '../opencode-bridge-protocol';
@@ -127,8 +126,6 @@ const runtime: RuntimeState = {
 };
 prependOpenCodeBinToPath({ bootstrapDir, env: procEnv });
 
-mkdirSync(process.env.HOME ?? '/tmp/opencode-home', { recursive: true });
-
 await runBridge<StartMessage>({
   bridgeType: 'opencode',
   bridgeStateDir,
@@ -143,6 +140,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   try {
     await ensureRuntime({ start, turn, emit });
     const client = runtime.client!;
+    if (start.skillsChanged) {
+      await client.instance.dispose({ directory: workdir });
+    }
     const sessionId = await ensureSession({ client, start, emit });
 
     if (start.operation === 'compact') {
@@ -219,6 +219,7 @@ function buildOpenCodeConfig({
   relayPort: number | undefined;
 }): Record<string, unknown> {
   const config: Record<string, unknown> = {
+    ...withoutAgentPolicyOverrides(start.openCodeConfig),
     share: 'disabled',
     autoupdate: false,
     permission: {
@@ -232,6 +233,7 @@ function buildOpenCodeConfig({
       webfetch: 'ask',
       doom_loop: 'ask',
       task: 'ask',
+      question: 'deny',
     },
   };
   if (start.model) config.model = start.model;
@@ -269,6 +271,27 @@ function buildOpenCodeConfig({
     };
   }
   if (Object.keys(mcp).length > 0) config.mcp = mcp;
+  return config;
+}
+
+function withoutAgentPolicyOverrides(
+  input: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const config = { ...input };
+  for (const key of ['agent', 'mode'] as const) {
+    const agents = asOpenCodeObject(config[key]);
+    if (!agents) continue;
+    config[key] = Object.fromEntries(
+      Object.entries(agents).map(([name, value]) => {
+        const agent = asOpenCodeObject(value);
+        if (!agent) return [name, value];
+        const safeAgent = { ...agent };
+        delete safeAgent.permission;
+        delete safeAgent.tools;
+        return [name, safeAgent];
+      }),
+    );
+  }
   return config;
 }
 
@@ -878,6 +901,22 @@ async function consumeEvents({
   const stream = await subscribeLegacyEvents({ client, signal });
   onSubscribed?.();
   if (!stream) return;
+  const taskSessionIds = new Set([sessionId]);
+  const registerSubagentSession = (sourceSessionId: string) =>
+    function register({
+      parentSessionId,
+      sessionId: subagentSessionId,
+    }: {
+      parentSessionId: string;
+      sessionId: string;
+    }) {
+      if (
+        parentSessionId === sourceSessionId &&
+        taskSessionIds.has(sourceSessionId)
+      ) {
+        taskSessionIds.add(subagentSessionId);
+      }
+    };
   const emitStreamEvent = createEmitStreamEvent({
     state,
     emit,
@@ -887,20 +926,59 @@ async function consumeEvents({
     nativeNameField,
     getHostToolName,
     authorizeHostToolCall: input => authorizeHostToolCall({ ...input, state }),
+    onSubagentSession: registerSubagentSession(sessionId),
     isMcpToolName: toolName =>
       [...runtime.mcpToolPrefixes].some(prefix => toolName.startsWith(prefix)),
     stripWorkDir,
     formatError,
   });
+  const descendantEventProcessors = new Map<
+    string,
+    (event: OpenCodeEvent) => void
+  >();
+  const processDescendantEvent = (
+    descendantSessionId: string,
+    event: OpenCodeEvent,
+  ) => {
+    let processEvent = descendantEventProcessors.get(descendantSessionId);
+    if (!processEvent) {
+      const descendantState = createTranslationState();
+      processEvent = createEmitStreamEvent({
+        state: descendantState,
+        emit: () => undefined,
+        emitWarning: () => undefined,
+        emitError: () => undefined,
+        toWireToolName,
+        nativeNameField,
+        getHostToolName,
+        authorizeHostToolCall: input =>
+          authorizeHostToolCall({ ...input, state: descendantState }),
+        onSubagentSession: registerSubagentSession(descendantSessionId),
+        isMcpToolName: () => false,
+        stripWorkDir,
+        formatError,
+      });
+      descendantEventProcessors.set(descendantSessionId, processEvent);
+    }
+    processEvent(event);
+  };
   for await (const rawEvent of stream) {
     if (signal.aborted || turn.abortSignal.aborted) break;
     const event = unwrapOpenCodeEvent(rawEvent);
     const eventSessionId = event ? getOpenCodeEventSessionId(event) : undefined;
-    if (!event || (eventSessionId && eventSessionId !== sessionId)) continue;
+    if (!event) continue;
+    const scopedSessionId =
+      !eventSessionId || eventSessionId === sessionId
+        ? sessionId
+        : taskSessionIds.has(eventSessionId)
+          ? eventSessionId
+          : undefined;
+    if (!scopedSessionId) continue;
+    const isDescendant = scopedSessionId !== sessionId;
     if (event.type === 'permission.v2.asked') {
       await handlePermissionV2({
         client,
-        sessionId,
+        sessionId: scopedSessionId,
         permissionMode,
         builtinToolFiltering,
         turn,
@@ -910,16 +988,19 @@ async function consumeEvents({
     } else if (event.type === 'permission.asked') {
       await handlePermission({
         client,
-        sessionId,
+        sessionId: scopedSessionId,
         permissionMode,
         builtinToolFiltering,
         turn,
         emit,
         event,
       });
+    } else if (isDescendant) {
+      processDescendantEvent(scopedSessionId, event);
     } else {
       emitStreamEvent(event);
     }
+    if (isDescendant) continue;
     if (onEvent?.(event)) break;
   }
 }

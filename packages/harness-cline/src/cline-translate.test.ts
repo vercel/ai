@@ -377,6 +377,36 @@ describe('translateClineEvent', () => {
     ]);
   });
 
+  it('marks the in-host skills tool providerExecuted', () => {
+    const state = createClineTranslatorState({
+      builtinToolNames: ['skills'],
+    });
+    const parts = translateClineEvent(
+      {
+        type: 'tool-started',
+        snapshot,
+        iteration: 1,
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'skill-call',
+          toolName: 'skills',
+          input: { skill: 'release-notes' },
+        },
+      },
+      state,
+    );
+
+    expect(parts).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'skill-call',
+        toolName: 'skills',
+        input: JSON.stringify({ skill: 'release-notes' }),
+        providerExecuted: true,
+      },
+    ]);
+  });
+
   it('does not mark user tool calls providerExecuted', () => {
     const state = newState();
     const parts = translateClineEvent(

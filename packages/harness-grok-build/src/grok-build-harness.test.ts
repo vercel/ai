@@ -27,9 +27,13 @@ describe('createGrokBuild', () => {
       ...settings.source,
       packageJson: JSON.parse(settings.source.packageJson),
       pnpmLockYaml: '<pnpm-lock.yaml>',
+      pnpmWorkspaceYaml: '<pnpm-workspace.yaml>',
     };
     expect(settings.source.pnpmLockYaml).toContain(
-      "'@xai-official/grok@0.2.111'",
+      "'@xai-official/grok@1.0.5'",
+    );
+    expect(settings.source.pnpmWorkspaceYaml).toBe(
+      "allowBuilds:\n  '@xai-official/grok@1.0.5': true\n",
     );
 
     expect({
@@ -124,9 +128,9 @@ describe('createGrokBuild', () => {
         "source": {
           "packageJson": {
             "dependencies": {
-              "@agentclientprotocol/sdk": "1.2.1",
-              "@modelcontextprotocol/sdk": "1.29.0",
-              "@xai-official/grok": "0.2.111",
+              "@agentclientprotocol/sdk": "1.4.0",
+              "@modelcontextprotocol/sdk": "1.30.0",
+              "@xai-official/grok": "1.0.5",
               "ws": "8.21.0",
               "zod": "4.4.3",
             },
@@ -136,6 +140,7 @@ describe('createGrokBuild', () => {
             "version": "0.0.0",
           },
           "pnpmLockYaml": "<pnpm-lock.yaml>",
+          "pnpmWorkspaceYaml": "<pnpm-workspace.yaml>",
           "type": "npm-locked",
         },
         "version": "v1",
@@ -148,12 +153,22 @@ describe('createGrokBuild', () => {
           XAI_API_KEY: 'xai-secret',
           GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
         },
+        sandboxEnv: {
+          XAI_API_KEY: 'sandbox-xai-secret',
+          GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
+        },
       }),
     ).toEqual([
       {
         match: {
           host: 'api.x.ai',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-xai-secret' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer xai-secret' },
@@ -164,10 +179,19 @@ describe('createGrokBuild', () => {
 
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
+    const credentialForwarding = async ({
+      credential,
+    }: {
+      credential: string;
+    }) => `ephemeral-${credential}`;
+    const portEndpoint = { url: 'wss://sandbox.example/bridge' };
     createGrokBuild({
       auth: 'direct',
+      credentialForwarding,
       model: 'grok-code-fast-1',
+      reasoningEffort: 'high',
       port: 4319,
+      portEndpoint,
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
@@ -177,18 +201,73 @@ describe('createGrokBuild', () => {
 
     expect({
       auth: settings.auth,
+      credentialForwarding: settings.credentialForwarding,
       modelId: settings.modelId,
+      modelConfiguration: settings.resolveModel({ model: 'grok-4.6' }),
       port: settings.port,
+      portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
       auth: 'direct',
+      credentialForwarding,
       modelId: 'grok-code-fast-1',
+      modelConfiguration: {
+        args: [
+          'agent',
+          '--model',
+          'grok-4.6',
+          '--reasoning-effort',
+          'high',
+          'stdio',
+        ],
+      },
       port: 4319,
+      portEndpoint,
       startupTimeoutMs: 45_000,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
+    });
+  });
+
+  it('configures reasoning effort without a model override', () => {
+    createGrokBuild({ reasoningEffort: 'high' });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(settings.modelId).toBe('grok-4.6');
+    expect(settings.resolveModel({ model: 'grok-4.6' })).toEqual({
+      args: [
+        'agent',
+        '--model',
+        'grok-4.6',
+        '--reasoning-effort',
+        'high',
+        'stdio',
+      ],
+    });
+  });
+
+  it('configures the default model without a reasoning effort override', () => {
+    createGrokBuild();
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(settings.modelId).toBe('grok-4.6');
+    expect(settings.resolveModel({ model: 'grok-4.6' })).toEqual({
+      args: ['agent', '--model', 'grok-4.6', 'stdio'],
+    });
+  });
+
+  it('configures a model without a reasoning effort override', () => {
+    createGrokBuild({ model: 'grok-4.5-build' });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(settings.modelId).toBe('grok-4.5-build');
+    expect(settings.resolveModel({ model: 'grok-4.5-build' })).toEqual({
+      args: ['agent', '--model', 'grok-4.5-build', 'stdio'],
     });
   });
 

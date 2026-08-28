@@ -179,8 +179,10 @@ describe('asGatewayError', () => {
 
       const result = await asGatewayError(apiCallError);
 
+      expect(GatewayResponseError.isInstance(result)).toBe(true);
       expect(result.isRetryable).toBe(true);
-      expect(result.statusCode).toBe(500);
+      expect(result.statusCode).toBe(200);
+      expect(result.cause).toBe(apiCallError);
     });
   });
 });

@@ -1,4 +1,5 @@
 import type { HarnessV1NetworkSandboxSession } from './harness-v1-network-sandbox-session';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { HarnessV1Observability } from './harness-v1-observability';
 import type { HarnessV1PermissionMode } from './harness-v1-permission-mode';
 import type { HarnessV1Prompt } from './harness-v1-prompt';
@@ -7,10 +8,9 @@ import type { HarnessV1ResponseFormat } from './harness-v1-response-format';
 import type {
   HarnessV1ContinueTurnState,
   HarnessV1ResumeSessionState,
+  HarnessV1TurnSettings,
 } from './harness-v1-lifecycle-state';
-import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
-import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
 import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering';
 
 /**
@@ -22,17 +22,17 @@ import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering'
  */
 export type HarnessV1StartOptions = {
   /**
+   * Model identifier selected by the consumer. Adapters interpret this value
+   * according to the underlying harness runtime.
+   */
+  readonly model?: string;
+
+  /**
    * Stable identifier for this harness session. Used as the underlying
    * resource name where the adapter has a notion of a named session
    * (sandbox name, native session id, …).
    */
   readonly sessionId: string;
-
-  /**
-   * Skills made available to the underlying runtime for the lifetime of
-   * the session. Adapters decide how to surface them.
-   */
-  readonly skills?: ReadonlyArray<HarnessV1Skill>;
 
   /**
    * Optional resume payload returned by a prior session lifecycle method. When
@@ -76,21 +76,17 @@ export type HarnessV1StartOptions = {
    */
   readonly observability?: HarnessV1Observability;
   /**
-   * Network sandbox session the adapter operates against. It is owned and
-   * lifecycled by `HarnessAgent`. Adapters call `restricted()` for the
-   * tool-safe filesystem/exec/spawn surface, and use the infra methods
-   * (`getPortEndpoint`, `ports`, `setNetworkPolicy`,
-   * `setRequestTransformations`, `addRequestTransformations`) for bridge
-   * wiring. Adapters must not call `stop()` themselves; the agent does that
-   * during cleanup.
+   * Sandbox session the adapter operates against. Network sandbox sessions
+   * expose optional infrastructure capabilities for bridge wiring; caller-
+   * provided basic sandbox sessions expose only filesystem and process APIs.
+   * Adapters must not stop or destroy the sandbox themselves.
    */
-  readonly sandboxSession: HarnessV1NetworkSandboxSession;
+  readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
 
   /**
-   * Absolute path the adapter runs the agent in for this session. Composed by
-   * the framework as `<sandboxSession.defaultWorkingDirectory>/<harnessId>-<sessionId>`
-   * and created before `doStart`, so the adapter uses it directly instead of
-   * deriving its own provider-specific path.
+   * Absolute path the adapter runs the agent in for this session. Composed
+   * underneath the sandbox's resolved default working directory and created
+   * before `doStart`.
    */
   readonly sessionWorkDir: string;
 };
@@ -98,7 +94,7 @@ export type HarnessV1StartOptions = {
 /**
  * Options passed to `HarnessV1Session.doPromptTurn`.
  */
-export type HarnessV1PromptTurnOptions = {
+export type HarnessV1PromptTurnOptions = HarnessV1TurnSettings & {
   /**
    * Fresh input for this turn — either a plain string or a single
    * `ModelMessage`. The harness session owns its own conversation history,
@@ -111,22 +107,6 @@ export type HarnessV1PromptTurnOptions = {
    * JSON response format must throw `HarnessCapabilityUnsupportedError`.
    */
   readonly responseFormat?: HarnessV1ResponseFormat;
-
-  /**
-   * Host-defined tools to make available to the underlying runtime for this
-   * turn. The harness emits `tool-call` events when the runtime calls one
-   * and waits for `submitToolResult`.
-   */
-  readonly tools?: ReadonlyArray<HarnessV1ToolSpec>;
-
-  /**
-   * Free-form instructions for the session. The framework supplies the same
-   * value on every turn. Adapters should append it to the runtime's native
-   * system or developer prompt when supported. Otherwise, they should prepend
-   * it to the first user message of a fresh session and rely on the runtime's
-   * persisted history when resuming.
-   */
-  readonly instructions?: string;
 
   /**
    * Signal that aborts the in-flight turn. The adapter must cancel any
@@ -150,26 +130,12 @@ export type HarnessV1PromptTurnOptions = {
  * in-flight turn rather than starting a new one. It is used to continue a turn
  * that was previously suspended temporarily, e.g. by the workflow slice loop.
  */
-export type HarnessV1ContinueTurnOptions = {
+export type HarnessV1ContinueTurnOptions = HarnessV1TurnSettings & {
   /**
    * Response format of the in-flight turn. Rerun-based adapters use this when
    * reconstructing the turn; attach-based adapters may ignore it.
    */
   readonly responseFormat?: HarnessV1ResponseFormat;
-
-  /**
-   * Host-defined tools to make available for the continued turn. Same shape
-   * as `doPromptTurn`'s `tools`. An adapter that purely attaches to a live turn
-   * may ignore them; an adapter that re-drives the turn (rerun) needs them.
-   */
-  readonly tools?: ReadonlyArray<HarnessV1ToolSpec>;
-
-  /**
-   * Free-form session instructions. An adapter that re-drives the runtime may
-   * need these to reconstruct its native system or developer prompt. An
-   * adapter that attaches to a live turn may ignore them.
-   */
-  readonly instructions?: string;
 
   /**
    * Signal that aborts the continued turn. The adapter must cancel any

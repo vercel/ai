@@ -39,18 +39,23 @@ describe('handleFetchError', () => {
       );
     });
 
-    it('should handle an Undici socket error after receiving response headers', () => {
+    it('should mark nested Undici socket errors as retryable', () => {
       const socketError = Object.assign(new Error('other side closed'), {
         code: 'UND_ERR_SOCKET',
       });
-      const terminatedError = new TypeError('terminated');
-      (terminatedError as any).cause = socketError;
+      const terminatedError = new TypeError('terminated') as TypeError & {
+        cause?: unknown;
+      };
+      terminatedError.cause = socketError;
       const apiCallError = new APICallError({
         message: 'Failed to process successful response',
         cause: terminatedError,
         url: testUrl,
         requestBodyValues: testRequestBodyValues,
         statusCode: 200,
+        responseHeaders: { 'x-request-id': 'request-id' },
+        responseBody: 'partial response',
+        data: { partial: true },
       });
 
       const result = handleFetchError({
@@ -60,8 +65,30 @@ describe('handleFetchError', () => {
       });
 
       expect(APICallError.isInstance(result)).toBe(true);
-      expect((result as APICallError).isRetryable).toBe(true);
-      expect((result as APICallError).cause).toBe(terminatedError);
+      expect(result).toMatchObject({
+        message: 'Failed to process successful response',
+        cause: terminatedError,
+        url: testUrl,
+        requestBodyValues: testRequestBodyValues,
+        statusCode: 200,
+        responseHeaders: { 'x-request-id': 'request-id' },
+        responseBody: 'partial response',
+        data: { partial: true },
+        isRetryable: true,
+      });
+    });
+
+    it('should stop traversing cyclic error causes', () => {
+      const error = new Error('cyclic') as Error & { cause?: unknown };
+      error.cause = error;
+
+      const result = handleFetchError({
+        error,
+        url: testUrl,
+        requestBodyValues: testRequestBodyValues,
+      });
+
+      expect(result).toBe(error);
     });
   });
 

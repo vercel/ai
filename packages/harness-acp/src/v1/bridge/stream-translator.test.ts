@@ -449,6 +449,87 @@ describe('createACPStreamTranslator', () => {
     `);
   });
 
+  it('matches an unnamed built-in by the longest compatible title prefix', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        {
+          toolName: 'read',
+          title: 'Read',
+          toolUseKind: 'readonly',
+        },
+        {
+          toolName: 'readLints',
+          title: 'Read Lints',
+          toolUseKind: 'readonly',
+        },
+        {
+          toolName: 'edit',
+          title: 'Read Lints',
+          toolUseKind: 'edit',
+        },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-cursor-lints',
+      title: 'Read Lints `src/index.ts`',
+      kind: 'read',
+      status: 'completed',
+      rawInput: { paths: ['src/index.ts'] },
+    });
+
+    expect(toolEvents({ events })).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{\"paths\":[\"src/index.ts\"]}",
+          "providerExecuted": true,
+          "toolCallId": "call-cursor-lints",
+          "toolName": "readLints",
+          "type": "tool-call",
+        },
+        {
+          "result": {},
+          "toolCallId": "call-cursor-lints",
+          "toolName": "readLints",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('keeps equally specific title matches dynamic', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        { toolName: 'first', title: 'Operation' },
+        { toolName: 'second', title: 'Operation' },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-cursor-ambiguous',
+      title: 'Operation detail',
+      kind: 'other',
+      status: 'completed',
+      rawInput: {},
+    });
+
+    expect(toolEvents({ events })[0]).toMatchInlineSnapshot(`
+      {
+        "input": "{}",
+        "providerExecuted": true,
+        "toolCallId": "call-cursor-ambiguous",
+        "toolName": "acp_tool_call-cursor-ambiguous",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('uses literal schema properties to distinguish anonymous ACP tools', () => {
     const events: HarnessV1StreamPart[] = [];
     const translator = createACPStreamTranslator({

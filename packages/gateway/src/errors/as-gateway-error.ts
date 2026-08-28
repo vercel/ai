@@ -55,14 +55,15 @@ export async function asGatewayError(
 
     return await createGatewayErrorFromResponse({
       response: extractApiCallResponse(error),
-      statusCode:
-        error.isRetryable &&
-        (error.statusCode == null || error.statusCode < 400)
-          ? 500
-          : (error.statusCode ?? 500),
+      statusCode: error.statusCode ?? 500,
       defaultMessage: 'Gateway request failed',
       cause: error,
       authMethod,
+      isRetryable:
+        error.isRetryable &&
+        (error.statusCode == null || error.statusCode < 400)
+          ? true
+          : undefined,
     });
   }
 

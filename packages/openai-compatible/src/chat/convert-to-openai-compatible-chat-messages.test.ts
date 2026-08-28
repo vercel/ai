@@ -104,6 +104,104 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert video data parts to video_url data URLs', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this video' },
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: new Uint8Array([0, 1, 2, 3]),
+            },
+            mediaType: 'video/mp4',
+            providerOptions: {
+              openaiCompatible: {
+                fps: 1,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this video' },
+          {
+            type: 'video_url',
+            video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+            fps: 1,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert base64-encoded video data parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            },
+            mediaType: 'video/webm',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'video_url',
+            video_url: { url: 'data:video/webm;base64,AAECAw==' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should pass through video URLs', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/video.mp4'),
+            },
+            mediaType: 'video/*',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'video_url',
+            video_url: { url: 'https://example.com/video.mp4' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert messages with audio/wav parts', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
@@ -451,12 +549,14 @@ describe('user messages', () => {
                 type: 'data' as const,
                 data: new Uint8Array([0, 1, 2, 3]),
               },
-              mediaType: 'video/mp4',
+              mediaType: 'application/zip',
             },
           ],
         },
       ]),
-    ).toThrow("'file part media type video/mp4' functionality not supported");
+    ).toThrow(
+      "'file part media type application/zip' functionality not supported",
+    );
   });
 
   it('should throw error for file parts with provider references', async () => {

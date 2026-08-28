@@ -37,6 +37,7 @@ export async function startTextBatch({
   model: modelArg,
   requests,
   providerOptions,
+  webhookUrl,
   abortSignal,
   headers,
   timeout,
@@ -81,6 +82,7 @@ export async function startTextBatch({
       providerOptions,
       abortSignal: operationAbortSignal,
       headers: headersWithUserAgent,
+      ...(webhookUrl != null && { webhookUrl }),
     });
     const { batchId, warnings, ...status } = result;
 

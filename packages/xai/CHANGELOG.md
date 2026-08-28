@@ -1,5 +1,65 @@
 # @ai-sdk/xai
 
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.48
+
+### Patch Changes
+
+- 6843788: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.46
+
+### Patch Changes
+
+- 41e7760: Preserve complete xAI Responses usage objects in raw usage metadata.
+
+## 4.0.45
+
+### Patch Changes
+
+- 7de3612: Encode provider-returned identifiers before using them in credentialed follow-up request paths.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- 3f8fa93: feat(xai): batch API support
+- dfa7305: Preserve complete xAI Chat Completions usage objects in generated and streamed results.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.42
+
+### Patch Changes
+
+- ef05760: fix(provider/xai): report image moderation blocks as content policy errors
+
 ## 4.0.41
 
 ### Patch Changes

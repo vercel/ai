@@ -21,25 +21,37 @@ export const claudeCodeACPHarness = createACP({
     packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
+  resolveModel: ({ model }) => ({
+    env: { ANTHROPIC_MODEL: model },
+  }),
   credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
-  credentialBrokering: ({ env }) => {
+  credentialBrokering: ({ env, sandboxEnv }) => {
     const apiKey = env.ANTHROPIC_API_KEY;
     const authToken = env.ANTHROPIC_AUTH_TOKEN;
-    if (!apiKey && !authToken) return [];
-
-    const headers: Record<string, string> = {};
-    if (apiKey) {
-      headers['x-api-key'] = apiKey;
+    const sandboxApiKey = sandboxEnv?.ANTHROPIC_API_KEY;
+    const sandboxAuthToken = sandboxEnv?.ANTHROPIC_AUTH_TOKEN;
+    const transformations = [];
+    if (apiKey && sandboxApiKey) {
+      transformations.push(
+        createCredentialRequestTransformation({
+          matchUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+          matchHeaders: { 'x-api-key': sandboxApiKey },
+          transformHeaders: { 'x-api-key': apiKey },
+        }),
+      );
     }
-    if (authToken) {
-      headers.Authorization = `Bearer ${authToken}`;
+    if (authToken && sandboxAuthToken) {
+      transformations.push(
+        createCredentialRequestTransformation({
+          matchUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxAuthToken}`,
+          },
+          transformHeaders: { Authorization: `Bearer ${authToken}` },
+        }),
+      );
     }
-    return [
-      createCredentialRequestTransformation({
-        baseUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
-        headers,
-      }),
-    ];
+    return transformations;
   },
   env: {
     IS_SANDBOX: '1',

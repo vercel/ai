@@ -1,5 +1,114 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.93
+
+### Patch Changes
+
+- Updated dependencies [cc9f6ce]
+- Updated dependencies [7608210]
+- Updated dependencies [6f8a2d7]
+- Updated dependencies [14d4fc0]
+  - @ai-sdk/harness@1.0.93
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.91
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.91
+
+## 1.0.90
+
+### Patch Changes
+
+- Updated dependencies [0e590d2]
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.89
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.88
+
+### Patch Changes
+
+- 309ba00: fix(workflow-harness): prevent time-slice deadlines from suspending harness turns that have already completed.
+- Updated dependencies [32349cc]
+  - @ai-sdk/harness@1.0.88
+
+## 1.0.87
+
+### Patch Changes
+
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+
+## 1.0.86
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+
+## 1.0.85
+
+### Patch Changes
+
+- Updated dependencies [fa6af57]
+  - @ai-sdk/harness@1.0.85
+
+## 1.0.84
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.84
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.83
+
+## 1.0.82
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.82
+
+## 1.0.81
+
+### Patch Changes
+
+- Updated dependencies [7f50d28]
+  - @ai-sdk/harness@1.0.81
+
+## 1.0.80
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.80
+
+## 1.0.79
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.79
+
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness@1.0.78
+
 ## 1.0.77
 
 ### Patch Changes

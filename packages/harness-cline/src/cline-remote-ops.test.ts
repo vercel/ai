@@ -4,27 +4,92 @@ import { createClineRemoteOps } from './cline-remote-ops';
 
 const WORK_DIR = '/sandbox/work/cline-s1';
 
+type RunInput = {
+  command: string;
+  workingDirectory?: string;
+  abortSignal?: AbortSignal;
+};
+
+type RunResult = {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+};
+
 function createFakeSandbox({
   files = new Map<string, string>(),
   run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' })),
+  realpath,
+  existingPaths = new Set([WORK_DIR]),
 }: {
   files?: Map<string, string>;
-  run?: ReturnType<typeof vi.fn>;
+  run?: (input: RunInput) => Promise<RunResult>;
+  realpath?: (inputPath: string) => string | null;
+  existingPaths?: Set<string>;
 } = {}) {
-  const sandbox = {
-    run,
-    readTextFile: async ({ path }: { path: string }) => files.get(path) ?? null,
-    writeTextFile: async ({
-      path,
-      content,
-    }: {
-      path: string;
-      content: string;
-    }) => {
+  const sandboxRun = vi.fn(async (input: RunInput) => {
+    const realpathResult = mockRealpathCommand({
+      command: input.command,
+      files,
+      existingPaths,
+      realpath,
+    });
+    return realpathResult ?? run(input);
+  });
+  const readTextFile = vi.fn(
+    async ({ path }: { path: string }) => files.get(path) ?? null,
+  );
+  const writeTextFile = vi.fn(
+    async ({ path, content }: { path: string; content: string }) => {
       files.set(path, content);
     },
+  );
+  const sandbox = {
+    run: sandboxRun,
+    readTextFile,
+    writeTextFile,
   } as unknown as Experimental_SandboxSession;
-  return { sandbox, files, run };
+  return { sandbox, files, run: sandboxRun, readTextFile, writeTextFile };
+}
+
+function mockRealpathCommand({
+  command,
+  files,
+  existingPaths,
+  realpath,
+}: {
+  command: string;
+  files: Map<string, string>;
+  existingPaths: Set<string>;
+  realpath: ((inputPath: string) => string | null) | undefined;
+}): { exitCode: number; stdout: string; stderr: string } | undefined {
+  if (!command.includes('realpath')) {
+    return undefined;
+  }
+
+  const target = command.match(/target='([^']+)'/)?.[1];
+  if (!target) {
+    return { exitCode: 3, stdout: '__CLINE_REALPATH_FAILED__\n', stderr: '' };
+  }
+
+  const isWritableResolution = command.includes('missing="$base"');
+  const resolved = realpath
+    ? realpath(target)
+    : isWritableResolution || files.has(target) || existingPaths.has(target)
+      ? target
+      : null;
+
+  if (resolved === null) {
+    return {
+      exitCode: isWritableResolution ? 3 : 2,
+      stdout: isWritableResolution
+        ? '__CLINE_REALPATH_FAILED__\n'
+        : '__CLINE_REALPATH_NOT_FOUND__\n',
+      stderr: '',
+    };
+  }
+
+  return { exitCode: 0, stdout: `${resolved}\n`, stderr: '' };
 }
 
 describe('resolvePath', () => {
@@ -35,10 +100,36 @@ describe('resolvePath', () => {
     expect(ops.resolvePath('./a/../b.txt')).toBe(`${WORK_DIR}/b.txt`);
   });
 
-  it('keeps absolute paths', () => {
+  it('keeps absolute paths inside the workspace', () => {
     const { sandbox } = createFakeSandbox();
     const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
-    expect(ops.resolvePath('/etc/hosts')).toBe('/etc/hosts');
+    expect(ops.resolvePath(`${WORK_DIR}/src/index.ts`)).toBe(
+      `${WORK_DIR}/src/index.ts`,
+    );
+  });
+
+  it('rejects absolute, traversal, sibling-session, and prefix escapes', () => {
+    const { sandbox } = createFakeSandbox();
+    const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
+
+    expect(() => ops.resolvePath('/etc/hosts')).toThrow(
+      /escapes the workspace/,
+    );
+    expect(() => ops.resolvePath('../../../root/.ssh/id_ed25519')).toThrow(
+      /escapes the workspace/,
+    );
+    expect(() => ops.resolvePath('../cline-s2/.env')).toThrow(
+      /escapes the workspace/,
+    );
+    expect(() => ops.resolvePath(`${WORK_DIR}-other/.env`)).toThrow(
+      /escapes the workspace/,
+    );
+  });
+
+  it('allows workspace entries whose names begin with two dots', () => {
+    const { sandbox } = createFakeSandbox();
+    const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
+    expect(ops.resolvePath('..config')).toBe(`${WORK_DIR}/..config`);
   });
 });
 
@@ -79,6 +170,112 @@ describe('file operations', () => {
       'Text to replace was not found in c.txt',
     );
   });
+
+  it('rejects traversal through every file operation before sandbox I/O', async () => {
+    const { sandbox, readTextFile, writeTextFile, run } = createFakeSandbox();
+    const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
+    const siblingPath = '../cline-s2/.env';
+
+    await expect(ops.readFile(siblingPath)).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(ops.writeFile(siblingPath, 'owned')).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(ops.editFile(siblingPath, 'a', 'b')).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(ops.grep('secret', { path: siblingPath })).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(ops.glob('*', siblingPath)).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(ops.ls(siblingPath)).rejects.toThrow(/escapes the workspace/);
+
+    expect(readTextFile).not.toHaveBeenCalled();
+    expect(writeTextFile).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('rejects symlinks that resolve outside the workspace', async () => {
+    const linkedPath = `${WORK_DIR}/linked-secret`;
+    const outsidePath = '/sandbox/work/cline-s2/.env';
+    const { sandbox, readTextFile, writeTextFile } = createFakeSandbox({
+      files: new Map([[outsidePath, 'SECRET=value']]),
+      existingPaths: new Set([WORK_DIR, linkedPath]),
+      realpath: inputPath =>
+        inputPath === linkedPath ? outsidePath : inputPath,
+    });
+    const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
+
+    await expect(ops.readFile('linked-secret')).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(ops.grep('SECRET', { path: 'linked-secret' })).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(ops.glob('*', 'linked-secret')).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(ops.ls('linked-secret')).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(ops.writeFile('linked-secret', 'owned')).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    await expect(
+      ops.editFile('linked-secret', 'SECRET', 'owned'),
+    ).rejects.toThrow(/escapes the workspace/);
+
+    expect(readTextFile).not.toHaveBeenCalled();
+    expect(writeTextFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects new writes whose closest existing ancestor escapes', async () => {
+    const linkedPath = `${WORK_DIR}/linked-dir/new.txt`;
+    const outsidePath = '/sandbox/work/cline-s2/new.txt';
+    const { sandbox, writeTextFile } = createFakeSandbox({
+      realpath: inputPath =>
+        inputPath === linkedPath ? outsidePath : inputPath,
+    });
+    const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
+
+    await expect(ops.writeFile('linked-dir/new.txt', 'owned')).rejects.toThrow(
+      /escapes the workspace/,
+    );
+    expect(writeTextFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects writes through dangling symlinks', async () => {
+    const linkedPath = `${WORK_DIR}/dangling-link`;
+    const { sandbox, writeTextFile } = createFakeSandbox({
+      existingPaths: new Set([WORK_DIR, linkedPath]),
+      realpath: inputPath => (inputPath === linkedPath ? null : inputPath),
+    });
+    const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
+
+    await expect(ops.writeFile('dangling-link', 'owned')).rejects.toThrow(
+      /Unable to resolve path/,
+    );
+    expect(writeTextFile).not.toHaveBeenCalled();
+  });
+
+  it('uses canonical targets when symlinks remain inside the workspace', async () => {
+    const linkedPath = `${WORK_DIR}/linked-file`;
+    const targetPath = `${WORK_DIR}/target.txt`;
+    const { sandbox, files } = createFakeSandbox({
+      files: new Map([[targetPath, 'original']]),
+      existingPaths: new Set([WORK_DIR, linkedPath]),
+      realpath: inputPath =>
+        inputPath === linkedPath ? targetPath : inputPath,
+    });
+    const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
+
+    expect(await ops.readFile('linked-file')).toBe('original');
+    await ops.writeFile('linked-file', 'updated');
+    expect(files.get(targetPath)).toBe('updated');
+  });
 });
 
 describe('bash', () => {
@@ -100,7 +297,7 @@ describe('bash', () => {
   it('aborts on timeout', async () => {
     const run = vi.fn(
       async ({ abortSignal }: { abortSignal?: AbortSignal }) =>
-        new Promise((_resolve, reject) => {
+        new Promise<RunResult>((_resolve, reject) => {
           abortSignal?.addEventListener('abort', () =>
             reject(new Error('aborted')),
           );
@@ -163,5 +360,23 @@ describe('grep', () => {
     const { sandbox } = createFakeSandbox({ run });
     const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
     expect(await ops.grep('needle')).toBe('No matches found');
+  });
+
+  it('does not follow symlinks discovered during recursive searches', async () => {
+    const run = vi.fn(async (_input: RunInput) => ({
+      exitCode: 1,
+      stdout: '',
+      stderr: '',
+    }));
+    const { sandbox } = createFakeSandbox({ run });
+    const ops = createClineRemoteOps({ sandbox, workDir: WORK_DIR });
+
+    await ops.grep('needle');
+
+    const grepCommand = run.mock.calls.find(([input]) =>
+      input.command.includes('grep '),
+    )?.[0].command;
+    expect(grepCommand).toContain("grep '-r'");
+    expect(grepCommand).not.toContain("'-R'");
   });
 });

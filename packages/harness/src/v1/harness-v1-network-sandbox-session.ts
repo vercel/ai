@@ -71,11 +71,13 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
   readonly stop: () => PromiseLike<void>;
 
   /**
-   * Destroy/delete the sandbox resource when supported. Optional because some
-   * providers only have a stop/dispose concept. Implementations must handle
-   * both a still-running sandbox and a previously stopped sandbox.
+   * Stop the sandbox session, then perform any additional cleanup necessary
+   * to destroy it, such as deleting its backing resource or freeing resources.
+   * Implementations with no cleanup beyond stopping may delegate to `stop()`.
+   * Implementations must handle both a still-running sandbox and a previously
+   * stopped sandbox.
    */
-  readonly destroy?: () => PromiseLike<void>;
+  readonly destroy: () => PromiseLike<void>;
 
   /**
    * Update the sandbox's outbound network policy. Optional — implementations
@@ -202,4 +204,10 @@ export type HarnessV1RequestTransformation = {
   readonly transform: {
     readonly headers: Readonly<Record<string, string>>;
   };
+};
+
+export type HarnessV1RequestTransformationSources<AuthenticationMode> = {
+  env: Record<string, string>;
+  sandboxEnv: Record<string, string>;
+  auth: AuthenticationMode;
 };

@@ -1,9 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { cline, createCline } from './index';
+import type * as ClineSessionModule from './cline-session';
 import {
   resolveActiveClineBuiltinNames,
   CLINE_NATIVE_BUILTIN_NAMES,
 } from './cline-tools';
+
+const mocks = vi.hoisted(() => ({
+  createClineSession: vi.fn(async () => ({})),
+}));
+
+vi.mock('./cline-session', async importOriginal => {
+  const actual = await importOriginal<typeof ClineSessionModule>();
+  return { ...actual, createClineSession: mocks.createClineSession };
+});
 
 describe('createCline', () => {
   it('returns a harness-v1 spec', () => {
@@ -14,7 +24,7 @@ describe('createCline', () => {
     expect(harness.supportsBuiltinToolFiltering).toBe(true);
   });
 
-  it('declares the seven built-in tools', () => {
+  it('declares the eight built-in tools', () => {
     expect(Object.keys(createCline().builtinTools).sort()).toEqual(
       [...CLINE_NATIVE_BUILTIN_NAMES].sort(),
     );
@@ -27,6 +37,23 @@ describe('createCline', () => {
   it('validates lifecycle state data with its schema', () => {
     const schema = createCline().lifecycleStateSchema;
     expect(schema).toBeDefined();
+  });
+
+  it('prefers the HarnessAgent model over the deprecated adapter model', async () => {
+    const harness = createCline({ modelId: 'legacy-model' });
+
+    await harness.doStart({
+      model: 'agent-model',
+      sessionId: 'session-1',
+      sandboxSession: {} as never,
+      sessionWorkDir: '/workspace/project',
+    });
+
+    expect(mocks.createClineSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({ modelId: 'agent-model' }),
+      }),
+    );
   });
 });
 
@@ -49,6 +76,6 @@ describe('resolveActiveClineBuiltinNames', () => {
   it('applies deny filtering', () => {
     expect(
       resolveActiveClineBuiltinNames({ mode: 'deny', toolNames: ['bash'] }),
-    ).toEqual(['read', 'write', 'edit', 'grep', 'glob', 'ls']);
+    ).toEqual(['read', 'write', 'edit', 'grep', 'glob', 'ls', 'skills']);
   });
 });

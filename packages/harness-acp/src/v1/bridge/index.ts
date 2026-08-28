@@ -38,7 +38,10 @@ import {
   type HostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
-import { refreshHostToolCatalog } from './refresh-host-tool-catalog';
+import {
+  promptAndRefreshInitialHostToolCatalog,
+  refreshHostToolCatalog,
+} from './refresh-host-tool-catalog';
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
 import {
@@ -53,7 +56,8 @@ import {
 } from './session-lifecycle';
 
 type ImplementationDescriptor = {
-  readonly executable: string;
+  readonly executablePath: string;
+  readonly privateHome: boolean;
   readonly args: ReadonlyArray<string>;
   readonly envKeys: ReadonlyArray<string>;
 };
@@ -129,8 +133,12 @@ await runBridge<StartMessage>({
 });
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+  let initialHostToolCatalogRefreshRequired: boolean;
   try {
-    await ensureSession({ start, turn });
+    ({ initialHostToolCatalogRefreshRequired } = await ensureSession({
+      start,
+      turn,
+    }));
   } catch (error) {
     if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) throw error;
     throw createACPBridgeError({
@@ -147,6 +155,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     throw new Error(
       'ACP session initialization did not start stderr monitoring.',
     );
+  }
+  const activeHostToolRelay = hostToolRelay;
+  if (activeHostToolRelay == null) {
+    throw new Error('The host tool MCP relay is unavailable.');
   }
   if (start.recoveryMode?.type === 'lossy-rerun') {
     const marker = {
@@ -259,15 +271,35 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     removeCorrelationInvocation:
       emitStreamEvent.removeHostToolCorrelationInvocation,
   };
-  hostToolRelay?.bindTurn({ turn: relayTurn });
+  activeHostToolRelay.bindTurn({ turn: relayTurn });
   try {
     const promptMeta = createOutputSchemaPromptMeta({ start });
-    void promptActiveSession({
-      session: activeSession,
-      agent: connection!.agent,
-      prompt: start.prompt,
-      meta: promptMeta,
-    });
+    const startPrompt = () =>
+      promptActiveSession({
+        session: activeSession,
+        agent: connection!.agent,
+        prompt: start.prompt,
+        meta: promptMeta,
+      });
+    if (initialHostToolCatalogRefreshRequired) {
+      try {
+        await promptAndRefreshInitialHostToolCatalog({
+          startPrompt,
+          relay: activeHostToolRelay,
+          tools: start.tools ?? [],
+          harnessId: bridgeType,
+          timeoutMs: CATALOG_REFRESH_TIMEOUT_MS,
+        });
+      } catch (error) {
+        if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
+          catalogRefreshError = error;
+        }
+        sessionConfigurationFailure = { error };
+        throw error;
+      }
+    } else {
+      void startPrompt();
+    }
     if (turn.abortSignal.aborted) {
       await cancel();
     } else {
@@ -315,7 +347,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   } finally {
     permissionController.cancelAll();
     activePermissionController = undefined;
-    hostToolRelay?.unbindTurn({ turn: relayTurn });
+    activeHostToolRelay.unbindTurn({ turn: relayTurn });
   }
 }
 
@@ -325,7 +357,7 @@ async function ensureSession({
 }: {
   start: StartMessage;
   turn: BridgeTurn;
-}): Promise<void> {
+}): Promise<{ initialHostToolCatalogRefreshRequired: boolean }> {
   if (sessionConfigurationFailure != null) {
     throw sessionConfigurationFailure.error;
   }
@@ -363,7 +395,7 @@ async function ensureSession({
       }
       throw error;
     }
-    return;
+    return { initialHostToolCatalogRefreshRequired: false };
   }
 
   const clientApp = resolveClientApp();
@@ -381,11 +413,18 @@ async function ensureSession({
     instructions: start.instructions,
     instructionMapping: start.instructionMapping,
     sessionMeta: bridgeConfiguration.sessionMeta,
-    environment: createChildEnvironment({ launchEnv }),
+    environment: {
+      ...createChildEnvironment({
+        launchEnv,
+        implementationDir,
+        privateHome: implementation.privateHome,
+      }),
+      ...bridgeConfiguration.implementationEnv,
+    },
   });
   child = spawn(
-    `${implementationDir}/node_modules/.bin/${implementation.executable}`,
-    [...implementation.args],
+    `${implementationDir}/${implementation.executablePath}`,
+    [...(bridgeConfiguration.implementationArgs ?? implementation.args)],
     {
       cwd: workDir,
       env: instructionConfiguration.environment,
@@ -553,12 +592,6 @@ async function ensureSession({
       .start();
   }
   try {
-    await refreshHostToolCatalog({
-      relay: hostToolRelay,
-      tools,
-      harnessId: bridgeType,
-      timeoutMs: CATALOG_REFRESH_TIMEOUT_MS,
-    });
     if (start.permissionModeMapping != null) {
       await configureACPPermissionMode({
         agent: connection.agent,
@@ -583,6 +616,7 @@ async function ensureSession({
     sessionId: createdSession.sessionId,
   });
   sessionConfigurationFingerprint = fingerprint;
+  return { initialHostToolCatalogRefreshRequired: tools.length > 0 };
 }
 
 function createExternalMcpServers({
@@ -686,8 +720,12 @@ function resolveGatewayValues({
 
 function createChildEnvironment({
   launchEnv,
+  implementationDir,
+  privateHome,
 }: {
   launchEnv: Readonly<Record<string, string>>;
+  implementationDir: string;
+  privateHome: boolean;
 }): NodeJS.ProcessEnv {
   const blocked = new Set([
     'BRIDGE_CHANNEL_TOKEN',
@@ -698,13 +736,27 @@ function createChildEnvironment({
     'AI_SDK_ACP_CLIENT_APP_VERSION',
     ACP_BRIDGE_CONFIGURATION_ENV,
   ]);
-  return {
+  const environment = {
     ...Object.fromEntries(
       Object.entries(processEnv).filter(
         ([key, value]) => !blocked.has(key) && value != null,
       ),
     ),
     ...launchEnv,
+  };
+  if (!privateHome) return environment;
+
+  const home = `${implementationDir}/home`;
+  const inheritedPath = environment.PATH;
+  return {
+    ...environment,
+    HOME: home,
+    PATH: [
+      `${home}/.local/bin`,
+      ...(inheritedPath == null || inheritedPath.length === 0
+        ? []
+        : [inheritedPath]),
+    ].join(':'),
   };
 }
 
@@ -798,7 +850,8 @@ async function readImplementationDescriptor({
   }).json();
   if (
     !isRecord(value) ||
-    typeof value.executable !== 'string' ||
+    typeof value.executablePath !== 'string' ||
+    typeof value.privateHome !== 'boolean' ||
     !Array.isArray(value.args) ||
     !value.args.every(item => typeof item === 'string') ||
     !Array.isArray(value.envKeys) ||
@@ -807,7 +860,8 @@ async function readImplementationDescriptor({
     throw new Error('Invalid ACP implementation descriptor.');
   }
   return {
-    executable: value.executable,
+    executablePath: value.executablePath,
+    privateHome: value.privateHome,
     args: value.args as string[],
     envKeys: value.envKeys as string[],
   };

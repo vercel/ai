@@ -3,7 +3,7 @@ import { isAbortError } from './is-abort-error';
 
 const FETCH_FAILED_ERROR_MESSAGES = ['fetch failed', 'failed to fetch'];
 
-const BUN_ERROR_CODES = [
+const RETRYABLE_NETWORK_ERROR_CODES = new Set([
   'ConnectionRefused',
   'ConnectionClosed',
   'FailedToOpenSocket',
@@ -11,31 +11,30 @@ const BUN_ERROR_CODES = [
   'ECONNREFUSED',
   'ETIMEDOUT',
   'EPIPE',
-];
-
-const UNDICI_NETWORK_ERROR_CODES = [
   'UND_ERR_SOCKET',
   'UND_ERR_HEADERS_TIMEOUT',
   'UND_ERR_BODY_TIMEOUT',
   'UND_ERR_CONNECT_TIMEOUT',
-];
+]);
 
 function findNetworkError(
   error: unknown,
-): (Error & { code?: string }) | undefined {
+): (Error & { code?: unknown }) | undefined {
+  const visited = new Set<Error>();
   let current = error;
 
-  for (let index = 0; index < 10 && current instanceof Error; index++) {
-    const code = (current as any).code;
+  while (current instanceof Error && !visited.has(current)) {
+    visited.add(current);
+
+    const errorWithCode = current as Error & { code?: unknown };
     if (
-      typeof code === 'string' &&
-      (BUN_ERROR_CODES.includes(code) ||
-        UNDICI_NETWORK_ERROR_CODES.includes(code))
+      typeof errorWithCode.code === 'string' &&
+      RETRYABLE_NETWORK_ERROR_CODES.has(errorWithCode.code)
     ) {
-      return current;
+      return errorWithCode;
     }
 
-    current = (current as any).cause;
+    current = (current as Error & { cause?: unknown }).cause;
   }
 
   return undefined;

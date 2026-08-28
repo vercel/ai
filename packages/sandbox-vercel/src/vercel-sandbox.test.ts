@@ -134,7 +134,7 @@ describe('createVercelSandbox (wrap existing)', () => {
 
   it('destroy is a no-op (caller owns lifecycle)', async () => {
     const { sandbox, spies } = makeMockSandbox();
-    await (await createVercelSandbox({ sandbox }).createSession()).destroy?.();
+    await (await createVercelSandbox({ sandbox }).createSession()).destroy();
     expect(spies.stop).not.toHaveBeenCalled();
     expect(spies.delete).not.toHaveBeenCalled();
   });
@@ -511,7 +511,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     expect(error).toBe(cause);
   });
 
-  it('applies a 30 minute default timeout when none is provided', async () => {
+  it('preserves the Node 24 runtime and 30 minute timeout defaults', async () => {
     const { sandbox } = makeMockSandbox();
     createMock.mockResolvedValueOnce(sandbox);
 
@@ -519,8 +519,61 @@ describe('createVercelSandbox (create from scratch)', () => {
 
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(createMock.mock.calls[0][0]).toMatchObject({
+      runtime: 'node24',
       timeout: 30 * 60 * 1_000,
     });
+  });
+
+  it('does not add the legacy runtime when an image is provided', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({
+      image: 'vercel/sandbox/universal',
+    }).createSession();
+
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      image: 'vercel/sandbox/universal',
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
+  });
+
+  it('uses an image for a template without forwarding it to snapshot forks', async () => {
+    const { sandbox: template } = makeMockSandbox();
+    const { sandbox: fork } = makeMockSandbox();
+    Object.assign(template, { currentSnapshotId: 'snap_123' });
+    getOrCreateMock.mockResolvedValueOnce(template);
+    createMock.mockResolvedValueOnce(fork);
+
+    await createVercelSandbox({
+      image: 'vercel/sandbox/universal',
+    }).createSession({
+      identity: 'template-test',
+      onFirstCreate: async () => {},
+    });
+
+    expect(getOrCreateMock.mock.calls[0][0]).toMatchObject({
+      image: 'vercel/sandbox/universal',
+    });
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('image');
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
+  });
+
+  it('does not add the legacy runtime when restoring a snapshot', async () => {
+    const { sandbox } = makeMockSandbox();
+    createMock.mockResolvedValueOnce(sandbox);
+
+    await createVercelSandbox({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    }).createSession();
+
+    expect(createMock.mock.calls[0][0]).toMatchObject({
+      source: { type: 'snapshot', snapshotId: 'snap_123' },
+    });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
   });
 
   it('respects an explicitly provided timeout', async () => {
@@ -532,13 +585,22 @@ describe('createVercelSandbox (create from scratch)', () => {
     expect(createMock.mock.calls[0][0]).toMatchObject({ timeout: 60_000 });
   });
 
-  it('destroy stops and deletes owned sandboxes', async () => {
-    const { sandbox, spies } = makeMockSandbox();
+  it('destroy stops before deleting owned sandboxes', async () => {
+    const calls: string[] = [];
+    const { sandbox, spies } = makeMockSandbox({
+      stop: vi.fn(async () => {
+        calls.push('stop');
+      }),
+      delete: vi.fn(async () => {
+        calls.push('delete');
+      }),
+    });
     createMock.mockResolvedValueOnce(sandbox);
 
     const handle = await createVercelSandbox({}).createSession();
-    await handle.destroy?.();
+    await handle.destroy();
 
+    expect(calls).toEqual(['stop', 'delete']);
     expect(spies.stop).toHaveBeenCalledTimes(1);
     expect(spies.delete).toHaveBeenCalledTimes(1);
   });
@@ -552,7 +614,7 @@ describe('createVercelSandbox (create from scratch)', () => {
     createMock.mockResolvedValueOnce(sandbox);
 
     const handle = await createVercelSandbox({}).createSession();
-    await handle.destroy?.();
+    await handle.destroy();
 
     expect(spies.stop).toHaveBeenCalledTimes(1);
     expect(spies.delete).toHaveBeenCalledTimes(1);

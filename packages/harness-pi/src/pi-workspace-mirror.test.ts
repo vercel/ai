@@ -158,7 +158,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
         readFileSync(path.join(hostWorkDir, '.pi/group-100/SYSTEM.md'), 'utf8'),
       ).toBe('prompt 100');
     } finally {
-      await sandboxSession.destroy?.();
+      await sandboxSession.destroy();
     }
   }, 30_000);
 
@@ -202,7 +202,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
         ),
       ).toBe('deep prompt');
     } finally {
-      await sandboxSession.destroy?.();
+      await sandboxSession.destroy();
     }
   }, 60_000);
 
@@ -259,7 +259,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
         ),
       ).toBe('# Linked skill');
     } finally {
-      await sandboxSession.destroy?.();
+      await sandboxSession.destroy();
     }
   });
 
@@ -299,7 +299,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
         ),
       ).toBe('# Project skill');
     } finally {
-      await sandboxSession.destroy?.();
+      await sandboxSession.destroy();
     }
   });
 
@@ -324,7 +324,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
 
       expect(existsSync(path.join(hostWorkDir, '.pi'))).toBe(false);
     } finally {
-      await sandboxSession.destroy?.();
+      await sandboxSession.destroy();
     }
   });
 
@@ -353,7 +353,7 @@ describe('syncHostWorkspaceFromSandbox', () => {
         }),
       ).rejects.toThrow('symlink cycle');
     } finally {
-      await sandboxSession.destroy?.();
+      await sandboxSession.destroy();
     }
   });
 

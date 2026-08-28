@@ -1,10 +1,10 @@
 import {
   createACP,
-  type ACPAuthOptions,
+  type ACPAuthenticationMode,
   type ACPPermissionModeMapping,
   type ACPSource,
 } from '@ai-sdk/harness-acp';
-import { commonTool } from '@ai-sdk/harness';
+import { commonTool, type HarnessV1PortEndpoint } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -74,9 +74,11 @@ const codexConfigSchema = z.object({
 });
 
 export type CodexACPHarnessSettings = {
-  auth?: ACPAuthOptions;
+  auth?: ACPAuthenticationMode;
   mcpServers?: Record<string, unknown>;
   mintBridgeToken?: (sandboxId: string) => string;
+  port?: number;
+  portEndpoint?: HarnessV1PortEndpoint;
   reasoningEffort?: 'low' | 'medium' | 'high';
   webSearch?: boolean;
   source?: ACPSource;
@@ -86,6 +88,8 @@ export function createCodexACP({
   auth = 'auto',
   mcpServers,
   mintBridgeToken,
+  port,
+  portEndpoint,
   reasoningEffort,
   webSearch,
   source = CODEX_ACP_SOURCE,
@@ -96,17 +100,40 @@ export function createCodexACP({
     mcpServers,
     isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
     mintBridgeToken,
+    port,
+    portEndpoint,
     source,
     executable: CODEX_ACP_EXECUTABLE,
+    resolveModel: ({ model }) => ({
+      env: {
+        CODEX_CONFIG: JSON.stringify({
+          model,
+          ...(webSearch ? { web_search: 'live' } : {}),
+          ...(reasoningEffort
+            ? {
+                model_reasoning_effort: reasoningEffort,
+                model_reasoning_summary: 'detailed',
+              }
+            : {}),
+        }),
+      },
+    }),
     forwardEnv: webSearch ? [] : ['CODEX_CONFIG'],
     credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-    credentialBrokering: ({ env }) => {
-      const credential = env.CODEX_API_KEY ?? env.OPENAI_API_KEY;
-      if (!credential) return [];
+    credentialBrokering: ({ env, sandboxEnv }) => {
+      const environmentVariableName = env.CODEX_API_KEY
+        ? 'CODEX_API_KEY'
+        : 'OPENAI_API_KEY';
+      const credential = env[environmentVariableName];
+      const sandboxCredential = sandboxEnv?.[environmentVariableName];
+      if (!credential || !sandboxCredential) return [];
       return [
         createCredentialRequestTransformation({
-          baseUrl: resolveCodexACPBaseUrl({ env }),
-          headers: { Authorization: `Bearer ${credential}` },
+          matchUrl: resolveCodexACPBaseUrl({ env }),
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxCredential}`,
+          },
+          transformHeaders: { Authorization: `Bearer ${credential}` },
         }),
       ];
     },
@@ -139,6 +166,7 @@ export function createCodexACP({
       gateway: {
         env: {
           CODEX_API_KEY: { $source: 'gateway-api-key' },
+          MODEL_PROVIDER: 'ai_gateway',
           CODEX_CONFIG: {
             ...(webSearch ? { web_search: 'live' } : {}),
             ...(reasoningEffort

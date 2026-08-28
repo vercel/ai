@@ -6,6 +6,8 @@ import { createACP, type ACPHarnessSettings } from './acp-harness';
 import type { ACPToolCall } from './acp-tool-call';
 import type { ACPV1Settings } from './v1';
 
+const resolveModel: ACPV1Settings['resolveModel'] = () => ({});
+
 describe('createACP built-in tool inference', () => {
   test('keeps the local ACP tool-call type aligned with the protocol SDK', () => {
     expectTypeOf<ACPToolCall>().toExtend<ToolCall>();
@@ -16,15 +18,35 @@ describe('createACP built-in tool inference', () => {
     expectTypeOf<
       Extract<
         keyof ACPV1Settings,
-        'builtinTools' | 'port' | 'startupTimeoutMs' | 'clientApp'
+        | 'builtinTools'
+        | 'port'
+        | 'portEndpoint'
+        | 'startupTimeoutMs'
+        | 'clientApp'
       >
     >().toEqualTypeOf<never>();
     expectTypeOf<
       Omit<
         ACPHarnessSettings,
-        'builtinTools' | 'port' | 'startupTimeoutMs' | 'clientApp'
+        | 'builtinTools'
+        | 'port'
+        | 'portEndpoint'
+        | 'startupTimeoutMs'
+        | 'clientApp'
       >
     >().toEqualTypeOf<ACPV1Settings>();
+  });
+
+  test('requires a model resolver', () => {
+    // @ts-expect-error resolveModel is required for every ACP implementation
+    createACP({
+      harnessId: 'missing-model-resolver',
+      source: {
+        type: 'npm-simple',
+        packageName: '@example/acp-agent',
+      },
+      executable: 'acp-agent',
+    });
   });
 
   test('preserves the supplied tool set type', () => {
@@ -40,6 +62,7 @@ describe('createACP built-in tool inference', () => {
         packageVersion: '1.1.4',
       },
       executable: 'codex-acp',
+      resolveModel,
       builtinTools: { bash },
       clientApp: { name: 'example-app', version: '1.2.3' },
     });
@@ -47,7 +70,7 @@ describe('createACP built-in tool inference', () => {
     expectTypeOf(harness.builtinTools).toEqualTypeOf<{ bash: typeof bash }>();
   });
 
-  test('accepts discriminated simple and locked npm sources', () => {
+  test('accepts discriminated npm and install command sources', () => {
     createACP({
       harnessId: 'simple-acp',
       source: {
@@ -56,6 +79,7 @@ describe('createACP built-in tool inference', () => {
         packageVersion: '1.2.3',
       },
       executable: 'acp-agent',
+      resolveModel,
     });
     createACP({
       harnessId: 'unpinned-acp',
@@ -64,6 +88,7 @@ describe('createACP built-in tool inference', () => {
         packageName: '@example/acp-agent',
       },
       executable: 'acp-agent',
+      resolveModel,
     });
     createACP({
       harnessId: 'locked-acp',
@@ -73,6 +98,16 @@ describe('createACP built-in tool inference', () => {
         pnpmLockYaml: "lockfileVersion: '9.0'\n",
       },
       executable: 'acp-agent',
+      resolveModel,
+    });
+    createACP({
+      harnessId: 'install-command-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://example.com/install -fsS | bash',
+      },
+      executable: 'acp-agent',
+      resolveModel,
     });
   });
 
@@ -84,6 +119,8 @@ describe('createACP built-in tool inference', () => {
         packageName: '@agentclientprotocol/claude-agent-acp',
       },
       executable: 'claude-agent-acp',
+      resolveModel,
+      skillsDirectory: '.claude/skills',
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],
@@ -96,11 +133,26 @@ describe('createACP built-in tool inference', () => {
         packageName: '@agentclientprotocol/codex-acp',
       },
       executable: 'codex-acp',
+      resolveModel,
       instructionMapping: {
         type: 'launch-env-json',
         variable: 'CODEX_CONFIG',
         path: ['developer_instructions'],
       },
+    });
+  });
+
+  test('accepts asynchronous credential forwarding', () => {
+    createACP({
+      harnessId: 'credential-forwarding-acp',
+      source: {
+        type: 'npm-simple',
+        packageName: '@example/acp-agent',
+      },
+      executable: 'acp-agent',
+      resolveModel,
+      credentialForwarding: async ({ credential, environmentVariableName }) =>
+        `${environmentVariableName}:${credential}`,
     });
   });
 });
