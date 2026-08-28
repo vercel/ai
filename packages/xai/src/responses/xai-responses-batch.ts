@@ -492,10 +492,6 @@ function convertXaiChatBatchResponse(
     };
   }
 
-  if (choice.message.tool_calls?.length) {
-    return unsupportedXaiBatchContent('tool_calls');
-  }
-
   const content: LanguageModelV4Content[] = [];
   if (choice.message.content) {
     content.push({ type: 'text', text: choice.message.content });
@@ -504,6 +500,14 @@ function convertXaiChatBatchResponse(
     content.push({
       type: 'reasoning',
       text: choice.message.reasoning_content,
+    });
+  }
+  for (const toolCall of choice.message.tool_calls ?? []) {
+    content.push({
+      type: 'tool-call',
+      toolCallId: toolCall.id,
+      toolName: toolCall.function.name,
+      input: toolCall.function.arguments,
     });
   }
   for (const url of response.citations ?? []) {
@@ -541,18 +545,6 @@ function convertXaiChatBatchResponse(
           },
         } satisfies SharedV4ProviderMetadata,
       }),
-    },
-  };
-}
-
-function unsupportedXaiBatchContent(type: string): XaiBatchResponseConversion {
-  return {
-    success: false,
-    error: {
-      message:
-        `xAI returned "${type}" content, but tool content is not supported ` +
-        'in AI SDK text batches.',
-      code: 'unsupported_content',
     },
   };
 }
