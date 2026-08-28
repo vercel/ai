@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19950,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19950-gateway-vertex-zdr-embedding-limit.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19950-gateway-vertex-zdr-embedding-limit.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #19950: a 251-value ZDR embedding call was sent to Vertex as one oversized request and failed with HTTP 400 instead of being split at the documented 250-input limit."
+  }
+}
