@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 import { createTranslationState } from './opencode-events';
+import { ToolRelayAuthorizer } from './tool-relay-auth';
 
 function createEmitter({
   hostToolNames = new Set<string>(),
+  mcpToolNames = new Set<string>(),
+  onAuthorizeHostToolCall,
 }: {
   hostToolNames?: Set<string>;
+  mcpToolNames?: Set<string>;
+  onAuthorizeHostToolCall?: (input: {
+    callID: string;
+    toolName: string;
+    input: unknown;
+  }) => void;
 } = {}) {
   const state = createTranslationState();
   const emitted: Record<string, unknown>[] = [];
@@ -29,10 +38,15 @@ function createEmitter({
     nativeNameField: ({ nativeName, toolName }) =>
       nativeName === toolName ? {} : { nativeName },
     getHostToolName,
-    authorizeHostToolCall: input => authorized.push(input),
+    authorizeHostToolCall: input => {
+      authorized.push(input);
+      onAuthorizeHostToolCall?.(input);
+    },
+    isMcpToolName: toolName => mcpToolNames.has(toolName),
     stripWorkDir: file => file.replace('/work/', ''),
     formatError: error => String(error),
   });
+
   return { state, emitted, warnings, errors, authorized, emitStreamEvent };
 }
 
@@ -176,6 +190,45 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('marks external MCP tool events as dynamic', () => {
+    const { emitted, emitStreamEvent } = createEmitter({
+      mcpToolNames: new Set(['context7_resolve-library-id']),
+    });
+
+    emitStreamEvent({
+      type: 'session.next.tool.called',
+      properties: {
+        callID: 'tool-1',
+        tool: 'context7_resolve-library-id',
+        input: { libraryName: 'next.js' },
+      },
+    });
+    emitStreamEvent({
+      type: 'session.next.tool.success',
+      properties: { callID: 'tool-1', result: 'vercel/next.js' },
+    });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{\"libraryName\":\"next.js\"}",
+          "providerExecuted": true,
+          "toolCallId": "tool-1",
+          "toolName": "context7_resolve-library-id",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": "vercel/next.js",
+          "toolCallId": "tool-1",
+          "toolName": "context7_resolve-library-id",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
   it('normalizes legacy tool parts before translating them', () => {
     const { emitted, emitStreamEvent } = createEmitter();
 
@@ -215,6 +268,76 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it('does not expose the internal structured output tool', () => {
+    const { emitted, emitStreamEvent } = createEmitter();
+
+    emitStreamEvent({
+      type: 'session.next.tool.called',
+      properties: {
+        callID: 'structured-next',
+        tool: 'StructuredOutput',
+        input: { answer: 'yes' },
+      },
+    });
+    emitStreamEvent({
+      type: 'session.next.tool.success',
+      properties: {
+        callID: 'structured-next',
+        tool: 'StructuredOutput',
+        result: { answer: 'yes' },
+      },
+    });
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          type: 'tool',
+          callID: 'structured-legacy',
+          tool: 'StructuredOutput',
+          state: {
+            status: 'completed',
+            input: { answer: 'yes' },
+            output: { answer: 'yes' },
+          },
+        },
+      },
+    });
+
+    expect(emitted).toEqual([]);
+  });
+
+  it('authorizes legacy host tool calls using only the tool input', async () => {
+    const authorizer = new ToolRelayAuthorizer({
+      ttlMs: 10,
+      now: () => 1_000,
+    });
+    const { emitStreamEvent } = createEmitter({
+      hostToolNames: new Set(['weather']),
+      onAuthorizeHostToolCall: ({ toolName, input }) =>
+        authorizer.authorizeToolCall({ toolName, input }),
+    });
+
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          type: 'tool',
+          callID: 'tool-openai',
+          tool: 'weather',
+          metadata: { openai: { itemId: 'fc_x' } },
+          state: { status: 'running', input: {} },
+        },
+      },
+    });
+
+    await expect(
+      authorizer.waitForToolCallAuthorization({
+        toolName: 'weather',
+        input: {},
+      }),
+    ).resolves.toBe(true);
   });
 
   it('preserves retry, error, compaction, and file events', () => {

@@ -1,5 +1,106 @@
 # @ai-sdk/provider-utils
 
+## 5.0.33
+
+### Patch Changes
+
+- 90192f1: Mark transient network errors that occur while reading successful response bodies as retryable.
+
+## 5.0.32
+
+### Patch Changes
+
+- 3e125ba: Allow manual tool approval statuses to include a reason and preserve it across
+  core, model, and UI approval requests. OPA `requires-approval` decisions now
+  surface their reason to human approvers. UI request chunks serialize the
+  optional `reason`, while UI messages retain it as `approval.requestReason`
+  separately from an approver's response `reason`.
+
+## 5.0.31
+
+### Patch Changes
+
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+
+## 5.0.30
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+
+## 5.0.29
+
+### Patch Changes
+
+- b74971f: Preserve schema-valued additional properties when converting Zod 4 schemas.
+
+## 5.0.28
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+
+## 5.0.27
+
+### Patch Changes
+
+- 7fbfc6d: Preserve streamed download size-limit errors when response cancellation fails.
+
+## 5.0.26
+
+### Patch Changes
+
+- 401a4ba: fix(provider-utils): allow imports in runtimes without a global fetch function
+
+## 5.0.25
+
+### Patch Changes
+
+- 81cd026: Reduce bundle size by making internal Zod v4 imports tree-shakeable.
+- Updated dependencies [ad6a650]
+  - @ai-sdk/provider@4.0.7
+
+## 5.0.24
+
+### Patch Changes
+
+- 1937bef: fix(provider-utils): make URL regex checks stateless
+
+## 5.0.23
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+
+## 5.0.22
+
+### Patch Changes
+
+- 2b60826: feat(provider-utils): support Blob request bodies in postToApi
+
+## 5.0.21
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+
+## 5.0.20
+
+### Patch Changes
+
+- 160ccdb: Reduce bundle size by removing the runtime Zod 3 dependency.
+
+## 5.0.19
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+
 ## 5.0.18
 
 ### Patch Changes

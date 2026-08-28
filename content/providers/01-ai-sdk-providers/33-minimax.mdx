@@ -165,6 +165,12 @@ creates a task and polls until it completes, then returns the resulting MP4 URL.
 fractional value is rounded and an out-of-range value is clamped, each with a
 warning. The only supported output resolution is `2K`.
 
+For **text-to-video**, `aspectRatio` defaults to `16:9` when omitted. The MiniMax
+API requires a concrete ratio for text-only requests and does not accept
+`adaptive`. For **reference-to-video**, the API default is `adaptive` when
+`aspectRatio` is omitted. For **image-to-video** with frame images, the aspect
+ratio follows the input image.
+
 <Note>
   Result URLs are time-limited. Download and persist the video to your own
   storage promptly after generation.

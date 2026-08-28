@@ -7,6 +7,7 @@ import { MockMCPTransport } from './mock-mcp-transport';
 import {
   ListToolsResult,
   ElicitationRequestSchema,
+  LATEST_LEGACY_PROTOCOL_VERSION,
   LATEST_PROTOCOL_VERSION,
   type CallToolResult,
   type CompleteResult,
@@ -70,6 +71,171 @@ class GetterOnlyProtocolVersionTransport implements MCPTransport {
 
   async close(): Promise<void> {
     await this.transport.close();
+  }
+}
+
+class ProtocolDiscoveryTransport implements MCPTransport {
+  readonly supportsProtocolVersionDiscovery = true;
+  readonly sentMessages: JSONRPCMessage[] = [];
+  protocolVersion?: string;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(
+    private readonly discoveryBehavior:
+      | 'modern'
+      | 'legacy'
+      | 'unsupported' = 'modern',
+    private readonly includeToolListResultType = true,
+  ) {}
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  setProtocolVersion(version: string): void {
+    this.protocolVersion = version;
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    this.sentMessages.push(message);
+
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'server/discover') {
+      if (this.discoveryBehavior === 'legacy') {
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: { code: -32601, message: 'Method not found' },
+        });
+        return;
+      }
+
+      if (this.discoveryBehavior === 'unsupported') {
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: -32022,
+            message: 'Unsupported protocol version',
+            data: {
+              requested: LATEST_PROTOCOL_VERSION,
+              supported: ['2099-01-01'],
+            },
+          },
+        });
+        return;
+      }
+
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          resultType: 'complete',
+          supportedVersions: [LATEST_PROTOCOL_VERSION],
+          capabilities: { tools: {} },
+          _meta: {
+            'io.modelcontextprotocol/serverInfo': {
+              name: 'modern-test-server',
+              version: '1.0.0',
+            },
+          },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+          serverInfo: { name: 'legacy-test-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          ...(this.includeToolListResultType ? { resultType: 'complete' } : {}),
+          tools: [],
+        },
+      });
+    }
+  }
+}
+
+class PaginatedToolsTransport implements MCPTransport {
+  readonly toolListCursors: Array<string | undefined> = [];
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  async start(): Promise<void> {}
+
+  async close(): Promise<void> {
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!('method' in message) || !('id' in message)) {
+      return;
+    }
+
+    if (message.method === 'initialize') {
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: {
+          protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+          serverInfo: { name: 'paginated-tools-server', version: '1.0.0' },
+          capabilities: { tools: {} },
+        },
+      });
+      return;
+    }
+
+    if (message.method === 'tools/list') {
+      const cursor = message.params?.cursor as string | undefined;
+      this.toolListCursors.push(cursor);
+      this.onmessage?.({
+        jsonrpc: '2.0',
+        id: message.id,
+        result:
+          cursor == null
+            ? {
+                tools: [
+                  {
+                    name: 'first-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
+                nextCursor: 'second-page',
+              }
+            : {
+                tools: [
+                  {
+                    name: 'second-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
+              },
+      });
+    }
   }
 }
 
@@ -376,6 +542,16 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should return tools from all paginated tool list responses', async () => {
+    const transport = new PaginatedToolsTransport();
+    client = await createMCPClient({ transport });
+
+    const tools = await client.tools();
+
+    expect(Object.keys(tools)).toEqual(['first-page-tool', 'second-page-tool']);
+    expect(transport.toolListCursors).toEqual([undefined, 'second-page']);
   });
 
   it('should expose MCP tool metadata on dynamic tools', async () => {
@@ -2940,9 +3116,8 @@ describe('MCPClient', () => {
         transport: mockTransport,
       });
 
-      // The mock transport returns LATEST_PROTOCOL_VERSION by default
       expect(mockTransport.protocolVersion).toBe(
-        (await import('./types')).LATEST_PROTOCOL_VERSION,
+        LATEST_LEGACY_PROTOCOL_VERSION,
       );
     });
 
@@ -2970,6 +3145,94 @@ describe('MCPClient', () => {
       });
 
       expect(transport.protocolVersion).toBe('2025-06-18');
+    });
+
+    it('should discover a modern server and add metadata to requests', async () => {
+      const transport = new ProtocolDiscoveryTransport();
+
+      client = await createMCPClient({ transport });
+      await client.listTools();
+
+      expect(transport.protocolVersion).toBe(LATEST_PROTOCOL_VERSION);
+      expect(client.serverInfo).toEqual({
+        name: 'modern-test-server',
+        version: '1.0.0',
+      });
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual(['server/discover', 'tools/list']);
+
+      for (const message of transport.sentMessages) {
+        if (!('method' in message) || !('id' in message)) {
+          continue;
+        }
+
+        expect(message.params?._meta).toMatchObject({
+          'io.modelcontextprotocol/protocolVersion': LATEST_PROTOCOL_VERSION,
+          'io.modelcontextprotocol/clientCapabilities': {},
+          'io.modelcontextprotocol/clientInfo': {
+            name: 'ai-sdk-mcp-client',
+            version: '1.0.0',
+          },
+        });
+      }
+    });
+
+    it('should fall back to legacy initialization for a legacy server', async () => {
+      const transport = new ProtocolDiscoveryTransport('legacy');
+
+      client = await createMCPClient({ transport });
+      await client.listTools();
+
+      expect(transport.protocolVersion).toBe(LATEST_LEGACY_PROTOCOL_VERSION);
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual([
+        'server/discover',
+        'initialize',
+        'notifications/initialized',
+        'tools/list',
+      ]);
+
+      const toolListRequest = transport.sentMessages.find(
+        message => 'method' in message && message.method === 'tools/list',
+      );
+      expect(
+        toolListRequest != null && 'params' in toolListRequest
+          ? toolListRequest.params?._meta
+          : undefined,
+      ).toBeUndefined();
+    });
+
+    it('should not fall back for a recognized modern protocol error', async () => {
+      const transport = new ProtocolDiscoveryTransport('unsupported');
+
+      await expect(createMCPClient({ transport })).rejects.toMatchObject({
+        code: -32022,
+        data: {
+          requested: LATEST_PROTOCOL_VERSION,
+          supported: ['2099-01-01'],
+        },
+      });
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual(['server/discover']);
+    });
+
+    it('should require resultType from modern servers', async () => {
+      const transport = new ProtocolDiscoveryTransport('modern', false);
+
+      client = await createMCPClient({ transport });
+
+      await expect(client.listTools()).rejects.toThrow(
+        'Modern MCP result is missing resultType',
+      );
     });
   });
 });

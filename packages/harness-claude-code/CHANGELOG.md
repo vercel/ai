@@ -1,5 +1,345 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.97
+
+### Patch Changes
+
+- cc9f6ce: fix(harness): stop diagnosing caller-initiated aborts as bridge errors, and serialize bridge turns so a start racing an aborted turn's teardown no longer overlaps it (bounded by a teardown grace period, after which the start proceeds as before)
+- 7608210: feat(harness): add `model` parameter to `HarnessAgent` instead of having each harness adapter support it on their own constructor functions
+- f7bd978: chore(harness): update underlying adapter SDKs to their latest versions
+- 14d4fc0: feat(harness): allow changing harness settings between turns via `prepareCall()` support on `HarnessAgent`
+- Updated dependencies [cc9f6ce]
+- Updated dependencies [7608210]
+- Updated dependencies [6f8a2d7]
+- Updated dependencies [14d4fc0]
+- Updated dependencies [90192f1]
+  - @ai-sdk/harness@1.0.93
+  - @ai-sdk/provider-utils@5.0.33
+
+## 1.0.96
+
+### Patch Changes
+
+- e0d7cfb: feat(harness): allow harness sessions to optionally authenticate from an isolated environment supplied through the `auth` option, and remove support for the formerly deprecated legacy auth options types
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.95
+
+### Patch Changes
+
+- ab46c30: fix(harness-claude-code): prevent WebSocket cleanup errors from escaping when bridge startup times out while the socket is still connecting
+
+## 1.0.94
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.91
+
+## 1.0.93
+
+### Patch Changes
+
+- 0e590d2: feat(harness): harden credential brokering to only apply with correct ephemeral secret
+- Updated dependencies [3e125ba]
+- Updated dependencies [0e590d2]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.92
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.91
+
+### Patch Changes
+
+- Updated dependencies [32349cc]
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/harness@1.0.88
+  - @ai-sdk/provider-utils@5.0.31
+
+## 1.0.90
+
+### Patch Changes
+
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.89
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+
+## 1.0.88
+
+### Patch Changes
+
+- 999d92f: fix(harness-claude-code): report final model call usage for the final step
+- Updated dependencies [b74971f]
+- Updated dependencies [fa6af57]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/harness@1.0.85
+
+## 1.0.87
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.84
+
+## 1.0.86
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.83
+
+## 1.0.85
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.82
+
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [7f50d28]
+  - @ai-sdk/harness@1.0.81
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.80
+
+## 1.0.82
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.79
+
+## 1.0.81
+
+### Patch Changes
+
+- eace6fb: feat(harness): add experimental support for steering agent conversations mid-turn
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness@1.0.78
+
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
+## 1.0.79
+
+### Patch Changes
+
+- 54686d6: fix(harness-claude-code): allow bootstrap in sandboxes that require explicit dependency build approval
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [d300737]
+  - @ai-sdk/harness@1.0.75
+
+## 1.0.77
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.74
+
+## 1.0.76
+
+### Patch Changes
+
+- 62a9c2a: feat(harness): add support for structured output to `HarnessAgent` via `output` property
+- a5ddbb0: fix(harness-claude-code): preserve general `anyOf` and `oneOf` constraints when registering custom tools with the MCP bridge
+- Updated dependencies [62a9c2a]
+- Updated dependencies [d25cae2]
+  - @ai-sdk/harness@1.0.73
+
+## 1.0.75
+
+### Patch Changes
+
+- 69bb613: feat(harness): support request transformations in network sandbox abstraction and use it to apply credential brokering when available
+- 52bc889: feat(harness): add `getPortEndpoint()` as more comprehensive replacement to `getPortUrl()` (now deprecated) in `HarnessV1NetworkSandboxSession`
+- 4cd4989: chore(harness): decouple bridge based harness bootstrap recipe logic from dynamic params and enforce unique harnesses in `prepareSandboxForHarness()` helper
+- Updated dependencies [69bb613]
+- Updated dependencies [52bc889]
+- Updated dependencies [4cd4989]
+  - @ai-sdk/harness@1.0.72
+
+## 1.0.74
+
+### Patch Changes
+
+- 83fe754: chore(harness): simplify the `auth` param to be a simple string to choose the auth method
+- Updated dependencies [8d717b3]
+  - @ai-sdk/harness@1.0.71
+
+## 1.0.73
+
+### Patch Changes
+
+- 616730a: fix(harness): fix missing reasoning controls
+
+## 1.0.72
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.70
+
+## 1.0.71
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.69
+
+## 1.0.70
+
+### Patch Changes
+
+- 5cc654f: fix(harness-claude-code): fix bridge WebSocket startup so an immediate `bridge-hello` frame cannot be missed before the listener is attached
+- f133c4c: fix(harness-claude-code): exclude subagent messages from parent step usage and tool-call tracking
+  - @ai-sdk/harness@1.0.68
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/harness@1.0.67
+
+## 1.0.68
+
+### Patch Changes
+
+- 9ee30bf: fix(harness): pass instructions appended to system / developer prompt instead of using the workaround of first user prompt
+- Updated dependencies [9ee30bf]
+  - @ai-sdk/harness@1.0.66
+
+## 1.0.67
+
+### Patch Changes
+
+- a03ff6c: feat(harness): add support for per-harness MCP servers
+- fc3baaf: feat(harness): add optional `mintBridgeToken(sandboxId)` to harness settings to control the bridge token value
+- cfc587b: fix(harness-claude-code): add missing Claude Code built-in tools
+- Updated dependencies [401a4ba]
+- Updated dependencies [a03ff6c]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/harness@1.0.65
+
+## 1.0.66
+
+### Patch Changes
+
+- 8c95b3f: fix(harness-claude-code): fix built-in tool filtering by using actual denylist when passing `inactiveTools`
+- a65bbb2: feat(harness-claude-code): add optional `env` property to `createClaudeCode()` for custom env vars
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/harness@1.0.64
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/harness@1.0.63
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [25c9120]
+  - @ai-sdk/harness@1.0.62
+
+## 1.0.62
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.61
+- @ai-sdk/provider-utils@5.0.23
+
+## 1.0.61
+
+### Patch Changes
+
+- 64a0ff2: fix(harness-claude-code): avoid sending custom user-agent for non-AI Gateway requests
+  - @ai-sdk/harness@1.0.60
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+- Updated dependencies [81bcf2e]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/harness@1.0.59
+
+## 1.0.59
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/harness@1.0.58
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/harness@1.0.57
+
+## 1.0.57
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.56
+- @ai-sdk/provider-utils@5.0.19
+
+## 1.0.56
+
+### Patch Changes
+
+- 8f10600: fix(harness): rename harness bridge `detach` to `stop` and `shutdown` to `destroy` for clarity
+- Updated dependencies [2c0a8aa]
+- Updated dependencies [861d423]
+- Updated dependencies [8f10600]
+  - @ai-sdk/harness@1.0.55
+
+## 1.0.55
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.54
+
 ## 1.0.54
 
 ### Patch Changes

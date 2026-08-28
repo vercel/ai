@@ -13,6 +13,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   isCustomReasoning,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -21,16 +22,20 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
+  type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
+  webSearchWireActionSchema,
+  webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
   type XaiResponsesIncludeOptions,
@@ -41,13 +46,98 @@ import {
 } from './xai-responses-language-model-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
-type XaiResponsesConfig = {
+export type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
   headers?: () => Record<string, string | undefined>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
+
+function createXaiResponsesStreamError({
+  message,
+  code,
+  eventType,
+  data,
+}: {
+  message: string;
+  code?: string | null;
+  eventType: 'error' | 'response.failed';
+  data: unknown;
+}) {
+  const statusCode = getHttpStatusCode(code);
+
+  return createProviderStreamError({
+    message,
+    type: eventType,
+    code: code ?? undefined,
+    ...(statusCode != null
+      ? {
+          statusCode,
+          isRetryable: isRetryableStatusCode(statusCode),
+        }
+      : getXaiResponsesStreamErrorMetadata(code)),
+    data,
+  });
+}
+
+function getXaiResponsesStreamErrorMetadata(code?: string | null): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  switch (code) {
+    case 'rate_limit_exceeded':
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'insufficient_quota':
+      return { statusCode: 429, isRetryable: false };
+    case 'api_error':
+    case 'internal_server_error':
+    case 'server_error':
+      return { statusCode: 500, isRetryable: true };
+    case 'overloaded_error':
+    case 'service_unavailable':
+      return { statusCode: 503, isRetryable: true };
+    case 'timeout':
+    case 'timeout_error':
+      return { statusCode: 504, isRetryable: true };
+    case 'authentication_error':
+    case 'invalid_api_key':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'not_found_error':
+    case 'model_not_found':
+      return { statusCode: 404, isRetryable: false };
+    case 'bad_request':
+    case 'context_length_exceeded':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    default:
+      return {};
+  }
+}
+
+function getHttpStatusCode(value: unknown): number | undefined {
+  const statusCode =
+    typeof value === 'string' && /^\d{3}$/.test(value) ? Number(value) : value;
+
+  return typeof statusCode === 'number' &&
+    Number.isInteger(statusCode) &&
+    statusCode >= 400 &&
+    statusCode <= 599
+    ? statusCode
+    : undefined;
+}
+
+function isRetryableStatusCode(statusCode: number): boolean {
+  return (
+    statusCode === 408 ||
+    statusCode === 409 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
+}
 
 export class XaiResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -88,7 +178,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     'text/*': [/^https?:\/\/.*$/],
   };
 
-  private async getArgs({
+  protected async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -149,6 +239,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       tool => tool.type === 'provider' && tool.id === 'xai.file_search',
     )?.name;
 
+    const imageGenerationToolName = tools?.find(
+      tool => tool.type === 'provider' && tool.id === 'xai.image_generation',
+    )?.name;
+
     const { input, inputWarnings } = await convertToXaiResponsesInput({
       prompt,
       store: options.store ?? true,
@@ -198,7 +292,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: 'high',
+            xhigh: this.modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
@@ -251,6 +345,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.serviceTier != null && {
+        service_tier: options.serviceTier,
+      }),
     };
 
     if (xaiTools && xaiTools.length > 0) {
@@ -269,6 +366,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       codeExecutionToolName,
       mcpToolName,
       fileSearchToolName,
+      imageGenerationToolName,
     };
   }
 
@@ -283,6 +381,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       codeExecutionToolName,
       mcpToolName,
       fileSearchToolName,
+      imageGenerationToolName,
     } = await this.getArgs(options);
 
     const {
@@ -347,6 +446,40 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         continue;
       }
 
+      if (part.type === 'image_generation_call') {
+        const toolName = imageGenerationToolName ?? 'image_generation';
+
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName,
+          input: '{}',
+          providerExecuted: true,
+        });
+
+        if (part.result != null) {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: {
+              result: part.result,
+              ...(part.prompt != null && { prompt: part.prompt }),
+            },
+          });
+        } else {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            isError: true,
+            result: `Image generation failed (status: ${part.status}).`,
+          });
+        }
+
+        continue;
+      }
+
       if (
         part.type === 'web_search_call' ||
         part.type === 'x_search_call' ||
@@ -392,6 +525,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           input: toolInput,
           providerExecuted: true,
         });
+
+        if (part.type === 'web_search_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: mapWebSearchAction(part.action),
+          });
+        }
 
         continue;
       }
@@ -486,10 +628,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
-      ...(response.usage?.cost_in_usd_ticks != null && {
+      ...((response.usage?.cost_in_usd_ticks != null ||
+        response.service_tier != null) && {
         providerMetadata: {
           xai: {
-            costInUsdTicks: response.usage.cost_in_usd_ticks,
+            ...(response.usage?.cost_in_usd_ticks != null && {
+              costInUsdTicks: response.usage.cost_in_usd_ticks,
+            }),
+            ...(response.service_tier != null && {
+              serviceTier: response.service_tier,
+            }),
           },
         },
       }),
@@ -514,6 +662,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       codeExecutionToolName,
       mcpToolName,
       fileSearchToolName,
+      imageGenerationToolName,
     } = await this.getArgs(options);
     const body = {
       ...args,
@@ -539,6 +688,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     let usage: LanguageModelV4Usage | undefined = undefined;
     let costInUsdTicks: number | undefined = undefined;
+    let serviceTier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -733,6 +883,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 costInUsdTicks = response.usage.cost_in_usd_ticks ?? undefined;
               }
 
+              serviceTier = response.service_tier ?? undefined;
+
               if (event.type === 'response.incomplete') {
                 const reason =
                   'incomplete_details' in response
@@ -767,11 +919,31 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 usage = convertXaiResponsesUsage(event.response.usage);
               }
 
+              if (event.response.error != null) {
+                controller.enqueue({
+                  type: 'error',
+                  error: createXaiResponsesStreamError({
+                    message: event.response.error.message,
+                    code: event.response.error.code,
+                    eventType: event.type,
+                    data: event,
+                  }),
+                });
+              }
+
               return;
             }
 
             if (event.type === 'error') {
-              controller.enqueue({ type: 'error', error: event });
+              controller.enqueue({
+                type: 'error',
+                error: createXaiResponsesStreamError({
+                  message: event.message,
+                  code: event.code,
+                  eventType: event.type,
+                  data: event,
+                }),
+              });
               return;
             }
 
@@ -798,6 +970,45 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             if (event.type === 'response.function_call_arguments.done') {
               // Arguments are fully received; output_item.done will
               // emit tool-input-end and tool-call with the final arguments.
+              return;
+            }
+
+            if (
+              event.type === 'response.image_generation_call.in_progress' ||
+              event.type === 'response.image_generation_call.generating' ||
+              event.type === 'response.image_generation_call.completed'
+            ) {
+              if (!seenToolCalls.has(event.item_id)) {
+                seenToolCalls.add(event.item_id);
+
+                const toolName = imageGenerationToolName ?? 'image_generation';
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: event.item_id,
+                  toolName,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: event.item_id,
+                  delta: '{}',
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: event.item_id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: event.item_id,
+                  toolName,
+                  input: '{}',
+                  providerExecuted: true,
+                });
+              }
+
               return;
             }
 
@@ -895,6 +1106,63 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 return;
               }
 
+              if (part.type === 'image_generation_call') {
+                const toolName = imageGenerationToolName ?? 'image_generation';
+
+                if (!seenToolCalls.has(part.id)) {
+                  seenToolCalls.add(part.id);
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: part.id,
+                    toolName,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: part.id,
+                    delta: '{}',
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: part.id,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: part.id,
+                    toolName,
+                    input: '{}',
+                    providerExecuted: true,
+                  });
+                }
+
+                if (event.type === 'response.output_item.done') {
+                  if (part.result != null) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.id,
+                      toolName,
+                      result: {
+                        result: part.result,
+                        ...(part.prompt != null && { prompt: part.prompt }),
+                      },
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.id,
+                      toolName,
+                      isError: true,
+                      result: `Image generation failed (status: ${part.status}).`,
+                    });
+                  }
+                }
+
+                return;
+              }
+
               if (
                 part.type === 'web_search_call' ||
                 part.type === 'x_search_call' ||
@@ -984,7 +1252,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     type: 'tool-result',
                     toolCallId: part.id,
                     toolName,
-                    result: {},
+                    result:
+                      part.type === 'web_search_call'
+                        ? mapWebSearchAction(part.action)
+                        : {},
                   });
                 }
 
@@ -1085,10 +1356,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-              ...(costInUsdTicks != null && {
+              ...((costInUsdTicks != null || serviceTier != null) && {
                 providerMetadata: {
                   xai: {
-                    costInUsdTicks,
+                    ...(costInUsdTicks != null && { costInUsdTicks }),
+                    ...(serviceTier != null && { serviceTier }),
                   },
                 },
               }),
@@ -1099,5 +1371,38 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapWebSearchAction(
+  action: unknown,
+): InferSchema<typeof webSearchOutputSchema> {
+  const parsed = webSearchWireActionSchema.safeParse(action);
+  if (!parsed.success) return {};
+
+  const a = parsed.data;
+  const sources = a.sources?.flatMap(s => {
+    const source = webSearchWireSourceSchema.safeParse(s);
+    return source.success ? [source.data] : [];
+  });
+  const sourcesExtra = sources != null && sources.length > 0 ? { sources } : {};
+
+  switch (a.type) {
+    case 'search':
+      return {
+        action: {
+          type: 'search',
+          ...(a.query != null && { query: a.query }),
+          ...(a.queries != null && { queries: a.queries }),
+        },
+        ...sourcesExtra,
+      };
+    case 'open_page':
+      return { action: { type: 'openPage', url: a.url }, ...sourcesExtra };
+    case 'find_in_page':
+      return {
+        action: { type: 'findInPage', url: a.url, pattern: a.pattern },
+        ...sourcesExtra,
+      };
   }
 }

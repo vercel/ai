@@ -4,8 +4,9 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
+import type { ExtensionFactory } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
-import type { PiAuthOptions } from './pi-auth';
+import type { PiAuthenticationMode } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
 import { createPiSession, type PiThinkingLevel } from './pi-session';
 import { VERSION } from './version';
@@ -21,11 +22,13 @@ const PI_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
  */
 export type PiHarnessSettings = {
   /** Where Pi sources API keys / gateway credentials from. */
-  readonly auth?: PiAuthOptions;
+  readonly auth?: PiAuthenticationMode;
   /**
    * Pi model id (or name). Leaving this unset falls back to the AI Gateway
    * default when `AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN` is set, and to
    * Pi's own resolution otherwise.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -40,6 +43,17 @@ export type PiHarnessSettings = {
    * model settings.
    */
   readonly agentDir?: string;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  /**
+   * Trusted inline Pi extensions loaded for each harness session.
+   *
+   * Filesystem-discovered user and project extensions remain disabled.
+   */
+  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -128,6 +142,7 @@ export function createPi(
     supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
+      const model = startOpts.model ?? settings.model;
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const resumeData = lifecycleState?.data as
         | { sessionFileName?: string }
@@ -137,12 +152,15 @@ export function createPi(
         sessionId: startOpts.sessionId,
         sandboxSession: startOpts.sandboxSession,
         sessionWorkDir: startOpts.sessionWorkDir,
-        skills: startOpts.skills ?? [],
         settings: {
           ...(settings.auth ? { auth: settings.auth } : {}),
-          ...(settings.model ? { model: settings.model } : {}),
+          ...(model == null ? {} : { model }),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
+            : {}),
+          ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.extensionFactories
+            ? { extensionFactories: settings.extensionFactories }
             : {}),
         },
         clientApp: PI_CLIENT_APP,

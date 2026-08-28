@@ -3,7 +3,7 @@ import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 // Bundle size limits in bytes
-const LIMIT = 650 * 1024;
+const LIMIT = 460 * 1024;
 
 interface BundleResult {
   size: number;
@@ -106,7 +106,7 @@ async function main() {
       console.log('\nTo fix this, either:');
       console.log('1. Reduce the bundle size by optimizing code');
       console.log(
-        '2. Update the limit at https://github.com/vercel/ai/settings/variables/actions/BUNDLE_SIZE_LIMIT_KB',
+        '2. Update the limit in packages/ai/scripts/check-bundle-size.ts',
       );
       process.exit(1);
     }

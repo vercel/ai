@@ -70,10 +70,16 @@
       "path": "packages/fireworks"
     },
     {
+      "path": "packages/fish-audio"
+    },
+    {
       "path": "packages/gateway"
     },
     {
       "path": "packages/gladia"
+    },
+    {
+      "path": "packages/gmicloud"
     },
     {
       "path": "packages/google-vertex"
@@ -85,13 +91,28 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/harness-acp"
+    },
+    {
       "path": "packages/harness-claude-code"
+    },
+    {
+      "path": "packages/harness-cline"
     },
     {
       "path": "packages/harness-codex"
     },
     {
+      "path": "packages/harness-cursor"
+    },
+    {
       "path": "packages/harness-deepagents"
+    },
+    {
+      "path": "packages/harness-fx"
+    },
+    {
+      "path": "packages/harness-grok-build"
     },
     {
       "path": "packages/harness-opencode"
@@ -199,9 +220,6 @@
       "path": "packages/valibot"
     },
     {
-      "path": "packages/vercel"
-    },
-    {
       "path": "packages/voyage"
     },
     {
@@ -215,6 +233,12 @@
     },
     {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/zai"
+    },
+    {
+      "path": "tools/integration-tests"
     }
   ],
   "include": [],
