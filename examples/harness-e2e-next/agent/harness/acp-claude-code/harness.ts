@@ -21,9 +21,10 @@ export const claudeCodeACPHarness = createACP({
     packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
-  resolveModel: ({ model }) => ({
-    env: { ANTHROPIC_MODEL: model },
-  }),
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
   credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     const apiKey = env.ANTHROPIC_API_KEY;

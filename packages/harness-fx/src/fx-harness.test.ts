@@ -266,8 +266,9 @@ describe('createFx', () => {
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
-    expect(settings.resolveModel({ model: 'openai/gpt-5.6-sol' })).toEqual({
-      args: ['acp', '--model', 'openai/gpt-5.6-sol'],
+    expect(settings.modelMapping).toEqual({
+      type: 'session-config-option',
+      path: 'model',
     });
   });
 
