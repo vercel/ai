@@ -39,8 +39,6 @@ const agent = new HarnessAgent({
 });
 ```
 
-Configure the model and auth via `createDeepAgents({ model, auth })`.
-
 ## Auth
 
 Deep Agents uses the Anthropic client directly or through AI Gateway. With no
@@ -49,9 +47,11 @@ back to ambient Anthropic credentials. Pass an authentication environment to
 use programmatically resolved credentials without reading `process.env`:
 
 ```ts
-createDeepAgents({
+const agent = new HarnessAgent({
+  harness: createDeepAgents({
+    auth: { ANTHROPIC_API_KEY: token },
+  }),
   model: 'anthropic/claude-sonnet-4.5',
-  auth: { ANTHROPIC_API_KEY: token },
 });
 ```
 

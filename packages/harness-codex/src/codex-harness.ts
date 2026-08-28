@@ -106,6 +106,8 @@ export type CodexHarnessSettings = {
   /**
    * OpenAI model id the underlying `codex` CLI should use. Leaving this unset
    * pins the adapter default (`DEFAULT_CODEX_MODEL`).
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -203,6 +205,7 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: getCodexBootstrap,
     doStart: async startOpts => {
+      const model = startOpts.model ?? settings.model ?? DEFAULT_CODEX_MODEL;
       if (startOpts.builtinToolFiltering != null) {
         throw new HarnessCapabilityUnsupportedError({
           message:
@@ -378,7 +381,7 @@ export function createCodex(
             cliShimPath,
             // The live bridge was spawned by another process; no process handle.
             proc: undefined,
-            model: settings.model ?? DEFAULT_CODEX_MODEL,
+            model,
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
             codexConfig: settings.codexConfig,
@@ -532,7 +535,7 @@ export function createCodex(
         channel,
         cliShimPath,
         proc,
-        model: settings.model ?? DEFAULT_CODEX_MODEL,
+        model,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
         codexConfig: settings.codexConfig,

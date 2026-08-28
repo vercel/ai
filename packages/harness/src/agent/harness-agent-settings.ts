@@ -122,6 +122,12 @@ export type HarnessAgentSettings<
   readonly id?: string;
 
   /**
+   * Model identifier passed to the harness adapter when a session starts.
+   * Supported values are defined by the selected harness.
+   */
+  readonly model?: string;
+
+  /**
    * Tools available to the underlying runtime in addition to the harness's
    * own builtins. The agent forwards each tool to the harness as a
    * `HarnessAgentToolSpec`; when the runtime calls one, the agent executes

@@ -690,11 +690,13 @@ describe('createOpenCode adapter', () => {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
     const harness = createOpenCode({
+      model: 'legacy-model',
       openCodeConfig,
       reasoningVariant: 'high',
       mcpServers,
     });
     const session = await harness.doStart({
+      model: 'anthropic/agent-model',
       sessionId: 's1',
       sandboxSession,
       sessionWorkDir: '/workspace/project',
@@ -729,11 +731,13 @@ describe('createOpenCode adapter', () => {
       operation: 'prompt',
       prompt: 'think',
       instructions: 'be concise',
+      model: 'anthropic/agent-model',
       variant: 'high',
       openCodeConfig,
       mcpServers,
       resumeSessionId: 'opencode-session',
     });
+    expect(session.modelId).toBe('anthropic/agent-model');
     channel.emit('finish', { type: 'finish' });
     await firstTurn.done;
 
