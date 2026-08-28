@@ -27,6 +27,8 @@ export type CursorHarnessSettings = {
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * Cursor model id selected through ACP. Unset preserves Cursor's default.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -400,6 +402,9 @@ export function createCursor(
     },
     executable: 'agent',
     args: ['--disable-auto-update', 'acp'],
+    resolveModel: ({ model }) => ({
+      args: ['--disable-auto-update', '--model', model, 'acp'],
+    }),
     credentialEnv: ['CURSOR_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv }) => {
       if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];

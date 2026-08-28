@@ -41,6 +41,8 @@ export type GrokBuildHarnessSettings = {
   /**
    * Grok model id selected through Grok Build configuration. Leaving this
    * unset uses the default model.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -320,18 +322,17 @@ export function createGrokBuild(
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
     mcpServers: settings.mcpServers,
-    env: {
-      GROK_CONFIG: JSON.stringify({
-        models: {
-          default: model,
-          ...(settings.reasoningEffort == null
-            ? {}
-            : {
-                default_reasoning_effort: settings.reasoningEffort,
-              }),
-        },
-      }),
-    },
+    resolveModel: ({ model }) => ({
+      args: [
+        'agent',
+        '--model',
+        model,
+        ...(settings.reasoningEffort == null
+          ? []
+          : ['--reasoning-effort', settings.reasoningEffort]),
+        'stdio',
+      ],
+    }),
     isMcpToolCall: toolCall => {
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';

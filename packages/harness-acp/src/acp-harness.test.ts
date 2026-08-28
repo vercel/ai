@@ -198,6 +198,7 @@ const agentSettings = {
   executable: 'codex-acp',
   args: ['--example'],
   forwardEnv: ['CODEX_API_KEY'],
+  resolveModel: () => ({}),
 } as const;
 
 const permissionModeMapping = {
@@ -450,6 +451,80 @@ describe('createACP', () => {
         ...agentSettings,
       }).specificationVersion,
     ).toBe('harness-v1');
+  });
+
+  it('resolves the HarnessAgent model into launch settings', async () => {
+    const runs: string[] = [];
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const resolveModel = vi.fn(({ model }: { model: string }) => ({
+      args: ['--model', model],
+      env: { MODEL_CONFIG: model },
+    }));
+    const harness = createACP({
+      harnessId: 'model-resolver-acp',
+      ...agentSettings,
+      modelId: 'legacy-model',
+      resolveModel,
+    });
+
+    const session = await harness.doStart({
+      model: 'agent-model',
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs,
+        spawns,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(resolveModel).toHaveBeenCalledExactlyOnceWith({
+      model: 'agent-model',
+    });
+    expect(session.modelId).toBe('agent-model');
+    expect(spawns[0]!.env.MODEL_CONFIG).toBe('agent-model');
+    await expect(
+      safeParseJSON({
+        text: spawns[0]!.env[ACP_BRIDGE_CONFIGURATION_ENV]!,
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      value: {
+        implementationArgs: ['--model', 'agent-model'],
+        implementationEnv: { MODEL_CONFIG: 'agent-model' },
+      },
+    });
+
+    await session.doDestroy();
+  });
+
+  it('uses the deprecated ACP modelId as a resolver fallback', async () => {
+    const resolveModel = vi.fn(() => ({}));
+    const harness = createACP({
+      harnessId: 'legacy-model-resolver-acp',
+      ...agentSettings,
+      modelId: 'legacy-model',
+      resolveModel,
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(resolveModel).toHaveBeenCalledExactlyOnceWith({
+      model: 'legacy-model',
+    });
+    expect(session.modelId).toBe('legacy-model');
+    await session.doDestroy();
   });
 
   it('requires credential environment and brokering settings together', () => {
@@ -1546,6 +1621,7 @@ describe('createACP', () => {
         pnpmWorkspaceYaml,
       },
       executable: 'codex-acp',
+      resolveModel: () => ({}),
     });
     const bootstrap = await harness.getBootstrap!();
 
@@ -1584,6 +1660,7 @@ describe('createACP', () => {
       },
       executable: 'agent',
       args: ['--disable-auto-update', 'acp'],
+      resolveModel: () => ({}),
     });
     const bootstrap = await harness.getBootstrap!();
     const implementationFiles = bootstrap.files.filter(file =>
@@ -2098,6 +2175,7 @@ describe('createACP', () => {
       },
       executable: 'agent',
       args: ['--disable-auto-update', 'acp'],
+      resolveModel: () => ({}),
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -2752,9 +2830,9 @@ describe('createACP', () => {
     const firstHarness = createACP({
       harnessId: 'model-identity-acp',
       ...agentSettings,
-      modelId: 'model-before-stop',
     });
     const firstSession = await firstHarness.doStart({
+      model: 'model-before-stop',
       sessionId: 'session-1',
       sandboxSession: sandbox,
       sessionWorkDir: '/workspace/user-project',
@@ -2781,10 +2859,10 @@ describe('createACP', () => {
     const changedHarness = createACP({
       harnessId: 'model-identity-acp',
       ...agentSettings,
-      modelId: 'model-after-stop',
     });
     await expect(
       changedHarness.doStart({
+        model: 'model-after-stop',
         sessionId: 'session-1',
         sandboxSession: sandbox,
         sessionWorkDir: '/workspace/user-project',

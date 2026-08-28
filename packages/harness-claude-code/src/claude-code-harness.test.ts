@@ -430,6 +430,23 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('prefers the HarnessAgent model over the deprecated adapter model', async () => {
+    const harness = createClaudeCode({ model: 'legacy-model' });
+    const session = await harness.doStart({
+      model: 'agent-model',
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    expect(session.modelId).toBe('agent-model');
+    await session.doDestroy();
+  });
+
   it('sets the client app for AI Gateway auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({

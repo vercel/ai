@@ -413,15 +413,18 @@ async function ensureSession({
     instructions: start.instructions,
     instructionMapping: start.instructionMapping,
     sessionMeta: bridgeConfiguration.sessionMeta,
-    environment: createChildEnvironment({
-      launchEnv,
-      implementationDir,
-      privateHome: implementation.privateHome,
-    }),
+    environment: {
+      ...createChildEnvironment({
+        launchEnv,
+        implementationDir,
+        privateHome: implementation.privateHome,
+      }),
+      ...bridgeConfiguration.implementationEnv,
+    },
   });
   child = spawn(
     `${implementationDir}/${implementation.executablePath}`,
-    [...implementation.args],
+    [...(bridgeConfiguration.implementationArgs ?? implementation.args)],
     {
       cwd: workDir,
       env: instructionConfiguration.environment,

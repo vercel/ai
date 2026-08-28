@@ -171,7 +171,6 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (filePath.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (filePath.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host-tool-mcp\n';
-      if (filePath.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (filePath.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       return actual.readFile(...args);
@@ -634,7 +633,7 @@ describe('createOpenCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('passes reasoningVariant, instructions, and MCP servers to every OpenCode prompt', async () => {
+  it('passes native config through prompts, compaction, and resumed sessions', async () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const emptyStream = () =>
@@ -687,15 +686,39 @@ describe('createOpenCode adapter', () => {
         url: 'https://mcp.context7.com/mcp',
       },
     };
-    const session = await createOpenCode({
+    const openCodeConfig = {
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+    };
+    const harness = createOpenCode({
+      model: 'legacy-model',
+      openCodeConfig,
       reasoningVariant: 'high',
       mcpServers,
-    }).doStart({
+    });
+    const session = await harness.doStart({
+      model: 'anthropic/agent-model',
       sessionId: 's1',
       sandboxSession,
       sessionWorkDir: '/workspace/project',
     });
-    await session.doPromptTurn({
+    const channel = harnessUtilsMocks.channels.at(-1)!;
+    channel.emit('bridge-thread', {
+      type: 'bridge-thread',
+      threadId: 'opencode-session',
+    });
+
+    const compaction = session.doCompact();
+    expect(channel.sent.at(-1)).toMatchObject({
+      type: 'start',
+      operation: 'compact',
+      openCodeConfig,
+      mcpServers,
+      resumeSessionId: 'opencode-session',
+    });
+    channel.emit('finish', { type: 'finish' });
+    await compaction;
+
+    const firstTurn = await session.doPromptTurn({
       skills: [],
       tools: [],
       prompt: 'think',
@@ -703,33 +726,51 @@ describe('createOpenCode adapter', () => {
       emit: () => {},
     });
 
-    expect(harnessUtilsMocks.channels.at(-1)?.sent.at(-1)).toMatchObject({
+    expect(channel.sent.at(-1)).toMatchObject({
       type: 'start',
       operation: 'prompt',
       prompt: 'think',
       instructions: 'be concise',
+      model: 'anthropic/agent-model',
       variant: 'high',
+      openCodeConfig,
       mcpServers,
+      resumeSessionId: 'opencode-session',
     });
+    expect(session.modelId).toBe('anthropic/agent-model');
+    channel.emit('finish', { type: 'finish' });
+    await firstTurn.done;
 
-    await session.doPromptTurn({
+    const resumeFrom = await session.doDetach();
+    const resumedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+      resumeFrom,
+    });
+    const resumedTurn = await resumedSession.doPromptTurn({
       skills: [],
       tools: [],
-      prompt: 'think again',
+      prompt: 'resume thinking',
       instructions: 'be concise',
       emit: () => {},
     });
+    const resumedChannel = harnessUtilsMocks.channels.at(-1)!;
 
-    expect(harnessUtilsMocks.channels.at(-1)?.sent.at(-1)).toMatchObject({
+    expect(resumedChannel.sent.at(-1)).toMatchObject({
       type: 'start',
       operation: 'prompt',
-      prompt: 'think again',
+      prompt: 'resume thinking',
       instructions: 'be concise',
       variant: 'high',
+      openCodeConfig,
       mcpServers,
+      resumeSessionId: 'opencode-session',
     });
+    resumedChannel.emit('finish', { type: 'finish' });
+    await resumedTurn.done;
 
-    await session.doDestroy();
+    await resumedSession.doDestroy();
   });
 
   it('waits for the bridge to accept a steering message', async () => {
@@ -837,10 +878,21 @@ describe('createOpenCode adapter', () => {
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
-      expect(
-        recipe.files.find(file => file.path.endsWith('pnpm-workspace.yaml'))
-          ?.content,
-      ).toBe("allowBuilds:\n  'opencode-ai@1.18.3': true\n");
+      const packageJson = recipe.files.find(file =>
+        file.path.endsWith('/package.json'),
+      );
+      const workspace = recipe.files.find(file =>
+        file.path.endsWith('/pnpm-workspace.yaml'),
+      );
+      if (packageJson == null || workspace == null) {
+        throw new Error('OpenCode bootstrap package assets are missing.');
+      }
+      const bridgeManifest = JSON.parse(packageJson.content) as {
+        dependencies: { 'opencode-ai': string };
+      };
+      expect(workspace.content).toBe(
+        `allowBuilds:\n  'opencode-ai@${bridgeManifest.dependencies['opencode-ai']}': true\n`,
+      );
     });
 
     it('allows the pinned OpenCode build and verifies the installed CLI', async () => {

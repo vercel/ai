@@ -75,6 +75,21 @@ export type ACPProviderAuthentication = {
   };
 };
 
+export type ACPModelResolution = {
+  /**
+   * Replaces the implementation's static launch arguments.
+   */
+  readonly args?: ReadonlyArray<string>;
+  /**
+   * Overlays the implementation's static launch environment.
+   */
+  readonly env?: Readonly<Record<string, string>>;
+};
+
+export type ACPModelResolver = (options: {
+  readonly model: string;
+}) => ACPModelResolution;
+
 export type ACPCredentialBrokering = ({
   env,
   sandboxEnv,
@@ -144,6 +159,13 @@ export type ACPV1Settings = {
   readonly env?: Readonly<Record<string, string>>;
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPProviderAuthentication;
+  /**
+   * Maps a HarnessAgent model identifier to implementation launch settings.
+   */
+  readonly resolveModel: ACPModelResolver;
+  /**
+   * @deprecated Use `model` on `HarnessAgent` instead.
+   */
   readonly modelId?: string;
   /**
    * Native skills directory relative to the ACP implementation's home
