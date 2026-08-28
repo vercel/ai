@@ -747,12 +747,12 @@ describe('OpenAI batch language models', () => {
       });
     });
 
-    it('fails unsupported items and continues with later results', async () => {
+    it('preserves tool calls and fails unsupported items without stopping later results', async () => {
       server.urls[urls.batch].response = {
         type: 'json-value',
         body: batchResponse({
           output_file_id: 'file-output',
-          request_counts: { total: 4, completed: 4, failed: 0 },
+          request_counts: { total: 5, completed: 5, failed: 0 },
         }),
       };
       server.urls[urls.output].response = {
@@ -791,6 +791,20 @@ describe('OpenAI batch language models', () => {
             },
           })}\n`,
           `${resultLine({
+            id: 'web-search',
+            body: {
+              ...responsesResultBody(''),
+              output: [
+                {
+                  type: 'web_search_call',
+                  id: 'web-search',
+                  status: 'completed',
+                  action: { type: 'search', query: 'weather in Paris' },
+                },
+              ],
+            },
+          })}\n`,
+          `${resultLine({
             id: 'image',
             body: {
               ...responsesResultBody(''),
@@ -813,24 +827,59 @@ describe('OpenAI batch language models', () => {
       });
       const results = await convertReadableStreamToArray(stream);
 
-      expect(results).toHaveLength(4);
+      expect(results).toHaveLength(5);
       expect(results).toMatchObject([
         {
           id: 'function-call',
-          status: 'failed',
-          error: {
-            message:
-              'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
-            code: 'unsupported_content',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-123',
+                toolName: 'get_weather',
+                input: '{"city":"Paris"}',
+                providerMetadata: { openai: { itemId: 'function-call' } },
+              },
+            ],
           },
         },
         {
           id: 'custom-tool-call',
-          status: 'failed',
-          error: {
-            message:
-              'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
-            code: 'unsupported_content',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-123',
+                toolName: 'shell',
+                input: '"echo Paris"',
+                providerMetadata: { openai: { itemId: 'custom-tool-call' } },
+              },
+            ],
+          },
+        },
+        {
+          id: 'web-search',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'web-search',
+                toolName: 'web_search',
+                input: '{}',
+                providerExecuted: true,
+                dynamic: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'web-search',
+                toolName: 'web_search',
+                result: { type: 'search', query: 'weather in Paris' },
+                dynamic: true,
+              },
+            ],
           },
         },
         {

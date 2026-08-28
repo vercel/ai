@@ -400,7 +400,7 @@ describe('xAI Responses batch language model', () => {
     ]);
   });
 
-  it('fails invalid and unsupported items without stopping later results', async () => {
+  it('preserves tool calls and fails invalid items without stopping later results', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
       body: batchResponse(),
@@ -466,8 +466,22 @@ describe('xAI Responses batch language model', () => {
       },
       {
         id: 'tool-call',
-        status: 'failed',
-        error: { code: 'unsupported_content' },
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_1',
+              toolName: 'weather',
+              input: '{}',
+            },
+            {
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://example.com/source',
+            },
+          ],
+        },
       },
       {
         id: 'valid',
