@@ -13,9 +13,11 @@ afterEach(async () => {
 async function startBridge({
   onStart,
   onStop,
+  turnTeardownGraceMs,
 }: {
   onStart: (start: { type: 'start' }, turn: BridgeTurn) => Promise<void>;
   onStop?: () => unknown;
+  turnTeardownGraceMs?: number;
 }): Promise<BridgeHandle> {
   const handle = await runBridge<{ type: 'start' }>({
     bridgeType: 'test',
@@ -24,6 +26,7 @@ async function startBridge({
     token: TOKEN,
     onStart,
     ...(onStop ? { onStop } : {}),
+    ...(turnTeardownGraceMs != null ? { turnTeardownGraceMs } : {}),
     // Never call process.exit from a test.
     onExit: () => {},
   });
@@ -532,6 +535,54 @@ describe('runBridge', () => {
     expect(deltas.indexOf('late-from-old-turn')).toBeLessThan(
       deltas.indexOf('new-turn'),
     );
+  });
+
+  it('proceeds past a teardown that never settles instead of hanging', async () => {
+    // The fence is best-effort: an adapter that ignores its abort signal
+    // must not block the replacement turn forever. After the teardown grace
+    // period the new turn proceeds anyway — the pre-fence overlapping
+    // behavior — and the stale turn's eventual completion must not mark the
+    // bridge waiting underneath the running replacement.
+    let releaseFirst!: () => void;
+    const firstGate = new Promise<void>(resolve => {
+      releaseFirst = resolve;
+    });
+    let releaseSecond!: () => void;
+    const secondGate = new Promise<void>(resolve => {
+      releaseSecond = resolve;
+    });
+    let turnNo = 0;
+    const handle = await startBridge({
+      turnTeardownGraceMs: 50,
+      onStart: async (_start, turn) => {
+        if (++turnNo === 1) {
+          await firstGate; // ignores the abort entirely
+        } else {
+          turn.emit({ type: 'text-delta', delta: 'second-turn-live' });
+          await secondGate;
+          turn.emit({ type: 'finish' });
+        }
+      },
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+
+    client.send({ type: 'start' }); // turn 1: never settles
+    client.send({ type: 'abort' });
+    client.send({ type: 'start' }); // must not wait forever
+
+    await client.waitFor(f => f.delta === 'second-turn-live');
+
+    // The stale turn settles mid-replacement; the bridge must still report
+    // the replacement turn as running.
+    releaseFirst();
+    await new Promise(resolve => setTimeout(resolve, 20));
+    const probe = await connect(handle.port);
+    const hello = await probe.waitFor(f => f.type === 'bridge-hello');
+    expect(hello.state).toBe('running');
+
+    releaseSecond();
+    await client.waitFor(f => f.type === 'finish');
   });
 
   it('emits bridge-stop runtime resume data from onStop', async () => {

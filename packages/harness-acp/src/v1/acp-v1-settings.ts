@@ -1,4 +1,5 @@
 import type {
+  HarnessV1Authentication,
   HarnessV1CredentialForwarding,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
@@ -66,7 +67,7 @@ export type ACPAuthentication = {
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
 };
 
-export type ACPProviderAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+export type ACPAuthenticationMode = HarnessV1Authentication;
 
 export type ACPProviderAuthentication = {
   readonly gateway: {
@@ -76,8 +77,10 @@ export type ACPProviderAuthentication = {
 
 export type ACPCredentialBrokering = ({
   env,
+  sandboxEnv,
 }: {
   env: Readonly<Record<string, string>>;
+  sandboxEnv?: Readonly<Record<string, string>>;
 }) => ReadonlyArray<HarnessV1RequestTransformation>;
 
 export type ACPPermissionModeTarget =
@@ -121,7 +124,7 @@ export type ACPV1Settings = {
   readonly harnessId: string;
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: ACPAuthenticationMode;
   readonly source: ACPSource;
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;
@@ -142,6 +145,11 @@ export type ACPV1Settings = {
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPProviderAuthentication;
   readonly modelId?: string;
+  /**
+   * Native skills directory relative to the ACP implementation's home
+   * directory. Defaults to `.agents/skills`.
+   */
+  readonly skillsDirectory?: string;
   /**
    * Routes HarnessAgent instructions to a runtime-native system or developer
    * prompt. When omitted, instructions are prepended to the first user prompt.

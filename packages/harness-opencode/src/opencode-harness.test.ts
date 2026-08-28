@@ -383,10 +383,8 @@ describe('createOpenCode adapter', () => {
     const harness = createOpenCode({
       provider: 'openai',
       auth: {
-        openai: {
-          apiKey: 'openai-secret',
-          baseUrl: 'https://openai.example/v1',
-        },
+        OPENAI_API_KEY: 'openai-secret',
+        OPENAI_BASE_URL: 'https://openai.example/v1',
       },
       credentialForwarding: async options => {
         forwardedCredentials.push(options);
@@ -405,6 +403,12 @@ describe('createOpenCode adapter', () => {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer ephemeral-OPENAI_API_KEY' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
@@ -413,7 +417,7 @@ describe('createOpenCode adapter', () => {
     ]);
     expect(forwardedCredentials).toEqual([
       {
-        credential: 'OPENAI_API_KEY',
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
         environmentVariableName: 'OPENAI_API_KEY',
       },
     ]);
@@ -470,7 +474,7 @@ describe('createOpenCode adapter', () => {
     } as unknown as HarnessV1NetworkSandboxSession;
     const harness = createOpenCode({
       provider: 'openai',
-      auth: { openai: { apiKey: 'openai-secret' } },
+      auth: { OPENAI_API_KEY: 'openai-secret' },
       credentialForwarding: options => {
         forwardedCredentials.push(options);
         return 'caller-managed-credential';

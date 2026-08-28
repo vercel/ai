@@ -14,6 +14,7 @@ const wsMock = vi.hoisted(() => {
   type Handler = (...args: unknown[]) => void;
   const sockets: FakeWebSocket[] = [];
   const scripts: Array<(socket: FakeWebSocket) => void> = [];
+  const unhandledErrors: unknown[] = [];
 
   class FakeWebSocket {
     readonly url: string;
@@ -21,6 +22,7 @@ const wsMock = vi.hoisted(() => {
     readonly handlers = new Map<string, Set<Handler>>();
     closed = false;
     terminated = false;
+    emitErrorOnTerminate = false;
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       this.url = url;
@@ -42,7 +44,12 @@ const wsMock = vi.hoisted(() => {
     }
 
     emit(event: string, ...args: unknown[]): void {
-      for (const handler of this.handlers.get(event) ?? []) {
+      const handlers = this.handlers.get(event) ?? new Set<Handler>();
+      if (event === 'error' && handlers.size === 0) {
+        unhandledErrors.push(args[0]);
+        return;
+      }
+      for (const handler of handlers) {
         handler(...args);
       }
     }
@@ -54,6 +61,17 @@ const wsMock = vi.hoisted(() => {
 
     terminate(): void {
       this.terminated = true;
+      if (this.emitErrorOnTerminate) {
+        queueMicrotask(() => {
+          this.emit(
+            'error',
+            new Error(
+              'WebSocket was closed before the connection was established',
+            ),
+          );
+          this.close();
+        });
+      }
     }
   }
 
@@ -61,9 +79,11 @@ const wsMock = vi.hoisted(() => {
     FakeWebSocket,
     sockets,
     scripts,
+    unhandledErrors,
     reset: () => {
       sockets.length = 0;
       scripts.length = 0;
+      unhandledErrors.length = 0;
     },
   };
 });
@@ -399,7 +419,7 @@ describe('createClaudeCode adapter', () => {
   it('sets the client app for AI Gateway auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({
-      auth: { gateway: { apiKey: 'gateway-key' } },
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
     });
     const session = await harness.doStart({
       sessionId: 's1',
@@ -443,10 +463,8 @@ describe('createClaudeCode adapter', () => {
     Object.assign(sandboxSession, { addRequestTransformations });
     const harness = createClaudeCode({
       auth: {
-        anthropic: {
-          apiKey: 'anthropic-secret',
-          baseUrl: 'https://anthropic.example/v1',
-        },
+        ANTHROPIC_API_KEY: 'anthropic-secret',
+        ANTHROPIC_BASE_URL: 'https://anthropic.example/v1',
       },
       credentialForwarding: async options => {
         forwardedCredentials.push(options);
@@ -470,13 +488,19 @@ describe('createClaudeCode adapter', () => {
         match: {
           host: 'anthropic.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'ephemeral-ANTHROPIC_API_KEY' },
+            },
+          ],
         },
         transform: { headers: { 'x-api-key': 'anthropic-secret' } },
       },
     ]);
     expect(forwardedCredentials).toEqual([
       {
-        credential: 'ANTHROPIC_API_KEY',
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
         environmentVariableName: 'ANTHROPIC_API_KEY',
       },
     ]);
@@ -496,7 +520,7 @@ describe('createClaudeCode adapter', () => {
       environmentVariableName: string;
     }> = [];
     const harness = createClaudeCode({
-      auth: { anthropic: { apiKey: 'anthropic-secret' } },
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
       credentialForwarding: options => {
         forwardedCredentials.push(options);
         return 'caller-managed-credential';
@@ -540,7 +564,7 @@ describe('createClaudeCode adapter', () => {
       environmentVariableName: string;
     }> = [];
     const harness = createClaudeCode({
-      auth: { anthropic: { apiKey: 'bridge-secret' } },
+      auth: { ANTHROPIC_API_KEY: 'bridge-secret' },
       env: {
         ANTHROPIC_API_KEY: 'turn-api-key',
         ANTHROPIC_AUTH_TOKEN: 'turn-auth-token',
@@ -687,7 +711,7 @@ describe('createClaudeCode adapter', () => {
   it('does not set the client app for direct Anthropic auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({
-      auth: { anthropic: { apiKey: 'anthropic-key' } },
+      auth: { ANTHROPIC_API_KEY: 'anthropic-key' },
     });
     const session = await harness.doStart({
       sessionId: 's1',
@@ -1134,6 +1158,24 @@ describe('createClaudeCode adapter', () => {
         'WebSocket open timed out after',
       );
       expect(wsMock.sockets[0].terminated).toBe(true);
+    });
+
+    it('preserves the startup timeout when terminating a connecting socket', async () => {
+      wsMock.scripts.push(socket => {
+        socket.emitErrorOnTerminate = true;
+        queueMicrotask(() => {
+          now = 1_020;
+        });
+      });
+
+      await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
+        'WebSocket open timed out after',
+      );
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(wsMock.unhandledErrors).toEqual([]);
+      expect(wsMock.sockets[0].terminated).toBe(true);
+      expect(wsMock.sockets[0].closed).toBe(true);
     });
   });
 

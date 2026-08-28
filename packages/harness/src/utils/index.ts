@@ -12,9 +12,15 @@ export {
 } from './bridge-user-message-submitter';
 export { classifyDiskLog, type DiskLogRecoveryMode } from './classify-disk-log';
 export { getAiGatewayAuthFromEnv } from './ai-gateway-auth';
-export { applyCredentialForwarding } from './credential-forwarding';
+export { isHarnessAuthenticationEnvironment } from './authentication-environment';
+export {
+  applyCredentialForwarding,
+  createSandboxCredentialEnvironment,
+} from './credential-forwarding';
 export {
   createCredentialRequestTransformation,
+  generateSandboxCredentialPlaceholder,
+  isSandboxCredentialPlaceholder,
   maskSandboxCredentials,
   warnCredentialBrokeringUnavailable,
 } from './sandbox-credential-brokering';

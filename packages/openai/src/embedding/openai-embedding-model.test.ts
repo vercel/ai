@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { describe, it, expect, vi } from 'vitest';
@@ -15,6 +16,14 @@ const model = provider.embedding('text-embedding-3-large');
 
 const server = createTestServer({
   'https://api.openai.com/v1/embeddings': {},
+});
+
+describe('model limits', () => {
+  it('should expose the aggregate token limit', () => {
+    expect(
+      Reflect.get(model, EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL),
+    ).toBe(300_000);
+  });
 });
 
 function prepareJsonFixtureResponse(

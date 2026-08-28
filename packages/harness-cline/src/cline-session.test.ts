@@ -336,6 +336,20 @@ describe('createClineSession model configuration', () => {
     }
   });
 
+  it('disables ambient credential lookup for an authentication environment override', async () => {
+    const session = await createSession({
+      settings: { isAuthenticationEnvironmentOverride: true },
+    });
+
+    try {
+      expect(clineMock.providerConfigs).toEqual([
+        { providerId: 'cline', apiKeyEnv: [] },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('disables reasoning when the effort is none', async () => {
     const session = await createSession({
       settings: { reasoningEffort: 'none' },
@@ -837,6 +851,7 @@ async function createSession(
     skills: [],
     settings: {
       authEnv: {},
+      isAuthenticationEnvironmentOverride: false,
       ...input.settings,
     },
     clientApp: 'ai-sdk/harness-cline/0.0.0-test',

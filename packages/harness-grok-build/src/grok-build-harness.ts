@@ -6,10 +6,7 @@ import {
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
-import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -26,12 +23,14 @@ const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
 const GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE =
   __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
 
+export type GrokBuildAuthenticationMode = ACPAuthenticationMode;
+
 export type GrokBuildHarnessSettings = {
   /**
    * Selects direct xAI or AI Gateway authentication. Defaults to automatic
    * environment-based selection.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: GrokBuildAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -327,12 +326,15 @@ export function createGrokBuild(
     executable: 'grok',
     args: ['agent', 'stdio'],
     credentialEnv: ['XAI_API_KEY'],
-    credentialBrokering: ({ env }) => {
-      if (!env.XAI_API_KEY) return [];
+    credentialBrokering: ({ env, sandboxEnv }) => {
+      if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];
       return [
         createCredentialRequestTransformation({
-          baseUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
-          headers: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+          matchUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxEnv.XAI_API_KEY}`,
+          },
+          transformHeaders: { Authorization: `Bearer ${env.XAI_API_KEY}` },
         }),
       ];
     },

@@ -10,4 +10,4 @@ export const codex = createCodex();
 export { createCodex } from './codex-harness';
 export { VERSION } from './version';
 export type { CodexHarnessSettings } from './codex-harness';
-export type { CodexAuthenticationMode, CodexAuthOptions } from './codex-auth';
+export type { CodexAuthenticationMode } from './codex-auth';

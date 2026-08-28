@@ -1,5 +1,4 @@
 import {
-  EmptyResponseBodyError,
   InvalidArgumentError,
   InvalidResponseDataError,
   type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
@@ -14,11 +13,12 @@ import {
 import {
   combineHeaders,
   convertAsyncIteratorToReadableStream,
+  createJsonLinesResponseHandler,
   createJsonResponseHandler,
   generateId,
   getFromApi,
   lazySchema,
-  parseJSON,
+  normalizeBatchRequestCounts,
   postJsonToApi,
   postToApi,
   resolve,
@@ -399,18 +399,20 @@ export class GoogleBatchLanguageModel
       .map(segment => encodeURIComponent(segment))
       .join('/');
 
-    const { value: stream } = await getFromApi({
+    const { value: lines } = await getFromApi({
       url: `${this.getBaseOrigin()}/download/v1beta/${encodedResponsesFile}:download?alt=media`,
       headers: await this.getHeaders(options.headers),
       failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: rawStreamResponseHandler,
+      successfulResponseHandler: createJsonLinesResponseHandler(
+        googleBatchResultLineSchema,
+      ),
       abortSignal: options.abortSignal,
       fetch: this.batchConfig.fetch,
       validateUrl: false,
     });
 
     return convertAsyncIteratorToReadableStream(
-      this.iterateBatchResults(parseJsonLines(stream)),
+      this.iterateBatchResults(lines),
     );
   }
 
@@ -626,22 +628,12 @@ function convertGoogleRequestCounts(
   const failed = parseCount(counts?.failedRequestCount ?? 0);
   const pending = parseCount(counts?.pendingRequestCount ?? 0);
 
-  if (
-    total == null ||
-    completed == null ||
-    failed == null ||
-    pending == null ||
-    completed + failed + pending !== total
-  ) {
-    return undefined;
-  }
-
-  return {
+  return normalizeBatchRequestCounts({
     total,
     pending,
     completed,
     failed,
-  };
+  });
 }
 
 function parseCount(value: string | number | null | undefined) {
@@ -676,64 +668,3 @@ const googleUploadUrlResponseHandler: ResponseHandler<string> = async ({
 
   return { value: uploadUrl };
 };
-
-const rawStreamResponseHandler: ResponseHandler<
-  ReadableStream<Uint8Array>
-> = async ({ response }) => {
-  if (response.body == null) {
-    throw new EmptyResponseBodyError();
-  }
-
-  return { value: response.body };
-};
-
-async function* parseJsonLines(
-  stream: ReadableStream<Uint8Array>,
-): AsyncGenerator<GoogleBatchResultLine> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let finished = false;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
-        finished = true;
-        buffer += decoder.decode();
-        break;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-
-      let lineEnd = buffer.indexOf('\n');
-      while (lineEnd !== -1) {
-        const line = buffer.slice(0, lineEnd).replace(/\r$/, '');
-        buffer = buffer.slice(lineEnd + 1);
-
-        if (line.trim().length > 0) {
-          yield await parseJSON({
-            text: line,
-            schema: googleBatchResultLineSchema,
-          });
-        }
-
-        lineEnd = buffer.indexOf('\n');
-      }
-    }
-
-    const finalLine = buffer.replace(/\r$/, '');
-    if (finalLine.trim().length > 0) {
-      yield await parseJSON({
-        text: finalLine,
-        schema: googleBatchResultLineSchema,
-      });
-    }
-  } finally {
-    if (!finished) {
-      await reader.cancel().catch(() => {});
-    }
-    reader.releaseLock();
-  }
-}

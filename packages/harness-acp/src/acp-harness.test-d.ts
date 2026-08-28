@@ -100,6 +100,7 @@ describe('createACP built-in tool inference', () => {
         packageName: '@agentclientprotocol/claude-agent-acp',
       },
       executable: 'claude-agent-acp',
+      skillsDirectory: '.claude/skills',
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],
