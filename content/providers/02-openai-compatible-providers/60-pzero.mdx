@@ -1,0 +1,81 @@
+---
+title: PZERO
+description: Use the PZERO OpenAI compatible API with the AI SDK.
+---
+
+# PZERO Provider
+
+[PZERO](https://pzero.studio) provides access to language models through an OpenAI-compatible Chat Completions API. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The PZERO provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+To use PZERO, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const pzero = createOpenAICompatible({
+  name: 'pzero',
+  apiKey: process.env.PZERO_API_KEY,
+  baseURL: 'https://api.pzero.studio/v1',
+});
+```
+
+The `baseURL` points to the `/v1` API root. The provider appends `/chat/completions` when making language model requests.
+
+<Note>
+  Create an API key and fund your prepaid balance in [PZERO
+  Studio](https://pzero.studio/agents). PZERO API keys start with `pzero_`. Set
+  the `PZERO_API_KEY` environment variable to your key.
+</Note>
+
+## Language Models
+
+Pass a live text model ID from the public [PZERO model catalog](https://api.pzero.studio/v1/models) to the provider instance. Use the catalog ID as-is, for example `deepseek-v4-flash`.
+
+```ts
+const model = pzero('deepseek-v4-flash');
+```
+
+### Example
+
+You can use PZERO language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const pzero = createOpenAICompatible({
+  name: 'pzero',
+  apiKey: process.env.PZERO_API_KEY,
+  baseURL: 'https://api.pzero.studio/v1',
+});
+
+const { text } = await generateText({
+  model: pzero('deepseek-v4-flash'),
+  prompt: 'Hello from PZERO',
+});
+
+console.log(text);
+```
+
+See the [PZERO API documentation](https://docs.pzero.studio/agents/chat) for endpoint details.
