@@ -17165,7 +17165,7 @@ describe('streamText', () => {
         expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
       });
 
-      it('should expose parsed output to onEnd after the stream completes', async () => {
+      it('should expose parsed output to onFinish after the stream completes', async () => {
         let callbackOutput: { value: string } | undefined;
 
         const result = streamText({
@@ -17189,7 +17189,7 @@ describe('streamText', () => {
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
-          onEnd: ({ output }) => {
+          onFinish: ({ output }) => {
             callbackOutput = output;
           },
         });
@@ -17199,7 +17199,7 @@ describe('streamText', () => {
         expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
       });
 
-      it('should not delay output for an active onEnd callback', async () => {
+      it('should not delay output for an active onFinish callback', async () => {
         const callbackStarted = new DelayedPromise<void>();
         const finishCallback = new DelayedPromise<void>();
 
@@ -17224,7 +17224,7 @@ describe('streamText', () => {
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
-          onEnd: async () => {
+          onFinish: async () => {
             callbackStarted.resolve();
             await finishCallback.promise;
           },
@@ -17239,7 +17239,7 @@ describe('streamText', () => {
         await result.consumeStream();
       });
 
-      it('should parse complete output once for onEnd and the output promise', async () => {
+      it('should parse complete output once for onFinish and the output promise', async () => {
         const output = Output.object({
           schema: z.object({ value: z.string() }),
         });
@@ -17265,7 +17265,7 @@ describe('streamText', () => {
           }),
           output,
           prompt: 'prompt',
-          onEnd: async ({ output }) => {
+          onFinish: async ({ output }) => {
             callbackOutput = output;
           },
         });
@@ -17280,7 +17280,7 @@ describe('streamText', () => {
         expect(parseCompleteOutput).toHaveBeenCalledTimes(1);
       });
 
-      it('should provide undefined output to onEnd when parsing fails', async () => {
+      it('should provide undefined output to onFinish when parsing fails', async () => {
         let callbackOutput: { value: string } | undefined;
 
         const result = streamText({
@@ -17304,7 +17304,7 @@ describe('streamText', () => {
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
-          onEnd: ({ output }) => {
+          onFinish: ({ output }) => {
             callbackOutput = output;
           },
         });
@@ -17317,12 +17317,12 @@ describe('streamText', () => {
         );
       });
 
-      it('should allow onEnd to await the output promise after asynchronous work', async () => {
+      it('should allow onFinish to await the output promise after asynchronous work', async () => {
         const output = Output.object({
           schema: z.object({ value: z.string() }),
         });
         let callbackOutput: { value: string } | undefined;
-        let result!: StreamTextResult<any, any, typeof output>;
+        let result!: StreamTextResult<any, typeof output>;
 
         result = streamText({
           model: createTestModel({
@@ -17343,7 +17343,7 @@ describe('streamText', () => {
           }),
           output,
           prompt: 'prompt',
-          onEnd: async () => {
+          onFinish: async () => {
             await delay(1);
             callbackOutput = await result.output;
           },

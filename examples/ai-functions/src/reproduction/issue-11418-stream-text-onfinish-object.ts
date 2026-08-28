@@ -1,43 +1,40 @@
-import { Output, simulateReadableStream, streamText } from 'ai';
-import { MockLanguageModelV4 } from 'ai/test';
+import { Output, streamText } from 'ai';
+import { convertArrayToReadableStream, MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
 
 async function main() {
   let onFinishEvent: Record<string, unknown> | undefined;
 
   const result = streamText({
-    model: new MockLanguageModelV4({
+    model: new MockLanguageModelV3({
       doStream: async () => ({
-        stream: simulateReadableStream({
-          chunks: [
-            { type: 'text-start', id: 'text-1' },
-            {
-              type: 'text-delta',
-              id: 'text-1',
-              delta: '{"content":"Hello, world!"}',
-            },
-            { type: 'text-end', id: 'text-1' },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: {
-                inputTokens: {
-                  total: 1,
-                  noCache: 1,
-                  cacheRead: undefined,
-                  cacheWrite: undefined,
-                },
-                outputTokens: {
-                  total: 1,
-                  text: 1,
-                  reasoning: undefined,
-                },
+        stream: convertArrayToReadableStream([
+          { type: 'text-start', id: 'text-1' },
+          {
+            type: 'text-delta',
+            id: 'text-1',
+            delta: '{"content":"Hello, world!"}',
+          },
+          { type: 'text-end', id: 'text-1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            logprobs: undefined,
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
               },
             },
-          ],
-          initialDelayInMs: null,
-          chunkDelayInMs: null,
-        }),
+          },
+        ]),
       }),
     }),
     output: Output.object({
