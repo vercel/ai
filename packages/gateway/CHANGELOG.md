@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 4.0.68
+
+### Patch Changes
+
+- 805bbfc: chore(provider/gateway): update gateway model settings files
+- 90192f1: Mark transient network errors that occur while reading successful response bodies as retryable.
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 4.0.67
 
 ### Patch Changes

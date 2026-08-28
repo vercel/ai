@@ -1,5 +1,13 @@
 # @ai-sdk/mistral
 
+## 4.0.36
+
+### Patch Changes
+
+- e83d6dc: Preserve complete Mistral chat usage objects in raw usage metadata.
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 4.0.35
 
 ### Patch Changes
