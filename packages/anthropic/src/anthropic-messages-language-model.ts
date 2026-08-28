@@ -1237,13 +1237,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     let contextManagement:
       | AnthropicMessageMetadata['contextManagement']
       | null = null;
-<<<<<<< HEAD
     let isJsonResponseFromTool = false;
-=======
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
     let hasInvalidMessageSequence = false;
->>>>>>> origin/release-v5.0
 
     let blockType:
       | 'text'
