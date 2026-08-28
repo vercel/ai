@@ -15,6 +15,7 @@ import {
   experimental_startTextBatch as startTextBatch,
   type GatewayProviderMetadata,
   type Experimental_BatchError as BatchError,
+  type Experimental_BatchContentPart as BatchContentPart,
   type Experimental_BatchLanguageModel as BatchLanguageModel,
   type Experimental_BatchOperationOptions as BatchOperationOptions,
   type Experimental_BatchReference as BatchReference,
@@ -94,6 +95,12 @@ it('uses serializable response timestamps', () => {
   expectTypeOf<
     NonNullable<TextBatchGenerationResult['response']>['timestamp']
   >().toEqualTypeOf<string | undefined>();
+});
+
+it('exposes Core-normalized content on successful results', () => {
+  expectTypeOf<TextBatchGenerationResult['content']>().toEqualTypeOf<
+    BatchContentPart[]
+  >();
 });
 
 it('flattens successful Core items while reusing provider status and errors', () => {

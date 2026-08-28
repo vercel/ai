@@ -294,6 +294,7 @@ describe('getBatchResults', () => {
       {
         id: 'request-1',
         status: 'succeeded',
+        content: [{ type: 'text', text: 'Paris' }],
         text: 'Paris',
         finishReason: 'stop',
         rawFinishReason: 'stop',
@@ -315,5 +316,130 @@ describe('getBatchResults', () => {
         error: { message: 'request failed', code: 'bad_request' },
       },
     ]);
+  });
+
+  it('preserves ordered non-text content using Core-normalized shapes', async () => {
+    const model = createMockBatchModel({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            id: 'request-1',
+            status: 'succeeded',
+            result: {
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Use the weather tool.',
+                  providerMetadata: { mock: { reasoning: true } },
+                },
+                {
+                  type: 'file',
+                  data: { type: 'data', data: 'aGVsbG8=' },
+                  mediaType: 'text/plain',
+                },
+                {
+                  type: 'source',
+                  sourceType: 'url',
+                  id: 'source-1',
+                  url: 'https://example.com/weather',
+                  title: 'Weather',
+                },
+                {
+                  type: 'custom',
+                  kind: 'mock.trace',
+                  providerMetadata: { mock: { traceId: 'trace-1' } },
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'get_weather',
+                  input: '{"city":"Paris"}',
+                  providerExecuted: true,
+                  dynamic: true,
+                  providerMetadata: { mock: { call: true } },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'get_weather',
+                  result: { temperature: 20 },
+                  dynamic: true,
+                  providerMetadata: { mock: { result: true } },
+                },
+                { type: 'text', text: 'It is 20°C.' },
+              ],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+          {
+            id: 'request-2',
+            status: 'succeeded',
+            result: {
+              content: [{ type: 'reasoning', text: 'No text was generated.' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+        ]),
+    });
+
+    const items = await Array.fromAsync(
+      getBatchResults({ model, batch: batchReference, maxRetries: 0 }),
+    );
+
+    expect(items[0]).toMatchObject({
+      id: 'request-1',
+      status: 'succeeded',
+      text: 'It is 20°C.',
+      content: [
+        {
+          type: 'reasoning',
+          text: 'Use the weather tool.',
+          providerMetadata: { mock: { reasoning: true } },
+        },
+        { type: 'file', file: { mediaType: 'text/plain' } },
+        {
+          type: 'source',
+          sourceType: 'url',
+          id: 'source-1',
+          url: 'https://example.com/weather',
+          title: 'Weather',
+        },
+        {
+          type: 'custom',
+          kind: 'mock.trace',
+          providerMetadata: { mock: { traceId: 'trace-1' } },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'get_weather',
+          input: { city: 'Paris' },
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: { mock: { call: true } },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'get_weather',
+          input: { city: 'Paris' },
+          output: { temperature: 20 },
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: { mock: { result: true } },
+        },
+        { type: 'text', text: 'It is 20°C.' },
+      ],
+    });
+    expect(items[1]).toMatchObject({
+      id: 'request-2',
+      status: 'succeeded',
+      content: [{ type: 'reasoning', text: 'No text was generated.' }],
+      text: '',
+    });
   });
 });
