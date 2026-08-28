@@ -633,7 +633,7 @@ describe('createOpenCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('passes reasoningVariant, instructions, and MCP servers to every OpenCode prompt', async () => {
+  it('passes native config through prompts, compaction, and resumed sessions', async () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const emptyStream = () =>
@@ -686,15 +686,37 @@ describe('createOpenCode adapter', () => {
         url: 'https://mcp.context7.com/mcp',
       },
     };
-    const session = await createOpenCode({
+    const openCodeConfig = {
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+    };
+    const harness = createOpenCode({
+      openCodeConfig,
       reasoningVariant: 'high',
       mcpServers,
-    }).doStart({
+    });
+    const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession,
       sessionWorkDir: '/workspace/project',
     });
-    await session.doPromptTurn({
+    const channel = harnessUtilsMocks.channels.at(-1)!;
+    channel.emit('bridge-thread', {
+      type: 'bridge-thread',
+      threadId: 'opencode-session',
+    });
+
+    const compaction = session.doCompact();
+    expect(channel.sent.at(-1)).toMatchObject({
+      type: 'start',
+      operation: 'compact',
+      openCodeConfig,
+      mcpServers,
+      resumeSessionId: 'opencode-session',
+    });
+    channel.emit('finish', { type: 'finish' });
+    await compaction;
+
+    const firstTurn = await session.doPromptTurn({
       skills: [],
       tools: [],
       prompt: 'think',
@@ -702,33 +724,49 @@ describe('createOpenCode adapter', () => {
       emit: () => {},
     });
 
-    expect(harnessUtilsMocks.channels.at(-1)?.sent.at(-1)).toMatchObject({
+    expect(channel.sent.at(-1)).toMatchObject({
       type: 'start',
       operation: 'prompt',
       prompt: 'think',
       instructions: 'be concise',
       variant: 'high',
+      openCodeConfig,
       mcpServers,
+      resumeSessionId: 'opencode-session',
     });
+    channel.emit('finish', { type: 'finish' });
+    await firstTurn.done;
 
-    await session.doPromptTurn({
+    const resumeFrom = await session.doDetach();
+    const resumedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+      resumeFrom,
+    });
+    const resumedTurn = await resumedSession.doPromptTurn({
       skills: [],
       tools: [],
-      prompt: 'think again',
+      prompt: 'resume thinking',
       instructions: 'be concise',
       emit: () => {},
     });
+    const resumedChannel = harnessUtilsMocks.channels.at(-1)!;
 
-    expect(harnessUtilsMocks.channels.at(-1)?.sent.at(-1)).toMatchObject({
+    expect(resumedChannel.sent.at(-1)).toMatchObject({
       type: 'start',
       operation: 'prompt',
-      prompt: 'think again',
+      prompt: 'resume thinking',
       instructions: 'be concise',
       variant: 'high',
+      openCodeConfig,
       mcpServers,
+      resumeSessionId: 'opencode-session',
     });
+    resumedChannel.emit('finish', { type: 'finish' });
+    await resumedTurn.done;
 
-    await session.doDestroy();
+    await resumedSession.doDestroy();
   });
 
   it('waits for the bridge to accept a steering message', async () => {
