@@ -689,6 +689,55 @@ describe('streamText', () => {
         `);
     });
 
+    it('should preserve provider metadata from empty text deltas', async () => {
+      const providerMetadata = {
+        testProvider: { signature: 'test-signature' },
+      };
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: '' },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '',
+              providerMetadata,
+            },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        experimental_output: text(),
+        prompt: 'test-input',
+      });
+
+      const fullStream = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(
+        fullStream.filter(
+          chunk => chunk.type === 'text-delta' && chunk.text === '',
+        ),
+      ).toStrictEqual([
+        {
+          type: 'text-delta',
+          id: '1',
+          text: '',
+          providerMetadata,
+        },
+      ]);
+      expect((await result.steps)[0].content).toContainEqual({
+        type: 'text',
+        text: 'Hello',
+        providerMetadata,
+      });
+    });
+
     it('should send reasoning deltas', async () => {
       const result = streamText({
         model: modelWithReasoning,
@@ -2457,6 +2506,79 @@ describe('streamText', () => {
         `);
     });
 
+    it('should report completed UI message stream outcomes', async () => {
+      const onFinish = vi.fn();
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      await convertReadableStreamToArray(
+        result.toUIMessageStream({ onFinish }),
+      );
+
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
+        status: 'completed',
+      });
+    });
+
+    it('should report message metadata failures as failed exactly once', async () => {
+      const metadataError = new Error('message metadata failed');
+      const onFinish = vi.fn();
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      await expect(
+        convertReadableStreamToArray(
+          result.toUIMessageStream({
+            messageMetadata: () => {
+              throw metadataError;
+            },
+            onFinish,
+          }),
+        ),
+      ).rejects.toBe(metadataError);
+
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
+        status: 'failed',
+        error: metadataError,
+      });
+    });
+
+    it('should report UI chunk conversion failures as failed exactly once', async () => {
+      const conversionError = new Error('UI chunk conversion failed');
+      const onFinish = vi.fn();
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: new Error('generation failed') },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      await expect(
+        convertReadableStreamToArray(
+          result.toUIMessageStream({
+            onError: () => {
+              throw conversionError;
+            },
+            onFinish,
+          }),
+        ),
+      ).rejects.toBe(conversionError);
+
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
+        status: 'failed',
+        error: conversionError,
+      });
+    });
+
     it('should create a ui message stream with provider metadata', async () => {
       const result = streamText({
         model: createTestModel({
@@ -3431,6 +3553,7 @@ describe('streamText', () => {
       expect(textPart.text).toContain('Streaming'); // Partial content
       expect(textPart.state).toBe('streaming');
       expect(callArgs.isAborted).toBe(false); // Stream was cancelled, not aborted
+      expect(callArgs.outcome).toEqual({ status: 'unknown' });
     });
 
     it('should call onFinish when async iteration stops mid-stream', async () => {
@@ -3501,6 +3624,7 @@ describe('streamText', () => {
       expect(textPart.text).toContain('First chunk'); // Should have at least the first parts
       expect(textPart.state).toBe('streaming');
       expect(callArgs.isAborted).toBe(false); // No explicit abort, just stopped iteration
+      expect(callArgs.outcome).toEqual({ status: 'unknown' });
     });
 
     it('should call onFinish when stream is aborted via AbortController', async () => {
@@ -3585,6 +3709,7 @@ describe('streamText', () => {
       expect(textPart).toBeDefined();
       expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
       expect(callArgs.isAborted).toBe(true); // Stream was aborted
+      expect(callArgs.outcome).toEqual({ status: 'aborted' });
 
       reader.releaseLock();
     });
@@ -4955,6 +5080,12 @@ describe('streamText', () => {
             "type": "tool-call",
           },
           {
+            "id": "4",
+            "providerMetadata": undefined,
+            "text": " World",
+            "type": "text-delta",
+          },
+          {
             "input": {
               "value": "test",
             },
@@ -4969,14 +5100,44 @@ describe('streamText', () => {
             "toolName": "tool1",
             "type": "tool-result",
           },
-          {
-            "id": "4",
-            "providerMetadata": undefined,
-            "text": " World",
-            "type": "text-delta",
-          },
         ]
       `);
+    });
+
+    it('should continue stream processing when onChunk throws', async () => {
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onChunk({ chunk }) {
+          if (chunk.type === 'text-delta') {
+            throw new Error('callback error');
+          }
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.textStream),
+      ).resolves.toStrictEqual(['Hello']);
+      await expect(resultObject.finishReason).resolves.toBe('stop');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
     });
   });
 
@@ -4999,6 +5160,42 @@ describe('streamText', () => {
       await resultObject.consumeStream();
 
       expect(result).toStrictEqual([{ error: new Error('test error') }]);
+    });
+
+    it('should preserve error parts and finish callbacks when onError throws', async () => {
+      const error = new Error('provider error');
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'error',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError() {
+          throw new Error('callback error');
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.fullStream),
+      ).resolves.toContainEqual({ type: 'error', error });
+      await expect(resultObject.finishReason).resolves.toBe('error');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
     });
   });
 
@@ -9597,6 +9794,48 @@ describe('streamText', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should end telemetry spans once after a model call fails', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('model call failed');
+          },
+        }),
+        maxRetries: 0,
+        prompt: 'test-input',
+        experimental_telemetry: { isEnabled: true, tracer },
+        onError: () => {},
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const rootSpan = tracer.spans.find(span => span.name === 'ai.streamText');
+
+      expect(parts.map(part => part.type)).toEqual(['start', 'error']);
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          endCalls: span.endCalls,
+          status: span.status,
+        })),
+      ).toEqual([
+        {
+          name: 'ai.streamText',
+          endCalls: 1,
+          status: { code: 2, message: 'model call failed' },
+        },
+        {
+          name: 'ai.streamText.doStream',
+          endCalls: 1,
+          status: { code: 2, message: 'model call failed' },
+        },
+      ]);
+
+      // The provider rejected before producing a finish part or usage, so
+      // failure telemetry must not fabricate response metadata.
+      expect(rootSpan?.attributes['ai.response.finishReason']).toBeUndefined();
+      expect(rootSpan?.attributes['ai.usage.totalTokens']).toBeUndefined();
+    });
+
     it('should record successful tool call', async () => {
       const result = streamText({
         model: createTestModel({
@@ -9634,6 +9873,55 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should record telemetry metadata on tool call spans', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          },
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          metadata: { requestId: 'request-1' },
+          tracer,
+        },
+        _internal: { now: mockValues(0, 100, 500) },
+      });
+
+      await result.consumeStream();
+
+      const toolCallSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.toolCall',
+      );
+
+      expect(toolCallSpan?.attributes).toMatchObject({
+        'ai.telemetry.metadata.requestId': 'request-1',
+      });
     });
 
     it('should record error on tool call', async () => {
@@ -11429,6 +11717,12 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": " WORLD",
+              "type": "text-delta",
+            },
+            {
               "input": {
                 "value": "TEST",
               },
@@ -11438,12 +11732,6 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": " WORLD",
-              "type": "text-delta",
             },
           ]
         `);
@@ -13283,6 +13571,11 @@ describe('streamText', () => {
           [
             {
               "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
             },
             {
               "type": "abort",

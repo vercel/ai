@@ -24,7 +24,10 @@ import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import {
+  getBaseTelemetryAttributes,
+  getTelemetryMetadataAttributes,
+} from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -40,6 +43,7 @@ import { extractTextContent } from './extract-text-content';
 import { filterActiveTools } from './filter-active-tools';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
@@ -532,7 +536,12 @@ A function that attempts to repair a tool call that failed to parse.
             toolCall => !toolCall.providerExecuted,
           );
 
-          if (stepToolSet != null) {
+          if (
+            stepToolSet != null &&
+            isToolExecutionAllowedFinishReason(
+              currentModelResponse.finishReason,
+            )
+          ) {
             clientToolOutputs.push(
               ...(await executeTools({
                 toolCalls: clientToolCalls.filter(
@@ -680,6 +689,7 @@ async function executeTools<TOOLS extends ToolSet>({
               operationId: 'ai.toolCall',
               telemetry,
             }),
+            ...getTelemetryMetadataAttributes(telemetry),
             'ai.toolCall.name': toolName,
             'ai.toolCall.id': toolCallId,
             'ai.toolCall.args': {

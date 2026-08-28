@@ -1,5 +1,202 @@
 # @ai-sdk/vue
 
+## 2.0.249
+
+### Patch Changes
+
+- Updated dependencies [989be6f]
+  - ai@5.0.249
+
+## 2.0.248
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - ai@5.0.248
+
+## 2.0.247
+
+### Patch Changes
+
+- ai@5.0.247
+
+## 2.0.246
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+- Updated dependencies [d1aa120]
+  - @ai-sdk/provider-utils@3.0.34
+  - ai@5.0.246
+
+## 2.0.245
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - ai@5.0.245
+
+## 2.0.244
+
+### Patch Changes
+
+- ai@5.0.244
+
+## 2.0.243
+
+### Patch Changes
+
+- Updated dependencies [9e8a754]
+  - ai@5.0.243
+
+## 2.0.242
+
+### Patch Changes
+
+- Updated dependencies [e88bc9f]
+  - ai@5.0.242
+
+## 2.0.241
+
+### Patch Changes
+
+- Updated dependencies [9d0b84c]
+- Updated dependencies [05df123]
+- Updated dependencies [e532644]
+  - ai@5.0.241
+
+## 2.0.240
+
+### Patch Changes
+
+- ai@5.0.240
+
+## 2.0.239
+
+### Patch Changes
+
+- ai@5.0.239
+
+## 2.0.238
+
+### Patch Changes
+
+- ai@5.0.238
+
+## 2.0.237
+
+### Patch Changes
+
+- Updated dependencies [bf11412]
+- Updated dependencies [7ec6b69]
+  - ai@5.0.237
+
+## 2.0.236
+
+### Patch Changes
+
+- Updated dependencies [c425210]
+- Updated dependencies [eb7f2ac]
+  - ai@5.0.236
+
+## 2.0.235
+
+### Patch Changes
+
+- ai@5.0.235
+
+## 2.0.234
+
+### Patch Changes
+
+- Updated dependencies [412c15e]
+  - ai@5.0.234
+
+## 2.0.233
+
+### Patch Changes
+
+- Updated dependencies [2604cb6]
+  - ai@5.0.233
+
+## 2.0.232
+
+### Patch Changes
+
+- Updated dependencies [66dd974]
+- Updated dependencies [0e51b7b]
+  - ai@5.0.232
+  - @ai-sdk/provider-utils@3.0.32
+
+## 2.0.231
+
+### Patch Changes
+
+- Updated dependencies [2709314]
+  - ai@5.0.231
+
+## 2.0.230
+
+### Patch Changes
+
+- ai@5.0.230
+
+## 2.0.229
+
+### Patch Changes
+
+- ai@5.0.229
+
+## 2.0.228
+
+### Patch Changes
+
+- ai@5.0.228
+
+## 2.0.227
+
+### Patch Changes
+
+- Updated dependencies [212d793]
+  - ai@5.0.227
+
+## 2.0.226
+
+### Patch Changes
+
+- ai@5.0.226
+
+## 2.0.225
+
+### Patch Changes
+
+- ai@5.0.225
+
+## 2.0.224
+
+### Patch Changes
+
+- ai@5.0.224
+
+## 2.0.223
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+- Updated dependencies [c5e11c6]
+  - @ai-sdk/provider-utils@3.0.31
+  - ai@5.0.223
+
+## 2.0.222
+
+### Patch Changes
+
+- Updated dependencies [d38a1d5]
+  - ai@5.0.222
+
 ## 2.0.221
 
 ### Patch Changes

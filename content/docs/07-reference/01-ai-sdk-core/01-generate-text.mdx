@@ -850,7 +850,8 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'text',
       type: 'string',
-      description: 'The generated text by the model.',
+      description:
+        'The concatenation of all text parts generated in the last step. It is an empty string if the last step contains no text parts. Inspect `content` to distinguish that case.',
     },
     {
       name: 'reasoning',
@@ -1154,7 +1155,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'text',
               type: 'string',
-              description: 'The generated text.',
+              description:
+                'The concatenation of all text parts generated in this step. It is an empty string if the step contains no text parts.',
             },
             {
               name: 'reasoning',

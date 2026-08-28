@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import type { InferUITool, UIMessage } from './ui-messages';
+import type { DynamicToolUIPart, InferUITool, UIMessage } from './ui-messages';
 import {
   safeValidateUIMessages,
   validateUIMessages,
@@ -290,7 +290,13 @@ describe('validateUIMessages', () => {
           {
             id: '1',
             role: 'assistant',
-            parts: [{ type: 'reasoning', text: 'Hello, world!' }],
+            parts: [
+              {
+                type: 'reasoning',
+                id: 'reasoning-1',
+                text: 'Hello, world!',
+              },
+            ],
           },
         ],
       });
@@ -303,6 +309,7 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
+                "id": "reasoning-1",
                 "text": "Hello, world!",
                 "type": "reasoning",
               },
@@ -966,53 +973,137 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should validate tool input and output when state is output-available', async () => {
-      const messages = await validateUIMessages<TestMessage>({
-        messages: [
-          {
-            id: '1',
-            role: 'assistant',
-            parts: [
-              {
-                type: 'tool-foo',
-                toolCallId: '1',
-                state: 'output-available',
-                input: { foo: 'bar' },
-                output: { result: 'success' },
-              },
-            ],
+    it('should validate tool input when state is output-available', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: { foo: 123 } as unknown as { foo: string },
+                  output: { result: 'success' },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
           },
-        ],
+        }),
+      ).rejects.toThrowError('Type validation failed');
+    });
+
+    it('should represent schema-incompatible output-available empty input as a dynamic tool part', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: {} as { foo: string },
+              output: { result: 'success' },
+            },
+          ],
+        },
+      ];
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
         tools: {
           foo: testTool,
         },
       });
 
-      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
-      expect(messages).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "1",
-            "parts": [
-              {
-                "input": {
-                  "foo": "bar",
-                },
-                "output": {
-                  "result": "success",
-                },
-                "state": "output-available",
-                "toolCallId": "1",
-                "type": "tool-foo",
-              },
-            ],
-            "role": "assistant",
-          },
-        ]
-      `);
+      expect(messages).toEqual([
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: {},
+              output: { result: 'success' },
+            },
+          ],
+        },
+      ]);
     });
 
-    it('should validate tool input when state is output-error', async () => {
+    it('should validate output when an output-available tool call has empty input', async () => {
+      const noArgumentTool = {
+        inputSchema: z.object({}),
+        outputSchema: z.object({ result: z.string() }),
+      };
+      type NoArgumentMessage = UIMessage<
+        never,
+        never,
+        { noArgument: InferUITool<typeof noArgumentTool> }
+      >;
+
+      await expect(
+        validateUIMessages<NoArgumentMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-noArgument',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: {},
+                  output: {} as { result: string },
+                },
+              ],
+            },
+          ],
+          tools: {
+            noArgument: noArgumentTool,
+          },
+        }),
+      ).rejects.toThrowError('Type validation failed');
+    });
+
+    it('should validate tool output when state is output-available', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: { foo: 'bar' },
+                  output: {} as { result: string },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError('Type validation failed');
+    });
+
+    it('should represent schema-incompatible output-error input as a dynamic tool part', async () => {
+      // A tool call that failed with an invalid-input error keeps its (invalid)
+      // input. The history must stay loadable without exposing that input under
+      // the current static tool type.
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -1023,9 +1114,9 @@ describe('validateUIMessages', () => {
                 type: 'tool-foo',
                 toolCallId: '1',
                 state: 'output-error',
-                input: { foo: 'bar' },
-                errorText: 'Tool execution failed',
-                providerExecuted: true,
+                input: { foo: 123 } as unknown as { foo: string },
+                errorText: 'AI_InvalidToolInputError',
+                providerExecuted: false,
               },
             ],
           },
@@ -1035,27 +1126,86 @@ describe('validateUIMessages', () => {
         },
       });
 
-      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
-      expect(messages).toMatchInlineSnapshot(`
-        [
+      expect(messages).toEqual([
+        {
+          id: '1',
+          parts: [
+            {
+              errorText: 'AI_InvalidToolInputError',
+              input: {
+                foo: 123,
+              },
+              providerExecuted: false,
+              state: 'output-error',
+              toolCallId: '1',
+              toolName: 'foo',
+              type: 'dynamic-tool',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+    });
+
+    it('should preserve output-error history when parsed input is absent', async () => {
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
           {
-            "id": "1",
-            "parts": [
+            id: '1',
+            role: 'assistant',
+            parts: [
               {
-                "errorText": "Tool execution failed",
-                "input": {
-                  "foo": "bar",
-                },
-                "providerExecuted": true,
-                "state": "output-error",
-                "toolCallId": "1",
-                "type": "tool-foo",
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-error',
+                rawInput: { foo: 'bar' },
+                errorText: 'AI_InvalidToolInputError',
               },
             ],
-            "role": "assistant",
           },
-        ]
-      `);
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages[0].parts[0]).toEqual({
+        type: 'tool-foo',
+        toolCallId: '1',
+        state: 'output-error',
+        input: undefined,
+        rawInput: { foo: 'bar' },
+        errorText: 'AI_InvalidToolInputError',
+      });
+    });
+
+    it('should normalize absent output-error input without tool schemas', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'foo',
+                toolCallId: '1',
+                state: 'output-error',
+                errorText: 'AI_InvalidToolInputError',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(messages[0].parts[0]).toStrictEqual({
+        type: 'dynamic-tool',
+        toolName: 'foo',
+        toolCallId: '1',
+        state: 'output-error',
+        input: undefined,
+        errorText: 'AI_InvalidToolInputError',
+      } satisfies DynamicToolUIPart);
     });
 
     it('should throw error when no tool schema is found', async () => {
@@ -1084,6 +1234,189 @@ describe('validateUIMessages', () => {
         [AI_TypeValidationError: Type validation failed: Value: {"foo":"bar"}.
         Error message: No tool schema found for tool part bar]
       `);
+    });
+
+    it('should represent completed and failed calls from missing tools as dynamic tool parts', async () => {
+      const inputMessages = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-bar' as 'tool-foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: { foo: 'bar' },
+              output: { result: 'success' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-bar' as 'tool-foo',
+              toolCallId: '2',
+              state: 'output-error',
+              input: { foo: 'bar' },
+              errorText: 'Tool execution failed',
+              providerExecuted: true,
+            },
+          ],
+        },
+      ];
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages).toEqual([
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'bar',
+              toolCallId: '1',
+              state: 'output-available',
+              input: { foo: 'bar' },
+              output: { result: 'success' },
+              providerExecuted: true,
+            },
+            {
+              type: 'dynamic-tool',
+              toolName: 'bar',
+              toolCallId: '2',
+              state: 'output-error',
+              input: { foo: 'bar' },
+              errorText: 'Tool execution failed',
+              providerExecuted: true,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should reject an output-denied call from a missing tool', async () => {
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-bar',
+                  toolCallId: '1',
+                  state: 'output-denied',
+                  input: { foo: 'bar' },
+                  approval: {
+                    id: 'approval-1',
+                    approved: false,
+                  },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowError('No tool schema found for tool part bar');
+    });
+
+    it('should return only revalidatable dynamic tool states', async () => {
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-available',
+                input: {},
+                output: { result: 'success' },
+              },
+              {
+                type: 'tool-foo',
+                toolCallId: '2',
+                state: 'output-error',
+                input: { foo: 123 },
+                errorText: 'Invalid tool input',
+              },
+              {
+                type: 'tool-removed',
+                toolCallId: '3',
+                state: 'output-available',
+                input: { previous: 'value' },
+                output: { result: 'success' },
+              },
+              {
+                type: 'tool-removed',
+                toolCallId: '4',
+                state: 'output-error',
+                rawInput: { previous: 'value' },
+                errorText: 'Invalid tool input',
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      const dynamicParts = messages[0].parts.filter(
+        (part): part is DynamicToolUIPart => part.type === 'dynamic-tool',
+      );
+      const expectedDynamicParts = [
+        {
+          type: 'dynamic-tool',
+          toolName: 'foo',
+          toolCallId: '1',
+          state: 'output-available',
+          input: {},
+          output: { result: 'success' },
+        },
+        {
+          type: 'dynamic-tool',
+          toolName: 'foo',
+          toolCallId: '2',
+          state: 'output-error',
+          input: { foo: 123 },
+          errorText: 'Invalid tool input',
+        },
+        {
+          type: 'dynamic-tool',
+          toolName: 'removed',
+          toolCallId: '3',
+          state: 'output-available',
+          input: { previous: 'value' },
+          output: { result: 'success' },
+        },
+        {
+          type: 'dynamic-tool',
+          toolName: 'removed',
+          toolCallId: '4',
+          state: 'output-error',
+          input: undefined,
+          errorText: 'Invalid tool input',
+        },
+      ] satisfies Array<DynamicToolUIPart>;
+
+      expect(dynamicParts).toStrictEqual(expectedDynamicParts);
+
+      const revalidated = await safeValidateUIMessages<TestMessage>({
+        messages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expectToBe(revalidated.success, true);
+      expect(revalidated.data).toStrictEqual(messages);
     });
 
     it('should throw error when tool input validation fails', async () => {
@@ -1342,6 +1675,78 @@ describe('safeValidateUIMessages', () => {
     expectToBe(result.success, false);
     expect(result.error.name).toBe('AI_TypeValidationError');
     expect(result.error.message).toContain('Type validation failed');
+  });
+
+  it('should return completed empty input as a dynamic tool part when it no longer matches the tool schema', async () => {
+    const testTool = {
+      inputSchema: z.object({ foo: z.string() }),
+      outputSchema: z.object({ result: z.string() }),
+    };
+
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: {},
+              output: { result: 'success' },
+            },
+          ],
+        },
+      ],
+      tools: { foo: testTool },
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data[0].parts[0]).toEqual({
+      type: 'dynamic-tool',
+      toolName: 'foo',
+      toolCallId: '1',
+      state: 'output-available',
+      input: {},
+      output: { result: 'success' },
+    });
+  });
+
+  it('should return unavailable terminal tools as dynamic tool parts', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-removed',
+              toolCallId: '1',
+              state: 'output-error',
+              input: { previous: 'value' },
+              errorText: 'Tool execution failed',
+            },
+          ],
+        },
+      ],
+      tools: {
+        current: {
+          inputSchema: z.object({ current: z.string() }),
+          outputSchema: z.object({ result: z.string() }),
+        },
+      },
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data[0].parts[0]).toEqual({
+      type: 'dynamic-tool',
+      toolName: 'removed',
+      toolCallId: '1',
+      state: 'output-error',
+      input: { previous: 'value' },
+      errorText: 'Tool execution failed',
+    });
   });
 
   it('should return failure result when data schema is missing', async () => {

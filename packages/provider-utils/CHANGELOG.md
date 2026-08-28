@@ -1,5 +1,36 @@
 # @ai-sdk/provider-utils
 
+## 3.0.35
+
+### Patch Changes
+
+- 77d33c0: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+
+## 3.0.34
+
+### Patch Changes
+
+- 2fff9f1: fix(provider-utils): allow imports in runtimes without a global fetch function
+- f364ea0: Preserve schema-valued additional properties when converting Zod 4 schemas.
+
+## 3.0.33
+
+### Patch Changes
+
+- 9e8e087: Stop re-exporting `createTestServer` and `TestResponseController` from `@ai-sdk/provider-utils/test` so `ai/test` can load without `msw` or `vitest`. Import these APIs from `@ai-sdk/test-server/with-vitest` instead.
+
+## 3.0.32
+
+### Patch Changes
+
+- 0e51b7b: Preserve streamed download size-limit errors when response cancellation fails.
+
+## 3.0.31
+
+### Patch Changes
+
+- 7a6bdbc: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+
 ## 3.0.30
 
 ### Patch Changes

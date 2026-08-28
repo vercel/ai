@@ -1,4 +1,5 @@
 import type {
+  JSONSchema7,
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
@@ -360,6 +361,15 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
+  const TEST_URL_GEMINI_2_5_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH_LITE =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+
   const TEST_URL_GEMINI_99_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
 
@@ -369,6 +379,9 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
+    [TEST_URL_GEMINI_2_5_PRO]: {},
+    [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
+    [TEST_URL_GEMINI_2_5_FLASH]: {},
     [TEST_URL_GEMINI_99_PRO]: {},
   });
 
@@ -397,6 +410,9 @@ describe('doGenerate', () => {
       | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
       | typeof TEST_URL_GEMINI_1_0_PRO
       | typeof TEST_URL_GEMINI_1_5_FLASH
+      | typeof TEST_URL_GEMINI_2_5_PRO
+      | typeof TEST_URL_GEMINI_2_5_FLASH
+      | typeof TEST_URL_GEMINI_2_5_FLASH_LITE
       | typeof TEST_URL_GEMINI_99_PRO;
   }) => {
     server.urls[url].response = {
@@ -637,6 +653,88 @@ describe('doGenerate', () => {
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).not.toHaveProperty('serviceTier');
+  });
+
+  it.each([
+    ['frequencyPenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['presencePenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['frequencyPenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    ['presencePenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    [
+      'frequencyPenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+    [
+      'presencePenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+  ] as const)(
+    'should omit unsupported %s for %s',
+    async (penalty, modelId, url) => {
+      prepareJsonResponse({ url });
+
+      const result = await provider.languageModel(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        [penalty]: 0.5,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig).toEqual({});
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported-setting',
+          setting: penalty,
+        },
+      ]);
+    },
+  );
+
+  it('should pass penalty settings for Gemini 2.0 models', async () => {
+    prepareJsonResponse({ url: TEST_URL_GEMINI_2_0_PRO });
+
+    const result = await provider.languageModel('gemini-2.0-pro').doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should pass penalty settings for Vertex Gemini 2.5 models', async () => {
+    prepareJsonResponse({ url: TEST_URL_GEMINI_2_5_FLASH });
+
+    const vertexModel = new GoogleGenerativeAILanguageModel(
+      'gemini-2.5-flash',
+      {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      },
+    );
+
+    const result = await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
   });
 
   it('should sanitize serviceTier to Vertex format when using Vertex provider', async () => {
@@ -1005,6 +1103,94 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should inline local JSON Schema references in tool requests', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'format-date',
+          description: 'Format a date',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              locale: {
+                $ref: '#/$defs/Locale',
+                description: 'Locale for formatting',
+              },
+            },
+            required: ['locale'],
+            additionalProperties: false,
+            $defs: {
+              Locale: { type: 'string', enum: ['de', 'en'] },
+            },
+          } as JSONSchema7,
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0]
+        .parameters,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        locale: {
+          type: 'string',
+          enum: ['de', 'en'],
+          description: 'Locale for formatting',
+        },
+      },
+      required: ['locale'],
+    });
+  });
+
+  it('should send recursive tool schemas as JSON Schema', async () => {
+    prepareJsonResponse({});
+
+    const inputSchema = {
+      type: 'object',
+      properties: {
+        condition: { $ref: '#/$defs/Condition' },
+      },
+      required: ['condition'],
+      $defs: {
+        Condition: {
+          type: 'object',
+          properties: {
+            children: {
+              type: 'array',
+              items: { $ref: '#/$defs/Condition' },
+            },
+          },
+        },
+      },
+    } as JSONSchema7;
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'search',
+          description: 'Search with a condition tree',
+          inputSchema,
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(server.calls).toHaveLength(1);
+    expect(
+      (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0],
+    ).toEqual({
+      name: 'search',
+      description: 'Search with a condition tree',
+      parametersJsonSchema: inputSchema,
+    });
+  });
+
   it('should set response mime type with responseFormat', async () => {
     prepareJsonResponse({});
 
@@ -1037,6 +1223,37 @@ describe('doGenerate', () => {
           },
         },
       },
+    });
+  });
+
+  it('should inline local JSON Schema references in response schemas', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            locale: { $ref: '#/$defs/Locale' },
+          },
+          required: ['locale'],
+          $defs: {
+            Locale: { type: 'string', enum: ['de', 'en'] },
+          },
+        } as JSONSchema7,
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig.responseSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        locale: { type: 'string', enum: ['de', 'en'] },
+      },
+      required: ['locale'],
     });
   });
 
@@ -1766,6 +1983,40 @@ describe('doGenerate', () => {
         blocked: false,
       },
     ]);
+  });
+
+  it('should surface prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toEqual([]);
+    expect(result.finishReason).toBe('content-filter');
+    expect(result.providerMetadata?.google).toMatchObject({
+      promptFeedback: {
+        blockReason: 'PROHIBITED_CONTENT',
+      },
+      groundingMetadata: null,
+      urlContextMetadata: null,
+      safetyRatings: null,
+      usageMetadata: {
+        promptTokenCount: 9,
+        totalTokenCount: 9,
+      },
+    });
   });
 
   it('should expose grounding metadata in provider metadata', async () => {
@@ -2760,6 +3011,49 @@ describe('doStream', () => {
       ),
     };
   };
+
+  it('should surface streamed prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.find(event => event.type === 'finish')).toMatchObject({
+      type: 'finish',
+      finishReason: 'content-filter',
+      providerMetadata: {
+        google: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          groundingMetadata: null,
+          urlContextMetadata: null,
+          safetyRatings: null,
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      },
+    });
+  });
 
   it('should expose grounding metadata in provider metadata on finish', async () => {
     prepareStreamResponse({

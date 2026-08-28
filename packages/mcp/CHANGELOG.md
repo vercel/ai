@@ -1,5 +1,43 @@
 # @ai-sdk/mcp
 
+## 0.0.31
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+
+## 0.0.30
+
+### Patch Changes
+
+- 9b56bd6: Fetch all paginated tool definitions when creating an MCP tool set.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
+## 0.0.29
+
+### Patch Changes
+
+- 479a6ff: fix(mcp): support spawning command shims such as `npx` on Windows
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 0.0.27
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
 ## 0.0.26
 
 ### Patch Changes

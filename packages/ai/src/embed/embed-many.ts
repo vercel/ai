@@ -2,9 +2,9 @@ import {
   type ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { prepareRetries } from '../util/prepare-retries';
-import { splitArray } from '../util/split-array';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
+import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -12,16 +12,18 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import type { TelemetrySettings } from '../telemetry/telemetry-settings';
 import type { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
-import { resolveEmbeddingModel } from '../model/resolve-model';
-import type { EmbedManyResult } from './embed-many-result';
+import { prepareRetries } from '../util/prepare-retries';
+import { splitArray } from '../util/split-array';
 import { VERSION } from '../version';
+import type { EmbedManyResult } from './embed-many-result';
 
 /**
 Embed several values using an embedding model. The type of the value is defined
 by the embedding model.
 
-`embedMany` automatically splits large requests into smaller chunks if the model
-has a limit on how many embeddings can be generated in a single call.
+`embedMany` automatically splits large requests into smaller chunks when the
+model has a limit on either the number of embeddings or the UTF-8 input bytes
+that can be processed in a single call.
 
 @param model - The embedding model to use.
 @param values - The values that should be embedded.
@@ -125,14 +127,22 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all([
+      const [
+        maxEmbeddingsPerCall,
+        maxInputBytesPerCall,
+        supportsParallelCalls,
+      ] = await Promise.all([
         model.maxEmbeddingsPerCall,
+        getEmbeddingModelMaxInputBytesPerCall(model),
         model.supportsParallelCalls,
       ]);
 
-      // the model has not specified limits on
-      // how many embeddings can be generated in a single call
-      if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
+      const hasEmbeddingLimit =
+        maxEmbeddingsPerCall != null && maxEmbeddingsPerCall !== Infinity;
+      const hasInputByteLimit =
+        maxInputBytesPerCall != null && maxInputBytesPerCall !== Infinity;
+
+      if (!hasEmbeddingLimit && !hasInputByteLimit) {
         const { embeddings, usage, response, providerMetadata } = await retry(
           () => {
             // nested spans to align with the embedMany telemetry data:
@@ -212,10 +222,16 @@ Only applicable for HTTP-based providers.
         });
       }
 
-      // split the values into chunks that are small enough for the model:
-      const valueChunks = splitArray(values, maxEmbeddingsPerCall);
+      const valueChunks = splitByEmbeddingLimits({
+        values,
+        maxEmbeddingsPerCall: hasEmbeddingLimit
+          ? maxEmbeddingsPerCall
+          : Infinity,
+        maxInputBytesPerCall: hasInputByteLimit
+          ? maxInputBytesPerCall
+          : Infinity,
+      });
 
-      // serially embed the chunks:
       const embeddings: Array<Embedding> = [];
       const responses: Array<
         | {
@@ -335,6 +351,58 @@ Only applicable for HTTP-based providers.
       });
     },
   });
+}
+
+const textEncoder = new TextEncoder();
+
+function splitByEmbeddingLimits<VALUE>({
+  values,
+  maxEmbeddingsPerCall,
+  maxInputBytesPerCall,
+}: {
+  values: Array<VALUE>;
+  maxEmbeddingsPerCall: number;
+  maxInputBytesPerCall: number;
+}): Array<Array<VALUE>> {
+  if (maxEmbeddingsPerCall <= 0) {
+    throw new Error('maxEmbeddingsPerCall must be greater than 0');
+  }
+
+  if (maxInputBytesPerCall <= 0) {
+    throw new Error('maxInputBytesPerCall must be greater than 0');
+  }
+
+  if (values.length === 0) {
+    return [];
+  }
+
+  const chunks: Array<Array<VALUE>> = [];
+  let currentChunk: Array<VALUE> = [];
+  let currentInputBytes = 0;
+
+  for (const value of values) {
+    const inputBytes =
+      maxInputBytesPerCall === Infinity
+        ? 0
+        : textEncoder.encode(value as string).length;
+
+    if (
+      currentChunk.length > 0 &&
+      (currentChunk.length >= maxEmbeddingsPerCall ||
+        currentInputBytes + inputBytes > maxInputBytesPerCall)
+    ) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentInputBytes = 0;
+    }
+
+    currentChunk.push(value);
+    currentInputBytes += inputBytes;
+  }
+
+  chunks.push(currentChunk);
+
+  return chunks;
 }
 
 class DefaultEmbedManyResult<VALUE> implements EmbedManyResult<VALUE> {

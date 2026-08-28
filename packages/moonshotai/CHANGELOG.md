@@ -1,5 +1,72 @@
 # @ai-sdk/moonshotai
 
+## 0.0.24
+
+### Patch Changes
+
+- 9391f70: Add first-class Moonshot V1 auto and vision-preview model IDs while preserving custom and retired model ID support.
+- e8a4fca: feat(provider/moonshotai): support Partial Mode for final assistant message prefixes
+- 51f05ce: feat(provider/moonshotai): support chat log probabilities
+- 497745e: Preserve Moonshot chat response metadata for generated and streamed responses.
+- ff9e44b: Preserve documented Moonshot API error codes in HTTP and streaming errors.
+- 30a28c2: Add provider-specific names for Moonshot AI system, user, and assistant messages.
+- a5854a9: Add support for Moonshot predicted outputs.
+- b909d7a: Support Kimi K3 dynamic tool-loading system messages.
+
+## 0.0.23
+
+### Patch Changes
+
+- 71b1bb5: fix(provider/moonshotai): send max output tokens with the current Moonshot request field
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/openai-compatible@1.0.52
+
+## 0.0.22
+
+### Patch Changes
+
+- cef6cbe: Normalize Moonshot structured output schemas and enable strict validation by default.
+- c4c0ba6: Use native JSON Schema structured outputs for official Moonshot V1 models.
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
+
+## 0.0.21
+
+### Patch Changes
+
+- 2836c36: fix(provider/moonshotai): align thinking and reasoning options by model
+- 104d4e2: fix(provider/moonshotai): omit unsupported sampling parameters for Kimi models
+- 47a3944: Omit required tool choice with a warning for Moonshot Kimi models that reject it.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/openai-compatible@1.0.50
+
+## 0.0.20
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/openai-compatible@1.0.49
+
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/openai-compatible@1.0.48
+
+## 0.0.18
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/openai-compatible@1.0.47
+
 ## 0.0.17
 
 ### Patch Changes

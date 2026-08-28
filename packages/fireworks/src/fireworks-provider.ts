@@ -27,12 +27,22 @@ import { VERSION } from './version';
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
 const fireworksErrorSchema = z.object({
-  error: z.string(),
+  error: z.union([
+    z.string(),
+    z.object({
+      message: z.string(),
+      object: z.string().nullish(),
+      type: z.string().nullish(),
+      param: z.any().nullish(),
+      code: z.union([z.string(), z.number()]).nullish(),
+    }),
+  ]),
 });
 
 const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
   errorSchema: fireworksErrorSchema,
-  errorToMessage: data => data.error,
+  errorToMessage: data =>
+    typeof data.error === 'string' ? data.error : data.error.message,
 };
 
 export interface FireworksProviderSettings {
@@ -133,6 +143,43 @@ export function createFireworks(
       ...getCommonModelConfig('chat'),
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
+      transformRequestBody: args => {
+        const thinking = args.thinking as
+          | { type?: string; budgetTokens?: number }
+          | undefined;
+        const reasoningHistory = args.reasoningHistory as string | undefined;
+        const promptCacheKey = args.promptCacheKey as string | undefined;
+        const serviceTier = args.serviceTier as string | undefined;
+
+        const {
+          thinking: _,
+          reasoningHistory: __,
+          promptCacheKey: ___,
+          serviceTier: ____,
+          ...rest
+        } = args;
+
+        return {
+          ...rest,
+          ...(promptCacheKey !== undefined && {
+            prompt_cache_key: promptCacheKey,
+          }),
+          ...(serviceTier !== undefined && {
+            service_tier: serviceTier,
+          }),
+          ...(thinking && {
+            thinking: {
+              type: thinking.type,
+              ...(thinking.budgetTokens !== undefined && {
+                budget_tokens: thinking.budgetTokens,
+              }),
+            },
+          }),
+          ...(reasoningHistory && {
+            reasoning_history: reasoningHistory,
+          }),
+        };
+      },
     });
   };
 

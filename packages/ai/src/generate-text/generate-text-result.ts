@@ -31,7 +31,9 @@ The content that was generated in the last step.
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-The text that was generated in the last step.
+The concatenation of all text parts generated in the last step.
+It is an empty string if the last step contains no text parts.
+Inspect `content` to distinguish that case.
      */
   readonly text: string;
 

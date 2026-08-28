@@ -1,5 +1,59 @@
 # @ai-sdk/anthropic
 
+## 2.0.99
+
+### Patch Changes
+
+- 78c7304: fix(anthropic): order client tool calls after provider-executed tool results
+
+## 2.0.98
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+
+## 2.0.97
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
+## 2.0.96
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+
+## 2.0.95
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 2.0.94
+
+### Patch Changes
+
+- e7afc18: Reject spliced Anthropic generations while allowing duplicate message start events for the active message.
+
+## 2.0.93
+
+### Patch Changes
+
+- 950eec8: Preserve Anthropic prompt-cache matches by replaying complete code-execution transcripts in their original wire shape.
+
+## 2.0.92
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
 ## 2.0.91
 
 ### Patch Changes

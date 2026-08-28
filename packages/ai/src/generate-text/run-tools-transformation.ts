@@ -10,6 +10,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
+import { getTelemetryMetadataAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import type { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -23,6 +24,7 @@ import {
   type GeneratedFile,
   DefaultGeneratedFileWithType,
 } from './generated-file';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { parseToolCall } from './parse-tool-call';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
@@ -173,6 +175,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
 
+  // delay tool execution until the terminal finish reason is known:
+  const pendingToolCalls: TypedToolCall<TOOLS>[] = [];
+
   // keep track of tool inputs for provider-side tool results
   const toolInputs = new Map<string, unknown>();
 
@@ -193,6 +198,98 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
       closeToolResultsStream();
     }
+  }
+
+  function executePendingToolCall(toolCall: TypedToolCall<TOOLS>) {
+    const tool = tools![toolCall.toolName];
+    const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
+    outstandingToolResults.add(toolExecutionId);
+
+    // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
+    // because tool calls should execute concurrently.
+    recordSpan({
+      name: 'ai.toolCall',
+      attributes: selectTelemetryAttributes({
+        telemetry,
+        attributes: {
+          ...assembleOperationName({
+            operationId: 'ai.toolCall',
+            telemetry,
+          }),
+          ...getTelemetryMetadataAttributes(telemetry),
+          'ai.toolCall.name': toolCall.toolName,
+          'ai.toolCall.id': toolCall.toolCallId,
+          'ai.toolCall.args': {
+            output: () => JSON.stringify(toolCall.input),
+          },
+        },
+      }),
+      tracer,
+      fn: async span => {
+        let output: unknown;
+
+        try {
+          const stream = executeTool({
+            execute: tool.execute!.bind(tool),
+            input: toolCall.input,
+            options: {
+              toolCallId: toolCall.toolCallId,
+              messages,
+              abortSignal,
+              experimental_context,
+            },
+          });
+
+          for await (const part of stream) {
+            enqueueToolResult({
+              ...toolCall,
+              type: 'tool-result',
+              output: part.output,
+              ...(part.type === 'preliminary' && {
+                preliminary: true,
+              }),
+            });
+
+            if (part.type === 'final') {
+              output = part.output;
+            }
+          }
+        } catch (error) {
+          recordErrorOnSpan(span, error);
+          enqueueToolResult({
+            ...toolCall,
+            type: 'tool-error',
+            error,
+          } satisfies TypedToolError<TOOLS>);
+
+          outstandingToolResults.delete(toolExecutionId);
+          attemptClose();
+          return;
+        }
+
+        outstandingToolResults.delete(toolExecutionId);
+        attemptClose();
+
+        // record telemetry
+        try {
+          span.setAttributes(
+            selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                'ai.toolCall.result': {
+                  output: () => JSON.stringify(output),
+                },
+              },
+            }),
+          );
+        } catch (ignored) {
+          // JSON stringify might fail if the result is not serializable,
+          // in which case we just ignore it. In the future we might want to
+          // add an optional serialize method to the tool interface and warn
+          // if the result is not serializable.
+        }
+      },
+    });
   }
 
   // forward stream
@@ -246,6 +343,15 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             usage: chunk.usage,
             providerMetadata: chunk.providerMetadata,
           };
+
+          if (isToolExecutionAllowedFinishReason(chunk.finishReason)) {
+            for (const toolCall of pendingToolCalls.splice(0)) {
+              executePendingToolCall(toolCall);
+            }
+          } else {
+            pendingToolCalls.length = 0;
+          }
+
           break;
         }
 
@@ -292,94 +398,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
-              const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
-              outstandingToolResults.add(toolExecutionId);
-
-              // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
-              // because we want to process the next chunk as soon as possible.
-              // This is important for the case where the tool execution takes a long time.
-              recordSpan({
-                name: 'ai.toolCall',
-                attributes: selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    ...assembleOperationName({
-                      operationId: 'ai.toolCall',
-                      telemetry,
-                    }),
-                    'ai.toolCall.name': toolCall.toolName,
-                    'ai.toolCall.id': toolCall.toolCallId,
-                    'ai.toolCall.args': {
-                      output: () => JSON.stringify(toolCall.input),
-                    },
-                  },
-                }),
-                tracer,
-                fn: async span => {
-                  let output: unknown;
-
-                  try {
-                    const stream = executeTool({
-                      execute: tool.execute!.bind(tool),
-                      input: toolCall.input,
-                      options: {
-                        toolCallId: toolCall.toolCallId,
-                        messages,
-                        abortSignal,
-                        experimental_context,
-                      },
-                    });
-
-                    for await (const part of stream) {
-                      enqueueToolResult({
-                        ...toolCall,
-                        type: 'tool-result',
-                        output: part.output,
-                        ...(part.type === 'preliminary' && {
-                          preliminary: true,
-                        }),
-                      });
-
-                      if (part.type === 'final') {
-                        output = part.output;
-                      }
-                    }
-                  } catch (error) {
-                    recordErrorOnSpan(span, error);
-                    enqueueToolResult({
-                      ...toolCall,
-                      type: 'tool-error',
-                      error,
-                    } satisfies TypedToolError<TOOLS>);
-
-                    outstandingToolResults.delete(toolExecutionId);
-                    attemptClose();
-                    return;
-                  }
-
-                  outstandingToolResults.delete(toolExecutionId);
-                  attemptClose();
-
-                  // record telemetry
-                  try {
-                    span.setAttributes(
-                      selectTelemetryAttributes({
-                        telemetry,
-                        attributes: {
-                          'ai.toolCall.result': {
-                            output: () => JSON.stringify(output),
-                          },
-                        },
-                      }),
-                    );
-                  } catch (ignored) {
-                    // JSON stringify might fail if the result is not serializable,
-                    // in which case we just ignore it. In the future we might want to
-                    // add an optional serialize method to the tool interface and warn
-                    // if the result is not serializable.
-                  }
-                },
-              });
+              pendingToolCalls.push({ ...toolCall });
             }
           } catch (error) {
             enqueueToolResult({ type: 'error', error });

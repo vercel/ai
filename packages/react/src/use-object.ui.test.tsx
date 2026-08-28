@@ -1,7 +1,7 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { z } from 'zod/v4';
@@ -304,5 +304,46 @@ describe('text stream', () => {
       expect(screen.getByTestId('error')).toBeEmptyDOMElement();
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
     });
+  });
+
+  it('should preserve the object state when the API changes', async () => {
+    server.urls['/api/use-object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    const ApiTestComponent = ({ api }: { api: string }) => {
+      const { object, submit } = experimental_useObject({
+        api,
+        schema: z.object({ content: z.string() }),
+      });
+
+      return (
+        <div>
+          <div data-testid="object">{JSON.stringify(object)}</div>
+          <button
+            data-testid="submit-button"
+            onClick={() => submit('test-input')}
+          >
+            Generate
+          </button>
+        </div>
+      );
+    };
+
+    const { rerender } = render(<ApiTestComponent api="/api/use-object" />);
+    await userEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('object')).toHaveTextContent(
+        JSON.stringify({ content: 'Hello, world!' }),
+      );
+    });
+
+    rerender(<ApiTestComponent api="/api/changed" />);
+
+    expect(screen.getByTestId('object')).toHaveTextContent(
+      JSON.stringify({ content: 'Hello, world!' }),
+    );
   });
 });

@@ -1,5 +1,111 @@
 # @ai-sdk/google-vertex
 
+## 3.0.170
+
+### Patch Changes
+
+- Updated dependencies [c43ba7d]
+- Updated dependencies [78c7304]
+- Updated dependencies [7a292cd]
+  - @ai-sdk/google@2.0.94
+  - @ai-sdk/anthropic@2.0.99
+
+## 3.0.169
+
+### Patch Changes
+
+- Updated dependencies [a3fe2a8]
+  - @ai-sdk/google@2.0.93
+
+## 3.0.168
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/anthropic@2.0.98
+  - @ai-sdk/google@2.0.92
+  - @ai-sdk/openai-compatible@1.0.52
+
+## 3.0.167
+
+### Patch Changes
+
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
+
+## 3.0.166
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+- Updated dependencies [b616db6]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/google@2.0.91
+  - @ai-sdk/anthropic@2.0.97
+  - @ai-sdk/openai-compatible@1.0.50
+
+## 3.0.165
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/anthropic@2.0.96
+  - @ai-sdk/google@2.0.90
+  - @ai-sdk/openai-compatible@1.0.49
+
+## 3.0.164
+
+### Patch Changes
+
+- Updated dependencies [1284605]
+  - @ai-sdk/google@2.0.89
+
+## 3.0.163
+
+### Patch Changes
+
+- df0cbe9: feat(google): add `gemini-3.7-flash` model
+- Updated dependencies [df0cbe9]
+  - @ai-sdk/google@2.0.88
+
+## 3.0.162
+
+### Patch Changes
+
+- Updated dependencies [1f51a4b]
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/google@2.0.87
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/anthropic@2.0.95
+  - @ai-sdk/openai-compatible@1.0.48
+
+## 3.0.161
+
+### Patch Changes
+
+- Updated dependencies [e7afc18]
+  - @ai-sdk/anthropic@2.0.94
+
+## 3.0.160
+
+### Patch Changes
+
+- Updated dependencies [950eec8]
+  - @ai-sdk/anthropic@2.0.93
+
+## 3.0.159
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/anthropic@2.0.92
+  - @ai-sdk/google@2.0.86
+  - @ai-sdk/openai-compatible@1.0.47
+
 ## 3.0.158
 
 ### Patch Changes

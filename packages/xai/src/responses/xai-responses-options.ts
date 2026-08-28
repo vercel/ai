@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 
 export type XaiResponsesModelId =
+  | 'grok-4.6'
   | 'grok-4.5'
   | 'grok-4-1'
   | 'grok-4-1-fast-reasoning'
@@ -20,9 +21,11 @@ export type XaiResponsesModelId =
 export const xaiResponsesProviderOptions = z.object({
   /**
    * Constrains how hard a reasoning model thinks before responding.
-   * Possible values are `low` (uses fewer reasoning tokens), `medium` and `high` (uses more reasoning tokens).
+   * Possible values are `low` (uses fewer reasoning tokens), `medium`, `high`
+   * (uses more reasoning tokens), and `xhigh` (supported by `grok-4.6`).
+   * Defaults to `high` for models that support reasoning effort.
    */
-  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).optional(),
   /**
    * Whether to store the input message(s) and model response for later retrieval.
    * @default true

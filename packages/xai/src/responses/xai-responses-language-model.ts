@@ -8,6 +8,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
+  type InferValidator,
   type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -16,9 +17,12 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { getResponseMetadata } from '../get-response-metadata';
 import {
+  webSearchWireActionSchema,
+  webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
 } from './xai-responses-api';
@@ -276,6 +280,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
           input: toolInput,
           providerExecuted: true,
         });
+
+        if (part.type === 'web_search_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: mapWebSearchAction(part.action),
+          });
+        }
 
         continue;
       }
@@ -783,6 +796,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                   });
                 }
 
+                if (event.type === 'response.output_item.done') {
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: part.id,
+                    toolName,
+                    result:
+                      part.type === 'web_search_call'
+                        ? mapWebSearchAction(part.action)
+                        : {},
+                  });
+                }
+
                 return;
               }
 
@@ -874,5 +899,38 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapWebSearchAction(
+  action: unknown,
+): InferValidator<typeof webSearchOutputSchema> {
+  const parsed = webSearchWireActionSchema.safeParse(action);
+  if (!parsed.success) return {};
+
+  const a = parsed.data;
+  const sources = a.sources?.flatMap(s => {
+    const source = webSearchWireSourceSchema.safeParse(s);
+    return source.success ? [source.data] : [];
+  });
+  const sourcesExtra = sources != null && sources.length > 0 ? { sources } : {};
+
+  switch (a.type) {
+    case 'search':
+      return {
+        action: {
+          type: 'search',
+          ...(a.query != null && { query: a.query }),
+          ...(a.queries != null && { queries: a.queries }),
+        },
+        ...sourcesExtra,
+      };
+    case 'open_page':
+      return { action: { type: 'openPage', url: a.url }, ...sourcesExtra };
+    case 'find_in_page':
+      return {
+        action: { type: 'findInPage', url: a.url, pattern: a.pattern },
+        ...sourcesExtra,
+      };
   }
 }

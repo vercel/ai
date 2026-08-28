@@ -4,7 +4,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
@@ -222,6 +222,49 @@ describe('runToolsTransformation', () => {
         ]
       `);
   });
+
+  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+    'should not execute tools when the finish reason is %s',
+    async finishReason => {
+      const execute = vi.fn(async () => 'tool-result');
+
+      const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason,
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      await convertReadableStreamToArray(transformedStream);
+
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
 
   it('should hold off on sending finish until the delayed tool result is received', async () => {
     const inputStream: ReadableStream<LanguageModelV2StreamPart> =

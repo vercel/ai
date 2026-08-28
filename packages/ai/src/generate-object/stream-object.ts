@@ -47,6 +47,7 @@ import {
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
+import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { type OutputStrategy, getOutputStrategy } from './output-strategy';
@@ -59,6 +60,12 @@ import type {
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
+
+async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
+  try {
+    await promise;
+  } catch {}
+}
 
 /**
 Callback that is set using the `onError` option.
@@ -450,7 +457,10 @@ class DefaultStreamObjectResult<
         controller.enqueue(chunk);
 
         if (chunk.type === 'error') {
-          onError({ error: wrapGatewayError(chunk.error) });
+          void notify({
+            event: { error: wrapGatewayError(chunk.error) },
+            callbacks: onError,
+          });
         }
       },
     });
@@ -482,6 +492,7 @@ class DefaultStreamObjectResult<
       }),
       tracer,
       endWhenDone: false,
+      endOnError: true,
       fn: async rootSpan => {
         const standardizedPrompt = await standardizePrompt({
           system,
@@ -561,6 +572,7 @@ class DefaultStreamObjectResult<
             }),
             tracer,
             endWhenDone: false,
+            endOnError: true,
             fn: async doStreamSpan => ({
               startTimestampMs: now(),
               doStreamSpan,
@@ -582,6 +594,7 @@ class DefaultStreamObjectResult<
         let providerMetadata: ProviderMetadata | undefined;
         let object: RESULT | undefined;
         let error: unknown | undefined;
+        let terminalError: { error: unknown } | undefined;
 
         // pipe chunks through a transformation stream that extracts metadata:
         let accumulatedText = '';
@@ -694,6 +707,19 @@ class DefaultStreamObjectResult<
                     break;
                   }
 
+                  case 'error': {
+                    if (terminalError === undefined) {
+                      const wrappedError = wrapGatewayError(chunk.error);
+                      terminalError = { error: wrappedError };
+                      error = wrappedError;
+                      finishReason = 'error';
+                      self.rejectResultPromises(wrappedError);
+                    }
+
+                    controller.enqueue(chunk);
+                    break;
+                  }
+
                   case 'finish': {
                     // send final text delta:
                     if (textDelta !== '') {
@@ -701,7 +727,10 @@ class DefaultStreamObjectResult<
                     }
 
                     // store finish reason for telemetry:
-                    finishReason = chunk.finishReason;
+                    finishReason =
+                      terminalError === undefined
+                        ? chunk.finishReason
+                        : 'error';
 
                     // store usage and metadata for promises and onFinish callback:
                     usage = chunk.usage;
@@ -715,6 +744,10 @@ class DefaultStreamObjectResult<
 
                     // log warnings:
                     logWarnings(warnings ?? []);
+
+                    if (terminalError !== undefined) {
+                      break;
+                    }
 
                     // resolve promises that can be resolved now:
                     self._usage.resolve(usage);
@@ -837,10 +870,21 @@ class DefaultStreamObjectResult<
             }),
           );
 
-        stitchableStream.addStream(transformedStream);
+        stitchableStream.addStream(transformedStream, {
+          onError(error) {
+            const wrappedError = wrapGatewayError(error);
+            self.rejectResultPromises(wrappedError);
+            void notify({
+              event: { error: wrappedError },
+              callbacks: onError,
+            });
+          },
+        });
       },
     })
       .catch(error => {
+        self.rejectResultPromises(error);
+
         // add an empty stream with an error to break the stream:
         stitchableStream.addStream(
           new ReadableStream({
@@ -856,6 +900,29 @@ class DefaultStreamObjectResult<
       });
 
     this.outputStrategy = outputStrategy;
+  }
+
+  private rejectResultPromises(error: unknown) {
+    this.rejectResultPromise({ delayedPromise: this._object, error });
+    this.rejectResultPromise({ delayedPromise: this._usage, error });
+    this.rejectResultPromise({ delayedPromise: this._providerMetadata, error });
+    this.rejectResultPromise({ delayedPromise: this._warnings, error });
+    this.rejectResultPromise({ delayedPromise: this._request, error });
+    this.rejectResultPromise({ delayedPromise: this._response, error });
+    this.rejectResultPromise({ delayedPromise: this._finishReason, error });
+  }
+
+  private rejectResultPromise<T>({
+    delayedPromise,
+    error,
+  }: {
+    delayedPromise: DelayedPromise<T>;
+    error: unknown;
+  }) {
+    if (delayedPromise.isPending()) {
+      delayedPromise.reject(error);
+      markPromiseAsHandled(delayedPromise.promise);
+    }
   }
 
   get object() {
