@@ -38,6 +38,15 @@ it('should stream text and thinking content parts', async () => {
           },
         ],
       })}\n\n`,
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            index: 0,
+            delta: {},
+            finish_reason: 'stop',
+          },
+        ],
+      })}\n\n`,
       'data: [DONE]\n\n',
     ],
   };
@@ -79,6 +88,15 @@ it('should ignore unknown streamed content parts', async () => {
               ],
             },
             finish_reason: null,
+          },
+        ],
+      })}\n\n`,
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            index: 0,
+            delta: {},
+            finish_reason: 'stop',
           },
         ],
       })}\n\n`,
