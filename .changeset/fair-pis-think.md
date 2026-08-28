@@ -2,4 +2,4 @@
 '@ai-sdk/harness-pi': patch
 ---
 
-Allow configuring Pi sessions with the `max` thinking level.
+fix(harness-pi): allow configuring Pi sessions with the `max` thinking level
