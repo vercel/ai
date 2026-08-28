@@ -1,5 +1,8 @@
 import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4Prompt,
+  LanguageModelV4ToolResultOutput,
+} from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
@@ -2772,6 +2775,96 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('tool messages', () => {
+    it('should preserve prompt cache breakpoints on scalar tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const providerOptions = {
+        openai: { promptCacheBreakpoint },
+      };
+      const scalarOutputs: Array<{
+        output: LanguageModelV4ToolResultOutput;
+        expectedText: string;
+      }> = [
+        {
+          output: { type: 'text', value: 'stable tool output' },
+          expectedText: 'stable tool output',
+        },
+        {
+          output: { type: 'json', value: { stable: true } },
+          expectedText: '{"stable":true}',
+        },
+        {
+          output: { type: 'error-text', value: 'tool error' },
+          expectedText: 'tool error',
+        },
+        {
+          output: { type: 'error-json', value: { error: 'boom' } },
+          expectedText: '{"error":"boom"}',
+        },
+        {
+          output: { type: 'execution-denied', reason: 'execution denied' },
+          expectedText: 'execution denied',
+        },
+      ];
+
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: scalarOutputs.flatMap(({ output }, index) => [
+              {
+                type: 'tool-result' as const,
+                toolCallId: `call_${index}_output`,
+                toolName: 'lookup',
+                output: {
+                  ...output,
+                  providerOptions,
+                } as LanguageModelV4ToolResultOutput,
+              },
+              {
+                type: 'tool-result' as const,
+                toolCallId: `call_${index}_tool_result`,
+                toolName: 'lookup',
+                output,
+                providerOptions,
+              },
+            ]),
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.warnings).toEqual([]);
+      expect(result.input).toEqual(
+        scalarOutputs.flatMap(({ expectedText }, index) => [
+          {
+            type: 'function_call_output',
+            call_id: `call_${index}_output`,
+            output: [
+              {
+                type: 'input_text',
+                text: expectedText,
+                prompt_cache_breakpoint: promptCacheBreakpoint,
+              },
+            ],
+          },
+          {
+            type: 'function_call_output',
+            call_id: `call_${index}_tool_result`,
+            output: [
+              {
+                type: 'input_text',
+                text: expectedText,
+                prompt_cache_breakpoint: promptCacheBreakpoint,
+              },
+            ],
+          },
+        ]),
+      );
+    });
+
     it('should convert single tool result part with json value', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
