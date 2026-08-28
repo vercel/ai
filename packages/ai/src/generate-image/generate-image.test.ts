@@ -932,6 +932,57 @@ describe('generateImage', () => {
       expect(result.providerMetadata.gateway).not.toHaveProperty('images');
     });
 
+    it('should aggregate numeric cost across multiple gateway calls', async () => {
+      let callCount = 0;
+      const result = await generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async () => {
+            callCount++;
+            return createMockResponse({
+              images: [pngBase64],
+              providerMetaData: {
+                gateway: {
+                  images: [],
+                  cost: 0.02,
+                  generationId: `gen-${callCount}`,
+                },
+              },
+            });
+          },
+        }),
+        prompt,
+        n: 4,
+      });
+
+      expect(result.providerMetadata.gateway).toStrictEqual({
+        cost: 0.08,
+        generationId: 'gen-4',
+      });
+      expect(result.providerMetadata.gateway).not.toHaveProperty('images');
+    });
+
+    it('should not aggregate non-numeric cost values', async () => {
+      const result = await generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async () => ({
+            images: [pngBase64],
+            providerMetaData: {
+              gateway: {
+                images: [],
+                cost: 'flat-rate',
+              },
+            },
+          }),
+        }),
+        prompt,
+        n: 2,
+      });
+
+      expect(result.providerMetadata.gateway.cost).toBe('flat-rate');
+    });
+
     it('should handle undefined providerMetadata', async () => {
       const result = await generateImage({
         model: new MockImageModelV4({
