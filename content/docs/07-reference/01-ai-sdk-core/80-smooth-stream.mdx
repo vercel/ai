@@ -45,7 +45,7 @@ const result = streamText({
       type: '"word" | "line" | RegExp | Intl.Segmenter | (buffer: string) => string | undefined | null',
       isOptional: true,
       description:
-        'Controls how text and reasoning content is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom callback or RegExp pattern for custom chunking.',
+        'Controls how text and reasoning content is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom callback or RegExp pattern that does not match the empty string for custom chunking.',
     },
   ]}
 />
@@ -102,7 +102,9 @@ const result = streamText({
 
 #### Regex based chunking
 
-To use regex based chunking, pass a `RegExp` to the `chunking` option.
+To use regex based chunking, pass a `RegExp` to the `chunking` option. Global
+and sticky expressions are supported. The expression must not match the empty
+string.
 
 ```ts
 // To split on underscores:
