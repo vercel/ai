@@ -323,6 +323,7 @@ types. Register each exact value through the dedicated bare fields to opt in:
 ```ts
 const webSearchExtension: Experimental_OpenResponsesExtension = {
   id: 'acme.web_search',
+  allowBareTypes: true,
   bareToolType: 'web_search',
   bareItemTypes: ['web_search_call'],
   bareEventTypes: ['response.web_search_call.completed'],
@@ -353,10 +354,11 @@ const webSearchExtension: Experimental_OpenResponsesExtension = {
 };
 ```
 
-`bareToolType`, `bareItemTypes`, and `bareEventTypes` accept only
-non-namespaced values. They do not enable unknown JSON passthrough: a bare
-discriminator is handled only when it exactly matches a registered value.
-Core Open Responses discriminators and duplicate registrations are rejected.
+Set `allowBareTypes: true` when using `bareToolType`, `bareItemTypes`, or
+`bareEventTypes`. These fields accept only non-namespaced values. They do not
+enable unknown JSON passthrough: a bare discriminator is handled only when it
+exactly matches a registered value. Core Open Responses discriminators and
+duplicate registrations are rejected.
 Use the normal namespaced fields whenever the implementation supports them.
 
 Set `providerExecuted` on each decoded `tool-call` or `tool-input-start` part.

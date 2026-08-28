@@ -8,6 +8,7 @@ import { run } from '../../lib/run';
 
 const webSearchExtension: Experimental_OpenResponsesExtension = {
   id: 'acme.web_search',
+  allowBareTypes: true,
   bareToolType: 'web_search',
   bareItemTypes: ['web_search_call'],
   encodeTool: ({ name, args }) => ({

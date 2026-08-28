@@ -4,9 +4,14 @@ import {
   type OpenResponsesExtension,
 } from './open-responses-extension';
 
+type NamespacedOpenResponsesExtension = Exclude<
+  OpenResponsesExtension,
+  { allowBareTypes: true }
+>;
+
 function createExtension(
-  overrides: Partial<OpenResponsesExtension> = {},
-): OpenResponsesExtension {
+  overrides: Partial<NamespacedOpenResponsesExtension> = {},
+): NamespacedOpenResponsesExtension {
   return {
     id: 'acme.search',
     toolType: 'acme:search',
@@ -35,6 +40,7 @@ describe('createOpenResponsesExtensionRegistry', () => {
   it('should index explicitly registered bare extension semantics', () => {
     const extension: OpenResponsesExtension = {
       id: 'acme.search',
+      allowBareTypes: true,
       bareToolType: 'web_search',
       bareItemTypes: ['web_search_call'],
       bareEventTypes: ['response.web_search_call.completed'],
@@ -115,6 +121,7 @@ describe('createOpenResponsesExtensionRegistry', () => {
       createOpenResponsesExtensionRegistry([
         {
           id: 'acme.search',
+          allowBareTypes: true,
           bareToolType: 'acme:web_search',
           encodeTool: () => ({}),
         },
@@ -124,11 +131,39 @@ describe('createOpenResponsesExtensionRegistry', () => {
     );
   });
 
+  it('should require an explicit bare type opt-in', () => {
+    expect(() =>
+      createOpenResponsesExtensionRegistry([
+        {
+          id: 'acme.search',
+          bareToolType: 'web_search',
+          encodeTool: () => ({}),
+        } as unknown as OpenResponsesExtension,
+      ]),
+    ).toThrow(
+      'must set allowBareTypes to true exactly when registering bare types',
+    );
+
+    expect(() =>
+      createOpenResponsesExtensionRegistry([
+        {
+          id: 'acme.search',
+          allowBareTypes: true,
+          toolType: 'acme:search',
+          encodeTool: () => ({}),
+        } as unknown as OpenResponsesExtension,
+      ]),
+    ).toThrow(
+      'must set allowBareTypes to true exactly when registering bare types',
+    );
+  });
+
   it('should reject core wire types in bare fields', () => {
     expect(() =>
       createOpenResponsesExtensionRegistry([
         {
           id: 'acme.search',
+          allowBareTypes: true,
           bareToolType: 'function',
           encodeTool: () => ({}),
         },
@@ -139,6 +174,7 @@ describe('createOpenResponsesExtensionRegistry', () => {
       createOpenResponsesExtensionRegistry([
         {
           id: 'acme.search',
+          allowBareTypes: true,
           bareItemTypes: ['function_call'],
           decodeItem: () => undefined,
         },
@@ -149,6 +185,7 @@ describe('createOpenResponsesExtensionRegistry', () => {
       createOpenResponsesExtensionRegistry([
         {
           id: 'acme.search',
+          allowBareTypes: true,
           bareEventTypes: ['response.output_text.delta'],
           decodeEvent: () => undefined,
         },
@@ -161,7 +198,11 @@ describe('createOpenResponsesExtensionRegistry', () => {
   it('should reject ambiguous tool type registration', () => {
     expect(() =>
       createOpenResponsesExtensionRegistry([
-        createExtension({ bareToolType: 'web_search' }),
+        {
+          ...createExtension(),
+          allowBareTypes: true,
+          bareToolType: 'web_search',
+        } as unknown as OpenResponsesExtension,
       ]),
     ).toThrow('cannot provide toolType and bareToolType together');
   });
@@ -185,11 +226,13 @@ describe('createOpenResponsesExtensionRegistry', () => {
       createOpenResponsesExtensionRegistry([
         {
           id: 'acme.search',
+          allowBareTypes: true,
           bareItemTypes: ['web_search_call'],
           decodeItem: () => undefined,
         },
         {
           id: 'other.search',
+          allowBareTypes: true,
           bareItemTypes: ['web_search_call'],
           decodeItem: () => undefined,
         },

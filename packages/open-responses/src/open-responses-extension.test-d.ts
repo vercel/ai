@@ -3,10 +3,33 @@ import { describe, expectTypeOf, it } from 'vitest';
 import {
   createOpenResponses,
   type Experimental_OpenResponsesExtension,
+  type Experimental_OpenResponsesNamespacedType,
   type OpenResponsesProviderSettings,
 } from './index';
 
 describe('OpenResponsesExtension', () => {
+  it('should preserve namespaced callback discriminator types', () => {
+    const extension: Experimental_OpenResponsesExtension = {
+      id: 'acme.search',
+      itemTypes: ['acme:search_call'],
+      eventTypes: ['acme:search_delta'],
+      decodeItem: ({ item }) => {
+        const type: Experimental_OpenResponsesNamespacedType = item.type;
+        expectTypeOf(type).toEqualTypeOf(item.type);
+        return undefined;
+      },
+      decodeEvent: ({ event }) => {
+        const type: Experimental_OpenResponsesNamespacedType = event.type;
+        expectTypeOf(type).toEqualTypeOf(event.type);
+        return undefined;
+      },
+    };
+
+    expectTypeOf(
+      extension,
+    ).toMatchTypeOf<Experimental_OpenResponsesExtension>();
+  });
+
   it('should expose typed codec callbacks in provider settings', () => {
     const extension = {
       id: 'acme.search',
@@ -47,6 +70,7 @@ describe('OpenResponsesExtension', () => {
   it('should require dedicated fields for bare extension types', () => {
     const extension = {
       id: 'acme.web_search',
+      allowBareTypes: true,
       bareToolType: 'web_search',
       bareItemTypes: ['web_search_call'],
       bareEventTypes: ['response.web_search_call.completed'],

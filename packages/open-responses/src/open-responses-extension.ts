@@ -50,7 +50,7 @@ export type OpenResponsesExtensionStreamPart = Exclude<
  *
  * Tool, item, and event codecs can be registered independently.
  */
-export interface OpenResponsesExtension {
+interface OpenResponsesExtensionBase {
   /**
    * Extension ID in `<implementor>.<extension>` format. For extensions that
    * encode a provider tool, this is also the AI SDK provider-tool ID.
@@ -62,37 +62,6 @@ export interface OpenResponsesExtension {
    * Must be provided together with `encodeTool`.
    */
   toolType?: OpenResponsesNamespacedType;
-
-  /**
-   * Exact non-namespaced tool type used by a documented implementation
-   * extension. Must be provided together with `encodeTool` and cannot be used
-   * together with `toolType`.
-   */
-  bareToolType?: string;
-
-  /**
-   * Namespaced item types decoded by this extension. Must be provided together
-   * with `decodeItem`.
-   */
-  itemTypes?: readonly OpenResponsesNamespacedType[];
-
-  /**
-   * Exact non-namespaced item types decoded by a documented implementation
-   * extension. Must be provided together with `decodeItem`.
-   */
-  bareItemTypes?: readonly string[];
-
-  /**
-   * Namespaced streaming event types decoded by this extension. Must be
-   * provided together with `decodeEvent`.
-   */
-  eventTypes?: readonly OpenResponsesNamespacedType[];
-
-  /**
-   * Exact non-namespaced streaming event types decoded by a documented
-   * implementation extension. Must be provided together with `decodeEvent`.
-   */
-  bareEventTypes?: readonly string[];
 
   /**
    * Encodes an AI SDK provider tool. Return `undefined` when its arguments
@@ -112,6 +81,14 @@ export interface OpenResponsesExtension {
     name: string;
     args: Record<string, unknown>;
   }): MaybePromiseLike<JSONObject | undefined>;
+}
+
+type OpenResponsesExtensionItemCodec<Type extends string> = {
+  /**
+   * Namespaced item types decoded by this extension. Must be provided together
+   * with `decodeItem`.
+   */
+  itemTypes?: readonly OpenResponsesNamespacedType[];
 
   /**
    * Decodes a completed registered item into AI SDK content parts. The adapter
@@ -119,22 +96,30 @@ export interface OpenResponsesExtension {
    * metadata to the returned parts.
    */
   decodeItem?(options: {
-    item: OpenResponsesExtensionItem<string>;
+    item: OpenResponsesExtensionItem<Type>;
     mode: 'generate' | 'stream';
   }): MaybePromiseLike<OpenResponsesExtensionContentPart[] | undefined>;
 
   /**
    * Encodes an AI SDK history part when no original wire item is available.
-   * Every returned item must use one of `itemTypes` or `bareItemTypes`.
+   * Every returned item must use one of the registered item types.
    */
   encodeInputItem?(options: {
     part: OpenResponsesExtensionInputPart;
     tool: LanguageModelV4ProviderTool;
   }): MaybePromiseLike<
-    | OpenResponsesExtensionItem<string>
-    | OpenResponsesExtensionItem<string>[]
+    | OpenResponsesExtensionItem<Type>
+    | OpenResponsesExtensionItem<Type>[]
     | undefined
   >;
+};
+
+type OpenResponsesExtensionEventCodec<Type extends string> = {
+  /**
+   * Namespaced streaming event types decoded by this extension. Must be
+   * provided together with `decodeEvent`.
+   */
+  eventTypes?: readonly OpenResponsesNamespacedType[];
 
   /**
    * Decodes a registered streaming event.
@@ -142,10 +127,56 @@ export interface OpenResponsesExtension {
    * `state` persists for the lifetime of one response stream.
    */
   decodeEvent?(options: {
-    event: OpenResponsesExtensionEvent<string>;
+    event: OpenResponsesExtensionEvent<Type>;
     state: Map<string, unknown>;
   }): MaybePromiseLike<OpenResponsesExtensionStreamPart[] | undefined>;
-}
+};
+
+type OpenResponsesNamespacedExtension = OpenResponsesExtensionBase &
+  OpenResponsesExtensionItemCodec<OpenResponsesNamespacedType> &
+  OpenResponsesExtensionEventCodec<OpenResponsesNamespacedType> & {
+    allowBareTypes?: false;
+    bareToolType?: undefined;
+    bareItemTypes?: undefined;
+    bareEventTypes?: undefined;
+  };
+
+type OpenResponsesBareExtension = OpenResponsesExtensionBase &
+  OpenResponsesExtensionItemCodec<string> &
+  OpenResponsesExtensionEventCodec<string> & {
+    /**
+     * Explicitly enables non-portable bare discriminator registration for this
+     * extension.
+     */
+    allowBareTypes: true;
+
+    /**
+     * Exact non-namespaced tool type used by a documented implementation
+     * extension. Must be provided together with `encodeTool` and cannot be used
+     * together with `toolType`.
+     */
+    bareToolType?: string;
+
+    /**
+     * Exact non-namespaced item types decoded by a documented implementation
+     * extension. Must be provided together with `decodeItem`.
+     */
+    bareItemTypes?: readonly string[];
+
+    /**
+     * Exact non-namespaced streaming event types decoded by this extension.
+     * Must be provided together with `decodeEvent`.
+     */
+    bareEventTypes?: readonly string[];
+  } & (
+    | { bareToolType: string }
+    | { bareItemTypes: readonly string[] }
+    | { bareEventTypes: readonly string[] }
+  );
+
+export type OpenResponsesExtension =
+  | OpenResponsesNamespacedExtension
+  | OpenResponsesBareExtension;
 
 export type OpenResponsesExtensionRegistry = {
   byEventType: Map<string, OpenResponsesEventExtension>;
@@ -160,14 +191,28 @@ export type OpenResponsesExtensionRegistry = {
 
 type OpenResponsesToolExtension = OpenResponsesExtension & {
   encodeTool: NonNullable<OpenResponsesExtension['encodeTool']>;
+  encodeInputItem?: (options: {
+    part: OpenResponsesExtensionInputPart;
+    tool: LanguageModelV4ProviderTool;
+  }) => MaybePromiseLike<
+    | OpenResponsesExtensionItem<string>
+    | OpenResponsesExtensionItem<string>[]
+    | undefined
+  >;
 };
 
 type OpenResponsesItemExtension = OpenResponsesExtension & {
-  decodeItem: NonNullable<OpenResponsesExtension['decodeItem']>;
+  decodeItem(options: {
+    item: OpenResponsesExtensionItem<string>;
+    mode: 'generate' | 'stream';
+  }): MaybePromiseLike<OpenResponsesExtensionContentPart[] | undefined>;
 };
 
 type OpenResponsesEventExtension = OpenResponsesExtension & {
-  decodeEvent: NonNullable<OpenResponsesExtension['decodeEvent']>;
+  decodeEvent(options: {
+    event: OpenResponsesExtensionEvent<string>;
+    state: Map<string, unknown>;
+  }): MaybePromiseLike<OpenResponsesExtensionStreamPart[] | undefined>;
 };
 
 const coreToolTypes = new Set(['allowed_tools', 'function']);
@@ -228,6 +273,16 @@ export function createOpenResponsesExtensionRegistry(
       extension,
       field: 'id',
     });
+
+    const hasBareTypes =
+      extension.bareToolType != null ||
+      extension.bareItemTypes != null ||
+      extension.bareEventTypes != null;
+    if (hasBareTypes !== (extension.allowBareTypes === true)) {
+      throw new Error(
+        `Open Responses extension ${extension.id} must set allowBareTypes to true exactly when registering bare types.`,
+      );
+    }
 
     if (extension.toolType != null && extension.bareToolType != null) {
       throw new Error(

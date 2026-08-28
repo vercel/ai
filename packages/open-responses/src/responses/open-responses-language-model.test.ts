@@ -53,7 +53,7 @@ describe('OpenResponsesLanguageModel', () => {
     providerExecuted,
   }: {
     providerExecuted: boolean;
-  }): OpenResponsesExtension {
+  }): Exclude<OpenResponsesExtension, { allowBareTypes: true }> {
     return {
       id: 'acme.document_search',
       toolType: 'acme:document_search',
@@ -166,6 +166,7 @@ describe('OpenResponsesLanguageModel', () => {
       toolType: undefined,
       itemTypes: undefined,
       eventTypes: undefined,
+      allowBareTypes: true,
       bareToolType: 'web_search',
       bareItemTypes: [
         'web_search_call',
