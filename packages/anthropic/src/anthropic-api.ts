@@ -715,7 +715,9 @@ const anthropicMcpToolResultContentSchema = z.union([
       z.object({
         type: z.literal('text'),
         text: z.string(),
-        citations: z.array(anthropicCitationSchema).nullable().optional(),
+        // MCP tool-result citations are opaque third-party pass-through data.
+        // Keep them permissive so new shapes do not reject whole responses.
+        citations: z.array(z.json()).nullable().optional(),
       }),
     ]),
   ),

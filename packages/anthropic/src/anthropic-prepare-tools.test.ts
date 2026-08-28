@@ -1821,6 +1821,32 @@ describe('anthropicChunkSchema - shared batch content variants', () => {
     expect(result.success).toBe(true);
   });
 
+  it('accepts opaque MCP tool result citations', async () => {
+    const result = await anthropicChunkSchema().validate!({
+      content_block: {
+        content: [
+          {
+            citations: [
+              {
+                reference: 'opaque-reference',
+                type: 'future_citation_variant',
+              },
+            ],
+            text: 'tool output',
+            type: 'text',
+          },
+        ],
+        is_error: false,
+        tool_use_id: 'mcp_123',
+        type: 'mcp_tool_result',
+      },
+      index: 0,
+      type: 'content_block_start',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it.each([
     {
       cited_text: 'block',
