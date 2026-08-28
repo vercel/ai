@@ -427,6 +427,53 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.response_mime_type).toBeUndefined();
       expect(body.response_format).toBeUndefined();
     });
+
+    it('accepts video responseFormat controls and returns the generated MP4', async () => {
+      prepareJsonFixtureResponse('video-response-format');
+      const videoModel = provider.interactions('gemini-omni-1.1-flash');
+
+      const result = await videoModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            responseModalities: ['video'],
+            responseFormat: [
+              {
+                type: 'video',
+                aspectRatio: '16:9',
+                resolution: '360p',
+                duration: '4s',
+                delivery: 'inline',
+                gcsUri: 'gs://reproduction-bucket/video.mp4',
+              },
+            ],
+          },
+        },
+      });
+
+      const body = (await server.calls[0].requestBodyJson) as {
+        response_modalities?: Array<string>;
+        response_format?: Array<Record<string, unknown>>;
+      };
+      expect(body.response_modalities).toEqual(['video']);
+      expect(body.response_format).toEqual([
+        {
+          type: 'video',
+          aspect_ratio: '16:9',
+          resolution: '360p',
+          duration: '4s',
+          delivery: 'inline',
+          gcs_uri: 'gs://reproduction-bucket/video.mp4',
+        },
+      ]);
+      expect(result.content).toContainEqual(
+        expect.objectContaining({
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+        }),
+      );
+    });
   });
 
   describe('service tier', () => {
@@ -2389,6 +2436,58 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       const parts = await convertReadableStreamToArray(stream);
       const rawCount = parts.filter(p => p.type === 'raw').length;
       expect(rawCount).toBeGreaterThan(0);
+    });
+  });
+
+  describe('video response format', () => {
+    it('accepts video controls and emits the generated MP4 as one file part', async () => {
+      prepareChunksFixtureResponse('video-response-format');
+      const videoModel = provider.interactions('gemini-omni-1.1-flash');
+
+      const { stream } = await videoModel.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            responseModalities: ['video'],
+            responseFormat: [
+              {
+                type: 'video',
+                aspectRatio: '16:9',
+                resolution: '360p',
+                duration: '4s',
+                delivery: 'inline',
+                gcsUri: 'gs://reproduction-bucket/video.mp4',
+              },
+            ],
+          },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const body = (await server.calls[0].requestBodyJson) as {
+        stream?: boolean;
+        response_modalities?: Array<string>;
+        response_format?: Array<Record<string, unknown>>;
+      };
+      expect(body.stream).toBe(true);
+      expect(body.response_modalities).toEqual(['video']);
+      expect(body.response_format).toEqual([
+        {
+          type: 'video',
+          aspect_ratio: '16:9',
+          resolution: '360p',
+          duration: '4s',
+          delivery: 'inline',
+          gcs_uri: 'gs://reproduction-bucket/video.mp4',
+        },
+      ]);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+        }),
+      );
     });
   });
 
