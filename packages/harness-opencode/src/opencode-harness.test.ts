@@ -171,7 +171,6 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (filePath.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (filePath.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host-tool-mcp\n';
-      if (filePath.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (filePath.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       return actual.readFile(...args);
@@ -837,10 +836,21 @@ describe('createOpenCode adapter', () => {
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
-      expect(
-        recipe.files.find(file => file.path.endsWith('pnpm-workspace.yaml'))
-          ?.content,
-      ).toBe("allowBuilds:\n  'opencode-ai@1.18.3': true\n");
+      const packageJson = recipe.files.find(file =>
+        file.path.endsWith('/package.json'),
+      );
+      const workspace = recipe.files.find(file =>
+        file.path.endsWith('/pnpm-workspace.yaml'),
+      );
+      if (packageJson == null || workspace == null) {
+        throw new Error('OpenCode bootstrap package assets are missing.');
+      }
+      const bridgeManifest = JSON.parse(packageJson.content) as {
+        dependencies: { 'opencode-ai': string };
+      };
+      expect(workspace.content).toBe(
+        `allowBuilds:\n  'opencode-ai@${bridgeManifest.dependencies['opencode-ai']}': true\n`,
+      );
     });
 
     it('allows the pinned OpenCode build and verifies the installed CLI', async () => {
