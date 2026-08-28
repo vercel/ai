@@ -807,7 +807,7 @@ describe('generateImage', () => {
       });
     });
 
-    it('should merge non-image provider metadata fields', async () => {
+    it('should sum Gateway costs across multiple calls', async () => {
       let callCount = 0;
 
       const result = await generateImage({
@@ -823,6 +823,12 @@ describe('generateImage', () => {
                       images: [],
                       routing: { provider: 'test1' },
                       cost: '0.01',
+                      gatewayCost: '0.002',
+                      inferenceCost: '0.003',
+                      inputInferenceCost: '0.004',
+                      marketCost: '0.02',
+                      outputInferenceCost: '0.005',
+                      surchargeCost: '0.006',
                     },
                   },
                 });
@@ -833,6 +839,13 @@ describe('generateImage', () => {
                     gateway: {
                       images: [],
                       routing: { provider: 'test2' },
+                      cost: '0.02',
+                      gatewayCost: '0.020',
+                      inferenceCost: '0.030',
+                      inputInferenceCost: '0.040',
+                      marketCost: '0.04',
+                      outputInferenceCost: '0.050',
+                      surchargeCost: '0.060',
                       generationId: 'gen-123',
                     },
                   },
@@ -849,7 +862,13 @@ describe('generateImage', () => {
       expect(result.providerMetadata.gateway).toStrictEqual({
         routing: { provider: 'test2' },
         generationId: 'gen-123',
-        cost: '0.01',
+        cost: '0.03',
+        gatewayCost: '0.022',
+        inferenceCost: '0.033',
+        inputInferenceCost: '0.044',
+        marketCost: '0.06',
+        outputInferenceCost: '0.055',
+        surchargeCost: '0.066',
       });
     });
 
