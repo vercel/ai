@@ -6,7 +6,10 @@ import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';
 import type { AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
-import type { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-settings';
+import type {
+  ToolLoopAgentOnFinishCallback,
+  ToolLoopAgentSettings,
+} from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
   it('should support model call settings in prepareStep', () => {
@@ -98,6 +101,43 @@ describe('ToolLoopAgent', () => {
       const output = generateResult.output;
 
       expectTypeOf<typeof output>().toEqualTypeOf<{ value: string }>();
+    });
+
+    it('should type experimental_toolApprovalSecret in settings and prepareCall', () => {
+      type PrepareCall = NonNullable<ToolLoopAgentSettings['prepareCall']>;
+
+      expectTypeOf<
+        Parameters<PrepareCall>[0]['experimental_toolApprovalSecret']
+      >().toEqualTypeOf<string | Uint8Array | undefined>();
+      expectTypeOf<
+        Awaited<ReturnType<PrepareCall>>['experimental_toolApprovalSecret']
+      >().toEqualTypeOf<string | Uint8Array | undefined>();
+
+      const stringSecret = {
+        model: new MockLanguageModelV3(),
+        experimental_toolApprovalSecret: 'secret',
+      } satisfies ToolLoopAgentSettings;
+
+      const byteSecret = {
+        model: new MockLanguageModelV3(),
+        experimental_toolApprovalSecret: new Uint8Array(32),
+      } satisfies ToolLoopAgentSettings;
+
+      new ToolLoopAgent({
+        ...stringSecret,
+        prepareCall: options => {
+          expectTypeOf(options.experimental_toolApprovalSecret).toEqualTypeOf<
+            string | Uint8Array | undefined
+          >();
+
+          return {
+            ...options,
+            experimental_toolApprovalSecret:
+              byteSecret.experimental_toolApprovalSecret,
+            prompt: 'Hello, world!',
+          };
+        },
+      });
     });
   });
 

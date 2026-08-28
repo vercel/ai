@@ -120,6 +120,13 @@ export type ToolLoopAgentSettings<
   onFinish?: ToolLoopAgentOnFinishCallback<NoInfer<TOOLS>>;
 
   /**
+   * Secret for HMAC-signing tool approval requests. When set, the server
+   * signs each approval request at issuance and verifies the signature when
+   * the approval is replayed, preventing client-forged approvals.
+   */
+  experimental_toolApprovalSecret?: string | Uint8Array;
+
+  /**
    * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
@@ -185,6 +192,7 @@ export type ToolLoopAgentSettings<
         | 'stopWhen'
         | 'experimental_telemetry'
         | 'activeTools'
+        | 'experimental_toolApprovalSecret'
         | 'providerOptions'
         | 'experimental_context'
         | 'experimental_download'
@@ -209,6 +217,7 @@ export type ToolLoopAgentSettings<
       | 'stopWhen'
       | 'experimental_telemetry'
       | 'activeTools'
+      | 'experimental_toolApprovalSecret'
       | 'providerOptions'
       | 'experimental_context'
       | 'experimental_download'
