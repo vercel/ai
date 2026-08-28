@@ -592,16 +592,16 @@ export type MyAgentUIMessage = InferWorkflowAgentUIMessage<typeof myAgent>;
 
 `DurableAgent` was exported from `workflow/ai`. `WorkflowAgent` is exported from `@ai-sdk/workflow`, alongside its helpers.
 
-```diff
-- import { DurableAgent } from 'workflow/ai';
-+ import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow';
+```ts
+import { DurableAgent } from 'workflow/ai'; // [!code --]
+import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow'; // [!code ++]
 
-- const agent = new DurableAgent({
-+ const agent = new WorkflowAgent({
-    model: 'anthropic/claude-sonnet-4-6',
-    instructions: 'You are a helpful assistant.',
-    tools: { /* ... */ },
-  });
+const agent = new DurableAgent({ // [!code --]
+const agent = new WorkflowAgent({ // [!code ++]
+  model: 'anthropic/claude-sonnet-4-6',
+  instructions: 'You are a helpful assistant.',
+  tools: { /* ... */ },
+});
 ```
 
 Install the new package alongside `workflow`:
@@ -614,51 +614,51 @@ npm install @ai-sdk/workflow workflow@beta
 
 `DurableAgent` wrote `UIMessageChunk` objects directly to the writable returned by `getWritable()`. `WorkflowAgent` writes the lower-level `ModelCallStreamPart` shape and leaves the conversion to a transform at the response boundary. This keeps the durable stream provider-shaped and avoids baking a UI protocol into the workflow payload.
 
-```diff
-  // Inside the workflow
-  await agent.stream({
-    messages,
--   writable: getWritable<UIMessageChunk>(),
-+   writable: getWritable<ModelCallStreamPart>(),
-  });
+```ts
+// Inside the workflow
+await agent.stream({
+  messages,
+  writable: getWritable<UIMessageChunk>(), // [!code --]
+  writable: getWritable<ModelCallStreamPart>(), // [!code ++]
+});
 ```
 
-```diff
-  // Inside the route handler
-+ import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
+```ts
+// Inside the route handler
+import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow'; // [!code ++]
 
-  return createUIMessageStreamResponse({
--   stream: run.readable,
-+   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
-  });
+return createUIMessageStreamResponse({
+  stream: run.readable, // [!code --]
+  stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()), // [!code ++]
+});
 ```
 
 ### Replace `maxSteps` with `stopWhen`
 
 `DurableAgent` accepted `maxSteps` directly. `WorkflowAgent` uses the AI SDK's shared `stopWhen` conditions so the same stop logic works across `ToolLoopAgent`, `generateText`, and `streamText`.
 
-```diff
-+ import { isStepCount } from 'ai';
+```ts
+import { isStepCount } from 'ai'; // [!code ++]
 
-  await agent.stream({
-    messages,
--   maxSteps: 10,
-+   stopWhen: isStepCount(10),
-  });
+await agent.stream({
+  messages,
+  maxSteps: 10, // [!code --]
+  stopWhen: isStepCount(10), // [!code ++]
+});
 ```
 
 See [Loop Control](/docs/agents/loop-control) for the full list of stop conditions.
 
 ### Replace `experimental_output` with `output`
 
-```diff
-+ import { Output } from '@ai-sdk/workflow';
+```ts
+import { Output } from '@ai-sdk/workflow'; // [!code ++]
 
-  await agent.stream({
-    messages,
--   experimental_output: Output.object({ schema }),
-+   output: Output.object({ schema }),
-  });
+await agent.stream({
+  messages,
+  experimental_output: Output.object({ schema }), // [!code --]
+  output: Output.object({ schema }), // [!code ++]
+});
 ```
 
 The returned value is now on `result.output` (previously `result.experimental_output`).
@@ -667,18 +667,18 @@ The returned value is now on `result.output` (previously `result.experimental_ou
 
 With `DurableAgent`, tool approval was implemented by calling a Hook from inside the tool's `execute` function. `WorkflowAgent` makes approval a first-class tool property — the agent emits the approval request, suspends the workflow, and resumes automatically when the user responds.
 
-```diff
-  bookFlight: tool({
-    description: 'Book a flight',
-    inputSchema: z.object({ flightId: z.string() }),
-+   needsApproval: true,
--   execute: async (input) => {
--     const approved = await waitForApprovalHook(input);
--     if (!approved) throw new Error('Denied');
--     return bookFlightStep(input);
--   },
-+   execute: bookFlightStep,
-  }),
+```ts
+bookFlight: tool({
+  description: 'Book a flight',
+  inputSchema: z.object({ flightId: z.string() }),
+  needsApproval: true, // [!code ++]
+  execute: async (input) => { // [!code --]
+    const approved = await waitForApprovalHook(input); // [!code --]
+    if (!approved) throw new Error('Denied'); // [!code --]
+    return bookFlightStep(input); // [!code --]
+  }, // [!code --]
+  execute: bookFlightStep, // [!code ++]
+}),
 ```
 
 `needsApproval` also accepts an async function so you can decide per-input
@@ -690,15 +690,15 @@ whether approval is required (see [Tool Approval](#tool-approval) above).
 
 For persistence, store `UIMessage[]` as your source of truth and call [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages) before passing them to the agent — this is the pattern described in [Chatbot Message Persistence](/docs/ai-sdk-ui/chatbot-message-persistence). There is no built-in `ModelMessage` → `UIMessage` conversion, so avoid persisting `result.messages` as your only copy if you need to render the conversation in the UI later.
 
-```diff
-  const result = await agent.stream({
-    messages,
-    writable: getWritable<ModelCallStreamPart>(),
--   collectUIMessages: true,
-  });
+```ts
+const result = await agent.stream({
+  messages,
+  writable: getWritable<ModelCallStreamPart>(),
+  collectUIMessages: true, // [!code --]
+});
 
-- return { uiMessages: result.uiMessages };
-+ return { messages: result.messages };
+return { uiMessages: result.uiMessages }; // [!code --]
+return { messages: result.messages }; // [!code ++]
 ```
 
 ### No `generate()` method
@@ -709,14 +709,14 @@ For persistence, store `UIMessage[]` as your source of truth and call [`convertT
 
 `WorkflowAgent` no longer accepts `experimental_context`. Split the value into shared agent state (`runtimeContext`) and per-tool state (`toolsContext`); each tool's `execute` then receives only its own validated entry as `context`. See [runtimeContext and toolsContext](#runtimecontext-and-toolscontext) for the full shape.
 
-```diff
-  const agent = new WorkflowAgent({
-    model: 'anthropic/claude-sonnet-4-6',
-    tools: { weather: weatherTool },
--   experimental_context: { tenantId: 'tenant_123', apiKey: 'sk-...' },
-+   runtimeContext: { tenantId: 'tenant_123' },
-+   toolsContext: { weather: { apiKey: 'sk-...' } },
-  });
+```ts
+const agent = new WorkflowAgent({
+  model: 'anthropic/claude-sonnet-4-6',
+  tools: { weather: weatherTool },
+  experimental_context: { tenantId: 'tenant_123', apiKey: 'sk-...' }, // [!code --]
+  runtimeContext: { tenantId: 'tenant_123' }, // [!code ++]
+  toolsContext: { weather: { apiKey: 'sk-...' } }, // [!code ++]
+});
 ```
 
 ### Everything else
