@@ -838,11 +838,14 @@ describe('createClaudeCode adapter', () => {
     const abort = new AbortController();
     abort.abort(new Error('stopped before start'));
 
-    const control = await session.doPromptTurn({
+    const promptOptions = {
+      skills: [],
+      tools: [],
       prompt: 'never runs',
       emit: () => {},
       abortSignal: abort.signal,
-    });
+    };
+    const control = await session.doPromptTurn(promptOptions);
 
     // The turn settles as the caller's own abort…
     await expect(Promise.resolve(control.done)).rejects.toThrow(
