@@ -2,39 +2,68 @@ import {
   commonTool,
   type HarnessV1,
   type HarnessV1BuiltinTool,
+  type HarnessV1CredentialForwarding,
+  type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
-import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
 
 declare const __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: string;
 declare const __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
+declare const __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
 
 const GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
+const DEFAULT_GROK_BUILD_MODEL = 'grok-4.6';
 const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON =
   __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__;
 const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
   __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__;
+const GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE =
+  __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
+
+export type GrokBuildAuthenticationMode = ACPAuthenticationMode;
 
 export type GrokBuildHarnessSettings = {
   /**
    * Selects direct xAI or AI Gateway authentication. Defaults to automatic
    * environment-based selection.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: GrokBuildAuthenticationMode;
   /**
-   * Grok model id selected through ACP. Unset preserves Grok Build's default.
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
+  /**
+   * Grok model id selected through Grok Build configuration. Leaving this
+   * unset uses the default model.
    */
   readonly model?: string;
+  /**
+   * Reasoning effort for reasoning-capable models. Leaving this unset defers
+   * to Grok Build's default.
+   */
+  readonly reasoningEffort?:
+    | 'none'
+    | 'minimal'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'xhigh'
+    | 'max';
   /**
    * Overrides the sandbox port used by the ACP bridge.
    */
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   /**
    * Maximum milliseconds to wait for the ACP bridge to start.
    */
@@ -281,13 +310,28 @@ export function createGrokBuild(
 ): HarnessV1<typeof GROK_BUILD_BUILTIN_TOOLS> {
   const clientAppSegments = GROK_BUILD_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
+  const model = settings.model ?? DEFAULT_GROK_BUILD_MODEL;
 
   return createACP({
     auth: settings.auth,
-    modelId: settings.model,
+    credentialForwarding: settings.credentialForwarding,
+    modelId: model,
     port: settings.port,
+    portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
     mcpServers: settings.mcpServers,
+    env: {
+      GROK_CONFIG: JSON.stringify({
+        models: {
+          default: model,
+          ...(settings.reasoningEffort == null
+            ? {}
+            : {
+                default_reasoning_effort: settings.reasoningEffort,
+              }),
+        },
+      }),
+    },
     isMcpToolCall: toolCall => {
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';
@@ -304,16 +348,20 @@ export function createGrokBuild(
       type: 'npm-locked',
       packageJson: GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON,
       pnpmLockYaml: GROK_BUILD_IMPLEMENTATION_PNPM_LOCK,
+      pnpmWorkspaceYaml: GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE,
     },
     executable: 'grok',
     args: ['agent', 'stdio'],
     credentialEnv: ['XAI_API_KEY'],
-    credentialBrokering: ({ env }) => {
-      if (!env.XAI_API_KEY) return [];
+    credentialBrokering: ({ env, sandboxEnv }) => {
+      if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];
       return [
         createCredentialRequestTransformation({
-          baseUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
-          headers: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+          matchUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxEnv.XAI_API_KEY}`,
+          },
+          transformHeaders: { Authorization: `Bearer ${env.XAI_API_KEY}` },
         }),
       ];
     },

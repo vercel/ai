@@ -134,7 +134,16 @@ function fakeNetworkSandboxSessionForStartupSuccess({
   const session = {
     run: async ({ command }: { command: string }) => {
       runs.push(command);
-      return { exitCode: 0, stdout: '', stderr: '' };
+      return {
+        exitCode: 0,
+        stdout:
+          command === 'pwd'
+            ? '/vercel/sandbox\n'
+            : command === 'printf "%s" "$HOME"'
+              ? '/home/vercel-sandbox'
+              : '',
+        stderr: '',
+      };
     },
     readTextFile: async () => null,
     writeTextFile: async ({
@@ -229,7 +238,16 @@ describe('createCodex adapter', () => {
     const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',
-      restricted: () => ({}) as never,
+      restricted: () =>
+        ({
+          run: async () => ({
+            exitCode: 0,
+            stdout: '/home/vercel-sandbox',
+            stderr: '',
+          }),
+          readTextFile: async () => null,
+          writeTextFile: async () => {},
+        }) as never,
       ports: [] as ReadonlyArray<number>,
       async getPortEndpoint() {
         return { url: '' };
@@ -246,6 +264,92 @@ describe('createCodex adapter', () => {
         sessionWorkDir: '/vercel/sandbox/codex-s1',
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
+  it('requires explicit bridge settings for a basic sandbox session', async () => {
+    const networkSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:4319',
+      runs: [],
+      spawns: [],
+      writes: [],
+    });
+    const sandboxSession = networkSession.restricted();
+
+    await expect(
+      createCodex({
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+      }).doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+      }),
+    ).rejects.toThrow(/explicit `port`/);
+
+    await expect(
+      createCodex({ port: 4319 }).doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+      }),
+    ).rejects.toThrow(/explicit `portEndpoint`/);
+  });
+
+  it('uses a basic sandbox session with explicit bridge settings', async () => {
+    channelMocks.connectOnOpen = true;
+    const runs: string[] = [];
+    const networkSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://unused.example',
+      runs,
+      spawns: [],
+      writes: [],
+    });
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge',
+      headers: { authorization: 'endpoint-token' },
+    };
+    const session = await createCodex({
+      port: 4319,
+      portEndpoint,
+    }).doStart({
+      sessionId: 's1',
+      sandboxSession: networkSession.restricted(),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(runs).toContain('pwd');
+    expect(webSocketMocks.calls.at(-1)).toEqual({
+      url: expect.stringContaining('wss://sandbox.example/bridge'),
+      headers: portEndpoint.headers,
+    });
+    const resumeFrom = await session.doDetach();
+    expect(resumeFrom.data).toEqual({
+      bridge: {
+        port: 4319,
+        token: expect.any(String),
+        lastSeenEventId: 0,
+      },
+    });
+  });
+
+  it('requires a sandbox id for custom bridge token minting', async () => {
+    const networkSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:4319',
+      runs: [],
+      spawns: [],
+      writes: [],
+    });
+
+    await expect(
+      createCodex({
+        port: 4319,
+        portEndpoint: { url: 'ws://127.0.0.1:4319' },
+        mintBridgeToken: sandboxId => sandboxId,
+      }).doStart({
+        sessionId: 's1',
+        sandboxSession: networkSession.restricted(),
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+      }),
+    ).rejects.toThrow(/does not expose an id/);
   });
 
   it('quotes dynamic startup paths in shell commands', async () => {
@@ -282,6 +386,10 @@ describe('createCodex adapter', () => {
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
     const addRequestTransformations = vi.fn(async () => {});
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
@@ -293,10 +401,12 @@ describe('createCodex adapter', () => {
     });
     const harness = createCodex({
       auth: {
-        openai: {
-          apiKey: 'openai-secret',
-          baseUrl: 'https://openai.example/v1',
-        },
+        OPENAI_API_KEY: 'openai-secret',
+        OPENAI_BASE_URL: 'https://openai.example/v1',
+      },
+      credentialForwarding: async options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.environmentVariableName}`;
       },
     });
 
@@ -311,13 +421,65 @@ describe('createCodex adapter', () => {
         match: {
           host: 'openai.example',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer ephemeral-CODEX_API_KEY' },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
         },
       },
     ]);
-    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
+        environmentVariableName: 'CODEX_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('ephemeral-CODEX_API_KEY');
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+
+    await session.doDestroy();
+  });
+
+  it('customizes real credentials when request transformations are unavailable', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs,
+      writes: [],
+    });
+    Object.assign(sandboxSession, { addRequestTransformations: undefined });
+    const harness = createCodex({
+      auth: { OPENAI_API_KEY: 'openai-secret' },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return 'caller-managed-credential';
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'openai-secret',
+        environmentVariableName: 'CODEX_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('caller-managed-credential');
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
 
     await session.doDestroy();
@@ -335,7 +497,7 @@ describe('createCodex adapter', () => {
       addRequestTransformations,
     });
     const harness = createCodex({
-      auth: { openai: { apiKey: 'openai-secret' } },
+      auth: { OPENAI_API_KEY: 'openai-secret' },
     });
 
     const session = await harness.doStart({
@@ -344,18 +506,27 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
 
+    const sandboxCredential = spawnEnvs.at(0)?.CODEX_API_KEY;
+    expect(sandboxCredential).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
         match: {
           host: 'api.openai.com',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${sandboxCredential}` },
+            },
+          ],
         },
         transform: {
           headers: { Authorization: 'Bearer openai-secret' },
         },
       },
     ]);
-    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('CODEX_API_KEY');
+    expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe(sandboxCredential);
     expect(spawnEnvs.at(0)?.OPENAI_BASE_URL).toBe('https://api.openai.com/v1');
 
     await session.doDestroy();
@@ -376,6 +547,8 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Use Context7.',
       emit: () => {},
     });
@@ -407,6 +580,8 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Be concise.',
       emit: () => {},
     });

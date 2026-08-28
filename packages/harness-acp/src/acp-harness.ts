@@ -1,4 +1,4 @@
-import type { HarnessV1 } from '@ai-sdk/harness';
+import type { HarnessV1, HarnessV1PortEndpoint } from '@ai-sdk/harness';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { ACPClientApp } from './acp-auth';
@@ -24,6 +24,11 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
   readonly clientApp?: ACPClientApp;
   readonly version?: ACPV1Settings['version'];
@@ -35,10 +40,17 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly forwardEnv?: ACPV1Settings['forwardEnv'];
   readonly credentialEnv?: ACPV1Settings['credentialEnv'];
   readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: ACPV1Settings['credentialForwarding'];
   readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
   readonly modelId?: ACPV1Settings['modelId'];
+  readonly skillsDirectory?: ACPV1Settings['skillsDirectory'];
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
   readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
@@ -74,6 +86,7 @@ const acpResumeStateSchema = z.object({
         .optional(),
     })
     .optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
   acpSessionId: z.string().optional(),
   bridge: acpBridgeCoordsSchema.optional(),
   coldSession: acpColdSessionStateSchema.optional(),
@@ -90,8 +103,8 @@ const acpResumeStateSchema = z.object({
     })
     .optional(),
   initialGuidanceApplied: z.boolean().optional(),
-  skillsMaterialized: z.boolean().optional(),
-  skillsFingerprint: z.string().optional(),
+  instructionsFingerprint: z.string().optional(),
+  skillsDirectory: z.string().optional(),
 });
 
 export function createACP<TBuiltinTools extends ToolSet = {}>(
@@ -125,6 +138,7 @@ export function createACP<TBuiltinTools extends ToolSet = {}>(
         builtinTools:
           settings.builtinTools ?? (ACP_BUILTIN_TOOLS as TBuiltinTools),
         port: settings.port,
+        portEndpoint: settings.portEndpoint,
         startupTimeoutMs: settings.startupTimeoutMs,
         clientApp,
         lifecycleStateSchema: acpResumeStateSchema,

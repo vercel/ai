@@ -2,6 +2,8 @@ export { createACPV1 } from './acp-v1-harness';
 export type {
   ACPCredentialBrokering,
   ACPAuthentication,
+  ACPAuthenticationMode,
+  ACPInstallCommandSource,
   ACPInstructionMapping,
   ACPNpmLockedSource,
   ACPNpmSimpleSource,
@@ -10,7 +12,6 @@ export type {
   ACPPermissionModeTarget,
   ACPProfileValue,
   ACPProviderAuthentication,
-  ACPProviderAuthenticationMode,
   ACPSerializablePrimitive,
   ACPSerializableValue,
   ACPSource,

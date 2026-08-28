@@ -8,6 +8,8 @@ import {
   runBridge,
   type BridgeEvent,
   type BridgeTurn,
+  type Experimental_BridgeUserMessage,
+  type Experimental_BridgeUserMessageQueue,
 } from '@ai-sdk/harness/bridge';
 import { createCompactionLatch } from './compaction-latch';
 import type { StartMessage } from '../claude-code-bridge-protocol';
@@ -251,12 +253,27 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Local controller for the Claude query. Aborted either by the host (via the
   // shared runtime's `turn.abortSignal`) or by us on a terminal error.
   const abortCtl = new AbortController();
+  // A host abort prefers the SDK's graceful `interrupt()` — Esc semantics: the
+  // in-flight turn is persisted to the session transcript and settles with an
+  // interrupted result, so a later resume (including the user's own
+  // `claude --resume`) still sees the work done before the interrupt. The hard
+  // abort kills the CLI process and loses that turn's records, so it is only
+  // the fallback — armed unconditionally, because aborting an already-settled
+  // query is a no-op — and the immediate path when the abort arrives before
+  // the query exists.
+  let gracefulAbort: (() => void) | undefined;
+  let hardAbortTimer: ReturnType<typeof setTimeout> | undefined;
+  const onHostAbort = (): void => {
+    if (gracefulAbort) {
+      gracefulAbort();
+    } else {
+      abortCtl.abort();
+    }
+  };
   if (turn.abortSignal.aborted) {
     abortCtl.abort();
   } else {
-    turn.abortSignal.addEventListener('abort', () => abortCtl.abort(), {
-      once: true,
-    });
+    turn.abortSignal.addEventListener('abort', onHostAbort, { once: true });
   }
 
   const streamEventState = createClaudeStreamEventState();
@@ -314,7 +331,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const queryInput = createQueryInput({
     initialUserMessage: start.prompt,
-    pendingUserMessages: turn.pendingUserMessages,
+    userMessages: turn.experimental_userMessages,
     abortSignal: abortCtl.signal,
   });
   const skillsOption = toClaudeSkillsOption(start.skills);
@@ -386,6 +403,19 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       abortSignal: abortCtl.signal,
     },
   });
+
+  gracefulAbort = () => {
+    // Backstop for the whole teardown, not just the interrupt call: if the
+    // stream has not settled five seconds after a graceful interrupt was
+    // requested, fall back to the hard abort. Aborting an already-settled
+    // query is a no-op, and `unref` keeps the timer from pinning the bridge
+    // process open on its own.
+    hardAbortTimer = setTimeout(() => abortCtl.abort(), 5000);
+    hardAbortTimer.unref?.();
+    void Promise.resolve()
+      .then(() => q.interrupt())
+      .catch(() => abortCtl.abort());
+  };
   let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
   let emittedTerminalError = false;
@@ -396,10 +426,17 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (!normalized || emittedTerminalError || emittedTerminalFinish) return;
     streamEventState.observedTerminalError = normalized;
     emittedTerminalError = true;
-    turn.emitError({
-      error: normalized,
-      message: 'claude-code terminal error',
-    });
+    // A turn the host itself stopped ends with an error-shaped result by
+    // construction (an interrupted query reports a diagnostic, not success);
+    // reporting the host's own stop as a terminal error makes every clean
+    // interrupt look like a malfunction. The host has already settled the
+    // turn on its side.
+    if (!turn.abortSignal.aborted) {
+      turn.emitError({
+        error: normalized,
+        message: 'claude-code terminal error',
+      });
+    }
     queryInput.close();
     abortCtl.abort();
   };
@@ -419,6 +456,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
       const type = msg.type;
 
+      if (type === 'command_lifecycle') {
+        queryInput.handleLifecycle(msg);
+      }
+
       emitStreamEvent(msg);
 
       if (type === 'result') {
@@ -430,7 +471,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           }
           const usage = msg.usage ?? msg.message?.usage;
           const harnessUsage = mapUsage(usage);
-          if (harnessUsage) turnUsage = harnessUsage;
+          if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
           if (typeof msg.total_cost_usd === 'number') {
             totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
           }
@@ -452,11 +493,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             emitFinishStep({
               state: streamEventState,
               emit,
-              usage: harnessUsage ?? streamEventState.pendingStepUsage,
+              usage: streamEventState.pendingStepUsage ?? harnessUsage,
             });
           }
-          queryInput.close();
-          break;
+          queryInput.observeResult();
+          if (!queryInput.hasActiveUserMessages()) {
+            queryInput.close();
+            break;
+          }
         } else {
           emitTerminalError(
             (Array.isArray(msg.errors) ? msg.errors.join('\n') : undefined) ||
@@ -467,14 +511,45 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         }
         continue;
       }
+
+      if (queryInput.hasObservedResult && !queryInput.hasActiveUserMessages()) {
+        queryInput.close();
+        break;
+      }
     }
   } catch (err) {
-    if (!(abortCtl.signal.aborted && emittedTerminalError)) {
+    // Same reasoning as `emitTerminalError`: a throw after the host's own
+    // abort (e.g. the hard-abort fallback killing the CLI mid-iteration, or
+    // a rejected `interrupt()`) is the stop the host asked for, not a
+    // malfunction. The host has already settled the turn on its side.
+    if (
+      !turn.abortSignal.aborted &&
+      !(abortCtl.signal.aborted && emittedTerminalError)
+    ) {
       turn.emitError({ error: err, message: 'claude-code turn failed' });
     }
     return;
   } finally {
+    // The turn is over; disarm the host-abort path first. An abort of this
+    // turn's signal arriving after this point (e.g. an `abort` message racing
+    // the next `start`) must not interrupt the disposed query or arm the
+    // hard-abort fallback timer for it.
+    gracefulAbort = undefined;
+    if (hardAbortTimer != null) clearTimeout(hardAbortTimer);
+    turn.abortSignal.removeEventListener('abort', onHostAbort);
     queryInput.close();
+    // Dispose the query explicitly: with streaming input the SDK keeps its
+    // CLI subprocess alive for more user messages, and a turn that ended
+    // through an interrupt or error path can otherwise leak that process —
+    // observed as orphaned `claude` processes holding the very conversation
+    // the next turn continues.
+    try {
+      await (q as { return?: (value?: unknown) => Promise<unknown> }).return?.(
+        undefined,
+      );
+    } catch {
+      // Best effort; the abort controller tears the process down otherwise.
+    }
   }
 
   if (emittedTerminalError) return;
@@ -492,64 +567,156 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
 function createQueryInput({
   initialUserMessage,
-  pendingUserMessages,
+  userMessages,
   abortSignal,
 }: {
   initialUserMessage: string;
-  pendingUserMessages: string[];
+  userMessages: Experimental_BridgeUserMessageQueue;
   abortSignal: AbortSignal;
 }): {
   input: AsyncIterable<unknown>;
-  close(): void;
+  close(error?: unknown): void;
+  handleLifecycle(message: ClaudeMessage): void;
+  hasActiveUserMessages(): boolean;
+  observeResult(): void;
+  readonly hasObservedResult: boolean;
 } {
   let closed = false;
-  const close = (): void => {
+  let observedResult = false;
+  const submittedMessages = new Map<string, Experimental_BridgeUserMessage>();
+  const close = (error?: unknown): void => {
+    if (closed) return;
     closed = true;
+    userMessages.close(error);
   };
   if (abortSignal.aborted) {
-    close();
+    close(abortSignal.reason);
   } else {
-    abortSignal.addEventListener('abort', close, { once: true });
+    abortSignal.addEventListener('abort', () => close(abortSignal.reason), {
+      once: true,
+    });
   }
 
-  const toUserMessage = (text: string): unknown => ({
+  const toUserMessage = (options: {
+    text: string;
+    messageId: string;
+    priority?: 'next';
+  }): unknown => ({
     type: 'user',
     message: {
       role: 'user',
-      content: [{ type: 'text', text }],
+      content: [{ type: 'text', text: options.text }],
     },
+    parent_tool_use_id: null,
+    uuid: options.messageId,
+    ...(options.priority == null ? {} : { priority: options.priority }),
   });
+
+  const messageIterator = userMessages[Symbol.asyncIterator]();
 
   return {
     close,
+    handleLifecycle: message => {
+      const lifecycle = message as ClaudeMessage & {
+        command_uuid?: string;
+        state?: 'queued' | 'started' | 'completed' | 'cancelled' | 'discarded';
+      };
+      if (lifecycle.command_uuid == null || lifecycle.state == null) return;
+      const submitted = submittedMessages.get(lifecycle.command_uuid);
+      if (submitted == null) return;
+      if (lifecycle.state === 'queued' || lifecycle.state === 'started') {
+        submitted.accept();
+        return;
+      }
+      if (lifecycle.state === 'cancelled' || lifecycle.state === 'discarded') {
+        submitted.reject(
+          new Error(`Claude Code ${lifecycle.state} the user message.`),
+        );
+      }
+      submittedMessages.delete(lifecycle.command_uuid);
+    },
+    hasActiveUserMessages: () =>
+      submittedMessages.size > 0 || userMessages.pendingCount > 0,
+    observeResult: () => {
+      observedResult = true;
+    },
+    get hasObservedResult() {
+      return observedResult;
+    },
     input: {
       [Symbol.asyncIterator]() {
         let sentInitial = false;
         return {
           async next() {
-            // eslint-disable-next-line no-unmodified-loop-condition
-            while (!closed && !abortSignal.aborted) {
-              if (!sentInitial) {
-                sentInitial = true;
-                return {
-                  value: toUserMessage(initialUserMessage),
-                  done: false,
-                };
-              }
-              if (pendingUserMessages.length > 0) {
-                return {
-                  value: toUserMessage(pendingUserMessages.shift()!),
-                  done: false,
-                };
-              }
-              await new Promise(resolve => setTimeout(resolve, 50));
+            if (closed || abortSignal.aborted) {
+              return {
+                value: undefined,
+                done: true,
+              } as IteratorResult<unknown>;
             }
-            return { value: undefined, done: true } as IteratorResult<unknown>;
+            if (!sentInitial) {
+              sentInitial = true;
+              return {
+                value: toUserMessage({
+                  text: initialUserMessage,
+                  messageId: randomUUID(),
+                }),
+                done: false,
+              };
+            }
+            const nextMessage = await messageIterator.next();
+            if (nextMessage.done) {
+              return {
+                value: undefined,
+                done: true,
+              } as IteratorResult<unknown>;
+            }
+            submittedMessages.set(
+              nextMessage.value.messageId,
+              nextMessage.value,
+            );
+            return {
+              value: toUserMessage({
+                text: nextMessage.value.text,
+                messageId: nextMessage.value.messageId,
+                priority: 'next',
+              }),
+              done: false,
+            };
           },
         };
       },
     },
   };
+}
+
+function addUsage(
+  total: Record<string, unknown> | undefined,
+  usage: Record<string, unknown>,
+): Record<string, unknown> {
+  if (total == null) return usage;
+  const result: Record<string, unknown> = { ...total };
+  for (const [key, value] of Object.entries(usage)) {
+    const previous = result[key];
+    if (typeof value === 'number' && typeof previous === 'number') {
+      result[key] = previous + value;
+    } else if (
+      value != null &&
+      previous != null &&
+      typeof value === 'object' &&
+      typeof previous === 'object' &&
+      !Array.isArray(value) &&
+      !Array.isArray(previous)
+    ) {
+      result[key] = addUsage(
+        previous as Record<string, unknown>,
+        value as Record<string, unknown>,
+      );
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 function parseArgs(args: string[]): {

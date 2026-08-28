@@ -124,7 +124,11 @@ function fakeSandboxSession({
   bridgePortEndpoint?: HarnessV1PortEndpoint;
 } = {}): HarnessV1NetworkSandboxSession {
   const session = {
-    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    run: async ({ command }: { command: string }) => ({
+      exitCode: 0,
+      stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
+      stderr: '',
+    }),
     readTextFile: async () => null,
     writeTextFile: async () => {},
     spawn: async ({
@@ -169,6 +173,7 @@ async function startTurn() {
     sandboxSession: fakeSandboxSession(),
   } as unknown as Parameters<typeof harness.doStart>[0]);
   const control = await session.doPromptTurn({
+    skills: [],
     prompt: 'hi',
     emit: () => {},
   } as unknown as Parameters<typeof session.doPromptTurn>[0]);
@@ -253,15 +258,21 @@ describe('createDeepAgents', () => {
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
     const addRequestTransformations = vi.fn(async () => {});
     const sandboxSession = fakeSandboxSession({ spawnEnvs });
     Object.assign(sandboxSession, { addRequestTransformations });
     const harness = createDeepAgents({
       auth: {
-        anthropic: {
-          apiKey: 'anthropic-secret',
-          baseUrl: 'https://anthropic.example',
-        },
+        ANTHROPIC_API_KEY: 'anthropic-secret',
+        ANTHROPIC_BASE_URL: 'https://anthropic.example',
+      },
+      credentialForwarding: async options => {
+        forwardedCredentials.push(options);
+        return `ephemeral-${options.environmentVariableName}`;
       },
     });
 
@@ -273,11 +284,61 @@ describe('createDeepAgents', () => {
 
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
-        match: { host: 'anthropic.example' },
+        match: {
+          host: 'anthropic.example',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'ephemeral-ANTHROPIC_API_KEY' },
+            },
+          ],
+        },
         transform: { headers: { 'x-api-key': 'anthropic-secret' } },
       },
     ]);
-    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe('ANTHROPIC_API_KEY');
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe(
+      'ephemeral-ANTHROPIC_API_KEY',
+    );
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+
+    await session.doDestroy();
+  });
+
+  it('customizes real credentials when request transformations are unavailable', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const forwardedCredentials: Array<{
+      credential: string;
+      environmentVariableName: string;
+    }> = [];
+    const harness = createDeepAgents({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
+      credentialForwarding: options => {
+        forwardedCredentials.push(options);
+        return 'caller-managed-credential';
+      },
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession({ spawnEnvs }),
+    } as unknown as Parameters<typeof harness.doStart>[0]);
+
+    expect(forwardedCredentials).toEqual([
+      {
+        credential: 'anthropic-secret',
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      },
+    ]);
+    expect(spawnEnvs.at(0)?.ANTHROPIC_API_KEY).toBe(
+      'caller-managed-credential',
+    );
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
 
     await session.doDestroy();
@@ -296,6 +357,8 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Use memory.',
       emit: () => {},
     });
@@ -320,6 +383,8 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Think carefully.',
       emit: () => {},
     });
@@ -328,8 +393,10 @@ describe('createDeepAgents', () => {
       {
         "effort": "max",
         "prompt": "Think carefully.",
+        "skillsChanged": false,
         "skillsPaths": [
           "/vercel/sandbox/deepagents-test-session/.agents/skills",
+          "/home/vercel-sandbox/.agents/skills",
         ],
         "thinking": {
           "display": "summarized",
@@ -348,13 +415,14 @@ describe('createDeepAgents', () => {
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
-    const harness = createDeepAgents({ mintBridgeToken });
+    const portEndpoint = {
+      url: 'wss://sandbox.example/bridge?existing=value',
+      headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+    };
+    const harness = createDeepAgents({ mintBridgeToken, portEndpoint });
     const sandboxSession = fakeSandboxSession({
       spawnEnvs,
-      bridgePortEndpoint: {
-        url: 'wss://sandbox.example/bridge?existing=value',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
-      },
+      bridgePortEndpoint: { url: 'ws://unused.example' },
     });
     const session = await harness.doStart({
       sessionId: 'test-session',
@@ -382,11 +450,11 @@ describe('createDeepAgents', () => {
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',
-        headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
+        headers: portEndpoint.headers,
       },
     ]);
     await attachedSession.doDetach();

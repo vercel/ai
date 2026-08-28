@@ -1,5 +1,64 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.0.36
+
+### Patch Changes
+
+- ece5bdb: fix: send `reasoning_effort: "none"` when top-level reasoning is disabled
+
+## 3.0.35
+
+### Patch Changes
+
+- 7dd9ec3: feat(openai-compatible): convert video file parts to `video_url` content parts
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 3.0.34
+
+### Patch Changes
+
+- 99989ba: feat(provider/openai-compatible): report image generation token usage
+
+## 3.0.33
+
+### Patch Changes
+
+- d68139c: fix(openai-compatible): report truncated chat streams as errors
+
+## 3.0.32
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- 2f77de8: Preserve Gemini thought signatures for custom OpenAI-compatible provider names
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
 ## 3.0.31
 
 ### Patch Changes

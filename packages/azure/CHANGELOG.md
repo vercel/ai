@@ -1,5 +1,96 @@
 # @ai-sdk/azure
 
+## 4.0.52
+
+### Patch Changes
+
+- Updated dependencies [e6a2992]
+- Updated dependencies [41f016e]
+  - @ai-sdk/openai@4.0.50
+  - @ai-sdk/deepseek@3.0.35
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [2523403]
+- Updated dependencies [3e125ba]
+  - @ai-sdk/openai@4.0.49
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/deepseek@3.0.34
+
+## 4.0.50
+
+### Patch Changes
+
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [a9782e1]
+- Updated dependencies [eee6200]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/openai@4.0.48
+  - @ai-sdk/provider-utils@5.0.31
+  - @ai-sdk/deepseek@3.0.33
+
+## 4.0.49
+
+### Patch Changes
+
+- 0e36ab5: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- Updated dependencies [0e36ab5]
+- Updated dependencies [068be49]
+- Updated dependencies [56d47f5]
+- Updated dependencies [49ba214]
+- Updated dependencies [1ca2519]
+- Updated dependencies [591d25b]
+- Updated dependencies [f2a2598]
+- Updated dependencies [f8e24b6]
+- Updated dependencies [320b700]
+- Updated dependencies [f70bd8a]
+- Updated dependencies [2214258]
+- Updated dependencies [f1cadd0]
+- Updated dependencies [01fa8de]
+- Updated dependencies [348dacb]
+- Updated dependencies [560fc39]
+- Updated dependencies [2814b2d]
+  - @ai-sdk/deepseek@3.0.32
+  - @ai-sdk/openai@4.0.47
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.48
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/deepseek@3.0.31
+  - @ai-sdk/openai@4.0.46
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [9a4337d]
+  - @ai-sdk/deepseek@3.0.30
+
+## 4.0.46
+
+### Patch Changes
+
+- Updated dependencies [6be0f51]
+  - @ai-sdk/openai@4.0.45
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/openai@4.0.44
+  - @ai-sdk/deepseek@3.0.29
+
 ## 4.0.44
 
 ### Patch Changes

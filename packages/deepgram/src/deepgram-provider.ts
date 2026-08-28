@@ -17,7 +17,7 @@ import { VERSION } from './version';
 
 export interface DeepgramProvider extends ProviderV4 {
   (
-    modelId: 'nova-3',
+    modelId: DeepgramTranscriptionModelId,
     settings?: {},
   ): {
     transcription: DeepgramTranscriptionModel;

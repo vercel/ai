@@ -1026,6 +1026,91 @@ describe('exchangeAuthorization', () => {
     client_name: 'Test Client',
   };
 
+  it('rejects private token endpoints before sending OAuth credentials', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      Response.json({
+        access_token: 'attacker-token',
+        token_type: 'Bearer',
+      }),
+    );
+
+    await expect(
+      exchangeAuthorization('https://attacker.example', {
+        metadata: {
+          ...validMetadata,
+          issuer: 'https://attacker.example',
+          authorization_endpoint: 'https://honest.example/authorize',
+          token_endpoint: 'http://169.254.169.254/latest/token',
+          token_endpoint_auth_methods_supported: ['client_secret_post'],
+        },
+        clientInformation: validClientInfo,
+        authorizationCode: 'real-code',
+        codeVerifier: 'real-verifier',
+        redirectUri: 'http://localhost:3000/callback',
+        fetchFn,
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: http://169.254.169.254/latest/token',
+    );
+
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('rejects https link-local token endpoints before sending OAuth credentials', async () => {
+    const fetchFn = vi.fn();
+
+    await expect(
+      exchangeAuthorization('https://attacker.example', {
+        metadata: {
+          ...validMetadata,
+          token_endpoint: 'https://169.254.169.254/latest/token',
+        },
+        clientInformation: validClientInfo,
+        authorizationCode: 'real-code',
+        codeVerifier: 'real-verifier',
+        redirectUri: 'http://localhost:3000/callback',
+        fetchFn,
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: https://169.254.169.254/latest/token',
+    );
+
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('allows loopback token endpoints used by local MCP OAuth', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      Response.json({
+        access_token: 'local-token',
+        token_type: 'Bearer',
+      }),
+    );
+
+    await expect(
+      exchangeAuthorization('http://localhost:4000', {
+        metadata: {
+          ...validMetadata,
+          issuer: 'http://localhost:4000',
+          authorization_endpoint: 'http://localhost:4000/authorize',
+          token_endpoint: 'http://localhost:4000/token',
+        },
+        clientInformation: validClientInfo,
+        authorizationCode: 'code123',
+        codeVerifier: 'verifier123',
+        redirectUri: 'http://localhost:3000/callback',
+        fetchFn,
+      }),
+    ).resolves.toEqual({
+      access_token: 'local-token',
+      token_type: 'Bearer',
+    });
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url.href).toBe('http://localhost:4000/token');
+    expect(init.redirect).toBe('error');
+  });
+
   it('exchanges code for tokens', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -1045,6 +1130,7 @@ describe('exchangeAuthorization', () => {
     const [fetchUrl, fetchOptions] = mockFetch.mock.calls[0];
     expect(fetchUrl.href).toBe('https://auth.example.com/token');
     expect(fetchOptions.method).toBe('POST');
+    expect(fetchOptions.redirect).toBe('error');
     expect(fetchOptions.headers.get('Content-Type')).toBe(
       'application/x-www-form-urlencoded',
     );
@@ -1301,6 +1387,7 @@ describe('refreshAuthorization', () => {
       }),
       expect.objectContaining({
         method: 'POST',
+        redirect: 'error',
         headers: new Headers({
           'Content-Type': 'application/x-www-form-urlencoded',
           Accept: 'application/json',
@@ -1475,6 +1562,26 @@ describe('refreshAuthorization', () => {
     expect(body.get('client_id')).toBe('set-by-async-provider');
     expect(body.get('client_secret')).toBe('secret-by-async-provider');
   });
+
+  it('rejects private token endpoints before sending the refresh token', async () => {
+    const fetchFn = vi.fn();
+
+    await expect(
+      refreshAuthorization('https://attacker.example', {
+        metadata: {
+          ...validMetadata,
+          token_endpoint: 'http://169.254.169.254/latest/token',
+        },
+        clientInformation: validClientInfo,
+        refreshToken: 'real-refresh-token',
+        fetchFn,
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: http://169.254.169.254/latest/token',
+    );
+
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
 });
 
 describe('registerClient', () => {
@@ -1509,6 +1616,7 @@ describe('registerClient', () => {
       }),
       expect.objectContaining({
         method: 'POST',
+        redirect: 'error',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -1607,6 +1715,28 @@ describe('registerClient', () => {
         clientMetadata: validClientMetadata,
       }),
     ).rejects.toThrow('Dynamic client registration failed');
+  });
+
+  it('rejects private registration endpoints before sending client metadata', async () => {
+    const fetchFn = vi.fn();
+
+    await expect(
+      registerClient('https://attacker.example', {
+        metadata: {
+          issuer: 'https://attacker.example',
+          authorization_endpoint: 'https://attacker.example/authorize',
+          token_endpoint: 'https://attacker.example/token',
+          registration_endpoint: 'http://169.254.169.254/latest/register',
+          response_types_supported: ['code'],
+        } as AuthorizationServerMetadata,
+        clientMetadata: validClientMetadata,
+        fetchFn,
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: http://169.254.169.254/latest/register',
+    );
+
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 });
 
@@ -1893,6 +2023,97 @@ describe('auth function', () => {
       .calls[0][0] as URL;
     expect(authorizationUrl.searchParams.get('scope')).toBe(expectedScope);
   });
+
+  it.each([
+    {
+      name: 'provided challenge scope',
+      scope: 'mcp.challenge',
+      resourceScopes: ['mcp.read', 'mcp.write'],
+      expectedScope: 'mcp.challenge',
+    },
+    {
+      name: 'protected resource metadata scopes',
+      scope: undefined,
+      resourceScopes: ['mcp.read', 'mcp.write'],
+      expectedScope: 'mcp.read mcp.write',
+    },
+    {
+      name: 'no discovered scope',
+      scope: undefined,
+      resourceScopes: undefined,
+      expectedScope: null,
+    },
+  ])(
+    'uses $name for dynamic registration and authorization',
+    async ({ scope, resourceScopes, expectedScope }) => {
+      let registrationBody: Record<string, unknown> | undefined;
+
+      mockFetch.mockImplementation((url, init) => {
+        const urlString = url.toString();
+        if (urlString.includes('/.well-known/oauth-protected-resource')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              resource: 'https://resource.example.com',
+              authorization_servers: ['https://auth.example.com'],
+              ...(resourceScopes == null
+                ? {}
+                : { scopes_supported: resourceScopes }),
+            }),
+          });
+        }
+
+        if (urlString.includes('/.well-known/oauth-authorization-server')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              issuer: 'https://auth.example.com',
+              authorization_endpoint: 'https://auth.example.com/authorize',
+              token_endpoint: 'https://auth.example.com/token',
+              registration_endpoint: 'https://auth.example.com/register',
+              response_types_supported: ['code'],
+              code_challenge_methods_supported: ['S256'],
+            }),
+          });
+        }
+
+        if (urlString === 'https://auth.example.com/register') {
+          registrationBody = JSON.parse(init.body);
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              ...registrationBody,
+              client_id: 'test-client',
+            }),
+          });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      });
+
+      (mockProvider.clientInformation as Mock).mockResolvedValue(undefined);
+      (mockProvider.tokens as Mock).mockResolvedValue(undefined);
+      mockProvider.saveClientInformation = vi.fn();
+      (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
+      (mockProvider.redirectToAuthorization as Mock).mockResolvedValue(
+        undefined,
+      );
+
+      const result = await auth(mockProvider, {
+        serverUrl: 'https://resource.example.com',
+        scope,
+      });
+
+      expect(result).toBe('REDIRECT');
+      expect(registrationBody?.scope ?? null).toBe(expectedScope);
+      const authorizationUrl = (mockProvider.redirectToAuthorization as Mock)
+        .mock.calls[0][0] as URL;
+      expect(authorizationUrl.searchParams.get('scope')).toBe(expectedScope);
+    },
+  );
 
   it('includes resource in token exchange when authorization code is provided', async () => {
     // Mock successful metadata discovery and token exchange - need protected resource metadata

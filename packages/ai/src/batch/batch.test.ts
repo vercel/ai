@@ -170,6 +170,27 @@ describe('startTextBatch', () => {
       }),
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
   });
+
+  it('forwards the webhook URL to the batch model', async () => {
+    const calls: Array<
+      Parameters<BatchLanguageModelV4['experimental_doStartBatch']>[0]
+    > = [];
+    const model = createMockBatchModel({
+      doStartBatch: async options => {
+        calls.push(options);
+        return { batchId: 'batch-123', status: 'pending', warnings: [] };
+      },
+    });
+
+    const result = await startTextBatch({
+      model,
+      requests: [{ id: 'request-1', prompt: 'hello' }],
+      webhookUrl: 'https://example.com/batch-webhook',
+    });
+
+    expect(calls[0].webhookUrl).toBe('https://example.com/batch-webhook');
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe('getBatchStatus', () => {

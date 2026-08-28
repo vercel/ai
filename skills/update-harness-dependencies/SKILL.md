@@ -58,6 +58,11 @@ pnpm --dir packages/harness-grok-build/src/bridge update @agentclientprotocol/sd
 pnpm --dir packages/harness-opencode/src/bridge update @opencode-ai/sdk opencode-ai --latest --ignore-workspace --config.minimumReleaseAge=4320
 ```
 
+The following harness adapters use an unversioned installer script instead of an NPM package for their SDK / CLI and therefore can be ignored:
+
+- `packages/harness-cursor`
+- `packages/harness-fx`
+
 #### Example dependencies
 
 Check the `package.json` files in `examples/harness-e2e-next` and `examples/harness-e2e-tui` for any of the above SDKs they depend on. Those dependencies need to be updated to match the exact version used in the packages as well.

@@ -83,7 +83,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Cross-process resume: the host carries the threadId we returned on stop.
   // Seed `threadState.id` so the codex SDK call below takes the `resumeThread`
   // branch.
-  if (
+  if (start.restartThread) {
+    threadState.id = undefined;
+  } else if (
     typeof start.resumeThreadId === 'string' &&
     start.resumeThreadId.length > 0
   ) {
@@ -264,8 +266,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     finishReason: { unified: 'stop', raw: 'stop' },
     totalUsage: turnUsage ?? defaultUsage(),
   });
-
-  void turn.pendingUserMessages; // accepted but only consumed when codex supports streamed user input
 }
 
 /**

@@ -233,7 +233,7 @@ export function parseGoogleInteractionsOutputs({
           const input = JSON.stringify(call.arguments ?? {});
           content.push({
             type: 'tool-call',
-            toolCallId: call.id ?? generateId(),
+            toolCallId: call.id || generateId(),
             toolName,
             input,
             providerExecuted: true,
@@ -251,7 +251,7 @@ export function parseGoogleInteractionsOutputs({
               : builtinToolNameFromResultType(type);
           content.push({
             type: 'tool-result',
-            toolCallId: result.call_id ?? generateId(),
+            toolCallId: result.call_id || generateId(),
             toolName,
             result: (result.result ?? null) as NonNullable<JSONValue>,
           });

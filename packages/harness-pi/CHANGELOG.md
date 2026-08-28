@@ -1,5 +1,132 @@
 # @ai-sdk/harness-pi
 
+## 1.0.94
+
+### Patch Changes
+
+- e0d7cfb: feat(harness): allow harness sessions to optionally authenticate from an isolated environment supplied through the `auth` option, and remove support for the formerly deprecated legacy auth options types
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.93
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.91
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+- Updated dependencies [0e590d2]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.91
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.90
+
+### Patch Changes
+
+- 32349cc: Surface every host tool approval request when a Pi step emits multiple tool calls.
+- Updated dependencies [32349cc]
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/harness@1.0.88
+  - @ai-sdk/provider-utils@5.0.31
+
+## 1.0.89
+
+### Patch Changes
+
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
+## 1.0.88
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.86
+
+## 1.0.87
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+- Updated dependencies [fa6af57]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/harness@1.0.85
+
+## 1.0.86
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.84
+
+## 1.0.85
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.83
+
+## 1.0.84
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.82
+
+## 1.0.83
+
+### Patch Changes
+
+- 00127df: fix(harness-pi): fix incorrect grep use
+- Updated dependencies [7f50d28]
+  - @ai-sdk/harness@1.0.81
+
+## 1.0.82
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.80
+
+## 1.0.81
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.79
+
+## 1.0.80
+
+### Patch Changes
+
+- eace6fb: feat(harness): add experimental support for steering agent conversations mid-turn
+- c0595b4: feat(harness): support passing a filesystem and process restricted sandbox session to `HarnessAgentSession`, using fallbacks in favor of the preferred network sandbox session methods
+- Updated dependencies [eace6fb]
+- Updated dependencies [c0595b4]
+  - @ai-sdk/harness@1.0.78
+
+## 1.0.79
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/harness@1.0.77
+
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [fc1970b]
+  - @ai-sdk/harness@1.0.76
+
 ## 1.0.77
 
 ### Patch Changes

@@ -19,14 +19,17 @@ import {
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
+  StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
   type ParseResult,
+  type StreamingToolCallDelta,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   convertMistralUsage,
+  mistralUsageSchema,
   type MistralUsage,
 } from './convert-mistral-usage';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
@@ -195,6 +198,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       // mistral-specific provider options:
       document_image_limit: options.documentImageLimit,
       document_page_limit: options.documentPageLimit,
+      ...(options.promptCacheKey !== undefined
+        ? { prompt_cache_key: options.promptCacheKey }
+        : {}),
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
@@ -331,6 +337,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     let isFirstChunk = true;
     let activeText = false;
     let activeReasoningId: string | null = null;
+    let toolCallTracker: StreamingToolCallTracker<StreamingToolCallDelta>;
 
     const generateId = this.generateId;
 
@@ -341,6 +348,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -426,33 +436,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
             if (delta?.tool_calls != null) {
               for (const toolCall of delta.tool_calls) {
-                const toolCallId = toolCall.id;
-                const toolName = toolCall.function.name;
-                const input = toolCall.function.arguments;
-
-                controller.enqueue({
-                  type: 'tool-input-start',
-                  id: toolCallId,
-                  toolName,
-                });
-
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCallId,
-                  delta: input,
-                });
-
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCallId,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId,
-                  toolName,
-                  input,
-                });
+                toolCallTracker.processDelta(toolCall);
               }
             }
 
@@ -474,6 +458,8 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
+
+            toolCallTracker.flush();
 
             controller.enqueue({
               type: 'finish',
@@ -568,19 +554,6 @@ const mistralContentSchema = z
   ])
   .nullish();
 
-const mistralUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  num_cached_tokens: z.number().nullish(),
-  prompt_tokens_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-  prompt_token_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-});
-
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const mistralChatResponseSchema = z.object({
@@ -623,8 +596,12 @@ const mistralChatChunkSchema = z.object({
         tool_calls: z
           .array(
             z.object({
-              id: z.string(),
-              function: z.object({ name: z.string(), arguments: z.string() }),
+              index: z.number().nullish(),
+              id: z.string().nullish(),
+              function: z.object({
+                name: z.string().nullish(),
+                arguments: z.string().nullish(),
+              }),
             }),
           )
           .nullish(),

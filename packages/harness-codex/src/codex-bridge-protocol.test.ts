@@ -69,6 +69,7 @@ describe('inboundMessageSchema', () => {
         type: 'start',
         prompt: 'hi',
         instructions: 'Be concise.',
+        restartThread: true,
         tools: [{ name: 'deploy' }],
         model: 'gpt-5.1',
         reasoningEffort: 'high',
@@ -104,7 +105,7 @@ describe('inboundMessageSchema', () => {
 
   it('accepts user-message, abort, stop, and destroy', () => {
     for (const sample of [
-      { type: 'user-message', text: 'hi' },
+      { type: 'user-message', messageId: 'message-1', text: 'hi' },
       { type: 'abort' },
       { type: 'stop' },
       { type: 'destroy' },

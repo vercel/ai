@@ -1,5 +1,44 @@
 # @ai-sdk/prodia
 
+## 2.0.33
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 2.0.32
+
+### Patch Changes
+
+- e663df8: Warn when the unsupported `seed` language model setting is provided.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
 ## 2.0.28
 
 ### Patch Changes
