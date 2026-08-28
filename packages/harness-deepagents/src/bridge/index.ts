@@ -1,6 +1,8 @@
 // In-sandbox turn driver on `@ai-sdk/harness/bridge`; third-party imports stay external (tsup) and install in-sandbox from src/bridge/package.json — keep import/externals/deps in sync.
 
 import { randomUUID } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { argv, env as procEnv } from 'node:process';
 import {
   runBridge,
@@ -132,7 +134,68 @@ let currentTurn: BridgeTurn | undefined;
 let mcpClient: MultiServerMCPClient | undefined;
 let mcpToolNames = new Set<string>();
 let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
+const checkpointFile = `${bridgeStateDir}/deepagents-checkpoint.json`;
 const checkpointer = new MemorySaver();
+try {
+  if (existsSync(checkpointFile)) {
+    const raw = readFileSync(checkpointFile, 'utf8');
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      const data = parsed as { storage?: unknown; writes?: unknown };
+      if (data.storage && typeof data.storage === 'object') {
+        (checkpointer as unknown as { storage: unknown }).storage =
+          data.storage as Record<string, unknown>;
+      }
+      if (data.writes && typeof data.writes === 'object') {
+        (checkpointer as unknown as { writes: unknown }).writes =
+          data.writes as Record<string, unknown>;
+      }
+    }
+  }
+} catch {}
+async function persistCheckpoint(): Promise<void> {
+  try {
+    await mkdir(bridgeStateDir!, { recursive: true });
+    const storage = (checkpointer as unknown as { storage: unknown }).storage;
+    const writes = (checkpointer as unknown as { writes: unknown }).writes;
+    await writeFile(checkpointFile, JSON.stringify({ storage, writes }));
+  } catch {}
+}
+{
+  const originalPut = checkpointer.put.bind(checkpointer);
+  checkpointer.put = async (config: unknown, checkpoint: unknown, metadata: unknown, ...rest: unknown[]) => {
+    const result = await (originalPut as unknown as (...a: unknown[]) => Promise<unknown>)(
+      config,
+      checkpoint,
+      metadata,
+      ...rest,
+    );
+    await persistCheckpoint();
+    return result as never;
+  };
+  const originalPutWrites = (
+    checkpointer as unknown as { putWrites: (...a: unknown[]) => Promise<unknown> }
+  ).putWrites?.bind(checkpointer);
+  if (originalPutWrites) {
+    (checkpointer as unknown as { putWrites: (...a: unknown[]) => Promise<unknown> }).putWrites =
+      async (...args: unknown[]) => {
+        const result = await originalPutWrites(...args);
+        await persistCheckpoint();
+        return result;
+      };
+  }
+  const originalDeleteThread = (
+    checkpointer as unknown as { deleteThread?: (...a: unknown[]) => Promise<unknown> }
+  ).deleteThread?.bind(checkpointer);
+  if (originalDeleteThread) {
+    (checkpointer as unknown as { deleteThread: (...a: unknown[]) => Promise<unknown> }).deleteThread =
+      async (...args: unknown[]) => {
+        const result = await originalDeleteThread(...args);
+        await persistCheckpoint();
+        return result;
+      };
+  }
+}
 let agentConfigurationSignature: string | undefined;
 
 type DeepAgentsJsonSchema = Record<string, unknown> & {
@@ -408,6 +471,7 @@ await runBridge<StartMessage>({
   bridgeStateDir: bridgeStateDir!,
   onStart: runTurn,
   onStop: async () => {
+    await persistCheckpoint();
     await closeMcpClient();
     return {};
   },

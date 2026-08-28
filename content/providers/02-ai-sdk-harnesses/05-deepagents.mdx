@@ -201,11 +201,6 @@ The adapter exposes these Deep Agents built-ins through `agent.tools`:
 
 ## Known Limitations
 
-- **Resuming a stopped session's conversation** is not supported — after
-  `session.stop()`, Deep Agents' in-memory conversation state (LangGraph
-  `MemorySaver`) is gone; only the sandbox workspace persists via its snapshot.
-  Use `session.detach()` for cross-process handoff or `session.suspendTurn()` for
-  turn continuation while keeping the live bridge running.
 - **Manual compaction** is not supported.
 
 ## Related

@@ -909,7 +909,7 @@ function createSession({
       }
       stopped = true;
       await teardown({ channel, proc, operation: 'stop' });
-      // In-memory conversation is lost on teardown; the sandbox snapshot preserves the workspace files, not the conversation.
+      // Conversation checkpoint is persisted to the bridge state directory so the sandbox snapshot retains it across resumed sessions.
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'deepagents',
