@@ -40,6 +40,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: grokBuild,
+  model: 'grok-build-0.1',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -80,7 +81,6 @@ Use `createGrokBuild()` to configure the runtime:
 ```ts
 const harness = createGrokBuild({
   auth: 'ai-gateway',
-  model: 'grok-4.6',
   reasoningEffort: 'high',
   port: 4001,
   startupTimeoutMs: 180_000,
@@ -101,8 +101,6 @@ Settings:
   value forwarded into the sandbox process. It does not restrict which
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
-- `model`: Grok model id selected through Grok Build configuration. When
-  omitted, the adapter uses the default model.
 - `reasoningEffort`: reasoning effort for reasoning-capable models. Supported
   values are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`.
   When omitted, Grok Build uses its configured default.
