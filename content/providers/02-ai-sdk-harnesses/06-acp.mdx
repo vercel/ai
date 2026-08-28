@@ -97,8 +97,12 @@ try {
     are available.
   - `ai-gateway`: always use AI Gateway and throw when Gateway credentials are
     unavailable. This requires `providerAuthentication` configuration.
+  - An authentication environment: auto-detect from the supplied record
+    instead of the host process environment.
 - `providerAuthentication`: declarative runtime-specific Gateway environment.
-- `modelId`: a known implementation model identifier for Harness metadata.
+- `resolveModel`: required callback that translates the `model` supplied to
+  `HarnessAgent` into implementation launch arguments or environment values.
+  Returned arguments replace `args`; returned environment values overlay `env`.
 - `skillsDirectory`: native skills directory relative to the implementation's
   effective `$HOME`. It defaults to `.agents/skills`; override it for runtimes
   that use a different location.
@@ -143,6 +147,7 @@ const harness = createACP({
     packageName: '@example/acp-agent',
   },
   executable: 'example-acp',
+  resolveModel: ({ model }) => ({ args: ['--model', model] }),
   outputSchemaMapping: {
     type: 'session-prompt-meta',
     path: ['outputSchema'],
@@ -237,6 +242,24 @@ With the default `auth: 'auto'`, the adapter uses AI Gateway when
 `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` is available and otherwise uses
 direct authentication.
 
+Applications that resolve credentials at runtime can pass them without
+mutating `process.env`:
+
+```ts
+const harness = createACP({
+  // ...implementation settings
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. `credentialEnv` reads from this record while `forwardEnv` continues
+to read non-authentication runtime configuration from the host. Credential
+values are excluded from bootstrap and lifecycle identity.
+
 For direct authentication, configure `credentialEnv` with the host environment
 variable names that the underlying ACP implementation reads, and use
 `credentialBrokering` to map their values to outbound request headers. When the
@@ -329,6 +352,9 @@ export const claudeCodeACPHarness = createACP({
     packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
+  resolveModel: ({ model }) => ({
+    env: { ANTHROPIC_MODEL: model },
+  }),
   skillsDirectory: '.claude/skills',
   credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
   credentialBrokering: ({ env, sandboxEnv }) => {
@@ -413,6 +439,9 @@ export const codexACPHarness = createACP({
     packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
+  resolveModel: ({ model }) => ({
+    env: { CODEX_CONFIG: JSON.stringify({ model }) },
+  }),
   forwardEnv: ['CODEX_CONFIG'],
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
@@ -515,6 +544,9 @@ export const cursorACPHarness = createACP({
   },
   executable: 'agent',
   args: ['--disable-auto-update', 'acp'],
+  resolveModel: ({ model }) => ({
+    args: ['--disable-auto-update', '--model', model, 'acp'],
+  }),
   credentialEnv: ['CURSOR_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
@@ -575,6 +607,9 @@ export const grokBuildACPHarness = createACP({
   },
   executable: 'grok',
   args: ['agent', 'stdio'],
+  resolveModel: ({ model }) => ({
+    args: ['agent', '--model', model, 'stdio'],
+  }),
   credentialEnv: ['XAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];

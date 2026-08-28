@@ -69,6 +69,7 @@ describe('inboundMessageSchema', () => {
         type: 'start',
         prompt: 'hi',
         instructions: 'Be concise.',
+        restartThread: true,
         tools: [{ name: 'deploy' }],
         model: 'gpt-5.1',
         reasoningEffort: 'high',

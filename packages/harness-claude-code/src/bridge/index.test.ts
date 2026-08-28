@@ -18,17 +18,30 @@ const state = vi.hoisted(() => ({
   messages: [] as Record<string, unknown>[],
   queryArgs: [] as QueryArgs[],
   start: {} as Record<string, unknown>,
+  additionalTurns: [] as Array<{
+    start: Record<string, unknown>;
+    firstTurn: boolean;
+  }>,
+  onStop: undefined as (() => unknown) | undefined,
+  firstTurn: true,
   originalArgv: [] as string[],
   originalEnv: {} as Record<string, string | undefined>,
   steering: false,
   acceptedUserMessages: [] as string[],
   queryInputs: [] as unknown[],
   toolHandlers: new Map<string, ToolHandler>(),
+  /** Per-test query factory; falls back to the `state.messages` generator. */
+  createQuery: undefined as ((args: QueryArgs) => unknown) | undefined,
+  /** Per-test turn abort controller; defaults to a fresh, never-aborted one. */
+  turnAbortController: undefined as AbortController | undefined,
+  /** Per-test error sink; defaults to a no-op. */
+  emitError: undefined as ((input: unknown) => void) | undefined,
 }));
 
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
   query: (args: QueryArgs) => {
     state.queryArgs.push(args);
+    if (state.createQuery) return state.createQuery(args);
     return (async function* () {
       if (state.steering) {
         const input = args.prompt[Symbol.asyncIterator]();
@@ -87,31 +100,41 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
 vi.mock('@ai-sdk/harness/bridge', () => ({
   runBridge: async ({
     onStart,
+    onStop,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
+    onStop?: () => unknown;
   }) => {
-    await onStart(state.start, {
-      abortSignal: new AbortController().signal,
-      experimental_userMessages: {
-        pendingCount: state.steering ? 1 : 0,
-        close: () => {},
-        [Symbol.asyncIterator]: async function* () {
-          if (!state.steering) return;
-          yield {
-            messageId: 'steering-message-1',
-            text: 'Actually, Paris, Texas.',
-            accept: () => state.acceptedUserMessages.push('steering-message-1'),
-            reject: () => {},
-          };
+    state.onStop = onStop;
+    for (const turn of [
+      { start: state.start, firstTurn: state.firstTurn },
+      ...state.additionalTurns,
+    ]) {
+      await onStart(turn.start, {
+        abortSignal: (state.turnAbortController ?? new AbortController())
+          .signal,
+        experimental_userMessages: {
+          pendingCount: state.steering ? 1 : 0,
+          close: () => {},
+          [Symbol.asyncIterator]: async function* () {
+            if (!state.steering) return;
+            yield {
+              messageId: 'steering-message-1',
+              text: 'Actually, Paris, Texas.',
+              accept: () =>
+                state.acceptedUserMessages.push('steering-message-1'),
+              reject: () => {},
+            };
+          },
         },
-      },
-      firstTurn: true,
-      emit: (event: Record<string, unknown>) => state.emitted.push(event),
-      emitWarning: () => {},
-      emitError: () => {},
-      requestToolResult: async () => ({ output: {} }),
-      requestToolApproval: async () => ({ approved: true }),
-    });
+        firstTurn: turn.firstTurn,
+        emit: (event: Record<string, unknown>) => state.emitted.push(event),
+        emitWarning: () => {},
+        emitError: (input: unknown) => state.emitError?.(input),
+        requestToolResult: async () => ({ output: {} }),
+        requestToolApproval: async () => ({ approved: true }),
+      });
+    }
   },
 }));
 
@@ -126,6 +149,12 @@ describe('Claude Code bridge configuration', () => {
       },
     ];
     state.queryArgs = [];
+    state.createQuery = undefined;
+    state.turnAbortController = undefined;
+    state.emitError = undefined;
+    state.onStop = undefined;
+    state.firstTurn = true;
+    state.additionalTurns = [];
     state.start = {
       prompt: 'Inspect the project.',
       thinking: { type: 'disabled' },
@@ -199,6 +228,87 @@ describe('Claude Code bridge configuration', () => {
     await import('./index');
 
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
+  });
+
+  test('resumes the exact conversation when the start names one', async () => {
+    state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
+    state.firstTurn = false;
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options).toMatchObject({ resume: 'claude-session-1' });
+    // `resume` and `continue` are mutually exclusive in the SDK.
+    expect(options).not.toHaveProperty('continue');
+  });
+
+  test('resumes the observed conversation on every subsequent query', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-1',
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+        session_id: 'claude-session-1',
+      },
+    ];
+    state.additionalTurns = [
+      {
+        start: { ...state.start, prompt: 'Continue the work.' },
+        firstTurn: false,
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.queryArgs).toHaveLength(2);
+    expect(state.queryArgs[1]?.options).toMatchObject({
+      resume: 'claude-session-1',
+    });
+    expect(state.queryArgs[1]?.options).not.toHaveProperty('continue');
+  });
+
+  test('falls back to continue when no exact conversation is named', async () => {
+    state.start = { ...state.start, continue: true };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({ continue: true });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('resume');
+  });
+
+  test('surfaces the observed session id on finish metadata and the stop payload', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-2',
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+        session_id: 'claude-session-2',
+      },
+    ];
+
+    await import('./index');
+
+    const finish = state.emitted.find(msg => msg.type === 'finish');
+    expect(finish?.harnessMetadata).toMatchObject({
+      'claude-code': { sessionId: 'claude-session-2' },
+    });
+    expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
+  });
+
+  test('reports an empty stop payload when no session id was observed', async () => {
+    await import('./index');
+
+    expect(state.onStop?.()).toEqual({});
   });
 
   test('passes the requested JSON schema to the Agent SDK', async () => {
@@ -438,5 +548,97 @@ describe('Claude Code bridge configuration', () => {
         content: [{ type: 'text', text: 'Actually, Paris, Texas.' }],
       },
     });
+  });
+
+  test('a host abort interrupts the query gracefully, stays quiet, and disposes it', async () => {
+    const turnAbort = new AbortController();
+    state.turnAbortController = turnAbort;
+    const emitError = vi.fn();
+    state.emitError = emitError;
+
+    // A query that stays in flight until `interrupt()` is called, then settles
+    // with the error-shaped result an interrupted Claude query reports.
+    let releaseInterrupt!: () => void;
+    const interrupted = new Promise<void>(resolve => {
+      releaseInterrupt = resolve;
+    });
+    const generator = (async function* () {
+      await interrupted;
+      yield {
+        type: 'result',
+        subtype: 'error_during_execution',
+        errors: ['Interrupted by user'],
+      };
+    })();
+    const interrupt = vi.fn(async () => releaseInterrupt());
+    const disposed = vi.fn();
+    const originalReturn = generator.return.bind(generator);
+    generator.return = ((value?: unknown) => {
+      disposed();
+      return originalReturn(value as never);
+    }) as typeof generator.return;
+
+    state.createQuery = () => {
+      // Abort only once the turn holds the query, so the graceful
+      // `interrupt()` path is taken rather than the pre-query hard abort.
+      queueMicrotask(() => turnAbort.abort());
+      return Object.assign(generator, { interrupt });
+    };
+
+    await import('./index');
+
+    expect(interrupt).toHaveBeenCalledTimes(1);
+    expect(emitError).not.toHaveBeenCalled();
+    expect(disposed).toHaveBeenCalled();
+  });
+
+  test('falls back to a hard abort when interrupt() rejects, staying quiet', async () => {
+    const turnAbort = new AbortController();
+    state.turnAbortController = turnAbort;
+    const emitError = vi.fn();
+    state.emitError = emitError;
+
+    // A query whose `interrupt()` rejects; the hard-abort fallback fires the
+    // query's abort signal, on which the SDK iteration throws — exactly what
+    // the real CLI does when its process is killed mid-turn.
+    const interrupt = vi.fn(async () => {
+      throw new Error('interrupt is not supported');
+    });
+    const disposed = vi.fn();
+    state.createQuery = args => {
+      const abortSignal = (args.options as { abortSignal: AbortSignal })
+        .abortSignal;
+      const generator = (async function* () {
+        await new Promise<void>(resolve => {
+          if (abortSignal.aborted) return resolve();
+          abortSignal.addEventListener('abort', () => resolve(), {
+            once: true,
+          });
+        });
+        // The promise above settles only on abort, so the throw always fires.
+        if (abortSignal.aborted) {
+          throw Object.assign(new Error('This operation was aborted'), {
+            name: 'AbortError',
+          });
+        }
+        yield undefined as never;
+      })();
+      const originalReturn = generator.return.bind(generator);
+      generator.return = ((value?: unknown) => {
+        disposed();
+        return originalReturn(value as never);
+      }) as typeof generator.return;
+      queueMicrotask(() => turnAbort.abort());
+      return Object.assign(generator, { interrupt });
+    };
+
+    await import('./index');
+
+    // The graceful path was attempted, the hard abort took over…
+    expect(interrupt).toHaveBeenCalledTimes(1);
+    // …and neither the rejected interrupt nor the aborted iteration was
+    // reported as a turn failure: the stop is the host's own.
+    expect(emitError).not.toHaveBeenCalled();
+    expect(disposed).toHaveBeenCalled();
   });
 });

@@ -6,10 +6,7 @@ import {
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
-import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -19,6 +16,7 @@ declare const __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
 declare const __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
 
 const GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
+const DEFAULT_GROK_BUILD_MODEL = 'grok-4.6';
 const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON =
   __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__;
 const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
@@ -26,12 +24,14 @@ const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
 const GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE =
   __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
 
+export type GrokBuildAuthenticationMode = ACPAuthenticationMode;
+
 export type GrokBuildHarnessSettings = {
   /**
    * Selects direct xAI or AI Gateway authentication. Defaults to automatic
    * environment-based selection.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: GrokBuildAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -39,9 +39,24 @@ export type GrokBuildHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Grok model id selected through ACP. Unset preserves Grok Build's default.
+   * Grok model id selected through Grok Build configuration. Leaving this
+   * unset uses the default model.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
+  /**
+   * Reasoning effort for reasoning-capable models. Leaving this unset defers
+   * to Grok Build's default.
+   */
+  readonly reasoningEffort?:
+    | 'none'
+    | 'minimal'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'xhigh'
+    | 'max';
   /**
    * Overrides the sandbox port used by the ACP bridge.
    */
@@ -297,15 +312,27 @@ export function createGrokBuild(
 ): HarnessV1<typeof GROK_BUILD_BUILTIN_TOOLS> {
   const clientAppSegments = GROK_BUILD_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
+  const model = settings.model ?? DEFAULT_GROK_BUILD_MODEL;
 
   return createACP({
     auth: settings.auth,
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
+    modelId: model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
     mcpServers: settings.mcpServers,
+    resolveModel: ({ model }) => ({
+      args: [
+        'agent',
+        '--model',
+        model,
+        ...(settings.reasoningEffort == null
+          ? []
+          : ['--reasoning-effort', settings.reasoningEffort]),
+        'stdio',
+      ],
+    }),
     isMcpToolCall: toolCall => {
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';

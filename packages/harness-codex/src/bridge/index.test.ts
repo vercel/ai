@@ -21,8 +21,11 @@ const state = vi.hoisted(() => ({
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   startInstructions: undefined as string | undefined,
+  startResumeThreadId: undefined as string | undefined,
+  startRestartThread: false,
   startCodexConfig: undefined as Record<string, unknown> | undefined,
   startMcpServers: undefined as Record<string, unknown> | undefined,
+  resumeThreadCalls: [] as string[],
   originalArgv: [] as string[],
   originalEnv: {} as Record<
     (typeof CODEX_ENV_KEYS)[number],
@@ -50,7 +53,8 @@ vi.mock('@openai/codex-sdk', () => ({
       };
     }
 
-    resumeThread() {
+    resumeThread(id: string) {
+      state.resumeThreadCalls.push(id);
       return this.startThread();
     }
   },
@@ -69,6 +73,10 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         ...(state.startInstructions
           ? { instructions: state.startInstructions }
           : {}),
+        ...(state.startResumeThreadId
+          ? { resumeThreadId: state.startResumeThreadId }
+          : {}),
+        ...(state.startRestartThread ? { restartThread: true } : {}),
         model: state.startModel,
         codexConfig: state.startCodexConfig,
         mcpServers: state.startMcpServers,
@@ -102,8 +110,11 @@ describe('Codex bridge config', () => {
     state.startModel = 'gpt-5.5';
     state.startResponseFormat = undefined;
     state.startInstructions = undefined;
+    state.startResumeThreadId = undefined;
+    state.startRestartThread = false;
     state.startCodexConfig = undefined;
     state.startMcpServers = undefined;
+    state.resumeThreadCalls = [];
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       CODEX_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -240,6 +251,16 @@ describe('Codex bridge config', () => {
       'Answer every question in German.\n\n' +
         'Only respond with your `final` message once you have fully addressed the user request.',
     );
+  });
+
+  test('starts a fresh thread when the host requests a configuration restart', async () => {
+    state.startResumeThreadId = 'thread-previous';
+    state.startRestartThread = true;
+
+    await import('./index');
+
+    expect(state.resumeThreadCalls).toEqual([]);
+    expect(state.threadOptions).toHaveLength(1);
   });
 
   test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {

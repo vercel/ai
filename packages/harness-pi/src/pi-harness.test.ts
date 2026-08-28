@@ -1,5 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createPi } from './pi-harness';
+import type * as PiSessionModule from './pi-session';
+
+const mocks = vi.hoisted(() => ({
+  createPiSession: vi.fn(async () => ({})),
+}));
+
+vi.mock('./pi-session', async importOriginal => {
+  const actual = await importOriginal<typeof PiSessionModule>();
+  return { ...actual, createPiSession: mocks.createPiSession };
+});
 
 describe('createPi adapter', () => {
   it('declares the harness id and builtin tools', () => {
@@ -38,5 +48,22 @@ describe('createPi adapter', () => {
   it('omits getBootstrap (no in-sandbox install needed)', () => {
     const harness = createPi();
     expect(harness.getBootstrap).toBeUndefined();
+  });
+
+  it('prefers the HarnessAgent model over the deprecated adapter model', async () => {
+    const harness = createPi({ model: 'legacy-model' });
+
+    await harness.doStart({
+      model: 'agent-model',
+      sessionId: 'session-1',
+      sandboxSession: {} as never,
+      sessionWorkDir: '/workspace/project',
+    });
+
+    expect(mocks.createPiSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({ model: 'agent-model' }),
+      }),
+    );
   });
 });

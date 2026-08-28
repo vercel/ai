@@ -1,5 +1,26 @@
 # @ai-sdk/google
 
+## 4.0.57
+
+### Patch Changes
+
+- 949ef93: fix(google): recognize Google Files URLs when using a baseUrl
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.56
+
+### Patch Changes
+
+- 3ad9da9: Preserve complete Google Generative Language usage metadata in raw usage results.
+- e9bc618: Omit unsupported frequency and presence penalties from Gemini 2.5 requests and return warnings instead.
+
+## 4.0.55
+
+### Patch Changes
+
+- 56d492f: Surface prompt-level Google safety blocks without candidates as content-filter results with prompt feedback metadata.
+
 ## 4.0.54
 
 ### Patch Changes

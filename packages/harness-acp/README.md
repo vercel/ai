@@ -34,6 +34,9 @@ const codexACP = createACP({
     packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
+  resolveModel: ({ model }) => ({
+    env: { CODEX_CONFIG: JSON.stringify({ model }) },
+  }),
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     const environmentVariableName = env.CODEX_API_KEY
@@ -95,6 +98,13 @@ retain the legacy behavior of forwarding the value to the ACP process. Codex
 ACP supports only `permissionMode: 'allow-all'` because its
 restrictive modes enable Codex's internal sandbox. A bridge-backed ACP harness
 requires a sandbox with at least one exposed port.
+
+`resolveModel` is required because each ACP implementation accepts its model in
+a different place. It receives the `HarnessAgent` model when a session starts
+and can return launch `args`, `env`, or both. Returned arguments replace the
+static `args`; returned environment values overlay the static `env`. The
+resolver is not called when `HarnessAgent` has no model and the deprecated
+`modelId` fallback is also unset.
 
 Use `instructionMapping` when the ACP implementation exposes a native system
 or developer prompt. A `session-meta` mapping writes `HarnessAgent`

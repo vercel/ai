@@ -49,6 +49,13 @@ export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
   readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
+  /**
+   * Maps a HarnessAgent model identifier to implementation launch settings.
+   */
+  readonly resolveModel: ACPV1Settings['resolveModel'];
+  /**
+   * @deprecated Use `model` on `HarnessAgent` instead.
+   */
   readonly modelId?: ACPV1Settings['modelId'];
   readonly skillsDirectory?: ACPV1Settings['skillsDirectory'];
   readonly instructionMapping?: ACPV1Settings['instructionMapping'];
@@ -103,8 +110,7 @@ const acpResumeStateSchema = z.object({
     })
     .optional(),
   initialGuidanceApplied: z.boolean().optional(),
-  skillsMaterialized: z.boolean().optional(),
-  skillsFingerprint: z.string().optional(),
+  instructionsFingerprint: z.string().optional(),
   skillsDirectory: z.string().optional(),
 });
 

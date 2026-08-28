@@ -5,10 +5,7 @@ import {
   type HarnessV1CredentialForwarding,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
-import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -17,10 +14,11 @@ const CURSOR_CLIENT_APP = `ai-sdk/harness-cursor/${VERSION}`;
 
 export type CursorHarnessSettings = {
   /**
-   * Declares the provider authentication configured in Cursor. The adapter
-   * cannot change this setting and warns for explicit routing modes.
+   * Declares the provider authentication configured in Cursor, or supplies an
+   * isolated environment for Cursor CLI authentication. The adapter cannot
+   * change provider routing and warns for explicit routing modes.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: ACPAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -29,6 +27,8 @@ export type CursorHarnessSettings = {
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
    * Cursor model id selected through ACP. Unset preserves Cursor's default.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -372,6 +372,7 @@ export function createCursor(
   }
 
   return createACP({
+    auth: typeof settings.auth === 'string' ? undefined : settings.auth,
     credentialForwarding: settings.credentialForwarding,
     modelId: settings.model,
     port: settings.port,
@@ -401,6 +402,9 @@ export function createCursor(
     },
     executable: 'agent',
     args: ['--disable-auto-update', 'acp'],
+    resolveModel: ({ model }) => ({
+      args: ['--disable-auto-update', '--model', model, 'acp'],
+    }),
     credentialEnv: ['CURSOR_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv }) => {
       if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
@@ -433,7 +437,7 @@ export function createCursor(
 function warnCursorAuthenticationConfiguration({
   auth,
 }: {
-  auth: Exclude<ACPProviderAuthenticationMode, 'auto'>;
+  auth: Exclude<ACPAuthenticationMode, 'auto'>;
 }): void {
   const detail =
     auth === 'ai-gateway'

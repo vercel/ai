@@ -136,7 +136,12 @@ function fakeNetworkSandboxSessionForStartupSuccess({
       runs.push(command);
       return {
         exitCode: 0,
-        stdout: command === 'pwd' ? '/vercel/sandbox\n' : '',
+        stdout:
+          command === 'pwd'
+            ? '/vercel/sandbox\n'
+            : command === 'printf "%s" "$HOME"'
+              ? '/home/vercel-sandbox'
+              : '',
         stderr: '',
       };
     },
@@ -233,7 +238,16 @@ describe('createCodex adapter', () => {
     const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',
-      restricted: () => ({}) as never,
+      restricted: () =>
+        ({
+          run: async () => ({
+            exitCode: 0,
+            stdout: '/home/vercel-sandbox',
+            stderr: '',
+          }),
+          readTextFile: async () => null,
+          writeTextFile: async () => {},
+        }) as never,
       ports: [] as ReadonlyArray<number>,
       async getPortEndpoint() {
         return { url: '' };
@@ -370,6 +384,24 @@ describe('createCodex adapter', () => {
     await session.doDestroy();
   });
 
+  it('prefers the HarnessAgent model over the deprecated adapter model', async () => {
+    const harness = createCodex({ model: 'legacy-model' });
+    const session = await harness.doStart({
+      model: 'agent-model',
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+
+    expect(session.modelId).toBe('agent-model');
+    await session.doDestroy();
+  });
+
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
@@ -387,10 +419,8 @@ describe('createCodex adapter', () => {
     });
     const harness = createCodex({
       auth: {
-        openai: {
-          apiKey: 'openai-secret',
-          baseUrl: 'https://openai.example/v1',
-        },
+        OPENAI_API_KEY: 'openai-secret',
+        OPENAI_BASE_URL: 'https://openai.example/v1',
       },
       credentialForwarding: async options => {
         forwardedCredentials.push(options);
@@ -448,7 +478,7 @@ describe('createCodex adapter', () => {
     });
     Object.assign(sandboxSession, { addRequestTransformations: undefined });
     const harness = createCodex({
-      auth: { openai: { apiKey: 'openai-secret' } },
+      auth: { OPENAI_API_KEY: 'openai-secret' },
       credentialForwarding: options => {
         forwardedCredentials.push(options);
         return 'caller-managed-credential';
@@ -485,7 +515,7 @@ describe('createCodex adapter', () => {
       addRequestTransformations,
     });
     const harness = createCodex({
-      auth: { openai: { apiKey: 'openai-secret' } },
+      auth: { OPENAI_API_KEY: 'openai-secret' },
     });
 
     const session = await harness.doStart({
@@ -535,6 +565,8 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Use Context7.',
       emit: () => {},
     });
@@ -566,6 +598,8 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Be concise.',
       emit: () => {},
     });

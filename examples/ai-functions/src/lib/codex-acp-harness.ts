@@ -1,6 +1,6 @@
 import {
   createACP,
-  type ACPAuthOptions,
+  type ACPAuthenticationMode,
   type ACPPermissionModeMapping,
   type ACPSource,
 } from '@ai-sdk/harness-acp';
@@ -74,7 +74,7 @@ const codexConfigSchema = z.object({
 });
 
 export type CodexACPHarnessSettings = {
-  auth?: ACPAuthOptions;
+  auth?: ACPAuthenticationMode;
   mcpServers?: Record<string, unknown>;
   mintBridgeToken?: (sandboxId: string) => string;
   port?: number;
@@ -104,6 +104,20 @@ export function createCodexACP({
     portEndpoint,
     source,
     executable: CODEX_ACP_EXECUTABLE,
+    resolveModel: ({ model }) => ({
+      env: {
+        CODEX_CONFIG: JSON.stringify({
+          model,
+          ...(webSearch ? { web_search: 'live' } : {}),
+          ...(reasoningEffort
+            ? {
+                model_reasoning_effort: reasoningEffort,
+                model_reasoning_summary: 'detailed',
+              }
+            : {}),
+        }),
+      },
+    }),
     forwardEnv: webSearch ? [] : ['CODEX_CONFIG'],
     credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv }) => {

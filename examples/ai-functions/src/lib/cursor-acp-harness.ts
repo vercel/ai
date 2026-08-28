@@ -30,6 +30,9 @@ export function createCursorACP({
     source,
     executable: 'agent',
     args: ['--disable-auto-update', 'acp'],
+    resolveModel: ({ model }) => ({
+      args: ['--disable-auto-update', '--model', model, 'acp'],
+    }),
     credentialEnv: ['CURSOR_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv }) => {
       const credential = env.CURSOR_API_KEY;

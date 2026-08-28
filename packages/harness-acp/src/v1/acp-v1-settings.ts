@@ -1,4 +1,5 @@
 import type {
+  HarnessV1Authentication,
   HarnessV1CredentialForwarding,
   HarnessV1PermissionMode,
   HarnessV1RequestTransformation,
@@ -66,13 +67,28 @@ export type ACPAuthentication = {
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
 };
 
-export type ACPProviderAuthenticationMode = 'auto' | 'direct' | 'ai-gateway';
+export type ACPAuthenticationMode = HarnessV1Authentication;
 
 export type ACPProviderAuthentication = {
   readonly gateway: {
     readonly env: Readonly<Record<string, ACPProfileValue>>;
   };
 };
+
+export type ACPModelResolution = {
+  /**
+   * Replaces the implementation's static launch arguments.
+   */
+  readonly args?: ReadonlyArray<string>;
+  /**
+   * Overlays the implementation's static launch environment.
+   */
+  readonly env?: Readonly<Record<string, string>>;
+};
+
+export type ACPModelResolver = (options: {
+  readonly model: string;
+}) => ACPModelResolution;
 
 export type ACPCredentialBrokering = ({
   env,
@@ -123,7 +139,7 @@ export type ACPV1Settings = {
   readonly harnessId: string;
   readonly mcpServers?: Record<string, unknown>;
   readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: ACPAuthenticationMode;
   readonly source: ACPSource;
   readonly executable: string;
   readonly args?: ReadonlyArray<string>;
@@ -143,6 +159,13 @@ export type ACPV1Settings = {
   readonly env?: Readonly<Record<string, string>>;
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPProviderAuthentication;
+  /**
+   * Maps a HarnessAgent model identifier to implementation launch settings.
+   */
+  readonly resolveModel: ACPModelResolver;
+  /**
+   * @deprecated Use `model` on `HarnessAgent` instead.
+   */
   readonly modelId?: string;
   /**
    * Native skills directory relative to the ACP implementation's home
@@ -151,7 +174,8 @@ export type ACPV1Settings = {
   readonly skillsDirectory?: string;
   /**
    * Routes HarnessAgent instructions to a runtime-native system or developer
-   * prompt. When omitted, instructions are prepended to the first user prompt.
+   * prompt. Changed instructions are prepended to the next user prompt when
+   * ACP does not expose a native per-turn instruction update.
    */
   readonly instructionMapping?: ACPInstructionMapping;
   /**

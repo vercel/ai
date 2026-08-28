@@ -5,6 +5,7 @@ test('preserves Grok Build built-in tool types', () => {
   const harness = createGrokBuild({
     credentialForwarding: async ({ credential }) => credential,
     mintBridgeToken: sandboxId => sandboxId,
+    reasoningEffort: 'high',
   });
 
   expectTypeOf<keyof typeof harness.builtinTools>().toEqualTypeOf<
