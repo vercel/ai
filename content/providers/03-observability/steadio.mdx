@@ -1,0 +1,66 @@
+---
+title: SteadIO
+description: Attribute LLM spend to an end customer and cap it on the request path with the AI SDK
+---
+
+# SteadIO Observability
+
+[SteadIO](https://www.steadio.ai) records LLM spend against the end customer a request was made for, and enforces a per-customer spend cap on the request path, before the provider is called.
+
+## Setup
+
+SteadIO is an OpenAI-compatible endpoint, so no SteadIO-specific package is required. Point `createOpenAICompatible` at the gateway and pass an end-customer identifier.
+
+1. Create an account at [platform.steadio.ai](https://platform.steadio.ai) and copy your SteadIO key
+2. Set your SteadIO key and your provider key as environment variables:
+
+   ```bash filename=".env"
+   STEADIO_API_KEY=st_your_steadio_key
+   OPENAI_API_KEY=your-openai-api-key
+   ```
+
+3. Use SteadIO in your application:
+
+   ```javascript
+   import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+   import { generateText } from 'ai';
+
+   const steadio = createOpenAICompatible({
+     name: 'steadio',
+     baseURL: 'https://api.steadio.ai/v1',
+     headers: {
+       'X-SteadIO-Key': process.env.STEADIO_API_KEY,
+       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+       'X-Customer-Id': 'customer_123',
+     },
+   });
+
+   const { text } = await generateText({
+     model: steadio('gpt-4o-mini'),
+     prompt: 'Hello world',
+   });
+
+   console.log(text);
+   ```
+
+The `X-SteadIO-Key` header authenticates you to the gateway. Your provider key travels through on the `Authorization` header and is used for the upstream call. Spend for the request is attributed to `customer_123`, and if that customer is over their configured cap the gateway returns HTTP 402 and the provider is never called.
+
+[→ Full setup, including the OpenAI Agents SDK and the `user` body field as an alternative to `X-Customer-Id`](https://www.steadio.ai/docs/sdk-integrations)
+
+## Key Features
+
+**Per-end-customer attribution**
+
+- Spend is recorded against the end customer each request was made for, not just against your account
+- Attribution works through the `X-Customer-Id` header or the OpenAI `user` body field
+- Streaming responses are metered into per-customer cost
+
+**Caps on the request path**
+
+- A per-customer cap returns HTTP 402 before the provider call, rather than reporting an overage afterwards
+- Requests are forwarded to OpenAI or Anthropic with your own provider key
+
+## Notes
+
+- `createOpenAICompatible` sends requests to `baseURL + /chat/completions`, which SteadIO routes. The default `openai()` provider targets `/responses`, which SteadIO does not forward, so use `createOpenAICompatible` as shown above.
+- Cap enforcement requires a paid plan. Free teams are monitor-only: spend is attributed and visible, but requests are not blocked.
