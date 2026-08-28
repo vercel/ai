@@ -369,6 +369,37 @@ describe('HarnessAgent', () => {
     expect(agent.tools).toEqual({});
   });
 
+  test('passes the configured model when starting a session', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({
+      harness,
+      model: 'harness-specific-model',
+      sandbox: makeSandboxProvider(),
+    });
+
+    const session = await agent.createSession();
+
+    expect(doStart).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'harness-specific-model' }),
+    );
+    await session.destroy();
+  });
+
+  test('passes an undefined model when no model is configured', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+    });
+
+    const session = await agent.createSession();
+
+    expect(doStart).toHaveBeenCalledWith(
+      expect.objectContaining({ model: undefined }),
+    );
+    await session.destroy();
+  });
+
   test('prepares skills, instructions, tools, and the prompt for each fresh turn', async () => {
     const promptOptions: HarnessV1PromptTurnOptions[] = [];
     const { harness, doStart } = mockHarness({

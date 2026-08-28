@@ -481,6 +481,7 @@ export class HarnessAgent<
 
     try {
       const baseStartOptions = {
+        model: this.settings.model,
         sessionId,
         resumeFrom: validatedResumeFrom,
         continueFrom: effectiveContinueFrom,

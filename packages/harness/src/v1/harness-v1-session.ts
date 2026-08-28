@@ -22,6 +22,12 @@ import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering'
  */
 export type HarnessV1StartOptions = {
   /**
+   * Model identifier selected by the consumer. Adapters interpret this value
+   * according to the underlying harness runtime.
+   */
+  readonly model?: string;
+
+  /**
    * Stable identifier for this harness session. Used as the underlying
    * resource name where the adapter has a notion of a named session
    * (sandbox name, native session id, …).
