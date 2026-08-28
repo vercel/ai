@@ -742,6 +742,7 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "AQID",
               "mediaType": "image/png",
+              "providerMetadata": undefined,
               "uint8ArrayData": Uint8Array [
                 1,
                 2,
@@ -859,6 +860,7 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "ChQe",
               "mediaType": "image/png",
+              "providerMetadata": undefined,
               "uint8ArrayData": Uint8Array [
                 10,
                 20,
@@ -876,6 +878,7 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "KDI8",
               "mediaType": "image/jpeg",
+              "providerMetadata": undefined,
               "uint8ArrayData": Uint8Array [
                 40,
                 50,
@@ -892,6 +895,7 @@ describe('generateText', () => {
           DefaultGeneratedFile {
             "base64Data": "KDI8",
             "mediaType": "image/jpeg",
+            "providerMetadata": undefined,
             "uint8ArrayData": Uint8Array [
               40,
               50,
