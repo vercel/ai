@@ -695,6 +695,60 @@ describe('smoothStream', () => {
         ]
       `);
     });
+
+    it.each([
+      ['global', /\S+\s+/gm],
+      ['sticky', /\S+\s+/my],
+    ])(
+      'should preserve chunk boundaries for %s regexps',
+      async (_, chunking) => {
+        chunking.lastIndex = 2;
+
+        const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+          { type: 'text-start', id: '1' },
+          {
+            text: 'alpha beta gamma delta ',
+            type: 'text-delta',
+            id: '1',
+          },
+          { type: 'text-end', id: '1' },
+        ]).pipeThrough(
+          smoothStream({
+            chunking,
+            delayInMs: null,
+            _internal: { delay },
+          })({ tools: {} }),
+        );
+
+        await consumeStream(stream);
+
+        expect(
+          events
+            .filter(event => event.type === 'text-delta')
+            .map(event => event.text),
+        ).toEqual(['alpha ', 'beta ', 'gamma ', 'delta ']);
+        expect(chunking.lastIndex).toBe(2);
+      },
+    );
+
+    it('throws when a regexp produces an empty match', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'hello', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: /\S*/,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await expect(
+        consumeStream(stream),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `[Error: Chunking RegExp must not match an empty string.]`,
+      );
+    });
   });
 
   describe('custom callback chunking', () => {
