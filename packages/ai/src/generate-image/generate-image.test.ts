@@ -686,8 +686,8 @@ describe('generateImage', () => {
 
   it('should preserve underlying calls and attach per-image provider metadata', async () => {
     let callCount = 0;
-    const call1Timestamp = new Date(2024, 0, 1);
-    const call2Timestamp = new Date(2024, 0, 2);
+    const call1Timestamp = new Date('2024-01-01T00:00:00.000Z');
+    const call2Timestamp = new Date('2024-01-02T00:00:00.000Z');
 
     const result = await generateImage({
       model: new MockImageModelV4({
@@ -753,68 +753,110 @@ describe('generateImage', () => {
       n: 2,
     });
 
-    expect(result.images.map(image => image.providerMetadata)).toStrictEqual([
-      { openai: { revisedPrompt: 'prompt-1' } },
-      { openai: { revisedPrompt: 'prompt-2' } },
-    ]);
+    expect(result.images.map(image => image.providerMetadata))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "openai": {
+              "revisedPrompt": "prompt-1",
+            },
+          },
+          {
+            "openai": {
+              "revisedPrompt": "prompt-2",
+            },
+          },
+        ]
+      `);
     expect(
       result.calls.map(call => ({
-        images: call.images.map(image => image.base64),
+        images: call.images.map(image => image.mediaType),
         providerMetadata: call.providerMetadata,
-        response: call.response,
+        response: {
+          ...call.response,
+          timestamp: call.response.timestamp.toISOString(),
+        },
         warnings: call.warnings,
         usage: call.usage,
       })),
-    ).toStrictEqual([
-      {
-        images: [pngBase64],
-        providerMetadata: {
-          gateway: {
-            cost: '0.01',
-            generationId: 'generation-1',
-            images: [],
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "images": [
+            "image/png",
+          ],
+          "providerMetadata": {
+            "gateway": {
+              "cost": "0.01",
+              "generationId": "generation-1",
+              "images": [],
+            },
+            "openai": {
+              "images": [
+                {
+                  "revisedPrompt": "prompt-1",
+                },
+              ],
+            },
           },
-          openai: {
-            images: [{ revisedPrompt: 'prompt-1' }],
+          "response": {
+            "headers": {
+              "x-call": "1",
+            },
+            "modelId": "test-model",
+            "timestamp": "2024-01-01T00:00:00.000Z",
           },
-        },
-        response: {
-          timestamp: call1Timestamp,
-          modelId: 'test-model',
-          headers: { 'x-call': '1' },
-        },
-        warnings: [{ type: 'other', message: 'warning-1' }],
-        usage: {
-          inputTokens: 10,
-          outputTokens: 1,
-          totalTokens: 11,
-        },
-      },
-      {
-        images: [jpegBase64],
-        providerMetadata: {
-          gateway: {
-            cost: '0.02',
-            generationId: 'generation-2',
-            images: [],
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 1,
+            "totalTokens": 11,
           },
-          openai: {
-            images: [{ revisedPrompt: 'prompt-2' }],
+          "warnings": [
+            {
+              "message": "warning-1",
+              "type": "other",
+            },
+          ],
+        },
+        {
+          "images": [
+            "image/jpeg",
+          ],
+          "providerMetadata": {
+            "gateway": {
+              "cost": "0.02",
+              "generationId": "generation-2",
+              "images": [],
+            },
+            "openai": {
+              "images": [
+                {
+                  "revisedPrompt": "prompt-2",
+                },
+              ],
+            },
           },
+          "response": {
+            "headers": {
+              "x-call": "2",
+            },
+            "modelId": "test-model",
+            "timestamp": "2024-01-02T00:00:00.000Z",
+          },
+          "usage": {
+            "inputTokens": 20,
+            "outputTokens": 2,
+            "totalTokens": 22,
+          },
+          "warnings": [
+            {
+              "message": "warning-2",
+              "type": "other",
+            },
+          ],
         },
-        response: {
-          timestamp: call2Timestamp,
-          modelId: 'test-model',
-          headers: { 'x-call': '2' },
-        },
-        warnings: [{ type: 'other', message: 'warning-2' }],
-        usage: {
-          inputTokens: 20,
-          outputTokens: 2,
-          totalTokens: 22,
-        },
-      },
-    ]);
+      ]
+    `);
   });
 
   it('should expose empty usage when provider does not report usage', async () => {
