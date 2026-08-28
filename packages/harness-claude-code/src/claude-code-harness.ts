@@ -842,7 +842,6 @@ export function createClaudeCode(
     lifecycleStateSchema: claudeCodeResumeStateSchema,
     getBootstrap: getClaudeCodeBootstrap,
     doStart: async startOpts => {
-      const model = startOpts.model ?? settings.model;
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -1015,7 +1014,7 @@ export function createClaudeCode(
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
-            model,
+            model: settings.model,
             maxTurns: settings.maxTurns,
             env: sandboxClaudeEnvironment,
             thinking,
@@ -1166,7 +1165,7 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model,
+        model: settings.model,
         maxTurns: settings.maxTurns,
         env: sandboxClaudeEnvironment,
         thinking,
@@ -1622,6 +1621,9 @@ function createSession({
       'reasoning-start',
       'reasoning-delta',
       'reasoning-end',
+      'tool-input-start',
+      'tool-input-delta',
+      'tool-input-end',
       'tool-call',
       'tool-approval-request',
       'tool-result',
@@ -1725,7 +1727,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -1772,7 +1773,7 @@ function createSession({
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
-        model,
+        model: promptOpts.model ?? model,
         maxTurns,
         ...(env !== undefined ? { env } : {}),
         thinking,
@@ -1855,7 +1856,7 @@ function createSession({
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
             : {}),
-          model,
+          model: continueOpts.model ?? model,
           maxTurns,
           ...(env !== undefined ? { env } : {}),
           thinking,

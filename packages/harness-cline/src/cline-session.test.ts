@@ -487,7 +487,39 @@ describe('createClineSession model configuration', () => {
       expect(clineMock.providerConfigs).toEqual([{ providerId: 'cline' }]);
       expect(clineMock.modelSelections).toEqual([{ providerId: 'cline' }]);
       expect(clineMock.modelOptions).toEqual([undefined]);
-      expect(session.modelId).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rebuilds the agent with its message history when the model changes', async () => {
+    const session = await createSession();
+
+    try {
+      const firstControl = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'My name is Felix.',
+        emit: vi.fn(),
+      });
+      await firstControl.done;
+      const secondControl = await session.doPromptTurn({
+        model: 'anthropic/claude-haiku-4-5',
+        skills: [],
+        tools: [],
+        prompt: 'Remember my name?',
+        emit: vi.fn(),
+      });
+      await secondControl.done;
+
+      expect(clineMock.modelSelections).toEqual([
+        { providerId: 'cline' },
+        { providerId: 'cline', modelId: 'anthropic/claude-haiku-4-5' },
+      ]);
+      expect(clineMock.configs).toHaveLength(2);
+      expect(clineMock.configs[1].initialMessages).toEqual(
+        clineMock.configs[0].initialMessages,
+      );
     } finally {
       await session.doDestroy();
     }
@@ -590,7 +622,6 @@ describe('createClineSession model configuration', () => {
       expect(clineMock.modelSelections).toEqual([
         { providerId: 'anthropic', modelId: 'claude-opus-5' },
       ]);
-      expect(session.modelId).toBe('claude-opus-5');
     } finally {
       await session.doDestroy();
     }

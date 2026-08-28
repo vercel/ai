@@ -25,6 +25,13 @@ export type HarnessV1PendingToolResult = {
  */
 export type HarnessV1TurnSettings = {
   /**
+   * Model identifier selected for this turn. Adapters interpret this value
+   * according to the underlying harness runtime. Rerun-based continuations
+   * reuse it when reconstructing the turn.
+   */
+  readonly model?: string;
+
+  /**
    * Skills made available to the underlying runtime for this turn. Adapters
    * must replace skills from the preceding completed turn before starting a
    * fresh turn. Rerun-based continuations use them to reconstruct the turn.

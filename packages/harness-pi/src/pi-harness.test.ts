@@ -50,11 +50,10 @@ describe('createPi adapter', () => {
     expect(harness.getBootstrap).toBeUndefined();
   });
 
-  it('prefers the HarnessAgent model over the deprecated adapter model', async () => {
+  it('passes the deprecated adapter model to the session as a fallback', async () => {
     const harness = createPi({ model: 'legacy-model' });
 
     await harness.doStart({
-      model: 'agent-model',
       sessionId: 'session-1',
       sandboxSession: {} as never,
       sessionWorkDir: '/workspace/project',
@@ -62,7 +61,7 @@ describe('createPi adapter', () => {
 
     expect(mocks.createPiSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        settings: expect.objectContaining({ model: 'agent-model' }),
+        settings: expect.objectContaining({ model: 'legacy-model' }),
       }),
     );
   });

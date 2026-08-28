@@ -132,6 +132,23 @@ describe('runPrompt workDir stripping', () => {
       harness,
       session: fakeSession([
         {
+          type: 'tool-input-start',
+          id: 'c1',
+          toolName: 'readFile',
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'c1',
+          delta: '{"path":"/vercel/sandbox/claude',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'c1',
+          delta: '-code-abc123/src/foo.ts"}',
+        },
+        { type: 'tool-input-end', id: 'c1' },
+        {
           type: 'tool-call',
           toolCallId: 'c1',
           toolName: 'readFile',
@@ -158,6 +175,26 @@ describe('runPrompt workDir stripping', () => {
     const parts: TextStreamPart<ToolSet>[] = [];
     for await (const part of result.fullStream) parts.push(part);
     await done;
+
+    expect(parts.filter(part => part.type.startsWith('tool-input-'))).toEqual([
+      {
+        type: 'tool-input-start',
+        id: 'c1',
+        toolName: 'readFile',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'c1',
+        delta: '{"path":"',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'c1',
+        delta: 'src/foo.ts"}',
+      },
+      { type: 'tool-input-end', id: 'c1' },
+    ]);
 
     // Host tool executes with the original absolute path so it resolves
     // against the sandbox root.
@@ -936,6 +973,79 @@ function toolResultParts(
 }
 
 describe('runPrompt host tool generator results', () => {
+  test('suppresses replayed tool input for settled host calls', async () => {
+    const submitted: SubmittedResult[] = [];
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-input-start',
+            id: 'c1',
+            toolName: 'weather',
+            providerExecuted: false,
+          },
+          {
+            type: 'tool-input-delta',
+            id: 'c1',
+            delta: '{"city":"SF"}',
+          },
+          { type: 'tool-input-end', id: 'c1' },
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: '{"city":"SF"}',
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      mode: 'continue',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolResults: [
+        {
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: '{"city":"SF"}',
+        },
+      ],
+      toolResultContinuations: [
+        {
+          toolCallId: 'c1',
+          output: { city: 'SF', temperature: 72 },
+        },
+      ],
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { city: 'SF', temperature: 72 },
+        isError: undefined,
+      },
+    ]);
+    expect(
+      parts.some(
+        part =>
+          part.type === 'tool-input-start' ||
+          part.type === 'tool-input-delta' ||
+          part.type === 'tool-input-end' ||
+          part.type === 'tool-call',
+      ),
+    ).toBe(false);
+  });
+
   test('executes independent host tool calls concurrently', async () => {
     const submitted: SubmittedResult[] = [];
     let activeTools = 0;
@@ -1358,6 +1468,29 @@ describe('runPrompt host tool generator results', () => {
       session: fakeSession(
         [
           {
+            type: 'tool-input-start',
+            id: 'c1',
+            toolName: 'weather',
+            providerExecuted: false,
+          },
+          {
+            type: 'tool-input-delta',
+            id: 'c1',
+            delta: '{"city":"SF"}',
+          },
+          { type: 'tool-input-end', id: 'c1' },
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: '{"city":"SF"}',
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCallId: 'c1',
+          },
+          {
             type: 'tool-result',
             toolCallId: 'c1',
             toolName: 'weather',
@@ -1432,6 +1565,16 @@ describe('runPrompt host tool generator results', () => {
         output: { city: 'SF', temperature: 72 },
       }),
     ]);
+    expect(
+      parts.some(
+        part =>
+          part.type === 'tool-input-start' ||
+          part.type === 'tool-input-delta' ||
+          part.type === 'tool-input-end' ||
+          part.type === 'tool-call' ||
+          part.type === 'tool-approval-request',
+      ),
+    ).toBe(false);
     expect(parts.map(part => part.type)).not.toContain('error');
     await expect(result.steps).resolves.toEqual([]);
   });
@@ -1443,6 +1586,18 @@ describe('runPrompt host tool generator results', () => {
       reason?: string;
     }> = [];
     const session = fakeSession([
+      {
+        type: 'tool-input-start',
+        id: 'c1',
+        toolName: 'bash',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'c1',
+        delta: '{"command":"printf ok"}',
+      },
+      { type: 'tool-input-end', id: 'c1' },
       {
         type: 'tool-call',
         toolCallId: 'c1',
@@ -1523,7 +1678,11 @@ describe('runPrompt host tool generator results', () => {
     expect(
       parts.filter(
         part =>
-          part.type === 'tool-call' || part.type === 'tool-approval-request',
+          part.type === 'tool-input-start' ||
+          part.type === 'tool-input-delta' ||
+          part.type === 'tool-input-end' ||
+          part.type === 'tool-call' ||
+          part.type === 'tool-approval-request',
       ),
     ).toEqual([]);
     expect(toolResultParts(parts)).toEqual([

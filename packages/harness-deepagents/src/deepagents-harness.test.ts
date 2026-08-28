@@ -237,7 +237,6 @@ describe('createDeepAgents', () => {
     const spawns: string[] = [];
     const harness = createDeepAgents({ model: 'legacy-model' });
     const session = await harness.doStart({
-      model: 'agent-model',
       sessionId: 'test-session',
       sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
       sandboxSession: fakeSandboxSession({ spawnEnvs, spawns }),
@@ -253,7 +252,18 @@ describe('createDeepAgents', () => {
     expect(spawns.at(0)).toContain(
       "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
     );
-    expect(session.modelId).toBe('agent-model');
+    const control = await session.doPromptTurn({
+      model: 'agent-model',
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      model: 'agent-model',
+    });
 
     await session.doDestroy();
   });

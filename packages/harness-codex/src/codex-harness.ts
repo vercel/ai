@@ -114,7 +114,7 @@ export type CodexHarnessSettings = {
    * Reasoning effort for reasoning-capable models. Leaving this unset
    * defers to the CLI's default.
    */
-  readonly reasoningEffort?: 'low' | 'medium' | 'high';
+  readonly reasoningEffort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   /**
    * When `true`, allow the underlying runtime to use live web search.
    */
@@ -205,7 +205,7 @@ export function createCodex(
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: getCodexBootstrap,
     doStart: async startOpts => {
-      const model = startOpts.model ?? settings.model ?? DEFAULT_CODEX_MODEL;
+      const model = settings.model ?? DEFAULT_CODEX_MODEL;
       if (startOpts.builtinToolFiltering != null) {
         throw new HarnessCapabilityUnsupportedError({
           message:
@@ -709,7 +709,7 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
-  reasoningEffort: 'low' | 'medium' | 'high' | undefined;
+  reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   webSearch: boolean | undefined;
   codexConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
@@ -958,7 +958,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -1011,7 +1010,7 @@ function createSession({
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
-        model,
+        model: promptOpts.model ?? model,
         reasoningEffort,
         webSearch,
         ...(codexConfig == null ? {} : { codexConfig }),
@@ -1088,7 +1087,7 @@ function createSession({
             ...(continueOpts.instructions
               ? { instructions: continueOpts.instructions }
               : {}),
-            model,
+            model: continueOpts.model ?? model,
             reasoningEffort,
             webSearch,
             ...(codexConfig == null ? {} : { codexConfig }),

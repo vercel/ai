@@ -369,8 +369,12 @@ describe('HarnessAgent', () => {
     expect(agent.tools).toEqual({});
   });
 
-  test('passes the configured model when starting a session', async () => {
-    const { harness, doStart } = mockHarness({ script: () => [] });
+  test('passes the configured model to each turn', async () => {
+    const promptOptions: HarnessV1PromptTurnOptions[] = [];
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+      onPromptTurn: options => promptOptions.push(options),
+    });
     const agent = new HarnessAgent({
       harness,
       model: 'harness-specific-model',
@@ -378,29 +382,35 @@ describe('HarnessAgent', () => {
     });
 
     const session = await agent.createSession();
+    await agent.generate({ session, prompt: 'Hello' });
 
-    expect(doStart).toHaveBeenCalledWith(
-      expect.objectContaining({ model: 'harness-specific-model' }),
-    );
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('model');
+    expect(promptOptions[0]).toMatchObject({
+      model: 'harness-specific-model',
+    });
     await session.destroy();
   });
 
-  test('passes an undefined model when no model is configured', async () => {
-    const { harness, doStart } = mockHarness({ script: () => [] });
+  test('passes an undefined model to a turn when no model is configured', async () => {
+    const promptOptions: HarnessV1PromptTurnOptions[] = [];
+    const { harness, doStart } = mockHarness({
+      script: () => finishEvents(),
+      onPromptTurn: options => promptOptions.push(options),
+    });
     const agent = new HarnessAgent({
       harness,
       sandbox: makeSandboxProvider(),
     });
 
     const session = await agent.createSession();
+    await agent.generate({ session, prompt: 'Hello' });
 
-    expect(doStart).toHaveBeenCalledWith(
-      expect.objectContaining({ model: undefined }),
-    );
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('model');
+    expect(promptOptions[0]).toHaveProperty('model', undefined);
     await session.destroy();
   });
 
-  test('prepares skills, instructions, tools, and the prompt for each fresh turn', async () => {
+  test('prepares model, skills, instructions, tools, and the prompt for each fresh turn', async () => {
     const promptOptions: HarnessV1PromptTurnOptions[] = [];
     const { harness, doStart } = mockHarness({
       script: () => finishEvents(),
@@ -422,6 +432,7 @@ describe('HarnessAgent', () => {
         return {
           ...rest,
           prompt: `${rest.prompt} for ${options.tenant}`,
+          model: `model-${options.tenant}`,
           skills: [
             {
               name: options.tenant,
@@ -451,12 +462,14 @@ describe('HarnessAgent', () => {
     expect(promptOptions).toHaveLength(2);
     expect(promptOptions[0]).toMatchObject({
       prompt: 'Hello for alpha',
+      model: 'model-alpha',
       instructions: 'Serve alpha',
       skills: [{ name: 'alpha' }],
       tools: [{ name: 'echo', description: 'Echo a value.' }],
     });
     expect(promptOptions[1]).toMatchObject({
       prompt: 'Hello for beta',
+      model: 'model-beta',
       instructions: 'Serve beta',
       skills: [{ name: 'beta' }],
       tools: [],

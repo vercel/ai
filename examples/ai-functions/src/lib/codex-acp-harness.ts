@@ -104,20 +104,10 @@ export function createCodexACP({
     portEndpoint,
     source,
     executable: CODEX_ACP_EXECUTABLE,
-    resolveModel: ({ model }) => ({
-      env: {
-        CODEX_CONFIG: JSON.stringify({
-          model,
-          ...(webSearch ? { web_search: 'live' } : {}),
-          ...(reasoningEffort
-            ? {
-                model_reasoning_effort: reasoningEffort,
-                model_reasoning_summary: 'detailed',
-              }
-            : {}),
-        }),
-      },
-    }),
+    modelMapping: {
+      type: 'session-config-option',
+      path: 'model',
+    },
     forwardEnv: webSearch ? [] : ['CODEX_CONFIG'],
     credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv }) => {
