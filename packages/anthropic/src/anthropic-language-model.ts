@@ -1499,6 +1499,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
+          serviceTier: response.service_tier ?? null,
           ...(stopDetails != null ? { stopDetails } : {}),
 
           iterations: response.usage.iterations
@@ -1636,6 +1637,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
+    let serviceTier: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
@@ -2501,6 +2503,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 ...(value.message.usage as JSONObject),
               };
 
+              serviceTier = value.message.service_tier ?? null;
+
               if (value.message.container != null) {
                 container = {
                   expiresAt: value.message.container.expires_at,
@@ -2644,6 +2648,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
+                serviceTier,
                 ...(stopDetails != null ? { stopDetails } : {}),
                 iterations: usage.iterations
                   ? usage.iterations.map(
