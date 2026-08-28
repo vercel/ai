@@ -1,5 +1,9 @@
 import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4Prompt,
+  LanguageModelV4ToolResultOutput,
+  LanguageModelV4ToolResultPart,
+} from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
@@ -2772,6 +2776,82 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('tool messages', () => {
+    it('should preserve prompt cache breakpoints on scalar tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const providerOptions = {
+        openai: { promptCacheBreakpoint },
+      };
+      const scalarOutputs: Array<{
+        output: LanguageModelV4ToolResultOutput;
+        expectedText: string;
+      }> = [
+        {
+          output: { type: 'text', value: 'stable tool output' },
+          expectedText: 'stable tool output',
+        },
+        {
+          output: { type: 'json', value: { stable: true } },
+          expectedText: '{"stable":true}',
+        },
+        {
+          output: { type: 'error-text', value: 'tool error' },
+          expectedText: 'tool error',
+        },
+        {
+          output: { type: 'error-json', value: { error: 'boom' } },
+          expectedText: '{"error":"boom"}',
+        },
+        {
+          output: {
+            type: 'execution-denied',
+            reason: 'execution denied',
+          },
+          expectedText: 'execution denied',
+        },
+      ];
+      const toolResults = scalarOutputs.flatMap(
+        ({ output }, outputIndex): LanguageModelV4ToolResultPart[] =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'tool-result',
+            toolCallId: `call_${outputIndex}_${placement}`,
+            toolName: 'lookup',
+            output:
+              placement === 'output'
+                ? ({
+                    ...output,
+                    providerOptions,
+                  } as LanguageModelV4ToolResultOutput)
+                : output,
+            ...(placement === 'tool-result' && { providerOptions }),
+          })),
+      );
+
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [{ role: 'tool', content: toolResults }],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual(
+        scalarOutputs.flatMap(({ expectedText }, outputIndex) =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'function_call_output',
+            call_id: `call_${outputIndex}_${placement}`,
+            output: [
+              {
+                type: 'input_text',
+                text: expectedText,
+                prompt_cache_breakpoint: promptCacheBreakpoint,
+              },
+            ],
+          })),
+        ),
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should convert single tool result part with json value', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
