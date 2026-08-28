@@ -66,7 +66,7 @@ export function convertHarnessPromptToACPTextBlocks({
   return content;
 }
 
-export function prependACPInitialGuidance({
+export function prependACPInstructionGuidance({
   prompt,
   instructions,
 }: {

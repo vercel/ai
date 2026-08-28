@@ -38,8 +38,6 @@ vi.mock('@opencode-ai/sdk/v2', () => ({
   createOpencodeClient: vi.fn(() => sdkMock.client),
 }));
 
-vi.mock('node:fs', () => ({ mkdirSync: vi.fn() }));
-
 vi.mock('./tool-relay', () => ({
   startAuthorizedToolRelay: vi.fn(async () => relayMock),
 }));
@@ -214,6 +212,82 @@ describe('OpenCode bridge turn settlement', () => {
     expect(userMessages.close).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'model step failed' }),
     );
+    expect(emitError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'OpenCode turn failed' }),
+    );
+    expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+  });
+
+  it('settles a host-aborted turn once the next event arrives', async () => {
+    // The shared bridge runtime serializes turns: a replacement `start`
+    // waits (bounded) for the aborted turn's `onStart` to settle. OpenCode
+    // observes its abort signal at the top of the event loop, so any event
+    // after the abort — a heartbeat is enough — must settle the turn; it
+    // must not keep waiting for the turn's own completion events.
+    const emitted: Array<Record<string, unknown>> = [];
+    const emitError = vi.fn();
+    const userMessages = createUserMessages();
+    const abort = new AbortController();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Start.',
+    };
+    bridgeMock.turn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: userMessages,
+      abortSignal: abort.signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError,
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        // The turn is in flight when the host aborts.
+        promptAsync: vi.fn(async () => {
+          queueMicrotask(() => abort.abort());
+          return { data: {} };
+        }),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              // No completion events — the model is mid-work. Deliver one
+              // heartbeat after the abort; nothing else, ever.
+              await new Promise<void>(resolve => {
+                if (abort.signal.aborted) return resolve();
+                abort.signal.addEventListener('abort', () => resolve(), {
+                  once: true,
+                });
+              });
+              yield {
+                type: 'session.updated',
+                properties: { sessionID: 'session-1' },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    // Resolves only once `onStart` settles — the very promise the shared
+    // runtime's turn fence waits on before starting a replacement turn.
+    await import('./index');
+
     expect(emitError).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'OpenCode turn failed' }),
     );
