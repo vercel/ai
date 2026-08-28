@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import type { LanguageModelV3Usage } from '@ai-sdk/provider';
-=======
-import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
->>>>>>> e83d6dc26b (fix: preserve complete raw usage objects for Mistral chat responses (#19893))
 
 const mistralPromptTokensDetailsSchema = z
   .object({
