@@ -81,18 +81,24 @@ function buildModel({
   });
 }
 
-function createReasoningMiddleware({
-  thinking,
-  effort,
-}: {
-  thinking: StartMessage['thinking'];
-  effort: StartMessage['effort'];
-}) {
-  if (!thinking && !effort) return undefined;
-
+function createModelMiddleware() {
   return createMiddleware({
-    name: 'harnessReasoning',
+    name: 'harnessModel',
     wrapModelCall: async (request, handler) => {
+      if (!activeModel && !activeThinking && !activeEffort) {
+        return handler(request);
+      }
+
+      if (activeModel) {
+        const configuredModel = buildModel({
+          rawModel: activeModel,
+          thinking: activeThinking,
+          effort: activeEffort,
+        });
+        if (!configuredModel) throw new Error('Deep Agents model is missing');
+        return handler({ ...request, model: configuredModel });
+      }
+
       let model = request.model;
       if (
         '_getModelInstance' in model &&
@@ -107,8 +113,8 @@ function createReasoningMiddleware({
 
       const configuredModel = buildModel({
         rawModel: model.model,
-        thinking,
-        effort,
+        thinking: activeThinking,
+        effort: activeEffort,
       });
       if (!configuredModel) throw new Error('Deep Agents model is missing');
 
@@ -134,6 +140,10 @@ let mcpToolNames = new Set<string>();
 let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
 const checkpointer = new MemorySaver();
 let agentConfigurationSignature: string | undefined;
+let activeModel: string | undefined;
+let activeThinking: StartMessage['thinking'];
+let activeEffort: StartMessage['effort'];
+const modelMiddleware = createModelMiddleware();
 
 type DeepAgentsJsonSchema = Record<string, unknown> & {
   type:
@@ -187,6 +197,9 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   currentTurn = turn;
+  if (start.model) activeModel = start.model;
+  activeThinking = start.thinking;
+  activeEffort = start.effort;
   currentResponseFormat =
     start.responseFormat?.type === 'json' && start.responseFormat.schema != null
       ? toolStrategy(start.responseFormat.schema as DeepAgentsJsonSchema)
@@ -222,17 +235,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       } as never);
     }
     await closeMcpClient();
-    const model = buildModel({
-      rawModel: start.model,
-      thinking: start.thinking,
-      effort: start.effort,
-    });
-    const reasoningMiddleware = model
-      ? undefined
-      : createReasoningMiddleware({
-          thinking: start.thinking,
-          effort: start.effort,
-        });
     const builtinToolFilteringMiddleware = createBuiltinToolFilteringMiddleware(
       {
         builtinToolFiltering: start.builtinToolFiltering,
@@ -245,7 +247,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     );
     const middleware = [
       responseFormatMiddleware,
-      ...(reasoningMiddleware ? [reasoningMiddleware] : []),
+      modelMiddleware,
       ...(builtinToolFilteringMiddleware
         ? [builtinToolFilteringMiddleware]
         : []),
@@ -260,8 +262,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     );
     mcpToolNames = new Set(mcpTools.map(mcpTool => mcpTool.name));
     agent = createDeepAgent({
-      // Defer to Deep Agents's own default when the host configured no model.
-      ...(model ? { model } : {}),
       tools: [...mcpTools, ...hostTools],
       backend: createLocalShellBackend({ rootDir: workdir }),
       systemPrompt: start.instructions
@@ -286,7 +286,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const streamEventState = createDeepAgentsStreamEventState();
   const emitStreamEvent = createEmitStreamEvent({
     state: streamEventState,
-    configuredModel: start.model,
+    configuredModel: activeModel,
     hostToolNames,
     mcpToolNames,
     structuredOutputToolNames: new Set(

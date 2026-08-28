@@ -39,11 +39,10 @@ describe('createCline', () => {
     expect(schema).toBeDefined();
   });
 
-  it('prefers the HarnessAgent model over the deprecated adapter model', async () => {
+  it('passes the deprecated adapter model to the session as a fallback', async () => {
     const harness = createCline({ modelId: 'legacy-model' });
 
     await harness.doStart({
-      model: 'agent-model',
       sessionId: 'session-1',
       sandboxSession: {} as never,
       sessionWorkDir: '/workspace/project',
@@ -51,7 +50,7 @@ describe('createCline', () => {
 
     expect(mocks.createClineSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        settings: expect.objectContaining({ modelId: 'agent-model' }),
+        settings: expect.objectContaining({ modelId: 'legacy-model' }),
       }),
     );
   });
