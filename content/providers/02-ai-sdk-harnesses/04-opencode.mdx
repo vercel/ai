@@ -81,6 +81,13 @@ Use `createOpenCode()` to configure the runtime:
 ```ts
 const harness = createOpenCode({
   reasoningVariant: 'high',
+  openCodeConfig: {
+    agent: {
+      general: {
+        model: 'openai/gpt-5.4-mini',
+      },
+    },
+  },
 });
 ```
 
@@ -97,6 +104,10 @@ Settings:
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `openCodeConfig`: additional native OpenCode configuration. Adapter-managed
+  settings take precedence. Agent-local `permission` and deprecated `tools`
+  settings are ignored so they cannot bypass harness permissions or built-in
+  tool filtering.
 - `provider`: provider id to use when `model` on `HarnessAgent` is unprefixed.
 - `reasoningVariant`: OpenCode reasoning/thinking variant for supported models,
   such as `low`, `medium`, or `high`.

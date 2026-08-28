@@ -1,6 +1,5 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
-  HarnessV1Bootstrap,
   HarnessV1BuiltinToolFiltering,
   HarnessV1JSONSchema,
   HarnessV1NetworkSandboxSession,
@@ -379,6 +378,7 @@ export class HarnessAgent<
         );
       }
 
+      const recipe = await harness.getBootstrap?.({ abortSignal });
       if (isResumedSession) {
         if (sandboxProvider.resumeSession == null) {
           throw new HarnessCapabilityUnsupportedError({
@@ -398,16 +398,34 @@ export class HarnessAgent<
           sessionId,
           workDir: this.sandboxConfig.workDir,
         });
-      } else {
-        // The logic in this clause applies the bootstrap plan, including both the harness
-        // bootstrap recipe and agent specific sandbox configuration.
-        // The logic matches largely what `prepareHarnessSandboxTemplate()` and
-        // `prepareSandboxForHarness()` do, so they will have to remain aligned.
-        let recipe: HarnessV1Bootstrap | undefined;
-        if (harness.getBootstrap != null) {
-          recipe = await harness.getBootstrap({ abortSignal });
-        }
 
+        // Ensure the harness bootstrap recipe on resumed sessions too. The
+        // marker is keyed by recipe identity, so a resume whose bootstrap is
+        // already current costs one file read, while a resume into a sandbox
+        // bootstrapped by an older adapter build — a snapshot that outlived
+        // the harness version that made it — would otherwise keep running a
+        // stale bridge against a newer host, silently missing whatever the
+        // newer protocol added.
+        if (recipe != null) {
+          const recipeIdentity = await hashHarnessBootstrap(recipe);
+          try {
+            await applyBootstrapRecipe({
+              session: resumedSandboxSession.restricted(),
+              recipe,
+              identity: recipeIdentity,
+              defaultWorkingDirectory:
+                resumedSandboxSession.defaultWorkingDirectory,
+              abortSignal,
+            });
+          } catch (err) {
+            await cleanupAfterStartFailure({
+              sandboxSession,
+              ownsSandboxLifecycle,
+            });
+            throw err;
+          }
+        }
+      } else {
         // Defines the hashes based on both harness bootstrap recipe and
         // consumer-defined onBootstrap callback.
         const sandboxBootstrapPlan = await createSandboxBootstrapPlan({
