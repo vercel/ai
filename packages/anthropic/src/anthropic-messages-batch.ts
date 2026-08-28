@@ -17,6 +17,7 @@ import {
   createJsonLinesResponseHandler,
   createJsonResponseHandler,
   getFromApi,
+  isRecord,
   lazySchema,
   normalizeBatchRequestCounts,
   normalizeHeaders,
@@ -88,29 +89,55 @@ const anthropicBatchResponseSchema = lazySchema(() =>
 
 type AnthropicBatchResponse = InferSchema<typeof anthropicBatchResponseSchema>;
 
+const knownAnthropicBatchContentTypes = new Set([
+  'advisor_tool_result',
+  'bash_code_execution_tool_result',
+  'code_execution_tool_result',
+  'compaction',
+  'container_upload',
+  'fallback',
+  'mcp_tool_result',
+  'mcp_tool_use',
+  'redacted_thinking',
+  'server_tool_use',
+  'text',
+  'text_editor_code_execution_tool_result',
+  'thinking',
+  'tool_search_tool_result',
+  'tool_use',
+  'web_fetch_tool_result',
+  'web_search_tool_result',
+]);
+
+const anthropicBatchResultSchema = lazySchema(() =>
+  zodSchema(
+    z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('succeeded'),
+        message: z.unknown(),
+      }),
+      z.object({
+        type: z.literal('errored'),
+        error: z.object({
+          type: z.literal('error'),
+          error: z.object({
+            type: z.string(),
+            message: z.string(),
+          }),
+          request_id: z.string().nullish(),
+        }),
+      }),
+      z.object({ type: z.literal('canceled') }),
+      z.object({ type: z.literal('expired') }),
+    ]),
+  ),
+);
+
 const anthropicBatchResultLineSchema = lazySchema(() =>
   zodSchema(
     z.object({
       custom_id: z.string(),
-      result: z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('succeeded'),
-          message: z.unknown(),
-        }),
-        z.object({
-          type: z.literal('errored'),
-          error: z.object({
-            type: z.literal('error'),
-            error: z.object({
-              type: z.string(),
-              message: z.string(),
-            }),
-            request_id: z.string().nullish(),
-          }),
-        }),
-        z.object({ type: z.literal('canceled') }),
-        z.object({ type: z.literal('expired') }),
-      ]),
+      result: z.unknown(),
     }),
   ),
 );
@@ -507,19 +534,30 @@ async function convertAnthropicBatchResult(
   line: AnthropicBatchResultLine,
   generateId: () => string,
 ): Promise<BatchV4ItemResult<LanguageModelV4GenerateResult>> {
-  switch (line.result.type) {
+  const resultValidation = await safeValidateTypes({
+    value: line.result,
+    schema: anthropicBatchResultSchema,
+  });
+
+  if (!resultValidation.success) {
+    return invalidAnthropicBatchResult(line.custom_id);
+  }
+
+  const result = resultValidation.value;
+
+  switch (result.type) {
     case 'canceled':
       return { id: line.custom_id, status: 'cancelled' };
     case 'expired':
       return { id: line.custom_id, status: 'expired' };
     case 'errored': {
-      const requestId = line.result.error.request_id;
+      const requestId = result.error.request_id;
       return {
         id: line.custom_id,
         status: 'failed',
         error: {
-          message: line.result.error.error.message,
-          type: line.result.error.error.type,
+          message: result.error.error.message,
+          type: result.error.error.type,
         },
         ...(requestId != null
           ? {
@@ -531,23 +569,11 @@ async function convertAnthropicBatchResult(
       };
     }
     case 'succeeded': {
-      const validation = await safeValidateTypes({
-        value: line.result.message,
-        schema: anthropicResponseSchema,
-      });
+      const response = await parseAnthropicBatchResponse(result.message);
 
-      if (!validation.success) {
-        return {
-          id: line.custom_id,
-          status: 'failed',
-          error: {
-            message: 'Anthropic returned an invalid Message batch result.',
-            code: 'invalid_response',
-          },
-        };
+      if (response == null) {
+        return invalidAnthropicBatchResult(line.custom_id);
       }
-
-      const response = validation.value;
 
       return {
         id: line.custom_id,
@@ -556,6 +582,64 @@ async function convertAnthropicBatchResult(
       };
     }
   }
+}
+
+function invalidAnthropicBatchResult(
+  id: string,
+): BatchV4ItemResult<LanguageModelV4GenerateResult> {
+  return {
+    id,
+    status: 'failed',
+    error: {
+      message: 'Anthropic returned an invalid Message batch result.',
+      code: 'invalid_response',
+    },
+  };
+}
+
+async function parseAnthropicBatchResponse(
+  message: unknown,
+): Promise<AnthropicResponse | undefined> {
+  const validation = await safeValidateTypes({
+    value: message,
+    schema: anthropicResponseSchema,
+  });
+
+  if (validation.success) {
+    return validation.value;
+  }
+
+  if (!isRecord(message) || !Array.isArray(message.content)) {
+    return undefined;
+  }
+
+  const content: AnthropicResponse['content'] = [];
+  for (const part of message.content) {
+    const partValidation = await safeValidateTypes({
+      value: { ...message, content: [part] },
+      schema: anthropicResponseSchema,
+    });
+
+    if (partValidation.success) {
+      const [validatedPart] = partValidation.value.content;
+      if (validatedPart != null) {
+        content.push(validatedPart);
+      }
+    } else if (
+      !isRecord(part) ||
+      typeof part.type !== 'string' ||
+      knownAnthropicBatchContentTypes.has(part.type)
+    ) {
+      return undefined;
+    }
+  }
+
+  const recovered = await safeValidateTypes({
+    value: { ...message, content },
+    schema: anthropicResponseSchema,
+  });
+
+  return recovered.success ? recovered.value : undefined;
 }
 
 function convertAnthropicBatchResponse(

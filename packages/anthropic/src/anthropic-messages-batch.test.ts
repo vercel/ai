@@ -1331,6 +1331,116 @@ describe('Anthropic Messages batch language model', () => {
     ]);
   });
 
+  it('fails an unknown result type without aborting later results', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `${JSON.stringify({
+          custom_id: 'unknown',
+          result: { type: 'future_result', data: 'opaque' },
+        })}\n`,
+        JSON.stringify({
+          custom_id: 'valid',
+          result: {
+            type: 'succeeded',
+            message: messageResultBody('Paris'),
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({ apiKey: 'test-api-key' })(
+      'claude-3-haiku-20240307',
+    );
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchObject([
+      {
+        id: 'unknown',
+        status: 'failed',
+        error: {
+          message: 'Anthropic returned an invalid Message batch result.',
+          code: 'invalid_response',
+        },
+      },
+      {
+        id: 'valid',
+        status: 'succeeded',
+        result: { content: [{ type: 'text', text: 'Paris' }] },
+      },
+    ]);
+  });
+
+  it('skips unknown content blocks in a succeeded result', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `${JSON.stringify({
+          custom_id: 'future-content',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody('Paris'),
+              content: [
+                { type: 'future_content', data: 'opaque' },
+                { type: 'text', text: 'Paris' },
+              ],
+            },
+          },
+        })}\n`,
+        JSON.stringify({
+          custom_id: 'malformed-known-content',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody('Paris'),
+              content: [{ type: 'text' }, { type: 'text', text: 'Paris' }],
+            },
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({ apiKey: 'test-api-key' })(
+      'claude-3-haiku-20240307',
+    );
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchObject([
+      {
+        id: 'future-content',
+        status: 'succeeded',
+        result: {
+          content: [{ type: 'text', text: 'Paris' }],
+          usage: {
+            inputTokens: { total: 13 },
+            outputTokens: { total: 3 },
+          },
+        },
+      },
+      {
+        id: 'malformed-known-content',
+        status: 'failed',
+        error: {
+          message: 'Anthropic returned an invalid Message batch result.',
+          code: 'invalid_response',
+        },
+      },
+    ]);
+  });
+
   it('forwards operation headers and the abort signal while retrieving results', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
