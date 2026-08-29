@@ -68,6 +68,7 @@ function transformAmazonBedrockEventStreamToSSE(
   body: ReadableStream<Uint8Array>,
 ): ReadableStream<Uint8Array> {
   const textEncoder = new TextEncoder();
+  const textDecoder = new TextDecoder();
 
   return createAmazonBedrockEventStreamDecoder(
     body,
@@ -81,8 +82,9 @@ function transformAmazonBedrockEventStreamToSSE(
           }
           const bytes = (parsed.value as { bytes?: string }).bytes;
           if (bytes) {
-            const anthropicEvent = new TextDecoder().decode(
+            const anthropicEvent = textDecoder.decode(
               convertBase64ToUint8Array(bytes),
+              { stream: true },
             );
             controller.enqueue(
               textEncoder.encode(`data: ${anthropicEvent}\n\n`),
