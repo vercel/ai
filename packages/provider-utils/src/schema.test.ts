@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { TypeValidationError } from '@ai-sdk/provider';
+import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
 import { asSchema, zodSchema, type StandardSchema } from './schema';
@@ -574,6 +576,108 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
   });
 
   describe('asSchema detection', () => {
+    it('should route a zod schema that provides standard JSON schema through the standard schema interface', async () => {
+      // zod >= 4.2 exposes `~standard.jsonSchema`; hand-built here so the test does not depend on the installed zod version
+      const zodLikeSchema: StandardSchema<{ text: string }> = {
+        '~standard': {
+          version: 1,
+          vendor: 'zod',
+          validate: value =>
+            typeof value === 'object' &&
+            value != null &&
+            typeof (value as any).text === 'string'
+              ? { value: value as { text: string } }
+              : { issues: [{ message: 'expected text', path: ['text'] }] },
+          jsonSchema: {
+            input: () => ({
+              type: 'object',
+              properties: { text: { type: 'string' } },
+            }),
+            output: () => ({
+              type: 'object',
+              properties: { text: { type: 'string' } },
+            }),
+          },
+        },
+      } as StandardSchema<{ text: string }>;
+
+      const schema = asSchema(zodLikeSchema);
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        type: 'object',
+        additionalProperties: false,
+        properties: { text: { type: 'string' } },
+      });
+
+      expect(await schema.validate?.({ text: 'hello' })).toStrictEqual({
+        success: true,
+        value: { text: 'hello' },
+      });
+
+      const result = await schema.validate?.({ text: 123 });
+      expect(result?.success).toBe(false);
+      if (result?.success !== false) {
+        throw new Error('Expected validation to fail');
+      }
+      expect(result.error).toBeInstanceOf(TypeValidationError);
+      expect((result.error as TypeValidationError).cause).toStrictEqual([
+        { message: 'expected text', path: ['text'] },
+      ]);
+    });
+
+    it('should keep a zod schema without standard JSON schema on the zod adapter', async () => {
+      // the installed zod/v4 predates `~standard.jsonSchema`, so it takes this path
+      const schema = asSchema(z4.object({ text: z4.string() }));
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'object',
+        properties: { text: { type: 'string' } },
+        required: ['text'],
+        additionalProperties: false,
+      });
+
+      const result = await schema.validate?.({ text: 123 });
+      expect(result?.success).toBe(false);
+      if (result?.success !== false) {
+        throw new Error('Expected validation to fail');
+      }
+      expect(result.error).toBeInstanceOf(z4.ZodError);
+    });
+
+    it('should keep validating zod 4 schemas with async refinements', async () => {
+      const schema = asSchema(
+        z4.object({
+          text: z4.string().refine(async value => value.length > 0),
+        }),
+      );
+
+      expect(await schema.validate?.({ text: 'hello' })).toStrictEqual({
+        success: true,
+        value: { text: 'hello' },
+      });
+      expect((await schema.validate?.({ text: '' }))?.success).toBe(false);
+    });
+
+    it('should keep zod 3 schemas on the zod adapter', async () => {
+      const schema = asSchema(z3.object({ text: z3.string() }));
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'object',
+        properties: { text: { type: 'string' } },
+        required: ['text'],
+        additionalProperties: false,
+      });
+
+      const result = await schema.validate?.({ text: 123 });
+      expect(result?.success).toBe(false);
+      if (result?.success !== false) {
+        throw new Error('Expected validation to fail');
+      }
+      expect(result.error).toBeInstanceOf(z3.ZodError);
+    });
+
     it('should detect non-zod standard schema by vendor', async () => {
       const standardSchema: StandardSchema<{ text: string }> = {
         '~standard': {
