@@ -74,13 +74,13 @@
     "@smithy/eventstream-codec": "^4.3.3",
     "@smithy/util-utf8": "^4.3.3",
     "@types/json-schema": "7.0.15",
-    "@types/node": "22.19.19",
+    "@types/node": "catalog:",
     "@vercel/ai-tsconfig": "workspace:*",
     "esbuild": "^0.28.1",
-    "tsup": "^8.5.1",
-    "tsx": "4.23.12",
-    "typescript": "5.8.3",
-    "zod": "3.25.76"
+    "tsup": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "zod": "catalog:"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

@@ -54,18 +54,18 @@
     "@ai-sdk/test-server": "workspace:*",
     "@sveltejs/package": "^2.5.7",
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
-    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/jest-dom": "catalog:",
     "@testing-library/svelte": "^5.3.1",
-    "@types/node": "22.19.19",
+    "@types/node": "catalog:",
     "@vercel/ai-tsconfig": "workspace:*",
     "jsdom": "^26.1.0",
     "publint": "^0.3.21",
     "svelte": "^5.55.7",
     "svelte-check": "^4.4.8",
-    "typescript": "^5.9.3",
+    "typescript": "catalog:",
     "vite": "^6.4.3",
-    "vitest": "^4.1.6",
-    "zod": "3.25.76"
+    "vitest": "catalog:",
+    "zod": "catalog:"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
