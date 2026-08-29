@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
-    "@modelcontextprotocol/sdk": "1.30.0",
+    "@modelcontextprotocol/sdk": "catalog:",
     "@types/node": "catalog:",
     "@types/ws": "catalog:",
     "@vercel/ai-tsconfig": "workspace:*",

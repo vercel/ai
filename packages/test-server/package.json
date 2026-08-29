@@ -41,7 +41,7 @@
     }
   },
   "dependencies": {
-    "msw": "^2.14.6"
+    "msw": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

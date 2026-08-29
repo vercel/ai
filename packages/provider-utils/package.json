@@ -52,7 +52,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@vercel/ai-tsconfig": "workspace:*",
-    "msw": "2.7.0",
+    "msw": "catalog:",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "zod": "catalog:"

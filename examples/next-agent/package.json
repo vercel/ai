@@ -24,8 +24,8 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "autoprefixer": "catalog:",
-    "postcss": "catalog:",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
     "typescript": "catalog:"
   }
