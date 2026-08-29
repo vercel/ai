@@ -700,11 +700,13 @@ export async function convertToAnthropicPrompt({
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
-                  anthropicContent.push({
-                    type: 'compaction',
-                    content: part.text,
-                    cache_control: cacheControl,
-                  });
+                  if (part.text) {
+                    anthropicContent.push({
+                      type: 'compaction',
+                      content: part.text,
+                      cache_control: cacheControl,
+                    });
+                  }
                 } else {
                   anthropicContent.push({
                     type: 'text',

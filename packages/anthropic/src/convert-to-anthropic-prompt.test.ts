@@ -1489,6 +1489,47 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('should ignore empty compaction content blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+            { type: 'text', text: 'assistant content' },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'user content' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'assistant content' }],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
+  });
+
   it('should preserve citations on assistant text', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
