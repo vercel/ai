@@ -14,6 +14,7 @@ export function supportsNativeStructuredOutput(modelId: string): boolean {
 const MODELS_WITHOUT_STRICT_TOOL_SUPPORT = [
   'claude-opus-4-7',
   'claude-opus-4-8',
+  'claude-haiku-4-5',
   'claude-opus-5',
   'claude-fable-5',
   'claude-sonnet-5',
