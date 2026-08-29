@@ -117,6 +117,13 @@ export interface AmazonBedrockAnthropicProviderSettings {
   baseURL?: string;
 
   /**
+   * The Bedrock endpoint to use. Defaults to `runtime`.
+   * - `runtime`: The standard Bedrock Runtime endpoint.
+   * - `mantle`: The Bedrock Mantle endpoint for cross-region inference.
+   */
+  endpoint?: 'runtime' | 'mantle';
+
+  /**
    * Custom headers to include in the requests.
    */
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -235,22 +242,31 @@ export function createAmazonBedrockAnthropic(
         }
       }, options.fetch);
 
-  // Wrap with Bedrock event stream to SSE transformer for streaming support
-  const fetchFunction = createAmazonBedrockAnthropicFetch(baseFetchFunction);
+  const endpoint = options.endpoint ?? 'runtime';
+  const isMantle = endpoint === 'mantle';
+
+  // Wrap with Bedrock event stream to SSE transformer for streaming support ONLY for runtime
+  const fetchFunction = isMantle
+    ? baseFetchFunction
+    : createAmazonBedrockAnthropicFetch(baseFetchFunction);
 
   const getBaseURL = (): string =>
     withoutTrailingSlash(
       options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
+        `https://bedrock-${isMantle ? 'mantle' : 'runtime'}.${loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? 'https://bedrock-runtime.us-east-1.amazonaws.com';
+        })}.${isMantle ? 'api.aws/anthropic' : 'amazonaws.com'}`,
+    ) ??
+    `https://bedrock-${isMantle ? 'mantle' : 'runtime'}.us-east-1.${isMantle ? 'api.aws/anthropic' : 'amazonaws.com'}`;
 
   const getHeaders = async () => {
     const baseHeaders = (await resolve(options.headers)) ?? {};
+    if (isMantle) {
+      baseHeaders['anthropic-version'] = '2023-06-01';
+    }
     return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
   };
 
@@ -262,9 +278,11 @@ export function createAmazonBedrockAnthropic(
       fetch: fetchFunction,
 
       buildRequestUrl: (baseURL, isStreaming) =>
-        `${baseURL}/model/${encodeURIComponent(modelId)}/${
-          isStreaming ? 'invoke-with-response-stream' : 'invoke'
-        }`,
+        isMantle
+          ? `${baseURL}/v1/messages`
+          : `${baseURL}/model/${encodeURIComponent(modelId)}/${
+              isStreaming ? 'invoke-with-response-stream' : 'invoke'
+            }`,
 
       transformRequestBody: (args, betas) => {
         const {
@@ -333,6 +351,7 @@ export function createAmazonBedrockAnthropic(
 
         return {
           ...rest,
+          ...(isMantle ? { model: modelId, stream: _stream } : {}),
           ...(transformedTools != null ? { tools: transformedTools } : {}),
           ...(transformedToolChoice != null
             ? { tool_choice: transformedToolChoice }
@@ -340,7 +359,7 @@ export function createAmazonBedrockAnthropic(
           ...(requiredBetas.size > 0
             ? { anthropic_beta: Array.from(requiredBetas) }
             : {}),
-          anthropic_version: 'bedrock-2023-05-31',
+          ...(isMantle ? {} : { anthropic_version: 'bedrock-2023-05-31' }),
         };
       },
 
