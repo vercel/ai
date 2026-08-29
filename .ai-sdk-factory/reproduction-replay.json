@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19978,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/policy-opa-unrecognized-decision-fail-open.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/policy-opa-unrecognized-decision-fail-open.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #19978 REPRODUCED: unrecognized OPA decisions executed the protected chargeCard tool (wrong-enum, legacy-non-boolean, unknown-key, nested-unexpected-shape)"
+  }
+}
