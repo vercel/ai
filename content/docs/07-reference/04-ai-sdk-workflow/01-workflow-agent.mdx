@@ -137,6 +137,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Per-stream values override this default.',
     },
     {
+      name: 'experimental_toolApprovalSecret',
+      type: 'WorkflowToolApprovalSecret',
+      isOptional: true,
+      description:
+        'Workflow-safe reference to the environment variable containing the secret used to HMAC-sign tool approval requests and verify approved message history before tool execution. Only the environment variable name crosses workflow boundaries; the secret is read inside signing and verification steps. Per-stream values override this default.',
+    },
+    {
       name: 'prepareStep',
       type: 'PrepareStepCallback',
       isOptional: true,
@@ -560,6 +567,13 @@ const result = await agent.stream({
         'Sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Overrides the constructor default.',
     },
     {
+      name: 'experimental_toolApprovalSecret',
+      type: 'WorkflowToolApprovalSecret',
+      isOptional: true,
+      description:
+        'Workflow-safe reference to the environment variable containing the secret used to HMAC-sign tool approval requests and verify approved message history before tool execution. Only the environment variable name crosses workflow boundaries; the secret is read inside signing and verification steps. Overrides the constructor default.',
+    },
+    {
       name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
@@ -922,6 +936,9 @@ import { z } from 'zod';
 
 const agent = new WorkflowAgent({
   model: 'anthropic/claude-sonnet-4-6',
+  experimental_toolApprovalSecret: {
+    environmentVariable: 'TOOL_APPROVAL_SECRET',
+  },
   tools: {
     bookFlight: tool({
       description: 'Book a flight',
@@ -935,6 +952,14 @@ const agent = new WorkflowAgent({
   },
 });
 ```
+
+When `experimental_toolApprovalSecret` is configured, each approval request is
+signed over its approval ID, tool call ID, tool name, and validated input.
+Replayed approvals with a missing or invalid signature do not execute the tool.
+The signature is preserved in the durable stream and UI message history, while
+only the environment variable name crosses workflow boundaries. Signing and
+verification steps read the raw secret from their local environment and do not
+serialize it. A stream-level reference overrides the constructor value.
 
 ### Agent with Lifecycle Callbacks
 
