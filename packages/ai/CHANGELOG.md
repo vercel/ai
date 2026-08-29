@@ -1,5 +1,77 @@
 # ai
 
+## 7.0.84
+
+### Patch Changes
+
+- 6669d69: Expose parsed structured output in `streamText` end callbacks.
+- a6463ca: fix(ai): allow tool approval secrets in ToolLoopAgent settings and prepareCall
+- e604532: fix(ai): handle stateful and empty-match regular expressions in smoothStream
+- Updated dependencies [805bbfc]
+- Updated dependencies [90192f1]
+  - @ai-sdk/gateway@4.0.68
+  - @ai-sdk/provider-utils@5.0.33
+
+## 7.0.83
+
+### Patch Changes
+
+- 8dd86a9: Validate persisted typed tool calls against current input and output schemas.
+  Schema-incompatible empty or error inputs and terminal history from unavailable
+  tools remain loadable as dynamic tool parts instead of exposing unvalidated
+  values under current static tool types.
+- fda13b3: Allow chats to continue automatically after tool approval denials reach the `output-denied` state.
+- 957146c: add operation-level outcomes to UI message stream end callbacks
+- ce6849a: fix(ai): handle stitchable stream cancellation before an inner stream is registered
+
+## 7.0.82
+
+### Patch Changes
+
+- 3e125ba: Allow manual tool approval statuses to include a reason and preserve it across
+  core, model, and UI approval requests. OPA `requires-approval` decisions now
+  surface their reason to human approvers. UI request chunks serialize the
+  optional `reason`, while UI messages retain it as `approval.requestReason`
+  separately from an approver's response `reason`.
+- Updated dependencies [0e7994c]
+- Updated dependencies [3e125ba]
+  - @ai-sdk/gateway@4.0.67
+  - @ai-sdk/provider-utils@5.0.32
+
+## 7.0.81
+
+### Patch Changes
+
+- Updated dependencies [81bebaf]
+  - @ai-sdk/gateway@4.0.66
+
+## 7.0.80
+
+### Patch Changes
+
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- eed7950: Expose structured output parsing diagnostics from `generateText` when generation stops because of the output token limit.
+- Updated dependencies [80227cf]
+- Updated dependencies [a9782e1]
+- Updated dependencies [5533946]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/gateway@4.0.65
+  - @ai-sdk/provider-utils@5.0.31
+
+## 7.0.79
+
+### Patch Changes
+
+- b251584: Preserve active text and reasoning parts when another merged UI message stream finishes a step, and align workflow stream normalization with the explicit part end chunks.
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- 9de0baf: Parse structured generateText output when providers omit finishReason but return text.
+- Updated dependencies [591d25b]
+  - @ai-sdk/gateway@4.0.64
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 7.0.78
 
 ### Patch Changes

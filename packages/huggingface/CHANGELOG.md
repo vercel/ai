@@ -1,5 +1,41 @@
 # @ai-sdk/huggingface
 
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/openai-compatible@3.0.40
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/openai-compatible@3.0.39
+
+## 2.0.38
+
+### Patch Changes
+
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+  - @ai-sdk/openai-compatible@3.0.38
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/openai-compatible@3.0.37
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 2.0.36
 
 ### Patch Changes

@@ -1,5 +1,79 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.95
+
+### Patch Changes
+
+- b1fd1bb: feat(harness-opencode): pass native OpenCode configuration through the adapter
+- 7608210: feat(harness): add `model` parameter to `HarnessAgent` instead of having each harness adapter support it on their own constructor functions
+- f7bd978: chore(harness): update underlying adapter SDKs to their latest versions
+- 14d4fc0: feat(harness): allow changing harness settings between turns via `prepareCall()` support on `HarnessAgent`
+- Updated dependencies [cc9f6ce]
+- Updated dependencies [7608210]
+- Updated dependencies [6f8a2d7]
+- Updated dependencies [14d4fc0]
+- Updated dependencies [90192f1]
+  - @ai-sdk/harness@1.0.93
+  - @ai-sdk/provider-utils@5.0.33
+
+## 1.0.94
+
+### Patch Changes
+
+- e0d7cfb: feat(harness): allow harness sessions to optionally authenticate from an isolated environment supplied through the `auth` option, and remove support for the formerly deprecated legacy auth options types
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.93
+
+### Patch Changes
+
+- 928f018: fix(harness-opencode): prevent headless OpenCode sessions from hanging when a model tries to use the interactive question tool
+
+## 1.0.92
+
+### Patch Changes
+
+- eccb89e: fix(harness-opencode): authorize host tools and resolve permissions for task-linked subagents.
+  - @ai-sdk/harness@1.0.91
+
+## 1.0.91
+
+### Patch Changes
+
+- 0e590d2: feat(harness): harden credential brokering to only apply with correct ephemeral secret
+- Updated dependencies [3e125ba]
+- Updated dependencies [0e590d2]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.90
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.89
+
+### Patch Changes
+
+- Updated dependencies [32349cc]
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/harness@1.0.88
+  - @ai-sdk/provider-utils@5.0.31
+
+## 1.0.88
+
+### Patch Changes
+
+- 79186d1: Allow pinned OpenCode and Grok Build install scripts during pnpm 11 sandbox bootstrap.
+- 8a15038: feat(harness): add `credentialForwarding` setting to bridge backed harness adapters for granular control
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 1.0.87
 
 ### Patch Changes

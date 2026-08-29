@@ -28,6 +28,8 @@ import {
   type Experimental_TextBatchRequest as TextBatchRequest,
 } from '../index';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { ContentPart } from '../generate-text/content-part';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 it('exposes typed Gateway async-job metadata', () => {
   expectTypeOf<
@@ -73,6 +75,9 @@ it('only exposes text-generation call options to batch providers', () => {
     | 'frequencyPenalty'
     | 'seed'
     | 'reasoning'
+    | 'responseFormat'
+    | 'toolChoice'
+    | 'tools'
     | 'providerOptions'
   >;
 
@@ -80,12 +85,7 @@ it('only exposes text-generation call options to batch providers', () => {
   expectTypeOf<
     Extract<
       keyof BatchCallOptions,
-      | 'responseFormat'
-      | 'tools'
-      | 'toolChoice'
-      | 'includeRawChunks'
-      | 'abortSignal'
-      | 'headers'
+      'includeRawChunks' | 'abortSignal' | 'headers'
     >
   >().toEqualTypeOf<never>();
 });
@@ -94,6 +94,12 @@ it('uses serializable response timestamps', () => {
   expectTypeOf<
     NonNullable<TextBatchGenerationResult['response']>['timestamp']
   >().toEqualTypeOf<string | undefined>();
+});
+
+it('exposes Core content in successful batch results', () => {
+  expectTypeOf<TextBatchGenerationResult['content']>().toEqualTypeOf<
+    Array<ContentPart<ToolSet>>
+  >();
 });
 
 it('flattens successful Core items while reusing provider status and errors', () => {

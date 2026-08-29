@@ -207,6 +207,12 @@ const { text } = await generateText({
 
 AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
 
+When an upstream provider reports a well-formed error after streaming has
+started, AI SDK Core exposes it as a
+[`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error).
+Use its `type`, `code`, `statusCode`, and `isRetryable` metadata to classify
+the failure without inspecting the Gateway's serialized error payload.
+
 ## Text Batches
 
 <Note type="warning">
@@ -1017,9 +1023,9 @@ The Tako Search tool supports these optional configuration options:
   - **includeContents** _boolean_ - Inline each page's extracted full text in `content`. **articleContentMaxChars** caps it, defaulting to 30,000 characters (maximum 1,000,000).
 - **sources.data** _object_ - Configure data results:
   - **count** _number_ - Maximum data results, 1-20. Defaults to 5.
-  - **includeContents** _boolean_ - Inline each card's underlying rows in `content.dataset` as typed, unit-labeled columns.
+  - **includeContents** _boolean_ - Inline each card's underlying rows in `content.dataset` as typed, unit-labeled columns. This adds a data surcharge based on the row count and dataset source. To estimate cost, first search with `includeContents: false` and inspect `cards.content.export_pricing`. Because this applies to every returned card, use `count` and `maxRows` to control cost.
   - **contentFormat** _'json_compact' | 'json_records' | 'csv' | 'card_json'_ - Serialization for inlined card data. Defaults to `'json_compact'`.
-  - **maxRows** _number_ - Row cap for inlined card data. Omit to use your account's default inline cap (20 rows on the standard plan); maximum 2,000.
+  - **maxRows** _number_ - Row cap per result. Omit to use the allowance in `cards.content.export_pricing`. A data surcharge applies per 1,000 exported rows; lower values reduce cost.
   - **nodeIds** _string[]_ - Data Graph node IDs to prioritize. Up to 20.
   - **strict** _boolean_ - Only return cards matching `nodeIds`. Requires at least one `nodeIds` value.
 - **location** _object_ - End-user `{ latitude, longitude }` coordinates for localized results.

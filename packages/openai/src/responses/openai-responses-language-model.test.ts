@@ -1075,6 +1075,85 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should replay a regular function named tool_search as a function call', async () => {
+        await createModel('gpt-4o').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Search the synthetic records.' },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_123',
+                  toolName: 'tool_search',
+                  input: {
+                    query: 'synthetic query',
+                    limit: 10,
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_123',
+                  toolName: 'tool_search',
+                  output: {
+                    type: 'json',
+                    value: { tools: [] },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              name: 'tool_search',
+              description: 'Search synthetic records',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string' },
+                  limit: { type: 'number' },
+                },
+                required: ['query', 'limit'],
+                additionalProperties: false,
+              },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.tools).toMatchObject([
+          {
+            type: 'function',
+            name: 'tool_search',
+          },
+        ]);
+        expect(requestBody.input.slice(1)).toStrictEqual([
+          {
+            type: 'function_call',
+            call_id: 'call_123',
+            name: 'tool_search',
+            arguments: '{"query":"synthetic query","limit":10}',
+          },
+          {
+            type: 'function_call_output',
+            call_id: 'call_123',
+            output: '{"tools":[]}',
+          },
+        ]);
+      });
+
       it('should send metadata provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -6127,6 +6206,110 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    it('should signal schema-invalid known events and finish with error', async () => {
+      const functionCall = {
+        id: 'fc_1',
+        type: 'function_call',
+        name: 'get_weather',
+        call_id: 'call_1',
+        arguments: '{"city":"Berlin"}',
+        status: 'completed',
+      };
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'response_1',
+              created_at: 1,
+              model: 'gpt-5.1',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            item: { ...functionCall, arguments: '', status: 'in_progress' },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_1',
+            delta: '{"city":"Berlin"}',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.function_call_arguments.done',
+            item_id: 'fc_1',
+            arguments: '{"city":"Berlin"}',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            item: functionCall,
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [functionCall],
+              usage: { input_tokens: 1, output_tokens: 2 },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.1').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type === 'error')).toHaveLength(4);
+      expect(events.some(event => event.type === 'tool-call')).toBe(false);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
+      });
+    });
+
+    it('should continue ignoring unknown event types', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'response_1',
+              created_at: 1,
+              model: 'gpt-5.1',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.future_event',
+            value: 'ignored',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [],
+              usage: { input_tokens: 1, output_tokens: 2 },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5.1').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.some(event => event.type === 'error')).toBe(false);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'stop' },
+      });
+    });
+
     it('should stream text deltas', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
@@ -8335,7 +8518,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           message:
             'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
           statusCode: 429,
-          isRetryable: true,
+          isRetryable: false,
         });
       });
 
@@ -8474,14 +8657,21 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             {
               "error": {
-                "error": {
-                  "code": "server_error",
-                  "message": "response failed",
-                  "param": null,
-                  "type": "server_error",
+                "code": "server_error",
+                "data": {
+                  "error": {
+                    "code": "server_error",
+                    "message": "response failed",
+                    "param": null,
+                    "type": "server_error",
+                  },
+                  "sequence_number": 2,
+                  "type": "error",
                 },
-                "sequence_number": 2,
-                "type": "error",
+                "isRetryable": true,
+                "message": "response failed",
+                "statusCode": 500,
+                "type": "server_error",
               },
               "type": "error",
             },

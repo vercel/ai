@@ -72,7 +72,7 @@ const result = await generateText({
 
 ## Writing the Rego policy
 
-The adapter expects the policy to emit a decision object with one of three `decision` values. `reason` is optional and gets surfaced back to the model (for `deny`) or to the human approver (for `requires-approval`).
+The adapter expects the policy to emit a decision object with one of three `decision` values. `reason` is optional and gets surfaced back to the model (for `deny`) or to the human approver (for `requires-approval`). A manual approval request exposes it as `reason` in core results and as `approval.requestReason` in UI messages.
 
 ```rego
 package agent.call

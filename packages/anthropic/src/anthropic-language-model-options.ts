@@ -268,6 +268,9 @@ export const anthropicLanguageModelOptions = z.object({
    */
   speed: z.enum(['fast', 'standard']).optional(),
 
+  /** Selects Anthropic's service tier for the request. */
+  serviceTier: z.enum(['auto', 'standard_only']).optional(),
+
   /**
    * Controls where model inference runs for this request.
    *

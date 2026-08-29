@@ -1,5 +1,66 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.93
+
+### Patch Changes
+
+- Updated dependencies [cc9f6ce]
+- Updated dependencies [7608210]
+- Updated dependencies [6f8a2d7]
+- Updated dependencies [14d4fc0]
+- Updated dependencies [90192f1]
+  - @ai-sdk/harness@1.0.93
+  - @ai-sdk/provider-utils@5.0.33
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [e0d7cfb]
+  - @ai-sdk/harness@1.0.92
+
+## 1.0.91
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.91
+
+## 1.0.90
+
+### Patch Changes
+
+- 0e590d2: feat(harness): harden credential brokering to only apply with correct ephemeral secret
+- Updated dependencies [3e125ba]
+- Updated dependencies [0e590d2]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/harness@1.0.90
+
+## 1.0.89
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.89
+
+## 1.0.88
+
+### Patch Changes
+
+- Updated dependencies [32349cc]
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/harness@1.0.88
+  - @ai-sdk/provider-utils@5.0.31
+
+## 1.0.87
+
+### Patch Changes
+
+- 7ab0f88: Add support for `@vercel/sandbox` v3 while preserving the adapter's existing Node 24 runtime default.
+- Updated dependencies [8a15038]
+  - @ai-sdk/harness@1.0.87
+  - @ai-sdk/provider-utils@5.0.30
+
 ## 1.0.86
 
 ### Patch Changes

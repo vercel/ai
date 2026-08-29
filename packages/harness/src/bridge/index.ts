@@ -293,8 +293,27 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   bridgeType: string;
   /** Directory for `bridge-meta.json` / `start-config.json`. Created if absent. */
   bridgeStateDir: string;
-  /** Drive one prompt turn. Rejections surface to the host as an `error` event. */
+  /**
+   * Drive one prompt turn. Rejections surface to the host as an `error`
+   * event.
+   *
+   * Contract: once `turn.abortSignal` fires, wind down promptly — turns are
+   * serialized, and a replacement `start` waits up to
+   * {@link turnTeardownGraceMs} for this promise to settle before it
+   * proceeds anyway.
+   */
   onStart(start: TStart, turn: BridgeTurn): Promise<void>;
+  /**
+   * How long a replacement `start` waits for the previous turn's teardown
+   * after aborting it, in milliseconds. Turns are serialized so an aborted
+   * turn cannot emit into its replacement's event log or overlap its runtime
+   * process — but only within this bound: an adapter that does not settle
+   * `onStart` after its abort signal fires forfeits the protection for that
+   * boundary, and the new turn proceeds anyway rather than blocking forever.
+   * The default of ten seconds exceeds the Claude bridge's five-second
+   * hard-abort fallback.
+   */
+  turnTeardownGraceMs?: number;
   /**
    * Produce the adapter-defined runtime resume data for `stop`. Defaults to
    * `{}`.
@@ -355,6 +374,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
   options: RunBridgeOptions<TStart>,
 ): Promise<BridgeHandle> {
   const { bridgeType, bridgeStateDir, onStart, onStop, onDestroy } = options;
+  const teardownGraceMs = options.turnTeardownGraceMs ?? 10_000;
   const expectedToken = options.token ?? procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
   const bridgeWsPort =
     options.port ?? parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
@@ -384,6 +404,12 @@ export async function runBridge<TStart extends { type: 'start' }>(
   let isFirstTurn = true;
   let turnAbort: AbortController | undefined;
   let currentUserMessages: InternalBridgeUserMessageQueue | undefined;
+  /**
+   * Settles when the in-flight turn has fully wound down — `onStart`
+   * returned or threw AND its completion state was recorded. `undefined`
+   * between turns. A new `start` fences on this so turns never overlap.
+   */
+  let activeTurn: Promise<void> | undefined;
 
   // Diagnostics. Resolved per turn from `start.debug` with a sandbox-side
   // env fallback; gates console capture + structured `debug-event`s.
@@ -658,10 +684,44 @@ export async function runBridge<TStart extends { type: 'start' }>(
   ): Promise<void> => {
     switch (msg.type) {
       case 'start': {
+        /*
+         * A new turn replaces the active one — but only after the active one
+         * has fully wound down. Inbound frames are dispatched concurrently,
+         * and the host settles a caller abort immediately, so a retry's
+         * `start` can arrive while the aborted turn is still tearing down
+         * (e.g. a graceful interrupt). Without this fence the old turn would
+         * keep emitting into the new turn's cleared event log, two runtime
+         * processes would run side by side, and the old turn's completion
+         * would mark the bridge `waiting` underneath the new turn. Abort the
+         * old turn to hasten its teardown; adapters are expected to bound
+         * that teardown themselves (e.g. a hard-abort fallback), but the
+         * runtime does not rely on it: the wait is capped by the teardown
+         * grace period, after which the new turn proceeds anyway — the
+         * pre-fence overlapping behavior — rather than hanging behind a
+         * teardown that never settles.
+         */
+        for (;;) {
+          const pendingTurn = activeTurn;
+          if (pendingTurn == null) break;
+          turnAbort?.abort();
+          currentUserMessages?.close(
+            new Error('A new bridge turn replaced the active turn.'),
+          );
+          let graceTimer: ReturnType<typeof setTimeout> | undefined;
+          const settled = await Promise.race([
+            pendingTurn.then(() => true as const),
+            new Promise<false>(resolve => {
+              graceTimer = setTimeout(() => resolve(false), teardownGraceMs);
+              graceTimer.unref?.();
+            }),
+          ]);
+          clearTimeout(graceTimer);
+          if (!settled) break;
+        }
+        let turnFinished!: () => void;
+        const thisTurn = new Promise<void>(resolve => (turnFinished = resolve));
+        activeTurn = thisTurn;
         activeSocket = ws; // asking for a turn claims the event stream
-        currentUserMessages?.close(
-          new Error('A new bridge turn replaced the active turn.'),
-        );
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
@@ -727,8 +787,15 @@ export async function runBridge<TStart extends { type: 'start' }>(
           if (currentUserMessages === userMessages) {
             currentUserMessages = undefined;
           }
-          currentTurnState = 'waiting';
-          void writeBridgeMeta('waiting');
+          // Only the still-active turn records completion: after a fence
+          // timeout a replacement turn is already running, and this stale
+          // completion must not mark the bridge waiting underneath it.
+          if (activeTurn === thisTurn) {
+            activeTurn = undefined;
+            currentTurnState = 'waiting';
+            void writeBridgeMeta('waiting');
+          }
+          turnFinished();
         }
         return;
       }

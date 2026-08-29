@@ -44,6 +44,7 @@ import {
 } from './refresh-host-tool-catalog';
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
+import { configureACPModel } from './model-mapping';
 import {
   assertACPResumeCapability,
   createACPRecoveredSession,
@@ -213,6 +214,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     });
     return;
   }
+
+  await configureACPModel({
+    agent: connection!.agent,
+    sessionId: activeSession.sessionId,
+    model: start.model,
+    mapping: start.modelMapping,
+  });
 
   let rejectCancellationFailure!: (error: unknown) => void;
   const cancellationFailure = new Promise<never>((_, reject) => {
@@ -413,11 +421,13 @@ async function ensureSession({
     instructions: start.instructions,
     instructionMapping: start.instructionMapping,
     sessionMeta: bridgeConfiguration.sessionMeta,
-    environment: createChildEnvironment({
-      launchEnv,
-      implementationDir,
-      privateHome: implementation.privateHome,
-    }),
+    environment: {
+      ...createChildEnvironment({
+        launchEnv,
+        implementationDir,
+        privateHome: implementation.privateHome,
+      }),
+    },
   });
   child = spawn(
     `${implementationDir}/${implementation.executablePath}`,
@@ -472,6 +482,7 @@ async function ensureSession({
     protocolVersion: acp.PROTOCOL_VERSION,
     clientApp,
     authentication,
+    clientCapabilities: bridgeConfiguration.clientCapabilities,
     supportsBooleanSessionConfigOptions: Object.values(
       start.permissionModeMapping ?? {},
     ).some(
