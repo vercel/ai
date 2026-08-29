@@ -197,6 +197,7 @@ export abstract class HttpChatTransport<
       body: JSON.stringify(body),
       credentials,
       signal: abortSignal,
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -248,6 +249,7 @@ export abstract class HttpChatTransport<
       headers,
       credentials,
       signal: options.abortSignal,
+      cache: 'no-store',
     });
 
     // no active stream found, so we do not resume
