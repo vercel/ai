@@ -62,7 +62,7 @@ importers:
         specifier: 2.27.10
         version: 2.27.10
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: ^1.61.1
         version: 1.62.1
       del-cli:
         specifier: ^5.1.0
@@ -71,13 +71,13 @@ importers:
         specifier: ^9.1.7
         version: 9.1.7
       konsistent:
-        specifier: ^1.0.0-beta.4
+        specifier: ^1.0.0-beta
         version: 1.0.0-beta.5
       konsistent-provider:
         specifier: workspace:*
         version: link:tools/konsistent-provider
       lint-staged:
-        specifier: ^15.5.2
+        specifier: ^15.5.1
         version: 15.5.2(supports-color@10.2.2)
       next:
         specifier: 15.5.21
@@ -89,7 +89,7 @@ importers:
         specifier: 1.56.0
         version: 1.56.0
       playwright:
-        specifier: ^1.62.1
+        specifier: ^1.61.1
         version: 1.62.1
       publint:
         specifier: 0.2.12
@@ -113,7 +113,7 @@ importers:
         specifier: 7.3.2
         version: 7.3.2(oxlint@1.56.0)
       update-ts-references:
-        specifier: ^3.6.2
+        specifier: ^3.6.0
         version: 3.6.2
       vitest:
         specifier: 'catalog:'
