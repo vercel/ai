@@ -10,19 +10,42 @@ Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_mediu
 
 ## How to use
 
+### Standalone template
+
 Execute `create-nuxt` to bootstrap the example:
 
 ```bash
 npx create-nuxt -t github:vercel/ai/examples/nuxt-openai nuxt-openai
 ```
 
-To run the example locally you need to:
+Then:
 
 1. Sign up at [OpenAI's Developer Platform](https://platform.openai.com/signup).
 2. Go to [OpenAI's dashboard](https://platform.openai.com/account/api-keys) and create an API KEY.
 3. Set the required OpenAI environment variable as the token value as shown [the example env file](./.env.example) but in a new file called `.env`.
 4. `pnpm install` to install the required dependencies.
 5. `pnpm dev` to launch the development server.
+
+### From the AI SDK monorepo
+
+This example depends on local AI SDK workspace packages (`ai`, `@ai-sdk/vue`, `@ai-sdk/openai`, and their dependencies). When you run it from a clone of this repository, install and **build those packages from the repository root first**. Otherwise Vite fails with errors such as `Failed to resolve entry for package "@ai-sdk/vue"`.
+
+```bash
+# from the repository root
+pnpm install
+pnpm build:packages
+
+cd examples/nuxt-openai
+cp .env.example .env   # then set NUXT_OPENAI_API_KEY
+pnpm dev
+```
+
+To produce a production build of the example after the workspace packages are built:
+
+```bash
+cd examples/nuxt-openai
+pnpm build
+```
 
 ## Deploy to Vercel
 
