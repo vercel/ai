@@ -141,9 +141,9 @@ This is a convenience parameter that creates an abort signal internally. It can 
 You can specify the timeout either as a number (milliseconds) or as an object with the following properties:
 
 - `totalMs`: The total timeout for the entire call including all steps.
-- `stepMs`: The timeout for each individual step (LLM call). This is useful for multi-step generations where you want to limit the time spent on each step independently.
+- `stepMs`: The timeout for each individual step. In `streamText`, it stops when the model response ends and does not include client-side tool execution. This is useful for multi-step generations where you want to limit the time spent on each step independently.
 - `firstChunkMs`: The timeout until the first content-bearing output of each step (streaming only). Text deltas, reasoning deltas, tool-input deltas, generated files, and tool calls satisfy the timeout. Response metadata, stream starts, empty deltas, raw chunks, and transport activity do not satisfy or reset it.
-- `chunkMs`: The timeout between content-bearing output chunks after output has started (streaming only). Non-content chunks do not reset it. This is useful for detecting streams that stall after generation begins.
+- `chunkMs`: The timeout between content-bearing output chunks after output has started (streaming only). Non-content chunks do not reset it, and the timeout stops when the model response ends before client-side tools execute. This is useful for detecting streams that stall after generation begins.
 - `toolMs`: The default timeout for all tool executions. If a tool takes longer, it aborts and returns a tool-error so the model can respond or retry.
 - `tools`: Per-tool timeout overrides using `{toolName}Ms` keys (e.g. `weatherMs`, `slowApiMs`). Takes precedence over `toolMs`. Tool names are type-checked for autocomplete.
 
