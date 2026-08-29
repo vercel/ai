@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19982,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19982.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19982.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19982_REPRODUCED: Turbopack cannot resolve the published package's ../bridge/ candidate"
+  }
+}
