@@ -1,5 +1,6 @@
 # Backport pull requests to the next-older release branch by adding a
-# "backport" label. Two pull_request events cover both orderings race-free:
+# "backport" label. Two pull_request_target events cover both orderings
+# race-free without requiring approval for workflows triggered from forks:
 #   - labeled:  picks up a "backport" label added to an already-merged PR.
 #   - closed:   fires when a PR is merged; if it carries the "backport" label
 #               (i.e. the label was added before merge), it is backported.
@@ -9,7 +10,7 @@
 name: Backport
 
 on:
-  pull_request:
+  pull_request_target:
     types: [labeled, closed]
   workflow_dispatch:
     inputs:
@@ -31,7 +32,20 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    if: github.repository_owner == 'vercel'
+    if: |
+      github.repository_owner == 'vercel' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event.action == 'labeled' &&
+          github.event.label.name == 'backport'
+        ) ||
+        (
+          github.event.action == 'closed' &&
+          github.event.pull_request.merged == true &&
+          contains(github.event.pull_request.labels.*.name, 'backport')
+        )
+      )
     outputs:
       should-backport: ${{ steps.resolve.outputs.should-backport }}
       pr-number: ${{ steps.resolve.outputs.pr-number }}
@@ -136,11 +150,9 @@ jobs:
 
           PR_NUMBER=""
 
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            # `labeled`: only react to the "backport" label being added.
-            # `closed`: react to every closed PR here and let the downstream
-            # "is merged" and "has backport label" checks decide. This catches
-            # the case where the label was added before the PR was merged.
+          if [ "$EVENT_NAME" = "pull_request_target" ]; then
+            # The job-level condition filters unrelated labels and closures.
+            # Keep these checks as defense in depth for future trigger changes.
             if [ "$PR_ACTION" = "labeled" ] && [ "$ISSUE_LABEL" != "backport" ]; then
               skip "Ignoring non-backport label: $ISSUE_LABEL"
             fi
@@ -164,15 +176,13 @@ jobs:
           [ "$MERGED" = "true" ] || skip "PR #${PR_NUMBER} is not merged"
 
           # Gate on the backport label before anything else — in particular
-          # before the fork-detection comment below. The `closed` trigger fires
-          # for every merged PR, so without this an unlabeled fork PR would be
-          # spammed with a "use workflow_dispatch" comment it never asked for.
+          # before the fork-detection comment below.
           HAS_BACKPORT_LABEL=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" \
             --jq 'any(.[]; .name == "backport")')
           [ "$HAS_BACKPORT_LABEL" = "true" ] || skip "PR #${PR_NUMBER} does not have the backport label"
 
           HEAD_REPO=$(echo "$PR" | jq -r '.head.repo.full_name // empty')
-          if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPO" != "$REPO" ]; then
+          if [ "$EVENT_NAME" = "pull_request_target" ] && [ "$HEAD_REPO" != "$REPO" ]; then
             {
               echo "@${LABELER_LOGIN} this pull request was opened from a fork and must be backported with a workflow_dispatch event."
               echo
@@ -186,8 +196,7 @@ jobs:
               echo '```'
             } > comment.md
 
-            # Best-effort: GITHUB_TOKEN is read-only for pull_request events from
-            # forks, so commenting may fail. Don't let that fail the job.
+            # Best-effort: don't let a failure to post guidance fail the job.
             gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md \
               || echo "::warning::could not comment on fork PR #${PR_NUMBER} (token lacks write access)"
             skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch"
