@@ -292,6 +292,7 @@ describe('getBatchResults', () => {
 
     expect(items).toMatchObject([
       {
+        content: [{ text: 'Paris', type: 'text' }],
         id: 'request-1',
         status: 'succeeded',
         text: 'Paris',
@@ -313,6 +314,96 @@ describe('getBatchResults', () => {
         id: 'request-2',
         status: 'failed',
         error: { message: 'request failed', code: 'bad_request' },
+      },
+    ]);
+  });
+
+  it('normalizes provider-executed tool content and preserves usage', async () => {
+    const model = createMockBatchModel({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            id: 'request-1',
+            status: 'succeeded',
+            result: {
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{"city":"Paris"}',
+                  providerExecuted: true,
+                  dynamic: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  result: { temperature: 20 },
+                  providerExecuted: true,
+                  dynamic: true,
+                },
+              ],
+              finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+              usage: testUsage,
+              warnings: [],
+              providerMetadata: { mock: { result: true } },
+            },
+          },
+        ]),
+    });
+
+    const items = [];
+    for await (const item of getBatchResults({
+      model,
+      batch: batchReference,
+      maxRetries: 0,
+    })) {
+      items.push(item);
+    }
+
+    expect(items).toEqual([
+      {
+        content: [
+          {
+            dynamic: true,
+            input: { city: 'Paris' },
+            providerExecuted: true,
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            type: 'tool-call',
+          },
+          {
+            dynamic: true,
+            input: { city: 'Paris' },
+            output: { temperature: 20 },
+            providerExecuted: true,
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            type: 'tool-result',
+          },
+        ],
+        finishReason: 'tool-calls',
+        id: 'request-1',
+        providerMetadata: { mock: { result: true } },
+        rawFinishReason: 'tool_use',
+        status: 'succeeded',
+        text: '',
+        usage: {
+          inputTokenDetails: {
+            cacheReadTokens: 1,
+            cacheWriteTokens: undefined,
+            noCacheTokens: 2,
+          },
+          inputTokens: 3,
+          outputTokenDetails: {
+            reasoningTokens: 1,
+            textTokens: 4,
+          },
+          outputTokens: 5,
+          raw: undefined,
+          totalTokens: 8,
+        },
       },
     ]);
   });

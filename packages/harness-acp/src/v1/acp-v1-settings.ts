@@ -75,6 +75,16 @@ export type ACPProviderAuthentication = {
   };
 };
 
+export type ACPModelMapping =
+  | {
+      readonly type: 'session-config-option';
+      readonly path: string;
+    }
+  | {
+      readonly type: 'session-model';
+      readonly path: string;
+    };
+
 export type ACPCredentialBrokering = ({
   env,
   sandboxEnv,
@@ -143,7 +153,15 @@ export type ACPV1Settings = {
    */
   readonly env?: Readonly<Record<string, string>>;
   readonly authentication?: ACPAuthentication;
+  readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
   readonly providerAuthentication?: ACPProviderAuthentication;
+  /**
+   * Maps the HarnessAgent model identifier to an ACP session operation.
+   */
+  readonly modelMapping: ACPModelMapping;
+  /**
+   * @deprecated Use `model` on `HarnessAgent` instead.
+   */
   readonly modelId?: string;
   /**
    * Native skills directory relative to the ACP implementation's home

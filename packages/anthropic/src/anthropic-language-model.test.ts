@@ -168,6 +168,33 @@ describe('AnthropicLanguageModel', () => {
         `);
       });
 
+      it('should preserve container upload response blocks as custom content', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_container_upload',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'Done' },
+              { type: 'container_upload', file_id: 'file_123' },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 4, output_tokens: 2 },
+          },
+        };
+
+        const { content } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(content).toContainEqual({
+          type: 'custom',
+          kind: 'anthropic.container_upload',
+          providerMetadata: { anthropic: { fileId: 'file_123' } },
+        });
+      });
+
       it('should use default budget when thinking type is enabled without budgetTokens', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 

@@ -11,7 +11,7 @@ const sdkMock = vi.hoisted(() => ({
 
 const permissionReplyMock = vi.hoisted(() => vi.fn());
 const createOpencodeServerMock = vi.hoisted(() =>
-  vi.fn(async () => ({
+  vi.fn(async (_options: Record<string, unknown>) => ({
     url: 'http://127.0.0.1:4096',
     close: vi.fn(),
   })),
@@ -140,6 +140,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
         },
       },
     };
@@ -160,10 +161,29 @@ describe('OpenCode bridge turn settlement', () => {
     const emitted: Array<Record<string, unknown>> = [];
     const emitError = vi.fn();
     const userMessages = createUserMessages();
+    const openCodeConfig = {
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
+      share: 'manual',
+    };
     bridgeMock.start = {
       type: 'start',
       operation: 'prompt',
       prompt: 'Start.',
+      model: 'openai/gpt-5.6-sol',
+      openCodeConfig,
     };
     bridgeMock.turn = {
       emit: (event: Record<string, unknown>) => emitted.push(event),
@@ -202,6 +222,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
         },
       },
     };
@@ -209,9 +230,127 @@ describe('OpenCode bridge turn settlement', () => {
 
     await import('./index');
 
+    const client = sdkMock.client as {
+      v2: { session: { switchModel: ReturnType<typeof vi.fn> } };
+    };
+    expect(client.v2.session.switchModel).toHaveBeenCalledWith({
+      sessionID: 'session-1',
+      model: {
+        providerID: 'openai',
+        id: 'gpt-5.6-sol',
+      },
+    });
+    const serverConfig = createOpencodeServerMock.mock.calls[0]?.[0]
+      .config as Record<string, unknown>;
+    expect(serverConfig).toMatchObject({
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      mode: { plan: { model: 'openai/gpt-5.4-mini' } },
+      model: 'openai/gpt-5.6-sol',
+      share: 'disabled',
+    });
+    expect(serverConfig.agent).toEqual({
+      general: { model: 'openai/gpt-5.4-mini' },
+    });
+    expect(serverConfig.mode).toEqual({
+      plan: { model: 'openai/gpt-5.4-mini' },
+    });
+    expect(openCodeConfig).toEqual({
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
+      share: 'manual',
+    });
     expect(userMessages.close).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'model step failed' }),
     );
+    expect(emitError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'OpenCode turn failed' }),
+    );
+    expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+  });
+
+  it('settles a host-aborted turn once the next event arrives', async () => {
+    // The shared bridge runtime serializes turns: a replacement `start`
+    // waits (bounded) for the aborted turn's `onStart` to settle. OpenCode
+    // observes its abort signal at the top of the event loop, so any event
+    // after the abort — a heartbeat is enough — must settle the turn; it
+    // must not keep waiting for the turn's own completion events.
+    const emitted: Array<Record<string, unknown>> = [];
+    const emitError = vi.fn();
+    const userMessages = createUserMessages();
+    const abort = new AbortController();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Start.',
+    };
+    bridgeMock.turn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: userMessages,
+      abortSignal: abort.signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError,
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        // The turn is in flight when the host aborts.
+        promptAsync: vi.fn(async () => {
+          queueMicrotask(() => abort.abort());
+          return { data: {} };
+        }),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              // No completion events — the model is mid-work. Deliver one
+              // heartbeat after the abort; nothing else, ever.
+              await new Promise<void>(resolve => {
+                if (abort.signal.aborted) return resolve();
+                abort.signal.addEventListener('abort', () => resolve(), {
+                  once: true,
+                });
+              });
+              yield {
+                type: 'session.updated',
+                properties: { sessionID: 'session-1' },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    // Resolves only once `onStart` settles — the very promise the shared
+    // runtime's turn fence waits on before starting a replacement turn.
+    await import('./index');
+
     expect(emitError).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'OpenCode turn failed' }),
     );
@@ -352,6 +491,7 @@ describe('OpenCode bridge turn settlement', () => {
       v2: {
         session: {
           context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
           permission: { reply: permissionReplyMock },
         },
       },

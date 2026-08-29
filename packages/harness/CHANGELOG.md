@@ -1,5 +1,20 @@
 # @ai-sdk/harness
 
+## 1.0.93
+
+### Patch Changes
+
+- cc9f6ce: fix(harness): stop diagnosing caller-initiated aborts as bridge errors, and serialize bridge turns so a start racing an aborted turn's teardown no longer overlaps it (bounded by a teardown grace period, after which the start proceeds as before)
+- 7608210: feat(harness): add `model` parameter to `HarnessAgent` instead of having each harness adapter support it on their own constructor functions
+- 6f8a2d7: fix (harness): ensure the harness bootstrap recipe on resumed sessions too. The marker is keyed by recipe identity, so a resume whose bootstrap is already current costs one file read, while a resume into a sandbox bootstrapped by an older adapter build — a snapshot that outlived the harness version that made it — is re-bootstrapped instead of running a stale bridge against a newer host.
+- 14d4fc0: feat(harness): allow changing harness settings between turns via `prepareCall()` support on `HarnessAgent`
+- Updated dependencies [6669d69]
+- Updated dependencies [a6463ca]
+- Updated dependencies [e604532]
+- Updated dependencies [90192f1]
+  - ai@7.0.84
+  - @ai-sdk/provider-utils@5.0.33
+
 ## 1.0.92
 
 ### Patch Changes

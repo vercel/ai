@@ -104,6 +104,10 @@ export function createCodexACP({
     portEndpoint,
     source,
     executable: CODEX_ACP_EXECUTABLE,
+    modelMapping: {
+      type: 'session-config-option',
+      path: 'model',
+    },
     forwardEnv: webSearch ? [] : ['CODEX_CONFIG'],
     credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv }) => {
