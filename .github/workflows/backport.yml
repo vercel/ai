@@ -1,6 +1,5 @@
 # Backport pull requests to the next-older release branch by adding a
-# "backport" label. Two pull_request_target events cover both orderings
-# race-free without requiring approval for workflows triggered from forks:
+# "backport" label. Two pull_request events cover both orderings race-free:
 #   - labeled:  picks up a "backport" label added to an already-merged PR.
 #   - closed:   fires when a PR is merged; if it carries the "backport" label
 #               (i.e. the label was added before merge), it is backported.
@@ -10,7 +9,7 @@
 name: Backport
 
 on:
-  pull_request_target:
+  pull_request:
     types: [labeled, closed]
   workflow_dispatch:
     inputs:
@@ -150,7 +149,7 @@ jobs:
 
           PR_NUMBER=""
 
-          if [ "$EVENT_NAME" = "pull_request_target" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             # The job-level condition filters unrelated labels and closures.
             # Keep these checks as defense in depth for future trigger changes.
             if [ "$PR_ACTION" = "labeled" ] && [ "$ISSUE_LABEL" != "backport" ]; then
@@ -182,7 +181,7 @@ jobs:
           [ "$HAS_BACKPORT_LABEL" = "true" ] || skip "PR #${PR_NUMBER} does not have the backport label"
 
           HEAD_REPO=$(echo "$PR" | jq -r '.head.repo.full_name // empty')
-          if [ "$EVENT_NAME" = "pull_request_target" ] && [ "$HEAD_REPO" != "$REPO" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REPO" != "$REPO" ]; then
             {
               echo "@${LABELER_LOGIN} this pull request was opened from a fork and must be backported with a workflow_dispatch event."
               echo
@@ -196,7 +195,8 @@ jobs:
               echo '```'
             } > comment.md
 
-            # Best-effort: don't let a failure to post guidance fail the job.
+            # Best-effort: GITHUB_TOKEN is read-only for pull_request events from
+            # forks, so commenting may fail. Don't let that fail the job.
             gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md \
               || echo "::warning::could not comment on fork PR #${PR_NUMBER} (token lacks write access)"
             skip "PR #${PR_NUMBER} is from a fork and must be backported with workflow_dispatch"
