@@ -32,7 +32,17 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    if: github.repository_owner == 'vercel'
+    if: |
+      github.repository_owner == 'vercel' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'pull_request' &&
+          github.event.action == 'labeled' &&
+          github.event.label.name == 'backport'
+        )
+      )
     outputs:
       should-backport: ${{ steps.resolve.outputs.should-backport }}
       pr-number: ${{ steps.resolve.outputs.pr-number }}
