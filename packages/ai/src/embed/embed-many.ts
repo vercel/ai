@@ -13,6 +13,7 @@ import type { Warning } from '../types/warning';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
+import { setOwn } from '../util/set-own';
 import { splitArray } from '../util/split-array';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import type { EmbedManyResult } from './embed-many-result';
@@ -388,10 +389,14 @@ export async function embedMany({
                 for (const [providerName, metadata] of Object.entries(
                   result.providerMetadata,
                 )) {
-                  providerMetadata[providerName] = {
+                  // `providerName` comes from provider-supplied metadata
+                  // keys, so plain bracket assignment here would let a key
+                  // named `__proto__` mutate Object.prototype instead of
+                  // being stored as an own property.
+                  setOwn(providerMetadata, providerName, {
                     ...(providerMetadata[providerName] ?? {}),
                     ...metadata,
-                  };
+                  });
                 }
               }
             }

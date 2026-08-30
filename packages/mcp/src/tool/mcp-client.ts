@@ -1191,7 +1191,11 @@ class DefaultMCPClient implements MCPClient {
     },
   ): McpToolSet<TOOL_SCHEMAS> {
     definitions = this.prepareToolDefinitions(definitions);
-    const tools: Record<string, Tool & { _meta?: ToolMeta }> = {};
+    // Use a prototype-less map: `name` comes from the MCP server's tool list,
+    // so a plain `{}` would let a tool named `__proto__` mutate Object.prototype
+    // instead of being stored as an own property.
+    const tools: Record<string, Tool & { _meta?: ToolMeta }> =
+      Object.create(null);
 
     for (const {
       name,

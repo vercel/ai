@@ -176,9 +176,13 @@ class DefaultProviderRegistry<
   PROVIDERS extends Record<string, ProviderV4 | ProviderV3>,
   SEPARATOR extends string,
 > implements ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
+  // Use a prototype-less map: `id` (in registerProvider below) is
+  // developer-supplied, but a plain object would still let an id of
+  // `__proto__` mutate Object.prototype instead of being stored as an own
+  // property, for consistency with the other lookup maps in this codebase.
   private providers: Partial<
     Record<keyof PROVIDERS, ProviderV4 & ProviderWithOptionalVideoModel>
-  > = {};
+  > = Object.create(null);
   private separator: SEPARATOR;
   private languageModelMiddleware?:
     | LanguageModelMiddleware
