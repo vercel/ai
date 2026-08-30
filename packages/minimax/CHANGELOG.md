@@ -1,5 +1,11 @@
 # @ai-sdk/minimax
 
+## 2.0.13
+
+### Patch Changes
+
+- 2c90e90: fix(provider/minimax): send a default `16:9` ratio for MiniMax-H3 text-to-video
+
 ## 2.0.12
 
 ### Patch Changes
