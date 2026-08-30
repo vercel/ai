@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 3.0.119
+
+### Patch Changes
+
+- 1912e88: Preserve complete Google Generative Language usage metadata in raw usage results.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
 ## 3.0.118
 
 ### Patch Changes

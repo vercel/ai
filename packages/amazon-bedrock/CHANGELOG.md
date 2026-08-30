@@ -1,5 +1,18 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.166
+
+### Patch Changes
+
+- ada21b6: Omit assistant messages when only cache points remain after unsigned reasoning is filtered.
+- fb9b783: feat(amazon-bedrock): add model family setting for embeddings to support ARN
+- 6b88988: Accept citation deltas in Amazon Bedrock streaming responses.
+- 06cc1cb: Enable Anthropic reasoning budgets for application inference profile ARNs.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+  - @ai-sdk/anthropic@3.0.115
+  - @ai-sdk/openai@3.0.105
+
 ## 4.0.165
 
 ### Patch Changes

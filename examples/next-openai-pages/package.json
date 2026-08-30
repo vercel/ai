@@ -8,9 +8,9 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.104",
-    "@ai-sdk/react": "3.0.274",
-    "ai": "6.0.271",
+    "@ai-sdk/openai": "3.0.105",
+    "@ai-sdk/react": "3.0.275",
+    "ai": "6.0.272",
     "next": "^15.5.21",
     "react": "^18",
     "react-dom": "^18",

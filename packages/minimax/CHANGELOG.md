@@ -1,5 +1,15 @@
 # @ai-sdk/minimax
 
+## 2.0.12
+
+### Patch Changes
+
+- 658d7d9: Add model-aware MiniMax 480P and 768P video resolutions, duration limits, and reference-input validation.
+- 658d7d9: Map MiniMax 480P and 768P frame sizes onto their named video resolution tiers, so a typed top-level `resolution` can reach them.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+  - @ai-sdk/anthropic@3.0.115
+
 ## 2.0.11
 
 ### Patch Changes
