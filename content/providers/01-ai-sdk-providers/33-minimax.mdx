@@ -182,6 +182,12 @@ Anything outside the table, or a tier the selected model does not support, warns
 and falls back to the model default. `providerOptions.minimax.resolution` names
 the tier exactly and wins over the top-level value, which is reported as ignored.
 
+For **text-to-video**, `aspectRatio` defaults to `16:9` when omitted. The MiniMax
+API requires a concrete ratio for text-only requests and does not accept
+`adaptive`. For **reference-to-video**, the API default is `adaptive` when
+`aspectRatio` is omitted. For **image-to-video** with frame images, the aspect
+ratio follows the input image.
+
 <Note>
   Result URLs are time-limited. Download and persist the video to your own
   storage promptly after generation.
