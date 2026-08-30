@@ -18,7 +18,6 @@ Response: I'll go with "Hello" as it's a common greeting and keeps it simple.",
     "raw": "stop",
     "unified": "stop",
   },
-  "providerMetadata": undefined,
   "request": {
     "body": {
       "frequency_penalty": undefined,
@@ -153,7 +152,6 @@ I should call this function to advance the user's request.",
     "raw": "tool_calls",
     "unified": "tool-calls",
   },
-  "providerMetadata": undefined,
   "request": {
     "body": {
       "frequency_penalty": undefined,
