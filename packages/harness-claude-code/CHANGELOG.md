@@ -1,5 +1,17 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.98
+
+### Patch Changes
+
+- e79bc7a: fix(harness-claude-code): resume the exact conversation instead of the most recent one in the working directory
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- eb59f2a: fix(harness): ensure harness adapters can stream tool input deltas before the complete tool call arrives
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness@1.0.94
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 1.0.97
 
 ### Patch Changes
