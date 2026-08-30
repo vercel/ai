@@ -475,15 +475,9 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV3 {
         warnings.push({
           type: 'unsupported',
           feature: 'aspectRatio',
-<<<<<<< HEAD
-          details:
-            `${this.modelId} does not support the aspect ratio "${options.aspectRatio}". ` +
-            'Using the provider default (adaptive).',
-=======
           details: isTextToVideo
             ? `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". Using the default (${DEFAULT_ASPECT_RATIO}).`
             : `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". Using the provider default (adaptive).`,
->>>>>>> 494f1ac4d4 (fix(minimax): default aspect ratio support minimax t2v (#18339))
         });
         if (isTextToVideo) {
           ratio = DEFAULT_ASPECT_RATIO;
