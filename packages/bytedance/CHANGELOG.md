@@ -1,5 +1,13 @@
 # @ai-sdk/bytedance
 
+## 1.0.39
+
+### Patch Changes
+
+- 8690004: Expose the returned last frame URL in video generation provider metadata.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
 ## 1.0.38
 
 ### Patch Changes

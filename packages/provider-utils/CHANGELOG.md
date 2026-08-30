@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.50
+
+### Patch Changes
+
+- cc23556: Mark transient network errors that occur while reading successful response bodies as retryable.
+
 ## 4.0.49
 
 ### Patch Changes

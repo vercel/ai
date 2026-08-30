@@ -1,5 +1,13 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.74
+
+### Patch Changes
+
+- 6d44462: Support text and thinking parts in array-based chat completion content while ignoring unknown part types.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
 ## 2.0.73
 
 ### Patch Changes

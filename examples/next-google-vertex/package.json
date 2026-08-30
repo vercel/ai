@@ -8,8 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/google-vertex": "4.0.193",
-    "ai": "6.0.271",
+    "@ai-sdk/google-vertex": "4.0.194",
+    "ai": "6.0.272",
     "geist": "^1.3.1",
     "next": "^15.5.21",
     "react": "^18",

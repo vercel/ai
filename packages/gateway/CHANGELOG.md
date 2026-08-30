@@ -1,5 +1,15 @@
 # @ai-sdk/gateway
 
+## 3.0.185
+
+### Patch Changes
+
+- cc23556: Mark transient network errors that occur while reading successful response bodies as retryable.
+- 823cc03: Backport: chore(provider/gateway): update gateway model settings files
+- 3f96cf8: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
 ## 3.0.184
 
 ### Patch Changes

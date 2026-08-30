@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.272
+
+### Patch Changes
+
+- e822a1d: Reject `generateText` responses that do not satisfy a required or specifically selected tool choice, and expose the normalized response content on `ToolChoiceViolationError` for opt-in recovery.
+- 8c51a25: fix(ai): allow tool approval secrets in ToolLoopAgent settings and prepareCall
+- Updated dependencies [cc23556]
+- Updated dependencies [823cc03]
+- Updated dependencies [3f96cf8]
+  - @ai-sdk/provider-utils@4.0.50
+  - @ai-sdk/gateway@3.0.185
+
 ## 6.0.271
 
 ### Patch Changes
