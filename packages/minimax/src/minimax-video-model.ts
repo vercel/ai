@@ -63,20 +63,32 @@ const modelResolutionSettings: Record<
 };
 
 // The top-level `resolution` is `{width}x{height}`, but the API takes a named
-// tier, so map canonical 2K frame sizes onto the API's 2K tier. MiniMax does
-// not document exact dimensions for the 480P and 768P tiers; callers can select
-// those explicitly through provider options.
-// One canonical frame size per ratio H3 supports, so a caller who pairs a
-// resolution with any supported ratio resolves to the tier instead of being
-// told the resolution is unsupported.
+// tier, so map canonical frame sizes onto the tiers. One frame size per ratio
+// per tier, so a caller who pairs a resolution with any supported ratio
+// resolves to the tier instead of being told the resolution is unsupported.
+// MiniMax does not publish tier dimensions, so this is a closed table rather
+// than a rule: 480P and 768P rows are named for the shorter side, the 2K rows
+// for the longer one. A frame size not listed here warns.
 const RESOLUTION_MAP: Record<string, string> = {
-  // Square
+  // 480P — square, landscape, portrait
+  '480x480': '480P',
+  '1120x480': '480P',
+  '854x480': '480P',
+  '640x480': '480P',
+  '480x854': '480P',
+  '480x640': '480P',
+  // 768P — square, landscape, portrait
+  '768x768': '768P',
+  '1792x768': '768P',
+  '1366x768': '768P',
+  '1024x768': '768P',
+  '768x1366': '768P',
+  '768x1024': '768P',
+  // 2K — square, landscape, portrait
   '2048x2048': '2K',
-  // Landscape
   '2560x1080': '2K',
   '2560x1440': '2K',
   '2048x1536': '2K',
-  // Portrait
   '1440x2560': '2K',
   '1536x2048': '2K',
 };
@@ -182,8 +194,9 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     if (options.resolution != null) {
       const mapped = resolveTopLevelResolution(options.resolution);
       if (resolution != null) {
-        // The provider option is already a tier, so the only way the two can
-        // disagree is a top-level value that maps to no tier at all.
+        // The provider option is already a tier and wins, so say so whenever
+        // the top-level value is dropped — it either names no tier, or names a
+        // different one now that every tier has frame sizes.
         if (mapped == null) {
           warnings.push({
             type: 'unsupported',
@@ -191,6 +204,14 @@ export class MiniMaxVideoModel implements VideoModelV4 {
             details:
               `Unrecognized resolution "${options.resolution}". ${this.modelId} supports ${supportedResolutionNames}, ` +
               `so providerOptions.minimax.resolution ("${resolution}") was used instead.`,
+          });
+        } else if (mapped !== resolution) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'resolution',
+            details:
+              `The resolution "${options.resolution}" selects ${mapped}, but ` +
+              `providerOptions.minimax.resolution ("${resolution}") was used instead.`,
           });
         }
       } else if (mapped != null && supportedResolutionSet.has(mapped)) {

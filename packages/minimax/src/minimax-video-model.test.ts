@@ -328,6 +328,146 @@ describe('MiniMaxVideoModel', () => {
       },
     );
 
+    // The lower tiers get the same one-frame-size-per-ratio treatment as 2K, so
+    // a typed caller — whose `resolution` is `{width}x{height}` — can reach them
+    // without dropping to provider options.
+    it.each([
+      ['768x768', '1:1'],
+      ['1792x768', '21:9'],
+      ['1366x768', '16:9'],
+      ['1024x768', '4:3'],
+      ['768x1366', '9:16'],
+      ['768x1024', '3:4'],
+    ] as const)(
+      'should map the top-level resolution %s (%s) onto the 768P tier',
+      async (resolution, aspectRatio) => {
+        const model = createModel();
+
+        const { warnings } = await model.doGenerate({
+          ...defaultOptions,
+          resolution,
+          aspectRatio,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'MiniMax-H3',
+          content: [{ type: 'text', text: prompt }],
+          resolution: '768P',
+          duration: 5,
+          ratio: aspectRatio,
+        });
+        expect(
+          warnings.some(
+            w => w.type === 'unsupported' && w.feature === 'resolution',
+          ),
+        ).toBe(false);
+      },
+    );
+
+    it.each([
+      ['480x480', '1:1'],
+      ['1120x480', '21:9'],
+      ['854x480', '16:9'],
+      ['640x480', '4:3'],
+      ['480x854', '9:16'],
+      ['480x640', '3:4'],
+    ] as const)(
+      'should map the top-level resolution %s (%s) onto the 480P tier',
+      async (resolution, aspectRatio) => {
+        const model = createModel({ modelId: 'MiniMax-H3-Max' });
+
+        const { warnings } = await model.doGenerate({
+          ...defaultOptions,
+          resolution,
+          aspectRatio,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'MiniMax-H3-Max',
+          content: [{ type: 'text', text: prompt }],
+          resolution: '480P',
+          duration: 5,
+          ratio: aspectRatio,
+        });
+        expect(
+          warnings.some(
+            w => w.type === 'unsupported' && w.feature === 'resolution',
+          ),
+        ).toBe(false);
+      },
+    );
+
+    it('should map a 768P frame size on MiniMax-H3-Max, not just fall back to its default', async () => {
+      const model = createModel({ modelId: 'MiniMax-H3-Max' });
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1366x768',
+        aspectRatio: '16:9',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'MiniMax-H3-Max',
+        resolution: '768P',
+      });
+      expect(
+        warnings.some(
+          w => w.type === 'unsupported' && w.feature === 'resolution',
+        ),
+      ).toBe(false);
+    });
+
+    // Now that every tier has frame sizes, a top-level value can name a real
+    // but different tier than the provider option. The option still wins, but
+    // dropping the top-level value has to be reported.
+    it('should warn when a mapped top-level resolution names a different tier than the provider option', async () => {
+      const model = createModel();
+
+      const { warnings } = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1366x768',
+        providerOptions: minimaxOptions({ resolution: '2K' }),
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        resolution: '2K',
+      });
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'resolution',
+        details:
+          'The resolution "1366x768" selects 768P, but ' +
+          'providerOptions.minimax.resolution ("2K") was used instead.',
+      });
+    });
+
+    // A frame size can now name a real tier the selected model does not serve.
+    it.each([
+      ['MiniMax-H3', '854x480', '480P', '2K'],
+      ['MiniMax-H3-Max', '2560x1440', '2K', '768P'],
+    ] as const)(
+      'should warn that %s does not support the %s tier and use %s',
+      async (modelId, resolution, tier, expectedResolution) => {
+        const model = createModel({ modelId });
+
+        const { warnings } = await model.doGenerate({
+          ...defaultOptions,
+          resolution,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          resolution: expectedResolution,
+        });
+        expect(warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'resolution',
+          details: expect.stringContaining(
+            `${modelId} does not support the resolution "${tier}".`,
+          ),
+        });
+      },
+    );
+
     it.each([
       ['MiniMax-H3', '480P', '2K'],
       ['MiniMax-H3-Max', '2K', '768P'],
