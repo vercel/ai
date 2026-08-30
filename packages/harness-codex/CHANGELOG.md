@@ -1,5 +1,16 @@
 # @ai-sdk/harness-codex
 
+## 1.0.96
+
+### Patch Changes
+
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- 29786f0: fix(harness-codex): support Codex `xhigh` and `max` reasoning levels
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness@1.0.94
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 1.0.95
 
 ### Patch Changes
