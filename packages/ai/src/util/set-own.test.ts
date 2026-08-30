@@ -22,7 +22,9 @@ describe('setOwn', () => {
 
     // The value is instead stored as an ordinary own property.
     expect(Object.hasOwn(obj, '__proto__')).toBe(true);
-    expect(obj.__proto__).toEqual({ polluted: true });
+    expect(Object.getOwnPropertyDescriptor(obj, '__proto__')?.value).toEqual({
+      polluted: true,
+    });
   });
 
   it('does not go through other inherited Object.prototype setters/keys', () => {
