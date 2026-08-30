@@ -31,7 +31,13 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    if: github.repository_owner == 'vercel'
+    # A `labeled` trigger fires for every label. Filter before requesting a
+    # runner so unrelated labels on fork PRs do not leave approval-gated runs.
+    if: >
+      github.repository_owner == 'vercel' &&
+      (github.event_name != 'pull_request' ||
+        github.event.action != 'labeled' ||
+        github.event.label.name == 'backport')
     outputs:
       should-backport: ${{ steps.resolve.outputs.should-backport }}
       pr-number: ${{ steps.resolve.outputs.pr-number }}
