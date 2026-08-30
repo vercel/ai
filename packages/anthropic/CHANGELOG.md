@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.46
+
+### Patch Changes
+
+- aa45741: fix(provider/anthropic): preserve native message batch request counts in provider metadata and support the full language-model option surface in batch requests
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 4.0.45
 
 ### Patch Changes
