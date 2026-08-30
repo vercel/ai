@@ -15,9 +15,10 @@ export const minimaxVideoRatios = [
 ] as const;
 
 /**
- * Output resolutions supported by the MiniMax-H3 video model.
+ * Output resolutions supported by MiniMax video models. Availability depends
+ * on the selected model.
  */
-export const minimaxVideoResolutions = ['2K'] as const;
+export const minimaxVideoResolutions = ['480P', '768P', '2K'] as const;
 
 /**
  * Provider options for MiniMax video generation.

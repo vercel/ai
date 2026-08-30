@@ -46,7 +46,7 @@ const DEFAULT_RESOLUTION = '2K';
 const DEFAULT_ASPECT_RATIO = '16:9';
 const DEFAULT_POLL_INTERVAL_MS = 10_000;
 const DEFAULT_POLL_TIMEOUT_MS = 600_000;
-const MIN_DURATION_SECONDS = 5;
+const DEFAULT_DURATION_SECONDS = 5;
 const MAX_DURATION_SECONDS = 15;
 const MAX_REFERENCE_IMAGES = 9;
 const MAX_REFERENCE_VIDEOS = 3;
@@ -54,13 +54,21 @@ const MAX_REFERENCE_AUDIOS = 3;
 
 const allowedRatios = new Set<string>(minimaxVideoRatios);
 const allowedResolutions = new Set<string>(minimaxVideoResolutions);
+const modelResolutionSettings: Record<
+  string,
+  { supported: readonly string[]; default: string }
+> = {
+  'MiniMax-H3': { supported: ['768P', '2K'], default: DEFAULT_RESOLUTION },
+  'MiniMax-H3-Max': { supported: ['480P', '768P'], default: '768P' },
+};
 
 // The top-level `resolution` is `{width}x{height}`, but the API takes a named
-// tier, so map the canonical 2K frame sizes onto the single tier H3 supports.
-// Anything else can't be honored and warns.
+// tier, so map canonical 2K frame sizes onto the API's 2K tier. MiniMax does
+// not document exact dimensions for the 480P and 768P tiers; callers can select
+// those explicitly through provider options.
 // One canonical frame size per ratio H3 supports, so a caller who pairs a
 // resolution with any supported ratio resolves to the tier instead of being
-// told 2K is unsupported.
+// told the resolution is unsupported.
 const RESOLUTION_MAP: Record<string, string> = {
   // Square
   '2048x2048': '2K',
@@ -73,9 +81,8 @@ const RESOLUTION_MAP: Record<string, string> = {
   '1536x2048': '2K',
 };
 
-// A caller may pass the named tier itself rather than a frame size — `2K` is
-// what the MiniMax API takes, so it is the natural thing to send. Accept it
-// case-insensitively instead of reporting it as unrecognized.
+// A caller may pass a named tier itself rather than a frame size. Normalize it
+// case-insensitively to the exact casing expected by the MiniMax API.
 function resolveTopLevelResolution(resolution: string): string | undefined {
   const named = resolution.toUpperCase();
   return allowedResolutions.has(named) ? named : RESOLUTION_MAP[resolution];
@@ -124,7 +131,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'fps',
-        details: 'MiniMax-H3 does not support a custom frame rate.',
+        details: `${this.modelId} does not support a custom frame rate.`,
       });
     }
 
@@ -132,7 +139,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'seed',
-        details: 'MiniMax-H3 does not support a seed.',
+        details: `${this.modelId} does not support a seed.`,
       });
     }
 
@@ -140,8 +147,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'n',
-        details:
-          'MiniMax-H3 generates a single video per call. Only 1 video will be generated.',
+        details: `${this.modelId} generates a single video per call. Only 1 video will be generated.`,
       });
     }
 
@@ -149,14 +155,30 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'generateAudio',
-        details:
-          'The MiniMax-H3 API does not expose an audio parameter. The generateAudio option was ignored.',
+        details: `The ${this.modelId} API does not expose an audio parameter. The generateAudio option was ignored.`,
       });
     }
+
+    const resolutionSettings = modelResolutionSettings[this.modelId];
+    const supportedResolutions =
+      resolutionSettings?.supported ?? minimaxVideoResolutions;
+    const supportedResolutionSet = new Set<string>(supportedResolutions);
+    const supportedResolutionNames = supportedResolutions
+      .map(resolution => `"${resolution}"`)
+      .join(' or ');
 
     // Resolution: the API takes a named tier, so an explicit provider option
     // wins and a top-level value is resolved to a tier.
     let resolution: string | undefined = minimaxOptions?.resolution;
+    if (resolution != null && !supportedResolutionSet.has(resolution)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'resolution',
+        details: `${this.modelId} supports ${supportedResolutionNames}. The provider resolution "${resolution}" was ignored.`,
+      });
+      resolution = undefined;
+    }
+
     if (options.resolution != null) {
       const mapped = resolveTopLevelResolution(options.resolution);
       if (resolution != null) {
@@ -167,23 +189,24 @@ export class MiniMaxVideoModel implements VideoModelV4 {
             type: 'unsupported',
             feature: 'resolution',
             details:
-              `Unrecognized resolution "${options.resolution}". MiniMax-H3 only supports "2K", ` +
+              `Unrecognized resolution "${options.resolution}". ${this.modelId} supports ${supportedResolutionNames}, ` +
               `so providerOptions.minimax.resolution ("${resolution}") was used instead.`,
           });
         }
-      } else if (mapped != null) {
+      } else if (mapped != null && supportedResolutionSet.has(mapped)) {
         resolution = mapped;
       } else {
         warnings.push({
           type: 'unsupported',
           feature: 'resolution',
           details:
-            `Unrecognized resolution "${options.resolution}". MiniMax-H3 only ` +
-            'supports "2K".',
+            mapped == null
+              ? `Unrecognized resolution "${options.resolution}". ${this.modelId} supports ${supportedResolutionNames}.`
+              : `${this.modelId} does not support the resolution "${mapped}". It supports ${supportedResolutionNames}.`,
         });
       }
     }
-    resolution ??= DEFAULT_RESOLUTION;
+    resolution ??= resolutionSettings?.default ?? DEFAULT_RESOLUTION;
 
     // `convertImageModelFileToDataUri` passes `url` files through unchanged and
     // encodes inline data as a data URI. MiniMax `mm_file://…` handles survive
@@ -225,8 +248,8 @@ export class MiniMaxVideoModel implements VideoModelV4 {
         feature: firstFrameImage != null ? 'frameImages' : 'image',
         details:
           firstFrameMediaType === 'video'
-            ? 'MiniMax-H3 does not accept a video as a frame image. The video was ignored.'
-            : `MiniMax-H3 only accepts an image as a frame image; the "${firstFrame.mediaType}" file was ignored.`,
+            ? `${this.modelId} does not accept a video as a frame image. The video was ignored.`
+            : `${this.modelId} only accepts an image as a frame image; the "${firstFrame.mediaType}" file was ignored.`,
       });
       firstFrame = undefined;
     }
@@ -236,8 +259,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
         warnings.push({
           type: 'unsupported',
           feature: 'frameImages',
-          details:
-            'MiniMax-H3 requires a first_frame when a last_frame is provided. The last_frame was ignored.',
+          details: `${this.modelId} requires a first_frame when a last_frame is provided. The last_frame was ignored.`,
         });
         lastFrame = undefined;
       } else {
@@ -248,8 +270,8 @@ export class MiniMaxVideoModel implements VideoModelV4 {
             feature: 'frameImages',
             details:
               lastFrameMediaType === 'video'
-                ? 'MiniMax-H3 does not accept a video as a frame image. The last_frame video was ignored.'
-                : `MiniMax-H3 only accepts an image as a frame image; the "${lastFrame.mediaType}" last_frame was ignored.`,
+                ? `${this.modelId} does not accept a video as a frame image. The last_frame video was ignored.`
+                : `${this.modelId} only accepts an image as a frame image; the "${lastFrame.mediaType}" last_frame was ignored.`,
           });
           lastFrame = undefined;
         }
@@ -260,8 +282,29 @@ export class MiniMaxVideoModel implements VideoModelV4 {
 
     const referenceFiles = options.inputReferences ?? [];
     const referenceAudioUrls = minimaxOptions?.referenceAudioUrls ?? [];
+    const supportsReferences = this.modelId !== 'MiniMax-H3-Max';
+
+    if (!supportsReferences && referenceFiles.length > 0) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'inputReferences',
+        details:
+          'MiniMax-H3-Max does not support reference-to-video inputs. The references were ignored.',
+      });
+    }
+
+    if (!supportsReferences && referenceAudioUrls.length > 0) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'referenceAudioUrls',
+        details:
+          'MiniMax-H3-Max does not support reference audio. The audio was ignored.',
+      });
+    }
+
     const usesReferences =
-      referenceFiles.length > 0 || referenceAudioUrls.length > 0;
+      supportsReferences &&
+      (referenceFiles.length > 0 || referenceAudioUrls.length > 0);
 
     if (usesFrameImages) {
       if (firstFrame != null) {
@@ -405,8 +448,8 @@ export class MiniMaxVideoModel implements VideoModelV4 {
           type: 'unsupported',
           feature: 'aspectRatio',
           details: isTextToVideo
-            ? `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". Using the default (${DEFAULT_ASPECT_RATIO}).`
-            : `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". Using the provider default (adaptive).`,
+            ? `${this.modelId} does not support the aspect ratio "${options.aspectRatio}". Using the default (${DEFAULT_ASPECT_RATIO}).`
+            : `${this.modelId} does not support the aspect ratio "${options.aspectRatio}". Using the provider default (adaptive).`,
         });
         if (isTextToVideo) {
           ratio = DEFAULT_ASPECT_RATIO;
@@ -418,7 +461,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
         type: 'unsupported',
         feature: 'aspectRatio',
         details:
-          'MiniMax-H3 text-to-video does not support the adaptive aspect ratio. ' +
+          `${this.modelId} text-to-video does not support the adaptive aspect ratio. ` +
           `Using the default (${DEFAULT_ASPECT_RATIO}).`,
       });
       ratio = DEFAULT_ASPECT_RATIO;
@@ -427,8 +470,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'aspectRatio',
-        details:
-          'MiniMax-H3 derives the aspect ratio from the frame image; the requested ratio was ignored.',
+        details: `${this.modelId} derives the aspect ratio from the frame image; the requested ratio was ignored.`,
       });
       ratio = undefined;
     }
@@ -436,16 +478,18 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       ratio = DEFAULT_ASPECT_RATIO;
     }
 
-    // H3 takes an integer between 5 and 15, so round before clamping: a
-    // fractional duration is rejected by the API just as an out-of-range one is.
-    let duration = options.duration ?? MIN_DURATION_SECONDS;
+    // Both H3 models take an integer duration, but H3 starts at 4 seconds while
+    // H3-Max starts at 5. Round before clamping because the API rejects both
+    // fractional and out-of-range values.
+    const minDurationSeconds = this.modelId === 'MiniMax-H3' ? 4 : 5;
+    let duration = options.duration ?? DEFAULT_DURATION_SECONDS;
     if (options.duration != null) {
       if (!Number.isInteger(duration)) {
         duration = Math.round(duration);
         warnings.push({
           type: 'unsupported',
           feature: 'duration',
-          details: `MiniMax-H3 requires a whole number of seconds. The requested duration of ${options.duration} was rounded to ${duration}.`,
+          details: `${this.modelId} requires a whole number of seconds. The requested duration of ${options.duration} was rounded to ${duration}.`,
         });
       }
 
@@ -453,16 +497,16 @@ export class MiniMaxVideoModel implements VideoModelV4 {
         warnings.push({
           type: 'unsupported',
           feature: 'duration',
-          details: `MiniMax-H3 supports at most ${MAX_DURATION_SECONDS} seconds. The requested duration of ${options.duration} was clamped to ${MAX_DURATION_SECONDS}.`,
+          details: `${this.modelId} supports at most ${MAX_DURATION_SECONDS} seconds. The requested duration of ${options.duration} was clamped to ${MAX_DURATION_SECONDS}.`,
         });
         duration = MAX_DURATION_SECONDS;
-      } else if (duration < MIN_DURATION_SECONDS) {
+      } else if (duration < minDurationSeconds) {
         warnings.push({
           type: 'unsupported',
           feature: 'duration',
-          details: `MiniMax-H3 requires at least ${MIN_DURATION_SECONDS} seconds. The requested duration of ${options.duration} was clamped to ${MIN_DURATION_SECONDS}.`,
+          details: `${this.modelId} requires at least ${minDurationSeconds} seconds. The requested duration of ${options.duration} was clamped to ${minDurationSeconds}.`,
         });
-        duration = MIN_DURATION_SECONDS;
+        duration = minDurationSeconds;
       }
     }
 
