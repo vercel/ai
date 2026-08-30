@@ -333,8 +333,12 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
     if (choice.logprobs?.content != null || response.service_tier != null) {
       providerMetadata = {
         xai: {
-          ...(choice.logprobs?.content != null && { logprobs: choice.logprobs.content }),
-          ...(response.service_tier != null && { serviceTier: response.service_tier }),
+          ...(choice.logprobs?.content != null && {
+            logprobs: choice.logprobs.content,
+          }),
+          ...(response.service_tier != null && {
+            serviceTier: response.service_tier,
+          }),
         },
       };
     }
