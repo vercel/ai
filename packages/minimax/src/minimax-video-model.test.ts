@@ -162,7 +162,6 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '768P',
         duration: 5,
-        ratio: '16:9',
       });
     });
 
@@ -896,7 +895,6 @@ describe('MiniMaxVideoModel', () => {
           content: [{ type: 'text', text: prompt }],
           resolution,
           duration: 5,
-          ratio: '16:9',
         });
       },
     );
@@ -918,7 +916,6 @@ describe('MiniMaxVideoModel', () => {
         content: [{ type: 'text', text: prompt }],
         resolution: '480P',
         duration: 5,
-        ratio: '16:9',
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
@@ -1197,7 +1194,7 @@ describe('MiniMaxVideoModel', () => {
           type: 'unsupported',
           feature: 'aspectRatio',
           details:
-            'MiniMax-H3-Max does not support the aspect ratio "5:3". Using the default (16:9).',
+            'MiniMax-H3-Max does not support the aspect ratio "5:3". Using the provider default (adaptive).',
         },
       ]);
     });
