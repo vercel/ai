@@ -42,6 +42,7 @@ type MiniMaxVideoDoGenerateOptions = Parameters<
 >[0];
 
 const DEFAULT_RESOLUTION = '2K';
+const DEFAULT_ASPECT_RATIO = '16:9';
 const DEFAULT_POLL_INTERVAL_MS = 10_000;
 const DEFAULT_POLL_TIMEOUT_MS = 600_000;
 const DEFAULT_DURATION_SECONDS = 5;
@@ -465,6 +466,7 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV3 {
 
     // Aspect ratio. In frame-image mode the ratio follows the supplied image,
     // so an explicit ratio is ignored.
+    const isTextToVideo = content.length === 1;
     let ratio = minimaxOptions?.ratio as string | undefined;
     if (ratio == null && options.aspectRatio != null) {
       if (allowedRatios.has(options.aspectRatio)) {
@@ -473,11 +475,24 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV3 {
         warnings.push({
           type: 'unsupported',
           feature: 'aspectRatio',
-          details:
-            `${this.modelId} does not support the aspect ratio "${options.aspectRatio}". ` +
-            'Using the provider default (adaptive).',
+          details: isTextToVideo
+            ? `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". Using the default (${DEFAULT_ASPECT_RATIO}).`
+            : `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". Using the provider default (adaptive).`,
         });
+        if (isTextToVideo) {
+          ratio = DEFAULT_ASPECT_RATIO;
+        }
       }
+    }
+    if (ratio === 'adaptive' && isTextToVideo) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          'MiniMax-H3 text-to-video does not support the adaptive aspect ratio. ' +
+          `Using the default (${DEFAULT_ASPECT_RATIO}).`,
+      });
+      ratio = DEFAULT_ASPECT_RATIO;
     }
     if (usesFrameImages && ratio != null) {
       warnings.push({
@@ -486,6 +501,9 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV3 {
         details: `${this.modelId} derives the aspect ratio from the frame image; the requested ratio was ignored.`,
       });
       ratio = undefined;
+    }
+    if (ratio == null && isTextToVideo) {
+      ratio = DEFAULT_ASPECT_RATIO;
     }
 
     // Both H3 models take an integer duration, but H3 starts at 4 seconds while
