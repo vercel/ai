@@ -233,12 +233,7 @@ describe('MiniMaxVideoModel', () => {
         model: 'MiniMax-H3',
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
-<<<<<<< HEAD
-        duration: 5,
-=======
         duration: 4,
-        ratio: '16:9',
->>>>>>> 5366b7baeb (fix(minimax): support 480P and 768P video resolutions (#20004))
       });
       expect(warnings).toContainEqual({
         type: 'unsupported',
@@ -284,12 +279,7 @@ describe('MiniMaxVideoModel', () => {
         model: 'MiniMax-H3',
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
-<<<<<<< HEAD
-        duration: 5,
-=======
         duration: 4,
-        ratio: '16:9',
->>>>>>> 5366b7baeb (fix(minimax): support 480P and 768P video resolutions (#20004))
       });
       expect(
         warnings

@@ -473,31 +473,12 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV3 {
         warnings.push({
           type: 'unsupported',
           feature: 'aspectRatio',
-<<<<<<< HEAD
           details:
-            `MiniMax-H3 does not support the aspect ratio "${options.aspectRatio}". ` +
+            `${this.modelId} does not support the aspect ratio "${options.aspectRatio}". ` +
             'Using the provider default (adaptive).',
-=======
-          details: isTextToVideo
-            ? `${this.modelId} does not support the aspect ratio "${options.aspectRatio}". Using the default (${DEFAULT_ASPECT_RATIO}).`
-            : `${this.modelId} does not support the aspect ratio "${options.aspectRatio}". Using the provider default (adaptive).`,
->>>>>>> 5366b7baeb (fix(minimax): support 480P and 768P video resolutions (#20004))
         });
       }
     }
-<<<<<<< HEAD
-=======
-    if (ratio === 'adaptive' && isTextToVideo) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'aspectRatio',
-        details:
-          `${this.modelId} text-to-video does not support the adaptive aspect ratio. ` +
-          `Using the default (${DEFAULT_ASPECT_RATIO}).`,
-      });
-      ratio = DEFAULT_ASPECT_RATIO;
-    }
->>>>>>> 5366b7baeb (fix(minimax): support 480P and 768P video resolutions (#20004))
     if (usesFrameImages && ratio != null) {
       warnings.push({
         type: 'unsupported',
