@@ -85,6 +85,7 @@ import {
   type OpenAIResponsesModelId,
 } from './openai-responses-language-model-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import { removePatternKeyword } from './openai-responses-sanitize-schema';
 import type {
   ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
@@ -461,7 +462,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                     strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
-                    schema: responseFormat.schema,
+                    schema: removePatternKeyword(responseFormat.schema),
                   }
                 : { type: 'json_object' },
           }),
