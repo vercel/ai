@@ -583,6 +583,7 @@ describe('xAI Responses batch language model', () => {
               toolName: 'web_search',
               input: '{"query":"Vercel"}',
               providerExecuted: true,
+              dynamic: true,
             },
             { type: 'text', text: 'Final answer' },
             {

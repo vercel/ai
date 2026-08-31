@@ -512,7 +512,7 @@ function convertXaiChatBatchResponse(
         toolName: toolCall.function.name,
         input: toolCall.function.arguments,
         ...(isXaiProviderTool(toolCall.function.name)
-          ? { providerExecuted: true }
+          ? { providerExecuted: true, dynamic: true }
           : {}),
       });
     }
