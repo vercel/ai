@@ -346,8 +346,9 @@ const OFFICIAL_MODELS: ModelCardData[] = [
   },
   {
     title: 'Black Forest Labs',
+    logo: { src: '/images/icons/black-forest-labs.svg', invert: true },
     href: '/providers/ai-sdk-providers/black-forest-labs',
-    color: '000000',
+    color: '07130e',
     features: { imageGeneration: true },
   },
   {
