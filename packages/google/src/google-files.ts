@@ -151,7 +151,7 @@ export class GoogleFiles implements FilesV4 {
         });
       }
 
-      await delay(pollIntervalMs);
+      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
 
       const fileNameMatch = /^files\/([^/]+)$/.exec(file.name);
       const filePath =

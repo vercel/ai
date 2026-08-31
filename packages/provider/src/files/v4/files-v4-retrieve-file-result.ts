@@ -8,6 +8,8 @@ import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 export type FilesV4RetrieveFileResult = {
   /**
    * A provider reference mapping provider names to provider-specific file identifiers.
+   * Contains only the operated provider's entry — when working with a merged
+   * multi-provider reference, do not reassign it with this result.
    */
   providerReference: SharedV4ProviderReference;
 

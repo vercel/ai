@@ -404,6 +404,29 @@ describe('GoogleFiles', () => {
         },
       );
 
+      it('should reject promptly when aborted during the polling delay', async () => {
+        const { files } = createMockFiles({
+          pollResponses: [{ state: 'PROCESSING' }, { state: 'PROCESSING' }],
+        });
+        const controller = new AbortController();
+
+        // a long interval that only an abort-aware delay can escape
+        const uploadPromise = files.uploadFile({
+          data: { type: 'data', data: new Uint8Array([1]) },
+          mediaType: 'application/octet-stream',
+          abortSignal: controller.signal,
+          providerOptions: {
+            google: { pollIntervalMs: 60_000, pollTimeoutMs: 120_000 },
+          },
+        });
+
+        setTimeout(() => controller.abort(), 10);
+
+        const start = Date.now();
+        await expect(uploadPromise).rejects.toThrow();
+        expect(Date.now() - start).toBeLessThan(5000);
+      });
+
       it('should poll until file state becomes ACTIVE', async () => {
         let pollCount = 0;
         const { files, fetchFn } = createMockFiles({
