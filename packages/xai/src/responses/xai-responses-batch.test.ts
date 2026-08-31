@@ -504,6 +504,99 @@ describe('xAI Responses batch language model', () => {
     ]);
   });
 
+  it('preserves provider-executed tool calls and final text from batch transcripts', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'json-value',
+      body: {
+        results: [
+          {
+            batch_request_id: 'provider-tool',
+            batch_result: {
+              response: {
+                chat_get_completion: {
+                  ...chatResultBody(''),
+                  choices: [
+                    {
+                      index: 0,
+                      message: {
+                        role: 'assistant',
+                        content: null,
+                        tool_calls: [
+                          {
+                            id: 'web-search-1',
+                            type: 'function',
+                            function: {
+                              name: 'web_search',
+                              arguments: '{"query":"Vercel"}',
+                            },
+                          },
+                        ],
+                      },
+                      finish_reason: '',
+                    },
+                    {
+                      index: 1,
+                      message: {
+                        role: 'tool',
+                        content: null,
+                        tool_calls: [],
+                      },
+                      finish_reason: '',
+                    },
+                    {
+                      index: 2,
+                      message: {
+                        role: 'assistant',
+                        content: 'Final answer',
+                        tool_calls: null,
+                      },
+                      finish_reason: 'stop',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        pagination_token: null,
+      },
+    };
+    const model = createXai({ apiKey: 'test-api-key' })('grok-4.3');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'provider-tool',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'web-search-1',
+              toolName: 'web_search',
+              input: '{"query":"Vercel"}',
+              providerExecuted: true,
+            },
+            { type: 'text', text: 'Final answer' },
+            {
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://example.com/source',
+            },
+          ],
+          finishReason: { unified: 'stop', raw: 'stop' },
+        },
+      },
+    ]);
+  });
+
   it('only exposes batch support on xAI Responses models', () => {
     const provider = createXai({ apiKey: 'test-api-key' });
 

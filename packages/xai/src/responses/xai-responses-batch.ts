@@ -481,8 +481,8 @@ function convertXaiChatBatchResponse(
     };
   }
 
-  const choice = response.choices?.[0];
-  if (choice == null) {
+  const choices = response.choices;
+  if (choices == null || choices.length === 0) {
     return {
       success: false,
       error: {
@@ -493,22 +493,29 @@ function convertXaiChatBatchResponse(
   }
 
   const content: LanguageModelV4Content[] = [];
-  if (choice.message.content) {
-    content.push({ type: 'text', text: choice.message.content });
-  }
-  if (choice.message.reasoning_content) {
-    content.push({
-      type: 'reasoning',
-      text: choice.message.reasoning_content,
-    });
-  }
-  for (const toolCall of choice.message.tool_calls ?? []) {
-    content.push({
-      type: 'tool-call',
-      toolCallId: toolCall.id,
-      toolName: toolCall.function.name,
-      input: toolCall.function.arguments,
-    });
+  for (const choice of choices) {
+    if (choice.message.role !== 'assistant') continue;
+
+    if (choice.message.content) {
+      content.push({ type: 'text', text: choice.message.content });
+    }
+    if (choice.message.reasoning_content) {
+      content.push({
+        type: 'reasoning',
+        text: choice.message.reasoning_content,
+      });
+    }
+    for (const toolCall of choice.message.tool_calls ?? []) {
+      content.push({
+        type: 'tool-call',
+        toolCallId: toolCall.id,
+        toolName: toolCall.function.name,
+        input: toolCall.function.arguments,
+        ...(isXaiProviderTool(toolCall.function.name)
+          ? { providerExecuted: true }
+          : {}),
+      });
+    }
   }
   for (const url of response.citations ?? []) {
     content.push({
@@ -524,8 +531,8 @@ function convertXaiChatBatchResponse(
     result: {
       content,
       finishReason: {
-        unified: mapXaiFinishReason(choice.finish_reason),
-        raw: choice.finish_reason ?? undefined,
+        unified: mapXaiFinishReason(choices.at(-1)?.finish_reason),
+        raw: choices.at(-1)?.finish_reason ?? undefined,
       },
       usage: response.usage
         ? convertXaiChatUsage(response.usage)
@@ -547,4 +554,8 @@ function convertXaiChatBatchResponse(
       }),
     },
   };
+}
+
+function isXaiProviderTool(toolName: string): boolean {
+  return ['web_search', 'x_search', 'code_execution'].includes(toolName);
 }

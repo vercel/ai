@@ -709,7 +709,7 @@ export const xaiChatResponseSchema = z.object({
     .array(
       z.object({
         message: z.object({
-          role: z.literal('assistant'),
+          role: z.enum(['assistant', 'tool']),
           content: z.string().nullish(),
           reasoning_content: z.string().nullish(),
           tool_calls: z
