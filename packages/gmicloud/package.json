@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/gmicloud",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "type": "commonjs",
   "license": "Apache-2.0",
   "sideEffects": false,

@@ -1,5 +1,21 @@
 # ai
 
+## 5.0.250
+
+### Patch Changes
+
+- 4e3f54b: Validate persisted typed tool calls against current input and output schemas.
+  Schema-incompatible empty or error inputs and completed or failed history from
+  unavailable tools remain loadable as dynamic tool parts instead of exposing
+  unvalidated values under current static tool types.
+- 26165ee: Mark transient network errors that occur while reading successful response bodies as retryable, including AI Gateway responses.
+- Updated dependencies [810dc70]
+- Updated dependencies [7a926ba]
+- Updated dependencies [25c1956]
+- Updated dependencies [26165ee]
+  - @ai-sdk/gateway@2.0.144
+  - @ai-sdk/provider-utils@3.0.36
+
 ## 5.0.249
 
 ### Patch Changes

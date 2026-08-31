@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 2.0.100
+
+### Patch Changes
+
+- cd8f35c: Preserve tool calls when using JSON structured output.
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
 ## 2.0.99
 
 ### Patch Changes
