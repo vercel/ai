@@ -1,12 +1,81 @@
 const ansiEscape = String.fromCharCode(27);
+const bell = String.fromCharCode(7);
+const stringTerminator = `${ansiEscape}\\\\`;
 
-export const ansiPattern = new RegExp(`${ansiEscape}\\[[0-?]*[ -/]*[@-~]`, 'g');
-export const ansiPrefixPattern = new RegExp(
-  `^${ansiEscape}\\[[0-?]*[ -/]*[@-~]`,
-);
+// CSI sequences: ESC [ parameter bytes intermediate bytes final byte.
+const csiSequence = `${ansiEscape}\\[[0-?]*[ -/]*[@-~]`;
+
+// OSC sequences: ESC ] command, terminated by BEL or ST. Includes unterminated
+// sequences so that partial sequences in streamed text are never forwarded.
+const oscSequence = `${ansiEscape}\\][^${bell}${ansiEscape}]*(?:${bell}|${stringTerminator})?`;
+
+// DCS, SOS, PM and APC sequences: ESC P|X|^|_ command, terminated by ST.
+const stringSequence = `${ansiEscape}[PX^_][^${ansiEscape}]*(?:${stringTerminator})?`;
+
+// A CSI sequence that is still incomplete at the end of the input.
+const partialCsiSequence = `${ansiEscape}\\[[0-?]*[ -/]*$`;
+
+// Remaining escape sequences (e.g. `ESC c`, `ESC ( B`) and a lone escape byte.
+const otherEscapeSequence = `${ansiEscape}[ -/]*[0-~]?`;
+
+// SGR sequences only change text attributes, so they are safe to keep when text
+// that the terminal UI styled itself is measured and sliced.
+const sgrSequence = `${ansiEscape}\\[[0-9;:]*m`;
+
+const escapeSequence = [
+  csiSequence,
+  oscSequence,
+  stringSequence,
+  partialCsiSequence,
+  otherEscapeSequence,
+].join('|');
+
+export const escapeSequencePattern = new RegExp(escapeSequence, 'g');
+export const escapeSequencePrefixPattern = new RegExp(`^(?:${escapeSequence})`);
+
+const safeEscapeSequencePattern = new RegExp(`^(?:${sgrSequence})$`);
+
+// Every C0 and C1 control character except the newline that separates the lines
+// of a rendered frame. Removing the C1 range also removes the 8-bit introducers
+// for CSI, OSC and DCS sequences.
+const controlCharacterPattern = /(?!\n)\p{Cc}/gu;
+
+const tabWidth = 4;
+const tabPattern = /\t/g;
+const tabIndent = ' '.repeat(tabWidth);
 
 export function stripAnsi(input: string): string {
-  return input.replace(ansiPattern, '');
+  return input.replace(escapeSequencePattern, '');
+}
+
+/**
+ * Removes terminal escape sequences and control characters from text that the
+ * terminal UI did not generate itself, such as model output, tool results and
+ * pasted input.
+ *
+ * Terminals act on escape sequences that are embedded in the text they print:
+ * OSC sequences can write the system clipboard or change the window title, DCS
+ * sequences can redefine keys or tunnel sequences through a multiplexer, and CSI
+ * sequences can move the cursor outside of the box the text is rendered in.
+ * Untrusted text is therefore reduced to printable characters and newlines
+ * before it is laid out, and the terminal UI adds its own styling afterwards.
+ *
+ * Incomplete sequences are removed as well, so that a sequence that is split
+ * across streamed chunks is never forwarded to the terminal.
+ */
+export function sanitizeTerminalText(input: string): string {
+  return input
+    .replace(escapeSequencePattern, '')
+    .replace(tabPattern, tabIndent)
+    .replace(controlCharacterPattern, '');
+}
+
+/**
+ * Sanitizes untrusted text that is rendered on a single line, such as a title,
+ * a status message or the prompt input.
+ */
+export function sanitizeTerminalLine(input: string): string {
+  return sanitizeTerminalText(input).replace(/\n/g, ' ');
 }
 
 export function visibleLength(input: string): number {
@@ -14,7 +83,7 @@ export function visibleLength(input: string): number {
   let index = 0;
 
   while (index < input.length) {
-    const ansiMatch = input.slice(index).match(ansiPrefixPattern);
+    const ansiMatch = input.slice(index).match(escapeSequencePrefixPattern);
 
     if (ansiMatch) {
       index += ansiMatch[0].length;
@@ -45,10 +114,10 @@ export function sliceVisible(input: string, width: number): string {
   let index = 0;
 
   while (index < input.length && visible < width) {
-    const ansiMatch = input.slice(index).match(ansiPrefixPattern);
+    const ansiMatch = input.slice(index).match(escapeSequencePrefixPattern);
 
     if (ansiMatch) {
-      output += ansiMatch[0];
+      output += keepSafeEscapeSequence(ansiMatch[0]);
       index += ansiMatch[0].length;
       continue;
     }
@@ -72,22 +141,26 @@ export function sliceVisible(input: string, width: number): string {
   }
 
   while (index < input.length) {
-    const ansiMatch = input.slice(index).match(ansiPrefixPattern);
+    const ansiMatch = input.slice(index).match(escapeSequencePrefixPattern);
 
     if (!ansiMatch) {
       break;
     }
 
-    output += ansiMatch[0];
+    output += keepSafeEscapeSequence(ansiMatch[0]);
     index += ansiMatch[0].length;
   }
 
   return output;
 }
 
+function keepSafeEscapeSequence(sequence: string): string {
+  return safeEscapeSequencePattern.test(sequence) ? sequence : '';
+}
+
 export function codePointWidth(codePoint: number): number {
   if (codePoint === 0x09) {
-    return 4;
+    return tabWidth;
   }
 
   if (codePoint < 0x20 || (codePoint >= 0x7f && codePoint < 0xa0)) {

@@ -7,7 +7,13 @@ import type {
   ResponseStatisticsMode,
   TerminalPartDisplayMode,
 } from '../run-agent-tui';
-import { renderScreenViewport, sliceVisible, visibleLength } from './layout';
+import {
+  renderScreenViewport,
+  sanitizeTerminalLine,
+  sanitizeTerminalText,
+  sliceVisible,
+  visibleLength,
+} from './layout';
 import { renderMarkdown } from './markdown';
 import { TerminalFrameBuffer } from './terminal-frame-buffer';
 import {
@@ -187,7 +193,7 @@ export class TerminalRenderer {
   async readPrompt(options?: TerminalSessionOptions): Promise<string> {
     this.#start(options);
     this.#inputActive = true;
-    this.#inputText = options?.initialPrompt ?? '';
+    this.#inputText = sanitizeTerminalLine(options?.initialPrompt ?? '');
     this.#status = `Type a prompt and press Enter · ${activeControls}`;
     this.#startInputCursorBlink();
     this.#paint();
@@ -198,7 +204,7 @@ export class TerminalRenderer {
 
         switch (key.type) {
           case 'character':
-            this.#inputText += key.value;
+            this.#inputText += sanitizeTerminalLine(key.value);
             this.#showInputCursor();
             this.#paint();
             break;
@@ -382,7 +388,10 @@ export class TerminalRenderer {
   }
 
   #start(options?: TerminalSessionOptions) {
-    this.#title = options?.title ?? this.#title;
+    this.#title =
+      options?.title == null
+        ? this.#title
+        : sanitizeTerminalLine(options.title);
     this.#contextSize = options?.contextSize ?? this.#defaultContextSize;
 
     if (this.#isInteractive) {
@@ -506,7 +515,10 @@ export class TerminalRenderer {
 
     const section = this.#sections.at(-1);
 
-    if (section?.kind === 'user' && section.content === prompt) {
+    if (
+      section?.kind === 'user' &&
+      section.content === sanitizeTerminalText(prompt)
+    ) {
       return;
     }
 
@@ -514,9 +526,7 @@ export class TerminalRenderer {
   }
 
   #addUserSection(prompt: string) {
-    const previousBodyLineCount = this.#bodyLineCount();
-    this.#sections.push({ kind: 'user', title: 'User', content: prompt });
-    this.#paintAfterBodyChange(previousBodyLineCount);
+    this.#pushSection({ kind: 'user', title: 'User', content: prompt });
   }
 
   #renderAssistantMessage(
@@ -617,7 +627,14 @@ export class TerminalRenderer {
     this.#paintAfterBodyChange(previousBodyLineCount);
   }
 
-  #upsertSection(section: ChatSection) {
+  #pushSection(section: ChatSection) {
+    const previousBodyLineCount = this.#bodyLineCount();
+    this.#sections.push(sanitizeSection(section));
+    this.#paintAfterBodyChange(previousBodyLineCount);
+  }
+
+  #upsertSection(unsafeSection: ChatSection) {
+    const section = sanitizeSection(unsafeSection);
     const existingSection = section.id
       ? this.#sections.find(candidate => candidate.id === section.id)
       : undefined;
@@ -691,9 +708,7 @@ export class TerminalRenderer {
   }
 
   #addErrorSection(title: string, content: string) {
-    const previousBodyLineCount = this.#bodyLineCount();
-    this.#sections.push({ kind: 'error', title, content });
-    this.#paintAfterBodyChange(previousBodyLineCount);
+    this.#pushSection({ kind: 'error', title, content });
   }
 
   #paintAfterBodyChange(previousBodyLineCount: number) {
@@ -852,6 +867,22 @@ export class TerminalRenderer {
 
 function interruptedError() {
   return new Error('Interrupted');
+}
+
+/**
+ * Removes terminal escape sequences and control characters from the parts of a
+ * section that are controlled by the model, by tools or by pasted input.
+ */
+function sanitizeSection(section: ChatSection): ChatSection {
+  return {
+    ...section,
+    title: sanitizeTerminalLine(section.title),
+    rightTitle:
+      section.rightTitle == null
+        ? section.rightTitle
+        : sanitizeTerminalLine(section.rightTitle),
+    content: sanitizeTerminalText(section.content),
+  };
 }
 
 async function* takeUntil<T>(
@@ -1078,7 +1109,7 @@ function formatValue(value: unknown) {
 }
 
 function formatToolApprovalTitle(request: AgentTUIToolApprovalRequest) {
-  return `tool ${request.title ?? request.toolName}`;
+  return `tool ${sanitizeTerminalLine(request.title ?? request.toolName)}`;
 }
 
 function sectionId(messageId: string, partIndex: number) {
@@ -1169,23 +1200,25 @@ function sectionMatchesCache(
 function createSectionLines(section: ChatSection, width: number) {
   const style = sectionStyles[section.kind];
   const contentWidth = Math.max(1, width - 4);
-  const title = ` ${section.title} `;
-  const rightTitle = section.rightTitle ? ` ${section.rightTitle} ` : '';
+  const headerWidth = Math.max(0, width - 2);
+  const title = sliceVisible(` ${section.title} `, headerWidth);
+  const rightTitle = section.rightTitle
+    ? sliceVisible(
+        ` ${section.rightTitle} `,
+        Math.max(0, headerWidth - visibleLength(title)),
+      )
+    : '';
+  const borderWidth = Math.max(
+    0,
+    headerWidth - visibleLength(title) - visibleLength(rightTitle),
+  );
+  const top = `${style.color}╭${title}${style.border.repeat(borderWidth)}${rightTitle}╮${colors.reset}`;
+  const bottom = `${style.color}╰${style.border.repeat(Math.max(0, width - 2))}╯${colors.reset}`;
 
   if (section.collapsed) {
-    const borderWidth = Math.max(
-      0,
-      width - 2 - title.length - rightTitle.length,
-    );
-    const top = `${style.color}╭${title}${style.border.repeat(borderWidth)}${rightTitle}╮${colors.reset}`;
-    const bottom = `${style.color}╰${style.border.repeat(Math.max(0, width - 2))}╯${colors.reset}`;
-
     return [top, bottom];
   }
 
-  const borderWidth = Math.max(0, width - 2 - title.length - rightTitle.length);
-  const top = `${style.color}╭${title}${style.border.repeat(borderWidth)}${rightTitle}╮${colors.reset}`;
-  const bottom = `${style.color}╰${style.border.repeat(Math.max(0, width - 2))}╯${colors.reset}`;
   const content =
     section.content.length > 0
       ? renderMarkdown(section.content)

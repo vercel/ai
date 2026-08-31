@@ -7,7 +7,7 @@ import {
   type TerminalOutput,
 } from './terminal-renderer';
 import type { TerminalFrameBuffer } from './terminal-frame-buffer';
-import { stripAnsi } from './layout';
+import { stripAnsi, visibleLength } from './layout';
 import type { AgentTUIStreamResult } from '../agent-tui-runner';
 import type { UIMessageChunk } from 'ai';
 
@@ -674,6 +674,219 @@ describe('TerminalRenderer', () => {
   });
 });
 
+describe('TerminalRenderer escape sequence sanitization', () => {
+  it('removes escape sequences from streamed assistant text', async () => {
+    const input = createInput();
+    const output = createOutput();
+    const renderer = new TerminalRenderer({ input, output });
+
+    await renderer.renderStream(
+      createStream(['before\x1b]52;c;ZXZpbA==\x07after']) as never,
+      {
+        title: 'Test',
+        waitForExit: false,
+      },
+    );
+
+    expectNoInjectedSequences(output);
+    expect(stripAnsi(output.text())).toContain('beforeafter');
+  });
+
+  it('removes escape sequences from reasoning text', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.rows = 20;
+    const renderer = new TerminalRenderer({
+      input,
+      output,
+      reasoning: 'full',
+    });
+
+    await renderer.renderStream(
+      createEscapeSequenceReasoningStream() as never,
+      {
+        title: 'Test',
+        waitForExit: false,
+      },
+    );
+
+    expectNoInjectedSequences(output);
+    expect(stripAnsi(output.text())).toContain('thinkinghard');
+  });
+
+  it('removes escape sequences from tool names and tool output', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.rows = 20;
+    const renderer = new TerminalRenderer({ input, output, tools: 'full' });
+
+    await renderer.renderStream(createEscapeSequenceToolStream() as never, {
+      title: 'Test',
+      waitForExit: false,
+    });
+
+    expectNoInjectedSequences(output);
+
+    const rendered = stripAnsi(output.text());
+
+    expect(rendered).toContain('Tool · shell');
+    expect(rendered).toContain('outputtail');
+  });
+
+  it('removes escape sequences from stream errors', async () => {
+    const input = createInput();
+    const output = createOutput();
+    const renderer = new TerminalRenderer({ input, output });
+
+    await renderer.renderStream(
+      createErrorStream(
+        new Error('Bad API key\x1b]52;c;ZXZpbA==\x07'),
+      ) as never,
+      {
+        title: 'Test',
+        waitForExit: false,
+      },
+    );
+
+    expectNoInjectedSequences(output);
+    expect(stripAnsi(output.text())).toContain('Bad API key');
+  });
+
+  it('removes escape sequences from the session title', async () => {
+    const input = createInput();
+    const output = createOutput();
+    const renderer = new TerminalRenderer({ input, output });
+
+    await renderer.renderStream(createStream(['hello']) as never, {
+      title: 'Test\x1b]0;pwned\x07',
+      waitForExit: false,
+    });
+
+    expectNoInjectedSequences(output);
+    expect(stripAnsi(output.text())).toContain('┌ Test ');
+  });
+
+  it('removes escape sequences from pasted prompt input', async () => {
+    const input = createInput();
+    const output = createOutput();
+    const renderer = new TerminalRenderer({ input, output });
+    const promptPromise = renderer.readPrompt({ title: 'Test' });
+
+    input.emit('data', Buffer.from('hi\x1b]52;c;ZXZpbA==\x07'));
+    input.emit('data', Buffer.from('\r'));
+
+    await expect(promptPromise).resolves.toBe('hi');
+    expectNoInjectedSequences(output);
+    expect(stripAnsi(output.text())).toContain('│ > hi█');
+  });
+
+  it('removes escape sequences from initial prompt input', async () => {
+    const input = createInput();
+    const output = createOutput();
+    const renderer = new TerminalRenderer({ input, output });
+    const promptPromise = renderer.readPrompt({
+      title: 'Test',
+      initialPrompt: 'hi\x1b]52;c;ZXZpbA==\x07',
+    });
+
+    input.emit('data', Buffer.from('\r'));
+
+    await expect(promptPromise).resolves.toBe('hi');
+    expectNoInjectedSequences(output);
+  });
+
+  it('removes escape sequences from tool approval prompts', async () => {
+    const input = createInput();
+    const output = createOutput();
+    const renderer = new TerminalRenderer({ input, output });
+    const approvalPromise = renderer.readToolApproval(
+      {
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+        toolName: 'shell\x1b]52;c;ZXZpbA==\x07',
+        input: { command: 'date' },
+        messageId: 'message-1',
+        partIndex: 0,
+      },
+      { title: 'Test' },
+    );
+
+    expectNoInjectedSequences(output);
+    expect(stripAnsi(output.text())).toContain('Approve tool shell? y/n');
+
+    input.emit('data', Buffer.from('y'));
+
+    await expect(approvalPromise).resolves.toEqual({ approved: true });
+  });
+
+  it('keeps the frame intact when assistant text moves the cursor', async () => {
+    const input = createInput();
+    const output = createOutput();
+    const frameBuffer = createFrameBuffer();
+    const renderer = new TerminalRenderer({ input, output, frameBuffer });
+
+    await renderer.renderStream(
+      createStream(['hello\r\x1b[2J\x1b[1;1Hgone']) as never,
+      {
+        title: 'Test',
+        waitForExit: false,
+      },
+    );
+
+    const frame = frameBuffer.lastPresentedText();
+
+    expect(frame).not.toContain('\r');
+    expect(frame).not.toContain('\x1b[2J');
+    expect(stripAnsi(frame)).toContain('hellogone');
+    expectSingleFrameWidth(frame);
+  });
+
+  it('keeps the frame intact when a tool name is longer than the frame', async () => {
+    const input = createInput();
+    const output = createOutput();
+    const frameBuffer = createFrameBuffer();
+    output.rows = 20;
+    const renderer = new TerminalRenderer({
+      input,
+      output,
+      frameBuffer,
+      tools: 'full',
+    });
+
+    await renderer.renderStream(createLongToolNameStream() as never, {
+      title: 'Test',
+      waitForExit: false,
+    });
+
+    const frame = frameBuffer.lastPresentedText();
+    const header = stripAnsi(frame)
+      .split('\n')
+      .find(line => line.includes('╭'));
+
+    expect(header).toContain('╮');
+    expectSingleFrameWidth(frame);
+  });
+});
+
+function expectNoInjectedSequences(output: TestOutput) {
+  const rendered = output.text();
+
+  // OSC, DCS, APC, PM and SOS introducers, and the terminators they use.
+  expect(rendered).not.toContain('\x1b]');
+  expect(rendered).not.toContain('\x1bP');
+  expect(rendered).not.toContain('\x1b_');
+  expect(rendered).not.toContain('\x1b^');
+  expect(rendered).not.toContain('\x1bX');
+  expect(rendered).not.toContain('\x1b\\');
+  expect(rendered).not.toContain('\x07');
+}
+
+function expectSingleFrameWidth(frame: string) {
+  const widths = new Set(frame.split('\n').map(line => visibleLength(line)));
+
+  expect([...widths]).toHaveLength(1);
+}
+
 function createInput() {
   const input = new EventEmitter() as TestInput;
 
@@ -1024,6 +1237,59 @@ function createPausedToolStream({
       yield { type: 'text-start', id: 'text-1' };
       yield { type: 'text-delta', id: 'text-1', delta: 'hello' };
       yield { type: 'text-end', id: 'text-1' };
+      yield { type: 'finish' };
+    })(),
+  };
+}
+
+function createEscapeSequenceReasoningStream(): AgentTUIStreamResult {
+  return {
+    uiMessageStream: (async function* () {
+      yield { type: 'start', messageId: 'message-1' };
+      yield { type: 'reasoning-start', id: 'reasoning-1' };
+      yield {
+        type: 'reasoning-delta',
+        id: 'reasoning-1',
+        delta: 'thinking\x1b]52;c;ZXZpbA==\x07hard',
+      };
+      yield { type: 'reasoning-end', id: 'reasoning-1' };
+      yield { type: 'finish' };
+    })(),
+  };
+}
+
+function createEscapeSequenceToolStream(): AgentTUIStreamResult {
+  return {
+    uiMessageStream: (async function* () {
+      yield { type: 'start', messageId: 'message-1' };
+      yield {
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'shell',
+        title: 'shell\x1b]0;pwned\x07',
+        input: { command: 'ls' },
+      } satisfies UIMessageChunk;
+      yield {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'output\x1b]52;c;ZXZpbA==\x07tail',
+      } satisfies UIMessageChunk;
+      yield { type: 'finish' };
+    })(),
+  };
+}
+
+function createLongToolNameStream(): AgentTUIStreamResult {
+  return {
+    uiMessageStream: (async function* () {
+      yield { type: 'start', messageId: 'message-1' };
+      yield {
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'shell',
+        title: 'shell'.repeat(40),
+        input: { command: 'ls' },
+      } satisfies UIMessageChunk;
       yield { type: 'finish' };
     })(),
   };

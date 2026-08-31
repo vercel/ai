@@ -1,12 +1,18 @@
 import { renderMarkdown } from './markdown';
 import {
-  ansiPrefixPattern,
   codePointWidth,
+  escapeSequencePrefixPattern,
   sliceVisible,
   visibleLength,
 } from './terminal-text';
 
-export { sliceVisible, stripAnsi, visibleLength } from './terminal-text';
+export {
+  sanitizeTerminalLine,
+  sanitizeTerminalText,
+  sliceVisible,
+  stripAnsi,
+  visibleLength,
+} from './terminal-text';
 
 const horizontal = '─';
 
@@ -140,7 +146,7 @@ function findBreakPoint(input: string, width: number): number {
   let lastSpace = -1;
 
   while (index < input.length && visible < width) {
-    const ansiMatch = input.slice(index).match(ansiPrefixPattern);
+    const ansiMatch = input.slice(index).match(escapeSequencePrefixPattern);
 
     if (ansiMatch) {
       index += ansiMatch[0].length;
@@ -216,7 +222,7 @@ function indexAtVisibleWidth(input: string, width: number): number {
   let visible = 0;
 
   while (index < input.length && visible < width) {
-    const ansiMatch = input.slice(index).match(ansiPrefixPattern);
+    const ansiMatch = input.slice(index).match(escapeSequencePrefixPattern);
 
     if (ansiMatch) {
       index += ansiMatch[0].length;
@@ -247,7 +253,7 @@ function indexAfterAnsiSequences(input: string, startIndex: number): number {
   let index = startIndex;
 
   while (index < input.length) {
-    const ansiMatch = input.slice(index).match(ansiPrefixPattern);
+    const ansiMatch = input.slice(index).match(escapeSequencePrefixPattern);
 
     if (!ansiMatch) {
       break;

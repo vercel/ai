@@ -1,4 +1,5 @@
 import { type StreamTextResult } from 'ai';
+import { sanitizeTerminalText } from '../tui/terminal-text';
 
 export async function printStream(result: StreamTextResult<any, any, any>) {
   for await (const part of result.fullStream) {
@@ -7,13 +8,13 @@ export async function printStream(result: StreamTextResult<any, any, any>) {
         process.stdout.write('\x1b[94m\n');
         break;
       case 'reasoning-delta':
-        process.stdout.write(part.text);
+        process.stdout.write(sanitizeTerminalText(part.text));
         break;
       case 'reasoning-end':
         process.stdout.write('\x1b[0m\n\n');
         break;
       case 'text-delta':
-        process.stdout.write(part.text);
+        process.stdout.write(sanitizeTerminalText(part.text));
         break;
       case 'tool-call':
         process.stdout.write(
