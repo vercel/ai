@@ -91,9 +91,9 @@ describe('OpenCode bridge turn settlement', () => {
     process.argv.length = 0;
     for (const arg of originalArgv) process.argv.push(arg);
     vi.resetModules();
-    createOpencodeServerMock.mockClear();
     relayMock.authorizeToolCall.mockReset();
     permissionReplyMock.mockReset();
+    createOpencodeServerMock.mockClear();
   });
 
   it('disables the interactive question tool', async () => {
@@ -477,6 +477,84 @@ describe('OpenCode bridge turn settlement', () => {
                 type: 'message.updated',
                 properties: {
                   info: {
+                    id: 'child-message',
+                    sessionID: 'child-session',
+                    role: 'assistant',
+                    providerID: 'openai',
+                    modelID: 'gpt-5.6-sol',
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    id: 'child-step-finish',
+                    messageID: 'child-message',
+                    sessionID: 'child-session',
+                    type: 'step-finish',
+                    reason: 'stop',
+                    cost: 0.0042,
+                    tokens: {
+                      input: 3,
+                      output: 5,
+                      reasoning: 1,
+                      cache: { read: 10, write: 2 },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    id: 'child-step-finish-2',
+                    messageID: 'child-message',
+                    sessionID: 'child-session',
+                    type: 'step-finish',
+                    reason: 'stop',
+                    cost: 0.0021,
+                    tokens: {
+                      input: 2,
+                      output: 3,
+                      reasoning: 0,
+                      cache: { read: 4, write: 0 },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'session.next.step.ended',
+                properties: {
+                  sessionID: 'parent-session',
+                  finish: 'stop',
+                  tokens: {
+                    input: 1,
+                    output: 1,
+                    reasoning: 0,
+                    cache: { read: 0, write: 0 },
+                  },
+                  cost: 0,
+                },
+              };
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'parent-session',
+                  status: { type: 'busy' },
+                },
+              };
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'parent-session',
+                  status: { type: 'idle' },
+                },
+              };
+              yield {
+                type: 'message.updated',
+                properties: {
+                  info: {
                     id: 'parent-message',
                     sessionID: 'parent-session',
                     role: 'assistant',
@@ -509,6 +587,46 @@ describe('OpenCode bridge turn settlement', () => {
       sessionID: 'child-session',
       requestID: 'child-permission',
       reply: 'always',
+    });
+    expect(emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'opencode.subagent-usage',
+        version: 1,
+        sessionId: 'child-session',
+        stepId: 'child-step-finish',
+        modelId: 'openai/gpt-5.6-sol',
+        usage: {
+          inputTokens: {
+            total: 3,
+            noCache: 0,
+            cacheRead: 10,
+            cacheWrite: 2,
+          },
+          outputTokens: { total: 6, text: 5, reasoning: 1 },
+        },
+        cost: 0.0042,
+      },
+    });
+    expect(emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'opencode.subagent-usage',
+        version: 1,
+        sessionId: 'child-session',
+        stepId: 'child-step-finish-2',
+        modelId: 'openai/gpt-5.6-sol',
+        usage: {
+          inputTokens: {
+            total: 2,
+            noCache: 0,
+            cacheRead: 4,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 3, text: 3, reasoning: 0 },
+        },
+        cost: 0.0021,
+      },
     });
     expect(emitted).toContainEqual({
       type: 'text-delta',
