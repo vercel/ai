@@ -400,7 +400,7 @@ describe('xAI Responses batch language model', () => {
     ]);
   });
 
-  it('fails invalid and unsupported items without stopping later results', async () => {
+  it('preserves tool calls and fails invalid items without stopping later results', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
       body: batchResponse(),
@@ -466,8 +466,22 @@ describe('xAI Responses batch language model', () => {
       },
       {
         id: 'tool-call',
-        status: 'failed',
-        error: { code: 'unsupported_content' },
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_1',
+              toolName: 'weather',
+              input: '{}',
+            },
+            {
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://example.com/source',
+            },
+          ],
+        },
       },
       {
         id: 'valid',
@@ -485,6 +499,175 @@ describe('xAI Responses batch language model', () => {
           providerMetadata: {
             xai: { costInUsdTicks: 123, serviceTier: 'default' },
           },
+        },
+      },
+    ]);
+  });
+
+  it('preserves provider-executed tool calls and final text from batch transcripts', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'json-value',
+      body: {
+        results: [
+          {
+            batch_request_id: 'provider-tool',
+            batch_result: {
+              response: {
+                chat_get_completion: {
+                  ...chatResultBody(''),
+                  choices: [
+                    {
+                      index: 0,
+                      message: {
+                        role: 'assistant',
+                        content: null,
+                        tool_calls: [
+                          {
+                            id: 'web-search-1',
+                            type: 'function',
+                            function: {
+                              name: 'web_search',
+                              arguments: '{"query":"Vercel"}',
+                            },
+                          },
+                        ],
+                      },
+                      finish_reason: '',
+                    },
+                    {
+                      index: 1,
+                      message: {
+                        role: 'tool',
+                        content: 'Search results',
+                        tool_calls: [
+                          {
+                            id: 'web-search-1',
+                            type: 'function',
+                            function: {
+                              name: 'web_search',
+                              arguments: '{"query":"Vercel"}',
+                            },
+                          },
+                        ],
+                      },
+                      finish_reason: '',
+                    },
+                    {
+                      index: 2,
+                      message: {
+                        role: 'assistant',
+                        content: 'Final answer',
+                        tool_calls: null,
+                      },
+                      finish_reason: 'stop',
+                    },
+                    {
+                      index: 3,
+                      message: {
+                        role: 'tool',
+                        content: null,
+                        tool_calls: [],
+                      },
+                      finish_reason: '',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            batch_request_id: 'client-tool-with-provider-name',
+            batch_result: {
+              response: {
+                chat_get_completion: {
+                  ...chatResultBody(''),
+                  choices: [
+                    {
+                      index: 0,
+                      message: {
+                        role: 'assistant',
+                        content: null,
+                        tool_calls: [
+                          {
+                            id: 'client-web-search-1',
+                            type: 'function',
+                            function: {
+                              name: 'web_search',
+                              arguments: '{}',
+                            },
+                          },
+                        ],
+                      },
+                      finish_reason: 'tool_calls',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        pagination_token: null,
+      },
+    };
+    const model = createXai({ apiKey: 'test-api-key' })('grok-4.3');
+
+    const stream = await model.experimental_doGetBatchResults({
+      batchId: 'batch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'provider-tool',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'web-search-1',
+              toolName: 'web_search',
+              input: '{"query":"Vercel"}',
+              providerExecuted: true,
+              dynamic: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'web-search-1',
+              toolName: 'web_search',
+              result: 'Search results',
+              dynamic: true,
+            },
+            { type: 'text', text: 'Final answer' },
+            {
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://example.com/source',
+            },
+          ],
+          finishReason: { unified: 'stop', raw: 'stop' },
+        },
+      },
+      {
+        id: 'client-tool-with-provider-name',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'client-web-search-1',
+              toolName: 'web_search',
+              input: '{}',
+            },
+            {
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://example.com/source',
+            },
+          ],
+          finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
         },
       },
     ]);

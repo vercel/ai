@@ -234,6 +234,41 @@ describe('OpenAI batch language models', () => {
     });
   });
 
+  it('warns when a provider tool can return unsupported batch output', async () => {
+    prepareCreateResponse();
+    const model = createOpenAI({ apiKey: 'test-api-key' }).responses('gpt-5.6');
+
+    const result = await model.experimental_doStartBatch({
+      requests: [
+        {
+          id: 'image',
+          ...request('Generate an image.'),
+          options: {
+            ...request('Generate an image.').options,
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.image_generation',
+                name: 'image',
+                args: {},
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(result.warnings).toContainEqual({
+      requestId: 'image',
+      warning: {
+        type: 'unsupported',
+        feature: 'batch result conversion for tool "image"',
+        details:
+          'OpenAI may return output for this tool that AI SDK text batches cannot currently convert.',
+      },
+    });
+  });
+
   it('appends an explicit compaction trigger to batch request input', async () => {
     prepareCreateResponse();
     const model = createOpenAI({
@@ -770,12 +805,12 @@ describe('OpenAI batch language models', () => {
       });
     });
 
-    it('fails unsupported items and continues with later results', async () => {
+    it('preserves tool calls and fails unsupported items without stopping later results', async () => {
       server.urls[urls.batch].response = {
         type: 'json-value',
         body: batchResponse({
           output_file_id: 'file-output',
-          request_counts: { total: 4, completed: 4, failed: 0 },
+          request_counts: { total: 6, completed: 6, failed: 0 },
         }),
       };
       server.urls[urls.output].response = {
@@ -814,6 +849,42 @@ describe('OpenAI batch language models', () => {
             },
           })}\n`,
           `${resultLine({
+            id: 'web-search',
+            body: {
+              ...responsesResultBody(''),
+              output: [
+                {
+                  type: 'web_search_call',
+                  id: 'web-search',
+                  status: 'completed',
+                  action: { type: 'search', query: 'weather in Paris' },
+                },
+              ],
+            },
+          })}\n`,
+          `${resultLine({
+            id: 'file-search',
+            body: {
+              ...responsesResultBody(''),
+              output: [
+                {
+                  type: 'file_search_call',
+                  id: 'file-search',
+                  queries: ['weather in Paris'],
+                  results: [
+                    {
+                      attributes: { country: 'France' },
+                      file_id: 'file_123',
+                      filename: 'weather.md',
+                      score: 0.9,
+                      text: 'Paris is sunny.',
+                    },
+                  ],
+                },
+              ],
+            },
+          })}\n`,
+          `${resultLine({
             id: 'image',
             body: {
               ...responsesResultBody(''),
@@ -836,24 +907,95 @@ describe('OpenAI batch language models', () => {
       });
       const results = await convertReadableStreamToArray(stream);
 
-      expect(results).toHaveLength(4);
+      expect(results).toHaveLength(6);
       expect(results).toMatchObject([
         {
           id: 'function-call',
-          status: 'failed',
-          error: {
-            message:
-              'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
-            code: 'unsupported_content',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-123',
+                toolName: 'get_weather',
+                input: '{"city":"Paris"}',
+                providerMetadata: { openai: { itemId: 'function-call' } },
+              },
+            ],
           },
         },
         {
           id: 'custom-tool-call',
-          status: 'failed',
-          error: {
-            message:
-              'OpenAI returned a tool call, but tool calls are not supported in AI SDK text batches.',
-            code: 'unsupported_content',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-123',
+                toolName: 'shell',
+                input: '"echo Paris"',
+                providerMetadata: { openai: { itemId: 'custom-tool-call' } },
+              },
+            ],
+          },
+        },
+        {
+          id: 'web-search',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'web-search',
+                toolName: 'web_search',
+                input: '{}',
+                providerExecuted: true,
+                dynamic: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'web-search',
+                toolName: 'web_search',
+                result: {
+                  action: { type: 'search', query: 'weather in Paris' },
+                },
+                dynamic: true,
+              },
+            ],
+          },
+        },
+        {
+          id: 'file-search',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'file-search',
+                toolName: 'file_search',
+                input: '{}',
+                providerExecuted: true,
+                dynamic: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'file-search',
+                toolName: 'file_search',
+                result: {
+                  queries: ['weather in Paris'],
+                  results: [
+                    {
+                      attributes: { country: 'France' },
+                      fileId: 'file_123',
+                      filename: 'weather.md',
+                      score: 0.9,
+                      text: 'Paris is sunny.',
+                    },
+                  ],
+                },
+                dynamic: true,
+              },
+            ],
           },
         },
         {
