@@ -1,5 +1,16 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.97
+
+### Patch Changes
+
+- c1941f0: fix(harness-opencode): emit per-step token usage and cost for task-linked OpenCode subagent sessions as raw stream events
+- 371e954: feat(harness): add `createBridgeToken()` and `withBridgeToken()` helpers for bridge backed harness adapters
+- 62f481f: fix(harness): fix bridge resolution to no longer look for an alternative path which could cause Turbopack errors
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
 ## 1.0.96
 
 ### Patch Changes
