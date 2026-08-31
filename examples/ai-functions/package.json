@@ -69,6 +69,7 @@
     "@ai-sdk/tui": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",
     "@ai-sdk/voyage": "workspace:*",
+    "@ai-sdk/workflow": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
     "@ai-sdk/zai": "workspace:*",
     "@basetenlabs/performance-client": "0.0.10",
@@ -94,6 +95,7 @@
     "terminal-image": "^2.0.0",
     "undici": "^8.5.0",
     "valibot": "1.1.0",
+    "workflow": "5.0.0-beta.42",
     "ws": "^8.21.0",
     "zod": "3.25.76"
   },
