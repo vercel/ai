@@ -10,6 +10,11 @@ export const xaiFilesOptionsSchema = lazySchema(() =>
     z.looseObject({
       teamId: z.string().optional(),
       filePath: z.string().optional(),
+      /**
+       * TTL in seconds measured from upload time (xAI accepts 3600–2592000).
+       * Omit to keep the file until it is deleted.
+       */
+      expiresAfter: z.number().optional(),
     }),
   ),
 );

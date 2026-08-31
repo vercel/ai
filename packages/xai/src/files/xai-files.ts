@@ -1,28 +1,48 @@
-import type {
-  FilesV4,
-  FilesV4UploadFileCallOptions,
-  FilesV4UploadFileResult,
+import {
+  InvalidArgumentError,
+  type FilesV4,
+  type FilesV4DeleteFileCallOptions,
+  type FilesV4DeleteFileResult,
+  type FilesV4DownloadFileCallOptions,
+  type FilesV4DownloadFileResult,
+  type FilesV4RetrieveFileCallOptions,
+  type FilesV4RetrieveFileResult,
+  type FilesV4UploadFileCallOptions,
+  type FilesV4UploadFileResult,
+  type SharedV4ProviderReference,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertInlineFileDataToUint8Array,
+  createBinaryStreamResponseHandler,
   createJsonResponseHandler,
+  deleteFromApi,
+  getFromApi,
   parseProviderOptions,
   postFormDataToApi,
+  postMultipartStreamToApi,
   type FetchFunction,
+  type InferSchema,
+  type MultipartStreamPart,
 } from '@ai-sdk/provider-utils';
 import { xaiFailedResponseHandler } from '../xai-error';
-import { xaiFilesResponseSchema } from './xai-files-api';
+import {
+  xaiFileDeleteResponseSchema,
+  xaiFilesResponseSchema,
+} from './xai-files-api';
 import {
   xaiFilesOptionsSchema,
   type XaiFilesOptions,
 } from './xai-files-options';
+
 interface XaiFilesConfig {
   provider: string;
   baseURL: string | undefined;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 }
+
+type XaiFilesResponse = InferSchema<typeof xaiFilesResponseSchema>;
 
 export class XaiFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
@@ -33,10 +53,29 @@ export class XaiFiles implements FilesV4 {
 
   constructor(private readonly config: XaiFilesConfig) {}
 
+  private getFileId(file: SharedV4ProviderReference): string {
+    const fileId = file.xai;
+    if (fileId == null) {
+      throw new InvalidArgumentError({
+        argument: 'file',
+        message: "file reference is missing an 'xai' file id.",
+      });
+    }
+    return fileId;
+  }
+
+  private getHeaders(
+    headers: Record<string, string | undefined> | undefined,
+  ): Record<string, string | undefined> {
+    return combineHeaders(this.config.headers(), headers);
+  }
+
   async uploadFile({
     data,
     mediaType,
     filename,
+    abortSignal,
+    headers,
     providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     const xaiOptions = (await parseProviderOptions({
@@ -45,33 +84,87 @@ export class XaiFiles implements FilesV4 {
       schema: xaiFilesOptionsSchema,
     })) as XaiFilesOptions | undefined;
 
-    const fileBytes = convertInlineFileDataToUint8Array(data);
+    const requestHeaders = this.getHeaders(headers);
+    const url = `${this.config.baseURL}/files`;
 
-    const blob = new Blob([fileBytes], {
-      type: mediaType,
-    });
+    let response: XaiFilesResponse;
 
-    const formData = new FormData();
-    if (filename != null) {
-      formData.append('file', blob, filename);
+    if (data.type === 'stream') {
+      // xAI rejects uploads where expires_after arrives after the file part,
+      // so all fields precede the file.
+      const parts: Array<MultipartStreamPart> = [];
+
+      if (xaiOptions?.expiresAfter != null) {
+        parts.push({
+          type: 'field',
+          name: 'expires_after',
+          value: String(xaiOptions.expiresAfter),
+        });
+      }
+
+      if (xaiOptions?.teamId != null) {
+        parts.push({
+          type: 'field',
+          name: 'team_id',
+          value: xaiOptions.teamId,
+        });
+      }
+
+      parts.push({
+        type: 'file',
+        name: 'file',
+        filename,
+        mediaType,
+        content: data.stream,
+      });
+
+      ({ value: response } = await postMultipartStreamToApi({
+        url,
+        headers: requestHeaders,
+        parts,
+        failedResponseHandler: xaiFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          xaiFilesResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      }));
     } else {
-      formData.append('file', blob);
-    }
+      const fileBytes = convertInlineFileDataToUint8Array(data);
 
-    if (xaiOptions?.teamId != null) {
-      formData.append('team_id', xaiOptions.teamId);
-    }
+      const blob = new Blob([fileBytes], {
+        type: mediaType,
+      });
 
-    const { value: response } = await postFormDataToApi({
-      url: `${this.config.baseURL}/files`,
-      headers: combineHeaders(this.config.headers()),
-      formData,
-      failedResponseHandler: xaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        xaiFilesResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
+      // FormData serializes in append order; expires_after must precede file.
+      const formData = new FormData();
+
+      if (xaiOptions?.expiresAfter != null) {
+        formData.append('expires_after', String(xaiOptions.expiresAfter));
+      }
+
+      if (xaiOptions?.teamId != null) {
+        formData.append('team_id', xaiOptions.teamId);
+      }
+
+      if (filename != null) {
+        formData.append('file', blob, filename);
+      } else {
+        formData.append('file', blob);
+      }
+
+      ({ value: response } = await postFormDataToApi({
+        url,
+        headers: requestHeaders,
+        formData,
+        failedResponseHandler: xaiFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          xaiFilesResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      }));
+    }
 
     return {
       warnings: [],
@@ -81,14 +174,109 @@ export class XaiFiles implements FilesV4 {
         : {}),
       ...(mediaType != null ? { mediaType } : {}),
       providerMetadata: {
-        xai: {
-          ...(response.filename != null ? { filename: response.filename } : {}),
-          ...(response.bytes != null ? { bytes: response.bytes } : {}),
-          ...(response.created_at != null
-            ? { createdAt: response.created_at }
-            : {}),
-        },
+        xai: this.toFileMetadata(response),
       },
+    };
+  }
+
+  async retrieveFile({
+    file,
+    abortSignal,
+    headers,
+  }: FilesV4RetrieveFileCallOptions): Promise<FilesV4RetrieveFileResult> {
+    const fileId = this.getFileId(file);
+
+    const { value: response } = await getFromApi({
+      url: `${this.config.baseURL}/files/${encodeURIComponent(fileId)}`,
+      headers: this.getHeaders(headers),
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiFilesResponseSchema,
+      ),
+      abortSignal,
+      fetch: this.config.fetch,
+      validateUrl: false,
+    });
+
+    return {
+      warnings: [],
+      providerReference: { xai: response.id },
+      ...(response.filename != null ? { filename: response.filename } : {}),
+      ...(response.bytes != null ? { byteSize: response.bytes } : {}),
+      ...(response.created_at != null
+        ? { createdAt: new Date(response.created_at * 1000) }
+        : {}),
+      ...(response.expires_at != null
+        ? { expiresAt: new Date(response.expires_at * 1000) }
+        : {}),
+      providerMetadata: {
+        xai: this.toFileMetadata(response),
+      },
+    };
+  }
+
+  async downloadFile({
+    file,
+    abortSignal,
+    headers,
+  }: FilesV4DownloadFileCallOptions): Promise<FilesV4DownloadFileResult> {
+    const fileId = this.getFileId(file);
+
+    const { value: content } = await getFromApi({
+      url: `${this.config.baseURL}/files/${encodeURIComponent(fileId)}/content`,
+      headers: this.getHeaders(headers),
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: createBinaryStreamResponseHandler(),
+      abortSignal,
+      fetch: this.config.fetch,
+      validateUrl: false,
+    });
+
+    return {
+      warnings: [],
+      content,
+    };
+  }
+
+  async deleteFile({
+    file,
+    abortSignal,
+    headers,
+  }: FilesV4DeleteFileCallOptions): Promise<FilesV4DeleteFileResult> {
+    const fileId = this.getFileId(file);
+
+    const { value: response } = await deleteFromApi({
+      url: `${this.config.baseURL}/files/${encodeURIComponent(fileId)}`,
+      headers: this.getHeaders(headers),
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiFileDeleteResponseSchema,
+      ),
+      abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      warnings: [],
+      providerReference: { xai: response.id },
+      deleted: response.deleted,
+    };
+  }
+
+  private toFileMetadata(
+    response: XaiFilesResponse,
+  ): Record<string, string | number> {
+    return {
+      ...(response.filename != null ? { filename: response.filename } : {}),
+      ...(response.purpose != null ? { purpose: response.purpose } : {}),
+      ...(response.bytes != null ? { bytes: response.bytes } : {}),
+      ...(response.created_at != null
+        ? { createdAt: response.created_at }
+        : {}),
+      ...(response.status != null ? { status: response.status } : {}),
+      ...(response.expires_at != null
+        ? { expiresAt: response.expires_at }
+        : {}),
     };
   }
 }
