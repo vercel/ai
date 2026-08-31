@@ -458,7 +458,10 @@ describe('HarnessAgent', () => {
       options: { tenant: 'beta' },
     });
 
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('model');
     expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('skills');
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('instructions');
+    expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('tools');
     expect(promptOptions).toHaveLength(2);
     expect(promptOptions[0]).toMatchObject({
       prompt: 'Hello for alpha',
