@@ -76,6 +76,26 @@ describe('uploadFile', () => {
     });
   });
 
+  it('should default mediaType to application/octet-stream for stream data', async () => {
+    const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
+
+    const data = {
+      type: 'stream' as const,
+      stream: new ReadableStream<Uint8Array>(),
+    };
+    await uploadFile({
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
+      data,
+    });
+
+    expect(uploadFileSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data,
+        mediaType: 'application/octet-stream',
+      }),
+    );
+  });
+
   it('should forward providerOptions to files.uploadFile', async () => {
     const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
 
