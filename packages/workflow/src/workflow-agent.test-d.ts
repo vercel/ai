@@ -1,13 +1,17 @@
 import { expectTypeOf, describe, it } from 'vitest';
 import { z } from 'zod/v4';
-import type {
-  Experimental_SandboxSession as SandboxSession,
-  Instructions,
-  ModelMessage,
+import {
+  tool,
+  type Experimental_SandboxSession as SandboxSession,
+  type InferUITools,
+  type Instructions,
+  type ModelMessage,
+  type UIMessage,
 } from 'ai';
 import type { ModelCallStreamPart } from './do-stream-step.js';
 import {
   WorkflowAgent,
+  type InferWorkflowAgentUIMessage,
   type WorkflowAgentOptions,
   type WorkflowAgentStreamOptions,
 } from './workflow-agent.js';
@@ -15,6 +19,29 @@ import {
 const model = 'anthropic/claude-sonnet-4-6';
 
 describe('WorkflowAgent types', () => {
+  it('infers UI message tool parts from configured tools', () => {
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({
+          city: z.string(),
+        }),
+        execute: async ({ city }) => ({
+          city,
+          temperature: 72,
+        }),
+      }),
+    };
+
+    const agent = new WorkflowAgent({
+      model,
+      tools,
+    });
+
+    expectTypeOf<InferWorkflowAgentUIMessage<typeof agent>>().toEqualTypeOf<
+      UIMessage<unknown, never, InferUITools<typeof tools>>
+    >();
+  });
+
   it('infers runtimeContext in prepareStep and onEnd', () => {
     new WorkflowAgent({
       model,
