@@ -28,6 +28,7 @@ import {
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
+  type InferUITools,
   type UIMessage,
   type LanguageModel,
   type Prompt,
@@ -84,9 +85,13 @@ export type InferWorkflowAgentTools<WORKFLOW_AGENT> =
  * Infer the UI message type of a workflow agent.
  */
 export type InferWorkflowAgentUIMessage<
-  _WORKFLOW_AGENT,
+  WORKFLOW_AGENT,
   MESSAGE_METADATA = unknown,
-> = UIMessage<MESSAGE_METADATA>;
+> = UIMessage<
+  MESSAGE_METADATA,
+  never,
+  InferUITools<InferWorkflowAgentTools<WORKFLOW_AGENT>>
+>;
 
 /**
  * Re-export the Output helper for structured output specifications.
