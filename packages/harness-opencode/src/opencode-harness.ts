@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import {
   commonTool,
@@ -24,6 +23,7 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   createSandboxCredentialEnvironment,
+  createBridgeToken,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -37,6 +37,7 @@ import {
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
+  withBridgeToken,
   writeSkills as writeHarnessSkills,
   type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
@@ -446,7 +447,7 @@ export function createOpenCode(
       });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
+          ? createBridgeToken()
           : settings.mintBridgeToken(sandboxId!);
       const forwardedAuthEnvironment = credentialsBrokered
         ? sandboxAuthEnvironment
@@ -762,18 +763,6 @@ function webSocketMessageToString(raw: unknown): string {
     );
   }
   return String(raw);
-}
-
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function createSession({
