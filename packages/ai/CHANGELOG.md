@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.86
+
+### Patch Changes
+
+- 11109ae: feat(ai): support signed tool approvals in WorkflowAgent
+- Updated dependencies [1329d5a]
+  - @ai-sdk/gateway@4.0.70
+
 ## 7.0.85
 
 ### Patch Changes
