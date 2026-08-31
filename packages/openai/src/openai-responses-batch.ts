@@ -41,7 +41,10 @@ import {
   openaiResponsesResponseSchema,
   type OpenAIResponsesLogprobs,
 } from './responses/openai-responses-api';
-import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
+import {
+  mapWebSearchOutput,
+  OpenAIResponsesLanguageModel,
+} from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import type { ResponsesReasoningProviderMetadata } from './responses/openai-responses-provider-metadata';
 
@@ -658,7 +661,7 @@ async function convertOpenAIResponsesBatchResponse(
           type: 'tool-result',
           toolCallId: part.id,
           toolName: 'web_search',
-          result: part.action ?? {},
+          result: mapWebSearchOutput(part.action),
           dynamic: true,
         });
         break;
@@ -678,7 +681,14 @@ async function convertOpenAIResponsesBatchResponse(
           toolName: 'file_search',
           result: {
             queries: part.queries,
-            results: part.results ?? null,
+            results:
+              part.results?.map(result => ({
+                attributes: result.attributes,
+                fileId: result.file_id,
+                filename: result.filename,
+                score: result.score,
+                text: result.text,
+              })) ?? null,
           },
           dynamic: true,
         });
@@ -700,7 +710,7 @@ async function convertOpenAIResponsesBatchResponse(
           type: 'tool-result',
           toolCallId: part.id,
           toolName: 'code_interpreter',
-          result: { outputs: part.outputs ?? [] },
+          result: { outputs: part.outputs },
           dynamic: true,
         });
         break;
