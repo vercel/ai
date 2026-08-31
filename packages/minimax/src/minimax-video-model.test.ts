@@ -121,6 +121,9 @@ describe('MiniMaxVideoModel', () => {
     [POLL_URL]: {
       response: { type: 'json-value', body: succeededStatusResponse },
     },
+    [`${TEST_BASE_URL}/v2/query/video_generation/abc%2F..%2F..%2Finternal`]: {
+      response: { type: 'json-value', body: succeededStatusResponse },
+    },
   });
 
   describe('constructor', () => {
@@ -135,6 +138,21 @@ describe('MiniMaxVideoModel', () => {
   });
 
   describe('doGenerate', () => {
+    it('should encode the task ID as a single URL path segment', async () => {
+      const model = createModel();
+
+      server.urls[CREATE_URL].response = {
+        type: 'json-value',
+        body: { task_id: 'abc/../../internal' },
+      };
+
+      await model.doGenerate({ ...defaultOptions });
+
+      expect(server.calls.map(call => call.requestUrl)).toContain(
+        `${TEST_BASE_URL}/v2/query/video_generation/abc%2F..%2F..%2Finternal`,
+      );
+    });
+
     it('should send a text-to-video request with required fields', async () => {
       const model = createModel();
 

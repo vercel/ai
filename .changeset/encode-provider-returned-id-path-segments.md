@@ -3,6 +3,7 @@
 '@ai-sdk/bytedance': patch
 '@ai-sdk/klingai': patch
 '@ai-sdk/luma': patch
+'@ai-sdk/minimax': patch
 '@ai-sdk/fal': patch
 '@ai-sdk/revai': patch
 ---

@@ -114,6 +114,17 @@ function nonImageFrameMediaType(file: VideoModelV4File): string | undefined {
   return topLevelMediaType === 'image' ? undefined : topLevelMediaType;
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 export class MiniMaxVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
@@ -588,7 +599,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
 
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
-          url: `${baseURL}/v2/query/video_generation/${taskId}`,
+          url: `${baseURL}/v2/query/video_generation/${encodePathSegment(taskId)}`,
           validateUrl: false,
           headers: combineHeaders(
             await resolve(this.config.headers),
