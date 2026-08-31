@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
+import {
+  NoSuchProviderReferenceError,
+  type JSONObject,
+  type JSONSchema7,
+} from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 
@@ -13,7 +17,7 @@ const zodV4StringFormatSchema = JSON.parse(
     ),
     'utf8',
   ),
-) as Record<string, unknown>;
+) as JSONSchema7;
 
 describe('prepareResponsesTools', () => {
   describe('function tools strict mode', () => {
@@ -222,7 +226,7 @@ describe('prepareResponsesTools', () => {
             inputSchema: { type: 'object', properties: {} },
             providerOptions: {
               openai: {
-                outputSchema: zodV4StringFormatSchema,
+                outputSchema: zodV4StringFormatSchema as JSONObject,
               },
             },
           },
