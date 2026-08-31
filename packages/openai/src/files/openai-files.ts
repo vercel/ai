@@ -44,6 +44,17 @@ interface OpenAIFilesConfig {
 
 type OpenAIFilesResponse = InferSchema<typeof openaiFilesResponseSchema>;
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 export class OpenAIFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
 
@@ -55,7 +66,7 @@ export class OpenAIFiles implements FilesV4 {
 
   private getFileId(file: SharedV4ProviderReference): string {
     const fileId = file.openai;
-    if (fileId == null) {
+    if (fileId == null || fileId.trim() === '') {
       throw new InvalidArgumentError({
         argument: 'file',
         message: "file reference is missing an 'openai' file id.",
@@ -189,7 +200,7 @@ export class OpenAIFiles implements FilesV4 {
     const fileId = this.getFileId(file);
 
     const { value: response } = await getFromApi({
-      url: `${this.config.baseURL}/files/${encodeURIComponent(fileId)}`,
+      url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}`,
       headers: this.getHeaders(headers),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -225,7 +236,7 @@ export class OpenAIFiles implements FilesV4 {
     const fileId = this.getFileId(file);
 
     const { value: content } = await getFromApi({
-      url: `${this.config.baseURL}/files/${encodeURIComponent(fileId)}/content`,
+      url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}/content`,
       headers: this.getHeaders(headers),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createBinaryStreamResponseHandler(),
@@ -248,7 +259,7 @@ export class OpenAIFiles implements FilesV4 {
     const fileId = this.getFileId(file);
 
     const { value: response } = await deleteFromApi({
-      url: `${this.config.baseURL}/files/${encodeURIComponent(fileId)}`,
+      url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}`,
       headers: this.getHeaders(headers),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
