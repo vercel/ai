@@ -1,5 +1,25 @@
 # @ai-sdk/harness-cline
 
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
+## 1.0.21
+
+### Patch Changes
+
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+- Updated dependencies [aa45741]
+  - @ai-sdk/harness@1.0.94
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 1.0.20
 
 ### Patch Changes
