@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { posix } from 'node:path';
 import {
   commonTool,
@@ -21,6 +20,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
+  createBridgeToken,
   createSandboxCredentialEnvironment,
   markBridgeStarting,
   createBridgeErrorHandler,
@@ -34,6 +34,7 @@ import {
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
+  withBridgeToken,
   writeSkills as writeHarnessSkills,
   type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
@@ -381,7 +382,7 @@ export function createDeepAgents(
       });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
+          ? createBridgeToken()
           : settings.mintBridgeToken(sandboxId!);
 
       const forwardedAuthEnvironment = credentialsBrokered
@@ -603,18 +604,6 @@ function openWebSocket({
     ws.once('open', onOpen);
     ws.once('error', onError);
   });
-}
-
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function createSession({

@@ -1,5 +1,20 @@
 # @ai-sdk/workflow
 
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 2.0.16
+
+### Patch Changes
+
+- 11109ae: feat(ai): support signed tool approvals in WorkflowAgent
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
 ## 2.0.15
 
 ### Patch Changes

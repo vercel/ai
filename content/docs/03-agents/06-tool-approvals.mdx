@@ -319,9 +319,12 @@ Every serverless instance that might handle a request needs the same secret, sin
 - The secret is never sent to the client or included in the stream
 
 <Note>
-  `experimental_toolApprovalSecret` is not yet supported on `WorkflowAgent`. For
-  durable workflows, the workflow runtime provides its own persistence layer
-  that can be used to verify approvals.
+  `WorkflowAgent` also supports `experimental_toolApprovalSecret`. It signs in
+  a workflow step before writing the durable approval request. Pass an
+  environment variable reference, such as
+  `{ environmentVariable: 'TOOL_APPROVAL_SECRET' }`, so the raw secret is read
+  only inside signing and verification steps. Only the signature is persisted
+  and sent to the client.
 </Note>
 
 ## Related APIs

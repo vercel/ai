@@ -43,6 +43,7 @@ import {
   defaultUsage,
   emitFinishStep,
   finishApprovalStep,
+  isExternalMcpTool,
   mapUsage,
   type ClaudeMessage,
 } from './create-emit-stream-event';
@@ -201,6 +202,7 @@ function createPermissionOptions(input: {
         nativeName: toolName,
         input: JSON.stringify(toolInput ?? {}),
         providerExecuted: true,
+        ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
       });
       input.emit({
         type: 'tool-approval-request',
