@@ -8,6 +8,8 @@ import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 export type FilesV4UploadFileResult = {
   /**
    * A provider reference mapping provider names to provider-specific file identifiers.
+   * The key is the canonical provider name (e.g. `openai`) and may differ from
+   * the interface's `provider` id (e.g. `openai.files`).
    */
   providerReference: SharedV4ProviderReference;
 

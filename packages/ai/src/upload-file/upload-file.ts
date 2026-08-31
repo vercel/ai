@@ -29,6 +29,8 @@ export async function uploadFile({
   data: dataArg,
   mediaType: mediaTypeArg,
   filename,
+  abortSignal,
+  headers,
   providerOptions,
 }: {
   /**
@@ -81,6 +83,8 @@ export async function uploadFile({
     data,
     mediaType,
     filename,
+    abortSignal,
+    headers,
     providerOptions,
   });
 
@@ -88,6 +92,9 @@ export async function uploadFile({
     providerReference: result.providerReference,
     mediaType: result.mediaType,
     filename: result.filename,
+    byteSize: result.byteSize,
+    createdAt: result.createdAt,
+    expiresAt: result.expiresAt,
     providerMetadata: result.providerMetadata,
     warnings: result.warnings,
   });
@@ -97,6 +104,9 @@ class DefaultUploadFileResult implements UploadFileResult {
   readonly providerReference: ProviderReference;
   readonly mediaType?: string;
   readonly filename?: string;
+  readonly byteSize?: number;
+  readonly createdAt?: Date;
+  readonly expiresAt?: Date;
   readonly providerMetadata?: ProviderMetadata;
   readonly warnings: Array<Warning>;
 
@@ -104,12 +114,18 @@ class DefaultUploadFileResult implements UploadFileResult {
     providerReference: ProviderReference;
     mediaType?: string;
     filename?: string;
+    byteSize?: number;
+    createdAt?: Date;
+    expiresAt?: Date;
     providerMetadata?: ProviderMetadata;
     warnings: Array<Warning>;
   }) {
     this.providerReference = options.providerReference;
     this.mediaType = options.mediaType;
     this.filename = options.filename;
+    this.byteSize = options.byteSize;
+    this.createdAt = options.createdAt;
+    this.expiresAt = options.expiresAt;
     this.providerMetadata = options.providerMetadata;
     this.warnings = options.warnings;
   }

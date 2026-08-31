@@ -37,14 +37,30 @@ function escapeMultipartHeaderValue(value: string): string {
     .replace(/"/g, '\\"');
 }
 
-function createMultipartBodyStream(
+interface MultipartBody {
+  stream: ReadableStream<Uint8Array>;
+  /**
+   * Deterministically releases every stream part after a failed or abandoned
+   * request — fetch implementations do not reliably cancel streaming request
+   * bodies on rejection/abort. Safe to call multiple times.
+   */
+  dispose: (reason?: unknown) => Promise<void>;
+}
+
+function createMultipartBody(
   parts: Array<MultipartStreamPart>,
   boundary: string,
-): ReadableStream<Uint8Array> {
+): MultipartBody {
   const encoder = new TextEncoder();
+
+  let disposed = false;
+  let activeReader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  const enteredStreams = new Set<ReadableStream<Uint8Array>>();
 
   async function* emitParts(): AsyncGenerator<Uint8Array> {
     for (const part of parts) {
+      if (disposed) return;
+
       const disposition = `--${boundary}\r\nContent-Disposition: form-data; name="${escapeMultipartHeaderValue(part.name)}"`;
 
       if (part.type === 'field') {
@@ -52,10 +68,12 @@ function createMultipartBodyStream(
         continue;
       }
 
-      const filenameParameter =
-        part.filename != null
-          ? `; filename="${escapeMultipartHeaderValue(part.filename)}"`
-          : '';
+      // a filename parameter is always emitted: without it, multipart
+      // parsers treat the part as a scalar field (FormData defaults to
+      // "blob" as well)
+      const filenameParameter = `; filename="${escapeMultipartHeaderValue(
+        part.filename ?? 'blob',
+      )}"`;
       const mediaType = (part.mediaType ?? 'application/octet-stream').replace(
         /[\r\n]/g,
         '',
@@ -68,24 +86,32 @@ function createMultipartBodyStream(
       if (part.content instanceof Uint8Array) {
         yield part.content;
       } else {
+        // synchronous handoff (no awaits) so dispose() sees either the
+        // active reader or an un-entered stream, never neither
         const reader = part.content.getReader();
+        activeReader = reader;
+        enteredStreams.add(part.content);
+
         let finished = false;
         try {
           while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-              finished = true;
+            if (done || disposed) {
+              finished = done;
               break;
             }
             yield value;
           }
         } finally {
-          // early teardown (fetch abort/cancel): release the source stream
+          activeReader = undefined;
+          // early teardown (dispose/cancel): release the source stream
           if (!finished) {
             await reader.cancel().catch(() => {});
           }
           reader.releaseLock();
         }
+
+        if (disposed) return;
       }
 
       yield encoder.encode('\r\n');
@@ -94,7 +120,31 @@ function createMultipartBodyStream(
     yield encoder.encode(`--${boundary}--\r\n`);
   }
 
-  return convertAsyncIteratorToReadableStream(emitParts());
+  return {
+    stream: convertAsyncIteratorToReadableStream(emitParts()),
+    async dispose(reason?: unknown) {
+      if (disposed) return;
+      disposed = true;
+
+      // an active reader holds the lock; cancelling it resolves a pending
+      // read() and propagates cancellation to the underlying source
+      const reader = activeReader;
+      if (reader != null) {
+        await reader.cancel(reason).catch(() => {});
+      }
+
+      // streams the generator never entered are still unlocked
+      for (const part of parts) {
+        if (
+          part.type === 'file' &&
+          !(part.content instanceof Uint8Array) &&
+          !enteredStreams.has(part.content)
+        ) {
+          await part.content.cancel(reason).catch(() => {});
+        }
+      }
+    },
+  };
 }
 
 /**
@@ -135,6 +185,8 @@ export const postMultipartStreamToApi = async <T>({
     ]),
   );
 
+  const body = createMultipartBody(parts, boundary);
+
   try {
     const requestInit: RequestInit & { duplex: 'half' } = {
       method: 'POST',
@@ -146,7 +198,7 @@ export const postMultipartStreamToApi = async <T>({
         `ai-sdk/provider-utils/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
-      body: createMultipartBodyStream(parts, boundary),
+      body: body.stream,
       duplex: 'half',
       signal: abortSignal,
     };
@@ -208,6 +260,9 @@ export const postMultipartStreamToApi = async <T>({
       });
     }
   } catch (error) {
+    // fetch implementations do not reliably cancel streaming request bodies
+    // on rejection/abort — release every source part deterministically
+    await body.dispose(error);
     throw handleFetchError({ error, url, requestBodyValues });
   }
 };
