@@ -1,0 +1,257 @@
+---
+title: Text Batches
+description: Learn how to process asynchronous text-generation batches with the AI SDK.
+---
+
+# Text Batches
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+Text batches let you submit multiple independent text-generation requests for
+asynchronous processing. The provider processes the batch in the background,
+so your application does not need to keep the request open while the model
+generates the results. This is useful for workloads such as classification,
+summarization, and content generation that do not need an immediate response.
+
+The AI SDK provides three functions for the batch lifecycle:
+
+- [`experimental_startTextBatch`](/docs/reference/ai-sdk-core/start-text-batch)
+  submits a batch and returns its initial status and a serializable reference.
+- [`experimental_getBatchStatus`](/docs/reference/ai-sdk-core/get-batch-status)
+  retrieves the latest status and request counts.
+- [`experimental_getBatchResults`](/docs/reference/ai-sdk-core/get-batch-results)
+  asynchronously iterates over the terminal result for each request.
+
+All three functions are exported from `ai`. The examples below use aliases so
+the shorter names can be used in application code:
+
+```ts
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_getBatchStatus as getBatchStatus,
+  experimental_startTextBatch as startTextBatch,
+} from 'ai';
+```
+
+## Supported providers
+
+Text batches require a language model whose provider implements batch
+processing. Support is provider- and model-specific. The first-party
+providers with support are:
+
+| Provider                                             | Model example                   | Provider API                                                                                  |
+| ---------------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------- |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)   | `anthropic('claude-haiku-4-5')` | [Message Batches API](https://platform.claude.com/docs/en/build-with-claude/batch-processing) |
+| [Google](/providers/ai-sdk-providers/google)         | `google('gemini-3.6-flash')`    | [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api)                           |
+| [OpenAI](/providers/ai-sdk-providers/openai)         | `openai('gpt-4.1-nano')`        | [Batch API](https://developers.openai.com/api/docs/guides/batch)                              |
+| [xAI](/providers/ai-sdk-providers/xai)               | `xai('grok-4.3')`               | [Batch API](https://docs.x.ai/developers/advanced-api-usage/batch-api)                        |
+| [AI Gateway](/providers/ai-sdk-providers/ai-gateway) | `'anthropic/claude-haiku-4.5'`  | [Batch processing](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing)  |
+
+See the provider documentation for the supported models, limits, and native
+batch behavior. For example, OpenAI batch support is available on Responses
+models, not models created with `openai.chat()`, and xAI batch support is not
+available on models created with `xai.chat()`.
+
+## Starting a batch
+
+Pass a language model and one or more uniquely identified requests to
+`startTextBatch`. Each request can use a text `prompt` or a `messages` array,
+along with the usual text-generation settings such as `instructions`,
+`maxOutputTokens`, `temperature`, `topP`, `topK`, `presencePenalty`,
+`frequencyPenalty`, `stopSequences`, `seed`, and `reasoning`.
+
+Tool definitions are provided once for the batch with `tools`, rather than on
+individual requests. You can also set a batch-wide `toolChoice`, `toolOrder`,
+and `toolsContext`.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { experimental_startTextBatch as startTextBatch } from 'ai';
+
+const model = anthropic('claude-haiku-4-5');
+
+const batch = await startTextBatch({
+  model,
+  requests: [
+    {
+      id: 'capital-france',
+      prompt: 'What is the capital of France?',
+    },
+    {
+      id: 'capital-germany',
+      prompt: 'What is the capital of Germany?',
+    },
+  ],
+});
+
+console.log(batch.id, batch.status);
+```
+
+Request IDs must be non-empty and unique within the batch. They are the link
+between an input request and its result. Results are not guaranteed to arrive
+in input order, so use the ID rather than an array position when associating a
+result with application data.
+
+You can pass provider-specific settings at the batch level with
+`providerOptions`, or on an individual request with that request's
+`providerOptions`. Settings supported by the provider can differ between the
+two levels. The `warnings` property on the start result contains warnings about
+unsupported settings.
+
+The batch reference returned by `startTextBatch` is serializable. Persist it
+before the process exits if the batch will be completed by another process or
+at a later time. When retrieving a batch, pass a model from the same provider
+with the same model ID. The AI SDK uses the reference to ensure that a batch is
+not read through an incompatible model.
+
+## Batch tools
+
+Text batches support both client-defined tools and provider-defined tools. The
+tool definitions are sent to the provider with every request in the batch, so
+the model can call them independently for each request.
+
+Client-defined tools are definition-only in a batch. Their `execute` functions
+are never invoked, and the AI SDK does not submit tool results or start a
+follow-up generation after retrieving a tool call. Pass the same tool set to
+`getBatchResults` to validate and normalize returned tool calls:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_startTextBatch as startTextBatch,
+  tool,
+} from 'ai';
+import { z } from 'zod';
+
+const model = anthropic('claude-haiku-4-5');
+const tools = {
+  get_weather: tool({
+    description: 'Get the current weather for a location.',
+    inputSchema: z.object({ location: z.string() }),
+    execute: async ({ location }) => {
+      // This function is not called by batch processing.
+      return { location, temperature: 21, condition: 'sunny' };
+    },
+  }),
+};
+
+const batch = await startTextBatch({
+  model,
+  tools,
+  toolChoice: { type: 'tool', toolName: 'get_weather' },
+  requests: [
+    {
+      id: 'weather-san-francisco',
+      prompt: 'Call get_weather for San Francisco, California.',
+    },
+  ],
+});
+
+for await (const item of getBatchResults({ model, batch, tools })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.content);
+  }
+}
+```
+
+Provider-defined tools, such as web search or code execution, can execute on
+the provider when supported by that provider's batch API. Their tool calls and
+results are returned as normalized `content` parts. See the provider
+documentation for the tools and models available in batches.
+
+## Checking batch status
+
+The start result includes the initial status. Use `getBatchStatus` to retrieve
+the latest status while the provider is processing the batch:
+
+```ts
+import { setTimeout } from 'node:timers/promises';
+
+let status = batch.status;
+let error = batch.error;
+
+while (status === 'pending') {
+  await setTimeout(10_000);
+  const latestStatus = await getBatchStatus({ model, batch });
+  status = latestStatus.status;
+  error = latestStatus.error;
+}
+
+if (status === 'failed') {
+  throw new Error(error?.message ?? 'The text batch failed.');
+}
+```
+
+The normalized batch status is one of:
+
+- `pending` — the provider is still processing the batch.
+- `completed` — the batch reached a terminal state and results can be
+  retrieved.
+- `failed` — the batch could not be completed. The `error` property may
+  contain additional details.
+
+Status responses can also include `requestCounts`, `createdAt`, `expiresAt`,
+`rawStatus`, and provider metadata. `requestCounts` reports the total,
+pending, completed, and failed requests known by the provider.
+
+For webhook-capable providers, pass `webhookUrl` to `startTextBatch` to
+receive a notification when the batch reaches a terminal state. Webhook
+support and payloads are provider-specific. The provider pages linked above
+describe their webhook behavior; providers that do not support webhooks return
+an unsupported warning and continue without one.
+
+## Retrieving results
+
+After the batch is complete, `getBatchResults` returns an async iterable. Each
+item contains the ID and terminal status for one input request:
+
+```ts
+for await (const item of getBatchResults({ model, batch })) {
+  if (item.status === 'succeeded') {
+    console.log(item.id, item.text);
+  } else {
+    console.error(item.id, item.status, item.error);
+  }
+}
+```
+
+Successful items include:
+
+- `text` — the concatenated text content. This can be an empty string when the
+  result contains no text parts.
+- `content` — ordered, normalized content parts, including text, reasoning,
+  files, sources, tool calls, tool results, and provider content where
+  supported.
+- `finishReason` and optional `rawFinishReason`.
+- `usage` and optional `response` metadata.
+- Optional `providerMetadata`.
+
+Failed, cancelled, and expired items include their `id` and status. Failed
+items include an `error`; cancelled and expired items may also include one.
+One failed request does not necessarily mean that every request in the batch
+failed, so handle each item independently.
+
+Batch retrieval does not run an AI SDK tool loop or invoke client-defined
+`execute` functions. Provider-defined tools may execute on the provider as part
+of batch processing. Treat result content and provider metadata as untrusted
+model output, and avoid logging it indiscriminately because it can contain
+sensitive data.
+
+## Request controls
+
+`getBatchStatus` and `getBatchResults` accept `providerOptions`, `headers`,
+`timeout`, `abortSignal`, and `maxRetries` for the current status or result
+retrieval operation:
+
+- `maxRetries` controls retries for status and result retrieval. It does not
+  retry batch creation, which could create a duplicate batch. It defaults to 2;
+  set it to 0 to disable retries.
+- `abortSignal` cancels the current status or result request.
+- `timeout` limits the current HTTP operation.
+
+These controls affect communication with the provider. They do not change the
+provider's processing deadline or cancel a batch that has already been
+submitted.

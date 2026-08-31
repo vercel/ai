@@ -1,0 +1,150 @@
+---
+title: experimental_startTextBatch
+description: API Reference for experimental_startTextBatch.
+---
+
+# `experimental_startTextBatch()`
+
+<Note type="warning">
+  Text batch support is experimental and the API may change in patch releases.
+</Note>
+
+Starts an asynchronous text-generation batch. For a complete guide to the
+batch lifecycle, see [Text Batches](/docs/ai-sdk-core/text-batches).
+
+```ts
+import { experimental_startTextBatch as startTextBatch } from 'ai';
+
+const batch = await startTextBatch({
+  model: 'openai/gpt-4.1-nano',
+  requests: [{ id: 'france', prompt: 'What is the capital of France?' }],
+});
+```
+
+## Import
+
+<Snippet
+  text={`import { experimental_startTextBatch } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'Experimental_BatchLanguageModel',
+      description:
+        'The language model to use. The provider must support text batches.',
+    },
+    {
+      name: 'requests',
+      type: 'Array<Experimental_TextBatchRequest>',
+      description:
+        'The independent text-generation requests to process. Each request must have a unique, non-empty id and either a prompt or messages.',
+    },
+    {
+      name: 'tools',
+      type: 'ToolSet',
+      isOptional: true,
+      description:
+        'Tool definitions sent with every request in the batch. Client-defined tools are definition-only and their execute functions are never invoked.',
+    },
+    {
+      name: 'toolChoice',
+      type: 'ToolChoice',
+      isOptional: true,
+      description: 'Controls which tool the model can call. Default: auto.',
+    },
+    {
+      name: 'toolOrder',
+      type: 'ToolOrder',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext',
+      isOptional: true,
+      description: 'Context used when resolving dynamic tool descriptions.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      isOptional: true,
+      description: 'Additional provider-specific options for the batch.',
+    },
+    {
+      name: 'webhookUrl',
+      type: 'string',
+      isOptional: true,
+      description:
+        'URL to notify when the batch reaches a terminal state. Support and payloads are provider-specific.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal to cancel the request that starts the batch.',
+    },
+    {
+      name: 'timeout',
+      type: 'number | { totalMs?: number }',
+      isOptional: true,
+      description: 'Maximum time allowed for the batch creation request.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string | undefined>',
+      isOptional: true,
+      description: 'Additional HTTP headers for the request.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'version',
+      type: '1',
+      description: 'Version of the serializable batch reference.',
+    },
+    {
+      name: 'type',
+      type: "'text'",
+      description: 'Batch modality.',
+    },
+    {
+      name: 'id',
+      type: 'string',
+      description: 'Provider batch identifier.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'Provider identifier for the batch.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'Provider model identifier for the batch.',
+    },
+    {
+      name: 'status',
+      type: "'pending' | 'completed' | 'failed'",
+      description: 'Initial normalized batch status.',
+    },
+    {
+      name: 'warnings',
+      type: 'Warning[]',
+      description: 'Warnings returned while starting the batch.',
+    },
+  ]}
+/>
