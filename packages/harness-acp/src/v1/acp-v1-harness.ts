@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
 import {
   HarnessCapabilityUnsupportedError,
@@ -16,6 +16,7 @@ import {
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
   applyCredentialForwarding,
+  createBridgeToken,
   createBridgeErrorHandler,
   createBridgeStartupError,
   createSandboxCredentialEnvironment,
@@ -30,6 +31,7 @@ import {
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
+  withBridgeToken,
 } from '@ai-sdk/harness/utils';
 import {
   asSchema,
@@ -566,7 +568,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
+          ? createBridgeToken()
           : settings.mintBridgeToken(sandboxId!);
       await toolSafeSandboxSession.run({
         command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
@@ -930,18 +932,6 @@ function openWebSocket({
     ws.once('open', onOpen);
     ws.once('error', onError);
   });
-}
-
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
 }
 
 function restoreColdACPSession({
