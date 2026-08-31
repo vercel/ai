@@ -319,6 +319,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved?: never;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: never;
         isAutomatic?: boolean;
@@ -334,6 +335,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: boolean;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
@@ -351,6 +353,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
@@ -368,6 +371,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
@@ -383,6 +387,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: false;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
@@ -442,6 +447,7 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved?: never;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: never;
         isAutomatic?: boolean;
@@ -457,6 +463,7 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: boolean;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
@@ -474,6 +481,7 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
@@ -490,6 +498,7 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
@@ -505,6 +514,7 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: false;
+        descriptor?: unknown;
         requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
