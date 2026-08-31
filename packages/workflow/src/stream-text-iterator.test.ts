@@ -963,3 +963,113 @@ describe('streamTextIterator', () => {
     });
   });
 });
+
+/**
+ * vercel/ai#14293 — WorkflowAgent does not preserve reasoning across steps.
+ *
+ * The `tool-calls` branch rebuilds the assistant message from text + tool calls
+ * only, so on the next step the model sees the result of a call it made but not
+ * the reasoning that produced it. vercel/workflow#1444 fixed the same defect for
+ * DurableAgent by adding `reasoningParts` to that branch.
+ *
+ * `sanitizeProviderMetadataForToolCall` exists because of this — see its comment,
+ * "requires reasoning items we don't preserve". Fixing this should let that
+ * workaround be removed.
+ *
+ * NOTE: necessary but not sufficient. `doStreamStep` also discards
+ * `providerMetadata` from reasoning chunks, so a part replayed from
+ * `step.reasoning` carries no attestation and providers drop it. See the sibling
+ * test in do-stream-step.test.ts.
+ *
+ * Marked `it.fails` so CI stays green while the bug is open. They flip to real
+ * failures once the behaviour is fixed, which is the signal to drop the `.fails`.
+ */
+describe('reasoning across a tool-call step', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function runToolCallStep(reasoningText: string) {
+    let capturedPrompt: LanguageModelV4Prompt | undefined;
+
+    const toolCall: LanguageModelV4ToolCall = {
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'readFile',
+      input: '{"path":"pricing.ts"}',
+    };
+
+    vi.mocked(doStreamStep)
+      .mockResolvedValueOnce(
+        createMockDoStreamStepResult({
+          toolCalls: [toolCall],
+          finishReason: 'tool-calls',
+          finishRaw: 'tool_calls',
+          rawOverrides: {
+            reasoning: [{ text: reasoningText }],
+          } as Partial<DoStreamStepRawResult>,
+        }),
+      )
+      .mockImplementationOnce(async prompt => {
+        capturedPrompt = prompt;
+        return createMockDoStreamStepResult();
+      });
+
+    const iterator = streamTextIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'why?' }] }],
+      tools: {
+        readFile: {
+          description: 'Read a file',
+          execute: async () => ({ contents: 'export const pct = 20;' }),
+        },
+      } as unknown as ToolSet,
+      writable: createMockWritable(),
+      model: vi.fn() as any,
+    });
+
+    const first = await iterator.next();
+    expect(first.done).toBe(false);
+
+    const toolResults: LanguageModelV4ToolResultPart[] = [
+      {
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'readFile',
+        output: {
+          type: 'text',
+          value: '{"contents":"export const pct = 20;"}',
+        },
+      },
+    ];
+    await iterator.next(toolResults);
+
+    return capturedPrompt?.find(m => m.role === 'assistant');
+  }
+
+  it.fails(
+    'includes reasoning in the assistant message sent to the next step',
+    async () => {
+      const assistant = await runToolCallStep(
+        'I should check how the discount is expressed.',
+      );
+
+      expect(assistant).toBeDefined();
+      expect(assistant?.content).toContainEqual(
+        expect.objectContaining({
+          type: 'reasoning',
+          text: 'I should check how the discount is expressed.',
+        }),
+      );
+    },
+  );
+
+  it.fails('puts reasoning before the tool call, as providers expect', async () => {
+    const assistant = await runToolCallStep('thinking first');
+    const types = (assistant?.content as Array<{ type: string }>).map(
+      p => p.type,
+    );
+
+    expect(types).toContain('reasoning');
+    expect(types.indexOf('reasoning')).toBeLessThan(types.indexOf('tool-call'));
+  });
+});

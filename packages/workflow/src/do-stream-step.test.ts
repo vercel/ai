@@ -295,4 +295,72 @@ describe('doStreamStep', () => {
     });
     expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
   });
+  /**
+   * vercel/ai#14293 — the reasoning attestation is destroyed here, before
+   * anything downstream can use it.
+   *
+   * `reasoningParts` is typed `Array<{ text: string }>` and built as
+   * `{ text: part.text }`, and the switch has no `reasoning-start` /
+   * `reasoning-end` case — which is where providers attach the attestation
+   * (Anthropic `signature`, OpenAI `reasoningEncryptedContent`). Without it a
+   * replayed reasoning part is dropped by the provider, so preserving reasoning
+   * in the conversation prompt is not enough on its own.
+   *
+   * Marked `it.fails` so CI stays green while the bug is open. It flips to a
+   * real failure once the behaviour is fixed, which is the signal to drop the
+   * `.fails`.
+   */
+  it.fails('preserves providerMetadata on reasoning parts', async () => {
+    const signature = 'ErUBCkYIBBgCIkDrKfLtEXAMPLEsignatureBYTES';
+
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'reasoning-start' as const, id: 'reasoning-1' },
+          {
+            type: 'reasoning-delta' as const,
+            id: 'reasoning-1',
+            delta: 'The discount is a percentage, not a fraction.',
+          },
+          {
+            // Anthropic attaches the signature to reasoning-end.
+            type: 'reasoning-end' as const,
+            id: 'reasoning-1',
+            providerMetadata: { anthropic: { signature } },
+          },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 2, text: 0, reasoning: 2 },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({ write() {} }),
+    );
+
+    const reasoning = (result as { raw: { reasoning: unknown[] } }).raw
+      .reasoning as Array<{ text: string; providerMetadata?: unknown }>;
+
+    expect(reasoning).toHaveLength(1);
+    expect(reasoning[0].text).toBe(
+      'The discount is a percentage, not a fraction.',
+    );
+    expect(reasoning[0].providerMetadata).toEqual({
+      anthropic: { signature },
+    });
+  });
 });
