@@ -109,11 +109,15 @@ describe('postMultipartStreamToApi', () => {
     const [, init] = mockFetch.mock.calls[0];
     const bodyText = await new Response(init.body).text();
     expect(bodyText).toContain('Content-Type: application/octet-stream');
-    // without a filename the part still parses (as a string entry)
+    // without a filename the part still parses as a File (default "blob") —
+    // omitting filename= would demote it to a scalar string field
     const formData = await new Response(bodyText, {
       headers: { 'content-type': init.headers['content-type'] },
     }).formData();
-    expect(formData.get('file')).toBe('raw-bytes');
+    const file = formData.get('file') as File;
+    expect(file).toBeInstanceOf(File);
+    expect(file.name).toBe('blob');
+    expect(await file.text()).toBe('raw-bytes');
   });
 
   it('escapes CR/LF and quotes in part names and filenames', async () => {
@@ -143,6 +147,78 @@ describe('postMultipartStreamToApi', () => {
     const bodyText = await new Response(init.body).text();
     expect(bodyText).toContain('filename="evil\\"X-Injected: 1.jsonl"');
     expect(bodyText).not.toContain('evil"\r\nX-Injected');
+  });
+
+  it('cancels un-entered source streams when fetch rejects before consuming the body', async () => {
+    const cancelSpy = vi.fn();
+    const source = new ReadableStream<Uint8Array>({
+      cancel: cancelSpy,
+    });
+
+    const mockFetch = vi.fn().mockRejectedValue(new TypeError('fetch failed'));
+
+    await expect(
+      postMultipartStreamToApi({
+        url: 'https://api.test.com/files',
+        parts: [
+          { type: 'field', name: 'purpose', value: 'batch' },
+          {
+            type: 'file',
+            name: 'file',
+            filename: 'batch.jsonl',
+            content: source,
+          },
+        ],
+        successfulResponseHandler: createJsonResponseHandler(responseSchema),
+        failedResponseHandler: createStatusCodeErrorResponseHandler(),
+        fetch: mockFetch,
+      }),
+    ).rejects.toThrow();
+
+    expect(cancelSpy).toHaveBeenCalled();
+  });
+
+  it('cancels an in-flight source read when the request is abandoned mid-body', async () => {
+    const cancelSpy = vi.fn();
+    // one chunk, then stays open: the generator will be suspended in read()
+    const source = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('first-chunk'));
+      },
+      cancel: cancelSpy,
+    });
+
+    const mockFetch = vi.fn(
+      (_url: string, init: { body: ReadableStream<Uint8Array> }) =>
+        new Promise<Response>((_resolve, reject) => {
+          void (async () => {
+            const reader = init.body.getReader();
+            // consume the preamble + first file chunk, leave the next read pending
+            await reader.read();
+            await reader.read();
+            reject(new TypeError('connection reset'));
+          })();
+        }),
+    );
+
+    await expect(
+      postMultipartStreamToApi({
+        url: 'https://api.test.com/files',
+        parts: [
+          {
+            type: 'file',
+            name: 'file',
+            filename: 'batch.jsonl',
+            content: source,
+          },
+        ],
+        successfulResponseHandler: createJsonResponseHandler(responseSchema),
+        failedResponseHandler: createStatusCodeErrorResponseHandler(),
+        fetch: mockFetch as never,
+      }),
+    ).rejects.toThrow();
+
+    expect(cancelSpy).toHaveBeenCalled();
   });
 
   it('throws an APICallError for a failed response', async () => {
