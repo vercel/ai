@@ -5,9 +5,6 @@ packages:
   - 'examples/*'
   - 'packages/rsc/tests/e2e/next-server'
 
-# pnpm version is handled by external tool (corepack) so pnpm shouldn't auto install it
-pmOnFail: ignore
-
 overrides:
   tinyexec: 1.0.2
   oxlint: 1.56.0

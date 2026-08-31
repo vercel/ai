@@ -33,7 +33,10 @@ import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
-import type { OpenAIConfig } from './openai-config';
+import {
+  prepareOpenAIConfigForWorkflowDeserialize,
+  type OpenAIConfig,
+} from './openai-config';
 import { openaiFilesResponseSchema } from './files/openai-files-api';
 import { convertOpenAIResponsesUsage } from './responses/convert-openai-responses-usage';
 import { mapOpenAIResponseFinishReason } from './responses/map-openai-responses-finish-reason';
@@ -421,12 +424,12 @@ export class OpenAIResponsesBatchLanguageModel
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: OpenAIResponsesModelId;
-    config: OpenAIConfig;
+    modelId: string;
+    config: Parameters<typeof prepareOpenAIConfigForWorkflowDeserialize>[0];
   }) {
     return new OpenAIResponsesBatchLanguageModel(
-      options.modelId,
-      options.config,
+      options.modelId as OpenAIResponsesModelId,
+      prepareOpenAIConfigForWorkflowDeserialize(options.config),
     );
   }
 

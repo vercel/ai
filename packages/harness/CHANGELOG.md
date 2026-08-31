@@ -1,5 +1,13 @@
 # @ai-sdk/harness
 
+## 1.0.96
+
+### Patch Changes
+
+- c0c7fac: feat(harness): add reusable `createReadBridgeAsset()` helper function
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
 ## 1.0.95
 
 ### Patch Changes

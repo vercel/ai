@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.87
+
+### Patch Changes
+
+- 850d863: fix(ai): preserve approval descriptors in UI message streams
+
 ## 7.0.86
 
 ### Patch Changes
