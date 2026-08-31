@@ -5,7 +5,12 @@ import type {
   Instructions,
   ModelMessage,
 } from 'ai';
-import { WorkflowAgent } from './workflow-agent.js';
+import type { ModelCallStreamPart } from './do-stream-step.js';
+import {
+  WorkflowAgent,
+  type WorkflowAgentOptions,
+  type WorkflowAgentStreamOptions,
+} from './workflow-agent.js';
 
 const model = 'anthropic/claude-sonnet-4-6';
 
@@ -61,6 +66,41 @@ describe('WorkflowAgent types', () => {
         content: 'Be concise.',
       },
     });
+  });
+
+  it('accepts tool approval secrets in constructor and stream options', () => {
+    const constructorOptions = {
+      model,
+      experimental_toolApprovalSecret: {
+        environmentVariable: 'TOOL_APPROVAL_SECRET',
+      },
+    } satisfies WorkflowAgentOptions;
+    const streamOptions = {
+      prompt: 'hello',
+      experimental_toolApprovalSecret: {
+        environmentVariable: 'OTHER_TOOL_APPROVAL_SECRET',
+      },
+    } satisfies WorkflowAgentStreamOptions;
+
+    const agent = new WorkflowAgent(constructorOptions);
+    agent.stream(streamOptions);
+
+    new WorkflowAgent({
+      model,
+      // @ts-expect-error raw secrets can cross workflow boundaries
+      experimental_toolApprovalSecret: 'secret',
+    });
+  });
+
+  it('includes signed approval requests in the durable stream type', () => {
+    const part = {
+      type: 'tool-approval-request',
+      approvalId: 'approval-call-1',
+      toolCallId: 'call-1',
+      signature: 'signature',
+    } satisfies ModelCallStreamPart;
+
+    expectTypeOf(part.signature).toEqualTypeOf<string>();
   });
 
   it('supports onFinish as a deprecated alias', () => {

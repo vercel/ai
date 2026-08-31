@@ -34,14 +34,17 @@ import {
   type TelemetryOptions as CoreTelemetryOptions,
   type Instructions,
   type Experimental_SandboxSession as SandboxSession,
+  InvalidToolApprovalSignatureError,
 } from 'ai';
 import {
   createRestrictedTelemetryDispatcher,
   collectToolApprovals,
   convertToLanguageModelPrompt,
   mergeCallbacks,
+  signToolApproval,
   standardizePrompt,
   validateApprovedToolApprovals,
+  verifyToolApprovalSignature,
 } from 'ai/internal';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
 import type { ModelCallStreamPart } from './do-stream-step.js';
@@ -115,6 +118,17 @@ export interface OutputSpecification<OUTPUT, PARTIAL> {
  * Provider-specific options type. This is equivalent to SharedV4ProviderOptions from @ai-sdk/provider.
  */
 export type ProviderOptions = SharedV4ProviderOptions;
+
+/**
+ * Workflow-safe reference to the environment variable that contains the
+ * secret used to sign and verify tool approvals.
+ */
+export type WorkflowToolApprovalSecret = {
+  /**
+   * Name of an environment variable containing a high-entropy secret.
+   */
+  environmentVariable: string;
+};
 
 type WorkflowAgentToolsContextParameter<TTools extends ToolSet> =
   HasRequiredKey<InferToolSetContext<TTools>> extends true
@@ -542,6 +556,18 @@ export type WorkflowAgentOptions<
      * Per-stream `experimental_sandbox` values passed to `stream()` override this default.
      */
     experimental_sandbox?: SandboxSession;
+
+    /**
+     * Workflow-safe reference to the environment variable containing the
+     * secret for HMAC-signing tool approval requests. When set, the agent signs
+     * each approval request and verifies the signature before executing an
+     * approved tool replayed from client-supplied message history.
+     *
+     * Only the environment variable name crosses workflow boundaries. The
+     * secret value is read inside signing and verification steps and is never
+     * serialized. Per-stream values override this default.
+     */
+    experimental_toolApprovalSecret?: WorkflowToolApprovalSecret;
 
     /**
      * Default callback function called before each step in the agent loop.
@@ -1003,6 +1029,18 @@ export type WorkflowAgentStreamOptions<
     experimental_sandbox?: SandboxSession;
 
     /**
+     * Workflow-safe reference to the environment variable containing the
+     * secret for HMAC-signing tool approval requests. When set, the agent signs
+     * each approval request and verifies the signature before executing an
+     * approved tool replayed from client-supplied message history.
+     *
+     * Only the environment variable name crosses workflow boundaries. The
+     * secret value is read inside signing and verification steps and is never
+     * serialized. Overrides the constructor-level value if provided.
+     */
+    experimental_toolApprovalSecret?: WorkflowToolApprovalSecret;
+
+    /**
      * Callback function to be called after each step completes.
      */
     onStepEnd?: WorkflowAgentOnStepEndCallback<TTools, TRuntimeContext>;
@@ -1266,6 +1304,7 @@ export class WorkflowAgent<
   private repairToolCall?: ToolCallRepairFunction<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
   private experimentalSandbox?: SandboxSession;
+  private experimentalToolApprovalSecret?: WorkflowToolApprovalSecret;
   private prepareStep?: PrepareStepCallback<TBaseTools, TRuntimeContext>;
   private allowSystemInMessages: boolean;
   private constructorOnStepEnd?: WorkflowAgentOnStepEndCallback<
@@ -1305,6 +1344,8 @@ export class WorkflowAgent<
       options.repairToolCall ?? options.experimental_repairToolCall;
     this.experimentalDownload = options.experimental_download;
     this.experimentalSandbox = options.experimental_sandbox;
+    this.experimentalToolApprovalSecret =
+      options.experimental_toolApprovalSecret;
     this.prepareStep = options.prepareStep;
     this.constructorOnStepEnd = options.onStepEnd ?? options.onStepFinish;
     const { onFinish, onEnd = onFinish } = options;
@@ -1374,6 +1415,9 @@ export class WorkflowAgent<
       options.activeTools ?? this.activeTools;
     let effectiveDownloadFromPrepare =
       options.experimental_download ?? this.experimentalDownload;
+    const effectiveToolApprovalSecret =
+      options.experimental_toolApprovalSecret ??
+      this.experimentalToolApprovalSecret;
     let effectiveTelemetryFromPrepare = options.telemetry ?? this.telemetry;
 
     // Resolve messages for prepareCall: use messages directly, or convert prompt
@@ -1562,11 +1606,20 @@ export class WorkflowAgent<
           }
 
           // Re-validate through the shared core implementation: input schema,
-          // HMAC signature (when configured), and approval policy. Convert
-          // invalid input, denial, or signature errors to a tool error result
-          // so the agent loop can continue gracefully.
+          // approval signature (when configured), and approval policy.
+          // Convert invalid input, denial, or signature errors to a tool error
+          // result so the agent loop can continue gracefully.
           let revalidationReason: string | undefined;
           try {
+            await validateWorkflowToolApprovalSignature({
+              secret: effectiveToolApprovalSecret,
+              approvalId: approval.collected.approvalRequest.approvalId,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              input: approval.input,
+              signature: approval.collected.approvalRequest.signature,
+            });
+
             const { deniedToolApprovals: policyDenied, invalidToolApprovals } =
               await validateApprovedToolApprovals({
                 approvedToolApprovals: [approval.collected],
@@ -2394,13 +2447,31 @@ export class WorkflowAgent<
                 return approvalNeeded[tcIndex];
               });
               if (approvalToolCalls.length > 0) {
-                await writeApprovalRequests(
-                  options.writable,
-                  approvalToolCalls.map(tc => ({
-                    toolCallId: tc.toolCallId,
-                    toolName: tc.toolName,
-                  })),
+                // The signing step receives only a non-secret environment
+                // variable reference. It resolves the secret inside the step,
+                // and only the resulting signature is persisted in the stream.
+                const approvalRequests = await Promise.all(
+                  approvalToolCalls.map(async tc => {
+                    const approvalId = `approval-${tc.toolCallId}`;
+                    const signature =
+                      effectiveToolApprovalSecret == null
+                        ? undefined
+                        : await signWorkflowToolApproval({
+                            secret: effectiveToolApprovalSecret,
+                            approvalId,
+                            toolCallId: tc.toolCallId,
+                            toolName: tc.toolName,
+                            input: tc.input,
+                          });
+
+                    return {
+                      approvalId,
+                      toolCallId: tc.toolCallId,
+                      ...(signature != null ? { signature } : {}),
+                    };
+                  }),
                 );
+                await writeApprovalRequests(options.writable, approvalRequests);
               }
             }
 
@@ -2727,21 +2798,136 @@ async function closeStream(
  */
 async function writeApprovalRequests(
   writable: WritableStream<any>,
-  toolCalls: Array<{ toolCallId: string; toolName: string }>,
+  approvalRequests: Array<{
+    approvalId: string;
+    toolCallId: string;
+    signature?: string;
+  }>,
 ) {
   'use step';
   const writer = writable.getWriter();
   try {
-    for (const tc of toolCalls) {
+    for (const request of approvalRequests) {
       await writer.write({
         type: 'tool-approval-request',
-        approvalId: `approval-${tc.toolCallId}`,
-        toolCallId: tc.toolCallId,
+        approvalId: request.approvalId,
+        toolCallId: request.toolCallId,
+        ...(request.signature != null ? { signature: request.signature } : {}),
       });
     }
   } finally {
     writer.releaseLock();
   }
+}
+
+async function signWorkflowToolApproval({
+  secret,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  secret: WorkflowToolApprovalSecret;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<string> {
+  'use step';
+
+  return signToolApproval({
+    secret: getWorkflowToolApprovalSecret(secret),
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+  });
+}
+
+async function verifyWorkflowToolApprovalSignature({
+  secret,
+  signature,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  secret: WorkflowToolApprovalSecret;
+  signature: string;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<boolean> {
+  'use step';
+
+  return verifyToolApprovalSignature({
+    secret: getWorkflowToolApprovalSecret(secret),
+    signature,
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+  });
+}
+
+async function validateWorkflowToolApprovalSignature({
+  secret,
+  signature,
+  approvalId,
+  toolCallId,
+  toolName,
+  input,
+}: {
+  secret: WorkflowToolApprovalSecret | undefined;
+  signature: string | undefined;
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+}): Promise<void> {
+  if (secret == null) {
+    return;
+  }
+
+  if (signature == null) {
+    throw new InvalidToolApprovalSignatureError({
+      approvalId,
+      toolCallId,
+      reason: 'missing signature',
+    });
+  }
+
+  const valid = await verifyWorkflowToolApprovalSignature({
+    secret,
+    signature,
+    approvalId,
+    toolCallId,
+    toolName,
+    input,
+  });
+
+  if (!valid) {
+    throw new InvalidToolApprovalSignatureError({
+      approvalId,
+      toolCallId,
+      reason: 'invalid signature',
+    });
+  }
+}
+
+function getWorkflowToolApprovalSecret({
+  environmentVariable,
+}: WorkflowToolApprovalSecret): string {
+  const secret = process.env[environmentVariable];
+
+  if (secret == null) {
+    throw new Error(
+      `Tool approval secret environment variable "${environmentVariable}" is not set`,
+    );
+  }
+
+  return secret;
 }
 
 async function writeToolResults(
