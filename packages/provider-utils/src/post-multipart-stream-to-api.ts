@@ -69,13 +69,21 @@ function createMultipartBodyStream(
         yield part.content;
       } else {
         const reader = part.content.getReader();
+        let finished = false;
         try {
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+              finished = true;
+              break;
+            }
             yield value;
           }
         } finally {
+          // early teardown (fetch abort/cancel): release the source stream
+          if (!finished) {
+            await reader.cancel().catch(() => {});
+          }
           reader.releaseLock();
         }
       }
