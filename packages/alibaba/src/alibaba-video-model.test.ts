@@ -78,6 +78,15 @@ describe('AlibabaVideoModel', () => {
     [TASK_URL]: {
       response: { type: 'json-value', body: succeededTaskResponse },
     },
+    [`${TEST_BASE_URL}/api/v1/tasks/abc%2F..%2F..%2Finternal`]: {
+      response: { type: 'json-value', body: succeededTaskResponse },
+    },
+    [`${TEST_BASE_URL}/api/v1/tasks/%252E`]: {
+      response: { type: 'json-value', body: succeededTaskResponse },
+    },
+    [`${TEST_BASE_URL}/api/v1/tasks/%252E%252E`]: {
+      response: { type: 'json-value', body: succeededTaskResponse },
+    },
   });
 
   describe('constructor', () => {
@@ -1027,6 +1036,33 @@ describe('AlibabaVideoModel', () => {
   });
 
   describe('doStatus', () => {
+    it('should encode the task ID as a single URL path segment', async () => {
+      const model = createModel();
+      const taskId = 'abc/../../internal';
+
+      await model.doStatus({ operation: { taskId } });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/api/v1/tasks/${encodeURIComponent(taskId)}`,
+      );
+    });
+
+    it.each([
+      { taskId: '.', encodedTaskId: '%252E' },
+      { taskId: '..', encodedTaskId: '%252E%252E' },
+    ])(
+      'should preserve the $taskId task ID as a URL path segment',
+      async ({ taskId, encodedTaskId }) => {
+        const model = createModel();
+
+        await model.doStatus({ operation: { taskId } });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `${TEST_BASE_URL}/api/v1/tasks/${encodedTaskId}`,
+        );
+      },
+    );
+
     it('should return completed with video data when SUCCEEDED', async () => {
       const model = createModel();
 

@@ -29,6 +29,17 @@ interface FalTranscriptionModelConfig extends FalConfig {
   };
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 export class FalTranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -143,7 +154,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
           rawValue: statusRawResponse,
         } = await getFromApi({
           url: this.config.url({
-            path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${queueResponse.request_id}`,
+            path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${encodePathSegment(queueResponse.request_id ?? '')}`,
             modelId: this.modelId,
           }),
           validateUrl: false,

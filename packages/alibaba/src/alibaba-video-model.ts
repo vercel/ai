@@ -283,6 +283,17 @@ function resolveReferenceUrls(
   return alibabaOptions?.referenceUrls ?? undefined;
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 export class AlibabaVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
@@ -654,7 +665,7 @@ export class AlibabaVideoModel implements VideoModelV4 {
     const { taskId } = options.operation as { taskId: string };
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
+      url: `${this.config.baseURL}/api/v1/tasks/${encodePathSegment(taskId)}`,
       validateUrl: false,
       headers: combineHeaders(
         await resolve(this.config.headers),

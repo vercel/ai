@@ -38,6 +38,17 @@ interface LumaImageModelConfig {
   };
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 export class LumaImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
@@ -335,9 +346,9 @@ export class LumaImageModel implements ImageModelV4 {
   }
 
   private getLumaGenerationsUrl(generationId?: string) {
-    return `${this.config.baseURL}/dream-machine/v1/generations/${
-      generationId ?? 'image'
-    }`;
+    return `${this.config.baseURL}/dream-machine/v1/generations/${encodePathSegment(
+      generationId ?? 'image',
+    )}`;
   }
 
   private async downloadImage(
