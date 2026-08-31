@@ -1,5 +1,8 @@
 import { JSONParseError } from '@ai-sdk/provider';
-import { WORKFLOW_DESERIALIZE } from '@ai-sdk/provider-utils';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
@@ -13,6 +16,7 @@ vi.mock('./version', () => ({
 }));
 
 const urls = {
+  responses: 'https://api.openai.com/v1/responses',
   files: 'https://api.openai.com/v1/files',
   batches: 'https://api.openai.com/v1/batches',
   batch: 'https://api.openai.com/v1/batches/batch_123',
@@ -21,6 +25,7 @@ const urls = {
 } as const;
 
 const server = createTestServer({
+  [urls.responses]: {},
   [urls.files]: {},
   [urls.batches]: {},
   [urls.batch]: {},
@@ -667,12 +672,30 @@ describe('OpenAI batch language models', () => {
     ).toBeUndefined();
   });
 
-  it('preserves Responses batch support when workflow deserializes a model', () => {
-    const responsesModel = OpenAIResponsesBatchLanguageModel[
-      WORKFLOW_DESERIALIZE
-    ]({ modelId: 'gpt-5.6', config });
+  it('preserves Responses config and batch support across a workflow round trip', async () => {
+    server.urls[urls.responses].response = {
+      type: 'json-value',
+      body: responsesResultBody('Paris'),
+    };
+    const model = createOpenAI({ apiKey: 'test-api-key' })(
+      'gpt-5.6',
+    ) as OpenAIResponsesBatchLanguageModel;
+    const serialized =
+      OpenAIResponsesBatchLanguageModel[WORKFLOW_SERIALIZE](model);
+    const responsesModel =
+      OpenAIResponsesBatchLanguageModel[WORKFLOW_DESERIALIZE](serialized);
 
     expect(responsesModel.experimental_doStartBatch).toBeTypeOf('function');
+    await expect(
+      responsesModel.doGenerate(
+        request('What is the capital of France?').options,
+      ),
+    ).resolves.toMatchObject({
+      content: [{ type: 'text', text: 'Paris' }],
+    });
+    expect(server.calls[0].requestHeaders.authorization).toBe(
+      'Bearer test-api-key',
+    );
   });
 
   describe('batch result lifecycle', () => {
