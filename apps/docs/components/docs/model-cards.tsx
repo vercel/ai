@@ -345,6 +345,12 @@ const OFFICIAL_MODELS: ModelCardData[] = [
     features: { imageGeneration: true },
   },
   {
+    title: 'Black Forest Labs',
+    href: '/providers/ai-sdk-providers/black-forest-labs',
+    color: '000000',
+    features: { imageGeneration: true },
+  },
+  {
     title: 'Baseten',
     logo: { src: '/images/icons/baseten.svg' },
     href: '/providers/ai-sdk-providers/baseten',
