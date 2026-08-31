@@ -8039,6 +8039,66 @@ describe('processUIMessageStream', () => {
     ]);
   });
 
+  // The approval is requested on one connection and answered on another, so the
+  // descriptor has to survive being restored from `lastMessage`.
+  it('preserves an approval descriptor restored from a persisted message', async () => {
+    const descriptor = {
+      action: 'deleteAccount',
+      permissions: ['account:delete'],
+      risk: 'high',
+    };
+    const stream = createUIMessageStream([
+      {
+        approvalId: 'approval-1',
+        approved: true,
+        type: 'tool-approval-response',
+      },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: {
+        role: 'assistant',
+        id: 'msg-123',
+        metadata: undefined,
+        parts: [
+          {
+            type: 'tool-deleteAccount',
+            toolCallId: 'call-1',
+            state: 'approval-requested',
+            input: { userId: 'user-123' },
+            approval: {
+              id: 'approval-1',
+              descriptor,
+            },
+          },
+        ],
+      },
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      writeCalls
+        .map(call => call.message.parts.find(isToolUIPart)?.approval)
+        .filter(approval => approval != null),
+    ).toEqual([
+      {
+        id: 'approval-1',
+        approved: true,
+        descriptor,
+      },
+    ]);
+  });
+
   describe('tool approval request without signature', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
