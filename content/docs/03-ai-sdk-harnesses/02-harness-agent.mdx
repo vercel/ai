@@ -28,6 +28,7 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 export const agent = new HarnessAgent({
   harness: claudeCode,
+  model: 'claude-sonnet-4-6',
   sandbox: createVercelSandbox({
     runtime: 'node24',
     ports: [4000],
@@ -39,6 +40,10 @@ export const agent = new HarnessAgent({
 
 Construct the agent at module scope. It holds configuration, not a live session.
 Live state belongs to `HarnessAgentSession`.
+
+Set `model` to select the model that the harness runtime uses. Model identifiers
+are specific to each harness. When omitted, the harness uses its default model.
+The model is applied per turn, so `prepareCall` can replace it between turns.
 
 To use this agent, ensure environment variables with sandbox and harness credentials
 are set.
@@ -182,9 +187,9 @@ HTTP routes that need multi-turn continuity.
 
 ## Change Settings Between Turns
 
-Use `callOptionsSchema` and `prepareCall` to derive `skills`, `instructions`,
-and `tools` for each new turn. This follows the same call-options pattern as
-`ToolLoopAgent`:
+Use `callOptionsSchema` and `prepareCall` to derive `model`, `skills`,
+`instructions`, and `tools` for each new turn. This follows the same
+call-options pattern as `ToolLoopAgent`:
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
@@ -204,9 +209,11 @@ const agent = new HarnessAgent({
   callOptionsSchema: z.object({
     area: z.enum(['frontend', 'backend']),
     enablePolicyTool: z.boolean(),
+    useCheaperModel: z.boolean(),
   }),
   prepareCall: ({ options, ...call }) => ({
     ...call,
+    model: options.useCheaperModel ? 'claude-haiku-4-5' : undefined,
     instructions: `Work as the ${options.area} specialist.`,
     skills: [options.area === 'frontend' ? frontendSkill : backendSkill],
     tools: options.enablePolicyTool ? { getPolicy } : undefined,
@@ -218,13 +225,21 @@ try {
   await agent.generate({
     session,
     prompt: 'Review the current implementation.',
-    options: { area: 'frontend', enablePolicyTool: false },
+    options: {
+      area: 'frontend',
+      enablePolicyTool: false,
+      useCheaperModel: false,
+    },
   });
 
   await agent.generate({
     session,
     prompt: 'Now review the API contract.',
-    options: { area: 'backend', enablePolicyTool: true },
+    options: {
+      area: 'backend',
+      enablePolicyTool: true,
+      useCheaperModel: true,
+    },
   });
 } finally {
   await session.destroy();
@@ -236,6 +251,10 @@ validated. Its settings are then fixed for that whole turn. If the turn pauses
 for a tool result, approval, stop condition, or process handoff, its
 continuation reuses the same settings and does not call `prepareCall` again.
 This prevents settings from changing mid-turn.
+
+Changing `model` does not create a new harness session. Each adapter switches or
+reconfigures its runtime before the next prompt while preserving the session's
+conversation history.
 
 The Codex adapter starts a fresh native Codex thread when its skills,
 instructions, or tool catalog changes because `codex exec resume` retains the
@@ -485,12 +504,14 @@ console.log(preparation.identity);
 `HarnessAgent` accepts these main settings:
 
 - `harness`: the adapter instance.
+- `model`: optional harness-specific model identifier. When omitted, the
+  harness uses its default model.
 - `sandbox`: a `HarnessV1SandboxProvider`.
 - `id`: optional stable agent identifier.
 - `instructions`: instructions appended to the runtime's system or developer
   prompt when supported, or prepended to the user prompt otherwise.
 - `callOptionsSchema` and `prepareCall`: validate custom call options and derive
-  skills, instructions, and tools for each new turn.
+  model, skills, instructions, and tools for each new turn.
 - `output`: typed output specification applied to every turn.
 - `stopWhen`: condition(s) for finishing a result slice after a completed
   harness tool step that can continue into another model step.

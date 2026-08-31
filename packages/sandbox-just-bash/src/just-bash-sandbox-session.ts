@@ -48,9 +48,8 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
 
     const finished = await this.sandbox.runCommand({
       cmd: 'bash',
-      args: ['-c', command],
+      args: createBashArgs(command, env),
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
-      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
@@ -81,10 +80,9 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
 
     const live = await this.sandbox.runCommand({
       cmd: 'bash',
-      args: ['-c', command],
+      args: createBashArgs(command, env),
       detached: true,
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
-      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
@@ -190,6 +188,30 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
       abortSignal,
     });
   }
+}
+
+function createBashArgs(
+  command: string,
+  env: Record<string, string> | undefined,
+): string[] {
+  // just-bash applies runCommand's env to the outer execution, but its `bash`
+  // command only inherits exported variables. Export assignments passed as
+  // positional arguments so values are not interpolated into the script.
+  const assignments =
+    env == null
+      ? []
+      : Object.entries(env).map(([name, value]) => `${name}=${value}`);
+
+  if (assignments.length === 0) {
+    return ['-c', command];
+  }
+
+  return [
+    '-c',
+    `${assignments.map(() => 'export -- "$1"; shift').join('\n')}\n${command}`,
+    'bash',
+    ...assignments,
+  ];
 }
 
 function createSandboxProcess(

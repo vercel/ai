@@ -20,6 +20,7 @@ function containsEqual(value: unknown, expected: unknown): boolean {
 }
 
 describe('createEmitStreamEvent', () => {
+<<<<<<< HEAD
   it('exposes native structured tool outputs from live Claude Agent SDK frames', () => {
     const messages = JSON.parse(
       readFileSync(
@@ -27,6 +28,9 @@ describe('createEmitStreamEvent', () => {
         'utf8',
       ),
     ) as FrameWithToolUseResult[];
+=======
+  it('streams native tool input before the complete tool call', () => {
+>>>>>>> origin/main
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
@@ -35,6 +39,7 @@ describe('createEmitStreamEvent', () => {
       emitWarning: () => {},
       emitTerminalError: () => {},
       onCompactionBoundary: () => {},
+<<<<<<< HEAD
       toCommonName: name =>
         name === 'Read' ? 'read' : name === 'Bash' ? 'bash' : name,
     });
@@ -90,6 +95,128 @@ describe('createEmitStreamEvent', () => {
     ).toBe(
       "Error: Exit code 2\nls: cannot access '/definitely-not-here-issue-19894': No such file or directory",
     );
+=======
+      toCommonName: name => (name === 'Write' ? 'write' : name),
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 1,
+        content_block: {
+          type: 'tool_use',
+          id: 'tool-1',
+          name: 'Write',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 1,
+        delta: {
+          type: 'input_json_delta',
+          partial_json: '{"file_path":"notes.md",',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 1,
+        delta: {
+          type: 'input_json_delta',
+          partial_json: '"content":"hello"}',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'content_block_stop', index: 1 },
+    });
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      {
+        type: 'tool-input-start',
+        id: 'tool-1',
+        toolName: 'write',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'tool-1',
+        delta: '{"file_path":"notes.md",',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'tool-1',
+        delta: '"content":"hello"}',
+      },
+      { type: 'tool-input-end', id: 'tool-1' },
+    ]);
+    expect(state.partialBlocks.size).toBe(0);
+  });
+
+  it('streams host tool input with its user-facing identity', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_start',
+        index: 1,
+        content_block: {
+          type: 'tool_use',
+          id: 'host-tool-1',
+          name: 'mcp__harness-tools__weather',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'content_block_delta',
+        index: 1,
+        delta: {
+          type: 'input_json_delta',
+          partial_json: '{"city":"Chicago"}',
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'content_block_stop', index: 1 },
+    });
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      {
+        type: 'tool-input-start',
+        id: 'host-tool-1',
+        toolName: 'weather',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'host-tool-1',
+        delta: '{"city":"Chicago"}',
+      },
+      { type: 'tool-input-end', id: 'host-tool-1' },
+    ]);
+>>>>>>> origin/main
   });
 
   it('emits the resolved model and a native tool step', () => {

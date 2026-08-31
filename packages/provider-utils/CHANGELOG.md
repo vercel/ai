@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 5.0.34
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+
+## 5.0.33
+
+### Patch Changes
+
+- 90192f1: Mark transient network errors that occur while reading successful response bodies as retryable.
+
 ## 5.0.32
 
 ### Patch Changes

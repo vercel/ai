@@ -37,6 +37,8 @@ export type ClineHarnessSettings = {
   /**
    * Model id for the configured provider. When omitted, Cline selects the
    * provider's default model.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly modelId?: string;
   /**
@@ -181,7 +183,7 @@ export function createCline(
             isHarnessAuthenticationEnvironment(settings.auth),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
           ...(settings.providerId ? { providerId: settings.providerId } : {}),
-          ...(settings.modelId ? { modelId: settings.modelId } : {}),
+          ...(settings.modelId == null ? {} : { modelId: settings.modelId }),
           ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
           ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
           ...(settings.headers ? { headers: settings.headers } : {}),

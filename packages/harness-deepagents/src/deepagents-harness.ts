@@ -94,7 +94,12 @@ export type DeepAgentsHarnessSettings = {
    * discover, read, or otherwise access in the host process.
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
-  /** Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to `provider:model`). */
+  /**
+   * Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to
+   * `provider:model`).
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
+   */
   readonly model?: string;
   /**
    * Controls Anthropic extended thinking for the Deep Agents model. Unset
@@ -407,7 +412,7 @@ export function createDeepAgents(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}${isResume ? ' --resume true' : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -779,7 +784,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -816,7 +820,9 @@ function createSession({
         ...(promptOpts.responseFormat == null
           ? {}
           : { responseFormat: promptOpts.responseFormat }),
-        ...(model ? { model } : {}),
+        ...((promptOpts.model ?? model)
+          ? { model: promptOpts.model ?? model }
+          : {}),
         ...(thinking ? { thinking } : {}),
         ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
@@ -909,7 +915,6 @@ function createSession({
       }
       stopped = true;
       await teardown({ channel, proc, operation: 'stop' });
-      // In-memory conversation is lost on teardown; the sandbox snapshot preserves the workspace files, not the conversation.
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'deepagents',

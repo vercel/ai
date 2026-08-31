@@ -430,6 +430,30 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('prefers the per-turn model over the deprecated adapter model', async () => {
+    const harness = createClaudeCode({ model: 'legacy-model' });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      model: 'agent-model',
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ model: 'agent-model' });
+    await session.doDestroy();
+  });
+
   it('sets the client app for AI Gateway auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({
@@ -670,6 +694,48 @@ describe('createClaudeCode adapter', () => {
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
     await attachedSession.doDetach();
+  });
+
+  it('resumes the exact conversation after detaching and attaching', async () => {
+    const harness = createClaudeCode();
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: { claudeSessionId: 'claude-session-1' },
+      },
+    });
+    const resumeFrom = await session.doDetach();
+
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    const control = await attachedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Continue the work.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      resumeSessionId: 'claude-session-1',
+    });
+    expect(lastStart()).not.toHaveProperty('continue');
+
+    await attachedSession.doDestroy();
   });
 
   it('passes port endpoint headers to fresh, retried, and attached WebSocket connections', async () => {

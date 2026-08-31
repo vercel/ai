@@ -5,6 +5,16 @@ type QueryArgs = {
   options: Record<string, unknown>;
 };
 
+type ToolHandler = (
+  ...args: [
+    input: Record<string, unknown>,
+    extra: {
+      requestId: string | number;
+      _meta?: Record<string, unknown>;
+    },
+  ]
+) => Promise<unknown>;
+
 const TEST_ENV_KEYS = [
   'CLAUDE_CODE_BRIDGE_INHERITED_TEST',
   'CLAUDE_CODE_BRIDGE_OVERRIDE_TEST',
@@ -16,11 +26,18 @@ const state = vi.hoisted(() => ({
   messages: [] as Record<string, unknown>[],
   queryArgs: [] as QueryArgs[],
   start: {} as Record<string, unknown>,
+  additionalTurns: [] as Array<{
+    start: Record<string, unknown>;
+    firstTurn: boolean;
+  }>,
+  onStop: undefined as (() => unknown) | undefined,
+  firstTurn: true,
   originalArgv: [] as string[],
   originalEnv: {} as Record<string, string | undefined>,
   steering: false,
   acceptedUserMessages: [] as string[],
   queryInputs: [] as unknown[],
+  toolHandlers: new Map<string, ToolHandler>(),
   /** Per-test query factory; falls back to the `state.messages` generator. */
   createQuery: undefined as ((args: QueryArgs) => unknown) | undefined,
   /** Per-test turn abort controller; defaults to a fresh, never-aborted one. */
@@ -63,6 +80,34 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
         return;
       }
       for (const message of state.messages) {
+        if (message.type === 'invoke-host-tools') {
+          const calls = message.calls as Array<{
+            toolName: string;
+            toolCallId: string;
+            input: Record<string, unknown>;
+          }>;
+          await Promise.all(
+            calls.map(call => {
+              const handler = state.toolHandlers.get(call.toolName);
+              if (handler == null) {
+                throw new Error(
+                  `Missing host tool handler for '${call.toolName}'.`,
+                );
+              }
+              const handlerArgs: Parameters<ToolHandler> = [
+                call.input,
+                {
+                  requestId: call.toolCallId,
+                  _meta: {
+                    'claudecode/toolUseId': call.toolCallId,
+                  },
+                },
+              ];
+              return handler(...handlerArgs);
+            }),
+          );
+          continue;
+        }
         yield message;
       }
     })();
@@ -70,37 +115,53 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
 }));
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
-  McpServer: class {},
+  McpServer: class {
+    tool(...args: [string, string, unknown, ToolHandler]): void {
+      const name = args[0];
+      const handler = args[3];
+      state.toolHandlers.set(name, handler);
+    }
+  },
 }));
 
 vi.mock('@ai-sdk/harness/bridge', () => ({
   runBridge: async ({
     onStart,
+    onStop,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
+    onStop?: () => unknown;
   }) => {
-    await onStart(state.start, {
-      abortSignal: (state.turnAbortController ?? new AbortController()).signal,
-      experimental_userMessages: {
-        pendingCount: state.steering ? 1 : 0,
-        close: () => {},
-        [Symbol.asyncIterator]: async function* () {
-          if (!state.steering) return;
-          yield {
-            messageId: 'steering-message-1',
-            text: 'Actually, Paris, Texas.',
-            accept: () => state.acceptedUserMessages.push('steering-message-1'),
-            reject: () => {},
-          };
+    state.onStop = onStop;
+    for (const turn of [
+      { start: state.start, firstTurn: state.firstTurn },
+      ...state.additionalTurns,
+    ]) {
+      await onStart(turn.start, {
+        abortSignal: (state.turnAbortController ?? new AbortController())
+          .signal,
+        experimental_userMessages: {
+          pendingCount: state.steering ? 1 : 0,
+          close: () => {},
+          [Symbol.asyncIterator]: async function* () {
+            if (!state.steering) return;
+            yield {
+              messageId: 'steering-message-1',
+              text: 'Actually, Paris, Texas.',
+              accept: () =>
+                state.acceptedUserMessages.push('steering-message-1'),
+              reject: () => {},
+            };
+          },
         },
-      },
-      firstTurn: true,
-      emit: (event: Record<string, unknown>) => state.emitted.push(event),
-      emitWarning: () => {},
-      emitError: (input: unknown) => state.emitError?.(input),
-      requestToolResult: async () => ({ output: {} }),
-      requestToolApproval: async () => ({ approved: true }),
-    });
+        firstTurn: turn.firstTurn,
+        emit: (event: Record<string, unknown>) => state.emitted.push(event),
+        emitWarning: () => {},
+        emitError: (input: unknown) => state.emitError?.(input),
+        requestToolResult: async () => ({ output: {} }),
+        requestToolApproval: async () => ({ approved: true }),
+      });
+    }
   },
 }));
 
@@ -118,6 +179,9 @@ describe('Claude Code bridge configuration', () => {
     state.createQuery = undefined;
     state.turnAbortController = undefined;
     state.emitError = undefined;
+    state.onStop = undefined;
+    state.firstTurn = true;
+    state.additionalTurns = [];
     state.start = {
       prompt: 'Inspect the project.',
       thinking: { type: 'disabled' },
@@ -125,6 +189,7 @@ describe('Claude Code bridge configuration', () => {
     state.steering = false;
     state.acceptedUserMessages = [];
     state.queryInputs = [];
+    state.toolHandlers = new Map();
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       TEST_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -192,6 +257,87 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('resumes the exact conversation when the start names one', async () => {
+    state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
+    state.firstTurn = false;
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options).toMatchObject({ resume: 'claude-session-1' });
+    // `resume` and `continue` are mutually exclusive in the SDK.
+    expect(options).not.toHaveProperty('continue');
+  });
+
+  test('resumes the observed conversation on every subsequent query', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-1',
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+        session_id: 'claude-session-1',
+      },
+    ];
+    state.additionalTurns = [
+      {
+        start: { ...state.start, prompt: 'Continue the work.' },
+        firstTurn: false,
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.queryArgs).toHaveLength(2);
+    expect(state.queryArgs[1]?.options).toMatchObject({
+      resume: 'claude-session-1',
+    });
+    expect(state.queryArgs[1]?.options).not.toHaveProperty('continue');
+  });
+
+  test('falls back to continue when no exact conversation is named', async () => {
+    state.start = { ...state.start, continue: true };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({ continue: true });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('resume');
+  });
+
+  test('surfaces the observed session id on finish metadata and the stop payload', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-2',
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+        session_id: 'claude-session-2',
+      },
+    ];
+
+    await import('./index');
+
+    const finish = state.emitted.find(msg => msg.type === 'finish');
+    expect(finish?.harnessMetadata).toMatchObject({
+      'claude-code': { sessionId: 'claude-session-2' },
+    });
+    expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
+  });
+
+  test('reports an empty stop payload when no session id was observed', async () => {
+    await import('./index');
+
+    expect(state.onStop?.()).toEqual({});
+  });
+
   test('passes the requested JSON schema to the Agent SDK', async () => {
     const schema = {
       type: 'object',
@@ -208,6 +354,157 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({
       outputFormat: { type: 'json_schema', schema },
     });
+  });
+
+  test('uses callback metadata to correlate identical parallel host tool calls', async () => {
+    state.start = {
+      ...state.start,
+      tools: [
+        {
+          name: 'weather',
+          description: 'Get the weather',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              city: { type: 'string' },
+              unit: { type: 'string' },
+            },
+            required: ['city', 'unit'],
+          },
+        },
+      ],
+    };
+    state.messages = [
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_start',
+          index: 0,
+          content_block: {
+            type: 'tool_use',
+            id: 'host-tool-1',
+            name: 'mcp__harness-tools__weather',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_delta',
+          index: 0,
+          delta: {
+            type: 'input_json_delta',
+            partial_json: '{"unit":"C","city":"Chicago"}',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_stop', index: 0 },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_start',
+          index: 1,
+          content_block: {
+            type: 'tool_use',
+            id: 'host-tool-2',
+            name: 'mcp__harness-tools__weather',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_delta',
+          index: 1,
+          delta: {
+            type: 'input_json_delta',
+            partial_json: '{"unit":"C","city":"Chicago"}',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_stop', index: 1 },
+      },
+      {
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'host-tool-1',
+              name: 'mcp__harness-tools__weather',
+              input: { city: 'Chicago', unit: 'C' },
+            },
+            {
+              type: 'tool_use',
+              id: 'host-tool-2',
+              name: 'mcp__harness-tools__weather',
+              input: { city: 'Chicago', unit: 'C' },
+            },
+          ],
+        },
+      },
+      {
+        type: 'invoke-host-tools',
+        calls: [
+          {
+            toolName: 'weather',
+            toolCallId: 'host-tool-2',
+            input: { city: 'Chicago', unit: 'C' },
+          },
+          {
+            toolName: 'weather',
+            toolCallId: 'host-tool-1',
+            input: { city: 'Chicago', unit: 'C' },
+          },
+        ],
+      },
+      {
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'host-tool-1',
+              content: '{}',
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'host-tool-2',
+              content: '{}',
+            },
+          ],
+        },
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'host-tool-2',
+        toolName: 'weather',
+        input: '{"city":"Chicago","unit":"C"}',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'host-tool-1',
+        toolName: 'weather',
+        input: '{"city":"Chicago","unit":"C"}',
+        providerExecuted: false,
+      },
+    ]);
   });
 
   test('reports only the final model call usage for the final step', async () => {

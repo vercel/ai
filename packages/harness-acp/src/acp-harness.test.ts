@@ -198,6 +198,10 @@ const agentSettings = {
   executable: 'codex-acp',
   args: ['--example'],
   forwardEnv: ['CODEX_API_KEY'],
+  modelMapping: {
+    type: 'session-config-option' as const,
+    path: 'model',
+  },
 } as const;
 
 const permissionModeMapping = {
@@ -450,6 +454,92 @@ describe('createACP', () => {
         ...agentSettings,
       }).specificationVersion,
     ).toBe('harness-v1');
+  });
+
+  it('maps the HarnessAgent model into per-turn session settings', async () => {
+    const runs: string[] = [];
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const harness = createACP({
+      harnessId: 'model-mapping-acp',
+      ...agentSettings,
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs,
+        spawns,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const control = await session.doPromptTurn({
+      model: 'agent-model',
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(harnessUtilsMocks.channels[0]!.sent[0]).toMatchObject({
+      type: 'start',
+      model: 'agent-model',
+      modelMapping: {
+        type: 'session-config-option',
+        path: 'model',
+      },
+    });
+    harnessUtilsMocks.channels[0]!.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
+
+    await session.doDestroy();
+  });
+
+  it('uses the deprecated ACP modelId as a model fallback', async () => {
+    const harness = createACP({
+      harnessId: 'legacy-model-mapping-acp',
+      ...agentSettings,
+      modelId: 'legacy-model',
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(harnessUtilsMocks.channels[0]!.sent[0]).toMatchObject({
+      type: 'start',
+      model: 'legacy-model',
+      modelMapping: {
+        type: 'session-config-option',
+        path: 'model',
+      },
+    });
+    harnessUtilsMocks.channels[0]!.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
+    await session.doDestroy();
   });
 
   it('requires credential environment and brokering settings together', () => {
@@ -1546,6 +1636,7 @@ describe('createACP', () => {
         pnpmWorkspaceYaml,
       },
       executable: 'codex-acp',
+      modelMapping: agentSettings.modelMapping,
     });
     const bootstrap = await harness.getBootstrap!();
 
@@ -1584,6 +1675,7 @@ describe('createACP', () => {
       },
       executable: 'agent',
       args: ['--disable-auto-update', 'acp'],
+      modelMapping: agentSettings.modelMapping,
     });
     const bootstrap = await harness.getBootstrap!();
     const implementationFiles = bootstrap.files.filter(file =>
@@ -1682,7 +1774,6 @@ describe('createACP', () => {
     expect(spawns[0].env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk/harness-acp');
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
-    expect(session.modelId).toBeUndefined();
     expect(stop).not.toHaveBeenCalled();
 
     await session.doDestroy();
@@ -2098,6 +2189,7 @@ describe('createACP', () => {
       },
       executable: 'agent',
       args: ['--disable-auto-update', 'acp'],
+      modelMapping: agentSettings.modelMapping,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -2507,7 +2599,6 @@ describe('createACP', () => {
       acpSessionId: 'acp-session-1',
       coldSession: {
         version: 1,
-        modelId: 'gpt-5.1-codex',
         permissionMode: 'allow-edits',
         tools: [
           expect.objectContaining({
@@ -2743,7 +2834,7 @@ describe('createACP', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
-  it('rejects cold lifecycle state when the configured model changes', async () => {
+  it('restores cold lifecycle state independently of the per-turn model', async () => {
     const sandbox = fakeSandbox({
       runs: [],
       spawns: [],
@@ -2752,7 +2843,6 @@ describe('createACP', () => {
     const firstHarness = createACP({
       harnessId: 'model-identity-acp',
       ...agentSettings,
-      modelId: 'model-before-stop',
     });
     const firstSession = await firstHarness.doStart({
       sessionId: 'session-1',
@@ -2761,6 +2851,7 @@ describe('createACP', () => {
     });
     const channel = harnessUtilsMocks.channels[0]!;
     const turn = await firstSession.doPromptTurn({
+      model: 'model-before-stop',
       skills: [],
       tools: [],
       prompt: 'Establish model-scoped state.',
@@ -2781,19 +2872,42 @@ describe('createACP', () => {
     const changedHarness = createACP({
       harnessId: 'model-identity-acp',
       ...agentSettings,
-      modelId: 'model-after-stop',
     });
-    await expect(
-      changedHarness.doStart({
-        sessionId: 'session-1',
-        sandboxSession: sandbox,
-        sessionWorkDir: '/workspace/user-project',
-        resumeFrom,
-      }),
-    ).rejects.toThrow(
-      'cold-session state is incompatible with the current non-secret session configuration',
-    );
-    expect(harnessUtilsMocks.channels).toHaveLength(1);
+    const resumedPromise = changedHarness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: sandbox,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom,
+    });
+    await vi.waitFor(() => {
+      expect(harnessUtilsMocks.channels).toHaveLength(2);
+      expect(harnessUtilsMocks.channels[1]?.sent).toHaveLength(1);
+    });
+    const resumedChannel = harnessUtilsMocks.channels[1]!;
+    emitColdRestoration({ channel: resumedChannel, method: 'resume' });
+    const resumedSession = await resumedPromise;
+    const resumedTurn = await resumedSession.doPromptTurn({
+      model: 'model-after-stop',
+      skills: [],
+      tools: [],
+      prompt: 'Continue model-independent state.',
+      emit: () => {},
+    });
+    expect(resumedChannel.sent[1]).toMatchObject({
+      type: 'start',
+      model: 'model-after-stop',
+      modelMapping: {
+        type: 'session-config-option',
+        path: 'model',
+      },
+    });
+    resumedChannel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await resumedTurn.done;
+    await resumedSession.doDestroy();
   });
 
   it('keeps stop and destroy idempotent without stopping the framework sandbox', async () => {

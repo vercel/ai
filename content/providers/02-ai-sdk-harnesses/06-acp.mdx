@@ -100,7 +100,10 @@ try {
   - An authentication environment: auto-detect from the supplied record
     instead of the host process environment.
 - `providerAuthentication`: declarative runtime-specific Gateway environment.
-- `modelId`: a known implementation model identifier for Harness metadata.
+- `modelMapping`: required static mapping from the `model` supplied to
+  `HarnessAgent` to the ACP operation used by the implementation. Use
+  `session-config-option` with its configuration option ID as `path`, or
+  `session-model` with the `session/set_model` request property as `path`.
 - `skillsDirectory`: native skills directory relative to the implementation's
   effective `$HOME`. It defaults to `.agents/skills`; override it for runtimes
   that use a different location.
@@ -145,6 +148,10 @@ const harness = createACP({
     packageName: '@example/acp-agent',
   },
   executable: 'example-acp',
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
   outputSchemaMapping: {
     type: 'session-prompt-meta',
     path: ['outputSchema'],
@@ -349,6 +356,10 @@ export const claudeCodeACPHarness = createACP({
     packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
   skillsDirectory: '.claude/skills',
   credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
   credentialBrokering: ({ env, sandboxEnv }) => {
@@ -433,6 +444,10 @@ export const codexACPHarness = createACP({
     packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
   forwardEnv: ['CODEX_CONFIG'],
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
@@ -535,6 +550,13 @@ export const cursorACPHarness = createACP({
   },
   executable: 'agent',
   args: ['--disable-auto-update', 'acp'],
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
+  clientCapabilities: {
+    _meta: { parameterizedModelPicker: true },
+  },
   credentialEnv: ['CURSOR_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
@@ -595,6 +617,10 @@ export const grokBuildACPHarness = createACP({
   },
   executable: 'grok',
   args: ['agent', 'stdio'],
+  modelMapping: {
+    type: 'session-model',
+    path: 'modelId',
+  },
   credentialEnv: ['XAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];

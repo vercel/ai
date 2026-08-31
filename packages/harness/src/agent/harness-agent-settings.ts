@@ -80,8 +80,8 @@ type HarnessTools<TOOLS extends ToolSet> = ActiveTools<NoInfer<TOOLS>>;
  *
  * Prompt, abortSignal, callbacks, and custom call options belong on the
  * `AgentCallParameters` / `AgentStreamParameters` passed to `generate` /
- * `stream`. `prepareCall` can derive turn-scoped skills, instructions, and
- * tools from those custom call options.
+ * `stream`. `prepareCall` can derive turn-scoped model, skills, instructions,
+ * and tools from those custom call options.
  */
 type HarnessAgentToolFilteringSettings<TOOLS extends ToolSet> =
   | {
@@ -120,6 +120,13 @@ export type HarnessAgentSettings<
    * If omitted, `agent.id` is `undefined`.
    */
   readonly id?: string;
+
+  /**
+   * Model identifier used by the harness adapter. Supported values are
+   * defined by the selected harness. `prepareCall` can replace it between
+   * completed turns.
+   */
+  readonly model?: string;
 
   /**
    * Tools available to the underlying runtime in addition to the harness's
@@ -197,7 +204,7 @@ export type HarnessAgentSettings<
           NoInfer<OUTPUT>,
           CALL_OPTIONS
         >,
-        'skills' | 'instructions' | 'tools'
+        'model' | 'skills' | 'instructions' | 'tools'
       >,
   ) => MaybePromiseLike<
     Pick<
@@ -208,7 +215,7 @@ export type HarnessAgentSettings<
         NoInfer<OUTPUT>,
         CALL_OPTIONS
       >,
-      'skills' | 'instructions' | 'tools'
+      'model' | 'skills' | 'instructions' | 'tools'
     > &
       Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
   >;

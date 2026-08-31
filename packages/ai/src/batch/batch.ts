@@ -4,9 +4,12 @@ import {
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type LanguageModelV4,
   type LanguageModelV4GenerateResult,
+  type LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
-import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { type ToolSet, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { convertLanguageModelContent } from '../generate-text/convert-language-model-content';
+import { parseToolCall } from '../generate-text/parse-tool-call';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -175,8 +178,8 @@ export function getBatchResults({
     BatchV4ItemResult<LanguageModelV4GenerateResult>,
     TextBatchItemResult
   > & { cancel?: (reason?: unknown) => void } = {
-    transform(item, controller) {
-      controller.enqueue(convertBatchItemResult(item));
+    async transform(item, controller) {
+      controller.enqueue(await convertBatchItemResult(item));
     },
 
     cancel(reason) {
@@ -296,9 +299,9 @@ function validateBatchReference({
   }
 }
 
-function convertBatchItemResult(
+async function convertBatchItemResult(
   item: BatchV4ItemResult<LanguageModelV4GenerateResult>,
-): TextBatchItemResult {
+): Promise<TextBatchItemResult> {
   if (item.status !== 'succeeded') {
     return item;
   }
@@ -306,15 +309,41 @@ function convertBatchItemResult(
   return {
     id: item.id,
     status: 'succeeded',
-    ...convertGenerateResult(item.result),
+    ...(await convertGenerateResult(item.result)),
   };
 }
 
-function convertGenerateResult(
+async function convertGenerateResult(
   result: LanguageModelV4GenerateResult,
-): TextBatchGenerationResult {
+): Promise<TextBatchGenerationResult> {
+  const toolCalls = await Promise.all(
+    result.content
+      .filter(
+        (part): part is LanguageModelV4ToolCall => part.type === 'tool-call',
+      )
+      .map(toolCall =>
+        parseToolCall<ToolSet>({
+          toolCall,
+          tools: undefined,
+          repairToolCall: undefined,
+          refineToolInput: undefined,
+          instructions: undefined,
+          messages: [],
+        }),
+      ),
+  );
+  const content = convertLanguageModelContent<ToolSet>({
+    content: result.content,
+    toolCalls,
+    toolOutputs: [],
+    toolApprovalRequests: [],
+    toolApprovalResponses: [],
+    tools: undefined,
+  });
+
   return {
-    text: result.content
+    content,
+    text: content
       .filter(
         (part): part is Extract<typeof part, { type: 'text' }> =>
           part.type === 'text',
