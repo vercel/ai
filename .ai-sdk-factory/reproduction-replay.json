@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20068,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20068-workflow-agent-tool-fields.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20068-workflow-agent-tool-fields.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #20068 REPRODUCED: WorkflowAgent dropped tool behavior across the workflow step boundary: strict, title/metadata, type:'dynamic', input lifecycle callbacks, supportsDeferredResults"
+  }
+}
