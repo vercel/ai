@@ -54,12 +54,17 @@ export async function uploadFile({
       ? { type: 'data', data: dataArg }
       : dataArg;
 
+  // stream data cannot be sniffed without consuming it
   const mediaType =
     mediaTypeArg ??
     (data.type === 'text'
       ? 'text/plain'
-      : (detectMediaType({ data: data.data }) ??
-        (isLikelyText(data.data) ? 'text/plain' : 'application/octet-stream')));
+      : data.type === 'stream'
+        ? 'application/octet-stream'
+        : (detectMediaType({ data: data.data }) ??
+          (isLikelyText(data.data)
+            ? 'text/plain'
+            : 'application/octet-stream')));
 
   const filesApi: FilesV4 =
     'uploadFile' in api
