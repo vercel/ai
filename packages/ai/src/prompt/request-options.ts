@@ -8,7 +8,9 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  *   In `streamText`, this excludes client-side tool execution.
  * - An object with `firstChunkMs` property for the timeout until the first content chunk of each step (streaming only)
  * - An object with `chunkMs` property for the timeout between content chunks (streaming only).
- *   In `streamText`, this stops when the model response ends, before client-side tool execution.
+ *   Only text deltas, reasoning deltas, non-empty tool-input deltas, generated files, and tool
+ *   calls reset it; preliminary tool results and other non-content chunks do not. In `streamText`,
+ *   this stops when the model response ends, before client-side tool execution.
  * - An object with `toolMs` property for the default timeout for all tool executions
  * - An object with `tools` property for per-tool timeout overrides using `{toolName}Ms` keys
  */

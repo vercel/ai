@@ -2,7 +2,7 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { DelayedPromise } from '@ai-sdk/provider-utils';
+import { DelayedPromise, tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -690,4 +690,79 @@ describe('streamText model-call timeout boundaries', () => {
       await consumePromise;
     });
   }
+
+  it('should not count streaming tool preliminary yields against chunkMs', async () => {
+    let receivedAbortSignal: AbortSignal | undefined;
+    let toolAbortSignal: AbortSignal | undefined;
+    const toolStarted = new DelayedPromise<void>();
+    const emitFirstYield = new DelayedPromise<void>();
+    const emitFinalYield = new DelayedPromise<void>();
+
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async ({ abortSignal }) => {
+          receivedAbortSignal = abortSignal;
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'slowTool',
+                input: '{}',
+              },
+              {
+                type: 'finish',
+                finishReason: {
+                  unified: 'tool-calls',
+                  raw: 'tool-calls',
+                },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      tools: {
+        slowTool: tool({
+          inputSchema: z.object({}),
+          async *execute(_input, { abortSignal }) {
+            toolAbortSignal = abortSignal;
+            toolStarted.resolve(undefined);
+
+            await emitFirstYield.promise;
+            yield { progress: 1 };
+
+            await emitFinalYield.promise;
+            yield { done: true };
+          },
+        }),
+      },
+      prompt: 'test-input',
+      timeout: { chunkMs: 50 },
+      onError: () => {},
+    });
+
+    const consumePromise = result.consumeStream();
+
+    await toolStarted.promise;
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(receivedAbortSignal?.aborted).toBe(false);
+    expect(toolAbortSignal?.aborted).toBe(false);
+
+    emitFirstYield.resolve(undefined);
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(receivedAbortSignal?.aborted).toBe(false);
+    expect(toolAbortSignal?.aborted).toBe(false);
+
+    emitFinalYield.resolve(undefined);
+    await consumePromise;
+
+    const toolResults = await result.toolResults;
+    expect(toolResults).toHaveLength(1);
+    expect(toolResults[0]?.output).toEqual({ done: true });
+  });
 });
