@@ -1,5 +1,62 @@
 # @ai-sdk/google-vertex
 
+## 5.0.70
+
+### Patch Changes
+
+- 1d9b13b: fix(google-vertex): advertise the Vertex text embedding batch limit as 250
+- Updated dependencies [23eb659]
+- Updated dependencies [aa45741]
+  - @ai-sdk/openai-compatible@3.0.41
+  - @ai-sdk/anthropic@4.0.46
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/google@4.0.58
+  - @ai-sdk/provider-utils@5.0.34
+
+## 5.0.69
+
+### Patch Changes
+
+- Updated dependencies [949ef93]
+- Updated dependencies [90192f1]
+  - @ai-sdk/google@4.0.57
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/anthropic@4.0.45
+  - @ai-sdk/openai-compatible@3.0.40
+
+## 5.0.68
+
+### Patch Changes
+
+- Updated dependencies [3ad9da9]
+- Updated dependencies [e9bc618]
+  - @ai-sdk/google@4.0.56
+
+## 5.0.67
+
+### Patch Changes
+
+- Updated dependencies [56d492f]
+  - @ai-sdk/google@4.0.55
+
+## 5.0.66
+
+### Patch Changes
+
+- 1f7835c: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, and custom vocabulary, plus streaming transcription (`gemini-3.5-transcribe-live`) over the Live API WebSocket with `mode: 'VERBATIM' | 'SMART'` transcription formatting
+- Updated dependencies [1f7835c]
+  - @ai-sdk/google@4.0.54
+
+## 5.0.65
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/anthropic@4.0.44
+  - @ai-sdk/google@4.0.53
+  - @ai-sdk/openai-compatible@3.0.39
+
 ## 5.0.64
 
 ### Patch Changes

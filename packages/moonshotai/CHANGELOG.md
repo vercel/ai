@@ -1,5 +1,40 @@
 # @ai-sdk/moonshotai
 
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 3.0.41
+
+### Patch Changes
+
+- 87b49a2: fix(provider/moonshotai): preserve complete raw usage objects
+- 48c5f46: Preserve documented Moonshot API error codes in HTTP and streaming errors.
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 3.0.40
+
+### Patch Changes
+
+- a336b12: Add first-class Moonshot V1 auto and vision-preview model IDs while preserving custom and retired model ID support.
+- e4f665c: Preserve documented Moonshot AI chat response metadata for generate and stream.
+- 85463b9: Add Moonshot AI Partial Mode support for continuing a final assistant message.
+- d354a42: fix(provider/moonshotai): send max output tokens with the current Moonshot request field
+- e5d5cbe: feat(provider/moonshotai): add predicted output support
+- 3da2b7d: Support Kimi K3 dynamic tool-loading system messages.
+
 ## 3.0.39
 
 ### Patch Changes

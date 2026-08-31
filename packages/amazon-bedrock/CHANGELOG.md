@@ -1,5 +1,53 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.68
+
+### Patch Changes
+
+- 051a41d: Enable Anthropic reasoning budgets for application inference profile ARNs.
+- Updated dependencies [1c68540]
+- Updated dependencies [aa45741]
+  - @ai-sdk/openai@4.0.52
+  - @ai-sdk/anthropic@4.0.46
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 5.0.67
+
+### Patch Changes
+
+- 030b4e1: Omit assistant messages when only cache points remain after unsigned reasoning is filtered.
+- 5d2229e: feat(amazon-bedrock): add model family setting for embeddings to support ARN
+- b2eb608: Accept citation deltas in Amazon Bedrock streaming responses.
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/anthropic@4.0.45
+  - @ai-sdk/openai@4.0.51
+
+## 5.0.66
+
+### Patch Changes
+
+- Updated dependencies [e6a2992]
+  - @ai-sdk/openai@4.0.50
+
+## 5.0.65
+
+### Patch Changes
+
+- 9921a2f: Forward the Anthropic option for disabling parallel tool use through Amazon Bedrock without sending conflicting tool choice fields.
+- Updated dependencies [2523403]
+- Updated dependencies [3e125ba]
+  - @ai-sdk/openai@4.0.49
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/anthropic@4.0.44
+
+## 5.0.64
+
+### Patch Changes
+
+- fd49828: Preserve complete Amazon Bedrock Converse usage objects in raw usage metadata.
+
 ## 5.0.63
 
 ### Patch Changes

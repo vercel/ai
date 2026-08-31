@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { ThreadOptions } from '@openai/codex-sdk';
 
 type CodexOptions = {
   config?: Record<string, unknown>;
 };
-type ThreadOptions = { model?: string };
 type TurnOptions = { outputSchema?: Record<string, unknown> };
 const CODEX_ENV_KEYS = [
   'AI_GATEWAY_API_KEY',
@@ -21,8 +21,14 @@ const state = vi.hoisted(() => ({
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   startInstructions: undefined as string | undefined,
+  startReasoningEffort: undefined as
+    | ThreadOptions['modelReasoningEffort']
+    | undefined,
+  startResumeThreadId: undefined as string | undefined,
+  startRestartThread: false,
   startCodexConfig: undefined as Record<string, unknown> | undefined,
   startMcpServers: undefined as Record<string, unknown> | undefined,
+  resumeThreadCalls: [] as string[],
   originalArgv: [] as string[],
   originalEnv: {} as Record<
     (typeof CODEX_ENV_KEYS)[number],
@@ -50,7 +56,8 @@ vi.mock('@openai/codex-sdk', () => ({
       };
     }
 
-    resumeThread() {
+    resumeThread(id: string) {
+      state.resumeThreadCalls.push(id);
       return this.startThread();
     }
   },
@@ -69,6 +76,13 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         ...(state.startInstructions
           ? { instructions: state.startInstructions }
           : {}),
+        ...(state.startReasoningEffort
+          ? { reasoningEffort: state.startReasoningEffort }
+          : {}),
+        ...(state.startResumeThreadId
+          ? { resumeThreadId: state.startResumeThreadId }
+          : {}),
+        ...(state.startRestartThread ? { restartThread: true } : {}),
         model: state.startModel,
         codexConfig: state.startCodexConfig,
         mcpServers: state.startMcpServers,
@@ -102,8 +116,12 @@ describe('Codex bridge config', () => {
     state.startModel = 'gpt-5.5';
     state.startResponseFormat = undefined;
     state.startInstructions = undefined;
+    state.startReasoningEffort = undefined;
+    state.startResumeThreadId = undefined;
+    state.startRestartThread = false;
     state.startCodexConfig = undefined;
     state.startMcpServers = undefined;
+    state.resumeThreadCalls = [];
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       CODEX_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -203,6 +221,19 @@ describe('Codex bridge config', () => {
     `);
   });
 
+  test.each(['xhigh', 'max'] as const)(
+    'passes %s reasoning effort to Codex',
+    async reasoningEffort => {
+      state.startReasoningEffort = reasoningEffort;
+
+      await import('./index');
+
+      expect(state.threadOptions[0]?.modelReasoningEffort).toBe(
+        reasoningEffort,
+      );
+    },
+  );
+
   test('disables WebSockets for a configured direct OpenAI endpoint', async () => {
     process.env.CODEX_API_KEY = 'CODEX_API_KEY';
     process.env.OPENAI_BASE_URL = 'https://api.openai.com/v1';
@@ -240,6 +271,16 @@ describe('Codex bridge config', () => {
       'Answer every question in German.\n\n' +
         'Only respond with your `final` message once you have fully addressed the user request.',
     );
+  });
+
+  test('starts a fresh thread when the host requests a configuration restart', async () => {
+    state.startResumeThreadId = 'thread-previous';
+    state.startRestartThread = true;
+
+    await import('./index');
+
+    expect(state.resumeThreadCalls).toEqual([]);
+    expect(state.threadOptions).toHaveLength(1);
   });
 
   test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {

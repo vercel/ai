@@ -125,13 +125,23 @@ const claudeSdk = claudeAgentSdk as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mcpModule = mcpServerModule as any;
 
+/**
+ * The Claude session id most recently reported by the SDK, captured from the
+ * message stream. Every turn in this bridge process may fork a new id (the
+ * SDK's `continue`/`resume` create a new session linked to the previous one),
+ * so the latest observation is the one a later resume must name.
+ */
+let lastClaudeSessionId: string | undefined;
+
 await runBridge<StartMessage>({
   bridgeType: 'claude-code',
   bridgeStateDir,
   onStart: runTurn,
-  // Claude Code's session state lives in the workdir on the sandbox filesystem
-  // (captured by the sandbox snapshot on stop); the resume payload is empty.
-  onStop: () => ({}),
+  // Claude Code's conversation state lives in the runtime's own store, keyed
+  // by working directory. The resume payload names the exact conversation so a
+  // later resume does not have to fall back to "most recent in this workdir".
+  onStop: () =>
+    lastClaudeSessionId == null ? {} : { claudeSessionId: lastClaudeSessionId },
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
@@ -253,12 +263,27 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Local controller for the Claude query. Aborted either by the host (via the
   // shared runtime's `turn.abortSignal`) or by us on a terminal error.
   const abortCtl = new AbortController();
+  // A host abort prefers the SDK's graceful `interrupt()` — Esc semantics: the
+  // in-flight turn is persisted to the session transcript and settles with an
+  // interrupted result, so a later resume (including the user's own
+  // `claude --resume`) still sees the work done before the interrupt. The hard
+  // abort kills the CLI process and loses that turn's records, so it is only
+  // the fallback — armed unconditionally, because aborting an already-settled
+  // query is a no-op — and the immediate path when the abort arrives before
+  // the query exists.
+  let gracefulAbort: (() => void) | undefined;
+  let hardAbortTimer: ReturnType<typeof setTimeout> | undefined;
+  const onHostAbort = (): void => {
+    if (gracefulAbort) {
+      gracefulAbort();
+    } else {
+      abortCtl.abort();
+    }
+  };
   if (turn.abortSignal.aborted) {
     abortCtl.abort();
   } else {
-    turn.abortSignal.addEventListener('abort', () => abortCtl.abort(), {
-      once: true,
-    });
+    turn.abortSignal.addEventListener('abort', onHostAbort, { once: true });
   }
 
   const streamEventState = createClaudeStreamEventState();
@@ -275,8 +300,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         tool.name,
         tool.description ?? '',
         shape,
-        async (input: Record<string, unknown>) => {
-          const toolCallId = randomUUID();
+        async (
+          ...handlerArgs: [
+            Record<string, unknown>,
+            { requestId: string | number; _meta?: Record<string, unknown> },
+          ]
+        ) => {
+          const [input, extra] = handlerArgs;
+          const metadataToolCallId = extra._meta?.['claudecode/toolUseId'];
+          const toolCallId =
+            typeof metadataToolCallId === 'string'
+              ? metadataToolCallId
+              : randomUUID();
           emit({
             type: 'tool-call',
             toolCallId,
@@ -377,17 +412,43 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           },
         ],
       },
-      // Continuation rule: the host can force-continue (resume after a
-      // cross-process detach) by setting `start.continue: true`; otherwise
-      // we continue every subsequent turn after the first one in this
-      // bridge process.
-      ...(start.continue === true || !turn.firstTurn ? { continue: true } : {}),
+      // Continuation rule, most specific first.
+      //
+      // `resumeSessionId` names the exact conversation and is what a
+      // cross-process resume should use: `continue` means "most recent thread
+      // in this workdir", which silently picks the wrong one once anything
+      // else has run there. The bridge also retains the id observed during its
+      // previous query, so every later query stays pinned to that conversation
+      // even when the host detached and reattached between turns. `resume` and
+      // `continue` are mutually exclusive in the SDK.
+      //
+      // Otherwise the host can force-continue by setting `start.continue`,
+      // and turns after the first fall back to the legacy cwd-based behavior
+      // when no exact id was observed.
+      ...((start.resumeSessionId ?? lastClaudeSessionId)
+        ? { resume: start.resumeSessionId ?? lastClaudeSessionId }
+        : start.continue === true || !turn.firstTurn
+          ? { continue: true }
+          : {}),
       ...permissionOptions,
       mcpServers,
       cwd: workdir,
       abortSignal: abortCtl.signal,
     },
   });
+
+  gracefulAbort = () => {
+    // Backstop for the whole teardown, not just the interrupt call: if the
+    // stream has not settled five seconds after a graceful interrupt was
+    // requested, fall back to the hard abort. Aborting an already-settled
+    // query is a no-op, and `unref` keeps the timer from pinning the bridge
+    // process open on its own.
+    hardAbortTimer = setTimeout(() => abortCtl.abort(), 5000);
+    hardAbortTimer.unref?.();
+    void Promise.resolve()
+      .then(() => q.interrupt())
+      .catch(() => abortCtl.abort());
+  };
   let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
   let emittedTerminalError = false;
@@ -398,10 +459,17 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (!normalized || emittedTerminalError || emittedTerminalFinish) return;
     streamEventState.observedTerminalError = normalized;
     emittedTerminalError = true;
-    turn.emitError({
-      error: normalized,
-      message: 'claude-code terminal error',
-    });
+    // A turn the host itself stopped ends with an error-shaped result by
+    // construction (an interrupted query reports a diagnostic, not success);
+    // reporting the host's own stop as a terminal error makes every clean
+    // interrupt look like a malfunction. The host has already settled the
+    // turn on its side.
+    if (!turn.abortSignal.aborted) {
+      turn.emitError({
+        error: normalized,
+        message: 'claude-code terminal error',
+      });
+    }
     queryInput.close();
     abortCtl.abort();
   };
@@ -423,6 +491,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
       if (type === 'command_lifecycle') {
         queryInput.handleLifecycle(msg);
+      }
+
+      // Every SDK message carries the session id of the conversation it
+      // belongs to. Track the latest so the stop payload and the terminal
+      // finish metadata name the exact conversation.
+      const sessionId = (msg as { session_id?: unknown }).session_id;
+      if (typeof sessionId === 'string' && sessionId.length > 0) {
+        lastClaudeSessionId = sessionId;
       }
 
       emitStreamEvent(msg);
@@ -483,12 +559,38 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       }
     }
   } catch (err) {
-    if (!(abortCtl.signal.aborted && emittedTerminalError)) {
+    // Same reasoning as `emitTerminalError`: a throw after the host's own
+    // abort (e.g. the hard-abort fallback killing the CLI mid-iteration, or
+    // a rejected `interrupt()`) is the stop the host asked for, not a
+    // malfunction. The host has already settled the turn on its side.
+    if (
+      !turn.abortSignal.aborted &&
+      !(abortCtl.signal.aborted && emittedTerminalError)
+    ) {
       turn.emitError({ error: err, message: 'claude-code turn failed' });
     }
     return;
   } finally {
+    // The turn is over; disarm the host-abort path first. An abort of this
+    // turn's signal arriving after this point (e.g. an `abort` message racing
+    // the next `start`) must not interrupt the disposed query or arm the
+    // hard-abort fallback timer for it.
+    gracefulAbort = undefined;
+    if (hardAbortTimer != null) clearTimeout(hardAbortTimer);
+    turn.abortSignal.removeEventListener('abort', onHostAbort);
     queryInput.close();
+    // Dispose the query explicitly: with streaming input the SDK keeps its
+    // CLI subprocess alive for more user messages, and a turn that ended
+    // through an interrupt or error path can otherwise leak that process —
+    // observed as orphaned `claude` processes holding the very conversation
+    // the next turn continues.
+    try {
+      await (q as { return?: (value?: unknown) => Promise<unknown> }).return?.(
+        undefined,
+      );
+    } catch {
+      // Best effort; the abort controller tears the process down otherwise.
+    }
   }
 
   if (emittedTerminalError) return;
@@ -498,8 +600,20 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     type: 'finish',
     finishReason: { unified: 'stop', raw: 'stop' },
     totalUsage: turnUsage ?? streamEventState.stepUsage ?? defaultUsage(),
-    ...(totalCostUsd !== undefined
-      ? { harnessMetadata: { 'claude-code': { costUsd: totalCostUsd } } }
+    ...(totalCostUsd !== undefined || lastClaudeSessionId !== undefined
+      ? {
+          harnessMetadata: {
+            'claude-code': {
+              ...(totalCostUsd !== undefined ? { costUsd: totalCostUsd } : {}),
+              // The conversation this turn belongs to, resumable outside the
+              // SDK with `claude --resume <sessionId>` and captured by the
+              // adapter for exact cross-process resume.
+              ...(lastClaudeSessionId !== undefined
+                ? { sessionId: lastClaudeSessionId }
+                : {}),
+            },
+          },
+        }
       : {}),
   });
 }

@@ -19,6 +19,18 @@ describe('outboundMessageSchema', () => {
     { type: 'reasoning-delta', id: 'r', delta: 'thinking' },
     { type: 'reasoning-end', id: 'r' },
     {
+      type: 'tool-input-start',
+      id: 't1',
+      toolName: 'bash',
+      providerExecuted: true,
+    },
+    {
+      type: 'tool-input-delta',
+      id: 't1',
+      delta: '{"command":"ls"}',
+    },
+    { type: 'tool-input-end', id: 't1' },
+    {
       type: 'tool-call',
       toolCallId: 't1',
       toolName: 'bash',
@@ -76,6 +88,28 @@ describe('inboundMessageSchema', () => {
         builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).not.toThrow();
+  });
+
+  it('accepts a start message naming the exact conversation to resume', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        resumeSessionId: 'claude-session-1',
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a non-string resumeSessionId', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        resumeSessionId: 7,
+      }),
+    ).toThrow();
   });
 
   it('rejects non-string environment values', () => {

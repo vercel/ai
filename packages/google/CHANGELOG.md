@@ -1,5 +1,47 @@
 # @ai-sdk/google
 
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.57
+
+### Patch Changes
+
+- 949ef93: fix(google): recognize Google Files URLs when using a baseUrl
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.56
+
+### Patch Changes
+
+- 3ad9da9: Preserve complete Google Generative Language usage metadata in raw usage results.
+- e9bc618: Omit unsupported frequency and presence penalties from Gemini 2.5 requests and return warnings instead.
+
+## 4.0.55
+
+### Patch Changes
+
+- 56d492f: Surface prompt-level Google safety blocks without candidates as content-filter results with prompt feedback metadata.
+
+## 4.0.54
+
+### Patch Changes
+
+- 1f7835c: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, and custom vocabulary, plus streaming transcription (`gemini-3.5-transcribe-live`) over the Live API WebSocket with `mode: 'VERBATIM' | 'SMART'` transcription formatting
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
 ## 4.0.52
 
 ### Patch Changes

@@ -742,6 +742,7 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "AQID",
               "mediaType": "image/png",
+              "providerMetadata": undefined,
               "uint8ArrayData": Uint8Array [
                 1,
                 2,
@@ -859,6 +860,7 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "ChQe",
               "mediaType": "image/png",
+              "providerMetadata": undefined,
               "uint8ArrayData": Uint8Array [
                 10,
                 20,
@@ -876,6 +878,7 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "KDI8",
               "mediaType": "image/jpeg",
+              "providerMetadata": undefined,
               "uint8ArrayData": Uint8Array [
                 40,
                 50,
@@ -892,6 +895,7 @@ describe('generateText', () => {
           DefaultGeneratedFile {
             "base64Data": "KDI8",
             "mediaType": "image/jpeg",
+            "providerMetadata": undefined,
             "uint8ArrayData": Uint8Array [
               40,
               50,
@@ -10683,6 +10687,56 @@ describe('generateText', () => {
   });
 
   describe('tool execution approval', () => {
+    it('should surface the reason for user approval requests', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        toolApproval: {
+          tool1: {
+            type: 'user-approval',
+            reason: 'requires operator review',
+          },
+        },
+        prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      expect(
+        result.content.find(part => part.type === 'tool-approval-request'),
+      ).toMatchObject({
+        type: 'tool-approval-request',
+        approvalId: 'id-1',
+        reason: 'requires operator review',
+      });
+      expect(result.responseMessages[0].content).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-approval-request',
+          approvalId: 'id-1',
+          reason: 'requires operator review',
+        }),
+      );
+    });
+
     describe('when a single tool needs approval (user-defined)', () => {
       let result: GenerateTextResult<any, any, any>;
 

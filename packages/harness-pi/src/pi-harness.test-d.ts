@@ -14,3 +14,7 @@ test('PiHarnessSettings accepts readonly extension factory arrays', () => {
   >();
   createPi(settings);
 });
+
+test('createPi accepts the max thinking level', () => {
+  createPi({ thinkingLevel: 'max' });
+});

@@ -1,5 +1,37 @@
 # @ai-sdk/gateway
 
+## 4.0.69
+
+### Patch Changes
+
+- d2507af: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.68
+
+### Patch Changes
+
+- 805bbfc: chore(provider/gateway): update gateway model settings files
+- 90192f1: Mark transient network errors that occur while reading successful response bodies as retryable.
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.67
+
+### Patch Changes
+
+- 0e7994c: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.66
+
+### Patch Changes
+
+- 81bebaf: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+
 ## 4.0.65
 
 ### Patch Changes

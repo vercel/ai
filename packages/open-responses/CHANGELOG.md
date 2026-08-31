@@ -1,5 +1,34 @@
 # @ai-sdk/open-responses
 
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 2.0.35
+
+### Patch Changes
+
+- 9a68261: add experimental codecs for Open Responses extension tools, items, and events, including lossless history replay
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 2.0.33
+
+### Patch Changes
+
+- a0d2e8c: Stream Open Responses reasoning summary text deltas as reasoning output.
+
 ## 2.0.32
 
 ### Patch Changes

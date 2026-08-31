@@ -73,6 +73,10 @@ type AmazonBedrockChatConfig = {
   generateId: () => string;
 };
 
+const anthropicProviderOptions = z.object({
+  disableParallelToolUse: z.boolean().optional(),
+});
+
 function createAmazonBedrockStreamError({
   type,
   error,
@@ -155,6 +159,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       })) ??
       {};
 
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions,
+      schema: anthropicProviderOptions,
+    });
+
     const warnings: SharedV4Warning[] = [];
 
     if (frequencyPenalty != null) {
@@ -206,7 +216,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
+    // Application inference profile ARNs do not expose their underlying model.
+    // The Anthropic-only reasoning budget provides the model-family signal.
+    const isAnthropicModel =
+      this.modelId.includes('anthropic') ||
+      (this.modelId.includes(':application-inference-profile/') &&
+        amazonBedrockOptions.reasoningConfig?.budgetTokens != null);
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -261,6 +276,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
+        disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 
     warnings.push(...toolWarnings);
@@ -1373,6 +1389,9 @@ const AmazonBedrockStreamSchema = z.object({
       delta: z
         .union([
           z.object({ text: z.string() }),
+          z.object({
+            citation: z.record(z.string(), z.unknown()),
+          }),
           z.object({ toolUse: z.object({ input: z.string() }) }),
           z.object({
             reasoningContent: z.object({ text: z.string() }),

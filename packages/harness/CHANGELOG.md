@@ -1,5 +1,66 @@
 # @ai-sdk/harness
 
+## 1.0.94
+
+### Patch Changes
+
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- eb59f2a: fix(harness): ensure harness adapters can stream tool input deltas before the complete tool call arrives
+- Updated dependencies [55a9981]
+- Updated dependencies [dd32de2]
+- Updated dependencies [aa45741]
+- Updated dependencies [cc29073]
+  - ai@7.0.85
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 1.0.93
+
+### Patch Changes
+
+- cc9f6ce: fix(harness): stop diagnosing caller-initiated aborts as bridge errors, and serialize bridge turns so a start racing an aborted turn's teardown no longer overlaps it (bounded by a teardown grace period, after which the start proceeds as before)
+- 7608210: feat(harness): add `model` parameter to `HarnessAgent` instead of having each harness adapter support it on their own constructor functions
+- 6f8a2d7: fix (harness): ensure the harness bootstrap recipe on resumed sessions too. The marker is keyed by recipe identity, so a resume whose bootstrap is already current costs one file read, while a resume into a sandbox bootstrapped by an older adapter build — a snapshot that outlived the harness version that made it — is re-bootstrapped instead of running a stale bridge against a newer host.
+- 14d4fc0: feat(harness): allow changing harness settings between turns via `prepareCall()` support on `HarnessAgent`
+- Updated dependencies [6669d69]
+- Updated dependencies [a6463ca]
+- Updated dependencies [e604532]
+- Updated dependencies [90192f1]
+  - ai@7.0.84
+  - @ai-sdk/provider-utils@5.0.33
+
+## 1.0.92
+
+### Patch Changes
+
+- e0d7cfb: feat(harness): allow harness sessions to optionally authenticate from an isolated environment supplied through the `auth` option, and remove support for the formerly deprecated legacy auth options types
+  - ai@7.0.83
+
+## 1.0.91
+
+### Patch Changes
+
+- Updated dependencies [8dd86a9]
+- Updated dependencies [fda13b3]
+- Updated dependencies [957146c]
+- Updated dependencies [ce6849a]
+  - ai@7.0.83
+
+## 1.0.90
+
+### Patch Changes
+
+- 0e590d2: feat(harness): harden credential brokering to only apply with correct ephemeral secret
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+  - @ai-sdk/provider-utils@5.0.32
+
+## 1.0.89
+
+### Patch Changes
+
+- ai@7.0.81
+
 ## 1.0.88
 
 ### Patch Changes
