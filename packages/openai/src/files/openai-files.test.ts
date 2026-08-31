@@ -279,6 +279,39 @@ describe('OpenAI Files - uploadFile (stream data)', () => {
   });
 });
 
+describe('OpenAI Files - uploadFile (result fields)', () => {
+  it('should expose byteSize/createdAt/expiresAt from the upload response', async () => {
+    server.urls['https://api.openai.com/v1/files'].response = {
+      type: 'json-value',
+      body: {
+        id: 'file-exp1',
+        object: 'file',
+        bytes: 2048,
+        created_at: 1700000000,
+        filename: 'batch.jsonl',
+        purpose: 'batch',
+        status: 'processed',
+        expires_at: 1700172800,
+      },
+    };
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+    const files = provider.files();
+
+    const result = await files.uploadFile({
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+      mediaType: 'application/jsonl',
+      providerOptions: {
+        openai: { purpose: 'batch', expiresAfter: 172800 },
+      },
+    });
+
+    expect(result.byteSize).toBe(2048);
+    expect(result.createdAt).toEqual(new Date(1700000000 * 1000));
+    expect(result.expiresAt).toEqual(new Date(1700172800 * 1000));
+  });
+});
+
 describe('OpenAI Files - retrieveFile', () => {
   function prepareRetrieveResponse({
     expires_at = null,
