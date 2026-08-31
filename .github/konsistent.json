@@ -460,12 +460,19 @@
           "description": "Every harness sandbox bootstrap file must export the relevant symbols.",
           "for": { "files": ["${harnessId}-bootstrap.ts"] },
           "must": {
+            "importValues": [
+              {
+                "name": "createReadBridgeAsset",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
             "importTypes": [
               {
                 "name": "HarnessV1Bootstrap",
                 "from": "@ai-sdk/harness"
               }
             ],
+            "declareConstants": ["readBridgeAsset"],
             "exportConstants": ["${harnessId.toConstantCase()}_BOOTSTRAP_DIR"],
             "exportFunctions": [
               {
