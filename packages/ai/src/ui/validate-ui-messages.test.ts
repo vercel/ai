@@ -1704,6 +1704,130 @@ describe('validateUIMessages', () => {
       );
     });
 
+<<<<<<< HEAD
+=======
+    it('should validate automatic approval reasons on output parts', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'output-available',
+              input: { foo: 'bar' },
+              output: { result: 'ok' },
+              approval: {
+                id: 'approval-1',
+                approved: true,
+                isAutomatic: true,
+                reason: 'trusted internal tool',
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
+    it('should validate request and response reasons throughout approval', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'approval-requested',
+              input: { foo: 'bar' },
+              approval: {
+                id: 'approval-1',
+                requestReason: 'requires operator review',
+              },
+            },
+            {
+              type: 'tool-foo',
+              toolCallId: '2',
+              state: 'approval-responded',
+              input: { foo: 'baz' },
+              approval: {
+                id: 'approval-2',
+                approved: true,
+                requestReason: 'requires security review',
+                reason: 'approved by operator',
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
+    it('should preserve approval descriptors', async () => {
+      const descriptor = {
+        action: 'deleteAccount',
+        permissions: ['account:delete'],
+        risk: 'high',
+      };
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'approval-requested',
+              input: { foo: 'bar' },
+              approval: {
+                id: 'approval-1',
+                descriptor,
+              },
+            },
+            {
+              type: 'tool-foo',
+              toolCallId: '2',
+              state: 'approval-responded',
+              input: { foo: 'baz' },
+              approval: {
+                id: 'approval-2',
+                approved: true,
+                descriptor,
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
     it('should throw error when tool input validation fails', async () => {
       await expect(
         validateUIMessages<TestMessage>({

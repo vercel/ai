@@ -151,6 +151,36 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         errorText?: never;
       }
     | {
+        state: 'approval-requested';
+        input: TOOLS[NAME]['input'];
+        output?: never;
+        errorText?: never;
+        approval: {
+          id: string;
+          approved?: never;
+          descriptor?: unknown;
+          requestReason?: string;
+          reason?: never;
+          isAutomatic?: boolean;
+          signature?: string;
+        };
+      }
+    | {
+        state: 'approval-responded';
+        input: TOOLS[NAME]['input'];
+        output?: never;
+        errorText?: never;
+        approval: {
+          id: string;
+          approved: boolean;
+          descriptor?: unknown;
+          requestReason?: string;
+          reason?: string;
+          isAutomatic?: boolean;
+          signature?: string;
+        };
+      }
+    | {
         state: 'output-available';
         input: TOOLS[NAME]['input'];
         output: TOOLS[NAME]['output'];
@@ -168,6 +198,32 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
 }>;
 ```
 
+<<<<<<< HEAD
+=======
+`approval.descriptor` contains optional opaque metadata supplied as
+`approvalDescriptor` on the approval request stream chunk. It is preserved when
+the tool part transitions from `approval-requested` to `approval-responded` and
+in later approval-bearing output states.
+
+### `CustomContentUIPart`
+
+A provider-specific custom content part of a message.
+
+```typescript
+type CustomContentUIPart = {
+  type: 'custom';
+  /**
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
+   */
+  kind: `${string}.${string}`;
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: Record<string, any>;
+};
+```
+
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
 ### `SourceUrlUIPart`
 
 A source URL part of a message.

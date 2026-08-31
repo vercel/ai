@@ -260,6 +260,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved?: never;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: never;
         signature?: string;
       };
@@ -273,6 +278,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: boolean;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: string;
         signature?: string;
       };
@@ -288,6 +298,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: string;
         signature?: string;
       };
@@ -303,6 +318,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: string;
         signature?: string;
       };
@@ -316,6 +336,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: false;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: string;
         signature?: string;
       };
@@ -373,6 +398,11 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved?: never;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: never;
         signature?: string;
       };
@@ -386,6 +416,11 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: boolean;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: string;
         signature?: string;
       };
@@ -401,6 +436,11 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: string;
         signature?: string;
       };
@@ -415,6 +455,11 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: string;
         signature?: string;
       };
@@ -428,6 +473,11 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: false;
+<<<<<<< HEAD
+=======
+        descriptor?: unknown;
+        requestReason?: string;
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
         reason?: string;
         signature?: string;
       };

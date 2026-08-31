@@ -324,6 +324,43 @@ data: {"type":"tool-input-available","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar
 
 ```
 
+<<<<<<< HEAD
+=======
+### Tool Approval Request Part
+
+Indicates that a tool call requires approval, or records that the approval decision was made automatically.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"tool-approval-request","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","approvalId":"approval_123","approvalDescriptor":{"scope":"account:delete"},"reason":"Requires operator review"}
+
+```
+
+When `isAutomatic` is omitted, the request expects an explicit approval response
+from the client. `reason` is optional and explains why the tool call requires
+approval. `approvalDescriptor` is optional opaque metadata for the approval.
+When the stream is processed into UI messages, it is available as
+`part.approval.descriptor` and is retained through subsequent approval states.
+
+### Tool Approval Response Part
+
+Records the approval decision for a tool call.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"tool-approval-response","approvalId":"approval_123","approved":false,"reason":"User denied the request"}
+
+```
+
+For provider-executed tools, the response can also include `providerExecuted: true`.
+
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
 ### Tool Output Available Part
 
 Contains the result of tool execution.

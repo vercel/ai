@@ -143,6 +143,11 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
+<<<<<<< HEAD
+=======
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                     reason: z.never().optional(),
                     signature: z.string().optional(),
                   }),
@@ -161,6 +166,11 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.boolean(),
+<<<<<<< HEAD
+=======
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                     reason: z.string().optional(),
                     signature: z.string().optional(),
                   }),
@@ -182,6 +192,11 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+<<<<<<< HEAD
+=======
+                      descriptor: z.unknown().optional(),
+                      requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                       reason: z.string().optional(),
                       signature: z.string().optional(),
                     })
@@ -204,6 +219,11 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+<<<<<<< HEAD
+=======
+                      descriptor: z.unknown().optional(),
+                      requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                       reason: z.string().optional(),
                       signature: z.string().optional(),
                     })
@@ -223,6 +243,11 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.literal(false),
+<<<<<<< HEAD
+=======
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                     reason: z.string().optional(),
                     signature: z.string().optional(),
                   }),
@@ -264,6 +289,11 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.never().optional(),
+<<<<<<< HEAD
+=======
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                     reason: z.never().optional(),
                     signature: z.string().optional(),
                   }),
@@ -281,6 +311,11 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.boolean(),
+<<<<<<< HEAD
+=======
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                     reason: z.string().optional(),
                     signature: z.string().optional(),
                   }),
@@ -301,6 +336,11 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+<<<<<<< HEAD
+=======
+                      descriptor: z.unknown().optional(),
+                      requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                       reason: z.string().optional(),
                       signature: z.string().optional(),
                     })
@@ -322,6 +362,11 @@ const uiMessagesSchema = lazySchema(() =>
                     .object({
                       id: z.string(),
                       approved: z.literal(true),
+<<<<<<< HEAD
+=======
+                      descriptor: z.unknown().optional(),
+                      requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                       reason: z.string().optional(),
                       signature: z.string().optional(),
                     })
@@ -340,6 +385,11 @@ const uiMessagesSchema = lazySchema(() =>
                   approval: z.object({
                     id: z.string(),
                     approved: z.literal(false),
+<<<<<<< HEAD
+=======
+                    descriptor: z.unknown().optional(),
+                    requestReason: z.string().optional(),
+>>>>>>> 850d863214 (fix: tool approval descriptor loss during UI message stream processing (#19882))
                     reason: z.string().optional(),
                     signature: z.string().optional(),
                   }),
