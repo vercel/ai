@@ -161,6 +161,24 @@ describe('KlingAIVideoModel', () => {
         body: successfulTaskResponse,
       },
     },
+    [`${TEST_BASE_URL}/v1/videos/text2video/abc%2F..%2F..%2Finternal`]: {
+      response: {
+        type: 'json-value',
+        body: successfulTaskResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/v1/videos/text2video/%252E`]: {
+      response: {
+        type: 'json-value',
+        body: successfulTaskResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/v1/videos/text2video/%252E%252E`]: {
+      response: {
+        type: 'json-value',
+        body: successfulTaskResponse,
+      },
+    },
     // I2V endpoints
     [`${TEST_BASE_URL}/v1/videos/image2video`]: {
       response: {
@@ -1222,6 +1240,37 @@ describe('KlingAIVideoModel', () => {
   });
 
   describe('doStatus', () => {
+    it('should encode the task ID as a single URL path segment', async () => {
+      const model = createBasicModel();
+      const taskId = 'abc/../../internal';
+
+      await model.doStatus({
+        operation: { taskId, endpointPath: '/v1/videos/text2video' },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/v1/videos/text2video/${encodeURIComponent(taskId)}`,
+      );
+    });
+
+    it.each([
+      { taskId: '.', encodedTaskId: '%252E' },
+      { taskId: '..', encodedTaskId: '%252E%252E' },
+    ])(
+      'should preserve the $taskId task ID as a URL path segment',
+      async ({ taskId, encodedTaskId }) => {
+        const model = createBasicModel();
+
+        await model.doStatus({
+          operation: { taskId, endpointPath: '/v1/videos/text2video' },
+        });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `${TEST_BASE_URL}/v1/videos/text2video/${encodedTaskId}`,
+        );
+      },
+    );
+
     it('should return completed with video data when succeed', async () => {
       const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
 

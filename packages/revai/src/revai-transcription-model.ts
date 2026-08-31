@@ -29,6 +29,17 @@ interface RevaiTranscriptionModelConfig extends RevaiConfig {
   };
 }
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 export class RevaiTranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -184,7 +195,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
       // Poll for job status
       const pollingResult = await getFromApi({
         url: this.config.url({
-          path: `/speechtotext/v1/jobs/${jobId}`,
+          path: `/speechtotext/v1/jobs/${encodePathSegment(jobId ?? '')}`,
           modelId: this.modelId,
         }),
         validateUrl: false,
@@ -219,7 +230,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await getFromApi({
       url: this.config.url({
-        path: `/speechtotext/v1/jobs/${jobId}/transcript`,
+        path: `/speechtotext/v1/jobs/${encodePathSegment(jobId ?? '')}/transcript`,
         modelId: this.modelId,
       }),
       validateUrl: false,
