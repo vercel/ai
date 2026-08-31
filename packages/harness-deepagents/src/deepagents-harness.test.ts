@@ -5,6 +5,7 @@ import type {
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveBridgeAssetUrl } from './deepagents-bootstrap';
 import { createDeepAgents } from './deepagents-harness';
 
 // Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
@@ -193,6 +194,27 @@ describe('createDeepAgents', () => {
     expect(harness.harnessId).toBe('deepagents');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
+  });
+
+  it('resolves bridge assets from source and bundled module layouts', () => {
+    const sourceModuleUrl = new URL(
+      './deepagents-bootstrap.ts',
+      import.meta.url,
+    );
+    const bundledModuleUrl = new URL('../dist/index.js', import.meta.url);
+
+    expect(
+      resolveBridgeAssetUrl({
+        name: 'package.json',
+        moduleUrl: sourceModuleUrl,
+      }),
+    ).toEqual(new URL('./bridge/package.json', import.meta.url));
+    expect(
+      resolveBridgeAssetUrl({
+        name: 'package.json',
+        moduleUrl: bundledModuleUrl,
+      }),
+    ).toEqual(new URL('../dist/bridge/package.json', import.meta.url));
   });
 
   it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
