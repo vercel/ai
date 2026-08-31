@@ -5,7 +5,7 @@ description: Learn how to use Black Forest Labs models with the AI SDK.
 
 # Black Forest Labs Provider
 
-[Black Forest Labs](https://bfl.ai/) provides a generative image platform for developers with FLUX-based models. Their platform offers fast, high quality, and in-context image generation and editing with precise and coherent results.
+[Black Forest Labs](https://bfl.ai/) provides a generative media platform for developers with FLUX-based models. Their platform offers fast, high quality, and in-context image generation and editing, plus video generation with FLUX 3.
 
 ## Setup
 
@@ -95,6 +95,11 @@ Black Forest Labs offers many models optimized for different use cases. Here are
 
 | Model                | Description                                                                                                                |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `flux-2-pro`         | FLUX.2 [pro] for text-to-image and reference-based editing in one endpoint                                                 |
+| `flux-2-max`         | FLUX.2 [max] for the highest prompt adherence and detail in the FLUX.2 family                                              |
+| `flux-2-flex`        | FLUX.2 [flex] exposes `steps` and `guidance` so you can trade speed against quality                                        |
+| `flux-2-klein-9b`    | FLUX.2 [klein] 9B, an open-weight distilled model                                                                          |
+| `flux-2-klein-4b`    | FLUX.2 [klein] 4B, the smallest and cheapest open-weight FLUX.2 model                                                      |
 | `flux-kontext-pro`   | FLUX.1 Kontext [pro] handles both text and reference images as inputs, enabling targeted edits and complex transformations |
 | `flux-kontext-max`   | FLUX.1 Kontext [max] with improved prompt adherence and typography generation                                              |
 | `flux-pro-1.1-ultra` | Ultra-fast, ultra high-resolution image creation                                                                           |
@@ -102,6 +107,16 @@ Black Forest Labs offers many models optimized for different use cases. Here are
 | `flux-pro-1.0-fill`  | Inpainting model for filling masked regions of images with new content                                                     |
 
 Black Forest Labs models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
+
+FLUX.2 models take reference images on the same `prompt.images` field as the
+Kontext models, so a single model ID covers both text-to-image and editing. See
+[Image Editing](#image-editing) below.
+
+<Note>
+  FLUX.2 generations can take longer than the 60 second default polling timeout,
+  especially with reference images. Raise `pollTimeoutMillis` when a request
+  reports `Black Forest Labs generation timed out.`
+</Note>
 
 ### Image Editing
 
@@ -159,6 +174,49 @@ const { images } = await generateImage({
   Input images can be provided as URLs or base64-encoded strings. They support
   up to 20MB or 20 megapixels per image.
 </Note>
+
+#### FLUX.2 Editing
+
+FLUX.2 models accept reference images on the same `prompt.images` field, so no
+separate editing model ID is needed:
+
+```ts
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-2-pro'),
+  prompt: {
+    text: 'Place this logo on a plain ceramic mug.',
+    images: ['https://example.com/logo.png'],
+  },
+  providerOptions: {
+    blackForestLabs: {
+      pollTimeoutMillis: 240000,
+    },
+  },
+});
+```
+
+`flux-2-flex` additionally accepts `steps` and `guidance`, which let you trade
+generation time against quality:
+
+```ts
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-2-flex'),
+  prompt: 'A detailed macro shot of a dew-covered leaf',
+  providerOptions: {
+    blackForestLabs: {
+      steps: 50,
+      guidance: 4,
+      pollTimeoutMillis: 240000,
+    },
+  },
+});
+```
 
 #### Inpainting
 
