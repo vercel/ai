@@ -1,5 +1,13 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.98
+
+### Patch Changes
+
+- c0c7fac: feat(harness): add reusable `createReadBridgeAsset()` helper function
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
 ## 1.0.97
 
 ### Patch Changes
