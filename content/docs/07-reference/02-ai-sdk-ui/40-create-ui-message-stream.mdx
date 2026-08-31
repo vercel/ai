@@ -60,9 +60,16 @@ const stream = createUIMessageStream({
   },
   onError: error => `Custom error: ${error.message}`,
   originalMessages: existingMessages,
-  onEnd: ({ messages, isContinuation, outcome, responseMessage }) => {
+  onEnd: ({
+    messages,
+    isContinuation,
+    isAborted,
+    outcome,
+    responseMessage,
+  }) => {
+    // Called on success, abort, and mid-stream error with the messages so far.
     console.log('Stream ended with messages:', messages);
-    console.log('Stream outcome:', outcome.status);
+    console.log('Stream outcome:', outcome.status, { isAborted });
   },
 });
 ```
@@ -131,7 +138,8 @@ outcomes and call `setOutcome` once.
     {
       name: 'onEnd',
       type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; outcome: UIMessageStreamOutcome; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
-      description: 'A callback function that is called when the stream ends.',
+      description:
+        'A callback that is called when the stream ends, including after abort or a mid-stream error. It receives the messages collected so far and an `outcome` of `completed`, `aborted`, `failed`, or `unknown`.',
       properties: [
         {
           type: 'EndOptions',
