@@ -16,13 +16,22 @@ import type { UploadFileResult } from './upload-file-result';
  * Uploads a file using a files API interface.
  *
  * @param api - The Files API interface to use for uploading.
- * @param data - The file data to upload (tagged `{ type: 'data' | 'text' }`).
+ * @param data - The file data to upload (tagged `{ type: 'data' | 'text' | 'stream' }`).
+ * Stream data is sent without buffering by providers that support streaming
+ * uploads (others reject with `UnsupportedFunctionalityError`); the provider
+ * consumes the stream — on failure it is cancelled, do not reuse it.
  * @param mediaType - Optional IANA media type. Auto-detected from file bytes
- * when omitted (falls back to `text/plain` for the `text` variant).
- * @param filename - Optional filename for the uploaded file.
+ * when omitted (falls back to `text/plain` for the `text` variant and
+ * `application/octet-stream` for the `stream` variant, which cannot be sniffed).
+ * @param filename - Optional filename for the uploaded file. Multipart-based
+ * providers default it to `"blob"` when omitted.
+ * @param abortSignal - Optional signal to cancel the upload.
+ * @param headers - Optional additional HTTP headers for the request.
  * @param providerOptions - Additional provider-specific options.
  *
- * @returns A result object containing the provider reference and optional metadata.
+ * @returns A result object containing the provider reference, optional
+ * metadata, and — when reported by the provider — `byteSize`, `createdAt`,
+ * and `expiresAt` (the provider-applied retention expiry).
  */
 export async function uploadFile({
   api,

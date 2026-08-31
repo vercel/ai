@@ -1,6 +1,9 @@
 ---
 '@ai-sdk/provider': patch
 '@ai-sdk/provider-utils': patch
+'@ai-sdk/anthropic': patch
+'@ai-sdk/deepseek': patch
+'@ai-sdk/google': patch
 'ai': patch
 ---
 
