@@ -7,7 +7,7 @@ description: Learn how to use the CoralBricks provider for the AI SDK.
 
 [@coralbricks/ai-sdk-provider](https://github.com/Coral-Bricks-AI/www/tree/main/integrations/ai-sdk-provider)
 provides access to [CoralBricks](https://www.coralbricks.ai) inference — open
-models (GLM 5.2, Kimi K3, GPT-OSS 120B) with up to 1M-token context and free
+models (GLM 5.3, GLM 5.2, Kimi K3, GPT-OSS 120B) with up to 1M-token context and free
 cached input, over an OpenAI-compatible API.
 
 API keys can be obtained from the [CoralBricks API keys page](https://www.coralbricks.ai/api-keys).
@@ -61,11 +61,11 @@ You can use the following optional settings to customize the CoralBricks provide
 Create a model with the provider instance and a model id:
 
 ```ts
-const model = coralbricks('glm-5.2-fp4');
+const model = coralbricks('glm-5.3-fp4');
 ```
 
-Available model ids: `glm-5.2-fp4` (GLM 5.2), `kimi-k3` (Kimi K3), and
-`gpt-oss-120b`. The id type is open, so a newly launched model works before
+Available model ids: `glm-5.3-fp4` (GLM 5.3), `glm-5.2-fp4` (GLM 5.2),
+`kimi-k3` (Kimi K3), and `gpt-oss-120b`. The id type is open, so a newly launched model works before
 the package updates. See [coralbricks.ai/pricing](https://www.coralbricks.ai/pricing)
 for the current catalog.
 
@@ -76,7 +76,7 @@ import { generateText } from 'ai';
 import { coralbricks } from '@coralbricks/ai-sdk-provider';
 
 const { text } = await generateText({
-  model: coralbricks('glm-5.2-fp4'),
+  model: coralbricks('glm-5.3-fp4'),
   prompt: 'Explain prompt caching in one sentence.',
 });
 ```
