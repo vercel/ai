@@ -116,16 +116,25 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
+  'https://test-resource.services.ai.azure.com/openai/v1/chat/completions': {},
+  'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions':
+    {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions':
+    {},
+  'https://our-gateway.example.com/azure/chat/completions': {},
   'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
     {},
 });
 
+type TestServerURL = keyof typeof server.urls;
+
 describe('chat', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
-      ].response = {
+    function prepareJsonResponse({
+      content = '',
+      url = 'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+    }: { content?: string; url?: TestServerURL } = {}) {
+      server.urls[url].response = {
         type: 'json-value',
         body: {
           id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
@@ -277,6 +286,161 @@ describe('chat', () => {
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1',
+      );
+    });
+
+    it('should use Foundry services.ai.azure.com baseURL with /v1', async () => {
+      server.urls[
+        'https://test-resource.services.ai.azure.com/openai/v1/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-foundry',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test-deployment',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const foundryProvider = createAzure({
+        baseURL: 'https://test-resource.services.ai.azure.com/openai',
+        apiKey: 'test-api-key',
+      });
+
+      await foundryProvider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.services.ai.azure.com/openai/v1/chat/completions?api-version=v1"`,
+      );
+    });
+
+    it('should use Cognitive Services baseURL with /v1', async () => {
+      server.urls[
+        'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-cognitive',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test-deployment',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const cognitiveProvider = createAzure({
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai',
+        apiKey: 'test-api-key',
+      });
+
+      await cognitiveProvider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions?api-version=v1"`,
+      );
+    });
+
+    it.each([
+      {
+        name: 'complete Azure OpenAI v1',
+        baseURL: 'https://test-resource.openai.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry v1',
+        baseURL: 'https://test-resource.services.ai.azure.com/openai/v1/',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Cognitive Services v1',
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Foundry project',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry project v1',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+    ] satisfies Array<{
+      name: string;
+      baseURL: string;
+      expectedURL: string;
+      responseURL: TestServerURL;
+    }>)(
+      'should use $name baseURL correctly',
+      async ({ baseURL, expectedURL, responseURL }) => {
+        prepareJsonResponse({ url: responseURL });
+
+        const provider = createAzure({
+          baseURL,
+          apiKey: 'test-api-key',
+        });
+
+        await provider.chat('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(server.calls[0].requestUrl).toBe(expectedURL);
+      },
+    );
+
+    it('should use custom gateway baseURL as-is', async () => {
+      prepareJsonResponse({
+        url: 'https://our-gateway.example.com/azure/chat/completions',
+      });
+
+      const provider = createAzure({
+        baseURL: 'https://our-gateway.example.com/azure',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        'https://our-gateway.example.com/azure/chat/completions',
       );
     });
   });
