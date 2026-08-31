@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 3.0.113
+
+### Patch Changes
+
+- 9ec31aa: Construct OpenAI v1 URLs for Azure AI Foundry (`*.services.ai.azure.com`) and Cognitive Services (`*.cognitiveservices.azure.com`) hostnames while preserving complete v1 and Foundry project base URLs.
+- Updated dependencies [85ba0b0]
+  - @ai-sdk/openai@3.0.106
+
 ## 3.0.112
 
 ### Patch Changes

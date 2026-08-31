@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.273
+
+### Patch Changes
+
+- 6e632b8: Expose parsed structured output in `streamText` end callbacks.
+- Updated dependencies [5ab6f63]
+  - @ai-sdk/gateway@3.0.186
+
 ## 6.0.272
 
 ### Patch Changes
