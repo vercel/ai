@@ -183,6 +183,7 @@ type GatewayResponse = {
 const PROVIDER_LOGOS: Record<string, { src: string; invert?: boolean }> = {
   amazon: { src: '/images/icons/aws.svg' },
   anthropic: { src: '/images/icons/anthropic.svg', invert: true },
+  bfl: { src: '/images/icons/black-forest-labs.svg', invert: true },
   cohere: { src: '/images/icons/cohere.svg' },
   deepseek: { src: '/images/icons/deepseek.svg' },
   google: { src: '/images/icons/google.svg' },
