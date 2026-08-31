@@ -27,6 +27,7 @@ export type GatewayModelId =
   | 'alibaba/qwen3.8-2.4t-a95b'
   | 'alibaba/qwen3.8-27b'
   | 'alibaba/qwen3.8-flash'
+  | 'alibaba/qwen3.8-flash-next'
   | 'alibaba/qwen3.8-max'
   | 'amazon/nova-2-lite'
   | 'amazon/nova-lite'
