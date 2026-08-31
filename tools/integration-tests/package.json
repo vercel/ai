@@ -1,0 +1,22 @@
+{
+  "name": "ai-sdk-integration-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "pnpm test:node && pnpm test:edge",
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "test:edge": "vitest --config vitest.edge.config.js --run",
+    "type-check": "tsc --build"
+  },
+  "devDependencies": {
+    "@ai-sdk/open-responses": "workspace:*",
+    "@ai-sdk/test-server": "workspace:*",
+    "@edge-runtime/vm": "^5.0.0",
+    "@types/node": "22.19.19",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "ai": "workspace:*",
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
+  }
+}

@@ -233,6 +233,12 @@
     },
     {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/zai"
+    },
+    {
+      "path": "tools/integration-tests"
     }
   ],
   "include": [],

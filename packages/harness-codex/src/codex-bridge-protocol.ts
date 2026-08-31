@@ -18,7 +18,7 @@ export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   instructions: z.string().optional(),
-  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   webSearch: z.boolean().optional(),
   codexConfig: z.record(z.string(), z.unknown()).optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
@@ -27,6 +27,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   // The host sources the id from lifecycle state `data` cached from a prior
   // `agent.detach`.
   resumeThreadId: z.string().optional(),
+  restartThread: z.boolean().optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

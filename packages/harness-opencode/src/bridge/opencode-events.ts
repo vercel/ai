@@ -98,10 +98,18 @@ export function getOpenCodeEventSessionId(
   if (!props) return undefined;
   if (typeof props.sessionID === 'string') return props.sessionID;
   if (typeof props.sessionId === 'string') return props.sessionId;
-  const info = asOpenCodeObject(props.info);
-  if (typeof info?.sessionID === 'string') return info.sessionID;
   if (event.type?.startsWith('session.') && typeof props.id === 'string') {
     return props.id;
+  }
+  const info = asOpenCodeObject(props.info);
+  if (typeof info?.sessionID === 'string') return info.sessionID;
+  if (
+    (event.type === 'session.created' ||
+      event.type === 'session.updated' ||
+      event.type === 'session.deleted') &&
+    typeof info?.id === 'string'
+  ) {
+    return info.id;
   }
   const part = props.part;
   const partObject = asOpenCodeObject(part);

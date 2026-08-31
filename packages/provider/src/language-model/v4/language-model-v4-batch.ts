@@ -28,6 +28,9 @@ export type LanguageModelV4BatchRequest = {
     | 'frequencyPenalty'
     | 'seed'
     | 'reasoning'
+    | 'responseFormat'
+    | 'toolChoice'
+    | 'tools'
     | 'providerOptions'
   >;
 };

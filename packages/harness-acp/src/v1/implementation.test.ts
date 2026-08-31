@@ -3,7 +3,11 @@ import type {
   ACPClientApp,
   ACPProviderAuthenticationCompatibility,
 } from '../acp-auth';
-import type { ACPPermissionModeMapping } from './acp-v1-settings';
+import type {
+  ACPModelMapping,
+  ACPPermissionModeMapping,
+  ACPSerializableValue,
+} from './acp-v1-settings';
 import {
   type ACPImplementation,
   createImplementationDescriptor,
@@ -93,12 +97,19 @@ function identity({
   implementation = simpleImplementation,
   harnessId = 'example-acp',
   clientApp: clientAppOverride = clientApp,
+  clientCapabilities,
+  modelMapping = {
+    type: 'session-config-option',
+    path: 'model',
+  },
   providerAuthentication,
   permissionModeMapping,
 }: {
   implementation?: ACPImplementation;
   harnessId?: string;
   clientApp?: ACPClientApp;
+  clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
+  modelMapping?: ACPModelMapping;
   providerAuthentication?: ACPProviderAuthenticationCompatibility;
   permissionModeMapping?: ACPPermissionModeMapping;
 } = {}): string {
@@ -107,6 +118,8 @@ function identity({
     acpVersion: 'v1',
     implementation,
     clientApp: clientAppOverride,
+    clientCapabilities,
+    modelMapping,
     providerAuthentication,
     permissionModeMapping,
   });
@@ -367,6 +380,26 @@ describe('ACP implementation', () => {
       SECOND_PROVIDER_API_KEY: 'second-provider-secret',
       PROVIDER_BASE_URL: 'https://provider.example',
     });
+    expect(
+      resolveImplementationEnvironment({
+        implementation: {
+          ...simpleImplementation,
+          forwardEnv: ['SECOND_PROVIDER_API_KEY'],
+          credentialEnv: ['PROVIDER_API_KEY'],
+        },
+        env: {
+          PROVIDER_API_KEY: 'ambient-provider-secret',
+          SECOND_PROVIDER_API_KEY: 'forwarded-value',
+        },
+        credentialEnv: {
+          PROVIDER_API_KEY: 'programmatic-provider-secret',
+        },
+      }),
+    ).toEqual({
+      PROVIDER_API_KEY: 'programmatic-provider-secret',
+      SECOND_PROVIDER_API_KEY: 'forwarded-value',
+      PROVIDER_BASE_URL: 'https://provider.example',
+    });
   });
 
   it('keeps sensitive values out of immutable descriptors', () => {
@@ -507,6 +540,21 @@ describe('ACP implementation', () => {
     expect(
       identity({
         clientApp: { name: 'custom-client', version: '4.5.6' },
+      }),
+    ).not.toBe(baseIdentity);
+    expect(
+      identity({
+        clientCapabilities: {
+          _meta: { parameterizedModelPicker: true },
+        },
+      }),
+    ).not.toBe(baseIdentity);
+    expect(
+      identity({
+        modelMapping: {
+          type: 'session-model',
+          path: 'modelId',
+        },
       }),
     ).not.toBe(baseIdentity);
     expect(

@@ -4,8 +4,10 @@ import type {
   ACPProviderAuthenticationCompatibility,
 } from '../acp-auth';
 import type {
+  ACPModelMapping,
   ACPNpmSimpleSource,
   ACPPermissionModeMapping,
+  ACPSerializableValue,
   ACPSource,
   ACPV1Settings,
 } from './acp-v1-settings';
@@ -172,6 +174,8 @@ export function createImplementationIdentity({
   acpVersion,
   implementation,
   clientApp,
+  clientCapabilities,
+  modelMapping,
   providerAuthentication,
   permissionModeMapping,
 }: {
@@ -179,6 +183,8 @@ export function createImplementationIdentity({
   acpVersion: 'v1';
   implementation: ACPImplementation;
   clientApp: ACPClientApp;
+  clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
+  modelMapping: ACPModelMapping;
   providerAuthentication: ACPProviderAuthenticationCompatibility | undefined;
   permissionModeMapping?: ACPPermissionModeMapping;
 }): string {
@@ -221,6 +227,8 @@ export function createImplementationIdentity({
     executable: implementation.executable,
     args: implementation.args ?? [],
     clientApp,
+    clientCapabilities: clientCapabilities ?? null,
+    modelMapping,
     environment: {
       forwarded: forwardedEnvironment,
       credential: credentialEnvironment,
@@ -277,16 +285,21 @@ ${implementation.source.command}
 export function resolveImplementationEnvironment({
   implementation,
   env,
+  credentialEnv = env,
 }: {
   implementation: ACPImplementation;
   env: Readonly<Record<string, string | undefined>>;
+  credentialEnv?: Readonly<Record<string, string | undefined>>;
 }): Record<string, string> {
   const forwardedEnvironment: Record<string, string> = {};
-  for (const name of [
-    ...(implementation.forwardEnv ?? []),
-    ...(implementation.credentialEnv ?? []),
-  ]) {
+  for (const name of implementation.forwardEnv ?? []) {
     const value = env[name];
+    if (value != null && value.length > 0) {
+      forwardedEnvironment[name] = value;
+    }
+  }
+  for (const name of implementation.credentialEnv ?? []) {
+    const value = credentialEnv[name];
     if (value != null && value.length > 0) {
       forwardedEnvironment[name] = value;
     }
