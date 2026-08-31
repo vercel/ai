@@ -20,7 +20,6 @@ function containsEqual(value: unknown, expected: unknown): boolean {
 }
 
 describe('createEmitStreamEvent', () => {
-<<<<<<< HEAD
   it('exposes native structured tool outputs from live Claude Agent SDK frames', () => {
     const messages = JSON.parse(
       readFileSync(
@@ -28,9 +27,6 @@ describe('createEmitStreamEvent', () => {
         'utf8',
       ),
     ) as FrameWithToolUseResult[];
-=======
-  it('streams native tool input before the complete tool call', () => {
->>>>>>> origin/main
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
@@ -39,7 +35,6 @@ describe('createEmitStreamEvent', () => {
       emitWarning: () => {},
       emitTerminalError: () => {},
       onCompactionBoundary: () => {},
-<<<<<<< HEAD
       toCommonName: name =>
         name === 'Read' ? 'read' : name === 'Bash' ? 'bash' : name,
     });
@@ -95,7 +90,17 @@ describe('createEmitStreamEvent', () => {
     ).toBe(
       "Error: Exit code 2\nls: cannot access '/definitely-not-here-issue-19894': No such file or directory",
     );
-=======
+  });
+
+  it('streams native tool input before the complete tool call', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
       toCommonName: name => (name === 'Write' ? 'write' : name),
     });
 
@@ -216,7 +221,6 @@ describe('createEmitStreamEvent', () => {
       },
       { type: 'tool-input-end', id: 'host-tool-1' },
     ]);
->>>>>>> origin/main
   });
 
   it('emits the resolved model and a native tool step', () => {
