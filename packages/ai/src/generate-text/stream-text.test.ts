@@ -2243,6 +2243,14 @@ describe('streamText', () => {
       await expect(result.text).rejects.toThrow(
         'No output generated. Check the stream for errors.',
       );
+      await expect(
+        Promise.race([
+          Promise.resolve(result.output),
+          delay(100).then(() => {
+            throw new Error('output did not settle');
+          }),
+        ]),
+      ).rejects.toThrow('No output generated. Check the stream for errors.');
     });
 
     it('should reject when provider stream closes before finish chunk', async () => {
@@ -2281,6 +2289,16 @@ describe('streamText', () => {
         'No output generated. The model stream ended without a finish chunk.',
       );
       await expect(result.totalUsage).rejects.toThrow(
+        'No output generated. The model stream ended without a finish chunk.',
+      );
+      await expect(
+        Promise.race([
+          Promise.resolve(result.output),
+          delay(100).then(() => {
+            throw new Error('output did not settle');
+          }),
+        ]),
+      ).rejects.toThrow(
         'No output generated. The model stream ended without a finish chunk.',
       );
       expect(onError).toHaveBeenCalledWith({
@@ -17147,6 +17165,196 @@ describe('streamText', () => {
         expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
       });
 
+      it('should expose parsed output to onFinish after the stream completes', async () => {
+        let callbackOutput: { value: string } | undefined;
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+          onFinish: ({ output }) => {
+            callbackOutput = output;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+      });
+
+      it('should not delay output for an active onFinish callback', async () => {
+        const callbackStarted = new DelayedPromise<void>();
+        const finishCallback = new DelayedPromise<void>();
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+          onFinish: async () => {
+            callbackStarted.resolve();
+            await finishCallback.promise;
+          },
+        });
+
+        const outputPromise = Promise.resolve(result.output);
+        await callbackStarted.promise;
+
+        expect(await outputPromise).toStrictEqual({ value: 'Hello, world!' });
+
+        finishCallback.resolve();
+        await result.consumeStream();
+      });
+
+      it('should parse complete output once for onFinish and the output promise', async () => {
+        const output = Output.object({
+          schema: z.object({ value: z.string() }),
+        });
+        const parseCompleteOutput = vi.spyOn(output, 'parseCompleteOutput');
+        let callbackOutput: { value: string } | undefined;
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output,
+          prompt: 'prompt',
+          onFinish: async ({ output }) => {
+            callbackOutput = output;
+          },
+        });
+
+        const [resultOutput] = await Promise.all([
+          result.output,
+          result.consumeStream(),
+        ]);
+
+        expect(resultOutput).toStrictEqual({ value: 'Hello, world!' });
+        expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+        expect(parseCompleteOutput).toHaveBeenCalledTimes(1);
+      });
+
+      it('should provide undefined output to onFinish when parsing fails', async () => {
+        let callbackOutput: { value: string } | undefined;
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": 42 }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+          onFinish: ({ output }) => {
+            callbackOutput = output;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(callbackOutput).toBeUndefined();
+        await expect(result.output).rejects.toThrow(
+          'No object generated: response did not match schema.',
+        );
+      });
+
+      it('should allow onFinish to await the output promise after asynchronous work', async () => {
+        const output = Output.object({
+          schema: z.object({ value: z.string() }),
+        });
+        let callbackOutput: { value: string } | undefined;
+        let result!: StreamTextResult<any, typeof output>;
+
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "value": "Hello, world!" }',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output,
+          prompt: 'prompt',
+          onFinish: async () => {
+            await delay(1);
+            callbackOutput = await result.output;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(callbackOutput).toStrictEqual({ value: 'Hello, world!' });
+        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
+      });
+
       it('should call onFinish with the correct content', async () => {
         let result!: Parameters<
           Required<Parameters<typeof streamText>[0]>['onFinish']
@@ -17204,6 +17412,9 @@ describe('streamText', () => {
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
+            },
+            "output": {
+              "value": "Hello, world!",
             },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",

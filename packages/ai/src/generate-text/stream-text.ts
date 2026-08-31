@@ -214,14 +214,31 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
   >;
 }) => PromiseLike<void> | void;
 
+export type StreamTextEndEvent<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = OnFinishEvent<TOOLS> & {
+  /**
+   * The parsed output when an output setting was provided and parsing
+   * succeeded.
+   */
+  readonly output?: InferCompleteOutput<OUTPUT>;
+};
+
+export type StreamTextOnEndCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = (event: StreamTextEndEvent<TOOLS, OUTPUT>) => PromiseLike<void> | void;
+
 /**
  * Callback that is set using the `onFinish` option.
  *
  * @param event - The event that is passed to the callback.
  */
-export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
-  event: OnFinishEvent<TOOLS>,
-) => PromiseLike<void> | void;
+export type StreamTextOnFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = StreamTextOnEndCallback<TOOLS, OUTPUT>;
 
 /**
  * Callback that is set using the `onAbort` option.
@@ -492,7 +509,7 @@ export function streamText<
      *
      * The usage is the combined usage of all steps.
      */
-    onFinish?: StreamTextOnFinishCallback<TOOLS>;
+    onFinish?: StreamTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<OUTPUT>>;
 
     onAbort?: StreamTextOnAbortCallback<TOOLS>;
 
@@ -758,6 +775,8 @@ class DefaultStreamTextResult<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['steps']>
   >();
 
+  private outputPromise: Promise<InferCompleteOutput<OUTPUT>> | undefined;
+
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
     callbacks?: {
@@ -862,7 +881,9 @@ class DefaultStreamTextResult<
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
     onError: StreamTextOnErrorCallback;
-    onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
+    onFinish:
+      | undefined
+      | StreamTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<OUTPUT>>;
     onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
     onStart: undefined | StreamTextOnStartCallback<TOOLS, OUTPUT>;
@@ -1211,43 +1232,61 @@ class DefaultStreamTextResult<
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
+          const onFinishEvent: OnFinishEvent<TOOLS> = {
+            stepNumber: finalStep.stepNumber,
+            model: finalStep.model,
+            functionId: finalStep.functionId,
+            metadata: finalStep.metadata,
+            experimental_context: finalStep.experimental_context,
+            finishReason: finalStep.finishReason,
+            rawFinishReason: finalStep.rawFinishReason,
+            totalUsage,
+            usage: finalStep.usage,
+            content: finalStep.content,
+            text: finalStep.text,
+            reasoningText: finalStep.reasoningText,
+            reasoning: finalStep.reasoning,
+            files: finalStep.files,
+            sources: finalStep.sources,
+            toolCalls: finalStep.toolCalls,
+            staticToolCalls: finalStep.staticToolCalls,
+            dynamicToolCalls: finalStep.dynamicToolCalls,
+            toolResults: finalStep.toolResults,
+            staticToolResults: finalStep.staticToolResults,
+            dynamicToolResults: finalStep.dynamicToolResults,
+            request: finalStep.request,
+            response: finalStep.response,
+            warnings: finalStep.warnings,
+            providerMetadata: finalStep.providerMetadata,
+            steps: recordedSteps,
+          };
+          const onFinishWithOutput =
+            onFinish == null
+              ? undefined
+              : async (event: OnFinishEvent<TOOLS>) => {
+                  const parsedOutput =
+                    output == null
+                      ? undefined
+                      : await self.getOutputPromise().catch(() => undefined);
 
-          await notify({
-            event: {
-              stepNumber: finalStep.stepNumber,
-              model: finalStep.model,
-              functionId: finalStep.functionId,
-              metadata: finalStep.metadata,
-              experimental_context: finalStep.experimental_context,
-              finishReason: finalStep.finishReason,
-              rawFinishReason: finalStep.rawFinishReason,
-              totalUsage,
-              usage: finalStep.usage,
-              content: finalStep.content,
-              text: finalStep.text,
-              reasoningText: finalStep.reasoningText,
-              reasoning: finalStep.reasoning,
-              files: finalStep.files,
-              sources: finalStep.sources,
-              toolCalls: finalStep.toolCalls,
-              staticToolCalls: finalStep.staticToolCalls,
-              dynamicToolCalls: finalStep.dynamicToolCalls,
-              toolResults: finalStep.toolResults,
-              staticToolResults: finalStep.staticToolResults,
-              dynamicToolResults: finalStep.dynamicToolResults,
-              request: finalStep.request,
-              response: finalStep.response,
-              warnings: finalStep.warnings,
-              providerMetadata: finalStep.providerMetadata,
-              steps: recordedSteps,
-            },
-            callbacks: [
-              onFinish,
-              globalTelemetry.onFinish as
+                  await onFinish({
+                    ...event,
+                    ...(output != null ? { output: parsedOutput } : {}),
+                  });
+                };
+
+          await Promise.all([
+            notify({
+              event: onFinishEvent,
+              callbacks: onFinishWithOutput,
+            }),
+            notify({
+              event: onFinishEvent,
+              callbacks: globalTelemetry.onFinish as
                 | undefined
-                | StreamTextOnFinishCallback<TOOLS>,
-            ],
-          });
+                | ((event: OnFinishEvent<TOOLS>) => PromiseLike<void> | void),
+            }),
+          ]);
 
           // Add response information to the root span:
           rootSpan.setAttributes(
@@ -2634,18 +2673,26 @@ class DefaultStreamTextResult<
     return createAsyncIterableStream(this.teeStream().pipeThrough(transform));
   }
 
+  private getOutputPromise(): Promise<InferCompleteOutput<OUTPUT>> {
+    if (this.outputPromise == null) {
+      this.outputPromise = this.finalStep.then(step => {
+        const output = this.outputSpecification ?? text();
+        return output.parseCompleteOutput(
+          { text: step.text },
+          {
+            response: step.response,
+            usage: step.usage,
+            finishReason: step.finishReason,
+          },
+        );
+      });
+    }
+
+    return this.outputPromise;
+  }
+
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
-    return this.finalStep.then(step => {
-      const output = this.outputSpecification ?? text();
-      return output.parseCompleteOutput(
-        { text: step.text },
-        {
-          response: step.response,
-          usage: step.usage,
-          finishReason: step.finishReason,
-        },
-      );
-    });
+    return this.getOutputPromise();
   }
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
