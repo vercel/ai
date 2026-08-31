@@ -1,5 +1,15 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.100
+
+### Patch Changes
+
+- c0c7fac: feat(harness): add reusable `createReadBridgeAsset()` helper function
+- ce6df5b: fix(harness-claude-code): use structured `tool_result` blocks when present for tool results instead of agent-facing response
+- 7388399: fix(harness-claude-code): mark approval-gated external MCP tool calls as dynamic
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
 ## 1.0.99
 
 ### Patch Changes
