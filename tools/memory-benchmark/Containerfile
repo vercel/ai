@@ -2,7 +2,7 @@ FROM node:24-bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git procps \
   && rm -rf /var/lib/apt/lists/* \
-  && npm install -g bun@1.2.21 pnpm@11.23.0 turbo@2.9.14
+  && npm install -g bun@1.2.21 pnpm@12.1.0 turbo@2.9.14
 
 WORKDIR /workspace
 COPY json/ .
