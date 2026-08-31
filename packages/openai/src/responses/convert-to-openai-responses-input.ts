@@ -46,22 +46,40 @@ function serializeToolCallArguments(input: unknown): string {
 
 async function convertFunctionToolResultOutput({
   output,
+  promptCacheBreakpoint,
   providerOptionsName,
   warnings,
 }: {
   output: LanguageModelV3ToolResultOutput;
+  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
   providerOptionsName: string;
   warnings: Array<SharedV3Warning>;
 }): Promise<OpenAIResponsesFunctionCallOutput['output']> {
+  const convertScalarOutput = (
+    value: string,
+  ): OpenAIResponsesFunctionCallOutput['output'] =>
+    promptCacheBreakpoint == null
+      ? value
+      : [
+          {
+            type: 'input_text',
+            text: value,
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+        ];
+
   switch (output.type) {
     case 'text':
     case 'error-text':
-      return output.value;
-    case 'execution-denied':
-      return output.reason ?? 'Tool call execution denied.';
+      return convertScalarOutput(output.value);
+    case 'execution-denied': {
+      return convertScalarOutput(
+        output.reason ?? 'Tool call execution denied.',
+      );
+    }
     case 'json':
     case 'error-json':
-      return JSON.stringify(output.value);
+      return convertScalarOutput(JSON.stringify(output.value));
     case 'content':
       return output.value
         .map(item => {
@@ -244,6 +262,24 @@ function getPromptCacheBreakpoint(
   return providerOptions?.[providerOptionsName]?.promptCacheBreakpoint as
     | OpenAIPromptCacheBreakpoint
     | undefined;
+}
+
+function getScalarToolResultPromptCacheBreakpoint({
+  output,
+  toolResultProviderOptions,
+  providerOptionsName,
+}: {
+  output: LanguageModelV3ToolResultOutput;
+  toolResultProviderOptions: SharedV3ProviderOptions | undefined;
+  providerOptionsName: string;
+}): OpenAIPromptCacheBreakpoint | undefined {
+  return output.type === 'content'
+    ? undefined
+    : (getPromptCacheBreakpoint(output.providerOptions, providerOptionsName) ??
+        getPromptCacheBreakpoint(
+          toolResultProviderOptions,
+          providerOptionsName,
+        ));
 }
 
 /**
@@ -989,13 +1025,29 @@ export async function convertToOpenAIResponsesInput({
               );
 
               const toolOutputs = await Promise.all(
-                parallelToolResultGroup.results.map(async result =>
-                  convertFunctionToolResultOutput({
-                    output: result.output,
-                    providerOptionsName,
-                    warnings,
-                  }),
-                ),
+                parallelToolResultGroup.results.map(async result => {
+                  const promptCacheBreakpoint =
+                    getScalarToolResultPromptCacheBreakpoint({
+                      output: result.output,
+                      toolResultProviderOptions: result.providerOptions,
+                      providerOptionsName,
+                    });
+
+                  return {
+                    output: await convertFunctionToolResultOutput({
+                      output: result.output,
+                      providerOptionsName,
+                      warnings,
+                    }),
+                    promptCacheBreakpoint,
+                  };
+                }),
+              );
+              const serializedToolOutputs = toolOutputs.map(({ output }) =>
+                typeof output === 'string' ? output : JSON.stringify(output),
+              );
+              const hasPromptCacheBreakpoint = toolOutputs.some(
+                ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
               );
 
               input.push({
@@ -1003,13 +1055,16 @@ export async function convertToOpenAIResponsesInput({
                 call_id: parallelToolResultGroup.metadata.toolCallId,
                 // The internal wrapper returns one output containing the child
                 // results in the same order as the original tool_uses array.
-                output: toolOutputs
-                  .map(output =>
-                    typeof output === 'string'
-                      ? output
-                      : JSON.stringify(output),
-                  )
-                  .join('\n'),
+                output: hasPromptCacheBreakpoint
+                  ? serializedToolOutputs.map((text, index) => ({
+                      type: 'input_text',
+                      text: index === 0 ? text : `\n${text}`,
+                      ...(toolOutputs[index].promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint:
+                          toolOutputs[index].promptCacheBreakpoint,
+                      }),
+                    }))
+                  : serializedToolOutputs.join('\n'),
               });
             }
             continue;
@@ -1114,18 +1169,38 @@ export async function convertToOpenAIResponsesInput({
           }
 
           if (customProviderToolNames?.has(resolvedToolName)) {
+            const promptCacheBreakpoint =
+              getScalarToolResultPromptCacheBreakpoint({
+                output,
+                toolResultProviderOptions: part.providerOptions,
+                providerOptionsName,
+              });
+            const convertScalarOutput = (
+              value: string,
+            ): OpenAIResponsesCustomToolCallOutput['output'] =>
+              promptCacheBreakpoint == null
+                ? value
+                : [
+                    {
+                      type: 'input_text',
+                      text: value,
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    },
+                  ];
             let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
             switch (output.type) {
               case 'text':
               case 'error-text':
-                outputValue = output.value;
+                outputValue = convertScalarOutput(output.value);
                 break;
               case 'execution-denied':
-                outputValue = output.reason ?? 'Tool call execution denied.';
+                outputValue = convertScalarOutput(
+                  output.reason ?? 'Tool call execution denied.',
+                );
                 break;
               case 'json':
               case 'error-json':
-                outputValue = JSON.stringify(output.value);
+                outputValue = convertScalarOutput(JSON.stringify(output.value));
                 break;
               case 'content':
                 outputValue = output.value
@@ -1205,6 +1280,11 @@ export async function convertToOpenAIResponsesInput({
 
           const contentValue = await convertFunctionToolResultOutput({
             output,
+            promptCacheBreakpoint: getScalarToolResultPromptCacheBreakpoint({
+              output,
+              toolResultProviderOptions: part.providerOptions,
+              providerOptionsName,
+            }),
             providerOptionsName,
             warnings,
           });
