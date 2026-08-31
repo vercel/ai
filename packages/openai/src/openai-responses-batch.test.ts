@@ -752,7 +752,7 @@ describe('OpenAI batch language models', () => {
         type: 'json-value',
         body: batchResponse({
           output_file_id: 'file-output',
-          request_counts: { total: 5, completed: 5, failed: 0 },
+          request_counts: { total: 6, completed: 6, failed: 0 },
         }),
       };
       server.urls[urls.output].response = {
@@ -805,6 +805,28 @@ describe('OpenAI batch language models', () => {
             },
           })}\n`,
           `${resultLine({
+            id: 'file-search',
+            body: {
+              ...responsesResultBody(''),
+              output: [
+                {
+                  type: 'file_search_call',
+                  id: 'file-search',
+                  queries: ['weather in Paris'],
+                  results: [
+                    {
+                      attributes: { country: 'France' },
+                      file_id: 'file_123',
+                      filename: 'weather.md',
+                      score: 0.9,
+                      text: 'Paris is sunny.',
+                    },
+                  ],
+                },
+              ],
+            },
+          })}\n`,
+          `${resultLine({
             id: 'image',
             body: {
               ...responsesResultBody(''),
@@ -827,7 +849,7 @@ describe('OpenAI batch language models', () => {
       });
       const results = await convertReadableStreamToArray(stream);
 
-      expect(results).toHaveLength(5);
+      expect(results).toHaveLength(6);
       expect(results).toMatchObject([
         {
           id: 'function-call',
@@ -876,7 +898,43 @@ describe('OpenAI batch language models', () => {
                 type: 'tool-result',
                 toolCallId: 'web-search',
                 toolName: 'web_search',
-                result: { type: 'search', query: 'weather in Paris' },
+                result: {
+                  action: { type: 'search', query: 'weather in Paris' },
+                },
+                dynamic: true,
+              },
+            ],
+          },
+        },
+        {
+          id: 'file-search',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'file-search',
+                toolName: 'file_search',
+                input: '{}',
+                providerExecuted: true,
+                dynamic: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'file-search',
+                toolName: 'file_search',
+                result: {
+                  queries: ['weather in Paris'],
+                  results: [
+                    {
+                      attributes: { country: 'France' },
+                      fileId: 'file_123',
+                      filename: 'weather.md',
+                      score: 0.9,
+                      text: 'Paris is sunny.',
+                    },
+                  ],
+                },
                 dynamic: true,
               },
             ],
