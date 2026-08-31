@@ -7,7 +7,13 @@ import type {
   ResponseStatisticsMode,
   TerminalPartDisplayMode,
 } from '../run-agent-tui';
-import { renderScreenViewport, sliceVisible, visibleLength } from './layout';
+import {
+  renderScreenViewport,
+  sanitizeTerminalLine,
+  sanitizeTerminalText,
+  sliceVisible,
+  visibleLength,
+} from './layout';
 import { renderMarkdown } from './markdown';
 import { TerminalFrameBuffer } from './terminal-frame-buffer';
 import {
@@ -382,7 +388,10 @@ export class TerminalRenderer {
   }
 
   #start(options?: TerminalSessionOptions) {
-    this.#title = options?.title ?? this.#title;
+    this.#title =
+      options?.title == null
+        ? this.#title
+        : sanitizeTerminalLine(options.title);
     this.#contextSize = options?.contextSize ?? this.#defaultContextSize;
 
     if (this.#isInteractive) {
@@ -515,7 +524,9 @@ export class TerminalRenderer {
 
   #addUserSection(prompt: string) {
     const previousBodyLineCount = this.#bodyLineCount();
-    this.#sections.push({ kind: 'user', title: 'User', content: prompt });
+    this.#sections.push(
+      sanitizeSection({ kind: 'user', title: 'User', content: prompt }),
+    );
     this.#paintAfterBodyChange(previousBodyLineCount);
   }
 
@@ -617,7 +628,8 @@ export class TerminalRenderer {
     this.#paintAfterBodyChange(previousBodyLineCount);
   }
 
-  #upsertSection(section: ChatSection) {
+  #upsertSection(unsafeSection: ChatSection) {
+    const section = sanitizeSection(unsafeSection);
     const existingSection = section.id
       ? this.#sections.find(candidate => candidate.id === section.id)
       : undefined;
@@ -692,7 +704,7 @@ export class TerminalRenderer {
 
   #addErrorSection(title: string, content: string) {
     const previousBodyLineCount = this.#bodyLineCount();
-    this.#sections.push({ kind: 'error', title, content });
+    this.#sections.push(sanitizeSection({ kind: 'error', title, content }));
     this.#paintAfterBodyChange(previousBodyLineCount);
   }
 
@@ -852,6 +864,26 @@ export class TerminalRenderer {
 
 function interruptedError() {
   return new Error('Interrupted');
+}
+
+/**
+ * Strips terminal escape sequences and control characters from section text.
+ *
+ * Section titles and content come from the model, from tool inputs and results
+ * and from user input, so they are untrusted. Sanitizing here — before
+ * markdown rendering adds the styling sequences the terminal UI itself uses —
+ * keeps escape sequence injection out of every section kind.
+ */
+function sanitizeSection(section: ChatSection): ChatSection {
+  return {
+    ...section,
+    title: sanitizeTerminalLine(section.title),
+    rightTitle:
+      section.rightTitle == null
+        ? undefined
+        : sanitizeTerminalLine(section.rightTitle),
+    content: sanitizeTerminalText(section.content),
+  };
 }
 
 async function* takeUntil<T>(
@@ -1078,7 +1110,7 @@ function formatValue(value: unknown) {
 }
 
 function formatToolApprovalTitle(request: AgentTUIToolApprovalRequest) {
-  return `tool ${request.title ?? request.toolName}`;
+  return `tool ${sanitizeTerminalLine(request.title ?? request.toolName)}`;
 }
 
 function sectionId(messageId: string, partIndex: number) {
@@ -1401,11 +1433,19 @@ export function parseKey(chunk: Buffer): TerminalKey {
       return { type: 'page-up' };
     case '\x1B[6~':
       return { type: 'page-down' };
-    default:
-      if (value >= ' ' && value !== '\x7F') {
-        return { type: 'character', value };
+    default: {
+      if (value < ' ' || value === '\x7F') {
+        return { type: 'ignore' };
       }
 
-      return { type: 'ignore' };
+      // A paste arrives as a single chunk and can carry escape sequences after
+      // its first printable character. Sanitize it so the sequences neither
+      // reach the terminal nor end up in the prompt that is sent to the model.
+      const character = sanitizeTerminalLine(value);
+
+      return character.length > 0
+        ? { type: 'character', value: character }
+        : { type: 'ignore' };
+    }
   }
 }

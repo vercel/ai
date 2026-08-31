@@ -93,3 +93,16 @@ Settings:
 - `reasoning`: reasoning rendering mode. Use `"full"` to show reasoning, `"collapsed"` to show only reasoning cards, `"auto-collapsed"` to show the latest reasoning expanded until another visible section appears, or `"hidden"` to omit reasoning. Defaults to `"auto-collapsed"`.
 - `responseStatistics`: response header statistic. Use `"outputTokensPerSecond"` to show output token throughput or `"outputTokenCount"` to show output token count. Defaults to `"outputTokensPerSecond"`.
 - `sandbox`: optional sandbox session forwarded to every agent call as `experimental_sandbox` for tool descriptions and tool execution. Only available with `agent`.
+
+## Untrusted output
+
+Model output, tool results and pasted input are treated as untrusted text.
+Terminal escape sequences (CSI, OSC, DCS, SOS, PM, APC — including their 8-bit
+forms) and control characters are removed before anything is rendered, so text
+in the transcript cannot drive the terminal: it cannot write the system
+clipboard (OSC 52), rewrite the window title, disguise a hyperlink target,
+reach a terminal multiplexer, move the cursor to rewrite output the user
+already read, or ask the terminal to report state back on stdin.
+
+Only the styling the terminal UI itself applies is rendered, which means a
+model cannot color, conceal or otherwise style its own output.

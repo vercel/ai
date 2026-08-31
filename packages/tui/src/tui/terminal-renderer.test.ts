@@ -29,6 +29,33 @@ type TestFrameBuffer = TerminalFrameBuffer & {
   lastPresentedText: () => string;
 };
 
+// OSC 52 writes the user's clipboard, so a terminal that receives this from
+// model output silently arms the next paste into the user's shell.
+const clipboardPayload = 'cm0gLXJmIH4K';
+const clipboardWrite = `\x1b]52;c;${clipboardPayload}\x07`;
+const windowTitle = '\x1b]0;pwned\x07';
+const kittyGraphics = '\x1b_Ga=T,f=100;AAAA\x1b\\';
+
+const escapeIntroducers = [
+  ['OSC', '\x1b]'],
+  ['DCS', '\x1bP'],
+  ['SOS', '\x1bX'],
+  ['PM', '\x1b^'],
+  ['APC', '\x1b_'],
+  ['BEL', '\x07'],
+] as const;
+
+function expectNoInjectedSequences(text: string) {
+  for (const [name, introducer] of escapeIntroducers) {
+    expect(
+      text.includes(introducer),
+      `expected no ${name} sequence in terminal output`,
+    ).toBe(false);
+  }
+
+  expect(text).not.toContain(clipboardPayload);
+}
+
 describe('parseKey', () => {
   it('decodes terminal control keys', () => {
     expect(parseKey(Buffer.from('\x1B[A'))).toEqual({ type: 'up' });
@@ -46,6 +73,20 @@ describe('parseKey', () => {
     expect(parseKey(Buffer.from('hello'))).toEqual({
       type: 'character',
       value: 'hello',
+    });
+  });
+
+  it('strips escape sequences from pasted input', () => {
+    expect(parseKey(Buffer.from(`hi${clipboardWrite}there`))).toEqual({
+      type: 'character',
+      value: 'hithere',
+    });
+    expect(parseKey(Buffer.from('one\ntwo'))).toEqual({
+      type: 'character',
+      value: 'one two',
+    });
+    expect(parseKey(Buffer.from('\u009d52;c;AAAA\u009c'))).toEqual({
+      type: 'ignore',
     });
   });
 });
@@ -674,6 +715,150 @@ describe('TerminalRenderer', () => {
   });
 });
 
+describe('TerminalRenderer escape sequence injection', () => {
+  it('does not write escape sequences from assistant text to the terminal', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.columns = 80;
+    const renderer = new TerminalRenderer({ input, output });
+
+    await renderer.renderStream(
+      createStream([
+        `ok${clipboardWrite}`,
+        `${windowTitle} done\x1b[2J\x1b[10A\x1b[6n`,
+      ]) as never,
+      { title: 'Test', waitForExit: false },
+    );
+
+    expectNoInjectedSequences(output.text());
+    expect(stripAnsi(output.text())).toContain('ok done');
+  });
+
+  it('does not write escape sequences from reasoning to the terminal', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.columns = 80;
+    const renderer = new TerminalRenderer({
+      input,
+      output,
+      reasoning: 'full',
+    });
+
+    await renderer.renderStream(
+      createReasoningStream(`hmm${kittyGraphics}${clipboardWrite} ok`) as never,
+      { title: 'Test', waitForExit: false },
+    );
+
+    expectNoInjectedSequences(output.text());
+    expect(stripAnsi(output.text())).toContain('hmm ok');
+  });
+
+  it('does not write escape sequences from tool results to the terminal', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.columns = 80;
+    output.rows = 24;
+    const renderer = new TerminalRenderer({ input, output, tools: 'full' });
+
+    await renderer.renderStream(
+      createToolOutputStream({
+        toolName: `shell${clipboardWrite}`,
+        output: `stdout${clipboardWrite}${windowTitle} clean`,
+      }) as never,
+      { title: 'Test', waitForExit: false },
+    );
+
+    expectNoInjectedSequences(output.text());
+    expect(stripAnsi(output.text())).toContain('stdout clean');
+  });
+
+  it('does not write escape sequences from stream errors to the terminal', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.columns = 80;
+    const renderer = new TerminalRenderer({ input, output });
+
+    await renderer.renderStream(
+      createErrorStream(new Error(`boom${clipboardWrite}`)) as never,
+      { title: 'Test', waitForExit: false },
+    );
+
+    expectNoInjectedSequences(output.text());
+    expect(stripAnsi(output.text())).toContain('boom');
+  });
+
+  it('does not write escape sequences from the session title to the terminal', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.columns = 80;
+    const renderer = new TerminalRenderer({ input, output });
+
+    await renderer.renderStream(createStream(['hello']) as never, {
+      title: `Agent${clipboardWrite}`,
+      waitForExit: false,
+    });
+
+    expectNoInjectedSequences(output.text());
+    expect(stripAnsi(output.text())).toContain('┌ Agent ');
+  });
+
+  it('does not write escape sequences from tool approval requests to the status line', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.columns = 80;
+    const renderer = new TerminalRenderer({ input, output });
+    const approvalPromise = renderer.readToolApproval(
+      {
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+        toolName: `shell${clipboardWrite}`,
+        input: { command: 'date' },
+        messageId: 'message-1',
+        partIndex: 0,
+      },
+      { title: 'Test' },
+    );
+
+    expectNoInjectedSequences(output.text());
+    expect(stripAnsi(output.text())).toContain('Approve tool shell? y/n');
+
+    input.emit('data', Buffer.from('y'));
+    await expect(approvalPromise).resolves.toEqual({ approved: true });
+  });
+
+  it('does not send pasted escape sequences to the terminal or the model', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.columns = 80;
+    const renderer = new TerminalRenderer({ input, output });
+    const promptPromise = renderer.readPrompt({ title: 'Test' });
+
+    input.emit('data', Buffer.from(`hi${clipboardWrite}there`));
+    input.emit('data', Buffer.from('\r'));
+
+    await expect(promptPromise).resolves.toBe('hithere');
+    expectNoInjectedSequences(output.text());
+  });
+
+  it('keeps a newline in a tool name from breaking out of the section header', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.columns = 80;
+    output.rows = 24;
+    const renderer = new TerminalRenderer({ input, output, tools: 'full' });
+
+    await renderer.renderStream(
+      createToolOutputStream({
+        toolName: 'shell\nInjected',
+        output: 'done',
+      }) as never,
+      { title: 'Test', waitForExit: false },
+    );
+
+    expect(stripAnsi(output.text())).toContain('╭ Tool · shell Injected ');
+  });
+});
+
 function createInput() {
   const input = new EventEmitter() as TestInput;
 
@@ -833,6 +1018,44 @@ function createStream(
                 },
               },
       };
+    })(),
+  };
+}
+
+function createReasoningStream(text: string): AgentTUIStreamResult {
+  return {
+    uiMessageStream: (async function* () {
+      yield { type: 'start', messageId: 'message-1' };
+      yield { type: 'reasoning-start', id: 'reasoning-1' };
+      yield { type: 'reasoning-delta', id: 'reasoning-1', delta: text };
+      yield { type: 'reasoning-end', id: 'reasoning-1' };
+      yield { type: 'finish' };
+    })(),
+  };
+}
+
+function createToolOutputStream({
+  toolName,
+  output,
+}: {
+  toolName: string;
+  output: string;
+}): AgentTUIStreamResult {
+  return {
+    uiMessageStream: (async function* () {
+      yield { type: 'start', messageId: 'message-1' };
+      yield {
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName,
+        input: { command: 'date' },
+      } satisfies UIMessageChunk;
+      yield {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output,
+      } satisfies UIMessageChunk;
+      yield { type: 'finish' };
     })(),
   };
 }

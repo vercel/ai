@@ -2,11 +2,18 @@ import { renderMarkdown } from './markdown';
 import {
   ansiPrefixPattern,
   codePointWidth,
+  sanitizeTerminalLine,
   sliceVisible,
   visibleLength,
 } from './terminal-text';
 
-export { sliceVisible, stripAnsi, visibleLength } from './terminal-text';
+export {
+  sanitizeTerminalLine,
+  sanitizeTerminalText,
+  sliceVisible,
+  stripAnsi,
+  visibleLength,
+} from './terminal-text';
 
 const horizontal = '─';
 
@@ -77,15 +84,26 @@ export function renderScreenViewport(state: TUIScreenViewportState): string {
     visibleBody.push('');
   }
 
+  // The frame chrome is plain text, so it is sanitized here as well: a newline
+  // or escape sequence in a title, status or prompt would otherwise shift or
+  // drive the rendered frame.
   const lines = [
-    topBorder(width, state.title, state.rightTitle),
+    topBorder(
+      width,
+      sanitizeTerminalLine(state.title),
+      state.rightTitle == null
+        ? undefined
+        : sanitizeTerminalLine(state.rightTitle),
+    ),
     ...visibleBody.map(line => boxLine(line, width)),
     bottomBorder(width),
     topBorder(width, state.inputActive ? 'Input' : 'Status'),
     boxLine(
       state.inputActive
-        ? `> ${state.input}${state.inputCursorVisible === false ? ' ' : '█'}`
-        : (state.status ?? 'Streaming... ↑/↓ scroll · Ctrl+C quit'),
+        ? `> ${sanitizeTerminalLine(state.input)}${state.inputCursorVisible === false ? ' ' : '█'}`
+        : sanitizeTerminalLine(
+            state.status ?? 'Streaming... ↑/↓ scroll · Ctrl+C quit',
+          ),
       width,
     ),
     bottomBorder(width),

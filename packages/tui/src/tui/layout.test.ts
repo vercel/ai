@@ -204,6 +204,58 @@ describe('renderScreen', () => {
       true,
     );
   });
+
+  it('drops escape sequences in body lines that are not styling', () => {
+    const output = renderScreenLines({
+      width: 30,
+      height: 8,
+      title: 'Chat',
+      bodyLines: ['ok\x1b]52;c;cm0gLXJmIH4K\x07 done'],
+      input: '',
+      inputActive: false,
+      scrollOffset: 0,
+    });
+
+    expect(output).not.toContain('\x1b]');
+    expect(output).not.toContain('\x07');
+    expect(output).toContain('│ ok done                    │');
+  });
+
+  it('sanitizes the frame title, status and prompt', () => {
+    const output = renderScreen({
+      width: 40,
+      height: 8,
+      title: 'Chat\x1b]0;pwned\x07',
+      rightTitle: '9 tokens\x1b]52;c;AAAA\x07',
+      body: 'hello',
+      input: '',
+      inputActive: false,
+      status: 'Done\nInjected status\x1b]52;c;AAAA\x07',
+      scrollOffset: 0,
+    });
+
+    expect(output).not.toContain('\x1b]');
+    expect(output).not.toContain('\x07');
+    expect(output).toContain('┌ Chat ');
+    expect(output).toContain(' 9 tokens ┐');
+    expect(output).toContain('│ Done Injected status');
+    expect(output.split('\n')).toHaveLength(8);
+  });
+
+  it('keeps a newline in the prompt from shifting the frame', () => {
+    const output = renderScreen({
+      width: 40,
+      height: 8,
+      title: 'Chat',
+      body: 'hello',
+      input: 'first\nsecond',
+      inputActive: true,
+      scrollOffset: 0,
+    });
+
+    expect(output.split('\n')).toHaveLength(8);
+    expect(output).toContain('│ > first second█');
+  });
 });
 
 describe('clampScrollOffset', () => {

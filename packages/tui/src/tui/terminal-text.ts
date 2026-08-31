@@ -1,12 +1,87 @@
-const ansiEscape = String.fromCharCode(27);
+const ansiEscape = String.fromCharCode(0x1b);
+const bell = String.fromCharCode(0x07);
 
-export const ansiPattern = new RegExp(`${ansiEscape}\\[[0-?]*[ -/]*[@-~]`, 'g');
-export const ansiPrefixPattern = new RegExp(
-  `^${ansiEscape}\\[[0-?]*[ -/]*[@-~]`,
-);
+// 8-bit (C1) equivalents of the 7-bit escape introducers. Terminals honour
+// these just like their `ESC`-prefixed counterparts, so they have to be
+// recognized as well.
+const csiIntroducer8Bit = String.fromCharCode(0x9b);
+const oscIntroducer8Bit = String.fromCharCode(0x9d);
+const stringTerminator8Bit = String.fromCharCode(0x9c);
+const stringIntroducers8Bit =
+  String.fromCharCode(0x90) + // DCS
+  String.fromCharCode(0x98) + // SOS
+  String.fromCharCode(0x9e) + // PM
+  String.fromCharCode(0x9f); // APC
+
+// A string sequence ends at BEL, `ESC \` or the 8-bit string terminator.
+const stringTerminator = `(?:${bell}|${ansiEscape}\\\\|${stringTerminator8Bit})`;
+
+// CSI sequences, e.g. `ESC [ 1 m` or `ESC [ 6 n`. The final byte is optional so
+// that a truncated sequence at the end of the input is still consumed.
+const csiSequence = `(?:${ansiEscape}\\[|${csiIntroducer8Bit})[0-?]*[ -/]*[@-~]?`;
+
+// OSC sequences, e.g. `ESC ] 52 ; c ; <base64> BEL` (clipboard write) or
+// `ESC ] 8 ; ; <url> BEL` (hyperlink). The payload cannot contain `ESC` or BEL,
+// so an unterminated sequence is consumed up to the next escape.
+const oscSequence = `(?:${ansiEscape}\\]|${oscIntroducer8Bit})[^${bell}${ansiEscape}${stringTerminator8Bit}]*${stringTerminator}?`;
+
+// DCS, SOS, PM and APC sequences, e.g. `ESC P tmux ; ... ESC \`.
+const stringSequence = `(?:${ansiEscape}[PX^_]|[${stringIntroducers8Bit}])[^${ansiEscape}${stringTerminator8Bit}]*(?:${ansiEscape}\\\\|${stringTerminator8Bit})?`;
+
+// Remaining escapes such as `ESC c` (full reset), `ESC 7` (save cursor) or
+// `ESC ( 0` (charset selection), plus a trailing lone `ESC`.
+const otherEscapeSequence = `${ansiEscape}[ -/]*[0-~]?`;
+
+// Ordered alternation: the introducer-specific rules have to be tried before
+// the catch-all escape rule.
+const escapeSequence = [
+  csiSequence,
+  oscSequence,
+  stringSequence,
+  otherEscapeSequence,
+].join('|');
+
+// C0 control characters (except tab and newline), DEL and the C1 range. These
+// can reposition the cursor (CR, BS), ring the bell or terminate sequences.
+const controlCharacter = '[\\u0000-\\u0008\\u000b-\\u001f\\u007f-\\u009f]';
+
+export const ansiPattern = new RegExp(escapeSequence, 'g');
+export const ansiPrefixPattern = new RegExp(`^(?:${escapeSequence})`);
+
+// The only escape sequences the terminal UI emits inside content are SGR
+// (colors and text styles). Everything else is dropped before it is written.
+const sgrPrefixPattern = new RegExp(`^${ansiEscape}\\[[0-9;:]*m`);
+const controlCharacterPattern = new RegExp(controlCharacter, 'g');
 
 export function stripAnsi(input: string): string {
   return input.replace(ansiPattern, '');
+}
+
+/**
+ * Removes every terminal escape sequence and control character from untrusted
+ * text (model output, tool results, error messages, pasted input).
+ *
+ * Writing such text to a terminal verbatim lets it drive the terminal instead
+ * of just being displayed: OSC 52 writes the user's clipboard, OSC 8 hides a
+ * different target behind link text, OSC 0/2 rewrites the window title,
+ * DCS/APC passthrough reaches the multiplexer, and CSI can move the cursor to
+ * rewrite already-rendered output or ask the terminal to report state back on
+ * stdin.
+ *
+ * Newlines and tabs are preserved; use {@link sanitizeTerminalLine} for text
+ * that is rendered on a single line.
+ */
+export function sanitizeTerminalText(input: string): string {
+  return input.replace(ansiPattern, '').replace(controlCharacterPattern, '');
+}
+
+/**
+ * Sanitizes untrusted text that is rendered on a single line, e.g. a section
+ * title, the status line or the prompt input. Newlines are replaced with
+ * spaces so the text cannot break out of its line and shift the frame.
+ */
+export function sanitizeTerminalLine(input: string): string {
+  return sanitizeTerminalText(input).replace(/\n/g, ' ');
 }
 
 export function visibleLength(input: string): number {
@@ -48,7 +123,7 @@ export function sliceVisible(input: string, width: number): string {
     const ansiMatch = input.slice(index).match(ansiPrefixPattern);
 
     if (ansiMatch) {
-      output += ansiMatch[0];
+      output += keptEscapeSequence(ansiMatch[0]);
       index += ansiMatch[0].length;
       continue;
     }
@@ -60,6 +135,12 @@ export function sliceVisible(input: string, width: number): string {
     }
 
     const character = String.fromCodePoint(codePoint);
+
+    if (isControlCodePoint(codePoint)) {
+      index += character.length;
+      continue;
+    }
+
     const characterWidth = codePointWidth(codePoint);
 
     if (characterWidth > 0 && visible + characterWidth > width) {
@@ -78,11 +159,27 @@ export function sliceVisible(input: string, width: number): string {
       break;
     }
 
-    output += ansiMatch[0];
+    output += keptEscapeSequence(ansiMatch[0]);
     index += ansiMatch[0].length;
   }
 
   return output;
+}
+
+/**
+ * Drops escape sequences that are not styling. `sliceVisible` runs on every
+ * line right before it is written to the terminal, so this is the last barrier
+ * against a sequence that was not sanitized at its source.
+ */
+function keptEscapeSequence(sequence: string): string {
+  return sgrPrefixPattern.test(sequence) ? sequence : '';
+}
+
+function isControlCodePoint(codePoint: number): boolean {
+  return (
+    codePoint !== 0x09 &&
+    (codePoint < 0x20 || (codePoint >= 0x7f && codePoint <= 0x9f))
+  );
 }
 
 export function codePointWidth(codePoint: number): number {
