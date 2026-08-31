@@ -330,6 +330,29 @@ describe('OpenAI Files - uploadFile (result fields)', () => {
   });
 });
 
+describe('OpenAI Files - uploadFile (pre-request rejection)', () => {
+  it('should cancel stream data when provider options are invalid', async () => {
+    const cancelSpy = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+    const files = provider.files();
+
+    await expect(
+      files.uploadFile({
+        data: { type: 'stream', stream },
+        mediaType: 'application/jsonl',
+        providerOptions: {
+          openai: { expiresAfter: 'not-a-number' as never },
+        },
+      }),
+    ).rejects.toThrow();
+
+    expect(cancelSpy).toHaveBeenCalled();
+    expect(server.calls.length).toBe(0);
+  });
+});
+
 describe('OpenAI Files - retrieveFile', () => {
   function prepareRetrieveResponse({
     expires_at = null,
@@ -446,6 +469,25 @@ describe('OpenAI Files - downloadFile', () => {
     expect(server.calls[0].requestMethod).toBe('GET');
     expect(result.content).toBeInstanceOf(ReadableStream);
     expect(await new Response(result.content).text()).toBe('{"result":"ok"}\n');
+  });
+
+  it('should expose the response content type as mediaType (parameters stripped)', async () => {
+    server.urls[
+      'https://api.openai.com/v1/files/file-abc123/content'
+    ].response = {
+      type: 'binary',
+      headers: { 'content-type': 'application/jsonl; charset=utf-8' },
+      body: Buffer.from('{"result":"ok"}\n'),
+    };
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+    const files = provider.files();
+
+    const result = await files.downloadFile!({
+      file: { openai: 'file-abc123' },
+    });
+
+    expect(result.mediaType).toBe('application/jsonl');
   });
 });
 

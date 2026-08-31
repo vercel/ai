@@ -96,6 +96,37 @@ describe('uploadFile', () => {
     );
   });
 
+  it('should cancel stream data when the api has no files() method', async () => {
+    const cancelSpy = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+
+    await expect(
+      uploadFile({
+        api: { specificationVersion: 'v4', provider: 'no-files' } as never,
+        data: { type: 'stream', stream },
+      }),
+    ).rejects.toThrow('does not support file uploads');
+
+    expect(cancelSpy).toHaveBeenCalled();
+  });
+
+  it('should cancel stream data when the provider upload rejects', async () => {
+    const cancelSpy = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+    const uploadFileSpy = vi
+      .fn()
+      .mockRejectedValue(new Error('validation failed'));
+
+    await expect(
+      uploadFile({
+        api: createMockFiles({ uploadFile: uploadFileSpy }),
+        data: { type: 'stream', stream },
+      }),
+    ).rejects.toThrow('validation failed');
+
+    expect(cancelSpy).toHaveBeenCalled();
+  });
+
   it('should forward abortSignal and headers to files.uploadFile', async () => {
     const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
     const controller = new AbortController();

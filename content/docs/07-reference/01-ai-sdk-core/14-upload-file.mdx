@@ -41,7 +41,7 @@ const { providerReference } = await uploadFile({
       name: 'data',
       type: 'DataContent | { type: "stream"; stream: ReadableStream<Uint8Array> }',
       description:
-        'The file data to upload. Can be a `Uint8Array`, a base64-encoded string, an `ArrayBuffer`, a `Buffer`, or a tagged `{ type: "stream", stream }` shape for providers that support streaming uploads (sent without buffering; other providers reject with an `UnsupportedFunctionalityError`). The provider consumes the stream — on failure it is cancelled and must not be reused. URLs are not supported — fetch the content first and pass the bytes.',
+        'The file data to upload. Can be a `Uint8Array`, a base64-encoded string, an `ArrayBuffer`, a `Buffer`, or a tagged `{ type: "stream", stream }` shape for providers that support streaming uploads (sent without buffering; other providers reject with an `UnsupportedFunctionalityError`). The provider consumes the stream — any failed upload (including validation failures before a request is made) cancels it, and it must not be reused. URLs are not supported — fetch the content first and pass the bytes.',
     },
     {
       name: 'mediaType',

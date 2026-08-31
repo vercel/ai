@@ -22,9 +22,12 @@ export function convertInlineFileDataToUint8Array(
   data: InlineFileData | { type: 'stream'; stream: ReadableStream<Uint8Array> },
 ): Uint8Array {
   if (data.type === 'stream') {
-    throw new UnsupportedFunctionalityError({
+    const error = new UnsupportedFunctionalityError({
       functionality: 'streaming file upload',
     });
+    // the caller's stream is never consumed on this path — release it
+    void data.stream.cancel(error).catch(() => {});
+    throw error;
   }
   if (data.type === 'text') {
     return new TextEncoder().encode(data.text);

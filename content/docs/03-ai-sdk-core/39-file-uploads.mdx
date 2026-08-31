@@ -110,8 +110,8 @@ const { providerReference } = await uploadFile({
 });
 ```
 
-The provider consumes the stream: on failure it is cancelled and must not be
-reused. Stream data cannot be sniffed, so `mediaType` defaults to
+The provider consumes the stream: any failed upload — including validation
+failures before a request is made — cancels it, and it must not be reused. Stream data cannot be sniffed, so `mediaType` defaults to
 `application/octet-stream` when omitted, and multipart-based providers default
 the filename to `"blob"`.
 
