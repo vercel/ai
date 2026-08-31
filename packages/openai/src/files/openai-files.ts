@@ -89,11 +89,20 @@ export class OpenAIFiles implements FilesV4 {
     headers,
     providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    const openaiOptions = (await parseProviderOptions({
-      provider: 'openai',
-      providerOptions,
-      schema: openaiFilesOptionsSchema,
-    })) as OpenAIFilesOptions | undefined;
+    let openaiOptions: OpenAIFilesOptions | undefined;
+    try {
+      openaiOptions = (await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiFilesOptionsSchema,
+      })) as OpenAIFilesOptions | undefined;
+    } catch (error) {
+      // rejected before any request: release the caller's stream
+      if (data.type === 'stream') {
+        await data.stream.cancel(error).catch(() => {});
+      }
+      throw error;
+    }
 
     const purpose = openaiOptions?.purpose ?? 'assistants';
     const requestHeaders = this.getHeaders(headers);
@@ -235,7 +244,7 @@ export class OpenAIFiles implements FilesV4 {
   }: FilesV4DownloadFileCallOptions): Promise<FilesV4DownloadFileResult> {
     const fileId = this.getFileId(file);
 
-    const { value: content } = await getFromApi({
+    const { value: content, responseHeaders } = await getFromApi({
       url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}/content`,
       headers: this.getHeaders(headers),
       failedResponseHandler: openaiFailedResponseHandler,
@@ -245,9 +254,13 @@ export class OpenAIFiles implements FilesV4 {
       validateUrl: false,
     });
 
+    // media type from the content endpoint's Content-Type, without parameters
+    const mediaType = responseHeaders?.['content-type']?.split(';')[0].trim();
+
     return {
       warnings: [],
       content,
+      ...(mediaType ? { mediaType } : {}),
     };
   }
 
