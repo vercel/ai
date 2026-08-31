@@ -1,6 +1,9 @@
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import type { HarnessV1Bootstrap } from '@ai-sdk/harness';
+import { createReadBridgeAsset } from '@ai-sdk/harness/utils';
+
+const readBridgeAsset = createReadBridgeAsset({
+  resolveAssetUrl: name => new URL(`./bridge/${name}`, import.meta.url),
+});
 
 export const OPENCODE_BOOTSTRAP_DIR = '.harness-bootstrap/opencode';
 
@@ -41,26 +44,4 @@ export async function getOpenCodeBootstrap(): Promise<HarnessV1Bootstrap> {
     ],
   };
   return cachedBootstrap;
-}
-
-async function readBridgeAsset(name: string): Promise<string> {
-  return readFile(
-    fileURLToPath(
-      resolveBridgeAssetUrl({
-        name,
-        moduleUrl: import.meta.url,
-      }),
-    ),
-    'utf8',
-  );
-}
-
-export function resolveBridgeAssetUrl({
-  name,
-  moduleUrl,
-}: {
-  name: string;
-  moduleUrl: string | URL;
-}): URL {
-  return new URL(`./bridge/${name}`, moduleUrl);
 }

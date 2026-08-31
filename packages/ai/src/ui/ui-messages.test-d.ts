@@ -60,6 +60,9 @@ describe('UIMessagePart', () => {
       input: { city: 'Tokyo' };
       approval: {
         id: 'approval-1';
+        descriptor: {
+          action: 'getWeather';
+        };
         requestReason: 'requires operator review';
       };
     };
@@ -73,6 +76,9 @@ describe('UIMessagePart', () => {
       approval: {
         id: 'approval-1';
         approved: true;
+        descriptor: {
+          action: 'getWeather';
+        };
         requestReason: 'requires operator review';
         reason: 'approved by operator';
       };
