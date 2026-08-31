@@ -120,31 +120,23 @@ export function createACPBootstrap({
 }
 
 async function readBridgeAsset({ name }: { name: string }): Promise<string> {
-  const candidates = resolveBridgeAssetCandidates({
-    name,
-    moduleUrl: import.meta.url,
-  });
-  let lastError: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      lastError = error;
-    }
-  }
-  throw lastError ?? new Error(`ACP bridge asset not found: ${name}`);
+  return readFile(
+    fileURLToPath(
+      resolveBridgeAssetUrl({
+        name,
+        moduleUrl: import.meta.url,
+      }),
+    ),
+    'utf8',
+  );
 }
 
-export function resolveBridgeAssetCandidates({
+export function resolveBridgeAssetUrl({
   name,
   moduleUrl,
 }: {
   name: string;
   moduleUrl: string | URL;
-}): URL[] {
-  return [
-    new URL(`./bridge/${name}`, moduleUrl),
-    new URL(`../bridge/${name}`, moduleUrl),
-  ];
+}): URL {
+  return new URL(`./bridge/${name}`, moduleUrl);
 }
