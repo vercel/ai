@@ -104,6 +104,13 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
 }
 
 const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
+const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
+
+export function isExternalMcpTool(nativeName: string): boolean {
+  return (
+    nativeName.startsWith('mcp__') && !nativeName.startsWith(HOST_TOOL_PREFIX)
+  );
+}
 
 export function createEmitStreamEvent({
   state,
@@ -232,15 +239,14 @@ export function createEmitStreamEvent({
             state.structuredOutputToolUseIds.add(block.id);
             continue;
           }
-          const mcpPrefix = 'mcp__harness-tools__';
-          if (block.name.startsWith(mcpPrefix)) {
+          if (block.name.startsWith(HOST_TOOL_PREFIX)) {
             state.pendingStepToolUseIds.add(block.id);
             state.mcpToolUseIds.add(block.id);
             opensStep = true;
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
-          const dynamic = block.name.startsWith('mcp__');
+          const dynamic = isExternalMcpTool(block.name);
           if (dynamic) state.externalMcpToolUseIds.add(block.id);
           if (state.approvalRequestedToolUseIds.has(block.id)) {
             continue;
@@ -397,8 +403,6 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
     : 'Claude Code API retry';
 }
 
-const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
-
 function handleStreamEvent({
   event,
   state,
@@ -437,8 +441,7 @@ function handleStreamEvent({
       const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)
         ? nativeName.slice(HOST_TOOL_PREFIX.length)
         : undefined;
-      const dynamic =
-        hostToolName === undefined && nativeName.startsWith('mcp__');
+      const dynamic = isExternalMcpTool(nativeName);
       partialBlocks.set(index, { id, kind: 'tool-input' });
       send({
         type: 'tool-input-start',
