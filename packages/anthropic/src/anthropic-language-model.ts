@@ -535,10 +535,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
       thinkingType === 'enabled' || thinkingType === 'adaptive';
+    const thinkingBlockBinding =
+      anthropicOptions?.thinking != null &&
+      'blockBinding' in anthropicOptions.thinking
+        ? anthropicOptions.thinking.blockBinding
+        : undefined;
     // `disabled` must still be forwarded to the API: some models (e.g. Sonnet 5)
     // default thinking on, so omitting it would leave thinking enabled and
-    // consume the max_tokens budget.
-    const sendThinking = isThinking || thinkingType === 'disabled';
+    // consume the max_tokens budget. Binding-only recovery requests must also
+    // send a thinking object without a type.
+    const sendThinking =
+      isThinking || thinkingType === 'disabled' || thinkingBlockBinding != null;
     let thinkingBudget =
       thinkingType === 'enabled'
         ? anthropicOptions?.thinking?.budgetTokens
@@ -564,9 +571,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       // provider specific settings:
       ...(sendThinking && {
         thinking: {
-          type: thinkingType,
+          ...(thinkingType != null && { type: thinkingType }),
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
           ...(thinkingDisplay != null && { display: thinkingDisplay }),
+          ...(thinkingBlockBinding != null && {
+            block_binding: {
+              prefix_mismatch_behavior:
+                thinkingBlockBinding.prefixMismatchBehavior,
+            },
+          }),
         },
       }),
       ...((anthropicOptions?.effort ||
@@ -841,6 +854,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
+    }
+
+    if (thinkingBlockBinding != null) {
+      betas.add('thinking-binding-controls-2026-08-01');
     }
 
     if (anthropicOptions?.fallbacks === 'default') {
