@@ -134,7 +134,7 @@ export async function getBatchStatus({
   abortSignal,
   headers,
   timeout,
-}: BatchOperationOptions): Promise<BatchStatus> {
+}: Omit<BatchOperationOptions, 'tools'>): Promise<BatchStatus> {
   const model = resolveBatchLanguageModel(modelArg);
   validateBatchReference({ model, batch });
 

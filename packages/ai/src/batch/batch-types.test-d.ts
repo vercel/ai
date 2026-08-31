@@ -161,6 +161,12 @@ it('exports the experimental batch functions with the public result types', () =
     startTextBatch,
   ).returns.resolves.toEqualTypeOf<StartTextBatchResult>();
   expectTypeOf(getBatchStatus).returns.resolves.toEqualTypeOf<BatchStatus>();
+  getBatchStatus({
+    model: {} as BatchLanguageModelV4,
+    batch: {} as BatchReference,
+    // @ts-expect-error tools are only used when retrieving batch results
+    tools: {},
+  });
   expectTypeOf(getBatchResults).returns.toEqualTypeOf<
     AsyncIterableStream<TextBatchItemResult>
   >();
