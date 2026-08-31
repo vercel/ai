@@ -73,6 +73,80 @@ describe('system messages', () => {
     expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
   });
 
+  it('should serialize clearAt and effort on mid-conversation system messages with their betas', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        {
+          role: 'system',
+          content: 'Use extra effort for this turn only.',
+          providerOptions: {
+            anthropic: {
+              clearAt: 'next_user_message',
+              effort: 'xhigh',
+            },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'solve it' }] },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [{ type: 'text', text: 'Use extra effort for this turn only.' }],
+      clear_at: 'next_user_message',
+      output_config: { effort: 'xhigh' },
+    });
+    expect(
+      result.betas.has('mid-conversation-system-clear-at-2026-08-21'),
+    ).toBe(true);
+    expect(result.betas.has('mid-conversation-effort-2026-08-01')).toBe(true);
+  });
+
+  it('should preserve per-message options on consecutive mid-conversation system messages', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'system',
+          content: 'temporary',
+          providerOptions: {
+            anthropic: { clearAt: 'next_user_message' },
+          },
+        },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: { effort: 'high' },
+          },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages.slice(-2)).toEqual([
+      {
+        role: 'system',
+        content: [{ type: 'text', text: 'temporary' }],
+        clear_at: 'next_user_message',
+      },
+      {
+        role: 'system',
+        content: [],
+        output_config: { effort: 'high' },
+      },
+    ]);
+  });
+
   it('should emit tool change blocks on a mid-conversation system message and add the beta', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
