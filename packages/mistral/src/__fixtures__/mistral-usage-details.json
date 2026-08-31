@@ -1,0 +1,54 @@
+{
+  "id": "usage-details",
+  "created": 1787866434,
+  "model": "mistral-small-latest",
+  "usage": {
+    "prompt_tokens": 20,
+    "completion_tokens": 2,
+    "total_tokens": 22,
+    "prompt_audio_seconds": 1,
+    "request_count": 1,
+    "service_tier": "standard",
+    "num_cached_tokens": 0,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 1,
+      "messages": [
+        {
+          "role": "user",
+          "total_tokens": 20,
+          "settings_tokens": null,
+          "truncated": false,
+          "usage_count": 1
+        }
+      ],
+      "additional_prompt_detail": {
+        "value": true
+      }
+    },
+    "prompt_token_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 1,
+      "additional_prompt_token_detail": ["value"]
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 7,
+      "additional_completion_detail": "value"
+    },
+    "additional_usage_field": {
+      "nested": true
+    }
+  },
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "tool_calls": null,
+        "content": "OK"
+      }
+    }
+  ]
+}

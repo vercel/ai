@@ -1,7 +1,7 @@
 import { tool } from '@ai-sdk/provider-utils';
 import type { TextStreamPart, ToolSet } from 'ai';
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { validateToolCall } from './run-prompt';
 
 const bashTool = tool({
@@ -87,11 +87,37 @@ describe('validateToolCall', () => {
     );
   });
 
-  it('omits providerExecuted when the bridge did not set it', async () => {
+  it('accepts an undeclared provider-executed dynamic tool', async () => {
     const result = await validateToolCall<typeof tools>({
       event: {
         type: 'tool-call',
         toolCallId: 'c4',
+        toolName: 'runtimeTool',
+        input: '{"value":"test"}',
+        providerExecuted: true,
+        dynamic: true,
+      },
+      tools,
+    });
+
+    expect(result).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'c4',
+      toolName: 'runtimeTool',
+      input: { value: 'test' },
+      providerExecuted: true,
+      dynamic: true,
+    });
+    expect(
+      (result as ToolCall & { invalid?: boolean }).invalid,
+    ).toBeUndefined();
+  });
+
+  it('omits providerExecuted when the bridge did not set it', async () => {
+    const result = await validateToolCall<typeof tools>({
+      event: {
+        type: 'tool-call',
+        toolCallId: 'c5',
         toolName: 'bash',
         input: '{"command":"ls"}',
       },
@@ -113,7 +139,7 @@ describe('validateToolCall', () => {
     const result = await validateToolCall<typeof noArgsTool>({
       event: {
         type: 'tool-call',
-        toolCallId: 'c5',
+        toolCallId: 'c6',
         toolName: 'empty',
         input: '',
         providerExecuted: true,
@@ -122,7 +148,7 @@ describe('validateToolCall', () => {
     });
     expect(result).toMatchObject({
       type: 'tool-call',
-      toolCallId: 'c5',
+      toolCallId: 'c6',
       toolName: 'empty',
       input: {},
     });

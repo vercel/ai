@@ -29,7 +29,25 @@ import { OpenTelemetry } from '@ai-sdk/otel';
 registerTelemetry(new OpenTelemetry());
 ```
 
-For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
+#### Next.js
+
+For Next.js applications, create an `instrumentation.ts` file in your project root and register the AI SDK telemetry integration alongside your OpenTelemetry provider setup:
+
+```ts filename="instrumentation.ts"
+import { registerOTel } from '@vercel/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+
+export function register() {
+  registerOTel({
+    serviceName: 'my-ai-app',
+  });
+
+  registerTelemetry(new OpenTelemetry());
+}
+```
+
+See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up OpenTelemetry in Next.js.
 
 For Node.js applications (without Next.js), register the integration at the top level of your entry file.
 
@@ -235,32 +253,35 @@ telemetry: {
 
 Errors inside integrations are caught and do not break the generation flow.
 
-### Diagnostic channel
+### Tracing channel
 
-In Node.js, AI SDK telemetry lifecycle events are also published to the
-`ai.telemetry` [diagnostics channel](https://nodejs.org/api/diagnostics_channel.html).
+In Node.js, AI SDK telemetry lifecycle and execution events are also traced on
+the `ai:telemetry` [tracing channel](https://nodejs.org/api/diagnostics_channel.html#diagnostics_channeltracingchannelnameorchannels).
 This lets observability providers subscribe to AI SDK telemetry events without
-requiring users to register a separate telemetry integration.
+requiring users to register a separate telemetry integration, and bind async
+context across provider calls and tool executions.
 
 ```ts
-import { channel } from 'node:diagnostics_channel';
+import { tracingChannel } from 'node:diagnostics_channel';
 import {
-  AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL,
-  type TelemetryDiagnosticChannelMessage,
+  AI_SDK_TELEMETRY_TRACING_CHANNEL,
+  type TelemetryTracingChannelMessage,
 } from 'ai';
 
-channel(AI_SDK_TELEMETRY_DIAGNOSTIC_CHANNEL).subscribe(message => {
-  const telemetryMessage = message as TelemetryDiagnosticChannelMessage;
+tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
+  start(message) {
+    const telemetryMessage = message as TelemetryTracingChannelMessage;
 
-  if (telemetryMessage.type === 'onStart') {
-    // Inspect telemetryMessage.event and forward it to your provider.
-  }
+    if (telemetryMessage.type === 'onStart') {
+      // Inspect telemetryMessage.event and forward it to your provider.
+    }
+  },
 });
 ```
 
-Diagnostic-channel events follow the same per-call telemetry settings as other
+Tracing-channel events follow the same per-call telemetry settings as other
 telemetry integrations. Setting `telemetry: { isEnabled: false }` disables both
-registered integrations and diagnostic-channel publication for that call.
+registered integrations and tracing-channel events for that call.
 
 ### Building a custom integration
 
@@ -335,7 +356,7 @@ export function myIntegration(): Telemetry {
       name: 'onLanguageModelCallEnd',
       type: '(event: LanguageModelCallEndEvent) => void | PromiseLike<void>',
       description:
-        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
+        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Includes provider-specific metadata when available.',
     },
     {
       name: 'onToolExecutionStart',
@@ -377,7 +398,7 @@ export function myIntegration(): Telemetry {
   ]}
 />
 
-The event types for each method are the same as the corresponding [event callbacks](/docs/ai-sdk-core/event-listeners). See the event callbacks documentation for the full property reference of each event.
+The event types for each method are the same as the corresponding [lifecycle callbacks](/docs/ai-sdk-core/lifecycle-callbacks). See the lifecycle callbacks documentation for the full property reference of each event.
 
 ## Collected Data
 
@@ -427,7 +448,8 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
   - `gen_ai.request.temperature`, `gen_ai.request.max_tokens`, `gen_ai.request.top_p`, `gen_ai.request.top_k`, `gen_ai.request.frequency_penalty`, `gen_ai.request.presence_penalty`, `gen_ai.request.stop_sequences`: request parameters
-  - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format) (when `recordInputs` is enabled)
+  - `gen_ai.system_instructions`: instructions supplied separately from the chat history, formatted as a JSON array of parts (when `recordInputs` is enabled)
+  - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format), including system messages that are part of the chat history in their original order (when `recordInputs` is enabled)
   - `gen_ai.tool.definitions`: the tool definitions as stringified JSON (when `recordInputs` is enabled)
 
   Attributes set on finish:
@@ -438,6 +460,9 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.usage.output_tokens`: output tokens used in this step
   - `gen_ai.usage.cache_read.input_tokens`: cached input tokens read
   - `gen_ai.usage.cache_creation.input_tokens`: cached input tokens created
+  - `gen_ai.client.operation.duration`: provider call duration, in seconds
+  - `gen_ai.client.operation.time_to_first_chunk`: time to the first streamed output chunk, in seconds (streaming calls only)
+  - `gen_ai.client.operation.time_per_output_chunk`: average time between streamed output chunks, in seconds (streaming calls with multiple output chunks only)
   - `gen_ai.output.messages`: the output in [GenAI SemConv message format](#genai-message-format) (when `recordOutputs` is enabled)
 
 - **`execute_tool {toolName}`** (tool span, `INTERNAL`): one span per tool execution, nested under the step span. See [GenAI tool call spans](#genai-tool-call-spans) for details.
@@ -466,10 +491,9 @@ For `embed` and `embedMany`, the integration records spans with `CLIENT` kind:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
 
-  Attributes set on finish:
-  - `gen_ai.usage.input_tokens`: the number of tokens used
-
-- **`embeddings {modelId}`** (inner span, `embedMany` only): one span per provider batch call, nested under the root span.
+- **`embeddings {modelId}`** (inner span): one span per provider request,
+  nested under the root span. `embed` creates one inner span. `embedMany`
+  creates one inner span per provider batch call.
 
   Initial attributes:
   - `gen_ai.operation.name`: `"embeddings"`
@@ -478,6 +502,9 @@ For `embed` and `embedMany`, the integration records spans with `CLIENT` kind:
 
   Attributes set on finish:
   - `gen_ai.usage.input_tokens`: the number of tokens used
+
+Usage is recorded only on inner provider-request spans. For `embedMany`, sum
+the usage from the inner spans to get the total usage for the operation.
 
 #### rerank
 
@@ -513,7 +540,7 @@ Messages are JSON arrays of objects with a `role` and a `parts` array. Each part
 
 Output messages also include a `finish_reason` field (e.g. `"stop"`, `"tool_call"`, `"length"`, `"content_filter"`).
 
-System instructions are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts.
+Instructions supplied through `instructions` (or the deprecated `system` option) are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts. System messages supplied as chat history with `allowSystemInMessages` remain in `gen_ai.input.messages` in their original positions.
 
 ##### GenAI tool call spans
 
@@ -524,6 +551,7 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.call.id`: the tool call ID
 - `gen_ai.tool.type`: `"function"`
 - `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
+- `gen_ai.execute_tool.duration`: the tool execution duration, in seconds
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
 
 ### Custom OpenTelemetry span attributes
@@ -602,7 +630,7 @@ registerTelemetry(
 The available options are:
 
 - `usage`: detailed usage attributes that are not covered by GenAI usage attributes, such as uncached input tokens and output text/reasoning token details.
-- `providerMetadata`: `ai.response.providerMetadata`.
+- `providerMetadata`: `ai.response.providerMetadata` on operation, step, and model-call spans.
 - `embedding`: embedding inputs and outputs.
 - `reranking`: rerank input documents and ranking output.
 - `runtimeContext`: `ai.settings.context.*`.

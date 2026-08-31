@@ -6,12 +6,18 @@ import type {
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { ParseResult } from '@ai-sdk/provider-utils';
+import {
+  createProviderStreamError,
+  type ParseResult,
+} from '@ai-sdk/provider-utils';
 import type {
   GoogleInteractionsEvent,
   GoogleInteractionsUsage,
 } from './google-interactions-api';
-import { convertGoogleInteractionsUsage } from './convert-google-interactions-usage';
+import {
+  convertGoogleInteractionsUsage,
+  getGoogleInteractionsOutputTokensByModality,
+} from './convert-google-interactions-usage';
 import {
   annotationsToSources,
   builtinToolResultToSources,
@@ -332,7 +338,7 @@ export function buildGoogleInteractionsStreamTransform({
               }
             }
           } else if (stepType === 'function_call') {
-            const toolCallId = step?.id ?? blockId;
+            const toolCallId = step?.id || blockId;
             const toolName = step?.name ?? 'unknown';
             hasFunctionCall = true;
             const state: Extract<OpenBlockState, { kind: 'function_call' }> = {
@@ -357,7 +363,7 @@ export function buildGoogleInteractionsStreamTransform({
               stepType === 'mcp_server_tool_call'
                 ? (step?.name ?? 'mcp_server_tool')
                 : builtinToolNameFromCallType(stepType);
-            const toolCallId = step?.id ?? blockId;
+            const toolCallId = step?.id || blockId;
             const state: Extract<
               OpenBlockState,
               { kind: 'builtin_tool_call' }
@@ -379,7 +385,7 @@ export function buildGoogleInteractionsStreamTransform({
               stepType === 'mcp_server_tool_result'
                 ? (step?.name ?? 'mcp_server_tool')
                 : builtinToolNameFromResultType(stepType);
-            const callId = step?.call_id ?? blockId;
+            const callId = step?.call_id || blockId;
             const state: Extract<
               OpenBlockState,
               { kind: 'builtin_tool_result' }
@@ -478,6 +484,41 @@ export function buildGoogleInteractionsStreamTransform({
             break;
           }
 
+          /*
+           * `video` deltas inside `model_output` carry the full payload in a
+           * single chunk (no per-byte streaming), mirroring `image`. Emit the
+           * `file` part as soon as the delta arrives so it surfaces regardless
+           * of whether a text block is currently open at the same index.
+           */
+          if (
+            dtype === 'video' &&
+            (open.kind === 'pending_model_output' || open.kind === 'text')
+          ) {
+            const videoDelta = event.delta as
+              | { data?: string; mime_type?: string; uri?: string }
+              | undefined;
+            const google: Record<string, string> = {};
+            if (interactionId != null) google.interactionId = interactionId;
+            const providerMetadata =
+              Object.keys(google).length > 0 ? { google } : undefined;
+            if (videoDelta?.data != null && videoDelta.data.length > 0) {
+              controller.enqueue({
+                type: 'file',
+                mediaType: videoDelta.mime_type ?? 'video/mp4',
+                data: { type: 'data', data: videoDelta.data },
+                ...(providerMetadata ? { providerMetadata } : {}),
+              });
+            } else if (videoDelta?.uri != null && videoDelta.uri.length > 0) {
+              controller.enqueue({
+                type: 'file',
+                mediaType: videoDelta.mime_type ?? 'video/mp4',
+                data: { type: 'url', url: new URL(videoDelta.uri) },
+                ...(providerMetadata ? { providerMetadata } : {}),
+              });
+            }
+            break;
+          }
+
           const delta = event.delta as
             | {
                 type?: string;
@@ -570,7 +611,7 @@ export function buildGoogleInteractionsStreamTransform({
                 delta: slice,
               });
             }
-            if (delta.id != null) {
+            if (delta.id != null && delta.id.length > 0) {
               open.toolCallId = delta.id;
             }
             if (delta.signature != null) {
@@ -581,7 +622,9 @@ export function buildGoogleInteractionsStreamTransform({
             open.kind === 'builtin_tool_call' &&
             delta?.type === open.blockType
           ) {
-            if (delta.id != null) open.toolCallId = delta.id;
+            if (delta.id != null && delta.id.length > 0) {
+              open.toolCallId = delta.id;
+            }
             if (
               delta.arguments != null &&
               typeof delta.arguments === 'object'
@@ -598,7 +641,9 @@ export function buildGoogleInteractionsStreamTransform({
             open.kind === 'builtin_tool_result' &&
             delta?.type === open.blockType
           ) {
-            if (delta.call_id != null) open.callId = delta.call_id;
+            if (delta.call_id != null && delta.call_id.length > 0) {
+              open.callId = delta.call_id;
+            }
             if (delta.result !== undefined) open.result = delta.result;
             if (delta.is_error != null) open.isError = delta.is_error;
             if (
@@ -779,10 +824,15 @@ export function buildGoogleInteractionsStreamTransform({
             { event_type: 'error' }
           >;
           finishStatus = 'failed';
-          const errorPayload = event.error ?? {
-            message: 'Unknown interaction error',
-          };
-          controller.enqueue({ type: 'error', error: errorPayload });
+          controller.enqueue({
+            type: 'error',
+            error: createProviderStreamError({
+              message: event.error?.message ?? 'Unknown interaction error',
+              type: event.event_type,
+              code: event.error?.code ?? undefined,
+              data: event,
+            }),
+          });
           break;
         }
 
@@ -800,10 +850,14 @@ export function buildGoogleInteractionsStreamTransform({
         raw: finishStatus,
       };
 
+      const outputTokensByModality =
+        getGoogleInteractionsOutputTokensByModality(usage);
+
       const providerMetadata: SharedV4ProviderMetadata = {
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),
+          ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
         },
       };
 

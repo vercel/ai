@@ -3,19 +3,22 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1ResumeSessionState,
   HarnessV1Session,
+  HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
- * The codex adapter sends `instructions` over the channel inside the `start`
- * message. We stub `SandboxChannel` so `send()` records the messages instead
- * of opening a real WebSocket, then drive `doStart` → `doPromptTurn` against a
- * fake network sandbox session. This isolates the "prepend to the first user
- * message only" gating without standing up the in-sandbox bridge.
+ * The codex adapter sends session instructions separately from user text while
+ * retaining first-prompt framing for host-tool relay guidance. We stub
+ * `SandboxChannel` so `send()` records messages instead of opening a real
+ * WebSocket, then drive the session without standing up the in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
+const runCommands: Array<string> = [];
+const spawnEnvs: Array<Record<string, string | undefined>> = [];
+const writes: Array<{ path: string; content: string }> = [];
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
@@ -70,19 +73,32 @@ function emptyStream(): ReadableStream<Uint8Array> {
 function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
   const port = 4317;
   const session = {
-    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    run: async (input: { command: string }) => {
+      runCommands.push(input.command);
+      if (input.command === 'printf "%s" "$HOME"') {
+        return { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' };
+      }
+      return { exitCode: 0, stdout: '', stderr: '' };
+    },
     readTextFile: async () => null,
-    spawn: async () => ({
-      stdout: readyStream(port),
-      stderr: emptyStream(),
-      kill: async () => {},
-      wait: async () => ({ exitCode: 0 }),
-    }),
+    writeTextFile: async (input: { path: string; content: string }) => {
+      writes.push({ path: input.path, content: input.content });
+    },
+    spawn: async (input: { env?: Record<string, string | undefined> }) => {
+      spawnEnvs.push(input.env ?? {});
+      return {
+        stdout: readyStream(port),
+        stderr: emptyStream(),
+        kill: async () => {},
+        wait: async () => ({ exitCode: 0 }),
+      };
+    },
   };
   return {
     id: 'sbx',
     defaultWorkingDirectory: '/wd',
     ports: [port],
+    getPortEndpoint: async () => ({ url: `ws://127.0.0.1:${port}` }),
     getPortUrl: async () => `ws://127.0.0.1:${port}`,
     stop: async () => {},
     restricted: () => session,
@@ -110,31 +126,115 @@ function lastStart(): Record<string, unknown> {
   return start;
 }
 
-describe('codex adapter — instructions gating', () => {
+async function waitForStart({
+  count,
+}: {
+  count: number;
+}): Promise<Record<string, unknown>> {
+  await vi.waitFor(() => {
+    expect(sentMessages.filter(m => m.type === 'start')).toHaveLength(count);
+  });
+  return lastStart();
+}
+
+describe('codex adapter — instructions transport', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     openCalls.length = 0;
+    runCommands.length = 0;
+    spawnEnvs.length = 0;
+    writes.length = 0;
   });
 
-  it('prepends instructions on the first user message only', async () => {
+  it('defers the start frame until after prompt control is returned', async () => {
     const session = await startSession();
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'first turn',
+      emit: () => {},
+    });
+
+    expect(sentMessages.some(message => message.type === 'start')).toBe(false);
+    await waitForStart({ count: 1 });
+  });
+
+  it('keeps instructions separate from every user message', async () => {
+    const session = await startSession();
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'first turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect(lastStart().instructions).toBe('Use turbo build --concurrency=4.');
+    const firstStart = await waitForStart({ count: 1 });
+    expect(firstStart.prompt).toBe('first turn');
+    expect(firstStart.instructions).toBe('Use turbo build --concurrency=4.');
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'second turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect(lastStart().instructions).toBeUndefined();
+    const lastStart = await waitForStart({ count: 2 });
+    expect(lastStart.prompt).toBe('second turn');
+    expect(lastStart.instructions).toBe('Use turbo build --concurrency=4.');
   });
 
-  it('does not apply instructions when resuming a session', async () => {
+  it('prepends host tool usage guidance on the first user message only', async () => {
+    const session = await startSession();
+    const tools: ReadonlyArray<HarnessV1ToolSpec> = [
+      {
+        name: 'get_weather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        },
+      },
+    ];
+
+    await session.doPromptTurn({
+      skills: [],
+      prompt: 'use the weather tool',
+      tools,
+      emit: () => {},
+    });
+    const firstStart = await waitForStart({ count: 1 });
+    expect(firstStart.prompt).not.toContain('## Host tools');
+    expect(firstStart.prompt).toContain('<host-tool-instructions>');
+    expect(firstStart.prompt).toContain('</host-tool-instructions>');
+    expect(firstStart.prompt).not.toContain('/wd/codex-s1/harness-tool.mjs');
+    expect(firstStart.prompt).toContain(
+      "node /wd/.agent-runs/s1/codex/harness-tool.mjs <toolName> '<jsonInput>'",
+    );
+    expect(firstStart.prompt).toContain(
+      'run a separate CLI invocation for each needed tool call in the current turn before answering',
+    );
+    expect(firstStart.prompt).toContain('Do not reuse previous tool results');
+    expect(firstStart.prompt).toContain(
+      '<user-message>\nuse the weather tool\n</user-message>',
+    );
+    expect(firstStart.tools).toEqual(tools);
+
+    await session.doPromptTurn({
+      skills: [],
+      prompt: 'use it again',
+      tools,
+      emit: () => {},
+    });
+    const secondStart = await waitForStart({ count: 2 });
+    expect(secondStart.prompt).toBe('use it again');
+    expect(secondStart.tools).toEqual(tools);
+  });
+
+  it('keeps instructions separate when resuming a session', async () => {
     const session = await startSession({
       resumeFrom: {
         type: 'resume-session',
@@ -145,11 +245,64 @@ describe('codex adapter — instructions gating', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'resumed turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
-    expect(lastStart().instructions).toBeUndefined();
+    const start = await waitForStart({ count: 1 });
+    expect(start.prompt).toBe('resumed turn');
+    expect(start.instructions).toBe('Use turbo build --concurrency=4.');
+  });
+
+  it('starts a fresh native thread when resumed turn configuration changes', async () => {
+    const session = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          threadId: 'thread-abc',
+          turnConfigurationFingerprint: 'previous-configuration',
+        },
+      },
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'resumed turn',
+      instructions: 'Use the current turn instructions.',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 1 });
+    expect(start.restartThread).toBe(true);
+    expect(start.resumeThreadId).toBeUndefined();
+  });
+
+  it('forwards instructions when rerunning a suspended turn', async () => {
+    const session = await startSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      instructions: 'Use turbo build --concurrency=4.',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 1 });
+    expect(start.prompt).toBe('Continue.');
+    expect(start.instructions).toBe('Use turbo build --concurrency=4.');
+    expect(start.resumeThreadId).toBe('thread-abc');
   });
 });
 
@@ -157,6 +310,9 @@ describe('codex adapter — attach replay mode', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     openCalls.length = 0;
+    runCommands.length = 0;
+    spawnEnvs.length = 0;
+    writes.length = 0;
   });
 
   it('attaches a parked session without replaying old turn events', async () => {
@@ -179,14 +335,17 @@ describe('codex adapter — attach replay mode', () => {
     expect(openCalls.at(-1)).toBeUndefined();
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'next user turn',
       emit: () => {},
     });
-    expect(lastStart()).toMatchObject({
+    const start = await waitForStart({ count: 1 });
+    expect(start).toMatchObject({
       type: 'start',
       prompt: 'next user turn',
     });
-    expect(lastStart().resumeThreadId).toBeUndefined();
+    expect(start.resumeThreadId).toBeUndefined();
   });
 
   it('attaches a suspended turn by requesting replay from the cursor', async () => {
@@ -233,5 +392,118 @@ describe('codex adapter — attach replay mode', () => {
         }
       ).bridge,
     ).toMatchObject({ lastSeenEventId: 7 });
+  });
+});
+
+describe('codex adapter — skills', () => {
+  beforeEach(() => {
+    sentMessages.length = 0;
+    openCalls.length = 0;
+    runCommands.length = 0;
+    spawnEnvs.length = 0;
+    writes.length = 0;
+  });
+
+  it('writes skills to sandbox HOME without sending skill metadata', async () => {
+    const session = await startSession();
+
+    await session.doPromptTurn({
+      skills: [
+        {
+          name: 'demo',
+          description: 'Demo skill.',
+          content: 'Use reference.md.',
+          files: [{ path: 'reference.md', content: '# Reference' }],
+        },
+      ],
+      tools: [],
+      prompt: 'use demo',
+      emit: () => {},
+    });
+
+    expect(runCommands).not.toContain("mkdir -p '/home/vercel-sandbox/.codex'");
+    expect(runCommands).toContain(
+      "mkdir -p '/home/vercel-sandbox/.agents/skills'",
+    );
+    const skillWrites = writes.filter(write => write.path.includes('/demo/'));
+    const bridgeMetaWrite = writes.find(write =>
+      write.path.endsWith('/bridge-meta.json'),
+    );
+    expect(bridgeMetaWrite).toEqual({
+      path: '/wd/.agent-runs/s1/bridge/bridge-meta.json',
+      content: JSON.stringify({ type: 'codex', state: 'starting' }),
+    });
+    expect(skillWrites).toEqual(
+      expect.arrayContaining([
+        {
+          path: '/home/vercel-sandbox/.agents/skills/demo/SKILL.md',
+          content:
+            '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
+        },
+        {
+          path: '/home/vercel-sandbox/.agents/skills/demo/reference.md',
+          content: '# Reference',
+        },
+      ]),
+    );
+    expect(skillWrites).toHaveLength(2);
+    expect(spawnEnvs.at(-1)).not.toHaveProperty('HOME');
+    expect(spawnEnvs.at(-1)).not.toHaveProperty('CODEX_HOME');
+    const start = await waitForStart({ count: 1 });
+    expect(start.skills).toBeUndefined();
+    expect(JSON.stringify(start)).not.toContain('Demo skill.');
+    expect(JSON.stringify(start)).not.toContain('Use reference.md.');
+    expect(JSON.stringify(start)).not.toContain('# Reference');
+  });
+
+  it('starts a fresh native thread when skills change on a resumed session', async () => {
+    const session = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+
+    await session.doPromptTurn({
+      skills: [
+        {
+          name: 'demo',
+          description: 'Demo skill.',
+          content: 'Use the current skill.',
+        },
+      ],
+      tools: [],
+      prompt: 'use demo',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 1 });
+    expect(start.restartThread).toBe(true);
+    expect(start.resumeThreadId).toBeUndefined();
+  });
+
+  it('rejects unsafe skill file paths before writing files', async () => {
+    const session = await startSession();
+    await expect(
+      session.doPromptTurn({
+        skills: [
+          {
+            name: 'demo',
+            description: 'Demo skill.',
+            content: 'Use reference.md.',
+            files: [{ path: '../reference.md', content: '# Reference' }],
+          },
+        ],
+        tools: [],
+        prompt: 'Use demo.',
+        emit: () => {},
+      }),
+    ).rejects.toThrow('Invalid Codex skill file path');
+    expect(writes.some(write => write.path.includes('../reference.md'))).toBe(
+      false,
+    );
+    await session.doDestroy();
   });
 });

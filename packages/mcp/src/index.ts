@@ -1,3 +1,4 @@
+export { validateJSONRPCMessage } from './tool/json-rpc-message';
 export type {
   JSONRPCError,
   JSONRPCMessage,
@@ -21,12 +22,19 @@ export {
   type MCPAppResourceCSP,
   type MCPAppResourceMeta,
 } from './tool/mcp-apps';
+export {
+  fingerprintMCPAppResource,
+  detectMCPAppResourceDrift,
+} from './tool/mcp-app-fingerprint';
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
   CallToolResult,
+  CompleteRequestParams,
+  CompleteResult,
   Configuration,
   ElicitationRequest,
   ElicitResult,
+  InitializeResult,
   ListToolsResult,
   McpProviderMetadata,
   ClientCapabilities as MCPClientCapabilities,
@@ -41,7 +49,11 @@ export type {
   OAuthClientMetadata,
   OAuthTokens,
 } from './tool/oauth-types';
-export type { MCPTransport } from './tool/mcp-transport';
+export type {
+  MCPTransport,
+  MCPTransportCloseOptions,
+  MCPTransportSendOptions,
+} from './tool/mcp-transport';
 
 /**
  * @deprecated Use `createMCPClient` instead. Will be removed in a future version.

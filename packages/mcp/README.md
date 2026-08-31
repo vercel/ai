@@ -59,6 +59,17 @@ try {
 The client converts MCP tool definitions into AI SDK tools, so model calls can
 use them through the standard `tools` option.
 
+## Protocol versions
+
+The client supports legacy MCP protocol versions through the `initialize`
+handshake and MCP `2026-07-28` through stateless protocol discovery. The
+built-in stdio transport probes with `server/discover` and falls back to the
+legacy handshake when connected to an older server.
+
+Custom transports can opt into the same negotiation by setting
+`supportsProtocolVersionDiscovery` to `true`. Modern requests include the
+protocol version, client capabilities, and client information in `_meta`.
+
 For streaming responses, close the MCP client when the stream finishes:
 
 ```ts
@@ -76,7 +87,7 @@ const result = streamText({
   model: 'openai/gpt-5.4',
   tools: await mcpClient.tools(),
   prompt: 'Use the available tools to answer the user question.',
-  onFinish: async () => {
+  onEnd: async () => {
     await mcpClient.close();
   },
 });
@@ -90,15 +101,42 @@ for await (const textPart of result.textStream) {
 
 HTTP is recommended for production deployments:
 
+Session persistence applies only to legacy MCP protocol versions. MCP
+`2026-07-28` is stateless and does not use session ids or cached initialize
+results.
+
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';
+
+const savedSession = await loadMcpSession();
+let currentSessionId = savedSession?.sessionId;
 
 const mcpClient = await createMCPClient({
   transport: {
     type: 'http',
     url: 'https://your-server.com/mcp',
+    initialSessionId: savedSession?.sessionId,
+    initialProtocolVersion: savedSession?.initializeResult.protocolVersion,
+    terminateSessionOnClose: false,
+    onSessionIdChange: sessionId => {
+      currentSessionId = sessionId;
+    },
+    onSessionExpired: sessionId => {
+      if (currentSessionId === sessionId) {
+        currentSessionId = undefined;
+        void clearMcpSession();
+      }
+    },
   },
+  initialInitializeResult: savedSession?.initializeResult,
 });
+
+if (currentSessionId) {
+  await saveMcpSession({
+    sessionId: currentSessionId,
+    initializeResult: mcpClient.initializeResult,
+  });
+}
 ```
 
 SSE is also supported for MCP servers that use Server-Sent Events:

@@ -12,7 +12,6 @@ export default function Chat() {
       new WorkflowChatTransport({
         api: '/api/chat',
         maxConsecutiveErrors: 5,
-        initialStartIndex: -50,
       }),
     [],
   );
@@ -39,6 +38,18 @@ export default function Chat() {
           className="mt-2 inline-block text-sm text-blue-600 hover:underline"
         >
           Open telemetry e2e harness
+        </Link>
+        <Link
+          href="/sandbox"
+          className="ml-4 mt-2 inline-block text-sm text-blue-600 hover:underline"
+        >
+          Open sandbox e2e harness
+        </Link>
+        <Link
+          href="/async-apis"
+          className="ml-4 mt-2 inline-block text-sm text-blue-600 hover:underline"
+        >
+          Open async video workflow
         </Link>
       </header>
 

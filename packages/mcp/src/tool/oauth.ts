@@ -27,10 +27,15 @@ import {
   resourceUrlStripSlash,
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
-import { parseJSON, type FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  parseJSON,
+  validateDownloadUrl,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 export type AuthResult = 'AUTHORIZED' | 'REDIRECT';
 
 export interface OAuthAuthorizationServerInformation {
+  issuer?: string;
   authorizationServerUrl: string;
   tokenEndpoint: string;
 }
@@ -122,11 +127,65 @@ function normalizeUrl(url: string | URL): string {
   return new URL(url).href;
 }
 
+/** Allow loopback HTTP(S) for local MCP OAuth (RFC 8252 §7.3, RFC 6761 §6.3). */
+function isOAuthLoopbackHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase().replace(/\.+$/, '');
+  return (
+    normalized === 'localhost' ||
+    normalized.endsWith('.localhost') ||
+    normalized === '127.0.0.1' ||
+    normalized === '[::1]' ||
+    normalized === '::1'
+  );
+}
+
+/**
+ * Guards metadata-derived token/registration URLs before credentials are sent.
+ * Loopback is allowed for local OAuth; every other target uses the shared
+ * download URL guard (http(s) only, no private/link-local IPs).
+ *
+ * Credential POSTs use `redirect: 'error'` instead of
+ * `fetchWithValidatedRedirects`, which is GET-only and would follow hops with
+ * the authorization code, PKCE verifier, and client secret still attached.
+ */
+function assertSafeOAuthEndpoint(endpointUrl: URL): void {
+  if (
+    (endpointUrl.protocol === 'http:' || endpointUrl.protocol === 'https:') &&
+    isOAuthLoopbackHost(endpointUrl.hostname)
+  ) {
+    return;
+  }
+
+  try {
+    validateDownloadUrl(endpointUrl.href);
+  } catch (error) {
+    throw new MCPClientOAuthError({
+      message: `OAuth endpoint URL is not allowed: ${endpointUrl.href}`,
+      cause: error,
+    });
+  }
+}
+
+function validateAuthorizationResponseIssuer({
+  callbackIssuer,
+  expectedIssuer,
+}: {
+  callbackIssuer: string | undefined;
+  expectedIssuer: string;
+}): void {
+  if (callbackIssuer != null && callbackIssuer !== expectedIssuer) {
+    throw new MCPClientOAuthError({
+      message: `OAuth authorization response issuer ${callbackIssuer} does not match expected issuer ${expectedIssuer}`,
+    });
+  }
+}
+
 function createAuthorizationServerInformation(
   authorizationServerUrl: string | URL,
   metadata?: AuthorizationServerMetadata,
 ): OAuthAuthorizationServerInformation {
   return {
+    issuer: metadata?.issuer ?? String(authorizationServerUrl),
     authorizationServerUrl: normalizeUrl(authorizationServerUrl),
     tokenEndpoint: normalizeUrl(
       metadata?.token_endpoint
@@ -142,6 +201,7 @@ function addAuthorizationServerInformationToTokens(
 ): OAuthTokens {
   return {
     ...tokens,
+    issuer: authorizationServerInformation.issuer,
     authorization_server: authorizationServerInformation.authorizationServerUrl,
     token_endpoint: authorizationServerInformation.tokenEndpoint,
   };
@@ -155,12 +215,14 @@ function addAuthorizationServerInformationToClientInformation<
 ): CLIENT_INFORMATION {
   return {
     ...clientInformation,
+    issuer: authorizationServerInformation.issuer,
     authorization_server: authorizationServerInformation.authorizationServerUrl,
     token_endpoint: authorizationServerInformation.tokenEndpoint,
   };
 }
 
 function getAuthorizationServerInformationFromCredentials(credentials?: {
+  issuer?: string;
   authorization_server?: string;
   token_endpoint?: string;
 }): OAuthAuthorizationServerInformation | undefined {
@@ -169,6 +231,7 @@ function getAuthorizationServerInformationFromCredentials(credentials?: {
   }
 
   return {
+    issuer: credentials.issuer,
     authorizationServerUrl: normalizeUrl(credentials.authorization_server),
     tokenEndpoint: normalizeUrl(credentials.token_endpoint),
   };
@@ -193,6 +256,7 @@ async function getStoredAuthorizationServerInformation({
     await provider.authorizationServerInformation?.();
   if (providerAuthorizationServerInformation) {
     return {
+      issuer: providerAuthorizationServerInformation.issuer,
       authorizationServerUrl: normalizeUrl(
         providerAuthorizationServerInformation.authorizationServerUrl,
       ),
@@ -258,6 +322,10 @@ function assertAuthorizationServerInformationMatches({
   currentAuthorizationServerInformation: OAuthAuthorizationServerInformation;
 }): void {
   if (
+    (storedAuthorizationServerInformation.issuer != null &&
+      currentAuthorizationServerInformation.issuer != null &&
+      storedAuthorizationServerInformation.issuer !==
+        currentAuthorizationServerInformation.issuer) ||
     storedAuthorizationServerInformation.authorizationServerUrl !==
       currentAuthorizationServerInformation.authorizationServerUrl ||
     storedAuthorizationServerInformation.tokenEndpoint !==
@@ -270,37 +338,65 @@ function assertAuthorizationServerInformationMatches({
   }
 }
 
-/**
- * Extracts the OAuth 2.0 Protected Resource Metadata URL from a WWW-Authenticate header (RFC9728).
- * Looks for a resource="..." parameter.
- */
-export function extractResourceMetadataUrl(
-  response: Response,
-): URL | undefined {
+export function extractWWWAuthenticateParams(response: Response): {
+  resourceMetadataUrl?: URL;
+  scope?: string;
+} {
   const header =
     response.headers.get('www-authenticate') ??
     response.headers.get('WWW-Authenticate');
   if (!header) {
-    return undefined;
+    return {};
   }
 
   const [type, scheme] = header.split(' ');
   if (type.toLowerCase() !== 'bearer' || !scheme) {
-    return undefined;
+    return {};
   }
 
-  // regex taken from MCP spec
-  const regex = /resource_metadata="([^"]*)"/;
-  const match = header.match(regex);
-  if (!match) {
-    return undefined;
-  }
+  const resourceMetadataMatch = header.match(
+    /(?:^|[,\s])resource_metadata="([^"]*)"/i,
+  );
+  const scope = header.match(/(?:^|[,\s])scope="([^"]*)"/i)?.[1];
 
+  let resourceMetadataUrl: URL | undefined;
   try {
-    return new URL(match[1]);
-  } catch {
-    return undefined;
+    resourceMetadataUrl = resourceMetadataMatch
+      ? new URL(resourceMetadataMatch[1])
+      : undefined;
+  } catch {}
+
+  return { resourceMetadataUrl, scope };
+}
+
+/**
+ * Extracts the OAuth 2.0 Protected Resource Metadata URL from a WWW-Authenticate header (RFC9728).
+ */
+export function extractResourceMetadataUrl(
+  response: Response,
+): URL | undefined {
+  return extractWWWAuthenticateParams(response).resourceMetadataUrl;
+}
+
+function selectScope({
+  scope,
+  resourceMetadata,
+  clientMetadata,
+}: {
+  scope?: string;
+  resourceMetadata?: OAuthProtectedResourceMetadata;
+  clientMetadata: OAuthClientMetadata;
+}): string | undefined {
+  if (scope) {
+    return scope;
   }
+
+  const resourceScopes = resourceMetadata?.scopes_supported?.join(' ');
+  if (resourceScopes) {
+    return resourceScopes;
+  }
+
+  return clientMetadata.scope;
 }
 
 /**
@@ -442,23 +538,30 @@ export async function discoverOAuthProtectedResourceMetadata(
  */
 export function buildDiscoveryUrls(
   authorizationServerUrl: string | URL,
-): { url: URL; type: 'oauth' | 'oidc' }[] {
+): { url: URL; type: 'oauth' | 'oidc'; expectedIssuer: string }[] {
   const url =
     typeof authorizationServerUrl === 'string'
       ? new URL(authorizationServerUrl)
       : authorizationServerUrl;
   const hasPath = url.pathname !== '/';
-  const urlsToTry: { url: URL; type: 'oauth' | 'oidc' }[] = [];
+  const rootIssuer = url.origin;
+  const urlsToTry: {
+    url: URL;
+    type: 'oauth' | 'oidc';
+    expectedIssuer: string;
+  }[] = [];
 
   if (!hasPath) {
     urlsToTry.push({
       url: new URL('/.well-known/oauth-authorization-server', url.origin),
       type: 'oauth',
+      expectedIssuer: rootIssuer,
     });
 
     urlsToTry.push({
       url: new URL('/.well-known/openid-configuration', url.origin),
       type: 'oidc',
+      expectedIssuer: rootIssuer,
     });
 
     return urlsToTry;
@@ -468,6 +571,7 @@ export function buildDiscoveryUrls(
   if (pathname.endsWith('/')) {
     pathname = pathname.slice(0, -1);
   }
+  const pathIssuer = `${url.origin}${pathname}`;
 
   urlsToTry.push({
     url: new URL(
@@ -475,24 +579,39 @@ export function buildDiscoveryUrls(
       url.origin,
     ),
     type: 'oauth',
+    expectedIssuer: pathIssuer,
   });
 
   urlsToTry.push({
     url: new URL('/.well-known/oauth-authorization-server', url.origin),
     type: 'oauth',
+    expectedIssuer: rootIssuer,
   });
 
   urlsToTry.push({
     url: new URL(`/.well-known/openid-configuration${pathname}`, url.origin),
     type: 'oidc',
+    expectedIssuer: pathIssuer,
   });
 
   urlsToTry.push({
     url: new URL(`${pathname}/.well-known/openid-configuration`, url.origin),
     type: 'oidc',
+    expectedIssuer: pathIssuer,
   });
 
   return urlsToTry;
+}
+
+function assertMetadataIssuerMatches(
+  metadata: AuthorizationServerMetadata,
+  expectedIssuer: string,
+): void {
+  if (metadata.issuer !== expectedIssuer) {
+    throw new MCPClientOAuthError({
+      message: `OAuth authorization server metadata issuer ${metadata.issuer} does not match expected issuer ${expectedIssuer}`,
+    });
+  }
 }
 
 export async function discoverAuthorizationServerMetadata(
@@ -509,7 +628,7 @@ export async function discoverAuthorizationServerMetadata(
 
   const urlsToTry = buildDiscoveryUrls(authorizationServerUrl);
 
-  for (const { url: endpointUrl, type } of urlsToTry) {
+  for (const { url: endpointUrl, type, expectedIssuer } of urlsToTry) {
     const response = await fetchWithCorsRetry(endpointUrl, headers, fetchFn);
 
     if (!response) {
@@ -531,11 +650,14 @@ export async function discoverAuthorizationServerMetadata(
     }
 
     if (type === 'oauth') {
-      return OAuthMetadataSchema.parse(await response.json());
+      const metadata = OAuthMetadataSchema.parse(await response.json());
+      assertMetadataIssuerMatches(metadata, expectedIssuer);
+      return metadata;
     } else {
       const metadata = OpenIdProviderDiscoveryMetadataSchema.parse(
         await response.json(),
       );
+      assertMetadataIssuerMatches(metadata, expectedIssuer);
 
       // MCP spec requires OIDC providers to support S256 PKCE
       if (!metadata.code_challenge_methods_supported?.includes('S256')) {
@@ -817,6 +939,7 @@ export async function exchangeAuthorization(
   const tokenUrl = metadata?.token_endpoint
     ? new URL(metadata.token_endpoint)
     : new URL('/token', authorizationServerUrl);
+  assertSafeOAuthEndpoint(tokenUrl);
 
   if (
     metadata?.grant_types_supported &&
@@ -864,6 +987,7 @@ export async function exchangeAuthorization(
     method: 'POST',
     headers,
     body: params,
+    redirect: 'error',
   });
 
   if (!response.ok) {
@@ -920,6 +1044,7 @@ export async function refreshAuthorization(
   } else {
     tokenUrl = new URL('/token', authorizationServerUrl);
   }
+  assertSafeOAuthEndpoint(tokenUrl);
 
   const headers = new Headers({
     'Content-Type': 'application/x-www-form-urlencoded',
@@ -956,6 +1081,7 @@ export async function refreshAuthorization(
     method: 'POST',
     headers,
     body: params,
+    redirect: 'error',
   });
   if (!response.ok) {
     throw await parseErrorResponse(response);
@@ -995,13 +1121,21 @@ export async function registerClient(
   } else {
     registrationUrl = new URL('/register', authorizationServerUrl);
   }
+  assertSafeOAuthEndpoint(registrationUrl);
 
+  const applicationType =
+    clientMetadata.application_type ??
+    inferOAuthApplicationType(clientMetadata.redirect_uris);
   const response = await (fetchFn ?? fetch)(registrationUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(clientMetadata),
+    body: JSON.stringify({
+      ...clientMetadata,
+      application_type: applicationType,
+    }),
+    redirect: 'error',
   });
 
   if (!response.ok) {
@@ -1011,12 +1145,29 @@ export async function registerClient(
   return OAuthClientInformationFullSchema.parse(await response.json());
 }
 
+function inferOAuthApplicationType(redirectUris: string[]): 'native' | 'web' {
+  const isNativeRedirectUri = (redirectUri: string): boolean => {
+    const url = new URL(redirectUri);
+    return (
+      ((url.protocol === 'http:' || url.protocol === 'https:') &&
+        isOAuthLoopbackHost(url.hostname)) ||
+      (url.protocol !== 'http:' && url.protocol !== 'https:')
+    );
+  };
+
+  return redirectUris.every(isNativeRedirectUri) ? 'native' : 'web';
+}
+
 export async function auth(
   provider: OAuthClientProvider,
   options: {
     serverUrl: string | URL;
     authorizationCode?: string;
     callbackState?: string;
+    /**
+     * Value of the `iss` parameter from the authorization response.
+     */
+    callbackIssuer?: string;
     scope?: string;
     resourceMetadataUrl?: URL;
     fetchFn?: FetchFunction;
@@ -1077,6 +1228,7 @@ async function authInternal(
     serverUrl,
     authorizationCode,
     callbackState,
+    callbackIssuer,
     scope,
     resourceMetadataUrl,
     fetchFn,
@@ -1084,6 +1236,7 @@ async function authInternal(
     serverUrl: string | URL;
     authorizationCode?: string;
     callbackState?: string;
+    callbackIssuer?: string;
     scope?: string;
     resourceMetadataUrl?: URL;
     fetchFn?: FetchFunction;
@@ -1137,9 +1290,29 @@ async function authInternal(
   );
   const currentAuthorizationServerInformation =
     createAuthorizationServerInformation(authorizationServerUrl, metadata);
+  const clientMetadata = provider.clientMetadata;
+  const selectedScope = selectScope({
+    scope,
+    resourceMetadata,
+    clientMetadata,
+  });
 
   /** Load or register client credentials with the AS pin attached. */
   let clientInformation = await Promise.resolve(provider.clientInformation());
+  if (clientInformation?.issuer != null) {
+    const storedAuthorizationServerInformation =
+      await getStoredAuthorizationServerInformation({
+        provider,
+        clientInformation,
+      });
+    if (storedAuthorizationServerInformation) {
+      assertAuthorizationServerInformationMatches({
+        storedAuthorizationServerInformation,
+        currentAuthorizationServerInformation,
+      });
+    }
+  }
+
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
       throw new Error(
@@ -1155,7 +1328,10 @@ async function authInternal(
 
     const fullInformation = await registerClient(authorizationServerUrl, {
       metadata,
-      clientMetadata: provider.clientMetadata,
+      clientMetadata: {
+        ...clientMetadata,
+        scope: selectedScope,
+      },
       fetchFn,
     });
 
@@ -1188,6 +1364,13 @@ async function authInternal(
           'Stored OAuth authorization server metadata is required when exchanging an authorization code',
       });
     }
+    validateAuthorizationResponseIssuer({
+      callbackIssuer,
+      expectedIssuer:
+        storedAuthorizationServerInformation.issuer ??
+        metadata?.issuer ??
+        String(authorizationServerUrl),
+    });
     assertAuthorizationServerInformationMatches({
       storedAuthorizationServerInformation,
       currentAuthorizationServerInformation,
@@ -1282,7 +1465,7 @@ async function authInternal(
       clientInformation,
       state,
       redirectUrl: provider.redirectUrl,
-      scope: scope || provider.clientMetadata.scope,
+      scope: selectedScope,
       resource,
     },
   );

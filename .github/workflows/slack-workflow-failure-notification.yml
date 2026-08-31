@@ -10,6 +10,9 @@ on:
     types:
       - completed
 
+permissions:
+  contents: read
+
 jobs:
   notify-on-failure:
     runs-on: ubuntu-latest

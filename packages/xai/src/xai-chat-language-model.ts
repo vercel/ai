@@ -31,6 +31,7 @@ import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
+import { supportsReasoningEffort } from './supports-reasoning-effort';
 import {
   xaiLanguageModelChatOptions,
   type XaiChatModelId,
@@ -125,7 +126,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
 
     // convert ai sdk messages to xai format
     const { messages, warnings: messageWarnings } =
-      convertToXaiChatMessages(prompt);
+      await convertToXaiChatMessages(prompt);
     warnings.push(...messageWarnings);
 
     // prepare tools for xai
@@ -138,6 +139,31 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       toolChoice,
     });
     warnings.push(...toolWarnings);
+
+    let reasoningEffort = options.reasoningEffort;
+    if (reasoningEffort == null && isCustomReasoning(reasoning)) {
+      if (!supportsReasoningEffort(this.modelId)) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoning',
+          details: `reasoning "${reasoning}" is not supported by this model.`,
+        });
+      } else if (reasoning === 'none') {
+        reasoningEffort = 'none';
+      } else {
+        reasoningEffort = mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: {
+            minimal: 'low',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: this.modelId === 'grok-4.6' ? 'xhigh' : 'high',
+          },
+          warnings,
+        });
+      }
+    }
 
     const baseArgs = {
       // model id
@@ -153,23 +179,10 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       temperature,
       top_p: topP,
       seed,
-      reasoning_effort:
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? undefined
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'low',
-                  low: 'low',
-                  medium: 'medium',
-                  high: 'high',
-                  xhigh: 'high',
-                },
-                warnings,
-              })
-          : undefined),
+      reasoning_effort: reasoningEffort,
+
+      // scheduling priority
+      service_tier: options.serviceTier,
 
       // parallel function calling
       parallel_function_calling: options.parallel_function_calling,
@@ -337,6 +350,11 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
+      ...(response.service_tier != null && {
+        providerMetadata: {
+          xai: { serviceTier: response.service_tier },
+        },
+      }),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -416,6 +434,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: LanguageModelV4Usage | undefined = undefined;
+    let serviceTier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<
       string,
@@ -473,6 +492,11 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
             // update usage if present
             if (value.usage != null) {
               usage = convertXaiChatUsage(value.usage);
+            }
+
+            // the applied tier is repeated on every chunk; keep the latest
+            if (value.service_tier != null) {
+              serviceTier = value.service_tier;
             }
 
             const choice = value.choices[0];
@@ -634,6 +658,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
+              ...(serviceTier != null && {
+                providerMetadata: { xai: { serviceTier } },
+              }),
             });
           },
         }),
@@ -645,31 +672,36 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
 }
 
 // XAI API Response Schemas
-const xaiUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  prompt_tokens_details: z
-    .object({
-      text_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      image_tokens: z.number().nullish(),
-      cached_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  completion_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      accepted_prediction_tokens: z.number().nullish(),
-      rejected_prediction_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const xaiUsageSchema = z
+  .object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+    cost_in_usd_ticks: z.number().nullish(),
+    prompt_tokens_details: z
+      .object({
+        text_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        image_tokens: z.number().nullish(),
+        cached_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+    completion_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        accepted_prediction_tokens: z.number().nullish(),
+        rejected_prediction_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+  })
+  .catchall(z.json());
 
 export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
-const xaiChatResponseSchema = z.object({
+export const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -701,9 +733,12 @@ const xaiChatResponseSchema = z.object({
   object: z.literal('chat.completion').nullish(),
   usage: xaiUsageSchema.nullish(),
   citations: z.array(z.string().url()).nullish(),
+  service_tier: z.string().nullish(),
   code: z.string().nullish(),
   error: z.string().nullish(),
 });
+
+export type XaiChatResponse = z.infer<typeof xaiChatResponseSchema>;
 
 const xaiChatChunkSchema = z.object({
   id: z.string().nullish(),
@@ -734,6 +769,7 @@ const xaiChatChunkSchema = z.object({
   ),
   usage: xaiUsageSchema.nullish(),
   citations: z.array(z.string().url()).nullish(),
+  service_tier: z.string().nullish(),
 });
 
 const xaiStreamErrorSchema = z.object({

@@ -2,6 +2,7 @@ import {
   type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   type Experimental_VideoModelV4,
+  type Experimental_BatchLanguageModelV4 as BatchLanguageModelV4,
   type FilesV4,
   type ImageModelV4,
   type LanguageModelV4,
@@ -16,12 +17,13 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import type { XaiChatModelId } from './xai-chat-language-model-options';
 import { XaiImageModel } from './xai-image-model';
 import type { XaiImageModelId } from './xai-image-settings';
-import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
+import { XaiResponsesBatchLanguageModel } from './responses/xai-responses-batch';
 import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
 import { XaiRealtimeModel } from './realtime/xai-realtime-model';
 import { xaiTools } from './tool';
@@ -33,12 +35,12 @@ import { XaiSpeechModel } from './xai-speech-model';
 import { XaiTranscriptionModel } from './xai-transcription-model';
 
 export interface XaiProvider extends ProviderV4 {
-  (modelId: XaiResponsesModelId): LanguageModelV4;
+  (modelId: XaiResponsesModelId): BatchLanguageModelV4;
 
   /**
    * Creates an Xai language model for text generation.
    */
-  languageModel(modelId: XaiResponsesModelId): LanguageModelV4;
+  languageModel(modelId: XaiResponsesModelId): BatchLanguageModelV4;
 
   /**
    * Creates an Xai chat model for text generation.
@@ -48,7 +50,7 @@ export interface XaiProvider extends ProviderV4 {
   /**
    * Creates an Xai responses model for text generation.
    */
-  responses: (modelId: XaiResponsesModelId) => LanguageModelV4;
+  responses: (modelId: XaiResponsesModelId) => BatchLanguageModelV4;
 
   /**
    * Creates an Xai image model for image generation.
@@ -129,6 +131,12 @@ export interface XaiProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. Required in runtimes whose native
+   * WebSocket constructor does not support headers for xAI streaming STT.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 export function createXai(options: XaiProviderSettings = {}): XaiProvider {
@@ -159,7 +167,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   };
 
   const createResponsesLanguageModel = (modelId: XaiResponsesModelId) => {
-    return new XaiResponsesLanguageModel(modelId, {
+    return new XaiResponsesBatchLanguageModel(modelId, {
       provider: 'xai.responses',
       baseURL,
       headers: getHeaders,
@@ -210,6 +218,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
   };
 

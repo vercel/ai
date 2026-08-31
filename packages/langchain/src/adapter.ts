@@ -20,9 +20,31 @@ import {
   extractReasoningFromContentBlocks,
   extractCitationsFromContentBlocks,
   emitSourceChunks,
+  getLangGraphProviderMetadata,
 } from './utils';
 import type { LangGraphEventState } from './types';
 import type { StreamCallbacks } from './stream-callbacks';
+
+/**
+ * Options for converting a LangChain stream to an AI SDK UIMessageStream.
+ */
+export interface ToUIMessageStreamOptions<
+  TState = unknown,
+> extends StreamCallbacks<TState> {
+  /**
+   * Whether to emit the outer `start` chunk.
+   *
+   * @default true
+   */
+  sendStart?: boolean;
+
+  /**
+   * Whether to emit the outer `finish` chunk.
+   *
+   * @default true
+   */
+  sendFinish?: boolean;
+}
 
 /**
  * Converts AI SDK UIMessages to LangChain BaseMessage objects.
@@ -352,7 +374,7 @@ function isAbortError(error: unknown): boolean {
  * - streamEvents streams (from `agent.streamEvents()` or `model.streamEvents()`)
  *
  * @param stream - A stream from LangChain model.stream(), graph.stream(), or streamEvents().
- * @param callbacks - Optional callbacks for stream lifecycle events.
+ * @param options - Optional lifecycle callbacks and outer chunk controls.
  * @returns A ReadableStream of UIMessageChunk objects.
  *
  * @example
@@ -402,8 +424,10 @@ function isAbortError(error: unknown): boolean {
  */
 export function toUIMessageStream<TState = unknown>(
   stream: AsyncIterable<AIMessageChunk> | ReadableStream,
-  callbacks?: StreamCallbacks<TState>,
+  options?: ToUIMessageStreamOptions<TState>,
 ): ReadableStream<UIMessageChunk> {
+  const { sendStart = true, sendFinish = true } = options ?? {};
+
   /**
    * Track text chunks for onFinal callback
    */
@@ -431,21 +455,19 @@ export function toUIMessageStream<TState = unknown>(
    * State for LangGraph stream handling
    */
   const langGraphState: LangGraphEventState = {
-    messageSeen: {} as Record<
-      string,
-      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-    >,
-    messageConcat: {} as Record<string, AIMessageChunk>,
+    messageSeen: new Map(),
+    messageNamespaces: new Map(),
+    messageConcat: new Map(),
+    messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+    emittedToolCallsInCurrentStepByNamespace: new Map(),
     emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStepByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
-    messageReasoningIds: {} as Record<string, string>,
-    toolCallInfoByIndex: {} as Record<
-      string,
-      Record<number, { id: string; name: string }>
-    >,
-    currentStep: null as number | null,
+    messageReasoningIds: new Map(),
+    toolCallInfoByIndex: new Map(),
+    currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
   };
@@ -492,10 +514,12 @@ export function toUIMessageStream<TState = unknown>(
         /**
          * Intercept text-delta chunks for callbacks
          */
-        if (callbacks && chunk.type === 'text-delta' && chunk.delta) {
-          textChunks.push(chunk.delta);
-          callbacks.onToken?.(chunk.delta);
-          callbacks.onText?.(chunk.delta);
+        if (chunk.type === 'text-delta' && chunk.delta) {
+          if (options?.onFinal) {
+            textChunks.push(chunk.delta);
+          }
+          options?.onToken?.(chunk.delta);
+          options?.onText?.(chunk.delta);
         }
         originalController.enqueue(chunk);
       },
@@ -504,10 +528,12 @@ export function toUIMessageStream<TState = unknown>(
 
   return new ReadableStream<UIMessageChunk>({
     async start(controller) {
-      await callbacks?.onStart?.();
+      await options?.onStart?.();
 
       const wrappedController = createCallbackController(controller);
-      controller.enqueue({ type: 'start' });
+      if (sendStart) {
+        controller.enqueue({ type: 'start' });
+      }
 
       try {
         while (true) {
@@ -549,7 +575,7 @@ export function toUIMessageStream<TState = unknown>(
             );
           } else {
             const eventArray = value as unknown[];
-            const [type, data] = parseLangGraphEvent(eventArray);
+            const [, type, data] = parseLangGraphEvent(eventArray);
 
             if (type === 'values') {
               lastValuesData = data as TState;
@@ -582,46 +608,61 @@ export function toUIMessageStream<TState = unknown>(
               id: modelState.textMessageId ?? modelState.messageId,
             });
           }
-          controller.enqueue({ type: 'finish' });
+          if (sendFinish) {
+            controller.enqueue({ type: 'finish' });
+          }
         } else if (streamType === 'langgraph') {
           /**
            * Close any open text/reasoning parts before finishing.
            * This handles streams without values events (e.g. streamMode: 'messages')
            * where the values handler never ran to emit *-end events.
            */
-          for (const [id, seen] of Object.entries(langGraphState.messageSeen)) {
+          for (const [id, seen] of langGraphState.messageSeen) {
+            const providerMetadata = getLangGraphProviderMetadata(
+              langGraphState.messageNamespaces.get(id),
+            );
             if (seen.text) {
-              controller.enqueue({ type: 'text-end', id });
+              controller.enqueue({
+                type: 'text-end',
+                id,
+                ...(providerMetadata !== undefined && { providerMetadata }),
+              });
             }
             if (seen.reasoning) {
-              controller.enqueue({ type: 'reasoning-end', id });
+              controller.enqueue({
+                type: 'reasoning-end',
+                id,
+                ...(providerMetadata !== undefined && { providerMetadata }),
+              });
             }
           }
 
           /**
            * Emit finish-step if a step was started
            */
-          if (langGraphState.currentStep !== null) {
+          if (langGraphState.currentStepsByNamespace.size > 0) {
             controller.enqueue({ type: 'finish-step' });
           }
-          controller.enqueue({ type: 'finish' });
+          if (sendFinish) {
+            controller.enqueue({ type: 'finish' });
+          }
         }
 
         /**
          * Call onFinal callback with aggregated text
          */
-        await callbacks?.onFinal?.(textChunks.join(''));
-        await callbacks?.onFinish?.(lastValuesData);
+        await options?.onFinal?.(textChunks.join(''));
+        await options?.onFinish?.(lastValuesData);
       } catch (error) {
         const errorObj =
           error instanceof Error ? error : new Error(String(error));
 
-        await callbacks?.onFinal?.(textChunks.join(''));
+        await options?.onFinal?.(textChunks.join(''));
 
         if (isAbortError(error)) {
-          await callbacks?.onAbort?.();
+          await options?.onAbort?.();
         } else {
-          await callbacks?.onError?.(errorObj);
+          await options?.onError?.(errorObj);
         }
 
         controller.enqueue({

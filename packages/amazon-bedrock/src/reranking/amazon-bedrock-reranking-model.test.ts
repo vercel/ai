@@ -74,7 +74,7 @@ describe('doRerank', () => {
             },
           ],
           "rerankingConfiguration": {
-            "amazonBedrockRerankingConfiguration": {
+            "bedrockRerankingConfiguration": {
               "modelConfiguration": {
                 "additionalModelRequestFields": {
                   "test": "test-value",
@@ -107,6 +107,19 @@ describe('doRerank', () => {
           ],
         }
       `);
+    });
+
+    it('should send the AWS-required `bedrockRerankingConfiguration` wire key', async () => {
+      const body = await server.calls[0].requestBodyJson;
+      // The Bedrock Agent Runtime Rerank API requires this exact member name;
+      // renaming it sends the required member as null and AWS rejects the
+      // request with HTTP 400. Asserted explicitly (not via the body snapshot
+      // above, which `--update` would silently regenerate) so a future rename
+      // fails loudly instead of locking in a broken wire contract.
+      // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_agent-runtime_RerankingConfiguration.html
+      expect(body).toHaveProperty(
+        'rerankingConfiguration.bedrockRerankingConfiguration',
+      );
     });
 
     it('should send request with the correct headers', async () => {
@@ -204,7 +217,7 @@ describe('doRerank', () => {
             },
           ],
           "rerankingConfiguration": {
-            "amazonBedrockRerankingConfiguration": {
+            "bedrockRerankingConfiguration": {
               "modelConfiguration": {
                 "additionalModelRequestFields": {
                   "test": "test-value",

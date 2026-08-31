@@ -1,5 +1,6 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import type { TelemetryOptions } from 'ai';
+import { sanitizeAttributeValue } from './sanitize-attribute-value';
 
 export type AttributeSpec =
   | AttributeValue
@@ -35,7 +36,10 @@ export function selectAttributes(
     ) {
       if (telemetry?.recordInputs === false) continue;
       const resolved = value.input();
-      if (resolved != null) result[key] = resolved;
+      if (resolved != null) {
+        const sanitized = sanitizeAttributeValue(resolved);
+        if (sanitized != null) result[key] = sanitized;
+      }
       continue;
     }
 
@@ -46,11 +50,15 @@ export function selectAttributes(
     ) {
       if (telemetry?.recordOutputs === false) continue;
       const resolved = value.output();
-      if (resolved != null) result[key] = resolved;
+      if (resolved != null) {
+        const sanitized = sanitizeAttributeValue(resolved);
+        if (sanitized != null) result[key] = sanitized;
+      }
       continue;
     }
 
-    result[key] = value as AttributeValue;
+    const sanitized = sanitizeAttributeValue(value as AttributeValue);
+    if (sanitized != null) result[key] = sanitized;
   }
 
   return result;

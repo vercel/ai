@@ -2,12 +2,15 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   LanguageModelV4ToolResultPart,
+  SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import type { Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
-  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  type Experimental_SandboxSession as SandboxSession,
+  type Instructions,
   type LanguageModel,
+  type LanguageModelUsage,
   type ModelMessage,
   type StepResult,
   type ToolCallRepairFunction,
@@ -16,10 +19,13 @@ import {
 } from 'ai';
 import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import {
+  type DoStreamStepRawResult,
   doStreamStep,
+  type ModelCallStreamPart,
   type ModelStopCondition,
   type ParsedToolCall,
   type ProviderExecutedToolResult,
+  type StreamFinish,
 } from './do-stream-step.js';
 import { serializeToolSet } from './serializable-schema.js';
 import type {
@@ -34,6 +40,36 @@ import type {
 
 // Re-export for consumers
 export type { ProviderExecutedToolResult } from './do-stream-step.js';
+
+const prepareStepGenerationSettingKeys = [
+  'maxOutputTokens',
+  'temperature',
+  'topP',
+  'topK',
+  'presencePenalty',
+  'frequencyPenalty',
+  'stopSequences',
+  'seed',
+  'maxRetries',
+  'headers',
+  'reasoning',
+  'providerOptions',
+] as const satisfies readonly (keyof GenerationSettings)[];
+
+function mergePrepareStepGenerationSettings(
+  current: GenerationSettings,
+  overrides: Partial<GenerationSettings>,
+): GenerationSettings {
+  const definedOverrides: Partial<GenerationSettings> = {};
+
+  for (const key of prepareStepGenerationSettingKeys) {
+    if (overrides[key] !== undefined) {
+      Object.assign(definedOverrides, { [key]: overrides[key] });
+    }
+  }
+
+  return { ...current, ...definedOverrides };
+}
 
 /**
  * The value yielded by the stream text iterator when tool calls are requested.
@@ -52,11 +88,25 @@ export interface StreamTextIteratorYieldValue {
   toolsContext?: Record<string, Context | undefined>;
   /** Provider-executed tool results (keyed by tool call ID) */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
+  /** The sandbox selected for the current step. */
+  experimental_sandbox?: SandboxSession;
+}
+
+export interface StreamTextIteratorAbortedValue {
+  aborted: true;
+  messages: LanguageModelV4Prompt;
+}
+
+export interface StreamTextIteratorErrorValue {
+  error: unknown;
+  messages: LanguageModelV4Prompt;
 }
 
 // This runs in the workflow context
 export async function* streamTextIterator({
   prompt,
+  initialInstructions,
+  initialMessages = prompt as unknown as ModelMessage[],
   tools = {},
   writable,
   model,
@@ -72,10 +122,14 @@ export async function* streamTextIterator({
   toolsContext,
   telemetry,
   includeRawChunks = false,
+  timeoutAt,
   repairToolCall,
   responseFormat,
+  experimental_sandbox: sandbox,
 }: {
   prompt: LanguageModelV4Prompt;
+  initialInstructions?: Instructions;
+  initialMessages?: Array<ModelMessage>;
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: LanguageModel;
@@ -92,11 +146,15 @@ export async function* streamTextIterator({
   toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions<Context, ToolSet>;
   includeRawChunks?: boolean;
+  timeoutAt?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  experimental_sandbox?: SandboxSession;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV4Prompt,
+  | LanguageModelV4Prompt
+  | StreamTextIteratorAbortedValue
+  | StreamTextIteratorErrorValue,
   LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
@@ -114,6 +172,9 @@ export async function* streamTextIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
+  let wasAborted = false;
+  let terminalError: unknown;
+  let hasTerminalError = false;
 
   // TODO(#12164): replace this AI-core telemetry bridge with a
   // WorkflowAgent-specific typed dispatcher. `streamTextIterator` widens
@@ -135,16 +196,23 @@ export async function* streamTextIterator({
       break;
     }
 
+    let stepSandbox = sandbox;
+
     // Call prepareStep callback before each step if provided
     if (prepareStep) {
       const prepareResult = await prepareStep({
         model: currentModel,
+        initialInstructions,
+        initialMessages,
         stepNumber,
         steps,
         messages: conversationPrompt,
         runtimeContext: currentRuntimeContext,
         toolsContext: currentToolsContext as never,
+        experimental_sandbox: sandbox,
       });
+
+      stepSandbox = prepareResult?.experimental_sandbox ?? sandbox;
 
       // Apply any overrides from prepareStep
       if (prepareResult?.model !== undefined) {
@@ -188,73 +256,10 @@ export async function* streamTextIterator({
       if (prepareResult?.activeTools !== undefined) {
         currentActiveTools = prepareResult.activeTools;
       }
-      // Apply generation settings overrides
-      if (prepareResult?.maxOutputTokens !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          maxOutputTokens: prepareResult.maxOutputTokens,
-        };
-      }
-      if (prepareResult?.temperature !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          temperature: prepareResult.temperature,
-        };
-      }
-      if (prepareResult?.topP !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          topP: prepareResult.topP,
-        };
-      }
-      if (prepareResult?.topK !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          topK: prepareResult.topK,
-        };
-      }
-      if (prepareResult?.presencePenalty !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          presencePenalty: prepareResult.presencePenalty,
-        };
-      }
-      if (prepareResult?.frequencyPenalty !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          frequencyPenalty: prepareResult.frequencyPenalty,
-        };
-      }
-      if (prepareResult?.stopSequences !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          stopSequences: prepareResult.stopSequences,
-        };
-      }
-      if (prepareResult?.seed !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          seed: prepareResult.seed,
-        };
-      }
-      if (prepareResult?.maxRetries !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          maxRetries: prepareResult.maxRetries,
-        };
-      }
-      if (prepareResult?.headers !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          headers: prepareResult.headers,
-        };
-      }
-      if (prepareResult?.providerOptions !== undefined) {
-        currentGenerationSettings = {
-          ...currentGenerationSettings,
-          providerOptions: prepareResult.providerOptions,
-        };
-      }
+      currentGenerationSettings = mergePrepareStepGenerationSettings(
+        currentGenerationSettings,
+        prepareResult ?? {},
+      );
       if (prepareResult?.toolChoice !== undefined) {
         currentToolChoice = prepareResult.toolChoice;
       }
@@ -302,7 +307,10 @@ export async function* streamTextIterator({
       // Serialize tools before crossing the step boundary — zod schemas
       // contain functions that can't be serialized by the workflow runtime.
       // Tools are reconstructed with Ajv validation inside doStreamStep.
-      const serializedTools = serializeToolSet(effectiveTools);
+      const serializedTools = serializeToolSet(effectiveTools, {
+        toolsContext: currentToolsContext as never,
+        experimental_sandbox: stepSandbox,
+      });
       const modelCallInfo = getModelInfo(currentModel);
 
       await telemetryDispatcher.onLanguageModelCallStart?.({
@@ -323,27 +331,46 @@ export async function* streamTextIterator({
         frequencyPenalty: currentGenerationSettings.frequencyPenalty,
         stopSequences: currentGenerationSettings.stopSequences,
         seed: currentGenerationSettings.seed,
+        reasoning: currentGenerationSettings.reasoning,
         providerOptions: currentGenerationSettings.providerOptions,
         headers: currentGenerationSettings.headers,
       } as never);
 
-      const { toolCalls, finish, step, providerExecutedToolResults } =
-        await doStreamStep(
-          conversationPrompt,
-          currentModel,
-          writable,
-          serializedTools,
-          {
-            ...currentGenerationSettings,
-            toolChoice: currentToolChoice,
-            includeRawChunks,
-            repairToolCall,
-            responseFormat,
-            runtimeContext: currentRuntimeContext,
-            toolsContext: currentToolsContext,
-            stepNumber,
-          },
-        );
+      const streamStepResult = await doStreamStep(
+        conversationPrompt,
+        currentModel,
+        writable,
+        serializedTools,
+        {
+          ...currentGenerationSettings,
+          toolChoice: currentToolChoice,
+          includeRawChunks,
+          timeoutAt,
+          repairToolCall,
+          responseFormat,
+        },
+      );
+
+      if (streamStepResult.aborted) {
+        wasAborted = true;
+        break;
+      }
+
+      if ('terminalError' in streamStepResult) {
+        terminalError = streamStepResult.terminalError;
+        hasTerminalError = true;
+      }
+
+      const { toolCalls, finish, raw, providerExecutedToolResults } =
+        streamStepResult;
+      // Reconstruct the full StepResult outside the step boundary so the
+      // durable event log doesn't carry StepResult's redundant copies (or the
+      // per-chunk snapshot the step used to return).
+      const step = buildStepResult(raw, toolCalls, finish, {
+        stepNumber,
+        runtimeContext: currentRuntimeContext,
+        toolsContext: currentToolsContext,
+      });
 
       await telemetryDispatcher.onLanguageModelCallEnd?.({
         callId: step.callId,
@@ -353,6 +380,9 @@ export async function* streamTextIterator({
         usage: step.usage,
         content: step.content,
         responseId: step.response.id,
+        ...(finish?.providerMetadata != null
+          ? { providerMetadata: finish.providerMetadata }
+          : {}),
       });
 
       _isFirstIteration = false;
@@ -363,30 +393,45 @@ export async function* streamTextIterator({
 
       const finishReason = finish?.finishReason;
 
-      if (finishReason === 'tool-calls') {
+      if (hasTerminalError) {
+        // The error crossed the durable step boundary as data. End the loop
+        // without throwing so WorkflowAgent can preserve the existing
+        // resolved-result contract and expose the original value.
+        done = true;
+      } else if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
-        // Add assistant message with tool calls to the conversation
+        const textContent = step.content.filter(
+          item => item.type === 'text',
+        ) as Array<{ type: 'text'; text: string }>;
+
+        // Add assistant message with text and tool calls to the conversation
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
         // across multi-turn tool calls. Some fields are sanitized before mapping.
         conversationPrompt.push({
           role: 'assistant',
-          content: toolCalls.map(toolCall => {
-            const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-              toolCall.providerMetadata,
-            );
-            return {
-              type: 'tool-call',
-              toolCallId: toolCall.toolCallId,
-              toolName: toolCall.toolName,
-              input: toolCall.input,
-              ...(sanitizedMetadata != null
-                ? { providerOptions: sanitizedMetadata }
-                : {}),
-            };
-          }) as typeof toolCalls,
+          content: [
+            ...textContent,
+            ...toolCalls.map(toolCall => {
+              const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
+                toolCall.providerMetadata,
+              );
+              return {
+                type: 'tool-call' as const,
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: toolCall.input,
+                ...(sanitizedMetadata != null
+                  ? {
+                      providerOptions:
+                        sanitizedMetadata as SharedV4ProviderOptions,
+                    }
+                  : {}),
+              };
+            }),
+          ],
         });
 
         // Yield the tool calls along with the current conversation messages
@@ -398,6 +443,7 @@ export async function* streamTextIterator({
           step,
           runtimeContext: currentRuntimeContext,
           toolsContext: currentToolsContext,
+          experimental_sandbox: stepSandbox,
           providerExecutedToolResults,
         };
 
@@ -473,7 +519,16 @@ export async function* streamTextIterator({
       step: lastStep,
       runtimeContext: currentRuntimeContext,
       toolsContext: currentToolsContext,
+      experimental_sandbox: sandbox,
     };
+  }
+
+  if (wasAborted) {
+    return { aborted: true, messages: conversationPrompt };
+  }
+
+  if (hasTerminalError) {
+    return { error: terminalError, messages: conversationPrompt };
   }
 
   return conversationPrompt;
@@ -493,6 +548,108 @@ function normalizeStepForTelemetry(step: StepResult<any, any>) {
     ...step,
     model: step.model ?? { provider: 'unknown', modelId: 'unknown' },
   };
+}
+
+/**
+ * Reconstruct a full `StepResult` from the minimal aggregates returned by
+ * `doStreamStep`. Runs outside the step boundary so StepResult's redundant
+ * fields (duplicate tool-call lists, `content`, `reasoningText`, the
+ * always-empty `*ToolResults` arrays) and the per-chunk snapshot don't cross
+ * it. The shape matches what the AI SDK's `streamText` exposes to callers.
+ */
+function buildStepResult(
+  raw: DoStreamStepRawResult,
+  toolCalls: ParsedToolCall[],
+  finish: StreamFinish | undefined,
+  opts: {
+    stepNumber: number;
+    runtimeContext: Context;
+    toolsContext: Record<string, Context | undefined>;
+  },
+): StepResult<ToolSet, any> {
+  const { text, reasoning: reasoningParts, responseMetadata, warnings } = raw;
+  const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
+
+  const validToolCalls = toolCalls
+    .filter(tc => !tc.invalid)
+    .map(tc => ({
+      type: 'tool-call' as const,
+      toolCallId: tc.toolCallId,
+      toolName: tc.toolName,
+      input: tc.input,
+      ...(tc.dynamic ? { dynamic: true as const } : {}),
+    }));
+
+  return {
+    callId: 'workflow-agent',
+    stepNumber: opts.stepNumber,
+    model: {
+      provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
+      modelId: responseMetadata?.modelId ?? 'unknown',
+    },
+    functionId: undefined,
+    metadata: undefined,
+    runtimeContext: opts.runtimeContext ?? {},
+    toolsContext: opts.toolsContext ?? {},
+    content: [
+      ...(text ? [{ type: 'text' as const, text }] : []),
+      ...validToolCalls,
+    ],
+    text,
+    reasoning: reasoningParts.map(r => ({
+      type: 'reasoning' as const,
+      text: r.text,
+    })),
+    reasoningText,
+    files: [],
+    sources: [],
+    toolCalls: validToolCalls,
+    staticToolCalls: [],
+    dynamicToolCalls: validToolCalls.filter(tc => tc.dynamic),
+    toolResults: [],
+    staticToolResults: [],
+    dynamicToolResults: [],
+    finishReason: finish?.finishReason ?? 'other',
+    rawFinishReason: finish?.rawFinishReason,
+    usage:
+      finish?.usage ??
+      ({
+        inputTokens: 0,
+        inputTokenDetails: {
+          noCacheTokens: undefined,
+          cacheReadTokens: undefined,
+          cacheWriteTokens: undefined,
+        },
+        outputTokens: 0,
+        outputTokenDetails: {
+          textTokens: undefined,
+          reasoningTokens: undefined,
+        },
+        totalTokens: 0,
+      } as LanguageModelUsage),
+    performance: {
+      effectiveOutputTokensPerSecond: 0,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 0,
+      stepTimeMs: 0,
+      responseTimeMs: 0,
+      toolExecutionMs: {},
+      timeToFirstOutputMs: undefined,
+    },
+    warnings,
+    request: {
+      body: '',
+      messages: [], // TODO implement step request messages
+    },
+    response: {
+      id: responseMetadata?.id ?? 'unknown',
+      timestamp: responseMetadata?.timestamp ?? new Date(),
+      modelId: responseMetadata?.modelId ?? 'unknown',
+      messages: [],
+    },
+    providerMetadata: finish?.providerMetadata ?? {},
+  } as StepResult<ToolSet, any>;
 }
 
 /**

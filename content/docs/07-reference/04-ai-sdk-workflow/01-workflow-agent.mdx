@@ -116,7 +116,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default structured output specification. Per-stream values override this default.',
     },
     {
-      name: 'experimental_repairToolCall',
+      name: 'repairToolCall',
       type: 'ToolCallRepairFunction',
       isOptional: true,
       description:
@@ -130,11 +130,25 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default custom download function for URLs. Per-stream values override this default.',
     },
     {
+      name: 'experimental_sandbox',
+      type: 'Experimental_SandboxSession',
+      isOptional: true,
+      description:
+        'Default sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Per-stream values override this default.',
+    },
+    {
+      name: 'experimental_toolApprovalSecret',
+      type: 'WorkflowToolApprovalSecret',
+      isOptional: true,
+      description:
+        'Workflow-safe reference to the environment variable containing the secret used to HMAC-sign tool approval requests and verify approved message history before tool execution. Only the environment variable name crosses workflow boundaries; the secret is read inside signing and verification steps. Per-stream values override this default.',
+    },
+    {
       name: 'prepareStep',
       type: 'PrepareStepCallback',
       isOptional: true,
       description:
-        'Callback called before each step in the agent loop. Use it to modify settings, manage context, or inject messages dynamically. Receives step number, previous steps, messages, and context.',
+        'Callback called before each step in the agent loop. Use it to modify settings, manage context, inject messages dynamically, or override `experimental_sandbox` for the current step. Receives step number, previous steps, messages, context, and sandbox.',
     },
     {
       name: 'prepareCall',
@@ -397,7 +411,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
-      description: 'How many times to retry on failure. Default: 2.',
+      description:
+        'How many times to retry retryable model-call failures. Set to 0 to disable retries. Retry-After response headers are respected, and durable workflow step retries are not stacked. Default: 2.',
     },
     {
       name: 'headers',
@@ -465,10 +480,16 @@ const result = await agent.stream({
         'A writable stream that receives raw model stream parts in real-time. Convert to UI message chunks at the response boundary using `createModelCallToUIChunkTransform()`.',
     },
     {
+      name: 'instructions',
+      type: 'Instructions',
+      isOptional: true,
+      description: 'Override the agent instructions for this call.',
+    },
+    {
       name: 'system',
       type: 'string',
       isOptional: true,
-      description: 'Override the system prompt for this call.',
+      description: 'Deprecated. Use `instructions` instead.',
     },
     {
       name: 'stopWhen',
@@ -521,7 +542,7 @@ const result = await agent.stream({
       description: 'Include raw, unprocessed chunks from the provider in the stream. Default: false.',
     },
     {
-      name: 'experimental_repairToolCall',
+      name: 'repairToolCall',
       type: 'ToolCallRepairFunction',
       isOptional: true,
       description: 'Callback to attempt automatic recovery when a tool call cannot be parsed.',
@@ -537,6 +558,20 @@ const result = await agent.stream({
       type: 'DownloadFunction',
       isOptional: true,
       description: 'Custom download function for fetching files/URLs.',
+    },
+    {
+      name: 'experimental_sandbox',
+      type: 'Experimental_SandboxSession',
+      isOptional: true,
+      description:
+        'Sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Overrides the constructor default.',
+    },
+    {
+      name: 'experimental_toolApprovalSecret',
+      type: 'WorkflowToolApprovalSecret',
+      isOptional: true,
+      description:
+        'Workflow-safe reference to the environment variable containing the secret used to HMAC-sign tool approval requests and verify approved message history before tool execution. Only the environment variable name crosses workflow boundaries; the secret is read inside signing and verification steps. Overrides the constructor default.',
     },
     {
       name: 'telemetry',
@@ -562,7 +597,8 @@ const result = await agent.stream({
       name: 'prepareStep',
       type: 'PrepareStepCallback',
       isOptional: true,
-      description: 'Per-call prepareStep override.',
+      description:
+        'Per-call prepareStep override. Receives the initial instructions and messages alongside the current step state.',
     },
     {
       name: 'experimental_onStart',
@@ -658,6 +694,12 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
         'Tool results from the last step. Only includes results for tools that were executed.',
     },
     {
+      name: 'error',
+      type: 'unknown | undefined',
+      description:
+        "The original value from a model stream error part. The property is present when an error part was emitted, even if its value is undefined; use `'error' in result` to distinguish that case.",
+    },
+    {
       name: 'output',
       type: 'OUTPUT',
       description:
@@ -668,7 +710,7 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
 
 ## Utilities
 
-### `createModelCallToUIChunkTransform()`
+### `createModelCallToUIChunkTransform(options?)`
 
 Creates a `TransformStream` that converts raw `ModelCallStreamPart` chunks (written by the agent to the `writable` stream) into `UIMessageChunk` objects suitable for client consumption.
 
@@ -679,6 +721,20 @@ return createUIMessageStreamResponse({
   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
 });
 ```
+
+When resuming with a `WorkflowChatTransport` cursor, replay the raw workflow
+stream from index `0` and pass the non-negative UI chunk index to the transform:
+
+```ts
+const readable = run
+  .getReadable({ startIndex: 0 })
+  .pipeThrough(createModelCallToUIChunkTransform({ uiStartIndex: startIndex }));
+```
+
+`uiStartIndex` must be a non-negative safe integer. Raw model stream parts and
+UI message chunks are not one-to-one, so do not pass a UI chunk index to
+`getReadable`. Negative tail indexes require a durable stream that already
+stores `UIMessageChunk` objects.
 
 ### `toUIMessageChunk()`
 
@@ -880,6 +936,9 @@ import { z } from 'zod';
 
 const agent = new WorkflowAgent({
   model: 'anthropic/claude-sonnet-4-6',
+  experimental_toolApprovalSecret: {
+    environmentVariable: 'TOOL_APPROVAL_SECRET',
+  },
   tools: {
     bookFlight: tool({
       description: 'Book a flight',
@@ -893,6 +952,14 @@ const agent = new WorkflowAgent({
   },
 });
 ```
+
+When `experimental_toolApprovalSecret` is configured, each approval request is
+signed over its approval ID, tool call ID, tool name, and validated input.
+Replayed approvals with a missing or invalid signature do not execute the tool.
+The signature is preserved in the durable stream and UI message history, while
+only the environment variable name crosses workflow boundaries. Signing and
+verification steps read the raw secret from their local environment and do not
+serialize it. A stream-level reference overrides the constructor value.
 
 ### Agent with Lifecycle Callbacks
 

@@ -15,6 +15,10 @@ function defaultTransform(text: string): string {
     .trim();
 }
 
+function stripMarkdownCodeFenceSuffix(text: string): string {
+  return text.replace(/\n?```\s*$/, '').trimEnd();
+}
+
 /**
  * Middleware that extracts JSON from text content by stripping
  * markdown code fences and other formatting.
@@ -169,10 +173,15 @@ export function extractJsonMiddleware(options?: {
                     remaining = transform(remaining);
                   } else if (block.prefixStripped) {
                     // strip suffix since prefix already handled
-                    remaining = remaining.replace(/\n?```\s*$/, '').trimEnd();
-                  } else {
-                    // Apply full transform (handles both prefix and suffix)
+                    remaining = stripMarkdownCodeFenceSuffix(remaining);
+                  } else if (block.phase === 'prefix') {
+                    // No text has streamed yet, so the full transform is safe.
                     remaining = transform(remaining);
+                  } else {
+                    // Only strip the suffix. Since earlier text may already have
+                    // streamed, trimming the remaining suffix would remove valid
+                    // leading whitespace at the stream boundary.
+                    remaining = stripMarkdownCodeFenceSuffix(remaining);
                   }
 
                   if (remaining.length > 0) {

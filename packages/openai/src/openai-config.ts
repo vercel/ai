@@ -1,4 +1,7 @@
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import type {
+  FetchFunction,
+  WebSocketConstructor,
+} from '@ai-sdk/provider-utils';
 
 type OpenAIHeaders = Record<string, string | undefined>;
 
@@ -12,6 +15,7 @@ export type OpenAIConfig = {
   url: (options: { modelId: string; path: string }) => string;
   headers?: () => OpenAIHeaders;
   fetch?: FetchFunction;
+  webSocket?: WebSocketConstructor;
   generateId?: () => string;
   /**
    * This is soft-deprecated. Use provider references (e.g. `{ openai: 'file-abc123' }`)

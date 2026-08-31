@@ -1,8 +1,30 @@
 import type { TextStreamPart, ToolSet } from 'ai';
 import { describe, expect, it } from 'vitest';
+import type { HarnessV1StreamPart } from '../../v1';
 import { translateStreamPart } from './translate-stream-part';
 
 describe('translateStreamPart', () => {
+  it('forwards streaming tool input events', () => {
+    const events: HarnessV1StreamPart[] = [
+      {
+        type: 'tool-input-start',
+        id: 'c1',
+        toolName: 'write',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'c1',
+        delta: '{"path":"notes.md"',
+      },
+      { type: 'tool-input-end', id: 'c1' },
+    ];
+
+    expect(
+      events.flatMap(event => translateStreamPart<ToolSet>(event)),
+    ).toEqual(events);
+  });
+
   it('returns no parts for a tool-call event (validation is handled by run-prompt)', () => {
     const out = translateStreamPart<ToolSet>({
       type: 'tool-call',
@@ -13,6 +35,96 @@ describe('translateStreamPart', () => {
       providerExecuted: true,
     });
     expect(out).toHaveLength(0);
+  });
+
+  it('preserves dynamic on a tool-result event', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'mcp__weather__current',
+      result: { temperature: 72 },
+      isError: false,
+      dynamic: true,
+    });
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'mcp__weather__current',
+        dynamic: true,
+      }),
+    ]);
+  });
+
+  it('translates a failed tool-result into a provider-executed tool-error', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'bash',
+      result: 'bash: command not found: pnpmm',
+      isError: true,
+      providerMetadata: {
+        'claude-code': { subtype: 'error_during_execution' },
+      },
+    });
+
+    expect(out).toEqual([
+      {
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        input: undefined,
+        error: 'bash: command not found: pnpmm',
+        providerExecuted: true,
+        providerMetadata: {
+          'claude-code': { subtype: 'error_during_execution' },
+        },
+      },
+    ]);
+  });
+
+  it('leaves a failed host tool result as a tool-result', () => {
+    const out = translateStreamPart<ToolSet>(
+      {
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'weather',
+        result: { error: 'Error: boom' },
+        isError: true,
+      },
+      { isProviderExecuted: () => false },
+    );
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        output: { error: 'Error: boom' },
+      }),
+    ]);
+  });
+
+  it('preserves dynamic on a failed tool-result', () => {
+    const out = translateStreamPart<ToolSet>({
+      type: 'tool-result',
+      toolCallId: 'c1',
+      toolName: 'mcp__weather__current',
+      result: { message: 'upstream timeout' },
+      isError: true,
+      dynamic: true,
+    });
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'c1',
+        toolName: 'mcp__weather__current',
+        error: { message: 'upstream timeout' },
+        providerExecuted: true,
+        dynamic: true,
+      }),
+    ]);
   });
 
   it('fans file-change out into a dynamic provider-executed tool-call + tool-result pair', () => {

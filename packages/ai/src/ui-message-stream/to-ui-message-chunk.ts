@@ -1,4 +1,4 @@
-import { getErrorMessage, type ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type {
   InferUIMessageData,
@@ -38,7 +38,7 @@ export function toUIMessageChunk<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = getErrorMessage,
+    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
     messageMetadata,
     responseMessageId,
   }: ToUIMessageChunkOptions<TOOLS, UI_MESSAGE> = {},
@@ -254,6 +254,7 @@ export function toUIMessageChunk<
         type: 'tool-approval-request',
         approvalId: part.approvalId,
         toolCallId: part.toolCall.toolCallId,
+        ...(part.reason != null ? { reason: part.reason } : {}),
         ...(part.isAutomatic != null ? { isAutomatic: part.isAutomatic } : {}),
         ...(part.signature != null ? { signature: part.signature } : {}),
       };
@@ -277,7 +278,9 @@ export function toUIMessageChunk<
       return {
         type: 'tool-output-available',
         toolCallId: part.toolCallId,
-        output: part.output,
+        // UI stream chunks are serialized as JSON, which drops undefined
+        // properties. Use null so tool outputs always keep the output field.
+        output: part.output === undefined ? null : part.output,
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),

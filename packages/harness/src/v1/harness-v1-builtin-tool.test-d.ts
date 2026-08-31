@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { assertType, describe, expectTypeOf, test } from 'vitest';
 import {
   commonTool,

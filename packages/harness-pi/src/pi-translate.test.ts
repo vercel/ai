@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PiSessionEvent } from './pi-events';
 import {
   createPiTranslatorState,
+  finishPiApprovalStep,
   translatePiEvent,
   type PiTranslatorState,
 } from './pi-translate';
@@ -93,6 +94,167 @@ describe('translatePiEvent', () => {
     );
     expect(closing.find(p => p.type === 'text-delta')).toBeUndefined();
     expect(closing.find(p => p.type === 'text-end')).toBeDefined();
+  });
+
+  it('emits finish-step at turn_end when the assistant requested no tools', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_update',
+          assistantMessageEvent: { type: 'text_delta', delta: 'done' },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const closing = translatePiEvent(
+      {
+        type: 'message_end',
+        message: {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'done' }],
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(closing.map(p => p.type)).toEqual(['text-end']);
+
+    const turnEnd = translatePiEvent(
+      { type: 'turn_end' } as PiSessionEvent,
+      state,
+    );
+
+    expect(turnEnd.map(p => p.type)).toEqual(['finish-step']);
+  });
+
+  it('waits for requested tool executions before emitting finish-step', () => {
+    const state = createPiTranslatorState({ builtinToolNames: ['bash'] });
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [{ type: 'toolCall', id: 'c-step', name: 'bash' }],
+          },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const start = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'c-step',
+        toolName: 'bash',
+        args: { command: 'pwd' },
+      } as PiSessionEvent,
+      state,
+    );
+    const end = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'c-step',
+        result: 'ok',
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(start.map(p => p.type)).toEqual(['tool-call']);
+    expect(start[0]).toMatchObject({ stepToolCallCount: 1 });
+    expect(end.map(p => p.type)).toEqual(['tool-result', 'finish-step']);
+  });
+
+  it('reports the same step tool-call count on parallel tool calls', () => {
+    const state = createPiTranslatorState({ hostToolNames: ['deploy'] });
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [
+              { type: 'toolCall', id: 'call-1', name: 'deploy' },
+              { type: 'toolCall', id: 'call-2', name: 'deploy' },
+            ],
+          },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const calls = emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'call-1',
+          toolName: 'deploy',
+          args: { target: 'one' },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'call-2',
+          toolName: 'deploy',
+          args: { target: 'two' },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    expect(calls).toEqual([
+      expect.objectContaining({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        stepToolCallCount: 2,
+      }),
+      expect.objectContaining({
+        type: 'tool-call',
+        toolCallId: 'call-2',
+        stepToolCallCount: 2,
+      }),
+    ]);
+  });
+
+  it('emits finish-step after a built-in approval request pauses the step', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [{ type: 'toolCall', id: 'approval-1', name: 'write' }],
+          },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    expect(finishPiApprovalStep(state, 'approval-1').map(p => p.type)).toEqual([
+      'finish-step',
+    ]);
   });
 
   it('emits reasoning-start lazily on first thinking_delta', () => {
@@ -199,6 +361,145 @@ describe('translatePiEvent', () => {
     );
     const part = out[0] as { providerExecuted?: boolean };
     expect(part.providerExecuted).toBeUndefined();
+  });
+
+  it('marks MCP-prefixed tool calls and results as dynamic and parses JSON results', () => {
+    const state = createPiTranslatorState();
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+
+    const call = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'mcp-call',
+        toolName: 'mcp__memory_search',
+        args: { query: 'AI SDK' },
+      } as PiSessionEvent,
+      state,
+    );
+    const result = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'mcp-call',
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: '{"matches":["AI SDK Core","AI SDK UI"]}',
+            },
+          ],
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect([call[0], result[0]]).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{\"query\":\"AI SDK\"}",
+          "providerExecuted": true,
+          "toolCallId": "mcp-call",
+          "toolName": "mcp__memory_search",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": {
+            "matches": [
+              "AI SDK Core",
+              "AI SDK UI",
+            ],
+          },
+          "toolCallId": "mcp-call",
+          "toolName": "mcp__memory_search",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('keeps non-JSON MCP results and JSON native results as text', () => {
+    const state = createPiTranslatorState({ builtinToolNames: ['read'] });
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+
+    emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'mcp-call',
+          toolName: 'mcp__memory_search',
+          args: {},
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'native-call',
+          toolName: 'read',
+          args: {},
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const mcpResult = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'mcp-call',
+        result: { content: [{ type: 'text', text: 'not JSON' }] },
+      } as PiSessionEvent,
+      state,
+    );
+    const nativeResult = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'native-call',
+        result: { content: [{ type: 'text', text: '{"path":"README.md"}' }] },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect([mcpResult[0], nativeResult[0]]).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "result": "not JSON",
+          "toolCallId": "mcp-call",
+          "toolName": "mcp__memory_search",
+          "type": "tool-result",
+        },
+        {
+          "result": "{\"path\":\"README.md\"}",
+          "toolCallId": "native-call",
+          "toolName": "read",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('keeps explicitly typed host tools static even with an MCP prefix', () => {
+    const state = createPiTranslatorState({
+      hostToolNames: ['mcp__custom_tool'],
+    });
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+
+    const out = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'host-call',
+        toolName: 'mcp__custom_tool',
+        args: {},
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(out[0]).toMatchInlineSnapshot(`
+      {
+        "input": "{}",
+        "toolCallId": "host-call",
+        "toolName": "mcp__custom_tool",
+        "type": "tool-call",
+      }
+    `);
   });
 
   it('correlates tool-result with the prior tool-call by id', () => {

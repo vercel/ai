@@ -6,6 +6,7 @@ export {
   type WorkflowAgentOptions,
   type WorkflowAgentStreamOptions,
   type WorkflowAgentStreamResult,
+  type WorkflowToolApprovalSecret,
   type GenerationSettings,
   type InferWorkflowAgentTools,
   type InferWorkflowAgentUIMessage,
@@ -45,3 +46,5 @@ export {
   type SendMessagesOptions,
   type ReconnectToStreamOptions,
 } from './workflow-chat-transport.js';
+
+export { normalizeUIMessageStreamParts } from './normalize-ui-message-stream.js';

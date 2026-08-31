@@ -1,6 +1,7 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { Callback } from '../util/callback';
 import type { FinishReason } from '../types/language-model';
+import type { ProviderMetadata } from '../types/provider-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 import type { ContentPart } from './content-part';
 import type { StandardizedPrompt } from '../prompt/standardize-prompt';
@@ -55,6 +56,9 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
     /** The provider-returned response id for this model call. */
     readonly responseId: string;
 
+    /** Optional provider-specific metadata for this model call. */
+    readonly providerMetadata?: ProviderMetadata;
+
     /** Performance metrics for the model call. */
     readonly performance: {
       /** Time spent waiting for the language model response in milliseconds. */
@@ -105,7 +109,7 @@ export type LanguageModelCallEndEvent<TOOLS extends ToolSet = ToolSet> =
   };
 
 /**
- * Callback that is set using the `experimental_onLanguageModelCallStart` option.
+ * Callback that is set using the `onLanguageModelCallStart` option.
  *
  * Called immediately before the provider model call begins.
  * Unlike step-start callbacks, this is scoped to model work only and
@@ -117,7 +121,7 @@ export type OnLanguageModelCallStartCallback =
   Callback<LanguageModelCallStartEvent>;
 
 /**
- * Callback that is set using the `experimental_onLanguageModelCallEnd` option.
+ * Callback that is set using the `onLanguageModelCallEnd` option.
  *
  * Called after the model response has been normalized and parsed, but before
  * any client-side tool execution begins.

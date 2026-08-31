@@ -22,12 +22,14 @@ export const weatherPiHarnessAgent = new HarnessAgent({
   sandbox: createVercelSandbox({
     runtime: 'node24',
   }),
-  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
-    await session.writeTextFile({
-      path: `${sessionWorkDir}/weather-codes.md`,
-      content: WEATHER_CODES_REFERENCE,
-      abortSignal,
-    });
+  sandboxConfig: {
+    onSession: async ({ session, sessionWorkDir, abortSignal }) => {
+      await session.writeTextFile({
+        path: `${sessionWorkDir}/weather-codes.md`,
+        content: WEATHER_CODES_REFERENCE,
+        abortSignal,
+      });
+    },
   },
   debug: { enabled: true },
   telemetry: {

@@ -7,6 +7,7 @@ export type AmazonBedrockChatModelId =
   | 'anthropic.claude-v2'
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-instant-v1'
+  | 'anthropic.claude-sonnet-5'
   | 'anthropic.claude-fable-5'
   | 'anthropic.claude-opus-4-8'
   | 'anthropic.claude-opus-4-7'
@@ -57,6 +58,7 @@ export type AmazonBedrockChatModelId =
   | 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
   | 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
   | 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+  | 'us.anthropic.claude-sonnet-5'
   | 'us.anthropic.claude-fable-5'
   | 'us.anthropic.claude-opus-4-8'
   | 'us.anthropic.claude-opus-4-7'
@@ -102,6 +104,33 @@ export const amazonBedrockFilePartProviderOptions = z.object({
 
 export type AmazonBedrockFilePartProviderOptions = z.infer<
   typeof amazonBedrockFilePartProviderOptions
+>;
+
+/**
+ * Amazon Bedrock text part provider options for guardrail content.
+ * These options apply to individual text parts.
+ */
+export const amazonBedrockTextPartProviderOptions = z.object({
+  guardContent: z.boolean().optional(),
+  guardContentQualifiers: z
+    .array(z.enum(['grounding_source', 'query', 'guard_content']))
+    .optional(),
+});
+
+export type AmazonBedrockTextPartProviderOptions = z.infer<
+  typeof amazonBedrockTextPartProviderOptions
+>;
+
+/**
+ * Amazon Bedrock image part provider options for guardrail content.
+ * These options apply to individual image parts.
+ */
+export const amazonBedrockImagePartProviderOptions = z.object({
+  guardContent: z.boolean().optional(),
+});
+
+export type AmazonBedrockImagePartProviderOptions = z.infer<
+  typeof amazonBedrockImagePartProviderOptions
 >;
 
 export const amazonBedrockLanguageModelChatOptions = z.object({

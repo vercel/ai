@@ -17,8 +17,8 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { WorkflowAgent } from './workflow-agent.js';
 
 // ============================================================================
@@ -263,6 +263,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         prepareCall: options => {
           return {
             ...options,
+            reasoning: 'none',
             providerOptions: {
               test: { value: 'from-prepareCall' },
             },
@@ -284,6 +285,43 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           },
         }
       `);
+      expect(doStreamOptions?.reasoning).toBe('none');
+    });
+
+    it('should pass reasoning to streamText', async () => {
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        reasoning: 'low',
+      });
+
+      const { writable } = createMockWritable();
+
+      await agent.stream({
+        messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+        writable,
+        reasoning: 'none',
+      });
+
+      expect(doStreamOptions?.reasoning).toBe('none');
+    });
+
+    it('should allow prepareStep to override reasoning', async () => {
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        reasoning: 'none',
+        prepareStep: () => ({
+          reasoning: 'high',
+        }),
+      });
+
+      const { writable } = createMockWritable();
+
+      await agent.stream({
+        messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+        writable,
+      });
+
+      expect(doStreamOptions?.reasoning).toBe('high');
     });
 
     it('should pass abortSignal to streamText', async () => {
@@ -319,6 +357,28 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
       // timeout is merged into abortSignal, so we check that an abort signal was created
       expect(doStreamOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should abort before calling the model when the timeout is already elapsed', async () => {
+      const agent = new WorkflowAgent({ model: mockModel });
+      const { writable } = createMockWritable();
+      const onAbort = vi.fn();
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+
+      await agent.stream({
+        messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+        writable,
+        timeout: 0,
+        onAbort,
+        onError,
+        onFinish,
+      });
+
+      expect(mockModel.doStreamCalls).toHaveLength(0);
+      expect(onAbort).toHaveBeenCalledWith({ steps: [] });
+      expect(onError).not.toHaveBeenCalled();
+      expect(onFinish).not.toHaveBeenCalled();
     });
 
     it('should pass string instructions', async () => {
@@ -461,6 +521,30 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         ]
       `);
     });
+
+    it('should expose finishReason and totalUsage on the stream result', async () => {
+      const agent = new WorkflowAgent({
+        model: mockModel,
+      });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user' as const, content: 'test' }],
+        writable,
+      });
+
+      expect({
+        finishReason: result.finishReason,
+        inputTokens: result.totalUsage.inputTokens,
+        outputTokens: result.totalUsage.outputTokens,
+      }).toMatchInlineSnapshot(`
+        {
+          "finishReason": "stop",
+          "inputTokens": 3,
+          "outputTokens": 10,
+        }
+      `);
+    });
   });
 
   describe('experimental_onStart', () => {
@@ -591,7 +675,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 {
                   "abortSignal": undefined,
                   "frequencyPenalty": undefined,
-                  "headers": undefined,
+                  "headers": {
+                    "user-agent": "ai-sdk-agent/workflow",
+                  },
                   "includeRawChunks": false,
                   "maxOutputTokens": 500,
                   "presencePenalty": undefined,
@@ -614,6 +700,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                     },
                   ],
                   "providerOptions": undefined,
+                  "reasoning": undefined,
                   "responseFormat": undefined,
                   "seed": undefined,
                   "stopSequences": undefined,
@@ -762,7 +849,9 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 {
                   "abortSignal": undefined,
                   "frequencyPenalty": undefined,
-                  "headers": undefined,
+                  "headers": {
+                    "user-agent": "ai-sdk-agent/workflow",
+                  },
                   "includeRawChunks": false,
                   "maxOutputTokens": undefined,
                   "presencePenalty": undefined,
@@ -785,6 +874,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                     },
                   ],
                   "providerOptions": undefined,
+                  "reasoning": undefined,
                   "responseFormat": undefined,
                   "seed": undefined,
                   "stopSequences": undefined,

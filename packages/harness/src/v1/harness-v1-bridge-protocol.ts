@@ -4,6 +4,7 @@ import {
   harnessV1DebugLevelSchema,
   type HarnessV1Diagnostic,
 } from './harness-v1-diagnostic';
+import type { HarnessV1ResponseFormat } from './harness-v1-response-format';
 import {
   harnessV1CompactionPartSchema,
   harnessV1ErrorPartSchema,
@@ -20,6 +21,9 @@ import {
   harnessV1TextStartPartSchema,
   harnessV1ToolApprovalRequestPartSchema,
   harnessV1ToolCallPartSchema,
+  harnessV1ToolInputDeltaPartSchema,
+  harnessV1ToolInputEndPartSchema,
+  harnessV1ToolInputStartPartSchema,
   harnessV1ToolResultPartSchema,
 } from './harness-v1-stream-part';
 
@@ -39,7 +43,7 @@ import {
  *     member schemas from `harness-v1-stream-part.ts`), because the part type is
  *     compile-time only and the frames need runtime validation at the boundary.
  *  2. The transport/control frames that are NOT consumer events — `bridge-hello`
- *     (handshake), `bridge-detach` (resume payload), `bridge-thread` (a resume
+ *     (handshake), `bridge-stop` (runtime resume data), `bridge-thread` (a resume
  *     coordinate some runtimes announce). These ride the same socket.
  *  3. The INBOUND command vocabulary the host sends back: the shared commands
  *     live here; the per-adapter `start` payload extends
@@ -73,6 +77,31 @@ export const harnessV1BridgePermissionModeSchema = z.enum([
   'allow-all',
 ]);
 
+export const harnessV1BridgeBuiltinToolFilteringSchema = z.discriminatedUnion(
+  'mode',
+  [
+    z.object({
+      mode: z.literal('allow'),
+      toolNames: z.array(z.string()),
+    }),
+    z.object({
+      mode: z.literal('deny'),
+      toolNames: z.array(z.string()),
+    }),
+  ],
+);
+
+export const harnessV1BridgeResponseFormatSchema: z.ZodType<HarnessV1ResponseFormat> =
+  z.discriminatedUnion('type', [
+    z.object({ type: z.literal('text') }),
+    z.object({
+      type: z.literal('json'),
+      schema: z.record(z.string(), z.json()).optional(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+    }),
+  ]);
+
 /**
  * Common fields of the inbound `start` message. Each adapter extends this with
  * its runtime-specific configuration (e.g. `thinking`/`continue` for Claude
@@ -90,6 +119,8 @@ export const harnessV1BridgeStartBaseSchema = z.object({
   model: z.string().optional(),
   debug: harnessV1DebugConfigSchema.optional(),
   permissionMode: harnessV1BridgePermissionModeSchema.optional(),
+  builtinToolFiltering: harnessV1BridgeBuiltinToolFilteringSchema.optional(),
+  responseFormat: harnessV1BridgeResponseFormatSchema.optional(),
 });
 
 // --- Transport / control frames (outbound, not consumer events) ---
@@ -105,20 +136,32 @@ export const harnessV1BridgeHelloSchema = z.object({
   type: z.literal('bridge-hello'),
   state: z.string().optional(),
   lastSeq: z.number().optional(),
+  capabilities: z
+    .object({
+      experimental_userMessageResponses: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+export const experimental_harnessV1BridgeUserMessageResponseSchema = z.object({
+  type: z.literal('user-message-response'),
+  messageId: z.string(),
+  accepted: z.boolean(),
+  error: z.object({ message: z.string() }).optional(),
 });
 
 /**
- * The bridge's reply to an inbound `detach`. Carries the adapter-specific
+ * The bridge's reply to an inbound `stop`. Carries the adapter-specific
  * payload the host serializes into lifecycle state `data`.
  */
-export const harnessV1BridgeDetachSchema = z.object({
-  type: z.literal('bridge-detach'),
+export const harnessV1BridgeStopSchema = z.object({
+  type: z.literal('bridge-stop'),
   data: z.unknown(),
 });
 
 /**
  * A resume coordinate the bridge proactively announces (e.g. Codex's thread id)
- * so the host can cache it for a later resume without waiting for `detach`.
+ * so the host can cache it for a later resume without waiting for `stop`.
  */
 export const harnessV1BridgeThreadSchema = z.object({
   type: z.literal('bridge-thread'),
@@ -173,6 +216,9 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1ReasoningStartPartSchema,
     harnessV1ReasoningDeltaPartSchema,
     harnessV1ReasoningEndPartSchema,
+    harnessV1ToolInputStartPartSchema,
+    harnessV1ToolInputDeltaPartSchema,
+    harnessV1ToolInputEndPartSchema,
     harnessV1ToolCallPartSchema,
     harnessV1ToolApprovalRequestPartSchema,
     harnessV1ToolResultPartSchema,
@@ -183,7 +229,8 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
     harnessV1ErrorPartSchema,
     harnessV1RawPartSchema,
     harnessV1BridgeHelloSchema,
-    harnessV1BridgeDetachSchema,
+    experimental_harnessV1BridgeUserMessageResponseSchema,
+    harnessV1BridgeStopSchema,
     harnessV1BridgeThreadSchema,
     harnessV1BridgeSandboxLogSchema,
     harnessV1BridgeDebugEventSchema,
@@ -192,6 +239,10 @@ export const harnessV1BridgeOutboundMessageSchema = z.discriminatedUnion(
 
 export type HarnessV1BridgeOutboundMessage = z.infer<
   typeof harnessV1BridgeOutboundMessageSchema
+>;
+
+export type Experimental_HarnessV1BridgeUserMessageResponse = z.infer<
+  typeof experimental_harnessV1BridgeUserMessageResponseSchema
 >;
 
 export type HarnessV1BridgeSandboxLog = z.infer<
@@ -255,15 +306,21 @@ export const harnessV1BridgeToolApprovalResponseInboundSchema = z.object({
 
 export const harnessV1BridgeUserMessageInboundSchema = z.object({
   type: z.literal('user-message'),
+  messageId: z.string().optional(),
   text: z.string(),
 });
+
+export const experimental_harnessV1BridgeUserMessageInboundSchema =
+  harnessV1BridgeUserMessageInboundSchema.extend({
+    messageId: z.string(),
+  });
 
 export const harnessV1BridgeAbortInboundSchema = z.object({
   type: z.literal('abort'),
 });
 
-export const harnessV1BridgeShutdownInboundSchema = z.object({
-  type: z.literal('shutdown'),
+export const harnessV1BridgeDestroyInboundSchema = z.object({
+  type: z.literal('destroy'),
 });
 
 /**
@@ -276,11 +333,11 @@ export const harnessV1BridgeResumeInboundSchema = z.object({
 });
 
 /**
- * The bridge replies with `bridge-detach` carrying any cached resume payload,
+ * The bridge replies with `bridge-stop` carrying any runtime resume data,
  * then exits.
  */
-export const harnessV1BridgeDetachInboundSchema = z.object({
-  type: z.literal('detach'),
+export const harnessV1BridgeStopInboundSchema = z.object({
+  type: z.literal('stop'),
 });
 
 /**
@@ -293,9 +350,9 @@ export const harnessV1BridgeInboundCommandSchemas = [
   harnessV1BridgeToolApprovalResponseInboundSchema,
   harnessV1BridgeUserMessageInboundSchema,
   harnessV1BridgeAbortInboundSchema,
-  harnessV1BridgeShutdownInboundSchema,
+  harnessV1BridgeDestroyInboundSchema,
   harnessV1BridgeResumeInboundSchema,
-  harnessV1BridgeDetachInboundSchema,
+  harnessV1BridgeStopInboundSchema,
 ] as const;
 
 /**

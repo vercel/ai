@@ -1,52 +1,98 @@
-import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { posix } from 'node:path';
 import {
   commonTool,
   harnessV1DiagnosticFromBridgeFrame,
   HarnessCapabilityUnsupportedError,
   type HarnessV1,
-  type HarnessV1Bootstrap,
-  type HarnessV1DebugConfig,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnState,
+  type HarnessV1CredentialForwarding,
+  type HarnessV1DebugConfig,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
-import { classifyDiskLog, SandboxChannel } from '@ai-sdk/harness/utils';
+import {
+  applyCredentialForwarding,
+  classifyDiskLog,
+  createSandboxCredentialEnvironment,
+  createBridgeToken,
+  experimental_createBridgeUserMessageSubmitter,
+  createBridgeErrorHandler,
+  createBridgeStartupError,
+  drainBridgeProcessStream,
+  forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
+  markBridgeStarting,
+  resolveSandboxDefaultWorkingDirectory,
+  resolveSandboxHomeDir,
+  SandboxChannel,
+  shellQuote,
+  warnCredentialBrokeringUnavailable,
+  waitForBridgeReady,
+  withBridgeToken,
+  writeSkills as writeHarnessSkills,
+} from '@ai-sdk/harness/utils';
 import {
   safeParseJSON,
   tool,
-  type Experimental_SandboxSession,
+  type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
+  CLAUDE_CODE_BOOTSTRAP_DIR as BOOTSTRAP_DIR,
+  getClaudeCodeBootstrap,
+} from './claude-code-bootstrap';
+import {
+  CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  createClaudeCodeRequestTransformations,
+  resolveClaudeCodeAuthenticationMode,
   resolveClaudeCodeEnv,
-  type ClaudeCodeAuthOptions,
+  type ClaudeCodeAuthenticationMode,
 } from './claude-code-auth';
 import {
-  bridgeReadySchema,
   outboundMessageSchema,
   type InboundMessage,
   type OutboundMessage,
 } from './claude-code-bridge-protocol';
+import type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
+import { VERSION } from './version';
 
 type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
 
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
+
 export type ClaudeCodeHarnessSettings = {
-  readonly auth?: ClaudeCodeAuthOptions;
+  readonly auth?: ClaudeCodeAuthenticationMode;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
   /**
    * Anthropic model id the underlying `claude` CLI should use. Leaving this
    * unset defers to the CLI's default.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -55,10 +101,20 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
-   * Controls extended-thinking behavior. `'off'` disables thinking,
-   * `'on'` forces it on, `'adaptive'` lets the runtime decide.
+   * Environment variables for the Claude Code process. These values are
+   * merged over the sandbox bridge process environment.
    */
-  readonly thinking?: 'off' | 'on' | 'adaptive';
+  readonly env?: Readonly<Record<string, string>>;
+  /**
+   * Controls extended-thinking behavior and whether reasoning is summarized or
+   * omitted. Defaults to `{ type: 'adaptive', display: 'summarized' }`.
+   */
+  readonly thinking?: ClaudeCodeThinkingConfig;
+  /**
+   * Controls how much effort Claude applies when adaptive thinking is enabled.
+   * Unset uses the Claude Agent SDK default.
+   */
+  readonly effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
@@ -66,21 +122,60 @@ export type ClaudeCodeHarnessSettings = {
    * is reserved for something else.
    */
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: (sandboxId: string) => string;
 };
 
 /*
  * Every native tool the Claude Code CLI can invoke, declared as a `ToolSet`
  * keyed by what the bridge emits as `toolName` on the wire
- * (`commonName ?? nativeName`). Schemas transcribed from
- * `@anthropic-ai/claude-agent-sdk`'s `agentSdkTypes.d.ts`.
+ * (`commonName ?? nativeName`). Schemas are transcribed from the generated
+ * `sdk-tools.d.ts` and the conditionally registered tool definitions in the
+ * pinned Claude Code executable.
  *
  * `MCP` (the generic proxy tool inside the Claude Code SDK) is intentionally
  * omitted — the bridge filters out `mcp__harness-tools__*` tool names before
  * emitting them, and other MCP invocations come through with their own
  * server-tool names rather than the literal `'Mcp'` token.
  */
+const listMcpResourcesInputSchema = z.object({
+  server: z.string().optional(),
+});
+
+const readMcpResourceInputSchema = z.object({
+  server: z.string(),
+  uri: z.string(),
+});
+
+const structuredTeamMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('shutdown_request'),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('shutdown_response'),
+    request_id: z.string(),
+    approve: z.boolean(),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('plan_approval_response'),
+    request_id: z.string(),
+    approve: z.boolean(),
+    feedback: z.string().optional(),
+  }),
+]);
+
 const CLAUDE_CODE_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'Read',
@@ -227,7 +322,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       subject: z.string(),
       description: z.string(),
       activeForm: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskGet: tool({
@@ -250,7 +345,7 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       addBlocks: z.array(z.string()).optional(),
       addBlockedBy: z.array(z.string()).optional(),
       owner: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
     }),
   }),
   TaskList: tool({
@@ -272,29 +367,86 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       timeout: z.number(),
     }),
   }),
-  ListMcpResources: tool({
-    description: 'List resources available from MCP servers',
-    inputSchema: z.object({ server: z.string().optional() }),
-  }),
-  ReadMcpResource: tool({
-    description: 'Read a specific MCP resource by URI',
-    inputSchema: z.object({ server: z.string(), uri: z.string() }),
-  }),
+  Monitor: {
+    ...tool({
+      description: 'Run and monitor a shell command or WebSocket',
+      inputSchema: z.object({
+        description: z.string().optional(),
+        timeout_ms: z.number().optional(),
+        persistent: z.boolean().optional(),
+        command: z.string().optional(),
+        ws: z
+          .object({
+            url: z.string(),
+            protocols: z.array(z.string()).optional(),
+          })
+          .optional(),
+      }),
+    }),
+    toolUseKind: 'bash',
+  },
+  ListMcpResources: {
+    ...tool({
+      description: 'List resources available from MCP servers',
+      inputSchema: listMcpResourcesInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ListMcpResourcesTool: {
+    ...tool({
+      description: 'List resources available from MCP servers',
+      inputSchema: listMcpResourcesInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResource: {
+    ...tool({
+      description: 'Read a specific MCP resource by URI',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResourceTool: {
+    ...tool({
+      description: 'Read a specific MCP resource by URI',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  ReadMcpResourceDirTool: {
+    ...tool({
+      description: 'List direct children of an MCP directory resource',
+      inputSchema: readMcpResourceInputSchema,
+    }),
+    toolUseKind: 'readonly',
+  },
+  RefreshMcpTools: {
+    ...tool({
+      description: 'Refresh tools from one or all connected MCP servers',
+      inputSchema: z.object({ server: z.string().optional() }),
+    }),
+    toolUseKind: 'readonly',
+  },
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
-    inputSchema: z
-      .object({
-        allowedPrompts: z
-          .array(
-            z.object({
-              tool: z.literal('Bash'),
-              prompt: z.string(),
-            }),
-          )
-          .optional(),
-      })
-      .passthrough(),
+    inputSchema: z.looseObject({
+      allowedPrompts: z
+        .array(
+          z.object({
+            tool: z.literal('Bash'),
+            prompt: z.string(),
+          }),
+        )
+        .optional(),
+    }),
   }),
+  EnterPlanMode: {
+    ...tool({
+      description: 'Enter plan mode',
+      inputSchema: z.object({}),
+    }),
+    toolUseKind: 'readonly',
+  },
   EnterWorktree: tool({
     description: 'Create or enter an isolated git worktree',
     inputSchema: z.object({
@@ -329,9 +481,10 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
         )
         .min(1)
         .max(4),
-      answers: z.record(z.string()).optional(),
+      answers: z.record(z.string(), z.string()).optional(),
       annotations: z
         .record(
+          z.string(),
           z.object({
             preview: z.string().optional(),
             notes: z.string().optional(),
@@ -341,35 +494,297 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       metadata: z.object({ source: z.string().optional() }).optional(),
     }),
   }),
-  Skill: tool({
-    description: 'Activate a skill by name',
+  Skill: {
+    ...tool({
+      description: 'Activate a skill by name',
+      inputSchema: z.object({
+        skill: z.string(),
+        args: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ToolSearch: tool({
+    description:
+      'Search deferred MCP / catalog tools so the model can load them on demand',
     inputSchema: z.object({
-      skill: z.string(),
-      args: z.string().optional(),
+      query: z.string(),
+      max_results: z.number().optional(),
     }),
   }),
+  Artifact: {
+    ...tool({
+      description: 'Publish or list claude.ai artifacts',
+      inputSchema: z.object({
+        action: z.enum(['publish', 'list']).optional(),
+        file_path: z.string().optional(),
+        favicon: z.string().optional(),
+        limit: z.number().optional(),
+        scope: z.enum(['mine', 'shared', 'all']).optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        label: z.string().optional(),
+        url: z.string().optional(),
+        force: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronCreate: {
+    ...tool({
+      description: 'Schedule a recurring or one-shot prompt',
+      inputSchema: z.object({
+        cron: z.string(),
+        prompt: z.string(),
+        recurring: z.boolean().optional(),
+        durable: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronDelete: {
+    ...tool({
+      description: 'Delete a scheduled prompt by id',
+      inputSchema: z.object({ id: z.string() }),
+    }),
+    toolUseKind: 'edit',
+  },
+  CronList: {
+    ...tool({
+      description: 'List scheduled prompts for the current session',
+      inputSchema: z.object({}),
+    }),
+    toolUseKind: 'readonly',
+  },
+  DesignSync: {
+    ...tool({
+      description: 'Read or update claude.ai Design projects',
+      inputSchema: z.object({
+        method: z.enum([
+          'list_projects',
+          'get_project',
+          'list_files',
+          'get_file',
+          'finalize_plan',
+          'write_files',
+          'delete_files',
+          'register_assets',
+          'unregister_assets',
+          'create_project',
+          'report_validate',
+        ]),
+        projectId: z.string().optional(),
+        path: z.string().optional(),
+        writes: z.array(z.string()).max(256).optional(),
+        deletes: z.array(z.string()).max(256).optional(),
+        planId: z.string().optional(),
+        files: z
+          .array(
+            z.object({
+              path: z.string(),
+              localPath: z.string().optional(),
+              data: z.string().optional(),
+              encoding: z.literal('base64').optional(),
+              mimeType: z.string().optional(),
+            }),
+          )
+          .max(256)
+          .optional(),
+        paths: z.array(z.string()).max(256).optional(),
+        name: z.string().optional(),
+        assets: z
+          .array(
+            z.object({
+              name: z.string(),
+              path: z.string(),
+              subtitle: z.string().optional(),
+              viewport: z
+                .object({
+                  width: z.number(),
+                  height: z.number().optional(),
+                })
+                .optional(),
+              group: z.string().optional(),
+            }),
+          )
+          .max(256)
+          .optional(),
+        localDir: z.string().optional(),
+        counts: z
+          .object({
+            total: z.number(),
+            bad: z.number(),
+            thin: z.number(),
+            variantsIdentical: z.number(),
+            iterations: z.number(),
+          })
+          .optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  LSP: {
+    ...tool({
+      description: 'Query a language server for code intelligence',
+      inputSchema: z.object({
+        operation: z.enum([
+          'goToDefinition',
+          'findReferences',
+          'hover',
+          'documentSymbol',
+          'workspaceSymbol',
+          'goToImplementation',
+          'prepareCallHierarchy',
+          'incomingCalls',
+          'outgoingCalls',
+        ]),
+        filePath: z.string(),
+        line: z.number().int().positive(),
+        character: z.number().int().positive(),
+        query: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  PowerShell: {
+    ...tool({
+      description: 'Execute a PowerShell command, optionally in background',
+      inputSchema: z.object({
+        command: z.string(),
+        timeout: z.number().optional(),
+        description: z.string().optional(),
+        run_in_background: z.boolean().optional(),
+        dangerouslyDisableSandbox: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'bash',
+  },
+  PushNotification: {
+    ...tool({
+      description: 'Send a notification for proactive or scheduled work',
+      inputSchema: z.object({
+        message: z.string(),
+        status: z.literal('proactive'),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  RemoteTrigger: {
+    ...tool({
+      description: 'List, manage, or run a claude.ai Routine trigger',
+      inputSchema: z.object({
+        action: z.enum(['list', 'get', 'create', 'update', 'run']),
+        trigger_id: z.string().optional(),
+        body: z.record(z.string(), z.unknown()).optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  ReportFindings: {
+    ...tool({
+      description: 'Return verified code-review findings',
+      inputSchema: z.object({
+        level: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+        findings: z
+          .array(
+            z.object({
+              file: z.string(),
+              line: z.number().optional(),
+              summary: z.string(),
+              short_summary: z.string().optional(),
+              failure_scenario: z.string(),
+              category: z.string().optional(),
+              verdict: z.enum(['CONFIRMED', 'PLAUSIBLE']).optional(),
+              outcome: z
+                .enum(['fixed', 'skipped', 'no_change_needed'])
+                .optional(),
+            }),
+          )
+          .max(32),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ScheduleWakeup: {
+    ...tool({
+      description: 'Schedule or stop the next iteration of a dynamic loop',
+      inputSchema: z.object({
+        delaySeconds: z.number().optional(),
+        reason: z.string().optional(),
+        prompt: z.string().optional(),
+        stop: z.boolean().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  SendMessage: {
+    ...tool({
+      description: 'Send a plain-text or protocol message to another agent',
+      inputSchema: z.object({
+        to: z.string(),
+        summary: z.string().max(200).optional(),
+        message: z.union([z.string(), structuredTeamMessageSchema]),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  SendUserFile: {
+    ...tool({
+      description: 'Send one or more files to the user',
+      inputSchema: z.object({
+        files: z.union([z.string(), z.array(z.string()).min(1)]),
+        caption: z.string().optional(),
+        status: z.enum(['normal', 'proactive']),
+        display: z.enum(['render', 'attach']).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  ShareOnboardingGuide: {
+    ...tool({
+      description: 'Create, update, inspect, or delete an onboarding guide',
+      inputSchema: z.object({
+        mode: z.enum(['check', 'update', 'create', 'delete']).optional(),
+        short_code: z
+          .string()
+          .regex(/^[A-Za-z0-9_-]{1,64}$/)
+          .optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  WaitForMcpServers: {
+    ...tool({
+      description: 'Wait for MCP servers that are still connecting',
+      inputSchema: z.object({
+        servers: z.array(z.string()).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  Workflow: {
+    ...tool({
+      description: 'Run or resume a dynamic multi-agent workflow',
+      inputSchema: z.object({
+        script: z.string().optional(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        title: z.string().optional(),
+        args: z.record(z.string(), z.unknown()).optional(),
+        scriptPath: z.string().optional(),
+        resumeFromRunId: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
-
-/*
- * Bootstrap lives in /tmp because it's pure derived state — the harness can
- * reinstall the CLI and bridge files on any fresh sandbox from the recipe.
- * Persistence comes from the sandbox provider's snapshot, not the path.
- *
- * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
- * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
- * default working directory — the provider's persistent mount — so the
- * workdir's CLI state (Claude's `~/.claude/projects/<dir>/*.jsonl` thread
- * history is keyed by working directory) and the bridge state files survive
- * both detach -> attach/replay and stop -> snapshot -> resume cycles.
- */
-const BOOTSTRAP_DIR = '/tmp/harness/claude-code';
 
 /**
  * Live bridge coordinates returned by `doDetach()` and `doSuspendTurn()`. A
  * future process uses them to reopen a socket to the still-running bridge
  * (`attach`) instead of re-spawning it. Absent on a `doStop()` payload.
  */
-const bridgeCoordsSchema = z.object({
+const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
@@ -383,65 +798,152 @@ const bridgeCoordsSchema = z.object({
  * sandbox via `provider.resumeSession({ sessionId })`, and the Claude SDK's
  * `{ continue: true }` flag rehydrates the thread from the workdir. A
  * `doDetach()` payload additionally carries `bridge` coordinates for
- * cross-process `attach`. `.passthrough()` keeps both shapes valid.
+ * cross-process `attach`. A loose object keeps both shapes valid.
  */
-const claudeCodeResumeStateSchema = z
-  .object({ bridge: bridgeCoordsSchema.optional() })
-  .passthrough();
+const claudeCodeResumeStateSchema = z.looseObject({
+  bridge: claudeCodeBridgeCoordsSchema.optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
+  /**
+   * The exact Claude conversation to rehydrate on resume. Written by the
+   * adapter on `doStop()`/`doDetach()`/`doSuspendTurn()` from the session id
+   * the bridge observed, so a resume names the conversation instead of
+   * relying on the SDK's `continue` flag — "most recent thread in this
+   * workdir" — which silently picks the wrong one once a second thread
+   * exists there. Hosts that captured the id themselves (it is surfaced as
+   * `harnessMetadata['claude-code'].sessionId` on `finish` parts) may also
+   * set it explicitly.
+   */
+  claudeSessionId: z.string().optional(),
+});
 
-type ClaudeCodeBridgeCoords = z.infer<typeof bridgeCoordsSchema>;
+type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
 
 export function createClaudeCode(
   settings: ClaudeCodeHarnessSettings = {},
 ): HarnessV1<typeof CLAUDE_CODE_BUILTIN_TOOLS> {
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
+  if (
+    settings.mcpServers != null &&
+    Object.prototype.hasOwnProperty.call(settings.mcpServers, 'harness-tools')
+  ) {
+    throw new Error(
+      'Claude Code MCP server name "harness-tools" is reserved for HarnessAgent tools.',
+    );
+  }
+  const thinking = settings.thinking ?? {
+    type: 'adaptive',
+    display: 'summarized',
+  };
 
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'claude-code',
     builtinTools: CLAUDE_CODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: claudeCodeResumeStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge] = await Promise.all([
-        readBridgeAsset('package.json'),
-        readBridgeAsset('pnpm-lock.yaml'),
-        readBridgeAsset('index.mjs'),
-      ]);
-      cachedBootstrap = {
-        harnessId: 'claude-code',
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
-          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-        ],
-        commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
-          {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
-          },
-          {
-            command: `cd ${BOOTSTRAP_DIR} && if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version`,
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: getClaudeCodeBootstrap,
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
-      const session = sandboxSession.restricted();
-      const sandboxId = sandboxSession.id;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: settings.port,
+        portEndpoint: settings.portEndpoint,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'claude-code',
+          message:
+            'The Claude Code harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
+        });
+      }
+      const defaultWorkingDirectory =
+        await resolveSandboxDefaultWorkingDirectory({
+          sandboxSession,
+          abortSignal: startOpts.abortSignal,
+        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
-      const coords = isResume
-        ? (lifecycleState?.data as { bridge?: ClaudeCodeBridgeCoords })?.bridge
+      const resumeData = isResume
+        ? (lifecycleState?.data as {
+            bridge?: ClaudeCodeBridgeCoords;
+            sandboxCredentialEnvironment?: Record<string, string>;
+            claudeSessionId?: string;
+          })
         : undefined;
+      const coords = resumeData?.bridge;
+      const authenticationMode = resolveClaudeCodeAuthenticationMode(
+        settings.auth,
+      );
+      const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
+      const claudeEnvironment = {
+        ...resolvedAuthEnvironment,
+        /*
+         * The Claude Agent SDK does not expose arbitrary model-request
+         * headers. It reads this environment variable and sends the value as
+         * `x-client-app`, while also appending `client-app/<value>` to
+         * `User-Agent`, so this is the attribution path for AI Gateway.
+         */
+        ...(resolvedAuthEnvironment.AI_GATEWAY_BASE_URL
+          ? { CLAUDE_AGENT_SDK_CLIENT_APP: CLAUDE_CODE_CLIENT_APP }
+          : {}),
+        ...settings.env,
+      };
+      let sandboxClaudeEnvironment = claudeEnvironment;
+      let sandboxCredentialEnvironment: Record<string, string> | undefined;
+      if (
+        'addRequestTransformations' in sandboxSession &&
+        sandboxSession.addRequestTransformations != null
+      ) {
+        sandboxCredentialEnvironment =
+          resumeData?.sandboxCredentialEnvironment ??
+          (await createSandboxCredentialEnvironment({
+            environment: claudeEnvironment,
+            credentialEnvironmentVariables:
+              CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+            credentialForwarding: settings.credentialForwarding,
+          }));
+        sandboxClaudeEnvironment = {
+          ...claudeEnvironment,
+          ...sandboxCredentialEnvironment,
+        };
+        const requestTransformations = createClaudeCodeRequestTransformations({
+          env: claudeEnvironment,
+          sandboxEnv: sandboxClaudeEnvironment,
+          auth: authenticationMode,
+        });
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+      } else {
+        warnCredentialBrokeringUnavailable();
+        sandboxClaudeEnvironment = await applyCredentialForwarding({
+          environment: sandboxClaudeEnvironment,
+          credentialEnvironmentVariables:
+            CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+          credentialForwarding: settings.credentialForwarding,
+        });
+      }
+      const bootstrapDir = posix.resolve(
+        defaultWorkingDirectory,
+        BOOTSTRAP_DIR,
+      );
+      // The conversation the host wants back, when it is known. Absent on
+      // state written before this field existed; those resumes fall back to
+      // the `continue` flag as before.
+      const resumeSessionId = resumeData?.claudeSessionId;
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -458,13 +960,25 @@ export function createClaudeCode(
               }),
             )
         : undefined;
+      const onBridgeError = createBridgeErrorHandler({
+        harnessId: 'claude-code',
+        sessionId: startOpts.sessionId,
+      });
+      let supportsUserMessageResponses = false;
 
       // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
       // (re)connect: open the socket, then wait for `bridge-hello` so the
       // end-to-end link is proven live before any frame is sent.
-      const buildConnect = (wsUrl: string) => async (): Promise<WebSocket> => {
-        return openBridgeWebSocket({ wsUrl, timeoutMs });
-      };
+      const buildConnect =
+        (endpoint: HarnessV1PortEndpoint) => async (): Promise<WebSocket> => {
+          return openBridgeWebSocket({
+            endpoint,
+            timeoutMs,
+            onHello: supportsResponses => {
+              supportsUserMessageResponses = supportsResponses;
+            },
+          });
+        };
 
       /*
        * Rung 1 — ATTACH. When lifecycle state carries live bridge coordinates,
@@ -476,36 +990,50 @@ export function createClaudeCode(
        */
       if (coords) {
         try {
-          const attachUrl =
-            (await sandboxSession.getPortUrl({
-              port: coords.port,
-              protocol: 'ws',
-            })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+          const endpoint = await resolveBridgeEndpoint({
+            sandboxSession,
+            override: settings.portEndpoint,
+            port: coords.port,
+          });
+          const attachEndpoint = withBridgeToken({
+            endpoint,
+            token: coords.token,
+          });
           const attachChannel: ClaudeCodeChannel = new SandboxChannel({
-            connect: buildConnect(attachUrl),
+            connect: buildConnect(attachEndpoint),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
+            onBridgeError,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             model: settings.model,
             maxTurns: settings.maxTurns,
-            thinking: settings.thinking,
+            env: sandboxClaudeEnvironment,
+            thinking,
+            effort: settings.effort,
             isResume: true,
             continueOnFirstPrompt: false,
             rerunContinue: false,
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
+            sandboxCredentialEnvironment,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
+            sandbox: toolSafeSandboxSession,
+            sandboxHomeDir,
+            mcpServers: settings.mcpServers,
+            supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -526,7 +1054,7 @@ export function createClaudeCode(
         : undefined;
       if (coords && isContinue) {
         const logRaw = await Promise.resolve(
-          session.readTextFile({
+          toolSafeSandboxSession.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
             abortSignal: startOpts.abortSignal,
           }),
@@ -536,10 +1064,15 @@ export function createClaudeCode(
         }
       }
 
-      const port = resolveBridgePort(sandboxSession, settings.port);
-      const token = randomBytes(32).toString('hex');
+      const port = resolveBridgePort({
+        sandboxSession,
+        override: settings.port,
+      });
+      const token =
+        settings.mintBridgeToken == null
+          ? createBridgeToken()
+          : settings.mintBridgeToken(sandboxId!);
       const env = {
-        ...resolveClaudeCodeEnv(settings.auth),
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
         ...(respawnStrategy === 'replay'
@@ -548,64 +1081,76 @@ export function createClaudeCode(
       };
 
       /*
-       * On a fresh start the workdir, skill files, and bridge-state directory
-       * must be created. On any resume they already exist in the
-       * sandbox snapshot, so skip the rewrite. The env is sent fresh on every
-       * spawn — `BRIDGE_CHANNEL_TOKEN` rotates per start.
+       * On a fresh start the workdir and bridge-state directory must be
+       * created. The env is sent fresh on every spawn —
+       * `BRIDGE_CHANNEL_TOKEN` rotates per start.
        */
       if (respawnStrategy === undefined) {
-        await session.run({
-          command: `mkdir -p ${workDir} ${bridgeStateDir}`,
+        await toolSafeSandboxSession.run({
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
-
-        if (startOpts.skills && startOpts.skills.length > 0) {
-          await writeSkills({
-            sandbox: session,
-            workdir: workDir,
-            skills: startOpts.skills,
-            abortSignal: startOpts.abortSignal,
-          });
-        }
       }
 
-      const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${workDir} --bridge-state-dir ${bridgeStateDir}`,
+      await markBridgeStarting({
+        sandbox: toolSafeSandboxSession,
+        bridgeStateDir,
+        bridgeType: 'claude-code',
+        abortSignal: startOpts.abortSignal,
+      });
+
+      const proc = await toolSafeSandboxSession.spawn({
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
 
       const bridgeStartupStderr: string[] = [];
-      /*
-       * Bridge stderr is the only diagnostic channel for sandbox-side crashes
-       * and startup failures. Start forwarding before `bridge-ready`, otherwise
-       * module-resolution, auth, and syntax errors can be lost behind the
-       * generic startup failure below.
-       */
-      const bridgeStartupStderrDone = forwardBridgeStderr({
+      const bridgeStartupStderrDone = forwardBridgeProcessStream({
         stream: proc.stderr,
+        streamName: 'stderr',
+        source: 'claude-code',
         collectTail: bridgeStartupStderr,
       });
       void bridgeStartupStderrDone;
       const { port: boundPort } = await waitForBridgeReady({
         proc,
+        sandbox: toolSafeSandboxSession,
+        bridgeStateDir,
+        bridgeType: 'claude-code',
         timeoutMs,
         abortSignal: startOpts.abortSignal,
-        stderrTail: bridgeStartupStderr,
-        stderrDone: bridgeStartupStderrDone,
+        createTimeoutError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'claude-code bridge did not become ready in time.',
+            proc,
+            stdoutTail,
+            stderrTail: bridgeStartupStderr,
+            stderrDone: bridgeStartupStderrDone,
+          }),
+        createExitError: ({ proc, stdoutTail }) =>
+          createBridgeStartupError({
+            message: 'claude-code bridge exited before becoming ready.',
+            proc,
+            stdoutTail,
+            stderrTail: bridgeStartupStderr,
+            stderrDone: bridgeStartupStderrDone,
+          }),
       });
-      void drainRest(proc.stdout);
+      void drainBridgeProcessStream(proc.stdout);
 
-      const wsUrl =
-        (await sandboxSession.getPortUrl({
-          port: boundPort,
-          protocol: 'ws',
-        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: settings.portEndpoint,
+        port: boundPort,
+      });
+      const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: ClaudeCodeChannel = new SandboxChannel({
-        connect: buildConnect(wsUrl),
+        connect: buildConnect(bridgeEndpoint),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
+        onBridgeError,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
@@ -623,26 +1168,40 @@ export function createClaudeCode(
         proc,
         model: settings.model,
         maxTurns: settings.maxTurns,
-        thinking: settings.thinking,
+        env: sandboxClaudeEnvironment,
+        thinking,
+        effort: settings.effort,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
+        ...(resumeSessionId ? { resumeSessionId } : {}),
         rerunContinue: respawnStrategy === 'rerun',
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
+        sandboxCredentialEnvironment,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
+        sandbox: toolSafeSandboxSession,
+        sandboxHomeDir,
+        mcpServers: settings.mcpServers,
+        supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
   };
 }
 
-function resolveBridgePort(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  override: number | undefined,
-): number {
+function resolveBridgePort({
+  sandboxSession,
+  override,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: number | undefined;
+}): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'claude-code',
     message:
@@ -651,244 +1210,81 @@ function resolveBridgePort(
   });
 }
 
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'claude-code',
+      message:
+        'The Claude Code harness requires an explicit `port` when using a basic sandbox session.',
+    });
+  }
+  if (portEndpoint == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'claude-code',
+      message:
+        'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+    });
+  }
+}
+
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'claude-code',
+    message:
+      'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+  });
+}
+
 /**
- * Materialise skill files into `${workdir}/.claude/skills/<name>.md`. The
- * `claude` CLI auto-discovers skills from that directory on startup, so the
- * files have to be in place before the bridge is spawned. Each file uses
- * the YAML-frontmatter shape the CLI expects.
+ * Materialise skill files into
+ * `$HOME/.claude/skills/<name>/SKILL.md`. The `claude` CLI
+ * auto-discovers skills from that directory on startup, so the files have to
+ * be in place before the bridge is spawned without mutating the session
+ * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-async function writeSkills({
+async function writeClaudeCodeSkills({
   sandbox,
-  workdir,
+  homeDir,
   skills,
   abortSignal,
 }: {
-  sandbox: Experimental_SandboxSession;
-  workdir: string;
+  sandbox: SandboxSession;
+  homeDir: string;
   skills: ReadonlyArray<HarnessV1Skill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  await sandbox.run({
-    command: `mkdir -p ${workdir}/.claude/skills`,
+  await writeHarnessSkills({
+    sandbox,
+    rootDir: `${homeDir}/.claude/skills`,
+    skills,
     abortSignal,
+    invalidSkillNameMessage: ({ name }) =>
+      `Invalid Claude Code skill name: ${name}`,
+    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+      `Invalid Claude Code skill file path for ${skillName}: ${filePath}`,
+    trailingNewline: true,
   });
-  for (const skill of skills) {
-    const path = `${workdir}/.claude/skills/${skill.name}.md`;
-    const content = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.content}\n`;
-    await sandbox.writeTextFile({ path, content, abortSignal });
-  }
-}
-
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
-}
-
-async function waitForBridgeReady({
-  proc,
-  timeoutMs,
-  abortSignal,
-  stderrTail,
-  stderrDone,
-}: {
-  proc: Experimental_SandboxProcess;
-  timeoutMs: number;
-  abortSignal: AbortSignal | undefined;
-  stderrTail: string[];
-  stderrDone: Promise<void>;
-}): Promise<{ port: number }> {
-  const reader = proc.stdout.pipeThrough(new TextDecoderStream()).getReader();
-
-  const decoder = lineDecoder();
-  const stdoutTail: string[] = [];
-
-  const deadline = Date.now() + timeoutMs;
-  try {
-    while (true) {
-      if (abortSignal?.aborted) {
-        await proc.kill();
-        throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
-      }
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        await proc.kill();
-        throw await createBridgeStartupError({
-          message: 'claude-code bridge did not become ready in time.',
-          proc,
-          stdoutTail,
-          stderrTail,
-          stderrDone,
-        });
-      }
-      const { value, done } = (await Promise.race([
-        reader.read(),
-        new Promise(resolve =>
-          setTimeout(
-            () => resolve({ value: undefined, done: false }),
-            remaining,
-          ),
-        ),
-      ])) as ReadableStreamReadResult<string>;
-      if (done) {
-        for (const line of decoder.flush()) {
-          stdoutTail.push(line);
-          if (stdoutTail.length > 20) stdoutTail.shift();
-        }
-        throw await createBridgeStartupError({
-          message: 'claude-code bridge exited before becoming ready.',
-          proc,
-          stdoutTail,
-          stderrTail,
-          stderrDone,
-        });
-      }
-      if (value === undefined) continue;
-      for (const line of decoder.push(value)) {
-        stdoutTail.push(line);
-        if (stdoutTail.length > 20) stdoutTail.shift();
-        const parsed = await safeParseJSON({
-          text: line,
-          schema: bridgeReadySchema,
-        });
-        if (parsed.success) return { port: parsed.value.port };
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-
-async function createBridgeStartupError({
-  message,
-  proc,
-  stdoutTail,
-  stderrTail,
-  stderrDone,
-}: {
-  message: string;
-  proc: Experimental_SandboxProcess;
-  stdoutTail: string[];
-  stderrTail: string[];
-  stderrDone: Promise<void>;
-}): Promise<Error> {
-  await Promise.race([
-    stderrDone,
-    new Promise<void>(resolve => setTimeout(resolve, 250)),
-  ]).catch(() => {});
-
-  let exitStatus = '';
-  try {
-    const result = (await Promise.race([
-      proc.wait(),
-      new Promise<undefined>(resolve => setTimeout(resolve, 250)),
-    ])) as { exitCode?: number } | undefined;
-    if (result?.exitCode !== undefined) {
-      exitStatus = ` Exit code: ${result.exitCode}.`;
-    }
-  } catch {}
-
-  const details: string[] = [];
-  if (stdoutTail.length > 0) {
-    details.push(`stdout:\n${stdoutTail.join('\n')}`);
-  }
-  if (stderrTail.length > 0) {
-    details.push(`stderr:\n${stderrTail.join('\n')}`);
-  }
-
-  return new Error(
-    `${message}${exitStatus}${
-      details.length > 0 ? `\n\n${details.join('\n\n')}` : ''
-    }`,
-  );
-}
-
-function lineDecoder() {
-  let buffer = '';
-  return {
-    push(chunk: string): string[] {
-      buffer += chunk;
-      const lines: string[] = [];
-      let nl: number;
-      while ((nl = buffer.indexOf('\n')) !== -1) {
-        const raw = buffer.slice(0, nl);
-        buffer = buffer.slice(nl + 1);
-        const line = raw.replace(/\r$/, '').trim();
-        if (line.length > 0) lines.push(line);
-      }
-      return lines;
-    },
-    flush(): string[] {
-      const line = buffer.replace(/\r$/, '').trim();
-      buffer = '';
-      return line.length > 0 ? [line] : [];
-    },
-  };
-}
-
-async function forwardBridgeStderr({
-  stream,
-  collectTail,
-}: {
-  stream: ReadableStream<Uint8Array>;
-  collectTail?: string[];
-}): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    const decoder = lineDecoder();
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        for (const line of decoder.flush()) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-          if (collectTail) {
-            collectTail.push(trimmed);
-            if (collectTail.length > 20) collectTail.shift();
-          }
-          // eslint-disable-next-line no-console
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-        return;
-      }
-      if (value) {
-        for (const line of decoder.push(value)) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-          if (collectTail) {
-            collectTail.push(trimmed);
-            if (collectTail.length > 20) collectTail.shift();
-          }
-          // eslint-disable-next-line no-console
-          console.log(`[bridge stderr] ${trimmed}`);
-        }
-      }
-    }
-  } catch {
-    // Reader errors are non-fatal — best-effort diagnostic only.
-  }
-}
-
-async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
-  try {
-    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    while (true) {
-      const { done } = await reader.read();
-      if (done) return;
-    }
-  } catch {}
 }
 
 /**
@@ -902,58 +1298,121 @@ async function drainRest(stream: ReadableStream<Uint8Array>): Promise<void> {
  * `bridge-hello` the instant it accepts the connection, so receiving it
  * is the only reliable evidence that the end-to-end link is live.
  */
-async function waitForBridgeHello({
-  ws,
-  timeoutMs,
+function openWebSocketAndWaitForBridgeHello({
+  endpoint,
+  openTimeoutMs,
+  getHelloTimeoutMs,
+  onHello,
 }: {
-  ws: WebSocket;
-  timeoutMs: number;
-}): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
+  endpoint: HarnessV1PortEndpoint;
+  openTimeoutMs: number;
+  getHelloTimeoutMs: () => number;
+  onHello: (supportsUserMessageResponses: boolean) => void;
+}): Promise<WebSocket> {
+  return new Promise<WebSocket>((resolve, reject) => {
+    const ws = new WebSocket(endpoint.url, {
+      headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
+    });
+    let opened = false;
+    let sawBridgeHello = false;
     let settled = false;
-    const cleanup = () => {
+    let openTimer: ReturnType<typeof setTimeout> | undefined;
+    let helloTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const cleanup = ({
+      keepTerminationListeners = false,
+    }: {
+      keepTerminationListeners?: boolean;
+    } = {}) => {
+      if (openTimer) clearTimeout(openTimer);
+      if (helloTimer) clearTimeout(helloTimer);
+      ws.off('open', onOpen);
       ws.off('message', onMessage);
-      ws.off('close', onClose);
-      ws.off('error', onError);
-      if (timer) clearTimeout(timer);
+      if (!keepTerminationListeners) {
+        ws.off('close', onClose);
+        ws.off('error', onError);
+      }
     };
     const settle = (err?: unknown) => {
       if (settled) return;
       settled = true;
-      cleanup();
-      if (err) reject(err);
-      else resolve();
+      if (err) {
+        cleanup({ keepTerminationListeners: true });
+        try {
+          ws.terminate();
+        } catch {
+          cleanup();
+        }
+        reject(err);
+      } else {
+        cleanup();
+        resolve(ws);
+      }
+    };
+    const tryResolve = () => {
+      if (opened && sawBridgeHello) settle();
+    };
+    const startHelloTimer = () => {
+      if (helloTimer) return;
+      const helloTimeoutMs = getHelloTimeoutMs();
+      helloTimer = setTimeout(
+        () =>
+          settle(
+            new Error(
+              `claude-code bridge did not send bridge-hello within ${helloTimeoutMs}ms`,
+            ),
+          ),
+        helloTimeoutMs,
+      );
+      helloTimer.unref?.();
+    };
+    const onOpen = () => {
+      opened = true;
+      if (openTimer) {
+        clearTimeout(openTimer);
+        openTimer = undefined;
+      }
+      startHelloTimer();
+      tryResolve();
     };
     const onMessage = (raw: unknown) => {
-      try {
-        const text =
-          typeof raw === 'string'
-            ? raw
-            : (raw as Buffer | ArrayBufferLike).toString
-              ? (raw as Buffer).toString('utf8')
-              : String(raw);
-        const parsed = JSON.parse(text) as { type?: unknown };
-        if (parsed?.type === 'bridge-hello') settle();
-      } catch {
-        // Ignore malformed frames while waiting.
-      }
+      void (async () => {
+        const parsed = await safeParseJSON({
+          text: webSocketMessageToString(raw),
+        });
+        if (!parsed.success || settled) return;
+        const value = parsed.value;
+        if (
+          typeof value === 'object' &&
+          value !== null &&
+          !Array.isArray(value) &&
+          (value as { type?: unknown }).type === 'bridge-hello'
+        ) {
+          const capabilities = (
+            value as {
+              capabilities?: { experimental_userMessageResponses?: unknown };
+            }
+          ).capabilities;
+          onHello(capabilities?.experimental_userMessageResponses === true);
+          sawBridgeHello = true;
+          tryResolve();
+        }
+      })();
     };
     const onClose = () => {
       settle(
         new Error('claude-code bridge closed before sending bridge-hello'),
       );
+      cleanup();
     };
     const onError = (err: Error) => settle(err);
-    const timer = setTimeout(
+    openTimer = setTimeout(
       () =>
-        settle(
-          new Error(
-            `claude-code bridge did not send bridge-hello within ${timeoutMs}ms`,
-          ),
-        ),
-      timeoutMs,
+        settle(new Error(`WebSocket open timed out after ${openTimeoutMs}ms`)),
+      openTimeoutMs,
     );
-    timer.unref?.();
+    openTimer.unref?.();
+    ws.on('open', onOpen);
     ws.on('message', onMessage);
     ws.on('close', onClose);
     ws.on('error', onError);
@@ -961,11 +1420,13 @@ async function waitForBridgeHello({
 }
 
 async function openBridgeWebSocket({
-  wsUrl,
+  endpoint,
   timeoutMs,
+  onHello,
 }: {
-  wsUrl: string;
+  endpoint: HarnessV1PortEndpoint;
   timeoutMs: number;
+  onHello: (supportsUserMessageResponses: boolean) => void;
 }): Promise<WebSocket> {
   const deadline = Date.now() + timeoutMs;
   let attempt = 0;
@@ -973,23 +1434,17 @@ async function openBridgeWebSocket({
 
   while (Date.now() < deadline) {
     attempt++;
-    let ws: WebSocket | undefined;
     try {
       const remaining = Math.max(1, deadline - Date.now());
-      ws = await openWebSocket({
-        url: wsUrl,
-        timeoutMs: Math.min(10_000, remaining),
+      return await openWebSocketAndWaitForBridgeHello({
+        endpoint,
+        openTimeoutMs: Math.min(10_000, remaining),
+        getHelloTimeoutMs: () =>
+          Math.min(5_000, Math.max(1, deadline - Date.now())),
+        onHello,
       });
-      await waitForBridgeHello({
-        ws,
-        timeoutMs: Math.min(5_000, Math.max(1, deadline - Date.now())),
-      });
-      return ws;
     } catch (err) {
       lastError = err;
-      try {
-        ws?.close();
-      } catch {}
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
       await sleep(Math.min(250 * attempt, 1_000, remaining));
@@ -1001,39 +1456,17 @@ async function openBridgeWebSocket({
   );
 }
 
-function openWebSocket({
-  url,
-  timeoutMs,
-}: {
-  url: string;
-  timeoutMs: number;
-}): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
-    const timer = setTimeout(() => {
-      cleanup();
-      try {
-        ws.terminate();
-      } catch {}
-      reject(new Error(`WebSocket open timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-    timer.unref?.();
-    const cleanup = () => {
-      clearTimeout(timer);
-      ws.off('open', onOpen);
-      ws.off('error', onError);
-    };
-    const onOpen = () => {
-      cleanup();
-      resolve(ws);
-    };
-    const onError = (err: Error) => {
-      cleanup();
-      reject(err);
-    };
-    ws.once('open', onOpen);
-    ws.once('error', onError);
-  });
+function webSocketMessageToString(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
+  if (ArrayBuffer.isView(raw)) {
+    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
+      'utf8',
+    );
+  }
+  return String(raw);
 }
 
 function sleep(ms: number): Promise<void> {
@@ -1054,15 +1487,24 @@ function createSession({
   proc,
   model,
   maxTurns,
+  env,
   thinking,
+  effort,
   isResume,
   continueOnFirstPrompt,
+  resumeSessionId,
   rerunContinue,
   bridgePort,
   bridgeToken,
   sandboxId,
+  sandboxCredentialEnvironment,
   debug,
   permissionMode,
+  builtinToolFiltering,
+  sandbox,
+  sandboxHomeDir,
+  mcpServers,
+  supportsUserMessageResponses,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -1070,32 +1512,48 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
   maxTurns: number | undefined;
-  thinking: 'off' | 'on' | 'adaptive' | undefined;
+  env: Readonly<Record<string, string>> | undefined;
+  thinking: ClaudeCodeThinkingConfig;
+  effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
+  /**
+   * Exact conversation to rehydrate whenever a fresh SDK query starts. Takes
+   * precedence over the `continue` flag, which can only mean "most recent in
+   * this workdir".
+   */
+  resumeSessionId?: string;
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
-  sandboxId: string;
+  sandboxId: string | undefined;
+  sandboxCredentialEnvironment: Record<string, string> | undefined;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
+  sandbox: SandboxSession;
+  sandboxHomeDir: string;
+  mcpServers: Record<string, unknown> | undefined;
+  supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
   /*
    * Force the Claude SDK's `continue: true` on the first prompt only when the
-   * bridge was respawned (rerun/replay): a fresh bridge process treats its
-   * first turn as new, so it must be told to rehydrate the workdir thread. An
-   * `attach`ed bridge is already past its first turn and continues on its own.
+   * bridge was respawned without an exact conversation id (rerun/replay): a
+   * fresh bridge process treats its first turn as new, so it must be told to
+   * rehydrate the workdir thread. Exact ids are sent independently of this
+   * fallback on every fresh query.
    */
   let pendingResumeFlag = continueOnFirstPrompt;
+
   /*
-   * Instructions are prepended to the first user message of a fresh session
-   * only. A resumed session (attach/replay/rerun) already carried them in its
-   * original first message (preserved in the workdir snapshot), so it starts
-   * "applied".
+   * The Claude conversation this session currently embodies. Seeded from the
+   * resume state and updated from every `finish` part's metadata — each turn
+   * may fork a new id, so the latest observation is the one a later
+   * stop/detach must record for exact resume.
    */
-  let instructionsApplied = isResume;
+  let lastClaudeSessionId = resumeSessionId;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1114,7 +1572,13 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
-
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? experimental_createBridgeUserMessageSubmitter({
+          send: message => channel.send(message),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
       try {
@@ -1126,12 +1590,14 @@ function createSession({
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
     };
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -1144,6 +1610,9 @@ function createSession({
       'reasoning-start',
       'reasoning-delta',
       'reasoning-end',
+      'tool-input-start',
+      'tool-input-delta',
+      'tool-input-end',
       'tool-call',
       'tool-approval-request',
       'tool-result',
@@ -1159,6 +1628,14 @@ function createSession({
     }
     unsubs.push(
       channel.on('finish', msg => {
+        const metadata = (
+          msg as {
+            harnessMetadata?: { 'claude-code'?: { sessionId?: unknown } };
+          }
+        ).harnessMetadata?.['claude-code']?.sessionId;
+        if (typeof metadata === 'string' && metadata.length > 0) {
+          lastClaudeSessionId = metadata;
+        }
         forward(msg);
         settleSuccess();
       }),
@@ -1225,9 +1702,13 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
+      ...(userMessageSubmitter == null
+        ? {}
+        : {
+            submitUserMessage: async (text: string) => {
+              await userMessageSubmitter.submit(text);
+            },
+          }),
       done,
     };
   };
@@ -1235,33 +1716,69 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
+      if (
+        promptOpts.responseFormat?.type === 'json' &&
+        promptOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'claude-code' requires a JSON schema for structured output.",
+          harnessId: 'claude-code',
+        });
+      }
+      await writeClaudeCodeSkills({
+        sandbox,
+        homeDir: sandboxHomeDir,
+        skills: promptOpts.skills,
+        abortSignal: promptOpts.abortSignal,
+      });
       const control = wireTurn({
         emit: promptOpts.emit,
         abortSignal: promptOpts.abortSignal,
       });
 
-      let promptText = extractUserText(promptOpts.prompt);
-      if (!instructionsApplied && promptOpts.instructions) {
-        promptText = frameInstructions(promptOpts.instructions, promptText);
+      /*
+       * A signal that was already aborted has settled the turn inside
+       * `wireTurn`. Sending `start` anyway would run a full unattended turn
+       * in the bridge — consuming tokens and possibly acting on the
+       * workspace — after the caller has already observed the abort.
+       */
+      if (promptOpts.abortSignal?.aborted) {
+        return control;
       }
-      instructionsApplied = true;
 
       const startMessage = {
         type: 'start' as const,
-        prompt: promptText,
+        prompt: extractUserText(promptOpts.prompt),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
           inputSchema: t.inputSchema,
         })),
-        model,
+        ...(promptOpts.responseFormat == null
+          ? {}
+          : { responseFormat: promptOpts.responseFormat }),
+        ...(promptOpts.instructions
+          ? { instructions: promptOpts.instructions }
+          : {}),
+        model: promptOpts.model ?? model,
         maxTurns,
+        ...(env !== undefined ? { env } : {}),
         thinking,
+        ...(effort !== undefined ? { effort } : {}),
+        ...(promptOpts.skills.length > 0
+          ? { skills: promptOpts.skills.map(skill => skill.name) }
+          : {}),
+        ...(mcpServers == null ? {} : { mcpServers }),
         ...(permissionMode ? { permissionMode } : {}),
+        ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
-        ...(pendingResumeFlag ? { continue: true } : {}),
+        ...(lastClaudeSessionId
+          ? { resumeSessionId: lastClaudeSessionId }
+          : pendingResumeFlag
+            ? { continue: true }
+            : {}),
       };
       pendingResumeFlag = false;
       channel.send(startMessage);
@@ -1269,6 +1786,22 @@ function createSession({
       return control;
     },
     doContinueTurn: async continueOpts => {
+      if (
+        continueOpts.responseFormat?.type === 'json' &&
+        continueOpts.responseFormat.schema == null
+      ) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'claude-code' requires a JSON schema for structured output.",
+          harnessId: 'claude-code',
+        });
+      }
+      await writeClaudeCodeSkills({
+        sandbox,
+        homeDir: sandboxHomeDir,
+        skills: continueOpts.skills,
+        abortSignal: continueOpts.abortSignal,
+      });
       const control = wireTurn({
         emit: continueOpts.emit,
         abortSignal: continueOpts.abortSignal,
@@ -1283,11 +1816,13 @@ function createSession({
        *
        * rerun: the bridge was respawned with no in-flight turn to attach to, so
        * re-drive the runtime's own thread from the workdir snapshot via
-       * `continue: true`. Lossy — work in flight at the interruption is
+       * `continue: true`. Lossy — work in flight at the suspension is
        * recomputed. This is the rare bridge-died fallback; the common slice path
        * is `attach`.
        */
-      if (rerunContinue) {
+      // Same as `doPromptTurn`: an already-aborted signal settled the turn in
+      // `wireTurn`, so don't re-drive the thread nobody is waiting on.
+      if (rerunContinue && !continueOpts.abortSignal?.aborted) {
         pendingResumeFlag = false;
         channel.send({
           type: 'start' as const,
@@ -1304,12 +1839,27 @@ function createSession({
             description: t.description,
             inputSchema: t.inputSchema,
           })),
-          model,
+          ...(continueOpts.responseFormat == null
+            ? {}
+            : { responseFormat: continueOpts.responseFormat }),
+          ...(continueOpts.instructions
+            ? { instructions: continueOpts.instructions }
+            : {}),
+          model: continueOpts.model ?? model,
           maxTurns,
+          ...(env !== undefined ? { env } : {}),
           thinking,
+          ...(effort !== undefined ? { effort } : {}),
+          ...(continueOpts.skills.length > 0
+            ? { skills: continueOpts.skills.map(skill => skill.name) }
+            : {}),
+          ...(mcpServers == null ? {} : { mcpServers }),
           ...(permissionMode ? { permissionMode } : {}),
+          ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
-          continue: true,
+          ...(lastClaudeSessionId
+            ? { resumeSessionId: lastClaudeSessionId }
+            : { continue: true }),
         });
       }
 
@@ -1342,12 +1892,18 @@ function createSession({
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
         data: {
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
         },
       };
       return payload;
@@ -1361,7 +1917,7 @@ function createSession({
         channel.beginClose();
         try {
           if (!channel.isClosed()) {
-            channel.send({ type: 'shutdown' });
+            channel.send({ type: 'destroy' });
           }
         } catch {}
         let stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -1394,13 +1950,13 @@ function createSession({
       stopped = true;
       /*
        * If the bridge's channel already closed (e.g. mid-turn WS drop)
-       * there is no one to ack a `detach` message. Synthesize an empty
+       * there is no one to acknowledge a `stop` message. Synthesize an empty
        * payload — for Claude Code the resume state structurally is `{}`
        * (the conversation lives in the workdir, captured by the sandbox
        * snapshot during the subsequent `sandboxSession.stop()`), so we
        * lose nothing by skipping the round-trip.
        */
-      // Tell the channel we are tearing down so the bridge's post-detach
+      // Tell the channel we are tearing down so the bridge's post-stop
       // socket close finalises instead of triggering a reconnect.
       channel.beginClose();
       const data: unknown = channel.isClosed()
@@ -1410,18 +1966,18 @@ function createSession({
               unsub();
               reject(
                 new Error(
-                  `claude-code session ${sessionId} did not reply to detach within 5s.`,
+                  `claude-code session ${sessionId} did not reply to stop within 5s.`,
                 ),
               );
             }, 5000);
             timer.unref?.();
-            const unsub = channel.on('bridge-detach', msg => {
+            const unsub = channel.on('bridge-stop', msg => {
               clearTimeout(timer);
               unsub();
               resolve(msg.data);
             });
             try {
-              channel.send({ type: 'detach' });
+              channel.send({ type: 'stop' });
             } catch (err) {
               clearTimeout(timer);
               unsub();
@@ -1429,7 +1985,7 @@ function createSession({
             }
           });
 
-      // The bridge exits itself ~50ms after sending bridge-detach. Give
+      // The bridge exits itself after sending bridge-stop. Give
       // it a moment, then ensure the process is reaped and the channel
       // closed.
       let stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -1451,11 +2007,26 @@ function createSession({
         channel.close();
       }
 
+      const lifecycleData =
+        data != null && typeof data === 'object' && !Array.isArray(data)
+          ? { ...(data as Record<string, unknown>) }
+          : {};
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
-        data: (data ?? {}) as HarnessV1ResumeSessionState['data'],
+        // The bridge's stop reply carries the session id it observed; the
+        // adapter's own record backfills it when the reply predates the
+        // field or the channel was already closed.
+        data: {
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
+          ...lifecycleData,
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
+        } as HarnessV1ResumeSessionState['data'],
       };
       return payload;
     },
@@ -1467,13 +2038,12 @@ function createSession({
       }
       stopped = true;
       /*
-       * Gracefully freeze the active turn at a precise cursor. `channel.suspend`
-       * stops processing inbound frames (the cursor stops advancing exactly at
-       * the last delivered event), drains what was already dispatched, then
-       * closes the host socket with reason `'suspended'` — which `wireTurn`'s
-       * `onClose` treats as a clean turn end. The bridge keeps the turn running
-       * and accumulates events past the cursor for the next slice to replay. The
-       * sandbox process is deliberately left alive (no `shutdown`/`detach`).
+       * Freeze the host at a precise cursor without stopping the active model
+       * turn. `channel.suspend` stops processing inbound frames, drains what
+       * was already dispatched, then closes the host socket with reason
+       * `'suspended'`. The bridge keeps the turn running and accumulates events
+       * past the cursor for the next slice to replay. The sandbox process is
+       * deliberately left alive.
        */
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
@@ -1481,34 +2051,23 @@ function createSession({
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
         data: {
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
         },
       };
       return payload;
     },
   };
-}
-
-/*
- * Frame session instructions and the user's text so the runtime treats the
- * instructions as system-provided operating guidance, not something the user
- * wrote. Without the wrapper the agent can echo the prepended text back as if
- * the user had asked for it, which is confusing since the user never typed it.
- * Applied only to the first user message of a fresh session.
- */
-function frameInstructions(instructions: string, userText: string): string {
-  return (
-    '<session-instructions>\n' +
-    'The block below is operating guidance from the system, not a message from the user — follow it, but do not mention it or attribute it to the user.\n\n' +
-    `${instructions}\n` +
-    '</session-instructions>\n\n' +
-    `<user-message>\n${userText}\n</user-message>`
-  );
 }
 
 /*

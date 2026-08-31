@@ -713,6 +713,18 @@ describe('LegacyOpenTelemetry', () => {
       expect(setAttrsCall['gen_ai.usage.output_tokens']).toBe(20);
     });
 
+    it('omits malformed gen_ai finish reason arrays', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({ finishReason: undefined }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect('gen_ai.response.finish_reasons' in setAttrsCall).toBe(false);
+    });
+
     it('includes text in output attributes', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
@@ -1496,6 +1508,52 @@ describe('LegacyOpenTelemetry integration with generateText', () => {
         },
       ]
     `);
+  });
+
+  it('should include configured runtime context on tool call spans', async () => {
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...integrationDummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      prompt: 'test-input',
+      runtimeContext: {
+        requestId: 'request-123',
+        privateValue: 'excluded',
+      },
+      telemetry: {
+        isEnabled: true,
+        includeRuntimeContext: {
+          requestId: true,
+        },
+        integrations: new LegacyOpenTelemetry({ tracer }),
+      },
+    });
+
+    const toolCallSpan = tracer.spans.find(span => span.name === 'ai.toolCall');
+
+    expect(toolCallSpan?.attributes).toMatchObject({
+      'ai.settings.context.requestId': 'request-123',
+    });
+    expect(
+      toolCallSpan?.attributes['ai.settings.context.privateValue'],
+    ).toBeUndefined();
   });
 
   it('should record error on tool call', async () => {
@@ -2489,8 +2547,8 @@ describe('LegacyOpenTelemetry integration with embed', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    await embed({
+  it('should omit usage attributes when the provider does not return usage', async () => {
+    const result = await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding]),
       }),
@@ -2500,6 +2558,10 @@ describe('LegacyOpenTelemetry integration with embed', () => {
       },
     });
 
+    expect(result.usage.tokens).toBeNaN();
+    for (const span of tracer.jsonSpans) {
+      expect('ai.usage.tokens' in span.attributes).toBe(false);
+    }
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 

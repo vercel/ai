@@ -12,8 +12,30 @@ export interface PiPathMapper {
    * if the path would escape the workspace.
    */
   toSandboxPath(inputPath: string): string;
+  /**
+   * Translate a path for read-only tools. In addition to the workspace, this
+   * allows explicitly configured sandbox roots such as `$HOME/.agents/skills`.
+   */
+  toReadableSandboxPath(inputPath: string): string;
+  /** Verify that a sandbox-side path is still inside `sandboxWorkDir`. */
+  assertSandboxPath(inputPath: string): string;
+  /**
+   * Verify that a sandbox-side path is inside `sandboxWorkDir` or an
+   * explicitly configured readable root.
+   */
+  assertReadableSandboxPath(inputPath: string): string;
   /** Translate any path to its POSIX-relative form under `sandboxWorkDir`. */
   toRelativePath(inputPath: string): string;
+}
+
+export interface PiReadablePathRoot {
+  readonly sandboxDir: string;
+}
+
+export interface CreatePiPathMapperOptions {
+  readonly hostWorkDir: string;
+  readonly sandboxWorkDir: string;
+  readonly readableRoots?: ReadonlyArray<PiReadablePathRoot>;
 }
 
 function isInsidePath(parent: string, candidate: string): boolean {
@@ -48,42 +70,90 @@ function canonicalizeForContainment(inputPath: string): string {
 }
 
 export function createPiPathMapper(
-  hostWorkDir: string,
-  sandboxWorkDir: string,
+  options: CreatePiPathMapperOptions,
 ): PiPathMapper {
-  const normalizedHost = path.resolve(hostWorkDir);
-  const normalizedSandbox = path.posix.normalize(sandboxWorkDir);
+  const normalizedHost = path.resolve(options.hostWorkDir);
+  const normalizedSandbox = path.posix.normalize(options.sandboxWorkDir);
   const canonicalHost = canonicalizeForContainment(normalizedHost);
+  const readableRoots =
+    options.readableRoots?.map(root => ({
+      sandboxDir: path.posix.normalize(root.sandboxDir),
+    })) ?? [];
+
+  const assertWorkspaceSandboxPath = (inputPath: string): string => {
+    const normalizedInput = path.posix.normalize(inputPath);
+    if (!isInsidePosixPath(normalizedSandbox, normalizedInput)) {
+      throw new Error(`Pi path escapes the workspace: ${inputPath}`);
+    }
+    return normalizedInput;
+  };
+
+  const assertReadableSandboxPath = (inputPath: string): string => {
+    const normalizedInput = path.posix.normalize(inputPath);
+    if (
+      !isInsidePosixPath(normalizedSandbox, normalizedInput) &&
+      !readableRoots.some(root =>
+        isInsidePosixPath(root.sandboxDir, normalizedInput),
+      )
+    ) {
+      throw new Error(`Pi path escapes the readable roots: ${inputPath}`);
+    }
+    return normalizedInput;
+  };
+
+  const toWorkspaceSandboxPath = (inputPath: string): string => {
+    if (path.posix.isAbsolute(inputPath)) {
+      const normalizedInput = path.posix.normalize(inputPath);
+      try {
+        return assertWorkspaceSandboxPath(normalizedInput);
+      } catch {
+        // Absolute host paths are handled below.
+      }
+    }
+
+    const resolvedHost = path.isAbsolute(inputPath)
+      ? path.resolve(inputPath)
+      : path.resolve(normalizedHost, inputPath);
+    const canonicalResolvedHost = canonicalizeForContainment(resolvedHost);
+    if (
+      !isInsidePath(normalizedHost, resolvedHost) ||
+      !isInsidePath(canonicalHost, canonicalResolvedHost)
+    ) {
+      throw new Error(`Pi path escapes the workspace: ${inputPath}`);
+    }
+
+    const relative = path
+      .relative(normalizedHost, resolvedHost)
+      .split(path.sep)
+      .join('/');
+    return relative
+      ? path.posix.join(normalizedSandbox, relative)
+      : normalizedSandbox;
+  };
 
   return {
     hostWorkDir: normalizedHost,
     sandboxWorkDir: normalizedSandbox,
     toSandboxPath(inputPath: string) {
+      return toWorkspaceSandboxPath(inputPath);
+    },
+    toReadableSandboxPath(inputPath: string) {
       if (path.posix.isAbsolute(inputPath)) {
         const normalizedInput = path.posix.normalize(inputPath);
-        if (isInsidePosixPath(normalizedSandbox, normalizedInput)) {
-          return normalizedInput;
+        try {
+          return assertReadableSandboxPath(normalizedInput);
+        } catch {
+          // Absolute host paths are handled by workspace mapping below.
         }
       }
 
-      const resolvedHost = path.isAbsolute(inputPath)
-        ? path.resolve(inputPath)
-        : path.resolve(normalizedHost, inputPath);
-      const canonicalResolvedHost = canonicalizeForContainment(resolvedHost);
-      if (
-        !isInsidePath(normalizedHost, resolvedHost) ||
-        !isInsidePath(canonicalHost, canonicalResolvedHost)
-      ) {
-        throw new Error(`Pi path escapes the workspace: ${inputPath}`);
-      }
-
-      const relative = path
-        .relative(normalizedHost, resolvedHost)
-        .split(path.sep)
-        .join('/');
-      return relative
-        ? path.posix.join(normalizedSandbox, relative)
-        : normalizedSandbox;
+      return toWorkspaceSandboxPath(inputPath);
+    },
+    assertSandboxPath(inputPath: string) {
+      return assertWorkspaceSandboxPath(inputPath);
+    },
+    assertReadableSandboxPath(inputPath: string) {
+      return assertReadableSandboxPath(inputPath);
     },
     toRelativePath(inputPath: string) {
       const sandboxPath = path.posix.isAbsolute(inputPath)

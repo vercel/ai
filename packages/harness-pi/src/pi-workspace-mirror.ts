@@ -7,8 +7,8 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import path from 'node:path';
+import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
-import { shellQuote } from './pi-utils';
 
 /*
  * Pi runs on the host with its working directory pointed at the local mirror,
@@ -54,46 +54,137 @@ async function readCommandOutput(
   command: string,
 ): Promise<string> {
   const result = await sandbox.run({ command });
-  const output = result.stdout || result.stderr;
   if (result.exitCode != null && result.exitCode !== 0) {
     throw new Error(
-      output || `Sandbox command failed with exit code ${result.exitCode}`,
+      result.stderr ||
+        result.stdout ||
+        `Sandbox command failed with exit code ${result.exitCode}`,
     );
   }
-  return output;
+  return result.stdout || result.stderr;
 }
 
 async function listRemoteWorkspaceEntries(
   sandbox: Experimental_SandboxSession,
   sandboxWorkDir: string,
-): Promise<{ directories: string[]; files: string[] }> {
-  const contextPredicate = PI_CONTEXT_FILENAMES.map(
-    name => `-name ${shellQuote(name)}`,
-  ).join(' -o ');
-
+): Promise<{
+  directories: string[];
+  files: Array<{ relativePath: string; sandboxPath: string }>;
+}> {
   // Enumerate only the `.pi`/`.agents` config subtrees plus the root-level
-  // context files — never the rest of the workspace. `find -L` dereferences
-  // symlinks so that linked targets (e.g. `.agents/skills` pointing elsewhere)
-  // are walked and reported through the symlinked path; the resolved file/dir
-  // types from `[ -d ]`/`[ -f ]` then tag each entry `d`/`f`, NUL-joined
-  // exactly like a full-tree walk so the reconcile below is unchanged.
-  const configFinds = PI_CONFIG_DIRS.map(
-    dir =>
-      `  if [ -d ./${dir} ]; then find -L ./${dir} \\( -type d -o -type f \\) -print0; fi;`,
-  );
+  // context files — never the rest of the workspace. Use shell glob traversal
+  // instead of `find -L`, which is not supported by all sandbox shells.
+  // Resolve each scoped root path component explicitly with `readlink`,
+  // retaining both the scoped mirror path and the resolved sandbox path. Once
+  // a root is resolved, queued descendants use physical parent paths and only
+  // need resolution when the descendant itself is a symlink. This avoids
+  // relying on shells that can inspect a symlinked directory but cannot
+  // traverse paths below it, including when the symlink is an ancestor of the
+  // sandbox work directory, without repeatedly resolving every component of
+  // deep ordinary paths.
+  const scopedPaths = [
+    ...PI_CONFIG_DIRS.map(dir => `./${dir}`),
+    ...PI_CONTEXT_FILENAMES.map(name => `./${name}`),
+  ];
   const listCommand = [
-    '{',
-    ...configFinds,
-    `  find . -maxdepth 1 -type f \\( ${contextPredicate} \\) -print0;`,
-    '} |',
-    "while IFS= read -r -d '' entry; do",
-    '  rel=${entry#./}',
-    '  if [ -d "$entry" ]; then',
-    `    printf 'd\\t%s\\n' "$rel"`,
-    '  elif [ -f "$entry" ]; then',
-    `    printf 'f\\t%s\\n' "$rel"`,
+    `pi_config_sources=(${scopedPaths
+      .map(scopedPath =>
+        shellQuote(path.posix.join(sandboxWorkDir, scopedPath.slice(2))),
+      )
+      .join(' ')})`,
+    `pi_config_relatives=(${scopedPaths
+      .map(scopedPath => shellQuote(scopedPath.slice(2)))
+      .join(' ')})`,
+    `pi_config_ancestors=(${scopedPaths.map(() => "''").join(' ')})`,
+    `pi_config_resolve_ancestors=(${scopedPaths.map(() => '1').join(' ')})`,
+    'pi_config_index=0',
+    'while [ "$pi_config_index" -lt "${#pi_config_sources[@]}" ]; do',
+    '  source=${pi_config_sources[$pi_config_index]}',
+    '  relative=${pi_config_relatives[$pi_config_index]}',
+    '  ancestors=${pi_config_ancestors[$pi_config_index]}',
+    '  resolve_ancestors=${pi_config_resolve_ancestors[$pi_config_index]}',
+    '  pi_config_index=$((pi_config_index + 1))',
+    '  if [ "$resolve_ancestors" = 1 ] || [ -L "$source" ]; then',
+    '    pending=$source',
+    '    resolved=',
+    '    seen_links=',
+    '    case "$pending" in',
+    '      /*) ;;',
+    '      *) pending=$PWD/$pending ;;',
+    '    esac',
+    '    while [ -n "$pending" ]; do',
+    '      pending=${pending#/}',
+    '      [ -n "$pending" ] || break',
+    '      component=${pending%%/*}',
+    '      if [ "$pending" = "$component" ]; then',
+    '        pending=',
+    '      else',
+    '        pending=${pending#*/}',
+    '      fi',
+    '      case "$component" in',
+    '        ""|.) continue ;;',
+    '        ..)',
+    '          resolved=${resolved%/*}',
+    '          continue',
+    '          ;;',
+    '      esac',
+    '      candidate=$resolved/$component',
+    '      if [ -L "$candidate" ]; then',
+    '        case "$seen_links" in',
+    '          *"',
+    '"$candidate"',
+    '"*)',
+    `            printf 'Pi config traversal encountered a symlink cycle at %s\\n' "$candidate" >&2`,
+    '            exit 1',
+    '            ;;',
+    '        esac',
+    '        seen_links=$seen_links"',
+    '"$candidate"',
+    '"',
+    '        target=$(readlink "$candidate") || exit $?',
+    '        case "$target" in',
+    '          /*) pending=$target${pending:+/$pending} ;;',
+    '          *) pending=${candidate%/*}/$target${pending:+/$pending} ;;',
+    '        esac',
+    '        resolved=',
+    '      else',
+    '        resolved=$candidate',
+    '      fi',
+    '    done',
+    '    if [ -z "$resolved" ]; then',
+    `      printf 'Pi config traversal resolved %s to the filesystem root; skipping\\n' "$relative" >&2`,
+    '      continue',
+    '    fi',
+    '    source=$resolved',
     '  fi',
-    'done | LC_ALL=C sort',
+    '  if [ -d "$source" ]; then',
+    '    case "$ancestors" in',
+    '      *"',
+    '"$source"',
+    '"*)',
+    `        printf 'Pi config traversal encountered a symlink cycle at %s\\n' "$relative" >&2`,
+    '        exit 1',
+    '        ;;',
+    '    esac',
+    '    ancestors=$ancestors"',
+    '"$source"',
+    '"',
+    `    printf 'd\\t%s\\n' "$relative"`,
+    '    for child in "$source"/* "$source"/.[!.]* "$source"/..?*; do',
+    '      if [ -L "$child" ] || [ -d "$child" ] || [ -f "$child" ]; then',
+    '        child_name=${child##*/}',
+    '        pi_config_sources+=("$child")',
+    '        pi_config_relatives+=("$relative/$child_name")',
+    '        pi_config_ancestors+=("$ancestors")',
+    '        pi_config_resolve_ancestors+=(0)',
+    '      fi',
+    '    done',
+    '  elif [ -f "$source" ]; then',
+    `    printf 'f\\t%s\\t%s\\n' "$relative" "$source"`,
+    '  fi',
+    '  true',
+    'done',
+    'true',
   ].join('\n');
 
   const output = await readCommandOutput(
@@ -102,15 +193,17 @@ async function listRemoteWorkspaceEntries(
   );
 
   const directories: string[] = [];
-  const files: string[] = [];
+  const files: Array<{ relativePath: string; sandboxPath: string }> = [];
 
   for (const line of output.split('\n').filter(Boolean)) {
-    const [kind, rawPath] = line.split('\t', 2);
+    const [kind, rawPath, sandboxPath] = line.split('\t', 3);
     if (!rawPath) continue;
 
     const relativePath = normalizeRelativePath(rawPath);
     if (kind === 'd') directories.push(relativePath);
-    else if (kind === 'f') files.push(relativePath);
+    else if (kind === 'f' && sandboxPath) {
+      files.push({ relativePath, sandboxPath });
+    }
   }
 
   return { directories, files };
@@ -180,14 +273,14 @@ async function collectHostScopedEntries(
 
 function buildRequiredDirectories(
   remoteDirectories: string[],
-  remoteFiles: string[],
+  remoteFiles: Array<{ relativePath: string }>,
 ): Set<string> {
   const directories = new Set<string>();
   for (const directory of remoteDirectories) {
     directories.add(normalizeRelativePath(directory));
   }
   for (const file of remoteFiles) {
-    let current = path.dirname(normalizeRelativePath(file));
+    let current = path.dirname(normalizeRelativePath(file.relativePath));
     while (current !== '.' && current !== path.sep && current.length > 0) {
       directories.add(current);
       current = path.dirname(current);
@@ -207,7 +300,9 @@ export async function syncHostWorkspaceFromSandbox(args: {
     sandboxWorkDir,
   );
   const hostEntries = await collectHostScopedEntries(hostWorkDir);
-  const remoteFiles = new Set(remoteEntries.files);
+  const remoteFiles = new Set(
+    remoteEntries.files.map(file => file.relativePath),
+  );
   const requiredDirectories = buildRequiredDirectories(
     remoteEntries.directories,
     remoteEntries.files,
@@ -235,15 +330,11 @@ export async function syncHostWorkspaceFromSandbox(args: {
     await mkdir(path.join(hostWorkDir, relativePath), { recursive: true });
   }
 
-  for (const relativePath of remoteEntries.files) {
-    const remotePath = path.posix.join(
-      sandboxWorkDir,
-      relativePath.split(path.sep).join('/'),
-    );
-    const bytes = await sandbox.readBinaryFile({ path: remotePath });
+  for (const { relativePath, sandboxPath } of remoteEntries.files) {
+    const bytes = await sandbox.readBinaryFile({ path: sandboxPath });
     if (!bytes) {
       throw new Error(
-        `Sandbox workspace file disappeared during mirror sync: ${remotePath}`,
+        `Sandbox workspace file disappeared during mirror sync: ${sandboxPath}`,
       );
     }
     const content = Buffer.from(bytes);

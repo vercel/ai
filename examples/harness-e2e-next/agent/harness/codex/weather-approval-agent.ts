@@ -28,12 +28,14 @@ export const weatherApprovalCodexHarnessAgent = new HarnessAgent({
     runtime: 'node24',
     ports: [4000],
   }),
-  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
-    await session.writeTextFile({
-      path: `${sessionWorkDir}/weather-codes.md`,
-      content: WEATHER_CODES_REFERENCE,
-      abortSignal,
-    });
+  sandboxConfig: {
+    onSession: async ({ session, sessionWorkDir, abortSignal }) => {
+      await session.writeTextFile({
+        path: `${sessionWorkDir}/weather-codes.md`,
+        content: WEATHER_CODES_REFERENCE,
+        abortSignal,
+      });
+    },
   },
   debug: { enabled: true },
   telemetry: {

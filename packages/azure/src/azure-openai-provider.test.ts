@@ -4,6 +4,7 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -95,9 +96,17 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
+  'https://our-gateway.example.com/azure/chat/completions': {},
+  'https://test-resource.services.ai.azure.com/openai/v1/chat/completions': {},
+  'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions':
+    {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions':
+    {},
   'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
     {},
 });
+
+type TestServerURL = keyof typeof server.urls;
 
 describe('responses (default language model)', () => {
   describe('doGenerate', () => {
@@ -276,10 +285,11 @@ describe('responses (default language model)', () => {
 
 describe('chat', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
-      ].response = {
+    function prepareJsonResponse({
+      content = '',
+      url = 'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+    }: { content?: string; url?: TestServerURL } = {}) {
+      server.urls[url].response = {
         type: 'json-value',
         body: {
           id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
@@ -376,6 +386,123 @@ describe('chat', () => {
         `"https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1"`,
       );
     });
+
+    it.each([
+      {
+        name: 'complete Azure OpenAI v1',
+        baseURL: 'https://test-resource.openai.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Foundry',
+        baseURL: 'https://test-resource.services.ai.azure.com/openai',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions?api-version=v1',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry v1',
+        baseURL: 'https://test-resource.services.ai.azure.com/openai/v1/',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Cognitive Services',
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai',
+        expectedURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions?api-version=v1',
+        responseURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Cognitive Services v1',
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Foundry project',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry project v1',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+    ] satisfies Array<{
+      name: string;
+      baseURL: string;
+      expectedURL: string;
+      responseURL: TestServerURL;
+    }>)(
+      'should use $name baseURL correctly',
+      async ({ baseURL, expectedURL, responseURL }) => {
+        prepareJsonResponse({ url: responseURL });
+
+        const provider = createAzure({
+          baseURL,
+          apiKey: 'test-api-key',
+        });
+
+        await provider.chat('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(server.calls[0].requestUrl).toBe(expectedURL);
+      },
+    );
+
+    it('should use custom gateway baseURL as-is', async () => {
+      server.urls[
+        'https://our-gateway.example.com/azure/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-repro-13956',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test-deployment',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const provider = createAzure({
+        baseURL: 'https://our-gateway.example.com/azure',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://our-gateway.example.com/azure/chat/completions"`,
+      );
+    });
   });
 });
 
@@ -437,6 +564,56 @@ describe('deepseek', () => {
         ],
         "model": "deepseek-v4-flash",
         "reasoning_effort": "max",
+      }
+    `);
+  });
+
+  it('should send a json_schema response format for structured output', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+
+    await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { sentiment: { type: 'string' } },
+          required: ['sentiment'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "high",
+        "response_format": {
+          "json_schema": {
+            "name": "response",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "sentiment": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "sentiment",
+              ],
+              "type": "object",
+            },
+            "strict": true,
+          },
+          "type": "json_schema",
+        },
       }
     `);
   });
@@ -531,8 +708,11 @@ describe('deepseek', () => {
         },
         "providerMetadata": {
           "azure": {
+            "choiceIndex": 0,
+            "messageRole": "assistant",
             "promptCacheHitTokens": undefined,
             "promptCacheMissTokens": undefined,
+            "responseObject": "chat.completion.chunk",
           },
         },
         "type": "finish",
@@ -551,6 +731,8 @@ describe('deepseek', () => {
           "raw": {
             "completion_tokens": 1720,
             "prompt_tokens": 19,
+            "prompt_tokens_details": null,
+            "reasoning_tokens": 0,
             "total_tokens": 1739,
           },
         },
@@ -726,6 +908,15 @@ describe('embedding', () => {
     [0.6, 0.7, 0.8, 0.9, 1.0],
   ];
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
+
+  it('should expose the aggregate token limit', () => {
+    expect(
+      Reflect.get(
+        provider.embedding('my-embedding'),
+        EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+      ),
+    ).toBe(300_000);
+  });
 
   describe('doEmbed', () => {
     const model = provider.embedding('my-embedding');

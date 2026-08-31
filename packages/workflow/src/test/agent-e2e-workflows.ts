@@ -4,8 +4,10 @@
 import { tool } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
+import { retryingModel } from './retrying-model.js';
+import { createTestSandbox } from './test-sandbox.js';
 import { FatalError, getWritable } from 'workflow';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // ============================================================================
 // Tool step functions
@@ -26,6 +28,13 @@ async function throwingStep(): Promise<string> {
   throw new FatalError('Tool execution failed fatally');
 }
 
+async function executeApprovedAction(input: {
+  action: string;
+}): Promise<string> {
+  'use step';
+  return `executed:${input.action}`;
+}
+
 // ============================================================================
 // Core agent tests
 // ============================================================================
@@ -43,6 +52,46 @@ export async function agentBasicE2e(prompt: string) {
   return {
     stepCount: result.steps.length,
     lastStepText: result.steps[result.steps.length - 1]?.text,
+  };
+}
+
+export async function agentModelRetriesE2e() {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: retryingModel(),
+    maxRetries: 2,
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'retry the model call' }],
+    writable: getWritable(),
+  });
+  return result.steps.at(-1)?.text;
+}
+
+export async function agentStreamErrorE2e() {
+  'use workflow';
+  const terminal = {
+    type: 'credential',
+    code: 'safe-terminal-classification',
+  };
+  const callbackErrors: unknown[] = [];
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([{ type: 'error', error: terminal }]),
+  });
+
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'trigger the terminal error' }],
+    writable: getWritable(),
+    onError: async ({ error }) => {
+      callbackErrors.push(error);
+    },
+  });
+
+  return {
+    error: result.error,
+    finishReason: result.finishReason,
+    stepCount: result.steps.length,
+    callbackErrors,
   };
 }
 
@@ -142,7 +191,7 @@ export async function agentErrorToolE2e() {
 }
 
 // ============================================================================
-// experimental_repairToolCall serialization
+// repairToolCall serialization
 // ============================================================================
 
 async function repairToolCall({
@@ -178,7 +227,7 @@ export async function agentRepairToolCallE2e() {
   const result = await agent.stream({
     messages: [{ role: 'user', content: 'add 3 and 7' }],
     writable: getWritable(),
-    experimental_repairToolCall: repairToolCall as any,
+    repairToolCall: repairToolCall as any,
   });
   return {
     stepCount: result.steps.length,
@@ -472,6 +521,96 @@ export async function agentToolApprovalE2e() {
   };
 }
 
+const signedToolApprovalSecret = {
+  environmentVariable: 'WORKFLOW_TOOL_APPROVAL_SECRET',
+};
+
+export async function agentSignedToolApprovalIssueE2e() {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'riskyTool',
+        input: JSON.stringify({ action: 'delete' }),
+      },
+    ]),
+    tools: {
+      riskyTool: tool({
+        description: 'A dangerous tool that needs approval',
+        inputSchema: z.object({ action: z.string() }),
+        execute: executeApprovedAction,
+        needsApproval: true,
+      }),
+    },
+    experimental_toolApprovalSecret: signedToolApprovalSecret,
+  });
+
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'do something risky' }],
+    writable: getWritable(),
+  });
+
+  return { toolCallsCount: result.toolCalls.length };
+}
+
+export async function agentSignedToolApprovalResumeE2e(signature: string) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([{ type: 'text', text: 'approved action done' }]),
+    tools: {
+      riskyTool: tool({
+        description: 'A dangerous tool that needs approval',
+        inputSchema: z.object({ action: z.string() }),
+        execute: executeApprovedAction,
+        needsApproval: true,
+      }),
+    },
+    experimental_toolApprovalSecret: signedToolApprovalSecret,
+  });
+
+  const result = await agent.stream({
+    messages: [
+      { role: 'user', content: 'do something risky' },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'riskyTool',
+            input: { action: 'delete' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-call-1',
+            toolCallId: 'call-1',
+            signature,
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-call-1',
+            approved: true,
+          },
+        ],
+      },
+    ],
+    writable: getWritable(),
+  });
+
+  return {
+    lastStepText: result.steps.at(-1)?.text,
+    containsApprovedToolResult: JSON.stringify(result.messages).includes(
+      'executed:delete',
+    ),
+  };
+}
+
 // ============================================================================
 // Tool with input schema (tests serialization across step boundary)
 // ============================================================================
@@ -583,5 +722,90 @@ export async function agentRuntimeAndToolsContextE2e() {
     toolReceivedContext,
     onFinishRuntimeContext,
     onFinishToolsContext,
+  };
+}
+
+export async function agentSandboxE2e() {
+  'use workflow';
+
+  let constructorSandboxRanCommand = 'not-run';
+  let stepSandboxRanCommand = 'not-run';
+  let firstPrepareStepSawConstructorSandbox = false;
+  let secondPrepareStepSawConstructorSandbox = false;
+  let prepareStepSawStepSandbox = false;
+
+  // A live sandbox session passed through `experimental_sandbox`. The tool
+  // `execute` is inline (not a `'use step'`) so the handle never crosses a
+  // step boundary — matching the single-process use of `experimental_sandbox`.
+  const constructorSandbox = createTestSandbox({
+    run: async ({ command }) => {
+      constructorSandboxRanCommand = command;
+      return {
+        exitCode: 0,
+        stdout: `constructor ran: ${command}`,
+        stderr: '',
+      };
+    },
+  });
+  const stepSandbox = createTestSandbox({
+    run: async ({ command }) => {
+      stepSandboxRanCommand = command;
+      return { exitCode: 0, stdout: `ran: ${command}`, stderr: '' };
+    },
+  });
+
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'runShell',
+        input: JSON.stringify({ command: 'echo hello' }),
+      },
+      { type: 'text', text: 'Command executed.' },
+    ]),
+    tools: {
+      runShell: tool({
+        description: 'Run a shell command in the sandbox.',
+        inputSchema: z.object({ command: z.string() }),
+        execute: async ({ command }, { experimental_sandbox }) => {
+          if (experimental_sandbox == null) {
+            throw new Error('Sandbox is not available');
+          }
+          return experimental_sandbox.run({ command });
+        },
+      }),
+    },
+    instructions: 'You run shell commands in a sandbox.',
+    experimental_sandbox: constructorSandbox,
+    prepareStep: ({ stepNumber, experimental_sandbox }) => {
+      if (stepNumber === 0) {
+        firstPrepareStepSawConstructorSandbox =
+          experimental_sandbox === constructorSandbox;
+        return { experimental_sandbox: stepSandbox };
+      }
+
+      if (experimental_sandbox === stepSandbox) {
+        prepareStepSawStepSandbox = true;
+      }
+      secondPrepareStepSawConstructorSandbox =
+        experimental_sandbox === constructorSandbox;
+      return {};
+    },
+  });
+
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'Run echo hello' }],
+    writable: getWritable(),
+  });
+
+  return {
+    stepCount: result.steps.length,
+    lastStepText: result.steps[result.steps.length - 1]?.text,
+    toolResults: result.toolResults,
+    constructorSandboxRanCommand,
+    stepSandboxRanCommand,
+    firstPrepareStepSawConstructorSandbox,
+    secondPrepareStepSawConstructorSandbox,
+    prepareStepSawStepSandbox,
   };
 }

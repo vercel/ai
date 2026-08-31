@@ -187,6 +187,22 @@ describe('convertMoonshotAIChatUsage', () => {
     });
   });
 
+  it('clamps text tokens at 0 when reasoning exceeds completion', () => {
+    const result = convertMoonshotAIChatUsage({
+      prompt_tokens: 951,
+      completion_tokens: 6000,
+      completion_tokens_details: {
+        reasoning_tokens: 6001,
+      },
+    });
+
+    expect(result.outputTokens).toEqual({
+      total: 6000,
+      text: 0,
+      reasoning: 6001,
+    });
+  });
+
   it('should convert usage with both cached and reasoning tokens', () => {
     const result = convertMoonshotAIChatUsage({
       prompt_tokens: 100,
