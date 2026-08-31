@@ -49,6 +49,7 @@ import {
 import {
   supportsNativeStructuredOutput,
   supportsStrictTools,
+  supportsRequiredToolChoice,
 } from './amazon-bedrock-anthropic-model-support';
 import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
 import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
@@ -274,7 +275,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       await prepareTools({
         tools: jsonResponseTool ? [...(tools ?? []), jsonResponseTool] : tools,
         toolChoice:
-          jsonResponseTool != null ? { type: 'required' } : toolChoice,
+          jsonResponseTool != null
+            ? supportsRequiredToolChoice(this.modelId)
+              ? { type: 'required' }
+              : undefined
+            : toolChoice,
         modelId: this.modelId,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });

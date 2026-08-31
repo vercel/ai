@@ -21,3 +21,13 @@ function rejectsNewerSchemaFields(modelId: string): boolean {
     modelId.includes(model),
   );
 }
+
+export function supportsRequiredToolChoice(modelId: string): boolean {
+  return MODELS_REJECTING_REQUIRED_TOOL_CHOICE.every(
+    model => !model.test(modelId),
+  );
+}
+
+// Meta models support tool calling but reject Bedrock's `toolChoice.any`, so
+// the synthetic JSON response tool cannot be forced.
+const MODELS_REJECTING_REQUIRED_TOOL_CHOICE = [/meta\./];
