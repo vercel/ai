@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { posix } from 'node:path';
 import {
   commonTool,
@@ -24,6 +23,7 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   createSandboxCredentialEnvironment,
+  createBridgeToken,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -37,6 +37,7 @@ import {
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
+  withBridgeToken,
   writeSkills as writeHarnessSkills,
 } from '@ai-sdk/harness/utils';
 import {
@@ -90,6 +91,8 @@ export type ClaudeCodeHarnessSettings = {
   /**
    * Anthropic model id the underlying `claude` CLI should use. Leaving this
    * unset defers to the CLI's default.
+   *
+   * @deprecated Use `model` on `HarnessAgent` instead.
    */
   readonly model?: string;
   /**
@@ -800,6 +803,17 @@ const claudeCodeBridgeCoordsSchema = z.object({
 const claudeCodeResumeStateSchema = z.looseObject({
   bridge: claudeCodeBridgeCoordsSchema.optional(),
   sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
+  /**
+   * The exact Claude conversation to rehydrate on resume. Written by the
+   * adapter on `doStop()`/`doDetach()`/`doSuspendTurn()` from the session id
+   * the bridge observed, so a resume names the conversation instead of
+   * relying on the SDK's `continue` flag — "most recent thread in this
+   * workdir" — which silently picks the wrong one once a second thread
+   * exists there. Hosts that captured the id themselves (it is surfaced as
+   * `harnessMetadata['claude-code'].sessionId` on `finish` parts) may also
+   * set it explicitly.
+   */
+  claudeSessionId: z.string().optional(),
 });
 
 type ClaudeCodeBridgeCoords = z.infer<typeof claudeCodeBridgeCoordsSchema>;
@@ -857,6 +871,7 @@ export function createClaudeCode(
         ? (lifecycleState?.data as {
             bridge?: ClaudeCodeBridgeCoords;
             sandboxCredentialEnvironment?: Record<string, string>;
+            claudeSessionId?: string;
           })
         : undefined;
       const coords = resumeData?.bridge;
@@ -918,6 +933,10 @@ export function createClaudeCode(
         defaultWorkingDirectory,
         BOOTSTRAP_DIR,
       );
+      // The conversation the host wants back, when it is known. Absent on
+      // state written before this field existed; those resumes fall back to
+      // the `continue` flag as before.
+      const resumeSessionId = resumeData?.claudeSessionId;
 
       const workDir = startOpts.sessionWorkDir;
       const sandboxHomeDir = await resolveSandboxHomeDir({
@@ -991,6 +1010,7 @@ export function createClaudeCode(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
@@ -1050,7 +1070,7 @@ export function createClaudeCode(
       });
       const token =
         settings.mintBridgeToken == null
-          ? randomBytes(32).toString('hex')
+          ? createBridgeToken()
           : settings.mintBridgeToken(sandboxId!);
       const env = {
         BRIDGE_CHANNEL_TOKEN: token,
@@ -1153,6 +1173,7 @@ export function createClaudeCode(
         effort: settings.effort,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
+        ...(resumeSessionId ? { resumeSessionId } : {}),
         rerunContinue: respawnStrategy === 'rerun',
         bridgePort: boundPort,
         bridgeToken: token,
@@ -1448,18 +1469,6 @@ function webSocketMessageToString(raw: unknown): string {
   return String(raw);
 }
 
-function withBridgeToken({
-  endpoint,
-  token,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  token: string;
-}): HarnessV1PortEndpoint {
-  const bridgeUrl = new URL(endpoint.url);
-  bridgeUrl.searchParams.set('agent_bridge_token', token);
-  return { ...endpoint, url: bridgeUrl.toString() };
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
     const timer = setTimeout(resolve, ms);
@@ -1483,6 +1492,7 @@ function createSession({
   effort,
   isResume,
   continueOnFirstPrompt,
+  resumeSessionId,
   rerunContinue,
   bridgePort,
   bridgeToken,
@@ -1507,6 +1517,12 @@ function createSession({
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
+  /**
+   * Exact conversation to rehydrate whenever a fresh SDK query starts. Takes
+   * precedence over the `continue` flag, which can only mean "most recent in
+   * this workdir".
+   */
+  resumeSessionId?: string;
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
@@ -1524,11 +1540,20 @@ function createSession({
   let stopPromise: Promise<void> | undefined;
   /*
    * Force the Claude SDK's `continue: true` on the first prompt only when the
-   * bridge was respawned (rerun/replay): a fresh bridge process treats its
-   * first turn as new, so it must be told to rehydrate the workdir thread. An
-   * `attach`ed bridge is already past its first turn and continues on its own.
+   * bridge was respawned without an exact conversation id (rerun/replay): a
+   * fresh bridge process treats its first turn as new, so it must be told to
+   * rehydrate the workdir thread. Exact ids are sent independently of this
+   * fallback on every fresh query.
    */
   let pendingResumeFlag = continueOnFirstPrompt;
+
+  /*
+   * The Claude conversation this session currently embodies. Seeded from the
+   * resume state and updated from every `finish` part's metadata — each turn
+   * may fork a new id, so the latest observation is the one a later
+   * stop/detach must record for exact resume.
+   */
+  let lastClaudeSessionId = resumeSessionId;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1585,6 +1610,9 @@ function createSession({
       'reasoning-start',
       'reasoning-delta',
       'reasoning-end',
+      'tool-input-start',
+      'tool-input-delta',
+      'tool-input-end',
       'tool-call',
       'tool-approval-request',
       'tool-result',
@@ -1600,6 +1628,14 @@ function createSession({
     }
     unsubs.push(
       channel.on('finish', msg => {
+        const metadata = (
+          msg as {
+            harnessMetadata?: { 'claude-code'?: { sessionId?: unknown } };
+          }
+        ).harnessMetadata?.['claude-code']?.sessionId;
+        if (typeof metadata === 'string' && metadata.length > 0) {
+          lastClaudeSessionId = metadata;
+        }
         forward(msg);
         settleSuccess();
       }),
@@ -1680,7 +1716,6 @@ function createSession({
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
       if (
         promptOpts.responseFormat?.type === 'json' &&
@@ -1703,6 +1738,16 @@ function createSession({
         abortSignal: promptOpts.abortSignal,
       });
 
+      /*
+       * A signal that was already aborted has settled the turn inside
+       * `wireTurn`. Sending `start` anyway would run a full unattended turn
+       * in the bridge — consuming tokens and possibly acting on the
+       * workspace — after the caller has already observed the abort.
+       */
+      if (promptOpts.abortSignal?.aborted) {
+        return control;
+      }
+
       const startMessage = {
         type: 'start' as const,
         prompt: extractUserText(promptOpts.prompt),
@@ -1717,7 +1762,7 @@ function createSession({
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
-        model,
+        model: promptOpts.model ?? model,
         maxTurns,
         ...(env !== undefined ? { env } : {}),
         thinking,
@@ -1729,7 +1774,11 @@ function createSession({
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
-        ...(pendingResumeFlag ? { continue: true } : {}),
+        ...(lastClaudeSessionId
+          ? { resumeSessionId: lastClaudeSessionId }
+          : pendingResumeFlag
+            ? { continue: true }
+            : {}),
       };
       pendingResumeFlag = false;
       channel.send(startMessage);
@@ -1771,7 +1820,9 @@ function createSession({
        * recomputed. This is the rare bridge-died fallback; the common slice path
        * is `attach`.
        */
-      if (rerunContinue) {
+      // Same as `doPromptTurn`: an already-aborted signal settled the turn in
+      // `wireTurn`, so don't re-drive the thread nobody is waiting on.
+      if (rerunContinue && !continueOpts.abortSignal?.aborted) {
         pendingResumeFlag = false;
         channel.send({
           type: 'start' as const,
@@ -1794,7 +1845,7 @@ function createSession({
           ...(continueOpts.instructions
             ? { instructions: continueOpts.instructions }
             : {}),
-          model,
+          model: continueOpts.model ?? model,
           maxTurns,
           ...(env !== undefined ? { env } : {}),
           thinking,
@@ -1806,7 +1857,9 @@ function createSession({
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
-          continue: true,
+          ...(lastClaudeSessionId
+            ? { resumeSessionId: lastClaudeSessionId }
+            : { continue: true }),
         });
       }
 
@@ -1848,6 +1901,9 @@ function createSession({
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
         },
       };
       return payload;
@@ -1959,7 +2015,13 @@ function createSession({
         type: 'resume-session',
         harnessId: 'claude-code',
         specificationVersion: 'harness-v1',
+        // The bridge's stop reply carries the session id it observed; the
+        // adapter's own record backfills it when the reply predates the
+        // field or the channel was already closed.
         data: {
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
           ...lifecycleData,
           ...(sandboxCredentialEnvironment == null
             ? {}
@@ -1998,6 +2060,9 @@ function createSession({
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },
+          ...(lastClaudeSessionId
+            ? { claudeSessionId: lastClaudeSessionId }
+            : {}),
         },
       };
       return payload;

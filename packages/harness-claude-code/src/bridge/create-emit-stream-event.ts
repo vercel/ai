@@ -21,8 +21,17 @@ export type ClaudeMessage = {
   event?: {
     type?: string;
     index?: number;
-    content_block?: { type?: string };
-    delta?: { type?: string; text?: string; thinking?: string };
+    content_block?: {
+      type?: string;
+      id?: string;
+      name?: string;
+    };
+    delta?: {
+      type?: string;
+      text?: string;
+      thinking?: string;
+      partial_json?: string;
+    };
   };
   message?: {
     content?: ReadonlyArray<MessageBlock>;
@@ -33,6 +42,7 @@ export type ClaudeMessage = {
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
   structured_output?: unknown;
+  tool_use_result?: unknown;
 };
 
 type MessageBlock = {
@@ -56,7 +66,7 @@ export type ClaudeStreamEventState = {
    */
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>;
+  partialBlocks: Map<number, PartialBlock>;
   stepUsage: Record<string, unknown> | undefined;
   pendingStepToolUseIds: Set<string>;
   pendingStepUsage: Record<string, unknown> | undefined;
@@ -64,15 +74,18 @@ export type ClaudeStreamEventState = {
   /*
    * Tool-use ids that originated from the MCP server hosting user-supplied
    * tools. The MCP handler emits its own `tool-call`/`tool-result` pair with
-   * the user-facing tool name and a synthetic id, so the duplicate
-   * `tool_result` block Claude reports for the underlying native id must be
-   * suppressed.
+   * the user-facing tool name, so the duplicate `tool_result` block Claude
+   * reports for the underlying native id must be suppressed.
    */
   mcpToolUseIds: Set<string>;
   externalMcpToolUseIds: Set<string>;
   structuredOutputToolUseIds: Set<string>;
   observedTerminalError: string | undefined;
 };
+
+type PartialBlock =
+  | { id: string; kind: 'text' | 'thinking' }
+  | { id: string; kind: 'tool-input' };
 
 export function createClaudeStreamEventState(): ClaudeStreamEventState {
   return {
@@ -195,7 +208,12 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'stream_event') {
-      handleStreamEvent(msg.event, state.partialBlocks, emit);
+      handleStreamEvent({
+        event: msg.event,
+        state,
+        send: emit,
+        toCommonName,
+      });
       return;
     }
 
@@ -248,6 +266,12 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'user' && msg.message?.content) {
+      const toolResultBlocks = msg.message.content.filter(
+        block => block.type === 'tool_result',
+      );
+      const toolUseResult =
+        toolResultBlocks.length === 1 ? msg.tool_use_result : undefined;
+
       for (const block of msg.message.content) {
         if (
           block.type === 'tool_result' &&
@@ -274,17 +298,19 @@ export function createEmitStreamEvent({
            * numeric exit code — the SDK exposes only stdout/stderr text and
            * an is_error flag. Consumers (and the example UI) render bash
            * failures from an `exitCode` field on a structured result, the
-           * shape Codex's shell tool provides natively. To match it, derive
-           * a binary code from is_error: 1 on failure, 0 on success. This is
-           * a stand-in for failed/succeeded, not the process's true exit
-           * status.
+           * shape Codex's shell tool provides natively. When Claude omits
+           * `tool_use_result`, derive a binary code from is_error: 1 on
+           * failure, 0 on success. This fallback is a stand-in for
+           * failed/succeeded, not the process's true exit status.
            */
-          const result =
+          const contentResult =
             toolName === 'bash'
               ? { exitCode: isError ? 1 : 0, stdout: content }
               : dynamic
                 ? parseMcpToolResult(content)
                 : content;
+          const result =
+            toolUseResult !== undefined ? toolUseResult : contentResult;
           emit({
             type: 'tool-result',
             toolCallId: block.tool_use_id,
@@ -371,13 +397,22 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
     : 'Claude Code API retry';
 }
 
-function handleStreamEvent(
-  event: ClaudeMessage['event'] | undefined,
-  partialBlocks: Map<number, { id: string; kind: 'text' | 'thinking' }>,
-  send: Emit,
-): void {
+const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
+
+function handleStreamEvent({
+  event,
+  state,
+  send,
+  toCommonName,
+}: {
+  event: ClaudeMessage['event'] | undefined;
+  state: ClaudeStreamEventState;
+  send: Emit;
+  toCommonName: (nativeName: string) => string;
+}): void {
   if (!event || typeof event.index !== 'number') return;
   const index = event.index;
+  const partialBlocks = state.partialBlocks;
 
   if (event.type === 'content_block_start') {
     const blockType = event.content_block?.type;
@@ -389,6 +424,29 @@ function handleStreamEvent(
       const id = randomUUID();
       partialBlocks.set(index, { id, kind: 'thinking' });
       send({ type: 'reasoning-start', id });
+    } else if (
+      blockType === 'tool_use' &&
+      typeof event.content_block?.id === 'string' &&
+      typeof event.content_block.name === 'string'
+    ) {
+      const id = event.content_block.id;
+      const nativeName = event.content_block.name;
+      if (nativeName === 'StructuredOutput') {
+        return;
+      }
+      const hostToolName = nativeName.startsWith(HOST_TOOL_PREFIX)
+        ? nativeName.slice(HOST_TOOL_PREFIX.length)
+        : undefined;
+      const dynamic =
+        hostToolName === undefined && nativeName.startsWith('mcp__');
+      partialBlocks.set(index, { id, kind: 'tool-input' });
+      send({
+        type: 'tool-input-start',
+        id,
+        toolName: hostToolName ?? toCommonName(nativeName),
+        providerExecuted: hostToolName === undefined,
+        ...(dynamic ? { dynamic: true } : {}),
+      });
     }
     return;
   }
@@ -412,6 +470,16 @@ function handleStreamEvent(
         id: block.id,
         delta: event.delta.thinking,
       });
+    } else if (
+      block.kind === 'tool-input' &&
+      event.delta?.type === 'input_json_delta' &&
+      typeof event.delta.partial_json === 'string'
+    ) {
+      send({
+        type: 'tool-input-delta',
+        id: block.id,
+        delta: event.delta.partial_json,
+      });
     }
     return;
   }
@@ -422,8 +490,10 @@ function handleStreamEvent(
     partialBlocks.delete(index);
     if (block.kind === 'text') {
       send({ type: 'text-end', id: block.id });
-    } else {
+    } else if (block.kind === 'thinking') {
       send({ type: 'reasoning-end', id: block.id });
+    } else {
+      send({ type: 'tool-input-end', id: block.id });
     }
   }
 }

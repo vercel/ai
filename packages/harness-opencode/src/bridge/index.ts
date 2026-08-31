@@ -16,6 +16,7 @@ import {
   createTranslationState,
   emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
+  openCodeMessageInfoFromValue,
   type TranslationState,
   unwrapOpenCodeEvent,
 } from './opencode-events';
@@ -144,6 +145,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       await client.instance.dispose({ directory: workdir });
     }
     const sessionId = await ensureSession({ client, start, emit });
+    await switchSessionModel({ client, sessionId, start });
 
     if (start.operation === 'compact') {
       await runCompaction({ client, sessionId, start, turn, emit });
@@ -160,6 +162,27 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       totalUsage: totalUsage ?? defaultUsage(),
     });
   }
+}
+
+async function switchSessionModel({
+  client,
+  sessionId,
+  start,
+}: {
+  client: OpenCodeClient;
+  sessionId: string;
+  start: StartMessage;
+}): Promise<void> {
+  const model = modelRefFromStart(start);
+  if (model == null) return;
+  const response = await client.v2.session.switchModel({
+    sessionID: sessionId,
+    model: {
+      id: model.modelID,
+      providerID: model.providerID,
+    },
+  });
+  if (response.error != null) throw response.error;
 }
 
 async function ensureRuntime({
@@ -219,6 +242,7 @@ function buildOpenCodeConfig({
   relayPort: number | undefined;
 }): Record<string, unknown> {
   const config: Record<string, unknown> = {
+    ...withoutAgentPolicyOverrides(start.openCodeConfig),
     share: 'disabled',
     autoupdate: false,
     permission: {
@@ -270,6 +294,27 @@ function buildOpenCodeConfig({
     };
   }
   if (Object.keys(mcp).length > 0) config.mcp = mcp;
+  return config;
+}
+
+function withoutAgentPolicyOverrides(
+  input: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const config = { ...input };
+  for (const key of ['agent', 'mode'] as const) {
+    const agents = asOpenCodeObject(config[key]);
+    if (!agents) continue;
+    config[key] = Object.fromEntries(
+      Object.entries(agents).map(([name, value]) => {
+        const agent = asOpenCodeObject(value);
+        if (!agent) return [name, value];
+        const safeAgent = { ...agent };
+        delete safeAgent.permission;
+        delete safeAgent.tools;
+        return [name, safeAgent];
+      }),
+    );
+  }
   return config;
 }
 
@@ -921,9 +966,33 @@ async function consumeEvents({
     let processEvent = descendantEventProcessors.get(descendantSessionId);
     if (!processEvent) {
       const descendantState = createTranslationState();
+      let currentEvent: OpenCodeEvent | undefined;
+      let modelId: string | undefined;
+      const emittedUsageStepIds = new Set<string>();
       processEvent = createEmitStreamEvent({
         state: descendantState,
-        emit: () => undefined,
+        emit: message => {
+          if (message.type !== 'finish-step') return;
+          const stepId = getSubagentStepId(currentEvent);
+          if (!stepId || emittedUsageStepIds.has(stepId)) return;
+          emittedUsageStepIds.add(stepId);
+          const opencodeMetadata = asOpenCodeObject(
+            message.harnessMetadata,
+          )?.opencode;
+          const cost = asOpenCodeObject(opencodeMetadata)?.cost;
+          emit({
+            type: 'raw',
+            rawValue: {
+              type: 'opencode.subagent-usage',
+              version: 1,
+              sessionId: descendantSessionId,
+              stepId,
+              ...(modelId ? { modelId } : {}),
+              usage: message.usage,
+              ...(typeof cost === 'number' ? { cost } : {}),
+            },
+          });
+        },
         emitWarning: () => undefined,
         emitError: () => undefined,
         toWireToolName,
@@ -936,6 +1005,19 @@ async function consumeEvents({
         stripWorkDir,
         formatError,
       });
+      const emitDescendantEvent = processEvent;
+      processEvent = descendantEvent => {
+        currentEvent = descendantEvent;
+        if (descendantEvent.type === 'message.updated') {
+          const info = openCodeMessageInfoFromValue(
+            descendantEvent.properties?.info,
+          );
+          const providerID = stringValue(info?.providerID);
+          const modelID = stringValue(info?.modelID);
+          if (providerID && modelID) modelId = `${providerID}/${modelID}`;
+        }
+        emitDescendantEvent(descendantEvent);
+      };
       descendantEventProcessors.set(descendantSessionId, processEvent);
     }
     processEvent(event);
@@ -981,6 +1063,16 @@ async function consumeEvents({
     if (isDescendant) continue;
     if (onEvent?.(event)) break;
   }
+}
+
+function getSubagentStepId(event: OpenCodeEvent | undefined) {
+  if (event?.type === 'message.part.updated') {
+    const part = asOpenCodeObject(event.properties?.part);
+    if (part?.type !== 'step-finish') return undefined;
+    return stringValue(part.id) ?? stringValue(part.messageID) ?? event.id;
+  }
+  if (event?.type !== 'session.next.step.ended') return undefined;
+  return stringValue(event.properties?.stepID) ?? event.id;
 }
 
 function sanitizeMcpToolName(value: string): string {
