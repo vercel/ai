@@ -96,6 +96,45 @@ describe('uploadFile', () => {
     );
   });
 
+  it('should forward abortSignal and headers to files.uploadFile', async () => {
+    const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
+    const controller = new AbortController();
+
+    await uploadFile({
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+      abortSignal: controller.signal,
+      headers: { 'x-request-id': 'req-1' },
+    });
+
+    expect(uploadFileSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abortSignal: controller.signal,
+        headers: { 'x-request-id': 'req-1' },
+      }),
+    );
+  });
+
+  it('should pass byteSize/createdAt/expiresAt through from the provider result', async () => {
+    const createdAt = new Date(1700000000 * 1000);
+    const expiresAt = new Date(1700172800 * 1000);
+    const uploadFileSpy = vi.fn().mockResolvedValue({
+      ...mockResult,
+      byteSize: 2048,
+      createdAt,
+      expiresAt,
+    });
+
+    const result = await uploadFile({
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+    });
+
+    expect(result.byteSize).toBe(2048);
+    expect(result.createdAt).toEqual(createdAt);
+    expect(result.expiresAt).toEqual(expiresAt);
+  });
+
   it('should forward providerOptions to files.uploadFile', async () => {
     const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
 

@@ -105,6 +105,37 @@ describe('GoogleFiles', () => {
   });
 
   describe('uploadFile', () => {
+    it('should thread per-call headers and abortSignal through the upload', async () => {
+      const captured: Array<{ url: string; init: RequestInit | undefined }> =
+        [];
+      const { files } = createMockFiles({
+        onRequest: (url, init) => captured.push({ url, init }),
+      });
+      const controller = new AbortController();
+
+      await files.uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'application/pdf',
+        abortSignal: controller.signal,
+        headers: { 'x-request-id': 'req-1' },
+      });
+
+      const initCall = captured.find(({ url }) =>
+        url.includes('/upload/v1beta/files'),
+      );
+      const initHeaders = (initCall?.init?.headers ?? {}) as Record<
+        string,
+        string
+      >;
+      expect(initHeaders['x-request-id']).toBe('req-1');
+      expect(initCall?.init?.signal).toBe(controller.signal);
+
+      const uploadCall = captured.find(
+        ({ url }) => url === 'https://upload.example.com/resume',
+      );
+      expect(uploadCall?.init?.signal).toBe(controller.signal);
+    });
+
     it('should send correct headers for resumable upload initiation', async () => {
       let capturedInit: RequestInit | undefined;
       const { files } = createMockFiles({

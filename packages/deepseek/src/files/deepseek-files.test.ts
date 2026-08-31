@@ -115,6 +115,32 @@ describe('DeepSeek Files - uploadFile', () => {
     });
   });
 
+  it('should thread per-call headers and abortSignal', async () => {
+    prepareFileResponse();
+
+    const files = createDeepSeek({ apiKey: 'test-api-key' }).files();
+
+    await files.uploadFile({
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+      mediaType: 'image/png',
+      filename: 'comic-cat.png',
+      headers: { 'x-request-id': 'req-1' },
+    });
+
+    expect(server.calls[0].requestHeaders['x-request-id']).toBe('req-1');
+
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      files.uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'image/png',
+        filename: 'comic-cat.png',
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toThrow();
+  });
+
   it('should return a DeepSeek provider reference and response metadata', async () => {
     prepareFileResponse({
       id: 'file-api-xyz789',

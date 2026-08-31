@@ -260,6 +260,24 @@ describe('OpenAI Files - uploadFile (stream data)', () => {
     expect(await file.text()).toBe('{"a":1}\n{"b":2}\n');
   });
 
+  it('should default the filename to "blob" on filename-less stream uploads', async () => {
+    prepareFileResponse();
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+    const files = provider.files();
+
+    await files.uploadFile({
+      data: { type: 'stream', stream: streamFromChunks(['x']) },
+      mediaType: 'application/jsonl',
+      providerOptions: { openai: { purpose: 'batch' } },
+    });
+
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const file = multipart!.file as File;
+    expect(file).toBeInstanceOf(File);
+    expect(file.name).toBe('blob');
+  });
+
   it('should omit expiry fields on stream uploads without expiresAfter', async () => {
     prepareFileResponse();
 
@@ -371,6 +389,33 @@ describe('OpenAI Files - retrieveFile', () => {
 
     expect(result.expiresAt).toBeUndefined();
   });
+
+  it.each(['', '   '])(
+    'should reject a blank openai file id (%j)',
+    async fileId => {
+      const provider = createOpenAI({ apiKey: 'test-api-key' });
+      const files = provider.files();
+
+      await expect(
+        files.retrieveFile!({ file: { openai: fileId } }),
+      ).rejects.toThrow("file reference is missing an 'openai' file id.");
+    },
+  );
+
+  it.each(['.', '..'])(
+    'should not let a dot-segment file id (%j) retarget the path',
+    async fileId => {
+      const provider = createOpenAI({ apiKey: 'test-api-key' });
+      const files = provider.files();
+
+      // encodes to a non-normalizable segment, so the request targets an
+      // unregistered URL instead of /v1/files or a parent path
+      await expect(
+        files.retrieveFile!({ file: { openai: fileId } }),
+      ).rejects.toThrow();
+      expect(server.calls.length).toBe(0);
+    },
+  );
 
   it('should reject a reference without an openai file id', async () => {
     const provider = createOpenAI({ apiKey: 'test-api-key' });
