@@ -110,6 +110,10 @@ export async function convertToAnthropicMessagesPrompt({
       case 'system': {
         const content: AnthropicSystemMessage['content'] = [];
         let toolChangeCount = 0;
+        let clearAt: AnthropicSystemMessage['clear_at'] = undefined;
+        let effort:
+          | NonNullable<AnthropicSystemMessage['output_config']>['effort']
+          | undefined = undefined;
 
         for (const { content: text, providerOptions } of block.messages) {
           const systemMessageOptions = await parseProviderOptions({
@@ -118,10 +122,17 @@ export async function convertToAnthropicMessagesPrompt({
             schema: anthropicSystemMessageProviderOptions,
           });
           const toolChanges = systemMessageOptions?.toolChanges ?? [];
+          clearAt = systemMessageOptions?.clearAt ?? clearAt;
+          effort = systemMessageOptions?.effort ?? effort;
 
-          // A system message that only carries tool changes may have empty
-          // text; do not emit an empty text block for it.
-          if (text !== '' || toolChanges.length === 0) {
+          // A system message that only carries message-level controls or tool
+          // changes may have empty text; do not emit an empty text block.
+          if (
+            text !== '' ||
+            (toolChanges.length === 0 &&
+              systemMessageOptions?.clearAt == null &&
+              systemMessageOptions?.effort == null)
+          ) {
             content.push({
               type: 'text' as const,
               text,
@@ -144,29 +155,42 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
+        const hasMidConversationOptions =
+          toolChangeCount > 0 || clearAt != null || effort != null;
+
         // The first block becomes the top-level system prompt. Later system
         // blocks are sent as inline system messages — always when they carry
-        // tool changes (which are only valid mid-conversation), and otherwise
-        // only when a top-level system prompt already exists (preserving the
-        // existing hoisting behavior for plain text).
-        if (i === 0 || (system == null && toolChangeCount === 0)) {
-          if (toolChangeCount > 0) {
+        // message-level controls or tool changes (which are only valid
+        // mid-conversation), and otherwise only when a top-level system prompt
+        // already exists (preserving the existing hoisting behavior for text).
+        if (i === 0 || (system == null && !hasMidConversationOptions)) {
+          if (hasMidConversationOptions) {
             warnings.push({
               type: 'other',
               message:
-                'tool changes on the initial system message are not supported by Anthropic. ' +
-                'Configure the initial tool set via the tools option instead. ' +
-                'The tool changes have been ignored.',
+                'mid-conversation Anthropic system message options on the initial system message are not supported. ' +
+                'The options have been ignored.',
             });
           }
           system = content.filter(
             (part): part is AnthropicTextContent => part.type === 'text',
           );
         } else {
-          messages.push({ role: 'system', content });
+          messages.push({
+            role: 'system',
+            content,
+            ...(clearAt != null && { clear_at: clearAt }),
+            ...(effort != null && { output_config: { effort } }),
+          });
           betas.add('mid-conversation-system-2026-04-07');
           if (toolChangeCount > 0) {
             betas.add('mid-conversation-tool-changes-2026-07-01');
+          }
+          if (clearAt != null) {
+            betas.add('mid-conversation-system-clear-at-2026-08-21');
+          }
+          if (effort != null) {
+            betas.add('mid-conversation-effort-2026-08-01');
           }
         }
 

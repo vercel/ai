@@ -269,7 +269,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const isAnthropicModel = isKnownModel || this.modelId.includes('claude-');
 
     const structureOutputMode =
-      anthropicOptions?.structuredOutputMode ?? 'jsonTool';
+      anthropicOptions?.structuredOutputMode ??
+      (this.modelId.includes('claude-fable-5-1') ? 'auto' : 'jsonTool');
     const useStructuredOutput =
       structureOutputMode === 'outputFormat' ||
       (structureOutputMode === 'auto' && supportsStructuredOutput);
@@ -311,13 +312,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         cacheControlValidator,
       });
 
+    const thinkingOptions = anthropicOptions?.thinking;
+    const thinkingType =
+      thinkingOptions != null && 'type' in thinkingOptions
+        ? thinkingOptions.type
+        : undefined;
+
     // Newer models only allow disabling thinking at effort levels up to and
     // including `high`; at `xhigh` and `max` the API returns a 400. Lower
     // the effort to `high` to preserve the explicit request to run without
     // thinking.
     if (
       rejectsThinkingDisabledAboveHighEffort &&
-      anthropicOptions?.thinking?.type === 'disabled' &&
+      thinkingType === 'disabled' &&
+      anthropicOptions != null &&
       (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
     ) {
       warnings.push({
@@ -330,16 +338,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       anthropicOptions.effort = 'high';
     }
 
-    const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
       thinkingType === 'enabled' || thinkingType === 'adaptive';
     let thinkingBudget =
-      thinkingType === 'enabled'
-        ? anthropicOptions?.thinking?.budgetTokens
+      thinkingOptions != null && 'budgetTokens' in thinkingOptions
+        ? thinkingOptions.budgetTokens
         : undefined;
     const thinkingDisplay =
-      thinkingType === 'adaptive'
-        ? anthropicOptions?.thinking?.display
+      thinkingOptions != null && 'display' in thinkingOptions
+        ? thinkingOptions.display
+        : undefined;
+    const thinkingBlockBinding =
+      thinkingOptions != null && 'blockBinding' in thinkingOptions
+        ? thinkingOptions.blockBinding
         : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
@@ -356,11 +367,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       stop_sequences: stopSequences,
 
       // provider specific settings:
-      ...(isThinking && {
+      ...((isThinking || thinkingBlockBinding != null) && {
         thinking: {
-          type: thinkingType,
+          ...(thinkingType != null && { type: thinkingType }),
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
           ...(thinkingDisplay != null && { display: thinkingDisplay }),
+          ...(thinkingBlockBinding != null && {
+            block_binding: {
+              prefix_mismatch_behavior:
+                thinkingBlockBinding.prefixMismatchBehavior,
+            },
+          }),
         },
       }),
       ...((anthropicOptions?.effort ||
@@ -573,6 +590,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       betas.add('effort-2025-11-24');
     }
 
+    if (thinkingBlockBinding != null) {
+      betas.add('thinking-binding-controls-2026-08-01');
+    }
+
     if (anthropicOptions?.taskBudget) {
       betas.add('task-budgets-2026-03-13');
     }
@@ -591,7 +612,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     }
 
     // structured output:
-    if (useStructuredOutput) {
+    if (
+      useStructuredOutput &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null
+    ) {
       betas.add('structured-outputs-2025-11-13');
     }
 
@@ -2065,6 +2090,7 @@ export function getModelCapabilities(modelId: string): {
   } else if (
     modelId.includes('claude-opus-4-8') ||
     modelId.includes('claude-opus-4-7') ||
+    modelId.includes('claude-fable-5-1') ||
     modelId.includes('claude-fable-5') ||
     modelId.includes('claude-sonnet-5')
   ) {
