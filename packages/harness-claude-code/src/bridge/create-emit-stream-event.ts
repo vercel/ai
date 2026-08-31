@@ -42,6 +42,7 @@ export type ClaudeMessage = {
   usage?: Record<string, unknown>;
   total_cost_usd?: number;
   structured_output?: unknown;
+  tool_use_result?: unknown;
 };
 
 type MessageBlock = {
@@ -265,6 +266,12 @@ export function createEmitStreamEvent({
     }
 
     if (type === 'user' && msg.message?.content) {
+      const toolResultBlocks = msg.message.content.filter(
+        block => block.type === 'tool_result',
+      );
+      const toolUseResult =
+        toolResultBlocks.length === 1 ? msg.tool_use_result : undefined;
+
       for (const block of msg.message.content) {
         if (
           block.type === 'tool_result' &&
@@ -291,17 +298,19 @@ export function createEmitStreamEvent({
            * numeric exit code — the SDK exposes only stdout/stderr text and
            * an is_error flag. Consumers (and the example UI) render bash
            * failures from an `exitCode` field on a structured result, the
-           * shape Codex's shell tool provides natively. To match it, derive
-           * a binary code from is_error: 1 on failure, 0 on success. This is
-           * a stand-in for failed/succeeded, not the process's true exit
-           * status.
+           * shape Codex's shell tool provides natively. When Claude omits
+           * `tool_use_result`, derive a binary code from is_error: 1 on
+           * failure, 0 on success. This fallback is a stand-in for
+           * failed/succeeded, not the process's true exit status.
            */
-          const result =
+          const contentResult =
             toolName === 'bash'
               ? { exitCode: isError ? 1 : 0, stdout: content }
               : dynamic
                 ? parseMcpToolResult(content)
                 : content;
+          const result =
+            toolUseResult !== undefined ? toolUseResult : contentResult;
           emit({
             type: 'tool-result',
             toolCallId: block.tool_use_id,
