@@ -493,8 +493,32 @@ function convertXaiChatBatchResponse(
   }
 
   const content: LanguageModelV4Content[] = [];
+  const providerExecutedToolCallIds = new Set(
+    choices
+      .filter(choice => choice.message.role === 'tool')
+      .flatMap(choice =>
+        (choice.message.tool_calls ?? []).map(toolCall => toolCall.id),
+      ),
+  );
+  let lastAssistantChoice: (typeof choices)[number] | undefined;
+
   for (const choice of choices) {
-    if (choice.message.role !== 'assistant') continue;
+    if (choice.message.role === 'tool') {
+      if (choice.message.content != null) {
+        for (const toolCall of choice.message.tool_calls ?? []) {
+          content.push({
+            type: 'tool-result',
+            toolCallId: toolCall.id,
+            toolName: toolCall.function.name,
+            result: choice.message.content,
+            dynamic: true,
+          });
+        }
+      }
+      continue;
+    }
+
+    lastAssistantChoice = choice;
 
     if (choice.message.content) {
       content.push({ type: 'text', text: choice.message.content });
@@ -511,7 +535,7 @@ function convertXaiChatBatchResponse(
         toolCallId: toolCall.id,
         toolName: toolCall.function.name,
         input: toolCall.function.arguments,
-        ...(isXaiProviderTool(toolCall.function.name)
+        ...(providerExecutedToolCallIds.has(toolCall.id)
           ? { providerExecuted: true, dynamic: true }
           : {}),
       });
@@ -531,8 +555,8 @@ function convertXaiChatBatchResponse(
     result: {
       content,
       finishReason: {
-        unified: mapXaiFinishReason(choices.at(-1)?.finish_reason),
-        raw: choices.at(-1)?.finish_reason ?? undefined,
+        unified: mapXaiFinishReason(lastAssistantChoice?.finish_reason),
+        raw: lastAssistantChoice?.finish_reason ?? undefined,
       },
       usage: response.usage
         ? convertXaiChatUsage(response.usage)
@@ -554,8 +578,4 @@ function convertXaiChatBatchResponse(
       }),
     },
   };
-}
-
-function isXaiProviderTool(toolName: string): boolean {
-  return ['web_search', 'x_search', 'code_execution'].includes(toolName);
 }

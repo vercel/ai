@@ -542,8 +542,17 @@ describe('xAI Responses batch language model', () => {
                       index: 1,
                       message: {
                         role: 'tool',
-                        content: null,
-                        tool_calls: [],
+                        content: 'Search results',
+                        tool_calls: [
+                          {
+                            id: 'web-search-1',
+                            type: 'function',
+                            function: {
+                              name: 'web_search',
+                              arguments: '{"query":"Vercel"}',
+                            },
+                          },
+                        ],
                       },
                       finish_reason: '',
                     },
@@ -555,6 +564,45 @@ describe('xAI Responses batch language model', () => {
                         tool_calls: null,
                       },
                       finish_reason: 'stop',
+                    },
+                    {
+                      index: 3,
+                      message: {
+                        role: 'tool',
+                        content: null,
+                        tool_calls: [],
+                      },
+                      finish_reason: '',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            batch_request_id: 'client-tool-with-provider-name',
+            batch_result: {
+              response: {
+                chat_get_completion: {
+                  ...chatResultBody(''),
+                  choices: [
+                    {
+                      index: 0,
+                      message: {
+                        role: 'assistant',
+                        content: null,
+                        tool_calls: [
+                          {
+                            id: 'client-web-search-1',
+                            type: 'function',
+                            function: {
+                              name: 'web_search',
+                              arguments: '{}',
+                            },
+                          },
+                        ],
+                      },
+                      finish_reason: 'tool_calls',
                     },
                   ],
                 },
@@ -585,6 +633,13 @@ describe('xAI Responses batch language model', () => {
               providerExecuted: true,
               dynamic: true,
             },
+            {
+              type: 'tool-result',
+              toolCallId: 'web-search-1',
+              toolName: 'web_search',
+              result: 'Search results',
+              dynamic: true,
+            },
             { type: 'text', text: 'Final answer' },
             {
               type: 'source',
@@ -593,6 +648,26 @@ describe('xAI Responses batch language model', () => {
             },
           ],
           finishReason: { unified: 'stop', raw: 'stop' },
+        },
+      },
+      {
+        id: 'client-tool-with-provider-name',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'client-web-search-1',
+              toolName: 'web_search',
+              input: '{}',
+            },
+            {
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://example.com/source',
+            },
+          ],
+          finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
         },
       },
     ]);
