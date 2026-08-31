@@ -5,6 +5,7 @@ import {
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveBridgeAssetUrl } from './codex-bootstrap';
 import { createCodex } from './codex-harness';
 
 const sentMessages: unknown[] = [];
@@ -702,6 +703,24 @@ describe('createCodex adapter', () => {
   });
 
   describe('getBootstrap', () => {
+    it('resolves bridge assets from source and bundled module layouts', () => {
+      const sourceModuleUrl = new URL('./codex-bootstrap.ts', import.meta.url);
+      const bundledModuleUrl = new URL('../dist/index.js', import.meta.url);
+
+      expect(
+        resolveBridgeAssetUrl({
+          name: 'package.json',
+          moduleUrl: sourceModuleUrl,
+        }),
+      ).toEqual(new URL('./bridge/package.json', import.meta.url));
+      expect(
+        resolveBridgeAssetUrl({
+          name: 'package.json',
+          moduleUrl: bundledModuleUrl,
+        }),
+      ).toEqual(new URL('../dist/bridge/package.json', import.meta.url));
+    });
+
     it('returns a recipe with the expected harnessId and bootstrapDir', async () => {
       const harness = createCodex();
       expect(harness.getBootstrap).toBeDefined();

@@ -12,7 +12,7 @@ import * as fsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { createACP } from './acp-harness';
-import { resolveBridgeAssetCandidates } from './v1/acp-v1-bootstrap';
+import { resolveBridgeAssetUrl } from './v1/acp-v1-bootstrap';
 import { serializeBuiltinTools } from './v1/acp-v1-harness';
 import { ACP_BRIDGE_CONFIGURATION_ENV } from './v1/bridge/acp-v1-bridge-environment';
 import type { ACPPermissionModeMapping } from './v1/acp-v1-settings';
@@ -1702,34 +1702,24 @@ describe('createACP', () => {
   });
 
   it('resolves bridge assets from source and bundled module layouts', () => {
-    const sourceModuleUrl = new URL('./v1/acp-v1-harness.ts', import.meta.url);
-    const compiledModuleUrl = new URL(
-      '../dist/v1/acp-v1-harness.js',
+    const sourceModuleUrl = new URL(
+      './v1/acp-v1-bootstrap.ts',
       import.meta.url,
     );
     const bundledModuleUrl = new URL('../dist/index.js', import.meta.url);
-    const sourceCandidates = resolveBridgeAssetCandidates({
-      name: 'package.json',
-      moduleUrl: sourceModuleUrl,
-    });
-    const compiledCandidates = resolveBridgeAssetCandidates({
-      name: 'package.json',
-      moduleUrl: compiledModuleUrl,
-    });
-    const bundledCandidates = resolveBridgeAssetCandidates({
-      name: 'package.json',
-      moduleUrl: bundledModuleUrl,
-    });
 
-    expect(sourceCandidates[0]).toEqual(
-      new URL('./v1/bridge/package.json', import.meta.url),
-    );
-    expect(compiledCandidates[1]).toEqual(
-      new URL('../dist/bridge/package.json', import.meta.url),
-    );
-    expect(bundledCandidates[0]).toEqual(
-      new URL('../dist/bridge/package.json', import.meta.url),
-    );
+    expect(
+      resolveBridgeAssetUrl({
+        name: 'package.json',
+        moduleUrl: sourceModuleUrl,
+      }),
+    ).toEqual(new URL('./v1/bridge/package.json', import.meta.url));
+    expect(
+      resolveBridgeAssetUrl({
+        name: 'package.json',
+        moduleUrl: bundledModuleUrl,
+      }),
+    ).toEqual(new URL('../dist/bridge/package.json', import.meta.url));
   });
 
   it('uses the supplied sandbox and workdir while separating bridge and direct provider auth', async () => {

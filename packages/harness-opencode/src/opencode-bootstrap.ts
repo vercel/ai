@@ -44,19 +44,23 @@ export async function getOpenCodeBootstrap(): Promise<HarnessV1Bootstrap> {
 }
 
 async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
+  return readFile(
+    fileURLToPath(
+      resolveBridgeAssetUrl({
+        name,
+        moduleUrl: import.meta.url,
+      }),
+    ),
+    'utf8',
+  );
+}
+
+export function resolveBridgeAssetUrl({
+  name,
+  moduleUrl,
+}: {
+  name: string;
+  moduleUrl: string | URL;
+}): URL {
+  return new URL(`./bridge/${name}`, moduleUrl);
 }

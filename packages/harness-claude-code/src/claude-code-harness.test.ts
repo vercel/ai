@@ -147,6 +147,8 @@ vi.mock('node:fs/promises', async importOriginal => {
 
 // eslint-disable-next-line import/first
 import { createClaudeCode } from './claude-code-harness';
+// eslint-disable-next-line import/first
+import { resolveBridgeAssetUrl } from './claude-code-bootstrap';
 
 function textStream(text: string): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
@@ -1305,6 +1307,27 @@ describe('createClaudeCode adapter', () => {
   });
 
   describe('getBootstrap', () => {
+    it('resolves bridge assets from source and bundled module layouts', () => {
+      const sourceModuleUrl = new URL(
+        './claude-code-bootstrap.ts',
+        import.meta.url,
+      );
+      const bundledModuleUrl = new URL('../dist/index.js', import.meta.url);
+
+      expect(
+        resolveBridgeAssetUrl({
+          name: 'package.json',
+          moduleUrl: sourceModuleUrl,
+        }),
+      ).toEqual(new URL('./bridge/package.json', import.meta.url));
+      expect(
+        resolveBridgeAssetUrl({
+          name: 'package.json',
+          moduleUrl: bundledModuleUrl,
+        }),
+      ).toEqual(new URL('../dist/bridge/package.json', import.meta.url));
+    });
+
     it('returns a recipe with the expected harnessId and bootstrapDir', async () => {
       const harness = createClaudeCode();
       expect(harness.getBootstrap).toBeDefined();
