@@ -43,11 +43,11 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
-    "@types/node": "22.19.19",
+    "@types/node": "catalog:",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
-    "typescript": "5.8.3",
-    "zod": "3.25.76"
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "zod": "catalog:"
   },
   "engines": {
     "node": ">=22"

@@ -32,7 +32,7 @@
     "@ai-sdk/xai": "workspace:*",
     "@langfuse/otel": "^4.6.1",
     "@langfuse/tracing": "^5.3.0",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "catalog:",
     "@opentelemetry/sdk-trace-node": "^2.7.1",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
@@ -53,15 +53,15 @@
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
     "valibot": "1.1.0",
-    "zod": "3.25.76"
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "22.19.19",
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.7",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
-    "typescript": "5.8.3"
+    "typescript": "catalog:"
   }
 }

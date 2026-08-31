@@ -49,14 +49,14 @@
     "ajv": "^8.20.0"
   },
   "devDependencies": {
-    "@types/node": "22.19.19",
+    "@types/node": "catalog:",
     "@vercel/ai-tsconfig": "workspace:*",
     "@workflow/vitest": "5.0.0-beta.42",
-    "tsup": "^8.5.1",
-    "typescript": "5.8.3",
-    "vitest": "4.1.6",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
     "workflow": "5.0.0-beta.42",
-    "zod": "4.4.3"
+    "zod": "catalog:"
   },
   "peerDependencies": {
     "workflow": "^5.0.0-beta.42",

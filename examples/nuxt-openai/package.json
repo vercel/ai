@@ -13,13 +13,13 @@
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/vue": "workspace:*",
     "ai": "workspace:*",
-    "zod": "3.25.76"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@nuxt/devtools": "3.3.1",
     "@nuxt/ui-templates": "1.3.4",
     "@nuxtjs/tailwindcss": "6.12.2",
-    "@types/node": "22.19.19",
+    "@types/node": "catalog:",
     "@vue/reactivity": "3.5.13",
     "@vue/runtime-core": "3.5.12",
     "@vue/runtime-dom": "3.5.13",

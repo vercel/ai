@@ -38,20 +38,20 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "ws": "^8.21.0"
+    "ws": "catalog:"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.245",
-    "@modelcontextprotocol/sdk": "1.30.0",
-    "@types/node": "22.19.19",
-    "@types/ws": "^8.5.13",
+    "@modelcontextprotocol/sdk": "catalog:",
+    "@types/node": "catalog:",
+    "@types/ws": "catalog:",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
-    "typescript": "5.8.3",
-    "zod": "3.25.76"
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "zod": "catalog:"
   },
   "engines": {
     "node": ">=22"

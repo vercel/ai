@@ -42,10 +42,10 @@
     "@ai-sdk/provider-utils": "workspace:*",
     "@langchain/core": "^1.1.46",
     "@langchain/langgraph": "^1.3.0",
-    "@types/node": "22.19.19",
+    "@types/node": "catalog:",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
-    "typescript": "5.8.3"
+    "tsup": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "@langchain/core": ">=1.0.0",
