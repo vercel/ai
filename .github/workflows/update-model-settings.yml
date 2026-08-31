@@ -54,15 +54,10 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/setup@84cb39b217b10273981911c288cd62326dc7c6d2 # v2
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+          runtime: node@22
+          cache: true
+          require-lockfile: true
 
       - name: Generate model settings
         id: generate-model-settings-script
