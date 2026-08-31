@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.106
+
+### Patch Changes
+
+- 85ba0b0: Preserve explicit prompt cache breakpoints on scalar Responses tool results.
+
 ## 3.0.105
 
 ### Patch Changes
