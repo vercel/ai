@@ -401,6 +401,32 @@ describe('XaiFiles', () => {
     });
   });
 
+  describe('uploadFile (expiresAfter validation)', () => {
+    it.each([100, 0.5, 3599.5, 2592001])(
+      'should reject invalid expiresAfter %j without a fetch call',
+      async expiresAfter => {
+        const fetchMock = mockFetchResponse({ body: defaultResponseBody });
+
+        const files = new XaiFiles({
+          provider: 'xai.files',
+          baseURL: 'https://api.x.ai/v1',
+          headers: mockHeaders,
+          fetch: fetchMock,
+        });
+
+        await expect(
+          files.uploadFile({
+            data: { type: 'data', data: new Uint8Array([1]) },
+            mediaType: 'application/octet-stream',
+            providerOptions: { xai: { expiresAfter } },
+          }),
+        ).rejects.toThrow();
+
+        expect(fetchMock).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   describe('retrieveFile', () => {
     it('should retrieve file metadata via GET', async () => {
       const fetchMock = mockFetchResponse({
@@ -430,6 +456,43 @@ describe('XaiFiles', () => {
       expect(result.createdAt).toEqual(new Date(1700000000 * 1000));
       expect(result.expiresAt).toEqual(new Date(1700172800 * 1000));
     });
+
+    it.each(['', '   '])(
+      'should reject a blank xai file id (%j)',
+      async fileId => {
+        const files = new XaiFiles({
+          provider: 'xai.files',
+          baseURL: 'https://api.x.ai/v1',
+          headers: mockHeaders,
+        });
+
+        await expect(
+          files.retrieveFile({ file: { xai: fileId } }),
+        ).rejects.toThrow("file reference is missing an 'xai' file id.");
+      },
+    );
+
+    it.each([
+      ['.', 'https://api.x.ai/v1/files/%252E'],
+      ['..', 'https://api.x.ai/v1/files/%252E%252E'],
+    ])(
+      'should encode a dot-segment file id (%j) so it cannot retarget the path',
+      async (fileId, expectedUrl) => {
+        const fetchMock = mockFetchResponse({ body: defaultResponseBody });
+
+        const files = new XaiFiles({
+          provider: 'xai.files',
+          baseURL: 'https://api.x.ai/v1',
+          headers: mockHeaders,
+          fetch: fetchMock,
+        });
+
+        await files.retrieveFile({ file: { xai: fileId } });
+
+        const [url] = fetchMock.mock.calls[0];
+        expect(url).toBe(expectedUrl);
+      },
+    );
 
     it('should reject a reference without an xai file id', async () => {
       const files = new XaiFiles({

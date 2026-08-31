@@ -44,6 +44,17 @@ interface XaiFilesConfig {
 
 type XaiFilesResponse = InferSchema<typeof xaiFilesResponseSchema>;
 
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
+}
+
 export class XaiFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
 
@@ -55,7 +66,7 @@ export class XaiFiles implements FilesV4 {
 
   private getFileId(file: SharedV4ProviderReference): string {
     const fileId = file.xai;
-    if (fileId == null) {
+    if (fileId == null || fileId.trim() === '') {
       throw new InvalidArgumentError({
         argument: 'file',
         message: "file reference is missing an 'xai' file id.",
@@ -194,7 +205,7 @@ export class XaiFiles implements FilesV4 {
     const fileId = this.getFileId(file);
 
     const { value: response } = await getFromApi({
-      url: `${this.config.baseURL}/files/${encodeURIComponent(fileId)}`,
+      url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}`,
       headers: this.getHeaders(headers),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -230,7 +241,7 @@ export class XaiFiles implements FilesV4 {
     const fileId = this.getFileId(file);
 
     const { value: content } = await getFromApi({
-      url: `${this.config.baseURL}/files/${encodeURIComponent(fileId)}/content`,
+      url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}/content`,
       headers: this.getHeaders(headers),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createBinaryStreamResponseHandler(),
@@ -253,7 +264,7 @@ export class XaiFiles implements FilesV4 {
     const fileId = this.getFileId(file);
 
     const { value: response } = await deleteFromApi({
-      url: `${this.config.baseURL}/files/${encodeURIComponent(fileId)}`,
+      url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}`,
       headers: this.getHeaders(headers),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
