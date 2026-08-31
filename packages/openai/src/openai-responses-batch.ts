@@ -166,6 +166,23 @@ class OpenAIResponsesBatch {
       for (const warning of preparedRequest.warnings) {
         warnings.push({ requestId: request.id, warning });
       }
+
+      for (const tool of request.options.tools ?? []) {
+        if (
+          tool.type === 'provider' &&
+          !openAIBatchConvertibleProviderToolIds.has(tool.id)
+        ) {
+          warnings.push({
+            requestId: request.id,
+            warning: {
+              type: 'unsupported',
+              feature: `batch result conversion for tool "${tool.name}"`,
+              details:
+                'OpenAI may return output for this tool that AI SDK text batches cannot currently convert.',
+            },
+          });
+        }
+      }
     }
 
     const filename = 'batch.jsonl';
@@ -384,6 +401,14 @@ class OpenAIResponsesBatch {
     });
   }
 }
+
+const openAIBatchConvertibleProviderToolIds = new Set([
+  'openai.code_interpreter',
+  'openai.custom',
+  'openai.file_search',
+  'openai.web_search',
+  'openai.web_search_preview',
+]);
 
 export class OpenAIResponsesBatchLanguageModel
   extends OpenAIResponsesLanguageModel

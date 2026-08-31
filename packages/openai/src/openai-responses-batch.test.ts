@@ -229,6 +229,41 @@ describe('OpenAI batch language models', () => {
     });
   });
 
+  it('warns when a provider tool can return unsupported batch output', async () => {
+    prepareCreateResponse();
+    const model = createOpenAI({ apiKey: 'test-api-key' }).responses('gpt-5.6');
+
+    const result = await model.experimental_doStartBatch({
+      requests: [
+        {
+          id: 'image',
+          ...request('Generate an image.'),
+          options: {
+            ...request('Generate an image.').options,
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.image_generation',
+                name: 'image',
+                args: {},
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(result.warnings).toContainEqual({
+      requestId: 'image',
+      warning: {
+        type: 'unsupported',
+        feature: 'batch result conversion for tool "image"',
+        details:
+          'OpenAI may return output for this tool that AI SDK text batches cannot currently convert.',
+      },
+    });
+  });
+
   it('appends an explicit compaction trigger to batch request input', async () => {
     prepareCreateResponse();
     const model = createOpenAI({
