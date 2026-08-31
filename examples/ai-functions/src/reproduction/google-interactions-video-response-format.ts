@@ -132,6 +132,7 @@ async function verifyGenerateText(providerCase: ProviderCase) {
   const result = await generateText({
     model: providerCase.model,
     prompt,
+    include: { requestBody: true },
     providerOptions: {
       google: providerCase.providerOptions,
     },
@@ -154,6 +155,8 @@ async function verifyStreamText(providerCase: ProviderCase) {
   const result = streamText({
     model: providerCase.model,
     prompt,
+    include: { requestBody: true },
+    onError: () => {},
     providerOptions: {
       google: providerCase.providerOptions,
     },
