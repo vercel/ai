@@ -19,7 +19,8 @@ import type { UploadFileResult } from './upload-file-result';
  * @param data - The file data to upload (tagged `{ type: 'data' | 'text' | 'stream' }`).
  * Stream data is sent without buffering by providers that support streaming
  * uploads (others reject with `UnsupportedFunctionalityError`); the provider
- * consumes the stream — on failure it is cancelled, do not reuse it.
+ * consumes the stream — any failed upload, including validation failures
+ * before a request is made, cancels it. Do not reuse it.
  * @param mediaType - Optional IANA media type. Auto-detected from file bytes
  * when omitted (falls back to `text/plain` for the `text` variant and
  * `application/octet-stream` for the `stream` variant, which cannot be sniffed).
@@ -77,25 +78,35 @@ export async function uploadFile({
             ? 'text/plain'
             : 'application/octet-stream')));
 
-  const filesApi: FilesV4 =
-    'uploadFile' in api
-      ? api
-      : typeof api.files === 'function'
-        ? api.files()
-        : (() => {
-            throw new Error(
-              'The provider does not support file uploads. Make sure it exposes a files() method.',
-            );
-          })();
+  let result;
+  try {
+    const filesApi: FilesV4 =
+      'uploadFile' in api
+        ? api
+        : typeof api.files === 'function'
+          ? api.files()
+          : (() => {
+              throw new Error(
+                'The provider does not support file uploads. Make sure it exposes a files() method.',
+              );
+            })();
 
-  const result = await filesApi.uploadFile({
-    data,
-    mediaType,
-    filename,
-    abortSignal,
-    headers,
-    providerOptions,
-  });
+    result = await filesApi.uploadFile({
+      data,
+      mediaType,
+      filename,
+      abortSignal,
+      headers,
+      providerOptions,
+    });
+  } catch (error) {
+    // ownership guarantee: a failed upload releases the stream, even when
+    // the provider rejected before (or without) consuming it
+    if (data.type === 'stream') {
+      await data.stream.cancel(error).catch(() => {});
+    }
+    throw error;
+  }
 
   return new DefaultUploadFileResult({
     providerReference: result.providerReference,

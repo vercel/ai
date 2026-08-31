@@ -1,5 +1,5 @@
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to-uint8-array';
 
 describe('convertInlineFileDataToUint8Array', () => {
@@ -25,12 +25,14 @@ describe('convertInlineFileDataToUint8Array', () => {
     ).toEqual(new TextEncoder().encode('abc'));
   });
 
-  it('rejects stream data with UnsupportedFunctionalityError', () => {
+  it('rejects stream data with UnsupportedFunctionalityError and cancels the stream', async () => {
+    const cancelSpy = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+
     expect(() =>
-      convertInlineFileDataToUint8Array({
-        type: 'stream',
-        stream: new ReadableStream(),
-      }),
+      convertInlineFileDataToUint8Array({ type: 'stream', stream }),
     ).toThrow(UnsupportedFunctionalityError);
+
+    await vi.waitFor(() => expect(cancelSpy).toHaveBeenCalled());
   });
 });
