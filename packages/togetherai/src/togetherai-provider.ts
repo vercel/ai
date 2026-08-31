@@ -114,6 +114,12 @@ function loadDeprecatedApiKey(): string | undefined {
   return key;
 }
 
+export function getModelStructuredOutputSupport(
+  modelId: TogetherAIChatModelId,
+): boolean {
+  return modelId === 'deepseek-ai/DeepSeek-V4-Flash-0731';
+}
+
 export function createTogetherAI(
   options: TogetherAIProviderSettings = {},
 ): TogetherAIProvider {
@@ -148,17 +154,18 @@ export function createTogetherAI(
   });
 
   const createChatModel = (modelId: TogetherAIChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(
-      modelId,
-      getCommonModelConfig('chat'),
-    );
+    return new OpenAICompatibleChatLanguageModel(modelId, {
+      ...getCommonModelConfig('chat'),
+      includeUsage: true,
+      supportsStructuredOutputs: getModelStructuredOutputSupport(modelId),
+    });
   };
 
   const createCompletionModel = (modelId: TogetherAICompletionModelId) =>
-    new OpenAICompatibleCompletionLanguageModel(
-      modelId,
-      getCommonModelConfig('completion'),
-    );
+    new OpenAICompatibleCompletionLanguageModel(modelId, {
+      ...getCommonModelConfig('completion'),
+      includeUsage: true,
+    });
 
   const createEmbeddingModel = (modelId: TogetherAIEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(

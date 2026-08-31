@@ -1,12 +1,14 @@
-export type OpenCodeEvent = {
-  id?: string;
-  type?: string;
-  properties?: Record<string, any>;
-};
+import {
+  asOpenCodeObject,
+  type OpenCodeEvent,
+  type OpenCodeEventProperties,
+  type OpenCodeMessageInfo,
+} from './opencode-types';
 
 type Emit = (msg: Record<string, unknown>) => void;
 
 export type TranslationState = {
+  streamStarted: boolean;
   textDeltas: Map<string, string>;
   reasoningDeltas: Map<string, string>;
   toolInputs: Map<string, string>;
@@ -20,10 +22,12 @@ export type TranslationState = {
   legacyTextPartIds: Set<string>;
   legacyReasoningPartIds: Set<string>;
   legacyStepFinishPartIds: Set<string>;
+  dynamicToolCallIds: Set<string>;
 };
 
 export function createTranslationState(): TranslationState {
   return {
+    streamStarted: false,
     textDeltas: new Map(),
     reasoningDeltas: new Map(),
     toolInputs: new Map(),
@@ -37,26 +41,53 @@ export function createTranslationState(): TranslationState {
     legacyTextPartIds: new Set(),
     legacyReasoningPartIds: new Set(),
     legacyStepFinishPartIds: new Set(),
+    dynamicToolCallIds: new Set(),
   };
+}
+
+export function emitOpenCodeStreamStart({
+  info,
+  state,
+  emit,
+}: {
+  info: unknown;
+  state: TranslationState;
+  emit: Emit;
+}): void {
+  if (state.streamStarted) return;
+  const message = openCodeMessageInfoFromValue(info);
+  if (!message) return;
+  if (message.role !== 'assistant' && message.type !== 'assistant') return;
+  const providerID = stringValue(message.providerID);
+  const modelID = stringValue(message.modelID);
+  const modelId =
+    providerID && modelID ? `${providerID}/${modelID}` : undefined;
+
+  state.streamStarted = true;
+  emit({ type: 'stream-start', ...(modelId ? { modelId } : {}) });
 }
 
 export function unwrapOpenCodeEvent(
   rawEvent: unknown,
 ): OpenCodeEvent | undefined {
-  if (!rawEvent || typeof rawEvent !== 'object') return undefined;
-  const raw = rawEvent as Record<string, any>;
+  const raw = asOpenCodeObject(rawEvent);
+  if (!raw) return undefined;
   if (raw.type === 'sync' && raw.syncEvent) {
-    const sync = raw.syncEvent as Record<string, any>;
+    const sync = asOpenCodeObject(raw.syncEvent);
+    if (!sync) return undefined;
     return {
       id: String(sync.id ?? raw.id ?? ''),
       type: stripSyncVersion(String(sync.type ?? '')),
-      properties: asRecord(sync.data) ?? {},
+      properties: openCodeEventPropertiesFromValue(sync.data) ?? {},
     };
   }
   return {
     id: typeof raw.id === 'string' ? raw.id : undefined,
     type: typeof raw.type === 'string' ? stripSyncVersion(raw.type) : undefined,
-    properties: asRecord(raw.properties) ?? asRecord(raw.data) ?? {},
+    properties:
+      openCodeEventPropertiesFromValue(raw.properties) ??
+      openCodeEventPropertiesFromValue(raw.data) ??
+      {},
   };
 }
 
@@ -70,15 +101,19 @@ export function getOpenCodeEventSessionId(
   if (event.type?.startsWith('session.') && typeof props.id === 'string') {
     return props.id;
   }
-  const part = props.part;
+  const info = asOpenCodeObject(props.info);
+  if (typeof info?.sessionID === 'string') return info.sessionID;
   if (
-    part &&
-    typeof part === 'object' &&
-    !Array.isArray(part) &&
-    typeof (part as { sessionID?: unknown }).sessionID === 'string'
+    (event.type === 'session.created' ||
+      event.type === 'session.updated' ||
+      event.type === 'session.deleted') &&
+    typeof info?.id === 'string'
   ) {
-    return (part as { sessionID: string }).sessionID;
+    return info.id;
   }
+  const part = props.part;
+  const partObject = asOpenCodeObject(part);
+  if (typeof partObject?.sessionID === 'string') return partObject.sessionID;
   return undefined;
 }
 
@@ -178,21 +213,21 @@ export function emitLegacyTextPartUpdate({
   state: TranslationState;
   emit: Emit;
 }): boolean {
-  if (!isRecord(part)) return false;
-  if (part.type !== 'text' && part.type !== 'reasoning') return false;
-  const id = stringValue(part.id);
+  const textPart = legacyTextPartFromValue(part);
+  if (!textPart) return false;
+  const id = stringValue(textPart.id);
   if (!id) return true;
 
-  const messageID = stringValue(part.messageID);
+  const messageID = stringValue(textPart.messageID);
   if (messageID && state.messageRoles.get(messageID) === 'user') return true;
 
-  const isReasoning = part.type === 'reasoning';
+  const isReasoning = textPart.type === 'reasoning';
   const ids = isReasoning
     ? state.legacyReasoningPartIds
     : state.legacyTextPartIds;
   const deltaMap = isReasoning ? state.reasoningDeltas : state.textDeltas;
   const deltaType = isReasoning ? 'reasoning-delta' : 'text-delta';
-  const text = typeof part.text === 'string' ? part.text : undefined;
+  const text = typeof textPart.text === 'string' ? textPart.text : undefined;
 
   startLegacyPart({
     ids,
@@ -212,7 +247,7 @@ export function emitLegacyTextPartUpdate({
     deltaMap.set(id, text);
   }
 
-  if (legacyPartEnded(part)) {
+  if (textPart.time?.end != null) {
     ids.delete(id);
     deltaMap.delete(id);
     emit({ type: isReasoning ? 'reasoning-end' : 'text-end', id });
@@ -223,16 +258,6 @@ export function emitLegacyTextPartUpdate({
 
 function stripSyncVersion(type: string): string {
   return type.replace(/\.\d+$/, '');
-}
-
-function asRecord(value: unknown): Record<string, any> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    return undefined;
-  return value as Record<string, any>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
 function stringValue(value: unknown): string | undefined {
@@ -265,6 +290,36 @@ function startLegacyPart({
   emit({ type: `${type}-start`, id });
 }
 
-function legacyPartEnded(part: Record<string, unknown>): boolean {
-  return isRecord(part.time) && part.time.end != null;
+export function openCodeMessageInfoFromValue(
+  value: unknown,
+): OpenCodeMessageInfo | undefined {
+  return asOpenCodeObject(value) as OpenCodeMessageInfo | undefined;
+}
+
+function openCodeEventPropertiesFromValue(
+  value: unknown,
+): OpenCodeEventProperties | undefined {
+  return asOpenCodeObject(value) as OpenCodeEventProperties | undefined;
+}
+
+type LegacyTextPart = {
+  type: 'text' | 'reasoning';
+  id?: unknown;
+  messageID?: unknown;
+  text?: unknown;
+  time?: { end?: unknown };
+};
+
+function legacyTextPartFromValue(value: unknown): LegacyTextPart | undefined {
+  const part = asOpenCodeObject(value);
+  if (!part || (part.type !== 'text' && part.type !== 'reasoning')) {
+    return undefined;
+  }
+  return {
+    type: part.type,
+    id: part.id,
+    messageID: part.messageID,
+    text: part.text,
+    time: asOpenCodeObject(part.time),
+  };
 }

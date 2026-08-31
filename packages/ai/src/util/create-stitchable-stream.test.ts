@@ -132,6 +132,28 @@ describe('createStitchableStream', () => {
         'Test error',
       );
     });
+
+    it('should call the inner stream error callback', async () => {
+      const { stream, addStream } = createStitchableStream<number>();
+      let receivedError: unknown;
+      const error = new Error('Test error');
+
+      addStream(
+        new ReadableStream({
+          start(controller) {
+            controller.error(error);
+          },
+        }),
+        {
+          onError(error) {
+            receivedError = error;
+          },
+        },
+      );
+
+      await expect(convertReadableStreamToArray(stream)).rejects.toThrow(error);
+      expect(receivedError).toBe(error);
+    });
   });
 
   describe('cancellation & closing', () => {
@@ -168,6 +190,50 @@ describe('createStitchableStream', () => {
 
       expect(stream1Cancelled).toBe(true);
       expect(stream2Cancelled).toBe(true);
+    });
+
+    it('should call the inner stream cancellation callbacks', async () => {
+      const { stream, addStream } = createStitchableStream<number>();
+      let stream1CallbackCalled = false;
+      let stream2CallbackCalled = false;
+
+      addStream(new ReadableStream(), {
+        onCancel() {
+          stream1CallbackCalled = true;
+        },
+      });
+      addStream(new ReadableStream(), {
+        onCancel() {
+          stream2CallbackCalled = true;
+        },
+      });
+
+      await stream.cancel();
+
+      expect(stream1CallbackCalled).toBe(true);
+      expect(stream2CallbackCalled).toBe(true);
+    });
+
+    it('should discard streams added after cancellation and allow closing', async () => {
+      const { stream, addStream, close } = createStitchableStream<number>();
+      let lateStreamCancelled = false;
+
+      await stream.cancel();
+
+      expect(() =>
+        addStream(
+          new ReadableStream({
+            cancel() {
+              lateStreamCancelled = true;
+            },
+          }),
+        ),
+      ).not.toThrow();
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(lateStreamCancelled).toBe(true);
+      expect(() => close()).not.toThrow();
     });
 
     it('should throw an error when adding a stream after closing', async () => {

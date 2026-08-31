@@ -22,7 +22,6 @@ export default function SandboxPage() {
       new WorkflowChatTransport({
         api: '/api/sandbox-chat',
         maxConsecutiveErrors: 5,
-        initialStartIndex: -50,
         onChatSendMessage: response => {
           setWorkflowRunId(
             response.headers.get('x-workflow-run-id') ?? undefined,

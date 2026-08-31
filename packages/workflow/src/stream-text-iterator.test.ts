@@ -14,6 +14,7 @@ import type {
 } from '@ai-sdk/provider';
 import type {
   Experimental_LanguageModelStreamPart,
+  ModelMessage,
   StepResult,
   ToolSet,
 } from 'ai';
@@ -63,11 +64,13 @@ const mockUsage = {
 function createMockFinish(
   finishReason: 'stop' | 'tool-calls' = 'stop',
   rawFinishReason: string = 'stop',
+  providerMetadata?: Record<string, Record<string, unknown>>,
 ) {
   return {
     finishReason,
     rawFinishReason,
     usage: mockUsage,
+    providerMetadata,
   };
 }
 
@@ -75,16 +78,18 @@ function createMockDoStreamStepResult({
   toolCalls = [] as ParsedToolCall[],
   finishReason = 'stop' as 'stop' | 'tool-calls',
   finishRaw = 'stop',
+  providerMetadata,
   rawOverrides = {},
 }: {
   toolCalls?: ParsedToolCall[];
   finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
+  providerMetadata?: Record<string, Record<string, unknown>>;
   rawOverrides?: Partial<DoStreamStepRawResult>;
 } = {}) {
   return {
     toolCalls,
-    finish: createMockFinish(finishReason, finishRaw),
+    finish: createMockFinish(finishReason, finishRaw, providerMetadata),
     // doStreamStep now returns minimal raw aggregates; the iterator
     // reconstructs the StepResult via buildStepResult.
     raw: {
@@ -103,7 +108,142 @@ describe('streamTextIterator', () => {
     vi.clearAllMocks();
   });
 
+  describe('generation settings', () => {
+    it('merges defined prepareStep overrides', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        generationSettings: {
+          temperature: 0.2,
+          topP: 0.5,
+        },
+        prepareStep: () => ({
+          temperature: undefined,
+          topP: 0.9,
+          maxOutputTokens: 256,
+        }),
+      });
+
+      await iterator.next();
+
+      expect(vi.mocked(doStreamStep).mock.calls[0]?.[4]).toMatchObject({
+        temperature: 0.2,
+        topP: 0.9,
+        maxOutputTokens: 256,
+      });
+    });
+
+    it('passes the absolute timeout deadline across the step boundary', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
+      const timeoutAt = Date.now() + 5000;
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        timeoutAt,
+      });
+
+      await iterator.next();
+
+      expect(vi.mocked(doStreamStep).mock.calls[0]?.[4]).toMatchObject({
+        timeoutAt,
+      });
+    });
+
+    it('returns an aborted result without reporting an error', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue({ aborted: true });
+      const onError = vi.fn();
+      const prompt: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const iterator = streamTextIterator({
+        prompt,
+        tools: {},
+        model: vi.fn() as any,
+        onError,
+      });
+
+      await expect(iterator.next()).resolves.toEqual({
+        done: true,
+        value: { aborted: true, messages: prompt },
+      });
+      expect(onError).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('telemetry', () => {
+    it('should expose provider metadata on model-call end', async () => {
+      vi.mocked(doStreamStep).mockResolvedValue(
+        createMockDoStreamStepResult({
+          providerMetadata: {
+            gateway: { generationId: 'generation-id' },
+          },
+        }),
+      );
+      const onLanguageModelCallEnd = vi.fn();
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        telemetry: {
+          integrations: {
+            onLanguageModelCallEnd,
+          },
+        },
+      });
+
+      await iterator.next();
+
+      expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerMetadata: {
+            gateway: { generationId: 'generation-id' },
+          },
+        }),
+      );
+    });
+  });
+
   describe('conversation prompt', () => {
+    it('passes initial instructions and messages to prepareStep', async () => {
+      vi.mocked(doStreamStep).mockResolvedValueOnce(
+        createMockDoStreamStepResult(),
+      );
+      const initialMessages: ModelMessage[] = [
+        { role: 'user', content: 'initial message' },
+      ];
+      const prepareStep = vi.fn(() => ({}));
+
+      const iterator = streamTextIterator({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'initial message' }],
+          },
+        ],
+        initialInstructions: 'initial instructions',
+        initialMessages,
+        tools: {},
+        model: vi.fn() as any,
+        prepareStep,
+      });
+
+      await iterator.next();
+
+      expect(prepareStep).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initialInstructions: 'initial instructions',
+          initialMessages,
+        }),
+      );
+    });
+
     it('preserves assistant text alongside tool calls for the next step', async () => {
       let capturedPrompt: LanguageModelV4Prompt | undefined;
 

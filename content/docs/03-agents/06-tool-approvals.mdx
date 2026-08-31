@@ -236,6 +236,9 @@ export default function Chat() {
       if (part.state === 'approval-requested' && !part.approval.isAutomatic) {
         return (
           <div key={part.toolCallId}>
+            {part.approval.requestReason && (
+              <p>{part.approval.requestReason}</p>
+            )}
             <button
               onClick={() =>
                 addToolApprovalResponse({
@@ -265,6 +268,9 @@ export default function Chat() {
 ```
 
 Only call `addToolApprovalResponse` for manual approvals. Automatic approvals and denials already include approval state in the stream.
+When a manual approval status includes a reason, it is available as
+`part.approval.requestReason`. A reason supplied with
+`addToolApprovalResponse` is stored separately as `part.approval.reason`.
 
 ## Security Considerations
 

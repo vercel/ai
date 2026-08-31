@@ -13,7 +13,7 @@ const usage = {
 };
 
 describe('createTurnTelemetry', () => {
-  test('includes the current stepNumber on onStepEnd events', () => {
+  test('includes the current stepNumber on onStepEnd events', async () => {
     const stepStartNumbers: number[] = [];
     const stepEndNumbers: number[] = [];
     const integration = {
@@ -30,20 +30,23 @@ describe('createTurnTelemetry', () => {
       harnessId: 'mock',
       modelId: 'mock-model',
       instructions: undefined,
+      tools: {},
+      activeToolNames: [],
+      toolSpecs: [],
       promptText: 'go',
       runtimeContext: undefined,
     });
 
-    telemetry.start();
-    telemetry.ensureStepOpen();
-    telemetry.stepFinish({
+    await telemetry.start();
+    await telemetry.ensureStepOpen();
+    await telemetry.stepFinish({
       finishReason: { unified: 'stop', raw: 'stop' },
       usage,
       content: [{ type: 'text', text: 'done' }],
     });
 
-    telemetry.ensureStepOpen();
-    telemetry.end({
+    await telemetry.ensureStepOpen();
+    await telemetry.end({
       finishReason: { unified: 'stop', raw: 'stop' },
       usage,
     });
