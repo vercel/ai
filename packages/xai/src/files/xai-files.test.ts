@@ -310,6 +310,7 @@ describe('XaiFiles', () => {
       expect(result.providerMetadata).toEqual({
         xai: expect.objectContaining({ expiresAt: 1234740690 }),
       });
+      expect(result.expiresAt).toEqual(new Date(1234740690 * 1000));
     });
 
     it('should omit expires_after when not requested', async () => {

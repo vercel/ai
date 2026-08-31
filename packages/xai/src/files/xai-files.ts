@@ -173,6 +173,13 @@ export class XaiFiles implements FilesV4 {
         ? { filename: response.filename ?? filename }
         : {}),
       ...(mediaType != null ? { mediaType } : {}),
+      ...(response.bytes != null ? { byteSize: response.bytes } : {}),
+      ...(response.created_at != null
+        ? { createdAt: new Date(response.created_at * 1000) }
+        : {}),
+      ...(response.expires_at != null
+        ? { expiresAt: new Date(response.expires_at * 1000) }
+        : {}),
       providerMetadata: {
         xai: this.toFileMetadata(response),
       },
