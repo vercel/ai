@@ -22,6 +22,22 @@ export type FilesV4UploadFileResult = {
   filename?: string;
 
   /**
+   * The size of the uploaded file in bytes, if available from the provider.
+   */
+  byteSize?: number;
+
+  /**
+   * When the file was created, if available from the provider.
+   */
+  createdAt?: Date;
+
+  /**
+   * When the provider will delete the file (retention expiry, e.g. from a
+   * requested upload TTL), if available from the provider.
+   */
+  expiresAt?: Date;
+
+  /**
    * Additional provider-specific metadata. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
