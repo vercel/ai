@@ -12,7 +12,7 @@ import * as fsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { createACP } from './acp-harness';
-import { resolveBridgeAssetCandidates } from './v1/acp-bootstrap';
+import { resolveBridgeAssetCandidates } from './v1/acp-v1-bootstrap';
 import { serializeBuiltinTools } from './v1/acp-v1-harness';
 import { ACP_BRIDGE_CONFIGURATION_ENV } from './v1/bridge/acp-v1-bridge-environment';
 import type { ACPPermissionModeMapping } from './v1/acp-v1-settings';

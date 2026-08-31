@@ -55,7 +55,7 @@ import {
   resolveImplementationEnvironment,
   validateACPV1Implementation,
 } from './implementation';
-import { createACPBootstrap } from './acp-bootstrap';
+import { createACPBootstrap } from './acp-v1-bootstrap';
 import {
   outboundMessageSchema,
   type ACPBuiltinToolMapping,
