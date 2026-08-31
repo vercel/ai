@@ -89,11 +89,20 @@ export class XaiFiles implements FilesV4 {
     headers,
     providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    const xaiOptions = (await parseProviderOptions({
-      provider: 'xai',
-      providerOptions,
-      schema: xaiFilesOptionsSchema,
-    })) as XaiFilesOptions | undefined;
+    let xaiOptions: XaiFilesOptions | undefined;
+    try {
+      xaiOptions = (await parseProviderOptions({
+        provider: 'xai',
+        providerOptions,
+        schema: xaiFilesOptionsSchema,
+      })) as XaiFilesOptions | undefined;
+    } catch (error) {
+      // rejected before any request: release the caller's stream
+      if (data.type === 'stream') {
+        await data.stream.cancel(error).catch(() => {});
+      }
+      throw error;
+    }
 
     const requestHeaders = this.getHeaders(headers);
     const url = `${this.config.baseURL}/files`;
@@ -240,7 +249,7 @@ export class XaiFiles implements FilesV4 {
   }: FilesV4DownloadFileCallOptions): Promise<FilesV4DownloadFileResult> {
     const fileId = this.getFileId(file);
 
-    const { value: content } = await getFromApi({
+    const { value: content, responseHeaders } = await getFromApi({
       url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}/content`,
       headers: this.getHeaders(headers),
       failedResponseHandler: xaiFailedResponseHandler,
@@ -250,9 +259,13 @@ export class XaiFiles implements FilesV4 {
       validateUrl: false,
     });
 
+    // media type from the content endpoint's Content-Type, without parameters
+    const mediaType = responseHeaders?.['content-type']?.split(';')[0].trim();
+
     return {
       warnings: [],
       content,
+      ...(mediaType ? { mediaType } : {}),
     };
   }
 

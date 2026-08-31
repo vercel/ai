@@ -402,6 +402,30 @@ describe('XaiFiles', () => {
   });
 
   describe('uploadFile (expiresAfter validation)', () => {
+    it('should cancel stream data when expiresAfter is invalid', async () => {
+      const cancelSpy = vi.fn();
+      const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+      const fetchMock = mockFetchResponse({ body: defaultResponseBody });
+
+      const files = new XaiFiles({
+        provider: 'xai.files',
+        baseURL: 'https://api.x.ai/v1',
+        headers: mockHeaders,
+        fetch: fetchMock,
+      });
+
+      await expect(
+        files.uploadFile({
+          data: { type: 'stream', stream },
+          mediaType: 'application/jsonl',
+          providerOptions: { xai: { expiresAfter: 100 } },
+        }),
+      ).rejects.toThrow();
+
+      expect(cancelSpy).toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it.each([100, 0.5, 3599.5, 2592001])(
       'should reject invalid expiresAfter %j without a fetch call',
       async expiresAfter => {
@@ -532,6 +556,45 @@ describe('XaiFiles', () => {
       expect(await new Response(result.content).text()).toBe(
         '{"result":"ok"}\n',
       );
+    });
+
+    it('should expose the response content type as mediaType (parameters stripped)', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response('{"result":"ok"}\n', {
+          status: 200,
+          headers: { 'content-type': 'application/jsonl; charset=utf-8' },
+        }),
+      );
+
+      const files = new XaiFiles({
+        provider: 'xai.files',
+        baseURL: 'https://api.x.ai/v1',
+        headers: mockHeaders,
+        fetch: fetchMock,
+      });
+
+      const result = await files.downloadFile({ file: { xai: 'file-abc123' } });
+
+      expect(result.mediaType).toBe('application/jsonl');
+    });
+
+    it('should omit mediaType when the response has no content type', async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(new TextEncoder().encode('bytes'), { status: 200 }),
+        );
+
+      const files = new XaiFiles({
+        provider: 'xai.files',
+        baseURL: 'https://api.x.ai/v1',
+        headers: mockHeaders,
+        fetch: fetchMock,
+      });
+
+      const result = await files.downloadFile({ file: { xai: 'file-abc123' } });
+
+      expect(result.mediaType).toBeUndefined();
     });
   });
 
