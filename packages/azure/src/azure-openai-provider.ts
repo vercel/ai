@@ -114,7 +114,7 @@ export interface AzureOpenAIProviderSettings {
    * Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
    * When a baseURL is provided, the resourceName is ignored.
    *
-   * With an Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+   * With an Azure OpenAI or Azure AI Foundry project baseURL, the resolved URL is `{baseURL}/v1{path}`.
    * With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`.
    */
   baseURL?: string;
@@ -155,10 +155,27 @@ export interface AzureOpenAIProviderSettings {
   useDeploymentBasedUrls?: boolean;
 }
 
-function isAzureOpenAIBaseURL(baseURL: string | undefined) {
-  return (
-    baseURL == null || new URL(baseURL).hostname.endsWith('.openai.azure.com')
-  );
+type AzureEndpointKind = 'azure-openai' | 'foundry-project' | 'custom';
+
+function getAzureEndpointKind(baseURL: string | undefined): AzureEndpointKind {
+  if (baseURL == null) {
+    return 'azure-openai';
+  }
+
+  const url = new URL(baseURL);
+
+  if (url.hostname.endsWith('.openai.azure.com')) {
+    return 'azure-openai';
+  }
+
+  if (
+    url.hostname.endsWith('.services.ai.azure.com') &&
+    /^\/api\/projects\/[^/]+\/openai\/?$/.test(url.pathname)
+  ) {
+    return 'foundry-project';
+  }
+
+  return 'custom';
 }
 
 /**
@@ -221,7 +238,7 @@ export function createAzure(
     });
 
   const apiVersion = options.apiVersion ?? 'v1';
-  const useAzureOpenAIEndpoint = isAzureOpenAIBaseURL(options.baseURL);
+  const azureEndpointKind = getAzureEndpointKind(options.baseURL);
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
     const baseUrlPrefix = withoutTrailingSlash(
@@ -232,7 +249,7 @@ export function createAzure(
     if (options.useDeploymentBasedUrls) {
       // Use deployment-based format for compatibility with certain Azure OpenAI models
       fullUrl = new URL(`${baseUrlPrefix}/deployments/${modelId}${path}`);
-    } else if (!useAzureOpenAIEndpoint) {
+    } else if (azureEndpointKind === 'custom') {
       // Custom gateways can own Azure routing and versioning themselves.
       fullUrl = new URL(`${baseUrlPrefix}${path}`);
     } else {
@@ -240,7 +257,10 @@ export function createAzure(
       fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
     }
 
-    if (useAzureOpenAIEndpoint || options.useDeploymentBasedUrls) {
+    if (
+      azureEndpointKind === 'azure-openai' ||
+      options.useDeploymentBasedUrls
+    ) {
       fullUrl.searchParams.set('api-version', apiVersion);
     }
 
